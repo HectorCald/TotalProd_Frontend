@@ -55,6 +55,6 @@
     padding: 10px 15px;
     background-color: var(--secondary-color);
     position: absolute;
-    bottom: 0;
+    bottom: 10px;
     left: 0;
 }
