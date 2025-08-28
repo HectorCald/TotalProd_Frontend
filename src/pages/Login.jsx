@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from '../styles/Login.css';
+import styles from './Login.module.css';
 import Boton from '../components/common/Boton';
 import Input from '../components/common/Input';
 import googleIcon from '../assets/google-icon.png';
@@ -227,11 +227,11 @@ const Login = () => {
     //--------------------------------------------------------------------------------
     // Render
     return (
-        <div className='login-container'>
-            {loading && <div className='overlay-loading'></div>}
-            <motion.h1 className='login-logo'>
+        <div className={styles.loginContainer}>
+            {loading && <div className={styles.overlay_loading} ></div>}
+            <motion.h1 className={styles.login_logo} >
                 <motion.span
-                    className='login-logo-span'
+                    className={styles.login_logo_span}
                     initial={{ width: 0, overflow: "hidden" }}
                     animate={{ width: "100%" }}
                     transition={{ duration: 2, ease: "easeInOut" }}
@@ -256,7 +256,7 @@ const Login = () => {
                             color: "var(--primary-color)",
                         }}
                     >
-                        <BoxIcon name="cart" className='icon' />
+                        <BoxIcon name="cart" className={styles.icon} />
                     </motion.span>
                     <motion.span
                         initial={{ x: -100, opacity: 0 }}
@@ -332,10 +332,10 @@ const Login = () => {
                     </motion.span>
                 </motion.span>
             </motion.h1>
-            <p className='login-subtitle'>Bienvenido Inicia Sesión para continuar</p>
+            <p className={styles.login_subtitle} >Bienvenido Inicia Sesión para continuar</p>
             <Boton className='btn-default' icon={googleIcon} label='Continuar con Google' />
             <motion.div
-                className="info"
+                className={styles.info}
                 animate={{
                     height: errorMessage !== '' ? 40 : 0,
                     opacity: errorMessage !== '' ? 1 : 0
@@ -346,10 +346,10 @@ const Login = () => {
                 }}
             >
                 <BoxIcon name='info-circle' className='icon' />
-                <p className="text">{errorMessage}</p>
+                <p className={styles.text} >{errorMessage}</p>
             </motion.div>
             <motion.div
-                className="content"
+                className={styles.content}
                 animate={{
                     height: isRegister ? 390 : 220,
                 }}
@@ -370,8 +370,8 @@ const Login = () => {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <p className='content-title'>Iniciar Sesión</p>
-                            <div className='content-login'>
+                            <p className={styles.content_title} >Iniciar Sesión</p>
+                            <div className={styles.content_login} >
                                 <Input
                                     type="text"
                                     label="Correo electrónico"
@@ -385,7 +385,7 @@ const Login = () => {
                                     value={formDataLogin.password}
                                     onChange={(e) => handleInputChangeLogin('password', e.target.value)}
                                 />
-                                <div className='login-remember-container'>
+                                <div className= {styles.login_remember_container}>
                                     <input type="checkbox" id="remember" checked={remember} onChange={() => setRemember(!remember)} />
                                     <label htmlFor="remember">Recordarme</label>
                                 </div>
@@ -399,8 +399,8 @@ const Login = () => {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <p className='content-title'>Registrarse</p>
-                            <div className='content-register'>
+                            <p className={styles.content_title} >Registrarse</p>
+                            <div className={styles.content_register} >
                                 <Input
                                     type="text"
                                     label="Nombre Completo"
@@ -443,8 +443,8 @@ const Login = () => {
                 label={isRegister ? 'Registrarse' : 'Iniciar Sesión'}
             />
 
-            {!isRegister && <p className='login-footer'>¿Olvidaste tu contraseña?</p>}
-            <p className='login-footer'>
+            {!isRegister && <p className={styles.login_footer} >¿Olvidaste tu contraseña?</p>}
+            <p className={styles.login_footer}>
                 {isRegister ? '¿Ya tienes una cuenta?' : '¿No tienes una cuenta?'}
                 <span onClick={toggleMode}>{isRegister ? 'Iniciar sesión' : 'Regístrate'}</span>
             </p>

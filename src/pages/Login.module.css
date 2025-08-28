@@ -1,4 +1,4 @@
-.login-container {
+.loginContainer {
     width: 100vw;
     height: 100vh;
     background-color: var(--tertiary-color);
@@ -10,7 +10,7 @@
     padding-inline: 20px;
     gap: 10px;
 
-    .overlay-loading {
+    .overlay_loading {
         position: fixed;
         top: 0;
         left: 0;
@@ -23,7 +23,7 @@
         justify-content: center;
     }
 
-    .login-logo {
+    .login_logo {
         font-size: 45px;
         font-weight: 700;
         color: var(--white-color);
@@ -31,20 +31,21 @@
         .login-logo-span {
             position: relative;
 
-            .icon {
-                font-size: 47px !important;
-                transform: rotate(0deg);
-            }
+        }
+
+        .icon {
+            font-size: 47px !important;
+            transform: rotate(0deg);
         }
     }
 
-    .login-subtitle {
+    .login_subtitle {
         font-size: 14px;
         font-weight: 400;
         color: gray;
     }
 
-    .content {
+    .content{
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
@@ -57,8 +58,8 @@
         position: relative;
 
 
-        .content-login,
-        .content-register {
+        .content_login,
+        .content_register {
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -67,7 +68,7 @@
 
 
 
-        .content-title {
+        .content_title {
             font-size: 16px;
             color: var(--white-color);
             text-align: center;
@@ -76,7 +77,7 @@
         }
     }
 
-    .login-remember-container {
+    .login_remember_container {
         font-size: 12px;
         font-weight: 400;
         color: var(--primary-color);
@@ -96,7 +97,7 @@
         }
     }
 
-    .login-footer {
+    .login_footer {
         font-size: 12px;
         font-weight: 400;
         color: var(--quinary-color);
@@ -132,7 +133,7 @@
     align-items: center;
     padding-left: 10px;
 
-    .icon{
+    .icon {
         font-size: 20px !important;
     }
 }
