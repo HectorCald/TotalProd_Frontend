@@ -27,7 +27,7 @@ class UserService {
       return;
     }
     console.log('Guardando ID:', id);
-    localStorage.setItem('userId', JSON.stringify({ id }));
+    localStorage.setItem('userId', id);
   }
 
   // Obtener todos los usuarios
