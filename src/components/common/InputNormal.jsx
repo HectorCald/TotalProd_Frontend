@@ -21,7 +21,7 @@ function InputNormal({ tipo, placeholder, value, onChange, etiqueta, error }) {
                 className={styles.input}
                 type={tipo === 'password' && showPassword ? 'text' : tipo}
                 {...(tipo === 'number'
-                    ? { inputMode: 'numeric', pattern: '[0-9]*' }
+                    ? { inputMode: 'numeric'}
                     : {})}
                 placeholder={placeholder}
                 value={value}

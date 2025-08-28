@@ -91,7 +91,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                     onClose={() => setIsLogoutOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Estas seguro de que deseas cerrar sesion, esta accion borrara toda la informacion del usuario en el dispositivo?</p>
+                    <p className={styles.subTitle}>¿Estas seguro de que deseas cerrar sesión?, esta accion eliminara toda la información del usuario en el dispositivo.</p>
                     <Boton
                         className='btn-red'
                         label='Si, cerrar sesión'

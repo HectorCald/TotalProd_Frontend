@@ -2,21 +2,21 @@ export const ACOPIO_FUNCTIONS = [
     {
         name: 'Almacen',
         icon: 'store',
-        onClick: () => console.log('Ordenes clicked')
+        view: 'almacen-acopio'
     },
     {
         name: 'Procesamiento',
         icon: 'cog',
-        onClick: () => console.log('Materiales clicked')
+        view: 'proveedores'
     },
     {
         name: 'Pedidos',
         icon: 'list-check',
-        onClick: () => console.log('Calidad clicked')
+        view: 'proveedores'
     },
     {
         name: 'Registros',
         icon: 'book-content',
-        onClick: () => console.log('Inventario clicked')
+        view: 'proveedores'
     },
 ];

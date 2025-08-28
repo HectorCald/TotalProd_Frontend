@@ -6,7 +6,7 @@ const HeaderView = ({title, onBack}) => {
     return (
         <div className={styles.headerView}>
             <button className={styles.headerViewButton} onClick={onBack}>
-                <BoxIcon name='chevron-left' className={styles.icon}/>
+                <BoxIcon name='left-arrow-alt' className={styles.icon}/>
             </button>
             <h1 className={styles.headerViewTitle}>{title}</h1>
         </div>
