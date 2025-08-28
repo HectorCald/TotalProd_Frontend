@@ -23,87 +23,87 @@
         align-items: center;
         justify-content: center;
     }
+}
 
-    .login_logo {
-        font-size: 45px;
-        font-weight: 700;
-        color: var(--white-color);
+.login_logo {
+    font-size: 45px;
+    font-weight: 700;
+    color: var(--white-color);
 
-        .login-logo-span {
-            position: relative;
-
-        }
-
-        .icon {
-            font-size: 47px !important;
-            transform: rotate(0deg);
-        }
-    }
-
-    .login_subtitle {
-        font-size: 14px;
-        font-weight: 400;
-        color: gray;
-    }
-
-    .content {
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        gap: 20px;
-        background-color: var(--secondary-color);
-        width: 100%;
-        padding: 20px;
-        border-radius: 15px;
-        overflow: hidden;
+    .login-logo-span {
         position: relative;
 
-        .content_title {
-            font-size: 16px;
-            color: var(--white-color);
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
     }
 
+    .icon {
+        font-size: 47px !important;
+        transform: rotate(0deg);
+    }
+}
+
+.login_subtitle {
+    font-size: 14px;
+    font-weight: 400;
+    color: gray;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 20px;
+    background-color: var(--secondary-color);
+    width: 100%;
+    padding: 20px;
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+
+    .content_title {
+        font-size: 16px;
+        color: var(--white-color);
+        text-align: center;
+        margin-bottom: 20px;
+        font-weight: 500;
+    }
+}
 
 
-    .login_remember_container {
+
+.login_remember_container {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    input {
+        width: 15px;
+        height: 15px;
+    }
+
+    label {
         font-size: 12px;
         font-weight: 400;
         color: var(--primary-color);
-        display: flex;
-        align-items: center;
-        gap: 5px;
-
-        input {
-            width: 15px;
-            height: 15px;
-        }
-
-        label {
-            font-size: 12px;
-            font-weight: 400;
-            color: var(--primary-color);
-        }
     }
+}
 
-    .login_footer {
-        font-size: 12px;
-        font-weight: 400;
-        color: var(--quinary-color);
-        text-align: center;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        gap: 5px;
+.login_footer {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--quinary-color);
+    text-align: center;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 
-        span {
-            cursor: pointer;
-            text-decoration: underline;
-            color: var(--primary-color);
-        }
+    span {
+        cursor: pointer;
+        text-decoration: underline;
+        color: var(--primary-color);
     }
 }
 
