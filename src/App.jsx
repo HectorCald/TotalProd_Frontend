@@ -8,7 +8,7 @@ import Loading from './components/common/LoadingSpinner';
 
 function App() {
   const [hasToken, setHasToken] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
