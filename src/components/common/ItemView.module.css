@@ -1,0 +1,78 @@
+.itemView {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: 80px;
+    padding: 10px;
+    border-radius: 17px;
+    gap: 5px;
+    background-color: var(--tertiary-color);
+}
+
+.itemViewIcon {     
+    min-width: 60px;
+    min-height: 60px;
+    border-radius: 15px;
+    background-color: var(--secondary-color);
+    display: flex;
+    color: var(--primary-color);
+    align-items: center;
+    justify-content: center;
+
+    .icon{
+        font-size: 30px !important;
+    }
+}
+
+.itemViewContent {
+    font-size: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 5px;
+    height: 100%;
+    padding: 5px;
+    flex: 1;
+    min-width: 0; /* Importante para que flex-shrink funcione */
+
+    h1{
+        font-size: 15px;
+        font-weight: 400;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    p{
+        font-size: 13px;
+        color: gray;
+        font-weight: 400;
+        margin: 0;
+        padding: 0;
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* Máximo 2 líneas */
+        -webkit-box-orient: vertical;
+        width: 100%;
+    }
+}
+
+.itemViewArrow {
+    margin-left: auto;
+    padding: 0;
+    line-height: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0; /* Evita que la flecha se encoja */
+
+    .icon{
+        font-size: 30px !important;
+    }
+}

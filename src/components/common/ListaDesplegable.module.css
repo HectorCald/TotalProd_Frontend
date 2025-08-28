@@ -1,0 +1,48 @@
+.container {
+    width: 100%;
+    border-radius: 15px;
+    overflow: hidden;
+    background-color: var(--tertiary-color);
+    min-height: 50px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.titleContainer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.icon {
+    font-size: 17px !important;
+}
+
+.title {
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.arrow {
+    font-size: 20px;
+}
+
+.content {
+    overflow: hidden;
+}
+
+.innerContent {
+    padding: 15px 40px;
+    padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    font-size: 10px !important;
+}

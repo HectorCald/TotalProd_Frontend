@@ -1,0 +1,84 @@
+.btn{
+  width: 100%;
+  min-height: 45px;
+  height: 45px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  position: relative;
+  font-weight: 500;
+
+  img{
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+}
+.btn-default{
+  background-color: var(--secondary-color);
+  color: white !important;
+  border: 1px solid gray;
+}
+.btn-original{
+  background-color: var(--primary-color);
+  color: var(--white-color);
+}
+.btn-red{
+  background-color: var(--error-color);
+  color: var(--white-color);
+}
+
+
+/* Estado de carga */
+.loading {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.loading:hover {
+  transform: none;
+}
+
+/* Contenedor de puntos de carga */
+.loadingDots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Puntos individuales */
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: bounce 1.4s ease-in-out infinite both;
+}
+
+/* Animación de onda para cada punto */
+.dot:nth-child(1) { animation-delay: 0s; }
+.dot:nth-child(2) { animation-delay: 0.1s; }
+.dot:nth-child(3) { animation-delay: 0.2s; }
+.dot:nth-child(4) { animation-delay: 0.3s; }
+.dot:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 80%, 100% {
+      transform: scale(0);
+      opacity: 0.5;
+  }
+  40% {
+      transform: scale(1);
+      opacity: 1;
+  }
+}
+.disabledButton {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  display: none !important;
+}

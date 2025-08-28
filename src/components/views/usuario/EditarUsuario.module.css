@@ -1,0 +1,20 @@
+.editarUsuario {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100vw;
+    height: calc(100% - 50px);
+    padding: 20px;
+    gap: 25px;
+}
+.editarUsuarioButtons {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    height: auto;
+    gap: 25px;
+    margin-top: auto;
+}

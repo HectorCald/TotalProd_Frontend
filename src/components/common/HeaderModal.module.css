@@ -1,0 +1,36 @@
+.headerModal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-inline: 15px;
+    padding-top: 15px;
+}
+
+.headerModalTitle {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.headerModalButton {
+    max-width: 32px;
+    max-height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    color: var(--primary-color);
+}
+
+.icon {
+    max-width: 23px;
+    max-height: 30px;
+    font-size: 30px !important;
+    padding: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+}

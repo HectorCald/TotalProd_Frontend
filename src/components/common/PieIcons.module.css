@@ -1,0 +1,15 @@
+.iconContainer{
+    display: flex;
+    min-width: 100%;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+
+    .icon{
+        background: none;
+        color: gray;
+        border: none;
+        cursor: pointer;
+        font-size: 20px;
+    }
+}

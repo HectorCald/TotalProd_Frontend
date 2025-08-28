@@ -1,0 +1,30 @@
+.input{
+    width: 100%;
+    height: 55px;
+    padding: 10px 20px;
+    padding-left: 50px;
+    box-sizing: border-box;
+    outline: none;
+    border: none;
+    border-radius: 15px;
+    font-size: 16px;
+    background-color: var(--tertiary-color);
+    color: white;
+    caret-color: var(--primary-color);
+    font-weight: 500;
+
+    &::placeholder{
+        font-size: 15px;
+    }
+}
+.inputView{
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  color: gray;
+  border: none;
+  cursor: pointer;
+  z-index: 2;
+}
