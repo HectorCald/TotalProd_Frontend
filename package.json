@@ -1,5 +1,5 @@
 {
-  "name": "summa-frontend",
+  "name": "totalprod-frontend",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -37,5 +37,8 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "http://localhost:5000",
+  "devDependencies": {
+    "workbox-webpack-plugin": "^7.3.0"
+  }
 }
