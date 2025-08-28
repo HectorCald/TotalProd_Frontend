@@ -27,7 +27,8 @@ class UserService {
       return;
     }
     console.log('Guardando ID:', id);
-    localStorage.setItem('userId', id);
+    // Asegurarnos de que el ID sea una cadena
+    localStorage.setItem('userId', String(id));
   }
 
   // Obtener todos los usuarios

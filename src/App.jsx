@@ -14,12 +14,12 @@ function App() {
     const token = localStorage.getItem('authToken');
     setHasToken(!!token);
 
-    const userIdData = localStorage.getItem('userId') || {};
+    const userId = localStorage.getItem('userId');
     const fetchUser = async () => {
       try {
-        if (userIdData) {
-          setLoading(false);
-          const result = await UserService.getUserById(userIdData.id);
+        if (userId) {
+          setLoading(true);
+          const result = await UserService.getUserById(userId);
           if (result.success) {
             // Guardar el objeto completo
             localStorage.setItem('userInfo', JSON.stringify(result.data));
