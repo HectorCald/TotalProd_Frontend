@@ -47,7 +47,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={handleClose} />
-            <div className={styles.usuarioContent}>
+            <div className={styles.content}>
                 <h1 className={styles.title}>Perfil</h1>
                 <p className={styles.subTitle}>Cuenta</p>
                 <div className={styles.opciones}>
