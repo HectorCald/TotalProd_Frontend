@@ -77,9 +77,12 @@ function HistoriaPersona({ isOpen, setIsOpen, usuario }) {
 
     // Función para obtener el título del grupo según la fecha
     const getGroupTitle = (dateStr) => {
-        const date = new Date(dateStr.split(',')[0].split('/').reverse().join('-'));
+        // Parseamos la fecha manualmente
+        const [day, month, year] = dateStr.split(',')[0].split('/').map(num => parseInt(num, 10));
+        const date = new Date(year, month - 1, day); // month - 1 porque los meses en JS van de 0 a 11
+        
         const today = new Date();
-        const yesterday = new Date(today);
+        const yesterday = new Date();
         yesterday.setDate(today.getDate() - 1);
         
         // Resetear las horas para comparar solo fechas
@@ -90,9 +93,18 @@ function HistoriaPersona({ isOpen, setIsOpen, usuario }) {
         if (date.getTime() === today.getTime()) return 'Hoy';
         if (date.getTime() === yesterday.getTime()) return 'Ayer';
 
-        // Para otras fechas, mostrar el día y mes
-        const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-        return date.toLocaleDateString('es-ES', options);
+        // Array de días de la semana en español
+        const diasSemana = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        // Array de meses en español
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        
+        // Formar la fecha manualmente
+        const diaSemana = diasSemana[date.getDay()];
+        const diaMes = date.getDate();
+        const mes = meses[date.getMonth()];
+        const anio = date.getFullYear();
+
+        return `${diaSemana} ${diaMes} de ${mes} ${anio}`;
     };
 
     useEffect(() => {
