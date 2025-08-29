@@ -11,6 +11,9 @@ import HeaderModal from '../../common/HeaderModal';
 import ItemLine from '../../common/ItemLine';
 import Boton from '../../common/Boton';
 import EditarAgregar from '../almacen-acopio/EditarAgregar';
+import InputCantidad from '../../common/InputCantidad';
+import Select from '../../common/Select';
+import InputNormal from '../../common/InputNormal';
 
 const productoData = [
     {
@@ -27,22 +30,37 @@ const productoData = [
         icon: 'leaf',
     },
 ]
+const medidas = [
+    { value: 'kilo', label: 'Kilo', icon: 'tag' },
+    { value: 'quintal', label: 'Quital', icon: 'tag' },
+    { value: 'arroba', label: 'Arroba', icon: 'tag' },
+    { value: 'caja', label: 'Caja', icon: 'tag' },
+    { value: 'unidad', label: 'Unidad', icon: 'tag' },
+    { value: 'libra', label: 'Libras', icon: 'tag' },
+];
 
 
-function Registros({ isOpen, setIsOpen }) {
+function Registros({ isOpen, setIsOpen, tipo = '' }) {
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
 
     const [isOpenMateria, setOpenMateria] = useState(false);
     const [isOpenCategoria, setOpenCategoria] = useState(false);
+    const [isOpenItem, setOpenItem] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
+
+    const [selectedMedidas, setSelectedMedidas] = useState('');
 
 
     const [filtroActivo, setFiltroActivo] = useState('todos');
-    const handleRegistro = (registro) => {
-        setIsOpenVerProducto(true);
+    const handleRegistro = (registro, tipo) => {
         setInfoPersona(productoData[registro]);
+        if (tipo === 'almacen') {
+            setIsOpenVerProducto(true);
+        } else if (tipo === 'pedido') {
+            setOpenItem(true);
+        }
     };
     const opciones = [
         {
@@ -64,6 +82,7 @@ function Registros({ isOpen, setIsOpen }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
+
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Almacen Acopio</h1>
@@ -80,26 +99,41 @@ function Registros({ isOpen, setIsOpen }) {
                                 title={dato.producto}
                                 description={'Bruto: ' + dato.lotesBruto?.reduce((acc, lote) => acc + lote.peso, 0) + ' Kg.' + ' - ' + 'Prima: ' + dato.lotesPrima?.reduce((acc, lote) => acc + lote.peso, 0) + ' kg.'}
                                 icon={dato.icon}
-                                arrow={true}
-                                onClick={() => { handleRegistro(index) }}
+                                arrow={tipo !== 'almacen' ? false : true}
+                                onClick={() => handleRegistro(index, tipo)}
+                                entrada={tipo === 'pesaje' ? true : false}
+                                entradaData={[
+                                    { name: "Prima", value: 0 },
+                                    { name: "Bruta", value: 0 },
+                                ]}
                             />
                         ))
 
                     }
                 </div>
             </div>
-            <div className={styles.buttonFooter}>
-                <Boton
-                    className='btn-default'
-                    label='Categorias'
-                    onClick={() => { setIsAgregarOpen(true); }}
-                />
-                <Boton
-                    className='btn-original'
-                    label='Nuevo producto'
-                    onClick={() => { setIsAgregarOpen(true); }}
-                />
-            </div>
+            {tipo === 'almacen' ?
+                <div className={styles.buttonFooter}>
+                    <Boton
+                        className='btn-default'
+                        label='Categorias'
+                        onClick={() => { setIsAgregarOpen(true); }}
+                    />
+                    <Boton
+                        className='btn-original'
+                        label='Nuevo producto'
+                        onClick={() => { setIsAgregarOpen(true); }}
+                    />
+                </div> : ''}
+            {tipo === 'pedido' ?
+                <div className={styles.buttonFooter}>
+                    <Boton
+                        className='btn-default'
+                        label='Ordenes'
+                        onClick={() => { setIsAgregarOpen(true); }}
+                        objeto={3}
+                    />
+                </div> : ''}
             {/* Modal de ver registro*/}
             <VerProducto isOpen={isOpenVerProducto} setIsOpen={setIsOpenVerProducto} registro={infoPersona} />
 
@@ -127,6 +161,35 @@ function Registros({ isOpen, setIsOpen }) {
                 </div>
             </ViewModal>
             {/* Modal de categorias*/}
+            <ViewModal isOpen={isOpenItem} setIsOpen={setOpenItem}>
+                <HeaderModal
+                    title={infoPersona?.producto}
+                    onClose={() => setOpenItem(false)}
+                />
+                <div className={styles.modalContent}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '10px' }}>
+                        <InputCantidad value={1} onChange={() => { }} min={1} max={100000} />
+                        <Select
+                            placeholder="Medida"
+                            options={medidas}
+                            value={selectedMedidas}
+                            onChange={setSelectedMedidas}
+                            icon="ruler"
+                        />
+                    </div>
+                    <InputNormal
+                        tipo="text"
+                        value={''}
+                        placeholder='Obervaciones'
+                    />
+                    <Boton
+                        className='btn-original'
+                        label='Agregar orden'
+                        style={{ marginTop: 'auto' }}
+                    />
+                </div>
+            </ViewModal>
+            {/* Modal mostrar cantidad item*/}
             <ViewModal isOpen={isOpenCategoria} setIsOpen={setOpenCategoria}>
                 <HeaderModal
                     title="Categorias"

@@ -4,36 +4,63 @@ import HeaderModal from '../../common/HeaderModal';
 import ViewModal from '../../ui/ViewModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
+import MensajeError from '../../common/MensajeError';
 
-function EditarAgregar({ isOpen, setIsOpen, usuario='', tipo }) {
+function EditarAgregar({ isOpen, setIsOpen, usuario = '', tipo }) {
     const [dataEdit, setDataEdit] = useState({
         nombre: '',
         telefono: '',
+        direccion: '',
         pais: '',
         ciudad: '',
-        direccion: '',
     });
+
+    const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
         if (usuario) {
+            setDataEdit(usuario);
+        } else {
             setDataEdit({
-                nombre: usuario.nombre || '',
-                telefono: usuario.telefono || '',
-                pais: usuario.pais || '',
-                ciudad: usuario.ciudad || '',
-                direccion: usuario.direccion || '',
+                nombre: '',
+                telefono: '',
+                direccion: '',
+                pais: '',
+                ciudad: '',
             });
         }
-    }, [usuario]);
+    }, [isOpen]);
+
+    const handleAgregaCliente = () => {
+        if (!dataEdit.nombre.trim()) {
+            setErrorMessage('El nombre es obligatorio');
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            return;
+        }
+        if (!dataEdit.ciudad.trim()) {
+            setErrorMessage('La ciudad es obligatoria');
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            return;
+        }
+        console.log(dataEdit);
+        setIsOpen(false);
+        // Limpiar el mensaje de error si todo está bien
+        setErrorMessage('');
+        // Aquí puedes continuar con la lógica de guardar
+    }
 
     return (
-
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderModal
                 title={tipo === 'agregar' ? 'Nuevo proveedor' : 'Editar'}
                 onClose={() => setIsOpen(false)}
             />
             <div className={styles.modalContent}>
+                <MensajeError mensaje={errorMessage} />
                 <p className={styles.subTitle}>INFORMACION PERSONAL</p>
                 <InputNormal
                     tipo="text"
@@ -44,7 +71,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario='', tipo }) {
                 <InputNormal
                     tipo="number"
                     value={dataEdit.telefono}
-                    placeholder='Número de teléfono'
+                    placeholder='Celular'
                     onChange={(e) => setDataEdit({ ...dataEdit, telefono: e.target.value })}
                 />
                 <p className={styles.subTitle}>UBICACIÓN</p>
@@ -70,6 +97,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario='', tipo }) {
                     className='btn-original'
                     label={tipo === 'agregar' ? 'Agregar' : 'Guardar'}
                     style={{ marginTop: 'auto' }}
+                    onClick={handleAgregaCliente}
                 />
 
             </div>

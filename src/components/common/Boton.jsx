@@ -1,10 +1,11 @@
 import React from 'react';
 import styles from './Boton.module.css';
 
-function Boton({ label, onClick, className, icon, loading, disabled, style=''}) {
+function Boton({ label, onClick, className, icon, loading, disabled, style='', objeto}) {
   return (
     <button className={`${styles.btn} ${styles[className]} ${loading ? styles.loading : ''}`} onClick={onClick} style={{opacity: disabled ? 0.5 : 1, ...style}}>
       {icon && <img src={icon} alt="icon" />}
+      {objeto && <span className={styles.objeto} >{objeto}</span>}
       
       {loading ? (
                 <div className={styles.loadingDots}>

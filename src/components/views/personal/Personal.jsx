@@ -8,18 +8,36 @@ import VerPersona from './VerPersona';
 
 const personalData = [
     {
+        id:'USERSUM-0001',
         nombre: 'Héctor Ortiz',
         email: 'hector@example.com',
-        telefono: '999-888-777',
+        celular: '999-888-777',
         icon: 'user',
-        rol: 'Administrador',
-        estado: 'Activo',
+        rol: 'Administración',
+        estado: true,
         permisos: {
             eliminar: true,
             editar: true,
             crear: false,
             anular: false
-        }
+        },
+        plugins: ['almacen', 'ingreso'],
+    },
+    {
+        id:'USERSUM-0002',
+        nombre: 'Sergio Ramos',
+        email: 'sergio@example.com',
+        celular: '999-888-777',
+        icon: 'user',
+        rol: 'Administración',
+        estado: true,
+        permisos: {
+            eliminar: true,
+            editar: true,
+            crear: false,
+            anular: false
+        },
+        plugins: ['almacen', 'ingreso'],
     },
 ]
 

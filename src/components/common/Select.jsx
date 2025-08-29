@@ -11,7 +11,21 @@ function Select({
     icon
 }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [openUpward, setOpenUpward] = useState(false);
     const selectRef = useRef(null);
+    const optionsRef = useRef(null);
+
+    // Calcular la dirección de apertura
+    useEffect(() => {
+        if (isOpen && selectRef.current) {
+            const selectRect = selectRef.current.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            const spaceBelow = windowHeight - selectRect.bottom;
+            const optionsHeight = optionsRef.current?.offsetHeight || 200; // valor por defecto si aún no está renderizado
+
+            setOpenUpward(spaceBelow < optionsHeight && selectRect.top > spaceBelow);
+        }
+    }, [isOpen]);
 
     // Cerrar el select cuando se hace click fuera
     useEffect(() => {
@@ -53,8 +67,9 @@ function Select({
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        className={styles.optionsContainer}
-                        initial={{ opacity: 0, y: -10 }}
+                        ref={optionsRef}
+                        className={`${styles.optionsContainer} ${openUpward ? styles.openUpward : ''}`}
+                        initial={{ opacity: 0, y: openUpward ? 10 : -10 }}
                         animate={{ 
                             opacity: 1, 
                             y: 0,
@@ -64,7 +79,7 @@ function Select({
                         }}
                         exit={{ 
                             opacity: 0, 
-                            y: -10,
+                            y: openUpward ? 10 : -10,
                             transition: {
                                 duration: 0.15
                             }

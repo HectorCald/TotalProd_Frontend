@@ -13,6 +13,13 @@ function VerProveedor({ isOpen, setIsOpen, usuario }) {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
+    const handleEliminar = (id) => {
+        console.log('Eliminar proveedor con id:', id);
+        // Aquí iría la lógica para eliminar el cliente
+        setIsDeleteOpen(false);
+        setIsOpen(false);
+    }
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
@@ -69,6 +76,7 @@ function VerProveedor({ isOpen, setIsOpen, usuario }) {
                         className='btn-red'
                         label='Si, eliminar'
                         style={{ marginTop: 'auto' }}
+                        onClick={() => handleEliminar(usuario?.id)}
                     />
                     <Boton
                         className='btn-default'

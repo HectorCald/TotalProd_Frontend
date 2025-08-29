@@ -34,8 +34,9 @@ code {
   --quinary-color: #4d4d4d;
 
   --error-color: #ff0000;
-  --success-color: #03bc03;
-  --warning-color: #ffff00;
+  --success-color: #01a001;
+  --warning-color: #FB8713;
+  --info-color: #1F74FE;
 
   --dark-color: #000000;
   --white-color: #ffffff;

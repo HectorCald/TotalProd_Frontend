@@ -16,7 +16,7 @@ import Reportes from '../reportes/Reportes';
 import CajaMedio from '../caja/CajaMedio';
 import Formulario from '../formulario-registro/Formulario'
 import Registros from '../formulario-registro/Registros';
-import AlmacenAcopio from '../almacen-acopio/AlmacenAcopio';
+import AlmacenMedio from '../almacen-acopio/AlmacenMedio';
 
 
 function Menu({ isOpen, setIsOpen, onViewChange }) {
@@ -134,8 +134,8 @@ function Menu({ isOpen, setIsOpen, onViewChange }) {
                 isOpen={activeView === 'registros-produccion'}
                 setIsOpen={() => handleViewClose()}
             />
-            <AlmacenAcopio
-                isOpen={activeView === 'almacen-acopio'}
+            <AlmacenMedio
+                isOpen={activeView === 'almacen-medio-acopio'}
                 setIsOpen={() => handleViewClose()}
             />
         </View>

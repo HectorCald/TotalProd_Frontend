@@ -1,0 +1,17 @@
+
+.modalContent {
+    padding-inline: 15px;
+    padding-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    max-height: 90vh;
+
+    .subTitle {
+        font-size: 13px;
+        font-weight: 400;
+        color: gray;
+        line-height: 1.2;
+    }
+}

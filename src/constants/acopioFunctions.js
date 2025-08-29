@@ -2,7 +2,7 @@ export const ACOPIO_FUNCTIONS = [
     {
         name: 'Almacen',
         icon: 'store',
-        view: 'almacen-acopio'
+        view: 'almacen-medio-acopio'
     },
     {
         name: 'Procesamiento',

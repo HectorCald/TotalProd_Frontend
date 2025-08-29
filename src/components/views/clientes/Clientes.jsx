@@ -10,9 +10,10 @@ import EditarAgregar from './EditarAgregar';
 
 const personaData = [
     {
+        icon: 'id-card',
+        id:'CLTP-001',
         nombre: 'Héctor Ortiz',
         telefono: '999888777',
-        icon: 'id-card',
         direccion: 'Av. Siempre Viva 123',
         pais: 'Bolivia',
         ciudad: 'La Paz',

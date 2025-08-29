@@ -10,9 +10,10 @@ import EditarAgregar from './EditarAgregar';
 
 const personaData = [
     {
+        icon: 'id-card',
+        id:'PRTP-001',
         nombre: 'Héctor Ortiz',
         telefono: '999888777',
-        icon: 'id-card',
         direccion: 'Av. Siempre Viva 123',
         pais: 'Bolivia',
         ciudad: 'La Paz',
@@ -57,7 +58,7 @@ function Proveedores({ isOpen, setIsOpen }) {
                 <div className={styles.buttonFooter}>
                     <Boton
                         className='btn-original'
-                        label='Agregar cliente'
+                        label='Agregar proveedor'
                         onClick={() => setIsOpenEditarAgregar(true)}
                     />
                 </div>

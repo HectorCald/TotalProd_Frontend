@@ -18,6 +18,21 @@
     height: 20px;
     object-fit: contain;
   }
+  .objeto{
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    background-color: var(--success-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    font-weight: 600;
+  }
 }
 .btn-default{
   background-color: var(--secondary-color);
@@ -30,6 +45,10 @@
 }
 .btn-red{
   background-color: var(--error-color);
+  color: var(--white-color);
+}
+.btn-green{
+  background-color: var(--success-color);
   color: var(--white-color);
 }
 

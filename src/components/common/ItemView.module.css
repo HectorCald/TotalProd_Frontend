@@ -4,16 +4,16 @@
     align-items: center;
     justify-content: flex-start;
     width: 100%;
-    height: 80px;
-    padding: 10px;
+    height: 70px;
+    padding: 8px;
     border-radius: 17px;
     gap: 5px;
     background-color: var(--tertiary-color);
 }
 
-.itemViewIcon {     
-    min-width: 60px;
-    min-height: 60px;
+.itemViewIcon {
+    min-width: 50px;
+    min-height: 50px;
     border-radius: 15px;
     background-color: var(--secondary-color);
     display: flex;
@@ -21,7 +21,7 @@
     align-items: center;
     justify-content: center;
 
-    .icon{
+    .icon {
         font-size: 30px !important;
     }
 }
@@ -36,29 +36,62 @@
     height: 100%;
     padding: 5px;
     flex: 1;
-    min-width: 0; /* Importante para que flex-shrink funcione */
+    min-width: 0;
+    /* Importante para que flex-shrink funcione */
 
-    h1{
-        font-size: 15px;
+    h1 {
+        font-size: 14px;
         font-weight: 400;
         width: 100%;
-        margin: 0;
-        padding: 0;
     }
 
-    p{
-        font-size: 13px;
+    p {
+        font-size: 12px;
         color: gray;
         font-weight: 400;
-        margin: 0;
-        padding: 0;
-        line-height: 1.3;
+        line-height: 1.2;
         overflow: hidden;
         text-overflow: ellipsis;
         display: -webkit-box;
-        -webkit-line-clamp: 2; /* Máximo 2 líneas */
+        -webkit-line-clamp: 2;
+        /* Máximo 2 líneas */
         -webkit-box-orient: vertical;
         width: 100%;
+        min-height: 30px;
+    }
+
+    .inputsEntrada {
+        display: flex;
+        width: 100%;
+        gap: 10px;
+
+        .inputWithLabel {
+            display: flex;
+            font-size: 10px;
+            color: gray;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+
+            p{
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                max-width: fit-content;
+                padding-right: 5px;
+            }
+
+            input {
+                width: 100%;
+                padding: 5px 10px;
+                border-radius: 8px;
+                border: none;
+                font-size: 12px;
+                background-color: var(--quaternary-color);
+                outline: none;
+                color: white;
+            }
+        }
     }
 }
 
@@ -70,9 +103,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0; /* Evita que la flecha se encoja */
+    flex-shrink: 0;
+    /* Evita que la flecha se encoja */
 
-    .icon{
+    .icon {
         font-size: 30px !important;
     }
 }
