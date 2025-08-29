@@ -133,5 +133,5 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 15px !important;
+    gap: 20px !important;
 }
