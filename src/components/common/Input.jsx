@@ -18,26 +18,12 @@ function Input({ type, placeholder, value, onChange, label, error }) {
         setShowPassword(!showPassword);
     }
 
-    const inputRef = React.useRef(null);
-
-    const handleLabelClick = () => {
-        setIsFocused(true);
-        inputRef.current?.focus();
-    };
-
     return (
         <div className={styles.inputContainer}>
-            <label 
-                className={styles.inputLabel + (isFocused ? ' ' + styles.inputLabelFocused : '')} 
-                style={{
-                    color: error && value !== '' ? 'var(--error-color)' : ''
-                }} 
-                onClick={handleLabelClick}
-            >
-                {label}
-            </label>
+            <label className={styles.inputLabel + (isFocused ? ' ' + styles.inputLabelFocused : '')} style={{
+                color: error && value !== '' ? 'var(--error-color)' : ''
+            }} onClick={()=>setIsFocused(true)}>{label}</label>
             <input
-                ref={inputRef}
                 className={styles.input}
                 type={type === 'password' && showPassword ? 'text' : type}
                 placeholder={placeholder}
