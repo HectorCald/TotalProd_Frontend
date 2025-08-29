@@ -7,7 +7,7 @@ import ItemTiempo from '../../common/ItemTiempo';
 const historialData = [
     {
         id:'HISTP-0001',
-        fechaHora: '29/8/2025, 14:53:58',
+        fechaHora: '27/8/2025, 14:53:58',
         idUser: 'USERSUM-0001',
         accion: 'CREAR',
         icon:'plus-square',
@@ -15,7 +15,7 @@ const historialData = [
     },
     {
         id:'HISTP-0002',
-        fechaHora: '29/8/2025, 14:53:58',
+        fechaHora: '27/8/2025, 14:53:58',
         idUser: 'USERSUM-0001',
         accion: 'EDITAR',
         icon:'edit',
@@ -23,7 +23,7 @@ const historialData = [
     },
     {
         id:'HISTP-0003',
-        fechaHora: '29/8/2025, 14:53:58',
+        fechaHora: '28/8/2025, 14:53:58',
         idUser: 'USERSUM-0001',
         accion: 'ELIMINAR',
         icon:'trash',
@@ -31,7 +31,7 @@ const historialData = [
     },
     {
         id:'HISTP-0004',
-        fechaHora: '29/8/2025, 14:53:58',
+        fechaHora: '28/8/2025, 14:53:58',
         idUser: 'USERSUM-0001',
         accion: 'ACTUALIZAR',
         icon:'refresh',
@@ -73,14 +73,47 @@ const historialData = [
 
 function HistoriaPersona({ isOpen, setIsOpen, usuario }) {
     const [dataUsuarioId, setDataUsuarioId] = useState('');
-    const [filteredHistory, setFilteredHistory] = useState([]);
+    const [groupedHistory, setGroupedHistory] = useState({});
+
+    // Función para obtener el título del grupo según la fecha
+    const getGroupTitle = (dateStr) => {
+        const date = new Date(dateStr.split(',')[0].split('/').reverse().join('-'));
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        
+        // Resetear las horas para comparar solo fechas
+        today.setHours(0, 0, 0, 0);
+        yesterday.setHours(0, 0, 0, 0);
+        date.setHours(0, 0, 0, 0);
+
+        if (date.getTime() === today.getTime()) return 'Hoy';
+        if (date.getTime() === yesterday.getTime()) return 'Ayer';
+
+        // Para otras fechas, mostrar el día y mes
+        const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        return date.toLocaleDateString('es-ES', options);
+    };
 
     useEffect(() => {
         if (usuario?.id) {
             setDataUsuarioId(usuario.id);
             // Filtrar el historial por el ID del usuario
             const historiaFiltrada = historialData.filter(item => item.idUser === usuario.id);
-            setFilteredHistory(historiaFiltrada);
+            
+            // Agrupar por fecha
+            const grouped = historiaFiltrada.reduce((groups, item) => {
+                const date = item.fechaHora.split(',')[0]; // Obtener solo la fecha
+                const groupTitle = getGroupTitle(item.fechaHora);
+                
+                if (!groups[groupTitle]) {
+                    groups[groupTitle] = [];
+                }
+                groups[groupTitle].push(item);
+                return groups;
+            }, {});
+
+            setGroupedHistory(grouped);
         }
     }, [isOpen, usuario]);
 
@@ -92,17 +125,31 @@ function HistoriaPersona({ isOpen, setIsOpen, usuario }) {
             />
             <div className={styles.modalContent}>
                 <p className={styles.subTitle}>ACCIONES DE LOS ULTIMOS 30 DÍAS</p>
-                {filteredHistory.length > 0 ? (
-                    filteredHistory.map((dato) => (
-                        <ItemTiempo
-                            key={dato.id}
-                            hora={dato.fechaHora.split(',')[1].trim().slice(0,5)}
-                            titulo={dato.accion}
-                            detalle={dato.descripcion}
-                            icon={dato.icon}
-                            arrow={true}
-                        />
-                    ))
+                {Object.keys(groupedHistory).length > 0 ? (
+                    Object.entries(groupedHistory)
+                        .sort(([dateA], [dateB]) => {
+                            // Ordenar las fechas de más reciente a más antigua
+                            if (dateA === 'Hoy') return -1;
+                            if (dateB === 'Hoy') return 1;
+                            if (dateA === 'Ayer') return -1;
+                            if (dateB === 'Ayer') return 1;
+                            return 0;
+                        })
+                        .map(([date, items]) => (
+                            <div key={date} className={styles.dateGroup}>
+                                <p className={styles.subTitle2}>{date}</p>
+                                {items.map((dato) => (
+                                    <ItemTiempo
+                                        key={dato.id}
+                                        hora={dato.fechaHora.split(',')[1].trim().slice(0,5)}
+                                        titulo={dato.accion}
+                                        detalle={dato.descripcion}
+                                        icon={dato.icon}
+                                        arrow={true}
+                                    />
+                                ))}
+                            </div>
+                        ))
                 ) : (
                     <p className={styles.noData}>No hay registros de actividad para este usuario</p>
                 )}
