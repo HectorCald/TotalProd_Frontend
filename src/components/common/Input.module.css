@@ -47,8 +47,8 @@
 }
 .inputView{
   position: absolute;
-  right: 10px;
-  top: 50%;
+  right: 15px;
+  top: calc(50% - 2px);
   transform: translateY(-50%);
   background: none;
   color: var(--quinary-color);

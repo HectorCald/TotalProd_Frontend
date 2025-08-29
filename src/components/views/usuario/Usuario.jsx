@@ -81,7 +81,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                 <Version />
             </div>
             <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} usuario={userInfo} />
-            <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} />
+            <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} usuario={userInfo} />
             <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
             <Extracto isOpen={isOpenExtracto} setIsOpen={setIsOpenExtracto} usuario={userInfo} />
             {/* Modal de logout*/}
