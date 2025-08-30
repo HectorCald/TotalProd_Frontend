@@ -97,9 +97,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         label='Si, cerrar sesión'
                         style={{ marginTop: 'auto' }}
                         onClick={() => {
-                            localStorage.removeItem('authToken');
-                            localStorage.removeItem('userId');
-                            localStorage.removeItem('userInfo');
+                            localStorage.removeItem('token');
                             window.location.reload();
                             setIsLogoutOpen(false);
                         }}

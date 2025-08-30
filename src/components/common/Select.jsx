@@ -39,8 +39,8 @@ function Select({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleSelect = (option) => {
-        onChange(option);
+    const handleSelect = (optionValue) => {
+        onChange(optionValue);
         setIsOpen(false);
     };
 
@@ -48,6 +48,7 @@ function Select({
 
     return (
         <div className={styles.selectContainer} ref={selectRef}>
+            
             <div 
                 className={`${styles.selectButton} ${isOpen ? styles.active : ''}`}
                 onClick={() => setIsOpen(!isOpen)}
@@ -85,9 +86,9 @@ function Select({
                             }
                         }}
                     >
-                        {options.map((option) => (
+                        {options.map((option, index) => (
                             <motion.div
-                                key={option.value}
+                                key={option.value || option.id || index}
                                 className={`${styles.option} ${option.value === value ? styles.selected : ''}`}
                                 onClick={() => handleSelect(option.value)}
                                 whileTap={{ scale: 0.98 }}

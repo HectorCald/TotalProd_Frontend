@@ -1,22 +1,18 @@
 .inputContainer{
   display: flex;
   flex-direction: column;
-  gap: 5px;
   position: relative;
   width: 100%;
+  gap: 5px;
 }
 .inputLabel{
   font-size: 14px;
-  font-weight: 400;
+  font-weight: 600;
   color: gray;
-  position: absolute;
-  top: 50%;
-  left: 10px;
-  transform: translateY(-50%);
   background-color: var(--secondary-color);
   z-index: 0;
   width: auto;
-  padding: 0 5px;
+  padding: 0 3px;
   transition: all 0.3s ease;
 }
 .input{
@@ -24,9 +20,9 @@
   min-height: 50px;
   height: 50px;
   padding: 10px 20px;
-  border: 2px solid var(--tertiary-color);
+  border: 2px solid var(--quaternary-color);
   border-radius: 10px;
-  background: none;
+  background-color: var(--tertiary-color);
   color: var(--white-color);
   font-size: 16px;
   font-weight: 400;
@@ -37,19 +33,19 @@
   &:focus{
     border: 2px solid var(--primary-color);
   }
+  &::placeholder{
+    color: var(--quinary-color);
+    font-size: 14px;
+    font-weight: 500;
+  }
 }
 .inputLabelFocused {
-    font-size: 13px;
     color: var(--primary-color);
-    top: 3px;
-    transform: translateY(-75%) scale(1);
-    z-index: 2;
 }
 .inputView{
   position: absolute;
   right: 15px;
-  top: calc(50% - 2px);
-  transform: translateY(-50%);
+  top: 24px;
   background: none;
   color: var(--quinary-color);
   border: none;

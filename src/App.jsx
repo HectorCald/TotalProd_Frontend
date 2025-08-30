@@ -3,42 +3,17 @@ import './styles/App.css';
 import Login from './pages/Login';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from './pages/Home';
-import UserService from './services/userService';
 import Loading from './components/common/LoadingSpinner';
 
 function App() {
   const [hasToken, setHasToken] = useState(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     setHasToken(!!token);
 
-    const userId = localStorage.getItem('userId');
-    const fetchUser = async () => {
-      try {
-        if (userId) {
-          setLoading(true);
-          const result = await UserService.getUserById(userId);
-          if (result.success) {
-            // Guardar el objeto completo
-            localStorage.setItem('userInfo', JSON.stringify(result.data));
-          }
-        }
-        else {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('userId');
-          localStorage.removeItem('userInfo');
-        }
-      } catch (error) {
-        console.error('Error al obtener el usuario:', error);
-      }finally{
-        setLoading(false);
-      }
-    };
-
     if (token) {
-      fetchUser();
+      setHasToken(true);
     }
   }, []);
 
@@ -48,7 +23,7 @@ function App() {
 
   return (
     <div className="App">
-      {loading && <Loading />}
+      {hasToken === null && <Loading />}
       <BrowserRouter>
         <Routes>
           <Route

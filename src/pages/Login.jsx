@@ -6,23 +6,44 @@ import googleIcon from '../assets/google-icon.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import UserService from '../services/userService';
 import { BoxIcon } from 'boxicons-react';
+import Select from '../components/common/Select';
+import LogoAnimation from '../components/common/LogoAnimation';
+import CompanyTypeService from '../services/companyTypeService';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 
 const Login = () => {
+    const [compañias, setCompañias] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('')
+    useEffect(() => {
+        setIsLoading(true);
+        CompanyTypeService.getAll().then(response => {
+            if (response.success && response.data) {
+                // Formatear las opciones para el Select
+                const formattedOptions = response.data.map(item => ({
+                    value: item.id,
+                    label: item.nombre || item.name,
+                    icon: 'building'
+                }));
+                setCompañias(formattedOptions);
+                setIsLoading(false);
+            }
+        });
+    }, []);
+
     //--------------------------------------------------------------------------------
     // States
     const [isRegister, setIsRegister] = useState(false);
     const [formDataLogin, setFormDataLogin] = useState({
-        email: '',
+        phone: '',
         password: '',
     });
     const [formDataRegister, setFormDataRegister] = useState({
         name: '',
-        telefono: null,
-        emailRegister: '',
+        phoneRegister: null,
         passwordRegister: '',
-        confirmPasswordRegister: ''
+        compañia: '',
     });
 
 
@@ -31,7 +52,7 @@ const Login = () => {
     const [delayedMinHeight, setDelayedMinHeight] = useState(0);
     useEffect(() => {
         const timer = setTimeout(() => {
-            setDelayedMinHeight(isRegister ? 390 : 220);
+            setDelayedMinHeight(isRegister ? 365 : 250);
         }, 500); // Mismo tiempo que la duración de la animación
 
         return () => clearTimeout(timer);
@@ -39,15 +60,14 @@ const Login = () => {
     const toggleMode = () => {
         setIsRegister(!isRegister);
         setFormDataLogin({
-            email: '',
+            phone: '',
             password: '',
         });
         setFormDataRegister({
             name: '',
-            telefono: '',
-            emailRegister: '',
+            phoneRegister: '',
             passwordRegister: '',
-            confirmPasswordRegister: ''
+            compañia: '',
         });
         setDelayedMinHeight(0);
     };
@@ -56,7 +76,7 @@ const Login = () => {
         if (credentials) {
             setFormDataLogin(prev => ({
                 ...prev,
-                email: credentials.email,
+                phone: credentials.phone,
                 password: credentials.password
             }));
             setRemember(true);
@@ -84,9 +104,9 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const [remember, setRemember] = useState(false);
     const handleSubmit = async () => {
-        if (!formDataLogin.email || !formDataLogin.password) {
+        if (!formDataLogin.phone || !formDataLogin.password) {
 
-            if (!formDataLogin.email) {
+            if (!formDataLogin.phone) {
                 setErrorMessage('El correo electrónico es requerido')
             }
 
@@ -102,21 +122,20 @@ const Login = () => {
         }
         try {
             setLoading(true);
-            const result = await UserService.login(formDataLogin.email, formDataLogin.password, remember);
+            const result = await UserService.login({
+                phone: formDataLogin.phone,
+                password: formDataLogin.password
+            });
             if (result.success) {
-
                 // Guardar el token y ID del usuario en localStorage
                 if (result.data) {
-                    if (result.data.token) {
-                        localStorage.setItem('authToken', result.data.token);
-                    }
                     // Redirigir a Home y recargar la página
                     window.location.href = '/';
                 }
             } else {
                 // Manejar el caso cuando result.success es false
                 console.log('Error en login:', result.error);
-                setErrorMessage('Contraseña o email incorrectos')
+                setErrorMessage('Contraseña o celular incorrectos')
                 setTimeout(() => {
                     setErrorMessage('')
                 }, 3000);
@@ -128,22 +147,10 @@ const Login = () => {
         }
     };
     const handleSubmitRegister = async () => {
-        if (!formDataRegister.name || !formDataRegister.emailRegister || !formDataRegister.passwordRegister || !formDataRegister.confirmPasswordRegister) {
-            if (!formDataRegister.name) {
-                setErrorMessage('El nombre es requerido')
-            }
-            if (!formDataRegister.telefono) {
-                setErrorMessage('El numero de celular es requerido')
-            }
-            if (!formDataRegister.emailRegister) {
-                setErrorMessage('El email es requerido')
-            }
-            if (!formDataRegister.passwordRegister) {
-                setErrorMessage('La contraseña es requerida')
-            }
-            if (!formDataRegister.confirmPasswordRegister) {
-                setErrorMessage('La confirmación de contraseña es requerida')
-            }
+        if (!formDataRegister.name || !formDataRegister.phoneRegister || !formDataRegister.passwordRegister) {
+
+            setErrorMessage('Todo los campos son requeridos')
+
             setTimeout(() => {
                 setErrorMessage('')
             }, 3000);
@@ -156,27 +163,12 @@ const Login = () => {
             }, 3000);
             return;
         }
-        if (!formDataRegister.emailRegister.includes('@') || !formDataRegister.emailRegister.includes('.com')) {
-            setErrorMessage('El correo electronico no es valido')
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
-            return;
-        }
-        if (formDataRegister.passwordRegister !== formDataRegister.confirmPasswordRegister) {
-            setErrorMessage('Las contraseñas no coinciden')
-
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
-            return;
-        }
-        if (formDataRegister.emailRegister) {
+        if (formDataRegister.phoneRegister) {
             setLoading(true);
             try {
-                const result = await UserService.getUserByEmail(formDataRegister.emailRegister);
+                const result = await UserService.getUserByPhone(formDataRegister.phoneRegister);
                 if (result.success && result.data) {
-                    setErrorMessage('El correo electronico ya esta registrado')
+                    setErrorMessage('El numero de celular ya esta registrado')
                     setTimeout(() => {
                         setErrorMessage('')
                     }, 3000);
@@ -195,7 +187,10 @@ const Login = () => {
             if (result.success) {
                 // Iniciar sesión automáticamente después del registro
                 try {
-                    const loginResult = await UserService.login(formDataRegister.emailRegister, formDataRegister.passwordRegister, remember);
+                    const loginResult = await UserService.login({
+                        phone: formDataRegister.phoneRegister,
+                        password: formDataRegister.passwordRegister
+                    });
                     if (loginResult.success) {
                         // Guardar el token y ID del usuario en localStorage
                         if (loginResult.data) {
@@ -228,110 +223,8 @@ const Login = () => {
     // Render
     return (
         <div className={styles.loginContainer}>
-            {loading && <div className={styles.overlay_loading} ></div>}
-            <motion.h1 className={styles.login_logo} >
-                <motion.span
-                    className={styles.login_logo_span}
-                    initial={{ width: 0, overflow: "hidden" }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 2, ease: "easeInOut" }}
-                    style={{ position: "relative" }}
-                >
-                    <motion.span
-                        initial={{ x: -50, rotate: 0 }}
-                        animate={{
-                            x: [0, 225],
-                            rotate: [-20, 0]
-                        }}
-                        transition={{
-                            duration: 1.8,
-                            delay: 0.3,
-                            ease: "easeInOut",
-                            times: [0, 0.5, 0.5]
-                        }}
-                        style={{
-                            display: "inline-block",
-                            position: "absolute",
-                            left: 0,
-                            color: "var(--primary-color)",
-                        }}
-                    >
-                        <BoxIcon name="cart" className={styles.icon} />
-                    </motion.span>
-                    <motion.span
-                        initial={{ x: -100, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 0.4 }}
-                        style={{ display: "inline-block" }}
-                    >
-                        T
-                    </motion.span>
-                    <motion.span
-                        initial={{ x: -100, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 0.6 }}
-                        style={{ display: "inline-block" }}
-                    >
-                        o
-                    </motion.span>
-                    <motion.span
-                        initial={{ x: -100, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 0.8 }}
-                        style={{ display: "inline-block" }}
-                    >
-                        t
-                    </motion.span>
-                    <motion.span
-                        initial={{ x: -100, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 1.0 }}
-                        style={{ display: "inline-block"}}
-                    >
-                        a
-                    </motion.span>
-                    <motion.span
-                        initial={{ x: -100, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 1.2 }}
-                        style={{ display: "inline-block" }}
-                    >
-                        l
-                    </motion.span>
-                    <motion.span
-                        initial={{ x: -100, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 1.3 }}
-                        style={{ display: "inline-block", color: "var(--primary-color)" }}
-                    >
-                        P
-                    </motion.span>
-                    <motion.span
-                        initial={{ x: -100, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 1.4 }}
-                        style={{ display: "inline-block", color: "var(--primary-color)" }}
-                    >
-                        r
-                    </motion.span>
-                    <motion.span
-                        initial={{ x: -100, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 1.5 }}
-                        style={{ display: "inline-block", color: "var(--primary-color)" }}
-                    >
-                        o
-                    </motion.span>
-                    <motion.span
-                        initial={{ x: -100, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 1.6 }}
-                        style={{ display: "inline-block", color: "var(--primary-color)" }}
-                    >
-                        d
-                    </motion.span>
-                </motion.span>
-            </motion.h1>
+            {isLoading && <LoadingSpinner />}
+            <LogoAnimation />
             <p className={styles.login_subtitle} >Bienvenido Inicia Sesión para continuar</p>
             <Boton className='btn-default' icon={googleIcon} label='Continuar con Google' />
             <motion.div
@@ -351,7 +244,7 @@ const Login = () => {
             <motion.div
                 className={styles.content}
                 animate={{
-                    height: isRegister ? 390 : 220,
+                    height: isRegister ? 365 : 250,
                 }}
                 transition={{
                     duration: 0.5,
@@ -374,9 +267,10 @@ const Login = () => {
                             <div className={styles.content_login} >
                                 <Input
                                     type="text"
-                                    label="Correo electrónico"
-                                    value={formDataLogin.email}
-                                    onChange={(e) => handleInputChangeLogin('email', e.target.value)}
+                                    label="Celular"
+                                    value={formDataLogin.phone}
+                                    onChange={(e) => handleInputChangeLogin('phone', e.target.value)}
+                                    placeholder="Ingrese su numero de celular"
                                 />
 
                                 <Input
@@ -384,8 +278,9 @@ const Login = () => {
                                     label="Contraseña"
                                     value={formDataLogin.password}
                                     onChange={(e) => handleInputChangeLogin('password', e.target.value)}
+                                    placeholder="Ingrese su contraseña"
                                 />
-                                <div className= {styles.login_remember_container}>
+                                <div className={styles.login_remember_container}>
                                     <input type="checkbox" id="remember" checked={remember} onChange={() => setRemember(!remember)} />
                                     <label htmlFor="remember">Recordarme</label>
                                 </div>
@@ -406,31 +301,32 @@ const Login = () => {
                                     label="Nombre Completo"
                                     value={formDataRegister.name}
                                     onChange={(e) => handleInputChangeRegister('name', e.target.value)}
+                                    placeholder="Ingrese su nombre completo"
                                 />
                                 <Input
                                     type="tel"
                                     label="Celular"
-                                    value={formDataRegister.telefono}
-                                    onChange={(e) => handleInputChangeRegister('telefono', e.target.value)}
-                                />
-                                <Input
-                                    type="text"
-                                    label="Correo electrónico"
-                                    value={formDataRegister.emailRegister}
-                                    onChange={(e) => handleInputChangeRegister('emailRegister', e.target.value)}
+                                    value={formDataRegister.phoneRegister}
+                                    onChange={(e) => handleInputChangeRegister('phoneRegister', e.target.value)}
+                                    placeholder="Ingrese su numero de celular"
                                 />
                                 <Input
                                     type="password"
                                     label="Contraseña"
                                     value={formDataRegister.passwordRegister}
                                     onChange={(e) => handleInputChangeRegister('passwordRegister', e.target.value)}
+                                    placeholder="Ingrese su contraseña"
                                 />
-                                <Input
-                                    type="password"
-                                    label="Confirmar contraseña"
-                                    value={formDataRegister.confirmPasswordRegister}
-                                    onChange={(e) => handleInputChangeRegister('confirmPasswordRegister', e.target.value)}
-                                />
+                                <div className={styles.content_company}>
+                                    <Select
+                                        label="Compañia"
+                                        value={formDataRegister.compañia}
+                                        onChange={(value) => handleInputChangeRegister('compañia', value)}
+                                        options={compañias}
+                                        placeholder="Tipo de Negocio"
+                                    />
+                                </div>
+
                             </div>
                         </motion.div>
                     )}
