@@ -210,7 +210,7 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
 
             <ViewModal ViewModal isOpen={isOpenCodigo} setIsOpen={setIsOpenCodigo} >
                 <HeaderModal
-                    title="Restablecer contraseña"
+                    title="Verificación de código"
                     onClose={() => setIsOpenCodigo(false)}
                 />
                 <div className={styles.modalContent}>
@@ -228,7 +228,7 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                     />
                     <Boton
                         className='btn-original'
-                        label="Restablecer contraseña"
+                        label="Verificar"
                         onClick={handleVerificarCodigo}
                         loading={loading}
                     />
