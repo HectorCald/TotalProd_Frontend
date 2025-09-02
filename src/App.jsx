@@ -37,8 +37,8 @@ function App() {
         const decoded = JSON.parse(jsonPayload);
         
         if (decoded && decoded.id) {
-          // Obtener información del usuario
-          fetch(`http://localhost:5000/api/users/${decoded.id}`)
+                     // Obtener información del usuario
+           fetch(`https://total-prod-backend.vercel.app/api/users/${decoded.id}`)
             .then(response => response.json())
             .then(data => {
               if (data.success) {
