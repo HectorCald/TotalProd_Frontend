@@ -1,0 +1,77 @@
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  min-height: 90vh !important;
+  padding: 20px;
+  gap: 15px;
+}
+
+.searchWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.searchButton {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  color: var(--primary-color);
+  font-size: 25px;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  z-index: 10;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+.mapContainer {
+  flex: 1;
+  height: 350px;
+  max-height: 350px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.map {
+  width: 100%;
+  min-height: 350px;
+  height: 350px;
+}
+
+
+.locationInfo {
+  background-color: var(--tertiary-color);
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.locationInfo h4 {
+  margin: 0 0 8px 0;
+  color: var(--white-color);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.locationInfo p {
+  margin: 4px 0;
+  color: var(--quinary-color);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.buttonContainer {
+  display: flex;
+  gap: 10px;
+}
+
+
+
+
+

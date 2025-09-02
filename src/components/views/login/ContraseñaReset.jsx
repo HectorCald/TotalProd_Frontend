@@ -162,7 +162,7 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                     setNuevaContraseña('');
                     setIsOpenCodigo(false);
                     setIsOpenNuevaContraseña(false);
-                }, 5000);
+                }, 3000);
             } else {
                 setErrorMessage(result.message || 'Error al restablecer contraseña');
                 setTimeout(() => {
@@ -189,7 +189,6 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                 <h1 className={styles.subTitle}>Ingresa tu correo electrónico y te enviaremos un código de verificación para restablecer tu contraseña.</h1>
                 <div>
                     <MensajeError mensaje={errorMessage} />
-                    <MensajeExito mensaje={mensajeExito} />
                 </div>
                 <InputNormal
                     tipo="text"
@@ -198,6 +197,7 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                     placeholder="Correo electrónico"
                     onChange={(e) => setEmail(e.target.value)}
                 />
+                <div></div>
                 <Boton
                     className='btn-original'
                     label="Enviar código"
@@ -217,7 +217,6 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                     <h1 className={styles.subTitle}>Ingresa el código de verificación que te enviamos a tu correo electrónico.</h1>
                     <div>
                         <MensajeError mensaje={errorMessage} />
-                        <MensajeExito mensaje={mensajeExito} />
                     </div>
                     <InputCodigo
                         cantidad={6}
@@ -226,6 +225,7 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                         onComplete={handleCodigoCompleto}
                         disabled={loading}
                     />
+                    <div></div>
                     <Boton
                         className='btn-original'
                         label="Verificar"
@@ -252,6 +252,7 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                         placeholder="Nueva contraseña"
                         onChange={(e) => setNuevaContraseña(e.target.value)}
                     />
+                    <div></div>
                     <Boton
                         className='btn-original'
                         label="Restablecer contraseña"

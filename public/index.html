@@ -12,9 +12,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Summa" />
     <title>TotalProd</title>
+    <!-- Google Maps API -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCP082YGVBkcUJIS_kW2Ignr1ySbwKAOc0&libraries=places,geometry&loading=async&callback=initMap"></script>
   </head>
   <body>
     <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicación.</noscript>
     <div id="root"></div>
+    <script>
+      // Función global para manejar la carga de Google Maps
+      window.initMap = function() {
+        console.log('Google Maps cargado correctamente');
+        window.googleMapsLoaded = true;
+      };
+    </script>
   </body>
 </html>

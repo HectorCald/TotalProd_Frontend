@@ -8,7 +8,6 @@
     padding: 15px;
     box-sizing: border-box;
     gap: 15px;
-    overflow-y: auto;
     position: relative;
 
     .title {
@@ -29,7 +28,19 @@
         width: 100%;
         background-color: none;
         border-radius: 10px;
-        gap:5px;
+        gap:8px;
+        overflow-y: auto !important;
+        height: calc(100vh - 250px);
+    }
+
+    .noData {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 40px 20px;
+        color: gray;
+        font-size: 16px;
     }
 }
 .buttonFooter {

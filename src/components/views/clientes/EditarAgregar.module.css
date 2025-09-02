@@ -1,13 +1,28 @@
-.modalContent{
-    padding: 15px;
+.modalContent {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
     gap: 15px;
+    overflow-y: auto;
+    position: relative;
+}
 
-    .subTitle {
-        font-size: 13px;
-        font-weight: 400;
-        color: gray;
-        line-height: 1.2;
-    }
+.subTitle {
+    font-size: 13px;
+    font-weight: 400;
+    color: gray;
+    margin: 0;
+    padding: 0;
+}
+
+.horizontal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
 }

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef } from 'react';
 import styles from './InputNormal.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-function InputNormal({ tipo, placeholder, value, onChange, icon, label, error }) {
+const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, label, error, buttonIcon, buttonIconClick, onKeyPress }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     // Actualizar isFocused cuando value cambie
@@ -28,6 +28,7 @@ function InputNormal({ tipo, placeholder, value, onChange, icon, label, error })
                 </span>
             )}
             <input
+                ref={ref}
                 className={styles.input}
                 type={tipo === 'password' && showPassword ? 'text' : tipo}
                 {...(tipo === 'number'
@@ -36,6 +37,7 @@ function InputNormal({ tipo, placeholder, value, onChange, icon, label, error })
                 placeholder={placeholder}
                 value={value}
                 onChange={onChange}
+                onKeyPress={onKeyPress}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => {
                     if (value !== '') {
@@ -44,6 +46,11 @@ function InputNormal({ tipo, placeholder, value, onChange, icon, label, error })
                         setIsFocused(false);
                     }
                 }}
+                style={{
+                    paddingRight: buttonIcon ? '50px' : '15px',
+                    paddingLeft: icon ? '50px' : '15px'
+                }}
+
             />
             {tipo === 'password' && (
                 <span
@@ -56,7 +63,18 @@ function InputNormal({ tipo, placeholder, value, onChange, icon, label, error })
                     {showPassword ? <BoxIcon name="hide" /> : <BoxIcon name="show" />}
                 </span>
             )}
+            {buttonIcon && (
+                <span
+                    className={styles.inputButton}
+                    onClick={buttonIconClick}
+                >
+                    <BoxIcon name={buttonIcon} />
+                </span>
+            )}
         </div>
     );
-}
+});
+
+InputNormal.displayName = 'InputNormal';
+
 export default InputNormal;

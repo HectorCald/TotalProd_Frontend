@@ -72,7 +72,7 @@
     padding: 15px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
 
     .subTitle {
         font-size: 13px;
@@ -80,4 +80,13 @@
         color: gray;
         line-height: 1.2;
     }
+}
+
+.modalContentButtons {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 10px;
 }
