@@ -5,13 +5,14 @@ import InputNormal from '../components/common/InputNormal';
 import googleIcon from '../assets/google-icon.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import UserService from '../services/userService';
-import { BoxIcon } from 'boxicons-react';
 import LogoAnimation from '../components/common/LogoAnimation';
+import MensajeError from '../components/common/MensajeError';
+import ContraseñaReset from '../components/views/login/ContraseñaReset';
 
 
 const Login = () => {
     const [errorMessage, setErrorMessage] = useState('')
-
+    const [isOpenContraseñaReset, setIsOpenContraseñaReset] = useState(false);
 
     //--------------------------------------------------------------------------------
     // States
@@ -211,6 +212,12 @@ const Login = () => {
         }
 
     };
+    const handleSubmitGoogle = async () => {
+        setErrorMessage('Error al iniciar sesión con Google');
+        setTimeout(() => {
+            setErrorMessage('');
+        }, 3000);
+    }
 
     //--------------------------------------------------------------------------------
     // Render
@@ -218,21 +225,15 @@ const Login = () => {
         <div className={styles.loginContainer}>
             <LogoAnimation />
             <p className={styles.login_subtitle} >Bienvenido Inicia Sesión para continuar</p>
-            <Boton className='btn-default' icon={googleIcon} label='Continuar con Google' />
-            <motion.div
-                className={styles.info}
-                animate={{
-                    height: errorMessage !== '' ? 40 : 0,
-                    opacity: errorMessage !== '' ? 1 : 0
-                }}
-                transition={{
-                    duration: 0.5,
-                    ease: "easeInOut"
-                }}
-            >
-                <BoxIcon name='info-circle' className='icon' />
-                <p className={styles.text} >{errorMessage}</p>
-            </motion.div>
+            <Boton
+                className='btn-default'
+                icon={googleIcon}
+                label='Continuar con Google'
+                onClick={handleSubmitGoogle}
+            />
+
+            <MensajeError mensaje={errorMessage} />
+
             <motion.div
                 className={styles.content}
                 animate={{
@@ -342,11 +343,12 @@ const Login = () => {
                 label={isRegister ? 'Registrarse' : 'Iniciar Sesión'}
             />
 
-            {!isRegister && <p className={styles.login_footer} >¿Olvidaste tu contraseña?</p>}
+            {!isRegister && <p className={styles.login_footer} ><span onClick={() => setIsOpenContraseñaReset(true)}>¿Olvidaste tu contraseña?</span></p>}
             <p className={styles.login_footer}>
                 {isRegister ? '¿Ya tienes una cuenta?' : '¿No tienes una cuenta?'}
                 <span onClick={toggleMode}>{isRegister ? 'Iniciar sesión' : 'Regístrate'}</span>
             </p>
+            <ContraseñaReset isOpen={isOpenContraseñaReset} setIsOpen={setIsOpenContraseñaReset} />
         </div >
     );
 };

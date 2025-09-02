@@ -1,6 +1,6 @@
-//
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
+//const API_BASE_URL = 'http://localhost:5000/api';
 class UserService {
   // Métodos auxiliares para manejar token e ID
   static saveToken(token) {
@@ -12,7 +12,7 @@ class UserService {
   }
 
 
-  
+
   // Crear usuario
   static async createUser(user) {
     try {
@@ -160,6 +160,74 @@ class UserService {
       return data;
     } catch (error) {
       console.error('Error en changePassword:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+
+  
+  // Solicitar reset de contraseña
+  static async requestPasswordReset(email) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/passwordReset/request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en requestPasswordReset:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+  // Verificar token de reset
+  static async verifyResetToken(token) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/passwordReset/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en verifyResetToken:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+  // Resetear contraseña
+  static async resetPassword(token, newPassword) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/passwordReset/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token, newPassword }),
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en resetPassword:', error);
       return {
         success: false,
         error: 'Error de conexión con el servidor'
