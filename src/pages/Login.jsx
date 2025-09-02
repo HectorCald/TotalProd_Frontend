@@ -1,49 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import styles from './Login.module.css';
 import Boton from '../components/common/Boton';
-import Input from '../components/common/Input';
+import InputNormal from '../components/common/InputNormal';
 import googleIcon from '../assets/google-icon.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import UserService from '../services/userService';
 import { BoxIcon } from 'boxicons-react';
-import Select from '../components/common/Select';
 import LogoAnimation from '../components/common/LogoAnimation';
-import CompanyTypeService from '../services/companyTypeService';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 
 
 const Login = () => {
-    const [compañias, setCompañias] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('')
-    useEffect(() => {
-        setIsLoading(true);
-        CompanyTypeService.getAll().then(response => {
-            if (response.success && response.data) {
-                // Formatear las opciones para el Select
-                const formattedOptions = response.data.map(item => ({
-                    value: item.id,
-                    label: item.nombre || item.name,
-                    icon: 'building'
-                }));
-                setCompañias(formattedOptions);
-                setIsLoading(false);
-            }
-        });
-    }, []);
+
 
     //--------------------------------------------------------------------------------
     // States
     const [isRegister, setIsRegister] = useState(false);
     const [formDataLogin, setFormDataLogin] = useState({
-        phone: '',
+        email: '',
         password: '',
     });
     const [formDataRegister, setFormDataRegister] = useState({
-        name: '',
-        phoneRegister: null,
-        passwordRegister: '',
-        compañia: '',
+        firstName: '',
+        lastName: '',
+        phone: '',
+        email: '',
+        password: '',
     });
 
 
@@ -52,7 +34,7 @@ const Login = () => {
     const [delayedMinHeight, setDelayedMinHeight] = useState(0);
     useEffect(() => {
         const timer = setTimeout(() => {
-            setDelayedMinHeight(isRegister ? 365 : 250);
+            setDelayedMinHeight(isRegister ? 390 : 220);
         }, 500); // Mismo tiempo que la duración de la animación
 
         return () => clearTimeout(timer);
@@ -60,14 +42,15 @@ const Login = () => {
     const toggleMode = () => {
         setIsRegister(!isRegister);
         setFormDataLogin({
-            phone: '',
+            email: '',
             password: '',
         });
         setFormDataRegister({
-            name: '',
-            phoneRegister: '',
-            passwordRegister: '',
-            compañia: '',
+            firstName: '',
+            lastName: '',
+            phone: '',
+            email: '',
+            password: '',
         });
         setDelayedMinHeight(0);
     };
@@ -76,7 +59,7 @@ const Login = () => {
         if (credentials) {
             setFormDataLogin(prev => ({
                 ...prev,
-                phone: credentials.phone,
+                email: credentials.email,
                 password: credentials.password
             }));
             setRemember(true);
@@ -104,9 +87,9 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const [remember, setRemember] = useState(false);
     const handleSubmit = async () => {
-        if (!formDataLogin.phone || !formDataLogin.password) {
+        if (!formDataLogin.email || !formDataLogin.password) {
 
-            if (!formDataLogin.phone) {
+            if (!formDataLogin.email) {
                 setErrorMessage('El correo electrónico es requerido')
             }
 
@@ -123,7 +106,7 @@ const Login = () => {
         try {
             setLoading(true);
             const result = await UserService.login({
-                phone: formDataLogin.phone,
+                email: formDataLogin.email,
                 password: formDataLogin.password
             });
             if (result.success) {
@@ -135,7 +118,7 @@ const Login = () => {
             } else {
                 // Manejar el caso cuando result.success es false
                 console.log('Error en login:', result.error);
-                setErrorMessage('Contraseña o celular incorrectos')
+                setErrorMessage('Contraseña o email incorrectos')
                 setTimeout(() => {
                     setErrorMessage('')
                 }, 3000);
@@ -147,7 +130,7 @@ const Login = () => {
         }
     };
     const handleSubmitRegister = async () => {
-        if (!formDataRegister.name || !formDataRegister.phoneRegister || !formDataRegister.passwordRegister) {
+        if (!formDataRegister.firstName || !formDataRegister.lastName || !formDataRegister.phone || !formDataRegister.email || !formDataRegister.password) {
 
             setErrorMessage('Todo los campos son requeridos')
 
@@ -156,30 +139,42 @@ const Login = () => {
             }, 3000);
             return;
         }
-        if (formDataRegister.passwordRegister.length < 8) {
+        if (formDataRegister.password.length < 8) {
             setErrorMessage('La contraseña debe tener al menos 8 caracteres')
             setTimeout(() => {
                 setErrorMessage('')
             }, 3000);
             return;
         }
-        if (formDataRegister.phoneRegister) {
-            setLoading(true);
-            try {
-                const result = await UserService.getUserByPhone(formDataRegister.phoneRegister);
-                if (result.success && result.data) {
-                    setErrorMessage('El numero de celular ya esta registrado')
-                    setTimeout(() => {
-                        setErrorMessage('')
-                    }, 3000);
-                    setLoading(false);
-                    return;
-                }
-            } catch (error) {
-                console.error('Error al obtener el usuario:', error);
-            } finally {
+        if (!formDataRegister.email.includes('@') || !formDataRegister.email.includes('.com')) {
+            setErrorMessage('El email no es válido')
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            return;
+        }
+        // Verificar si el email ya existe antes de crear el usuario
+        setLoading(true);
+        try {
+            const result = await UserService.getUserByEmail(formDataRegister.email);
+            if (result.success && result.data && result.data.exists) {
+                setErrorMessage('El email ya está registrado');
+                setTimeout(() => {
+                    setErrorMessage('');
+                }, 3000);
                 setLoading(false);
+                return;
             }
+        } catch (error) {
+            console.error('Error al verificar el email:', error);
+            setErrorMessage('Error al verificar el email');
+            setTimeout(() => {
+                setErrorMessage('');
+            }, 3000);
+            setLoading(false);
+            return;
+        } finally {
+            setLoading(false);
         }
         try {
             setLoading(true);
@@ -188,19 +183,14 @@ const Login = () => {
                 // Iniciar sesión automáticamente después del registro
                 try {
                     const loginResult = await UserService.login({
-                        phone: formDataRegister.phoneRegister,
-                        password: formDataRegister.passwordRegister
+                        email: formDataRegister.email,
+                        password: formDataRegister.password
                     });
                     if (loginResult.success) {
                         // Guardar el token y ID del usuario en localStorage
                         if (loginResult.data) {
                             if (loginResult.data.token) {
                                 localStorage.setItem('authToken', loginResult.data.token);
-                            }
-                            if (loginResult.data.user && loginResult.data.user.id) {
-                                localStorage.setItem('userId', loginResult.data.user.id);
-                            } else if (loginResult.data.id) {
-                                localStorage.setItem('userId', loginResult.data.id);
                             }
                         }
                         window.location.href = '/';
@@ -209,7 +199,10 @@ const Login = () => {
                     console.error('Error al iniciar sesión automáticamente:', loginError);
                 }
             } else {
-                alert(`Error al iniciar sesión automáticamente: ${result.error || 'Error desconocido'}`);
+                setErrorMessage(`Error al crear usuario: ${result.error || 'Error desconocido'}`);
+                setTimeout(() => {
+                    setErrorMessage('');
+                }, 3000);
             }
         } catch (error) {
             console.error('Error al crear el usuario:', error);
@@ -223,7 +216,6 @@ const Login = () => {
     // Render
     return (
         <div className={styles.loginContainer}>
-            {isLoading && <LoadingSpinner />}
             <LogoAnimation />
             <p className={styles.login_subtitle} >Bienvenido Inicia Sesión para continuar</p>
             <Boton className='btn-default' icon={googleIcon} label='Continuar con Google' />
@@ -244,7 +236,7 @@ const Login = () => {
             <motion.div
                 className={styles.content}
                 animate={{
-                    height: isRegister ? 365 : 250,
+                    height: isRegister ? 390 : 220,
                 }}
                 transition={{
                     duration: 0.5,
@@ -265,20 +257,22 @@ const Login = () => {
                         >
                             <p className={styles.content_title} >Iniciar Sesión</p>
                             <div className={styles.content_login} >
-                                <Input
-                                    type="text"
-                                    label="Celular"
-                                    value={formDataLogin.phone}
-                                    onChange={(e) => handleInputChangeLogin('phone', e.target.value)}
-                                    placeholder="Ingrese su numero de celular"
+                                <InputNormal
+                                    tipo="text"
+                                    label="Correo electrónico"
+                                    value={formDataLogin.email}
+                                    onChange={(e) => handleInputChangeLogin('email', e.target.value)}
+                                    placeholder="Correo electrónico"
+                                    icon="envelope"
                                 />
 
-                                <Input
-                                    type="password"
+                                <InputNormal
+                                    tipo="password"
                                     label="Contraseña"
                                     value={formDataLogin.password}
                                     onChange={(e) => handleInputChangeLogin('password', e.target.value)}
-                                    placeholder="Ingrese su contraseña"
+                                    placeholder="Contraseña"
+                                    icon="lock"
                                 />
                                 <div className={styles.login_remember_container}>
                                     <input type="checkbox" id="remember" checked={remember} onChange={() => setRemember(!remember)} />
@@ -296,37 +290,46 @@ const Login = () => {
                         >
                             <p className={styles.content_title} >Registrarse</p>
                             <div className={styles.content_register} >
-                                <Input
+                                <InputNormal
+                                    tipo="text"
+                                    label="Nombres"
+                                    value={formDataRegister.firstName}
+                                    onChange={(e) => handleInputChangeRegister('firstName', e.target.value)}
+                                    placeholder="Nombres"
+                                    icon="user"
+                                />
+                                <InputNormal
+                                    tipo="text"
+                                    label="Apellidos"
+                                    value={formDataRegister.lastName}
+                                    onChange={(e) => handleInputChangeRegister('lastName', e.target.value)}
+                                    placeholder="Apellidos"
+                                    icon="user"
+                                />
+                                <InputNormal
                                     type="text"
-                                    label="Nombre Completo"
-                                    value={formDataRegister.name}
-                                    onChange={(e) => handleInputChangeRegister('name', e.target.value)}
-                                    placeholder="Ingrese su nombre completo"
+                                    label="Correo electrónico"
+                                    value={formDataRegister.email}
+                                    onChange={(e) => handleInputChangeRegister('email', e.target.value)}
+                                    placeholder="Correo electrónico"
+                                    icon="envelope"
                                 />
-                                <Input
-                                    type="tel"
+                                <InputNormal
+                                    tipo="tel"
                                     label="Celular"
-                                    value={formDataRegister.phoneRegister}
-                                    onChange={(e) => handleInputChangeRegister('phoneRegister', e.target.value)}
-                                    placeholder="Ingrese su numero de celular"
+                                    value={formDataRegister.phone}
+                                    onChange={(e) => handleInputChangeRegister('phone', e.target.value)}
+                                    placeholder="Celular"
+                                    icon="phone"
                                 />
-                                <Input
-                                    type="password"
+                                <InputNormal
+                                    tipo="password"
                                     label="Contraseña"
-                                    value={formDataRegister.passwordRegister}
-                                    onChange={(e) => handleInputChangeRegister('passwordRegister', e.target.value)}
-                                    placeholder="Ingrese su contraseña"
+                                    value={formDataRegister.password}
+                                    onChange={(e) => handleInputChangeRegister('password', e.target.value)}
+                                    placeholder="Contraseña"
+                                    icon="lock"
                                 />
-                                <div className={styles.content_company}>
-                                    <Select
-                                        label="Compañia"
-                                        value={formDataRegister.compañia}
-                                        onChange={(value) => handleInputChangeRegister('compañia', value)}
-                                        options={compañias}
-                                        placeholder="Tipo de Negocio"
-                                    />
-                                </div>
-
                             </div>
                         </motion.div>
                     )}

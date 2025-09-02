@@ -27,7 +27,8 @@
 
 .value {
     font-size: 14px;
-    font-weight: 300;
+    font-weight: 400;
+    color: var(--white-color);
 }
 
 .orange {
@@ -35,8 +36,11 @@
     font-weight: 600;
 }
 .green {
+    background-color: rgba(0, 255, 0, 0.145);
+    padding: 5px 10px;
+    border-radius: 5px;
     color: var(--success-color);
-    font-weight: 600;
+    font-weight: 500;
 }
 .red {
     color: var(--error-color);

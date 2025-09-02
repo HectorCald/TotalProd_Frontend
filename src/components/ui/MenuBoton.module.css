@@ -11,6 +11,6 @@
     right: 15px;
 }
 .icon {
-    color: white;
+    color: white !important;
     font-size: 34px !important;
 }

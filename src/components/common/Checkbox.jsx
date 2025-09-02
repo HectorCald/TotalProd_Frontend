@@ -3,7 +3,12 @@ import { BoxIcon } from 'boxicons-react';
 
 function Checkbox({ title, subtitle, checked, onChange, icon }) {
     return (
-        <div className={`${styles.checkboxContainer} ${checked ? styles.checked : ''}`}>
+        <div 
+            className={`${styles.checkboxContainer} ${checked ? styles.checked : ''}`}
+            onClick={() => {
+                onChange(!checked);
+            }}
+        >
             <div className={styles.icon}>
                 <BoxIcon name={icon} className={styles.icon} />
             </div>
@@ -15,7 +20,9 @@ function Checkbox({ title, subtitle, checked, onChange, icon }) {
                 <input
                     type="checkbox"
                     checked={checked}
-                    onChange={(e) => onChange(e.target.checked)}
+                    onChange={(e) => {
+                        onChange(e.target.checked);
+                    }}
                 />
                 <span className={styles.checkmark}></span>
             </div>

@@ -9,7 +9,6 @@ import Version from '../../common/Version';
 import VerUsuario from './VerUsuario';
 import CambiarContraseña from './CambiarContraseña';
 import Apariencia from './Apariencia';
-import Extracto from './Extracto';
 
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
@@ -21,7 +20,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const [isOpenVerUsuario, setIsOpenVerUsuario] = useState(false);
     const [isOpenCambiarContraseña, setIsOpenCambiarContraseña] = useState(false);
     const [isOpenApariencia, setIsOpenApariencia] = useState(false);
-    const [isOpenExtracto, setIsOpenExtracto] = useState(false);
     const handleClose = () => {
         setIsOpen(false);
     };
@@ -35,9 +33,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const handleApariencia = () => {
         setIsOpenApariencia(true);
     };
-    const handleExtracto = () => {
-        setIsOpenExtracto(true);
-    };
+
 
     const handleLogout = () => {
         setIsLogoutOpen(true);
@@ -67,11 +63,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         onClick={handleApariencia}
                     />
                     <ItemLine
-                        icon='receipt'
-                        title='Extractos de cuenta'
-                        onClick={handleExtracto}
-                    />
-                    <ItemLine
                         icon='power-off'
                         title='Cerrar sesión'
                         onClick={handleLogout}
@@ -83,7 +74,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
             <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} usuario={userInfo} />
             <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} usuario={userInfo} />
             <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
-            <Extracto isOpen={isOpenExtracto} setIsOpen={setIsOpenExtracto} usuario={userInfo} />
             {/* Modal de logout*/}
             <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>
                 <HeaderModal
@@ -92,22 +82,25 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>¿Estas seguro de que deseas cerrar sesión?, esta accion eliminara toda la información del usuario en el dispositivo.</p>
-                    <Boton
-                        className='btn-red'
-                        label='Si, cerrar sesión'
-                        style={{ marginTop: 'auto' }}
-                        onClick={() => {
-                            localStorage.removeItem('token');
-                            window.location.reload();
-                            setIsLogoutOpen(false);
-                        }}
-                    />
-                    <Boton
-                        className='btn-default'
-                        label='Cancelar'
-                        style={{ marginTop: 'auto' }}
-                        onClick={() => setIsLogoutOpen(false)}
-                    />
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-red'
+                            label='Si, Cerrar sesión'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => {
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('userInfo');
+                                window.location.reload();
+                                setIsLogoutOpen(false);
+                            }}
+                        />
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsLogoutOpen(false)}
+                        />
+                    </div>
                 </div>
             </ViewModal>
         </View>

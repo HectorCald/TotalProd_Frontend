@@ -28,15 +28,30 @@ code {
 
 :root{
   --primary-color: #28b498;
-  --secondary-color: #121212;
-  --tertiary-color: #242424;
-  --quaternary-color: #343434;
-  --quinary-color: #4d4d4d;
 
   --error-color: #ff0000;
   --success-color: #01a001;
   --warning-color: #FB8713;
   --info-color: #1F74FE;
+}
+
+/* Tema claro */
+[data-theme="light"] {
+  --secondary-color: #f5f5f5;
+  --tertiary-color: #ffffff;
+  --quaternary-color: #e0e0e0;
+  --quinary-color: #cccccc;
+
+  --dark-color: #ffffff;
+  --white-color: #202020;
+}
+
+/* Tema oscuro (por defecto) */
+[data-theme="dark"] {
+  --secondary-color: #121212;
+  --tertiary-color: #242424;
+  --quaternary-color: #343434;
+  --quinary-color: #4d4d4d;;
 
   --dark-color: #000000;
   --white-color: #ffffff;

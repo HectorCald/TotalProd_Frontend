@@ -8,7 +8,7 @@ const HeaderView = ({title, onBack}) => {
             <button className={styles.headerViewButton} onClick={onBack}>
                 <BoxIcon name='left-arrow-alt' className={styles.icon}/>
             </button>
-            <h1 className={styles.headerViewTitle}>{title}</h1>
+            {title && <h1 className={styles.headerViewTitle}>{title}</h1>}
         </div>
     );
 };

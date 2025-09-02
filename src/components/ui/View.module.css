@@ -21,22 +21,3 @@
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
     cursor: grab;
 }
-
-.viewContainer:active {
-    cursor: grabbing;
-}
-
-/* Indicador de deslizamiento */
-.viewContainer::before {
-    content: '';
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40px;
-    height: 4px;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 2px;
-    opacity: 0.6;
-    overflow: hidden;
-}

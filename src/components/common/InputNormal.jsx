@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styles from './InputNormal.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-function InputNormal({ tipo, placeholder, value, onChange, etiqueta, error }) {
+function InputNormal({ tipo, placeholder, value, onChange, icon, label, error }) {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     // Actualizar isFocused cuando value cambie
@@ -17,11 +17,21 @@ function InputNormal({ tipo, placeholder, value, onChange, etiqueta, error }) {
     }
     return (
         <div style={{ width: '100%', position: 'relative' }}>
+            {icon && (
+                <span
+                    className={styles.inputIcon}
+                    style={{
+                        color: isFocused ? 'var(--primary-color)' : ''
+                    }}
+                >
+                    <BoxIcon name={icon} />
+                </span>
+            )}
             <input
                 className={styles.input}
                 type={tipo === 'password' && showPassword ? 'text' : tipo}
                 {...(tipo === 'number'
-                    ? { inputMode: 'numeric'}
+                    ? { inputMode: 'numeric' }
                     : {})}
                 placeholder={placeholder}
                 value={value}
