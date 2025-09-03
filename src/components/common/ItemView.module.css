@@ -6,15 +6,15 @@
     width: 100%;
     min-height: 70px;
     padding: 8px;
-    border-radius: 17px;
     gap: 5px;
-    background-color: var(--tertiary-color);
+    background-color: none;
+    border-bottom: 1px solid var(--quaternary-color);
 }
 
 .itemViewIcon {
     min-width: 50px;
     min-height: 50px;
-    border-radius: 15px;
+    border-radius:50%;
     background-color: var(--secondary-color);
     display: flex;
     color: var(--primary-color);
@@ -28,13 +28,12 @@
 .initialsIcon {
     width: 100%;
     height: 100%;
-    border-radius: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-weight: bold;
-    font-size: 20px;
+    font-size: 25px;
 }
 
 .itemViewContent {
@@ -119,5 +118,6 @@
 
     .icon {
         font-size: 30px !important;
+        color: var(--quinary-color) !important;
     }
 }

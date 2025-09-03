@@ -36,19 +36,34 @@ const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaDa
     return colors[upperLetter] || '#7F8C8D'; // Color por defecto más oscuro
   };
 
+  // Función para generar color más claro
+  const generateLighterColor = (color) => {
+    // Convertir hex a RGB
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Retornar el mismo color pero con transparencia (0.3 = 30% opacidad)
+    return `rgba(${r}, ${g}, ${b}, 0.3)`;
+  };
+
   // Generar iniciales si no hay icono
   const initials = !icon ? generateInitials(title) : '';
   const initialsColor = initials ? generateColor(initials.charAt(0)) : '';
+  const initialsBackgroundColor = initials ? generateLighterColor(initialsColor) : '';
 
   return (
     <div className={styles.itemView} onClick={onClick}>
-      <div className={styles.itemViewIcon}>
+      <div className={styles.itemViewIcon} style={{ backgroundColor: initialsBackgroundColor, border: `1px solid ${initialsColor}` }}>
         {icon ? (
           <BoxIcon name={icon} className={styles.icon} />
         ) : (
           <div 
             className={styles.initialsIcon}
-            style={{ color: initialsColor }}
+            style={{ 
+              color: initialsColor,
+            }}
           >
             {initials}
           </div>

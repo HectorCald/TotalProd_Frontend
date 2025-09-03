@@ -15,6 +15,7 @@
 
     &::placeholder{
         font-size: 15px;
+        color: var(--quinary-color);
     }
 }
 .inputView{
@@ -23,7 +24,6 @@
   top: 50%;
   transform: translateY(-50%);
   background: none;
-  color: gray;
   border: none;
   cursor: pointer;
   z-index: 2;
