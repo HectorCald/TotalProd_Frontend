@@ -9,13 +9,11 @@ import LogoAnimation from '../components/common/LogoAnimation';
 import MensajeError from '../components/common/MensajeError';
 import ContraseñaReset from '../components/views/login/ContraseñaReset';
 
-
 const Login = () => {
     const [errorMessage, setErrorMessage] = useState('')
     const [isOpenContraseñaReset, setIsOpenContraseñaReset] = useState(false);
 
-    //--------------------------------------------------------------------------------
-    // States
+    // estado para el modo de registro y login
     const [isRegister, setIsRegister] = useState(false);
     const [formDataLogin, setFormDataLogin] = useState({
         email: '',
@@ -30,7 +28,6 @@ const Login = () => {
     });
 
 
-    //--------------------------------------------------------------------------------
     // Min Height y Toggle Mode(isRegister)
     const [delayedMinHeight, setDelayedMinHeight] = useState(0);
     useEffect(() => {
@@ -71,7 +68,6 @@ const Login = () => {
     }, [isRegister]);
 
 
-    //--------------------------------------------------------------------------------
     // Inputs(formDataLogin y formDataRegister)
     const handleInputChangeLogin = (field, value) => {
         setFormDataLogin(prev => ({
@@ -86,7 +82,7 @@ const Login = () => {
         }));
     };
 
-    //--------------------------------------------------------------------------------
+
     // Submit(formDataLogin y formDataRegister)
     const [loading, setLoading] = useState(false);
     const [remember, setRemember] = useState(false);
@@ -233,7 +229,6 @@ const Login = () => {
         }, 3000);
     }
 
-    //--------------------------------------------------------------------------------
     // Render
     return (
         <div className={styles.loginContainer}>
@@ -247,7 +242,6 @@ const Login = () => {
             />
 
             <MensajeError mensaje={errorMessage} />
-
             <motion.div
                 className={styles.content}
                 animate={{

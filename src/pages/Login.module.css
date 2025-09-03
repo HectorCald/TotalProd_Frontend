@@ -27,12 +27,14 @@
 
 .login_logo {
     font-size: 45px;
-    font-weight: 700;
     color: var(--white-color);
 
-    .login-logo-span {
+    .login_logo_span {
         position: relative;
 
+        span{
+            font-weight: 700;
+        }
     }
 
     .icon {

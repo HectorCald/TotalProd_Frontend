@@ -7,21 +7,28 @@ import InputNormal from '../../common/InputNormal';
 import MensajeError from '../../common/MensajeError';
 import MapaModal from './MapaModal';
 import clientService from '../../../services/clientService';
-import MensajeExito from '../../common/MensajeExito';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onClientUpdated }) {
 
+    // Estados para los datos del cliente
     const [dataEdit, setDataEdit] = useState({
         name: '',
         phone: '',
         direccion: '',
         coordenadas: null
     });
-    const [errorMessage, setErrorMessage] = useState('');
-    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [mensajeExito, setMensajeExito] = useState('');
 
+    // Estados para los mensajes de error y éxito
+    const [errorMessage, setErrorMessage] = useState('');
+
+    // Estados para el mapa
+    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+    // Estados para la carga
+    const [loading, setLoading] = useState(false);
+   
+
+    // Efecto para cargar los datos del cliente
     useEffect(() => {
         if (usuario && tipo === 'editar') {
             // Parsear las coordenadas del string a objeto
@@ -34,7 +41,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                     coordenadasObj = { lat, lng };
                 }
             }
-            
+
             setDataEdit({
                 name: usuario.name || '',
                 phone: usuario.phone || '',
@@ -50,9 +57,10 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             });
         }
         setErrorMessage('');
-        setMensajeExito('');
     }, [isOpen, usuario, tipo]);
 
+
+    // Función para enviar los datos del cliente
     const handleSubmit = async () => {
         if (!dataEdit.name.trim()) {
             setErrorMessage('El nombre es obligatorio');
@@ -69,33 +77,23 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             direccion: dataEdit.direccion,
             location: dataEdit.coordenadas ? `(${dataEdit.coordenadas.lng},${dataEdit.coordenadas.lat})` : null
         };
-
-        console.log('🔍 Datos a enviar:', datosParaEnviar);
-        console.log('🔍 dataEdit.coordenadas:', dataEdit.coordenadas);
-        console.log('🔍 location string:', dataEdit.coordenadas ? `(${dataEdit.coordenadas.lng},${dataEdit.coordenadas.lat})` : 'null');
-
         setLoading(true);
         try {
             let response;
-            
+
             if (tipo === 'editar') {
                 response = await clientService.update(usuario.id, datosParaEnviar);
             } else {
                 response = await clientService.create(datosParaEnviar);
             }
-            
+
             if (response.success) {
-                const mensaje = tipo === 'editar' ? 'Cliente actualizado exitosamente' : 'Cliente creado exitosamente';
-                setMensajeExito(mensaje);
-                setTimeout(() => {
-                    setMensajeExito('');
-                    setIsOpen(false);
-                    if (tipo === 'editar' && onClientUpdated) {
-                        onClientUpdated(response.data);
-                    } else if (tipo === 'agregar' && onClientCreated) {
-                        onClientCreated(response.data);
-                    }
-                }, 2000);
+                if (tipo === 'editar' && onClientUpdated) {
+                    onClientUpdated(response.data);
+                } else if (tipo === 'agregar' && onClientCreated) {
+                    onClientCreated(response.data);
+                }
+                setIsOpen(false);
             } else {
                 setErrorMessage(response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el cliente`);
                 setTimeout(() => {
@@ -113,33 +111,25 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
         }
     }
 
+    // Función para seleccionar la ubicación
     const handleLocationSelect = (locationData) => {
-        console.log('🔍 Nueva ubicación seleccionada:', locationData);
-        
+
         const nuevaDireccion = locationData.direccion || locationData.address || `Ubicación: ${locationData.lat.toFixed(6)}, ${locationData.lng.toFixed(6)}`;
         const nuevasCoordenadas = {
             lat: locationData.lat,
             lng: locationData.lng
         };
-        
-        console.log('🔍 Nueva dirección:', nuevaDireccion);
-        console.log('🔍 Nuevas coordenadas:', nuevasCoordenadas);
-        
+
         setDataEdit(prev => ({
             ...prev,
             direccion: nuevaDireccion,
             coordenadas: nuevasCoordenadas
         }));
-        
-        console.log('🔍 dataEdit actualizado:', {
-            ...dataEdit,
-            direccion: nuevaDireccion,
-            coordenadas: nuevasCoordenadas
-        });
-        
+
         setIsMapModalOpen(false);
     };
 
+    // Función para abrir el mapa
     const handleOpenMap = () => {
         setIsMapModalOpen(true);
     };
@@ -175,7 +165,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             <HeaderModal title={tipo === 'agregar' ? 'Nuevo cliente' : tipo === 'editar' ? 'Editar cliente' : 'Ver cliente'} onClose={() => setIsOpen(false)} />
             <div className={styles.modalContent}>
                 <MensajeError mensaje={errorMessage} />
-                <MensajeExito mensaje={mensajeExito} />
                 <p className={styles.subTitle}>INFORMACION PERSONAL</p>
                 <InputNormal
                     tipo="text"
@@ -214,7 +203,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                     />
                 )}
             </div>
-            
+
             <MapaModal
                 isOpen={isMapModalOpen}
                 setIsOpen={setIsMapModalOpen}
@@ -223,7 +212,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 readOnly={isMapReadOnly}
                 title={getMapTitle()}
             />
-            
+
 
         </ViewModal>
     );

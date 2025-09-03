@@ -28,3 +28,7 @@
   cursor: pointer;
   z-index: 2;
 }
+.inputViewIcon{
+  font-size: 20px;
+  color: var(--primary-color) !important;
+}

@@ -30,11 +30,8 @@ export const UserProvider = ({ children }) => {
                     const decoded = JSON.parse(jsonPayload);
                     
                     if (decoded && decoded.id) {
-                        console.log('🔍 UserContext - Decoded ID:', decoded.id);
                         const userData = await UserService.getCurrentUser(decoded.id);
-                        console.log('🔍 UserContext - Response:', userData);
                         if (userData.success) {
-                            console.log('🔍 UserContext - User data:', userData.data.user);
                             setUser(userData.data.user);
                         }
                     }

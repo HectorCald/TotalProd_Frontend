@@ -1,9 +1,7 @@
 import styles from './Menu.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import ListaDesplegable from '../../common/ListaDesplegable';
 import { FUNCTIONS } from '../../../constants/functions';
-import { PRODUCTION_FUNCTIONS } from '../../../constants/productionFunctions';
 import { ACOPIO_FUNCTIONS } from '../../../constants/acopioFunctions';
 import { ALMACEN_FUNCTIONS } from '../../../constants/almacenFunctions';
 import ItemLine from '../../common/ItemLine';
@@ -20,12 +18,6 @@ import AlmacenMedio from '../almacen-acopio/AlmacenMedio';
 
 
 function Menu({ isOpen, setIsOpen, onViewChange }) {
-    const [activeList, setActiveList] = useState(null);
-
-    const handleListToggle = (listName) => {
-        setActiveList(activeList === listName ? null : listName);
-    };
-
     const [activeView, setActiveView] = useState(null);
 
     const handleViewOpen = (viewName) => {
@@ -41,67 +33,42 @@ function Menu({ isOpen, setIsOpen, onViewChange }) {
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Menu</h1>
-                <ListaDesplegable
-                    title="Administración"
-                    icon="user-circle"
-                    isOpen={activeList === "Administración"}
-                    onToggle={handleListToggle}
-                >
-                    {FUNCTIONS.map((func) => (
+                <p className={styles.subTitle}>General</p>
+                <div className={styles.opciones}>
+                    {FUNCTIONS.map((item, index) => (
                         <ItemLine
-                            key={func.name}
-                            title={func.name}
-                            icon={func.icon}
-                            onClick={() => handleViewOpen(func.view)}
+                            key={index}
+                            icon={item.icon}
+                            title={item.name}
+                            onClick={() => handleViewOpen(item.view)}
                         />
                     ))}
-                </ListaDesplegable>
-                <ListaDesplegable
-                    title="Producción"
-                    icon="factory"
-                    isOpen={activeList === "Producción"}
-                    onToggle={handleListToggle}
-                >
-                    {PRODUCTION_FUNCTIONS.map((func) => (
+                </div>
+                <p className={styles.subTitle}>Almacen</p>
+                <div className={styles.opciones}>
+                    {ALMACEN_FUNCTIONS.map((item, index) => (
                         <ItemLine
-                            key={func.name}
-                            title={func.name}
-                            icon={func.icon}
-                            onClick={() => handleViewOpen(func.view)}
+                            key={index}
+                            icon={item.icon}
+                            title={item.name}
+                            onClick={() => handleViewOpen(item.view)}
                         />
                     ))}
-                </ListaDesplegable>
-                <ListaDesplegable
-                    title="Acopio"
-                    icon="leaf"
-                    isOpen={activeList === "Acopio"}
-                    onToggle={handleListToggle}
-                >
-                    {ACOPIO_FUNCTIONS.map((func) => (
+                </div>
+                <p className={styles.subTitle}>Acopio</p>
+                <div className={styles.opciones}>
+                    {ACOPIO_FUNCTIONS.map((item, index) => (
                         <ItemLine
-                            key={func.name}
-                            title={func.name}
-                            icon={func.icon}
-                            onClick={() => handleViewOpen(func.view)}
+                            key={index}
+                            icon={item.icon}
+                            title={item.name}
+                            onClick={() => handleViewOpen(item.view)}
                         />
                     ))}
-                </ListaDesplegable>
-                <ListaDesplegable
-                    title="Almacen"
-                    icon="store"
-                    isOpen={activeList === "Almacen"}
-                    onToggle={handleListToggle}
-                >
-                    {ALMACEN_FUNCTIONS.map((func) => (
-                        <ItemLine
-                            key={func.name}
-                            title={func.name}
-                            icon={func.icon}
-                            onClick={() => handleViewOpen(func.view)}
-                        />
-                    ))}
-                </ListaDesplegable>
+                </div>
+                
             </div>
+
             <Personal
                 isOpen={activeView === 'personal'}
                 setIsOpen={() => handleViewClose()}

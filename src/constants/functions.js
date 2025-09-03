@@ -1,10 +1,5 @@
 export const FUNCTIONS = [
     {
-        name: 'Personal',
-        icon: 'user',
-        view: 'personal'
-    },
-    {
         name: 'Clientes',
         icon: 'group',
         view: 'clientes'
@@ -15,6 +10,11 @@ export const FUNCTIONS = [
         view: 'proveedores'
     },
     {
+        name: 'Personal',
+        icon: 'user',
+        view: 'personal'
+    },
+    {
         name: 'Pagos',
         icon: 'credit-card',
         view: 'pagos'
@@ -23,10 +23,5 @@ export const FUNCTIONS = [
         name: 'Reportes',
         icon: 'receipt',
         view: 'reportes'
-    },
-    {
-        name: 'Caja',
-        icon: 'wallet',
-        view: 'caja'
     },
 ];

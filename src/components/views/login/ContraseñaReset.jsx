@@ -6,18 +6,36 @@ import InputNormal from '../../common/InputNormal';
 import Boton from '../../common/Boton';
 import MensajeError from '../../common/MensajeError';
 import UserService from '../../../services/userService';
-import MensajeExito from '../../common/MensajeExito';
 import InputCodigo from '../../common/InputCodigo';
+import Notification from '../../common/Notification';
+
+
 function ContraseñaReset({ isOpen, setIsOpen }) {
     const [email, setEmail] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-    const [mensajeExito, setMensajeExito] = useState('');
     const [isOpenCodigo, setIsOpenCodigo] = useState(false);
     const [codigo, setCodigo] = useState('');
     const [isOpenNuevaContraseña, setIsOpenNuevaContraseña] = useState(false);
     const [nuevaContraseña, setNuevaContraseña] = useState('');
     const [loading, setLoading] = useState(false);
+    // Estado para la notificación
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
 
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 5000);
+    };
     useEffect(() => {
         setEmail('');
         setCodigo('');
@@ -48,15 +66,12 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                 if (result.data.token) {
                     // Fallback: si el email falló, guardar el token
                     localStorage.setItem('resetToken', result.data.token);
-                    setMensajeExito('Código enviado exitosamente. Revisa la consola del backend para ver el código.');
+                    mostrarNotificacion('success', 'Código enviado exitosamente. Revisa la consola del backend para ver el código.');
                 } else {
                     // Email enviado correctamente
-                    setMensajeExito('Código de verificación enviado a tu email. Revisa tu bandeja de entrada.');
+                    mostrarNotificacion('success', 'Código de verificación enviado a tu email. Revisa tu bandeja de entrada.');
                 }
                 setIsOpenCodigo(true);
-                setTimeout(() => {
-                    setMensajeExito('');
-                }, 5000);
             } else {
                 setErrorMessage(result.message || 'Error al enviar código');
                 setTimeout(() => {
@@ -93,10 +108,7 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                     console.log('❌ No se recibió token del backend'); // Debug
                 }
                 setIsOpenNuevaContraseña(true);
-                setMensajeExito('Código verificado exitosamente. Ahora puedes cambiar tu contraseña.');
-                setTimeout(() => {
-                    setMensajeExito('');
-                }, 4000);
+                mostrarNotificacion('success', 'Código verificado exitosamente. Ahora puedes cambiar tu contraseña.');
             } else {
                 setErrorMessage(result.message || 'Código inválido');
                 setTimeout(() => {
@@ -150,16 +162,15 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
 
             const result = await UserService.resetPassword(token, nuevaContraseña);
             if (result.success) {
-                setMensajeExito('¡Contraseña restablecida exitosamente! Ya puedes iniciar sesión con tu nueva contraseña.');
+                mostrarNotificacion('success', 'Contraseña restablecida exitosamente')
+                // Limpiar formularios
+                setEmail('');
+                setCodigo('');
+                setNuevaContraseña('');
+                // Limpiar token y cerrar modal
+                localStorage.removeItem('resetToken');
                 setTimeout(() => {
-                    setMensajeExito('');
-                    // Limpiar token y cerrar modal
-                    localStorage.removeItem('resetToken');
                     setIsOpen(false);
-                    // Limpiar formularios
-                    setEmail('');
-                    setCodigo('');
-                    setNuevaContraseña('');
                     setIsOpenCodigo(false);
                     setIsOpenNuevaContraseña(false);
                 }, 3000);
@@ -243,7 +254,6 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                     <h1 className={styles.subTitle}>Ingresa tu nueva contraseña.</h1>
                     <div>
                         <MensajeError mensaje={errorMessage} />
-                        <MensajeExito mensaje={mensajeExito} />
                     </div>
                     <InputNormal
                         tipo="password"
@@ -261,6 +271,11 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                     />
                 </div>
             </ViewModal >
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
         </ViewModal >
     );
 }

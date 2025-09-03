@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styles from './InputSearch.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-function InputNormal({ tipo, placeholder, value, onChange, etiqueta, error }) {
+function InputNormal({ tipo, placeholder, value, onChange, etiqueta, error, onClick }) {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     // Actualizar isFocused cuando value cambie
@@ -24,14 +24,15 @@ function InputNormal({ tipo, placeholder, value, onChange, etiqueta, error }) {
                 value={value}
                 onChange={onChange}
             />
-            <span
+            <button
                 className={styles.inputView}
+                onClick={onClick}
                 style={{
                     color: isFocused ? 'var(--primary-color)' : ''
                 }}
             >
-                <BoxIcon name="search" />
-            </span>
+                <BoxIcon name="search" className={styles.inputViewIcon}/>
+            </button>
         </div>
     );
 }

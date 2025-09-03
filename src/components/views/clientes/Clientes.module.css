@@ -20,6 +20,13 @@
         color: gray;
     }
 
+    .searchContainer {
+        position: relative;
+        width: 100%;
+    }
+
+
+
     .content{
         display: flex;
         flex-direction: column;
@@ -33,6 +40,16 @@
         height: calc(100vh - 250px);
     }
 
+    .loadingMore {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        color: var(--text-secondary);
+        font-size: 14px;
+        width: 100%;
+    }
+
     .noData {
         display: flex;
         align-items: center;
@@ -41,6 +58,17 @@
         padding: 40px 20px;
         color: gray;
         font-size: 16px;
+    }
+
+    .searchingData {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 40px 20px;
+        color: var(--text-secondary);
+        font-size: 16px;
+        font-style: italic;
     }
 }
 .buttonFooter {

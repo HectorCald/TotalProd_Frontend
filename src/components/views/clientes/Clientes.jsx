@@ -10,15 +10,47 @@ import EditarAgregar from './EditarAgregar';
 import clientService from '../../../services/clientService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
+import Notification from '../../common/Notification';
+
 
 function Clientes({ isOpen, setIsOpen }) {
+    // Estados para los modales
     const [isOpenVerCliente, setIsOpenVerCliente] = useState(false);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
     const [personaData, setPersonaData] = useState([]);
+
+    // Estados para la carga
     const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     
-    // Estado para el modal de información
+    // Estados para paginación y búsqueda
+    const [currentPage, setCurrentPage] = useState(1);
+    const [hasMorePages, setHasMorePages] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    
+
+    // Estado para la notificación
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
+
+    // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
         type: 'info',
@@ -27,21 +59,37 @@ function Clientes({ isOpen, setIsOpen }) {
         showButton: false
     });
 
+
+    // Función para manejar el click en un cliente
     const handleCliente = (persona) => {
         setIsOpenVerCliente(true);
         setInfoPersona(persona);
     };
-
-    const fetchClients = async () => {
+    
+    // Función para obtener los clientes
+    const fetchClients = async (page = 1, reset = true, isSearch = false) => {
         try {
-            setLoading(true);
-            const response = await clientService.getAll();
-            console.log('Respuesta del servicio:', response);
+            if (reset) {
+                if (isSearch) {
+                    setIsSearching(true);
+                } else {
+                    setLoading(true);
+                }
+            } else {
+                setLoadingMore(true);
+            }
             
+            const response = await clientService.getAll(page, 20, searchQuery);
             if (response.success && response.data) {
-                setPersonaData(response.data);
+                if (reset) {
+                    setPersonaData(response.data);
+                } else {
+                    setPersonaData(prev => [...prev, ...response.data]);
+                }
+                
+                setCurrentPage(page);
+                setHasMorePages(response.pagination?.hasNextPage || false);
             } else if (response.code === 'MODULE_NOT_INCLUDED') {
-                // Mostrar modal de error de módulo
                 setModalConfig({
                     isOpen: true,
                     type: 'warning',
@@ -50,7 +98,6 @@ function Clientes({ isOpen, setIsOpen }) {
                     showButton: true
                 });
             } else if (response.code === 'NO_PLAN') {
-                // Mostrar modal de plan requerido
                 setModalConfig({
                     isOpen: true,
                     type: 'warning',
@@ -61,7 +108,6 @@ function Clientes({ isOpen, setIsOpen }) {
             }
         } catch (error) {
             console.error('Error obteniendo clientes:', error);
-            // Mostrar modal de error general
             setModalConfig({
                 isOpen: true,
                 type: 'error',
@@ -71,14 +117,48 @@ function Clientes({ isOpen, setIsOpen }) {
             });
         } finally {
             setLoading(false);
+            setLoadingMore(false);
+            setIsSearching(false);
         }
     };
-
     useEffect(() => {
         if (isOpen) {
             fetchClients();
         }
     }, [isOpen]);
+
+    // Función para manejar scroll infinito
+    const handleScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !loadingMore) {
+            fetchClients(currentPage + 1, false);
+        }
+    };
+
+    // Función para manejar búsqueda
+    const handleSearch = (query) => {
+        setSearchQuery(query);
+        setCurrentPage(1);
+        setHasMorePages(true);
+        fetchClients(1, true, true); // isSearch = true
+    };
+    // Debounce para búsqueda en tiempo real
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (searchQuery !== '') {
+                handleSearch(searchQuery);
+            } else {
+                // Si está vacío, cargar todos los clientes
+                setCurrentPage(1);
+                setHasMorePages(true);
+                fetchClients(1, true);
+            }
+        }, 500); // 500ms de delay para evitar muchas peticiones
+
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery]);
+
+
 
     // Función para manejar cuando se crea un nuevo cliente
     const handleClientCreated = (newClient) => {
@@ -86,6 +166,7 @@ function Clientes({ isOpen, setIsOpen }) {
         setPersonaData(prev => [newClient, ...prev]);
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
+        mostrarNotificacion('success', 'Cliente agregado correctamente')
     };
 
     // Función para manejar cuando se elimina un cliente
@@ -94,6 +175,7 @@ function Clientes({ isOpen, setIsOpen }) {
         setPersonaData(prev => prev.filter(cliente => cliente.id !== deletedId));
         // Cerrar el modal de ver cliente
         setIsOpenVerCliente(false);
+        mostrarNotificacion('success', 'Cliente eliminado correctamente')
     };
 
     // Función para manejar cuando se actualiza un cliente
@@ -104,6 +186,7 @@ function Clientes({ isOpen, setIsOpen }) {
         ));
         // Cerrar el modal de ver cliente
         setIsOpenVerCliente(false);
+        mostrarNotificacion('success', 'Cliente actualizado correctamente')
     };
 
     return (
@@ -112,12 +195,25 @@ function Clientes({ isOpen, setIsOpen }) {
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Clientes</h1>
-                <InputSearch
-                    placeholder='Buscar cliente'
-                    type="text"
-                />
-                <div className={styles.content}>
-                    {personaData.length > 0 ? (
+                <div className={styles.searchContainer}>
+                    <InputSearch
+                        placeholder='Buscar por nombre o teléfono...'
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                        }}
+                    />
+                    
+
+                </div>
+                
+                <div className={styles.content} onScroll={handleScroll}>
+                    {isSearching ? (
+                        <div className={styles.searchingData}>
+                            <p>Buscando...</p>
+                        </div>
+                    ) : personaData.length > 0 ? (
                         personaData.map((cliente, index) => (
                             <ItemView
                                 key={cliente.id || index}
@@ -128,7 +224,14 @@ function Clientes({ isOpen, setIsOpen }) {
                         ))
                     ) : (
                         <div className={styles.noData}>
-                            <p>No hay clientes registrados</p>
+                            <p>{searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}</p>
+                        </div>
+                    )}
+                    
+                    {/* Indicador de carga para más elementos */}
+                    {loadingMore && (
+                        <div className={styles.loadingMore}>
+                            <p>Cargando más clientes...</p>
                         </div>
                     )}
                 </div>
@@ -168,6 +271,11 @@ function Clientes({ isOpen, setIsOpen }) {
                 showButton={modalConfig.showButton}
                 buttonText="Aceptar"
                 onButtonClick={(setIsOpen)}
+            />
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
             />
         </View>
     );

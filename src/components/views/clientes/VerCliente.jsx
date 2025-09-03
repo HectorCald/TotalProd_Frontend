@@ -8,19 +8,27 @@ import Dato from '../../common/Dato';
 import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import MensajeExito from '../../common/MensajeExito';
 import MensajeError from '../../common/MensajeError';
 import clientService from '../../../services/clientService';
 import ItemLine from '../../common/ItemLine';
 import MapaModal from './MapaModal';
 
 function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdated }) {
+
+    // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
+
+    // Estados para los mensajes de error y éxito
     const [errorMessage, setErrorMessage] = useState('');
-    const [mensajeExito, setMensajeExito] = useState('');
+
+    // Estados para la carga
     const [loading, setLoading] = useState(false);
+
+    // Estados para el mapa
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+    // Función para eliminar el cliente
     const handleEliminar = async (id) => {
         if (!id) {
             setErrorMessage('ID del cliente no válido');
@@ -30,18 +38,14 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
         setLoading(true);
         try {
             const response = await clientService.delete(id);
-            
+
             if (response.success) {
-                setMensajeExito('Cliente eliminado exitosamente');
-                setTimeout(() => {
-                    setMensajeExito('');
+                // Notificar al componente padre que se eliminó un cliente
+                if (onClientDeleted) {
+                    onClientDeleted(id);
                     setIsDeleteOpen(false);
                     setIsOpen(false);
-                    // Notificar al componente padre que se eliminó un cliente
-                    if (onClientDeleted) {
-                        onClientDeleted(id);
-                    }
-                }, 2000);
+                }
             } else {
                 setErrorMessage(response.message || 'Error al eliminar el cliente');
                 setTimeout(() => {
@@ -59,11 +63,10 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
         }
     }
 
-    // Limpiar mensajes al abrir/cerrar
+    // Efecto para limpiar mensajes al abrir/cerrar
     useEffect(() => {
         if (isOpen) {
             setErrorMessage('');
-            setMensajeExito('');
         }
     }, [isOpen]);
 
@@ -105,10 +108,10 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
             </div>
 
             {/* Modal de Editar*/}
-            <EditarAgregar 
-                isOpen={isEditOpen} 
-                setIsOpen={setIsEditOpen} 
-                usuario={usuario} 
+            <EditarAgregar
+                isOpen={isEditOpen}
+                setIsOpen={setIsEditOpen}
+                usuario={usuario}
                 tipo='editar'
                 onClientUpdated={onClientUpdated}
             />
@@ -122,8 +125,7 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>¿Estás seguro que deseas eliminar al cliente {usuario?.name} ?, Esta acción no se puede deshacer y podría afectar a registros relacionados.</p>
                     <MensajeError mensaje={errorMessage} />
-                    <MensajeExito mensaje={mensajeExito} />
-                    <div className={styles.modalContentButtons}>
+                    <div className={styles.modalButtons}>
                         <Boton
                             className='btn-red'
                             label='Si, eliminar'
@@ -136,16 +138,15 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                             label='Cancelar'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsDeleteOpen(false)}
-                            loading={loading}
                         />
                     </div>
                 </div>
             </ViewModal>
 
             {/* Modal de Mapa*/}
-            <MapaModal 
-                isOpen={isMapModalOpen} 
-                setIsOpen={setIsMapModalOpen} 
+            <MapaModal
+                isOpen={isMapModalOpen}
+                setIsOpen={setIsMapModalOpen}
                 initialLocation={usuario?.location}
                 readOnly={true}
             />

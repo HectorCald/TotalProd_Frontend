@@ -35,13 +35,10 @@ function Apariencia({ isOpen, setIsOpen}) {
         applyTheme(newTheme);
     };
     
-    const handleClose = () => {
-        setIsOpen(false);
-    };
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={handleClose} />
+            <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Apariencia</h1>
                 <div className={styles.content}>

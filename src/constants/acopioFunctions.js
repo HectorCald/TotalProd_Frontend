@@ -2,21 +2,16 @@ export const ACOPIO_FUNCTIONS = [
     {
         name: 'Almacen',
         icon: 'store',
-        view: 'almacen-medio-acopio'
-    },
-    {
-        name: 'Procesamiento',
-        icon: 'cog',
-        view: 'proveedores'
+        view: 'almacen-acopio'
     },
     {
         name: 'Pedidos',
         icon: 'list-check',
-        view: 'proveedores'
+        view: 'pedidos_acopio'
     },
     {
-        name: 'Registros',
+        name: 'Movimientos',
         icon: 'book-content',
-        view: 'proveedores'
+        view: 'movimientos_acopio'
     },
 ];

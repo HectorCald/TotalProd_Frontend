@@ -2,16 +2,16 @@ export const ALMACEN_FUNCTIONS = [
     {
         name: 'Almacen',
         icon: 'store',
-        onClick: () => console.log('Ordenes clicked')
+        view: 'almacen'
     },
     {
-        name: 'Verificar',
+        name: 'Pedidos',
         icon: 'list-check',
-        onClick: () => console.log('Materiales clicked')
+        view: 'pedidos_almacen'
     },
     {
-        name: 'Registros',
+        name: 'Movimientos',
         icon: 'book-content',
-        onClick: () => console.log('Calidad clicked')
+        view: 'movimientos_almacen'
     },
 ];

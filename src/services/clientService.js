@@ -12,9 +12,17 @@ const getAuthHeaders = () => {
 };
 
 class clientService {
-  static async getAll() {
+
+  // Obtener todos los clientes
+  static async getAll(page = 1, limit = 20, search = '') {
     try {
-      const response = await fetch(`${API_BASE_URL}/clients`, {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(search && { search })
+      });
+
+      const response = await fetch(`${API_BASE_URL}/clients?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -30,6 +38,7 @@ class clientService {
     }
   }
 
+  // Crear un cliente
   static async create(clientData) {
     try {
       const response = await fetch(`${API_BASE_URL}/clients`, {
@@ -50,6 +59,8 @@ class clientService {
     }
   }
 
+
+  // Eliminar un cliente
   static async delete(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
@@ -69,6 +80,8 @@ class clientService {
     }
   }
 
+
+  // Actualizar un cliente
   static async update(id, clientData) {
     try {
       const response = await fetch(`${API_BASE_URL}/clients/${id}`, {

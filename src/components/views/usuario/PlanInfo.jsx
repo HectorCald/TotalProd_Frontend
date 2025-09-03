@@ -61,9 +61,7 @@ function PlanInfo({ isOpen, setIsOpen }) {
                     onClose={() => setIsOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <div className={styles.loadingContainer}>
-                        <LoadingSpinner/>
-                    </div>
+                    <LoadingSpinner />
                 </div>
             </ViewModal>
         );
@@ -82,7 +80,7 @@ function PlanInfo({ isOpen, setIsOpen }) {
                             <div className={styles.planHeader}>
                                 <h3 className={styles.planName}>{plan.name}</h3>
                                 <div className={styles.planPrice}>
-                                    <span className={styles.priceAmount}>${plan.price}</span>
+                                    <span className={styles.priceAmount}>Bs. {plan.price}</span>
                                     <span className={styles.pricePeriod}>/{plan.duration}</span>
                                 </div>
                                 <div className={`${styles.planBadge} ${getPlanBadgeClass(plan.id)}`}>
@@ -91,9 +89,9 @@ function PlanInfo({ isOpen, setIsOpen }) {
                             </div>
 
                             <div className={styles.planDescription}>
-                                Elige el plan que mejor se ajuste a tus necesidades
+                                {plan.description}
                             </div>
-                            
+
                             <h4 className={styles.planFeaturesTitle}>Este plan incluye:</h4>
                             <div className={styles.planFeatures}>
                                 {plan.modules && plan.modules.length > 0 ? (
@@ -113,7 +111,7 @@ function PlanInfo({ isOpen, setIsOpen }) {
                                     </div>
                                 )}
                             </div>
-                            
+
                             {usuario?.plan?.id === plan.id ? (
                                 <Boton
                                     className='btn-original'

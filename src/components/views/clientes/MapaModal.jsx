@@ -5,6 +5,7 @@ import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import LoadingSpinner from '../../common/LoadingSpinner';
+import Notification from '../../common/Notification';
 
 const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readOnly = false, title = "Seleccionar Ubicación" }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -18,6 +19,25 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
     const [loading, setLoading] = useState(false);
     const [initialLocationSet, setInitialLocationSet] = useState(false);
 
+    // Estado para la notificación
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 5000);
+    };
+
     // Inicializar el mapa cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
@@ -27,14 +47,12 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
             
             // Timeout de seguridad para evitar loading infinito
             const safetyTimeout = setTimeout(() => {
-                console.log('Timeout de seguridad - ocultando loading');
                 setLoading(false);
             }, 10000); // 10 segundos máximo
             
             // Esperar a que Google Maps esté disponible
             const checkGoogleMaps = () => {
                 if (window.google && window.google.maps && window.google.maps.Map && window.googleMapsLoaded) {
-                    console.log('Google Maps cargado correctamente');
                     clearTimeout(safetyTimeout); // Limpiar timeout de seguridad
                     setIsGoogleMapsLoaded(true);
                     // Pequeño delay para asegurar que el DOM esté listo
@@ -245,7 +263,6 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                         });
                     }
                 });
-                console.log('Autocompletado configurado correctamente');
             } catch (error) {
                 console.log('Error configurando autocompletado:', error);
             }
@@ -354,7 +371,7 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
         }
 
         if (!geocoder) {
-            alert('El servicio de búsqueda no está disponible. Intenta hacer clic en el mapa para seleccionar una ubicación.');
+            mostrarNotificacion('error', 'El servicio de búsqueda no está disponible. Intenta hacer clic en el mapa para seleccionar una ubicación.');
             return;
         }
 
@@ -375,9 +392,9 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                 });
             } else {
                 if (status === 'ZERO_RESULTS') {
-                    alert('No se encontró la ubicación. Intenta con una dirección más específica o usa el mapa para seleccionar.');
+                    mostrarNotificacion('error', 'No se encontró la ubicación. Intenta con una dirección más específica o usa el mapa para seleccionar.');
                 } else {
-                    alert('Error en la búsqueda. Intenta con una dirección más específica o usa el mapa para seleccionar.');
+                    mostrarNotificacion('error', 'Error en la búsqueda. Intenta con una dirección más específica o usa el mapa para seleccionar.');
                 }
             }
         });
@@ -502,6 +519,11 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                     />
                 )}
             </div>
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
         </ViewModal>
     );
 };

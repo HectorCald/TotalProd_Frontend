@@ -5,15 +5,41 @@ import View from '../../ui/View';
 import InputNormal from '../../common/InputNormal';
 import Boton from '../../common/Boton';
 import MensajeError from '../../common/MensajeError';
-import MensajeExito from '../../common/MensajeExito';
 import UserService from '../../../services/userService';
+import { useUser } from '../../../context/UserContext';
+import Notification from '../../common/Notification';
 
-function CambiarContraseña({ isOpen, setIsOpen, usuario}) {
+function CambiarContraseña({ isOpen, setIsOpen }) {
+    // Estado para almacenar el mensaje de error y éxito
     const [errorMessage, setErrorMessage] = useState('');
-    const [mensajeExito, setMensajeExito] = useState('');
-    const [dataUser, setDataUser]= useState('')
+
+    // Estado para almacenar el usuario
+    const { user: usuario } = useUser();
+
+    // Estado para habilitar/deshabilitar el botón
     const [disabled, setDisabled] = useState(true);
     const [loading, setLoading] = useState(false);
+
+    // Estado para la notificación
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
+
+    // Estado para almacenar el formulario de contraseñas
     const [formContraseñas, setFormContraseñas] = useState({
         contraseñaActual: '',
         nuevaContraseña: '',
@@ -25,35 +51,33 @@ function CambiarContraseña({ isOpen, setIsOpen, usuario}) {
             nuevaContraseña: '',
             confirmarNuevaContraseña: ''
         })
-        if(usuario){
-            setDataUser(usuario)
-        }
     }, [isOpen])
+
 
     // Verificar si todos los campos están llenos para habilitar el botón
     useEffect(() => {
-        const allFieldsFilled = formContraseñas.contraseñaActual.trim() !== '' && 
-                               formContraseñas.nuevaContraseña.trim() !== '' && 
-                               formContraseñas.confirmarNuevaContraseña.trim() !== '';
+        const allFieldsFilled = formContraseñas.contraseñaActual.trim() !== '' &&
+            formContraseñas.nuevaContraseña.trim() !== '' &&
+            formContraseñas.confirmarNuevaContraseña.trim() !== '';
         setDisabled(!allFieldsFilled);
     }, [formContraseñas]);
+
+    // Función para manejar el cambio de los campos del formulario
     const handleInputChange = (field, value) => {
         setFormContraseñas(prev => ({
             ...prev,
             [field]: value,
         }));
     };
-    const handleClose = () => {
-        setIsOpen(false);
-    };
+    
     const handleGuardar = async () => {
-        if (!formContraseñas.contraseñaActual.trim() ||!formContraseñas.nuevaContraseña.trim() ||!formContraseñas.confirmarNuevaContraseña.trim()) {
+        if (!formContraseñas.contraseñaActual.trim() || !formContraseñas.nuevaContraseña.trim() || !formContraseñas.confirmarNuevaContraseña.trim()) {
             setErrorMessage('Todos los campos son obligatorios');
             setTimeout(() => {
                 setErrorMessage('')
             }, 3000);
             return;
-        }else if(formContraseñas.nuevaContraseña.length < 8){
+        } else if (formContraseñas.nuevaContraseña.length < 8) {
             setErrorMessage('La nueva contraseña debe tener al menos 8 caracteres');
             setTimeout(() => {
                 setErrorMessage('')
@@ -70,10 +94,9 @@ function CambiarContraseña({ isOpen, setIsOpen, usuario}) {
 
         try {
             setLoading(true);
-            
+
             // Obtener el ID del usuario del localStorage
-            const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-            if (!userInfo || !userInfo.id) {
+            if (!usuario || !usuario.id) {
                 setErrorMessage('No se pudo obtener la información del usuario');
                 setTimeout(() => {
                     setErrorMessage('')
@@ -83,23 +106,18 @@ function CambiarContraseña({ isOpen, setIsOpen, usuario}) {
 
             // Cambiar la contraseña
             const result = await UserService.changePassword(
-                userInfo.id,
+                usuario.id,
                 formContraseñas.contraseñaActual,
                 formContraseñas.nuevaContraseña
             );
 
             if (result.success) {
-                setMensajeExito('Contraseña cambiada exitosamente');
-                setTimeout(() => {
-                    setMensajeExito('');
-                    // Limpiar el formulario
-                    setFormContraseñas({
-                        contraseñaActual: '',
-                        nuevaContraseña: '',
-                        confirmarNuevaContraseña: ''
-                    });
-                    setIsOpen(false);
-                }, 2000);
+                mostrarNotificacion('success', 'Contraseña cambiada exitosamente');
+                setFormContraseñas({
+                    contraseñaActual: '',
+                    nuevaContraseña: '',
+                    confirmarNuevaContraseña: ''
+                });
             } else {
                 setErrorMessage(result.message || 'Error al cambiar la contraseña');
                 setTimeout(() => {
@@ -118,11 +136,10 @@ function CambiarContraseña({ isOpen, setIsOpen, usuario}) {
     }
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={handleClose} />
+            <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Cambiar Contraseña</h1>
                 <MensajeError mensaje={errorMessage} />
-                <MensajeExito mensaje={mensajeExito} />
                 <p className={styles.subTitle}>Ingresa la contraseña actual y la nueva contraseña</p>
                 <InputNormal
                     id='contraseñaActual'
@@ -157,6 +174,11 @@ function CambiarContraseña({ isOpen, setIsOpen, usuario}) {
                     loading={loading}
                 />
             </div>
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
         </View>
     );
 }
