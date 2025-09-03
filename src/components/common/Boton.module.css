@@ -7,7 +7,7 @@
   border-radius: 20px;
   font-size: 14px;
   position: relative;
-  font-weight: 500;
+  font-weight: 500 !important;
   color: white;
 
   img{
