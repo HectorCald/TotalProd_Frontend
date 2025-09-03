@@ -8,7 +8,7 @@
     padding: 8px;
     gap: 5px;
     background-color: none;
-    border-bottom: 1px solid var(--quaternary-color);
+    border-bottom: 1px solid var(--tertiary-color);
 }
 
 .itemViewIcon {

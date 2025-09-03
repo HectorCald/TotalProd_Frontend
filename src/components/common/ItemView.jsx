@@ -55,7 +55,7 @@ const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaDa
 
   return (
     <div className={styles.itemView} onClick={onClick}>
-      <div className={styles.itemViewIcon} style={{ backgroundColor: initialsBackgroundColor, border: `1px solid ${initialsColor}` }}>
+      <div className={styles.itemViewIcon} style={{ backgroundColor: initialsBackgroundColor }}>
         {icon ? (
           <BoxIcon name={icon} className={styles.icon} />
         ) : (
