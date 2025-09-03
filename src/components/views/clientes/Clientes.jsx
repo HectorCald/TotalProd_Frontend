@@ -9,6 +9,7 @@ import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import clientService from '../../../services/clientService';
 import LoadingSpinner from '../../common/LoadingSpinner';
+import InfoModal from '../../common/InfoModal';
 
 function Clientes({ isOpen, setIsOpen }) {
     const [isOpenVerCliente, setIsOpenVerCliente] = useState(false);
@@ -16,6 +17,15 @@ function Clientes({ isOpen, setIsOpen }) {
     const [infoPersona, setInfoPersona] = useState(null);
     const [personaData, setPersonaData] = useState([]);
     const [loading, setLoading] = useState(false);
+    
+    // Estado para el modal de información
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        type: 'info',
+        title: '',
+        description: '',
+        showButton: false
+    });
 
     const handleCliente = (persona) => {
         setIsOpenVerCliente(true);
@@ -27,11 +37,38 @@ function Clientes({ isOpen, setIsOpen }) {
             setLoading(true);
             const response = await clientService.getAll();
             console.log('Respuesta del servicio:', response);
+            
             if (response.success && response.data) {
                 setPersonaData(response.data);
+            } else if (response.code === 'MODULE_NOT_INCLUDED') {
+                // Mostrar modal de error de módulo
+                setModalConfig({
+                    isOpen: true,
+                    type: 'warning',
+                    title: 'Módulo No Incluido',
+                    description: `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`,
+                    showButton: true
+                });
+            } else if (response.code === 'NO_PLAN') {
+                // Mostrar modal de plan requerido
+                setModalConfig({
+                    isOpen: true,
+                    type: 'warning',
+                    title: 'Plan Requerido',
+                    description: 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.',
+                    showButton: true
+                });
             }
         } catch (error) {
             console.error('Error obteniendo clientes:', error);
+            // Mostrar modal de error general
+            setModalConfig({
+                isOpen: true,
+                type: 'error',
+                title: 'Error de Acceso',
+                description: 'No tienes permisos para acceder a esta función.',
+                showButton: true
+            });
         } finally {
             setLoading(false);
         }
@@ -119,6 +156,18 @@ function Clientes({ isOpen, setIsOpen }) {
                 setIsOpen={setIsOpenEditarAgregar} 
                 tipo='agregar'
                 onClientCreated={handleClientCreated}
+            />
+            
+            {/* Modal de Información */}
+            <InfoModal
+                isOpen={modalConfig.isOpen}
+                setIsOpen={(isOpen) => setModalConfig(prev => ({ ...prev, isOpen }))}
+                type={modalConfig.type}
+                title={modalConfig.title}
+                description={modalConfig.description}
+                showButton={modalConfig.showButton}
+                buttonText="Aceptar"
+                onButtonClick={(setIsOpen)}
             />
         </View>
     );

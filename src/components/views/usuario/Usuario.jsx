@@ -13,6 +13,8 @@ import Apariencia from './Apariencia';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
+import { useUser } from '../../../context/UserContext';
+import PlanInfo from './PlanInfo';
 
 
 const Usuario = ({ isOpen, setIsOpen }) => {
@@ -20,6 +22,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const [isOpenVerUsuario, setIsOpenVerUsuario] = useState(false);
     const [isOpenCambiarContraseña, setIsOpenCambiarContraseña] = useState(false);
     const [isOpenApariencia, setIsOpenApariencia] = useState(false);
+    const [isOpenPlan, setIsOpenPlan] = useState(false);
     const handleClose = () => {
         setIsOpen(false);
     };
@@ -33,12 +36,19 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const handleApariencia = () => {
         setIsOpenApariencia(true);
     };
-
+    const handlePlan = () => {
+        setIsOpenPlan(true);
+    };
 
     const handleLogout = () => {
         setIsLogoutOpen(true);
     };
-    const userInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
+    const { user: userInfo, clearUser } = useUser();
+
+    // Si el usuario no está cargado, no renderizar nada
+    if (!userInfo) {
+        return null;
+    }
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -63,16 +73,22 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         onClick={handleApariencia}
                     />
                     <ItemLine
+                        icon='star'
+                        title='Plan'
+                        onClick={handlePlan}
+                    />
+                    <ItemLine
                         icon='power-off'
                         title='Cerrar sesión'
                         onClick={handleLogout}
                     />
+                    
                 </div>
                 <PieIcons />
                 <Version />
             </div>
-            <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} usuario={userInfo} />
-            <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} usuario={userInfo} />
+            <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} />
+            <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña}/>
             <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
             {/* Modal de logout*/}
             <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>
@@ -88,8 +104,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                             label='Si, Cerrar sesión'
                             style={{ marginTop: 'auto' }}
                             onClick={() => {
-                                localStorage.removeItem('token');
-                                localStorage.removeItem('userInfo');
+                                clearUser();
                                 window.location.reload();
                                 setIsLogoutOpen(false);
                             }}
@@ -103,6 +118,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                     </div>
                 </div>
             </ViewModal>
+            <PlanInfo isOpen={isOpenPlan} setIsOpen={setIsOpenPlan} />
         </View>
     );
 };

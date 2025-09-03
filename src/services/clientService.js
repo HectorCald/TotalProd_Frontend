@@ -1,14 +1,22 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+import API_CONFIG from '../config/api';
 
-//const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = API_CONFIG.getBaseURL();
+
+// Función helper para obtener el token de autorización
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  };
+};
+
 class clientService {
   static async getAll() {
     try {
       const response = await fetch(`${API_BASE_URL}/clients`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
       const data = await response.json();
       return data;
@@ -26,9 +34,7 @@ class clientService {
     try {
       const response = await fetch(`${API_BASE_URL}/clients`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(clientData),
       });
       
@@ -48,9 +54,7 @@ class clientService {
     try {
       const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
       
       const data = await response.json();
@@ -69,9 +73,7 @@ class clientService {
     try {
       const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(clientData),
       });
       

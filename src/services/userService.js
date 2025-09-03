@@ -1,6 +1,6 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+import API_CONFIG from '../config/api';
 
-//const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = API_CONFIG.getBaseURL();
 class UserService {
   // Métodos auxiliares para manejar token e ID
   static saveToken(token) {
@@ -9,6 +9,15 @@ class UserService {
 
   static getToken() {
     return localStorage.getItem('token');
+  }
+
+  // Método para guardar preferencia de "recordar sesión"
+  static saveRememberPreference(remember) {
+    localStorage.setItem('rememberSession', remember.toString());
+  }
+
+  static getRememberPreference() {
+    return localStorage.getItem('rememberSession') === 'true';
   }
 
 
@@ -55,8 +64,6 @@ class UserService {
       const data = await response.json();
       if (data.success && data.data && data.data.token) {
         this.saveToken(data.data.token);
-        // Guardar credenciales en localStorage
-        localStorage.setItem('credentials', JSON.stringify(credentials));
       }
 
       return data;
@@ -111,18 +118,7 @@ class UserService {
       };
     }
   }
-
-  // Guardar información del usuario en localStorage
-  static saveUserInfo(user) {
-    localStorage.setItem('userInfo', JSON.stringify(user));
-  }
-
-  // Obtener información del usuario del localStorage
-  static getUserInfo() {
-    const userInfo = localStorage.getItem('userInfo');
-    return userInfo ? JSON.parse(userInfo) : null;
-  }
-
+  
   // Verificar contraseña actual
   static async verifyCurrentPassword(userId, currentPassword) {
     try {

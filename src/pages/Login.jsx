@@ -56,14 +56,17 @@ const Login = () => {
         setDelayedMinHeight(0);
     };
     useEffect(() => {
-        const credentials = JSON.parse(localStorage.getItem('credentials'));
-        if (credentials) {
-            setFormDataLogin(prev => ({
-                ...prev,
-                email: credentials.email,
-                password: credentials.password
-            }));
-            setRemember(true);
+        // Solo cargar email si el usuario marcó "recordar sesión"
+        const rememberSession = UserService.getRememberPreference();
+        if (rememberSession) {
+            const savedEmail = localStorage.getItem('savedEmail');
+            if (savedEmail) {
+                setFormDataLogin(prev => ({
+                    ...prev,
+                    email: savedEmail
+                }));
+                setRemember(true);
+            }
         }
     }, [isRegister]);
 
@@ -111,7 +114,15 @@ const Login = () => {
                 password: formDataLogin.password
             });
             if (result.success) {
-                // Guardar el token y ID del usuario en localStorage
+                // Guardar preferencia de "recordar sesión"
+                if (remember) {
+                    UserService.saveRememberPreference(true);
+                    localStorage.setItem('savedEmail', formDataLogin.email);
+                } else {
+                    UserService.saveRememberPreference(false);
+                    localStorage.removeItem('savedEmail');
+                }
+                
                 if (result.data) {
                     // Redirigir a Home y recargar la página
                     window.location.href = '/';
@@ -188,12 +199,15 @@ const Login = () => {
                         password: formDataRegister.password
                     });
                     if (loginResult.success) {
-                        // Guardar el token y ID del usuario en localStorage
-                        if (loginResult.data) {
-                            if (loginResult.data.token) {
-                                localStorage.setItem('authToken', loginResult.data.token);
-                            }
+                        // Guardar preferencia de "recordar sesión" para registro
+                        if (remember) {
+                            UserService.saveRememberPreference(true);
+                            localStorage.setItem('savedEmail', formDataRegister.email);
+                        } else {
+                            UserService.saveRememberPreference(false);
+                            localStorage.removeItem('savedEmail');
                         }
+                        
                         window.location.href = '/';
                     }
                 } catch (loginError) {

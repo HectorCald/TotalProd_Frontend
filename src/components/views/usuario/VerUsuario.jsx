@@ -2,9 +2,15 @@ import styles from './VerUsuario.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import Dato from '../../common/Dato';
+import { useUser } from '../../../context/UserContext';
 
 
-function VerUsuario({ isOpen, setIsOpen, usuario }) {
+function VerUsuario({ isOpen, setIsOpen }) {
+    const { user: usuario } = useUser();
+    
+    if (!usuario) {
+        return null;
+    }
     
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
