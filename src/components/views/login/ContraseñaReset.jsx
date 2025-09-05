@@ -18,6 +18,11 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
     const [isOpenNuevaContraseña, setIsOpenNuevaContraseña] = useState(false);
     const [nuevaContraseña, setNuevaContraseña] = useState('');
     const [loading, setLoading] = useState(false);
+    
+    // Estados para validación de botones
+    const [isEmailValid, setIsEmailValid] = useState(false);
+    const [isCodigoValid, setIsCodigoValid] = useState(false);
+    const [isPasswordValid, setIsPasswordValid] = useState(false);
     // Estado para la notificación
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -40,7 +45,28 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
         setEmail('');
         setCodigo('');
         setNuevaContraseña('');
+        setIsEmailValid(false);
+        setIsCodigoValid(false);
+        setIsPasswordValid(false);
     }, [isOpen]);
+
+    // Validación de email en tiempo real
+    useEffect(() => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        setIsEmailValid(email.trim() !== '' && email.includes('@') && email.includes('.com') && emailRegex.test(email));
+    }, [email]);
+
+    // Validación de código en tiempo real
+    useEffect(() => {
+        setIsCodigoValid(codigo.length === 6);
+    }, [codigo]);
+
+    // Validación de contraseña en tiempo real
+    useEffect(() => {
+        setIsPasswordValid(nuevaContraseña.length >= 1);
+    }, [nuevaContraseña]);
+
+    // Reset de contraseña
     const handleResetPassword = async () => {
         if (!email.trim()) {
             setErrorMessage('Ingresa tu correo electrónico');
@@ -88,6 +114,8 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
             setLoading(false);
         }
     }
+
+    // Verificar código
     const handleVerificarCodigo = async () => {
         if (!codigo.trim()) {
             setErrorMessage('Ingresa el código de verificación');
@@ -214,6 +242,7 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                     label="Enviar código"
                     onClick={handleResetPassword}
                     loading={loading}
+                    disabled={!isEmailValid || loading}
                 />
             </div>
 
@@ -242,6 +271,7 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                         label="Verificar"
                         onClick={handleVerificarCodigo}
                         loading={loading}
+                        disabled={!isCodigoValid || loading}
                     />
                 </div>
             </ViewModal >
@@ -268,6 +298,7 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                         label="Restablecer contraseña"
                         onClick={handleRestablecerContraseña}
                         loading={loading}
+                        disabled={!isPasswordValid || loading}
                     />
                 </div>
             </ViewModal >

@@ -20,7 +20,7 @@ const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaDa
     return '';
   };
 
-  // Función para generar color basado en la letra
+  // Función para generar color basado en la letra (para el fondo)
   const generateColor = (letter) => {
     const colors = {
       'A': '#E74C3C', 'B': '#3498DB', 'C': '#9B59B6', 'D': '#2ECC71',
@@ -34,6 +34,44 @@ const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaDa
     
     const upperLetter = letter.toUpperCase();
     return colors[upperLetter] || '#7F8C8D'; // Color por defecto más oscuro
+  };
+
+  // Función para generar color de las iniciales (mismo color que fondo pero más chillón)
+  const generateInitialsColor = (letter) => {
+    const baseColor = generateColor(letter);
+    
+    // Convertir hex a RGB
+    const hex = baseColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Hacer el color más chillón (aumentar brillo y saturación)
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    
+    // Aumentar el brillo (hacer más claro)
+    const brightness = max / 255;
+    const newBrightness = Math.min(1, brightness * 1.3); // 30% más brillante
+    
+    // Aumentar la saturación
+    const delta = max - min;
+    const saturation = delta === 0 ? 0 : delta / max;
+    const newSaturation = Math.min(1, saturation * 1.5); // 50% más saturado
+    
+    // Aplicar brillo y saturación
+    const newMax = Math.round(255 * newBrightness);
+    const newR = Math.round(newMax - (newMax - r) * newSaturation);
+    const newG = Math.round(newMax - (newMax - g) * newSaturation);
+    const newB = Math.round(newMax - (newMax - b) * newSaturation);
+    
+    // Convertir de vuelta a hex
+    const toHex = (n) => {
+      const hex = Math.min(255, Math.max(0, n)).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    
+    return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
   };
 
   // Función para generar color más claro
@@ -50,8 +88,8 @@ const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaDa
 
   // Generar iniciales si no hay icono
   const initials = !icon ? generateInitials(title) : '';
-  const initialsColor = initials ? generateColor(initials.charAt(0)) : '';
-  const initialsBackgroundColor = initials ? generateLighterColor(initialsColor) : '';
+  const initialsColor = initials ? generateInitialsColor(initials.charAt(0)) : '';
+  const initialsBackgroundColor = initials ? generateLighterColor(generateColor(initials.charAt(0))) : '';
 
   return (
     <div className={styles.itemView} onClick={onClick}>

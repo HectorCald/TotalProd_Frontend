@@ -32,7 +32,7 @@
     justify-content: center;
     align-items: center;
     border-radius: 50%;
-    font-weight: 600;
+    font-weight: 600 !important;
   }
 }
 .btn-default{

@@ -200,6 +200,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                         style={{ marginTop: 'auto' }}
                         onClick={handleSubmit}
                         loading={loading}
+                        disabled={!dataEdit.name}
                     />
                 )}
             </div>
