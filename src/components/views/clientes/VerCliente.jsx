@@ -12,6 +12,7 @@ import MensajeError from '../../common/MensajeError';
 import clientService from '../../../services/clientService';
 import ItemLine from '../../common/ItemLine';
 import MapaModal from './MapaModal';
+import Notification from '../../common/Notification';
 
 function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdated }) {
 
@@ -27,6 +28,25 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
 
     // Estados para el mapa
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+    // Estado para la notificación
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
 
     // Función para eliminar el cliente
     const handleEliminar = async (id) => {
@@ -60,6 +80,13 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
             }, 3000);
         } finally {
             setLoading(false);
+        }
+    }
+    const handleOpenMap = () => {
+        if (usuario.location) {
+            setIsMapModalOpen(true);
+        } else {
+            mostrarNotificacion('error', 'No hay ubicación para mostrar');
         }
     }
 
@@ -99,7 +126,7 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 </div>
                 <p className={styles.subTitle}>UBICACIÓN</p>
                 <div className={styles.content}>
-                    <ItemLine icon="map-pin" title="Dirección" onClick={() => setIsMapModalOpen(true)} arrow={true} />
+                    <ItemLine icon="map-pin" title="Dirección" onClick={handleOpenMap} arrow={true} />
                 </div>
                 <p className={styles.subTitle}>PEDIDOS</p>
                 <div className={styles.content}>
@@ -149,6 +176,13 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 setIsOpen={setIsMapModalOpen}
                 initialLocation={usuario?.location}
                 readOnly={true}
+            />
+
+            {/* Modal de Notificación*/}
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
             />
         </View>
     );

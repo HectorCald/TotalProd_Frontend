@@ -1,4 +1,4 @@
-import styles from './Apariencia.module.css';
+import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import Checkbox from '../../common/Checkbox';

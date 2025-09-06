@@ -1,4 +1,4 @@
-import styles from './VerUsuario.module.css';
+import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import Dato from '../../common/Dato';

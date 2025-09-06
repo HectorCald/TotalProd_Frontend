@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from './Carousel.module.css';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 function Carousel({ children }) {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -32,26 +32,28 @@ function Carousel({ children }) {
     return (
         <div className={styles.carouselContainer}>
             <div className={styles.carouselWrapper}>
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={currentIndex}
-                        initial={{ opacity: 0, x: 300 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -300 }}
-                        transition={{
-                            type: "spring",
-                            stiffness: 300,
-                            damping: 30
-                        }}
-                        drag="x"
-                        dragConstraints={{ left: 0, right: 0 }}
-                        dragElastic={0.5}
-                        onDragEnd={handleDragEnd}
-                        className={styles.screen}
-                    >
-                        {screens[currentIndex]}
-                    </motion.div>
-                </AnimatePresence>
+                <motion.div
+                    className={styles.slidesContainer}
+                    animate={{ x: -currentIndex * 100 + '%' }}
+                    transition={{
+                        type: "tween",
+                        duration: 0.3,
+                        ease: "easeInOut"
+                    }}
+                    drag="x"
+                    dragConstraints={{ 
+                        left: -(screens.length - 1) * 100 + '%', 
+                        right: 0 
+                    }}
+                    dragElastic={0.1}
+                    onDragEnd={handleDragEnd}
+                >
+                    {screens.map((screen, index) => (
+                        <div key={index} className={styles.slide}>
+                            {screen}
+                        </div>
+                    ))}
+                </motion.div>
             </div>
             
             <div className={styles.dotsContainer}>

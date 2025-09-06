@@ -41,7 +41,7 @@
 /* Plan activo - Verde */
 .planCardActive {
     background: linear-gradient(135deg, #14cf91 0%, #04825a 100%);
-    box-shadow: 0 20px 40px rgba(20, 207, 145, 0.3);
+    box-shadow: 0 10px 30px rgba(20, 207, 145, 0.3);
 }
 
 /* Plan inactivo - Gris */

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import styles from './CambiarContraseña.module.css';
+import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import InputNormal from '../../common/InputNormal';

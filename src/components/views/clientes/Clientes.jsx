@@ -23,13 +23,13 @@ function Clientes({ isOpen, setIsOpen }) {
     // Estados para la carga
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
-    
+
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
-    
+
 
     // Estado para la notificación
     const [notification, setNotification] = useState({
@@ -65,7 +65,7 @@ function Clientes({ isOpen, setIsOpen }) {
         setIsOpenVerCliente(true);
         setInfoPersona(persona);
     };
-    
+
     // Función para obtener los clientes
     const fetchClients = async (page = 1, reset = true, isSearch = false) => {
         try {
@@ -78,7 +78,7 @@ function Clientes({ isOpen, setIsOpen }) {
             } else {
                 setLoadingMore(true);
             }
-            
+
             const response = await clientService.getAll(page, 20, searchQuery);
             if (response.success && response.data) {
                 if (reset) {
@@ -86,9 +86,12 @@ function Clientes({ isOpen, setIsOpen }) {
                 } else {
                     setPersonaData(prev => [...prev, ...response.data]);
                 }
-                
+
                 setCurrentPage(page);
                 setHasMorePages(response.pagination?.hasNextPage || false);
+
+                // Cerrar modal si estaba abierto y ahora tenemos datos
+                setModalConfig(prev => ({ ...prev, isOpen: false }));
             } else if (response.code === 'MODULE_NOT_INCLUDED') {
                 setModalConfig({
                     isOpen: true,
@@ -105,6 +108,9 @@ function Clientes({ isOpen, setIsOpen }) {
                     description: 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.',
                     showButton: true
                 });
+            } else {
+                // Si no es éxito pero tampoco es un error de plan, no abrir modal
+                console.log('Respuesta del servidor:', response);
             }
         } catch (error) {
             console.error('Error obteniendo clientes:', error);
@@ -123,6 +129,8 @@ function Clientes({ isOpen, setIsOpen }) {
     };
     useEffect(() => {
         if (isOpen) {
+            // Asegurar que el modal esté cerrado al abrir el componente
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
             fetchClients();
         }
     }, [isOpen]);
@@ -144,19 +152,20 @@ function Clientes({ isOpen, setIsOpen }) {
     };
     // Debounce para búsqueda en tiempo real
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            if (searchQuery !== '') {
-                handleSearch(searchQuery);
-            } else {
-                // Si está vacío, cargar todos los clientes
-                setCurrentPage(1);
-                setHasMorePages(true);
-                fetchClients(1, true);
-            }
-        }, 500); // 500ms de delay para evitar muchas peticiones
-
-        return () => clearTimeout(timeoutId);
-    }, [searchQuery]);
+        if (isOpen) {
+            const timeoutId = setTimeout(() => {
+                if (searchQuery !== '') {
+                    handleSearch(searchQuery);
+                } else {
+                    // Si está vacío, cargar todos los clientes
+                    setCurrentPage(1);
+                    setHasMorePages(true);
+                    fetchClients(1, true);
+                }
+            }, 500); // 500ms de delay para evitar muchas peticiones
+            return () => clearTimeout(timeoutId);
+        }
+    }, [searchQuery, isOpen]);
 
 
 
@@ -181,7 +190,7 @@ function Clientes({ isOpen, setIsOpen }) {
     // Función para manejar cuando se actualiza un cliente
     const handleClientUpdated = (updatedClient) => {
         // Actualizar solo el cliente específico en la lista
-        setPersonaData(prev => prev.map(cliente => 
+        setPersonaData(prev => prev.map(cliente =>
             cliente.id === updatedClient.id ? updatedClient : cliente
         ));
         // Cerrar el modal de ver cliente
@@ -191,7 +200,7 @@ function Clientes({ isOpen, setIsOpen }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner />}
+            <LoadingSpinner iconName='user' />
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Clientes</h1>
@@ -204,10 +213,10 @@ function Clientes({ isOpen, setIsOpen }) {
                             setSearchQuery(e.target.value);
                         }}
                     />
-                    
+
 
                 </div>
-                
+
                 <div className={styles.content} onScroll={handleScroll}>
                     {isSearching ? (
                         <div className={styles.searchingData}>
@@ -227,7 +236,7 @@ function Clientes({ isOpen, setIsOpen }) {
                             <p>{searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}</p>
                         </div>
                     )}
-                    
+
                     {/* Indicador de carga para más elementos */}
                     {loadingMore && (
                         <div className={styles.loadingMore}>
@@ -243,24 +252,24 @@ function Clientes({ isOpen, setIsOpen }) {
                     />
                 </div>
             </div>
-            
+
             {/* Modal de Ver Cliente */}
-            <VerCliente 
-                isOpen={isOpenVerCliente} 
-                setIsOpen={setIsOpenVerCliente} 
+            <VerCliente
+                isOpen={isOpenVerCliente}
+                setIsOpen={setIsOpenVerCliente}
                 usuario={infoPersona}
                 onClientDeleted={handleClientDeleted}
                 onClientUpdated={handleClientUpdated}
             />
 
             {/* Modal de Editar/Agregar */}
-            <EditarAgregar 
-                isOpen={isOpenEditarAgregar} 
-                setIsOpen={setIsOpenEditarAgregar} 
+            <EditarAgregar
+                isOpen={isOpenEditarAgregar}
+                setIsOpen={setIsOpenEditarAgregar}
                 tipo='agregar'
                 onClientCreated={handleClientCreated}
             />
-            
+
             {/* Modal de Información */}
             <InfoModal
                 isOpen={modalConfig.isOpen}

@@ -58,4 +58,5 @@
   color: var(--quinary-color);
   border: none;
   font-weight: 400;
+  transition: all 0.3s ease;
 }

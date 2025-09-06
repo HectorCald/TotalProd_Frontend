@@ -13,17 +13,18 @@ function PlanInfo({ isOpen, setIsOpen }) {
     const { user: usuario } = useUser();
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentPlan, setCurrentPlan] = useState(null);
 
-    // Cargar todos los planes al abrir el modal
+    // Cargar todos los planes y el plan actual al abrir el modal
     useEffect(() => {
         if (isOpen) {
             loadPlans();
+            loadCurrentPlan();
         }
     }, [isOpen]);
 
     const loadPlans = async () => {
         try {
-            setLoading(true);
             const result = await PlanService.getAllPlans();
             if (result.success) {
                 setPlans(result.data.plans);
@@ -32,6 +33,24 @@ function PlanInfo({ isOpen, setIsOpen }) {
             }
         } catch (error) {
             console.error('Error al cargar planes:', error);
+        }
+    };
+
+    const loadCurrentPlan = async () => {
+        try {
+            setLoading(true);
+            const result = await PlanService.getCurrentPlan();
+            
+            if (result.success) {
+                setCurrentPlan(result.data.plan);
+            } else {
+                // Fallback al plan del contexto si falla la consulta
+                setCurrentPlan(usuario?.plan || null);
+            }
+        } catch (error) {
+            console.error('Error al cargar plan actual:', error);
+            // Fallback al plan del contexto si hay error
+            setCurrentPlan(usuario?.plan || null);
         } finally {
             setLoading(false);
         }
@@ -39,7 +58,7 @@ function PlanInfo({ isOpen, setIsOpen }) {
 
     // Función para obtener la clase CSS según el plan
     const getPlanCardClass = (planId) => {
-        if (usuario?.plan?.id === planId) {
+        if (currentPlan?.id === planId) {
             return styles.planCardActive; // Plan activo - verde
         }
         return styles.planCardInactive; // Plan inactivo - gris
@@ -47,7 +66,7 @@ function PlanInfo({ isOpen, setIsOpen }) {
 
     // Función para obtener el color del badge según el plan
     const getPlanBadgeClass = (planId) => {
-        if (usuario?.plan?.id === planId) {
+        if (currentPlan?.id === planId) {
             return styles.planBadgeActive; // Badge verde para plan activo
         }
         return styles.planBadgeInactive; // Badge gris para plan inactivo
@@ -84,7 +103,7 @@ function PlanInfo({ isOpen, setIsOpen }) {
                                     <span className={styles.pricePeriod}>/{plan.duration}</span>
                                 </div>
                                 <div className={`${styles.planBadge} ${getPlanBadgeClass(plan.id)}`}>
-                                    {usuario?.plan?.id === plan.id ? 'Plan Activo' : 'Disponible'}
+                                    {currentPlan?.id === plan.id ? 'Plan Activo' : 'Disponible'}
                                 </div>
                             </div>
 
@@ -112,7 +131,7 @@ function PlanInfo({ isOpen, setIsOpen }) {
                                 )}
                             </div>
 
-                            {usuario?.plan?.id === plan.id ? (
+                            {currentPlan?.id === plan.id ? (
                                 <Boton
                                     className='btn-original'
                                     label='Plan Actual'

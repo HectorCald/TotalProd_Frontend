@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from './Usuario.module.css';
+import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemLine from '../../common/ItemLine';
@@ -9,6 +9,7 @@ import Version from '../../common/Version';
 import VerUsuario from './VerUsuario';
 import CambiarContraseña from './CambiarContraseña';
 import Apariencia from './Apariencia';
+import CodigoPromocional from './CodigoPromocional';
 
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
@@ -23,6 +24,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const [isOpenCambiarContraseña, setIsOpenCambiarContraseña] = useState(false);
     const [isOpenApariencia, setIsOpenApariencia] = useState(false);
     const [isOpenPlan, setIsOpenPlan] = useState(false);
+    const [isOpenCodigoPromocional, setIsOpenCodigoPromocional] = useState(false);
     const handleClose = () => {
         setIsOpen(false);
     };
@@ -39,7 +41,9 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const handlePlan = () => {
         setIsOpenPlan(true);
     };
-
+    const handleCodigoPromocional = () => {
+        setIsOpenCodigoPromocional(true);
+    };
     const handleLogout = () => {
         setIsLogoutOpen(true);
     };
@@ -53,10 +57,10 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={handleClose} />
-            <div className={styles.content}>
+            <div className={styles.container}>
                 <h1 className={styles.title}>Perfil</h1>
                 <p className={styles.subTitle}>Cuenta</p>
-                <div className={styles.opciones}>
+                <div className={styles.content}>
                     <ItemLine
                         icon='user'
                         title='Detalles de mi cuenta'
@@ -71,6 +75,11 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         icon='palette'
                         title='Apariencia'
                         onClick={handleApariencia}
+                    />
+                    <ItemLine
+                        icon='purchase-tag-alt'
+                        title='Codigo promocional'
+                        onClick={handleCodigoPromocional}
                     />
                     <ItemLine
                         icon='star'
@@ -90,6 +99,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
             <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} />
             <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña}/>
             <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
+            <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
             {/* Modal de logout*/}
             <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>
                 <HeaderModal
