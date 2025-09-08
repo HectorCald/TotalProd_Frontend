@@ -20,8 +20,8 @@ export const FUNCTIONS = [
         view: 'pagos'
     },
     {
-        name: 'Reportes',
-        icon: 'receipt',
-        view: 'reportes'
+        name: 'Movimientos',
+        icon: 'book-content',
+        view: 'movimientos'
     },
 ];

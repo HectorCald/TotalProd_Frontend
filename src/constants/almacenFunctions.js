@@ -9,9 +9,4 @@ export const ALMACEN_FUNCTIONS = [
         icon: 'list-check',
         view: 'pedidos_almacen'
     },
-    {
-        name: 'Movimientos',
-        icon: 'book-content',
-        view: 'movimientos_almacen'
-    },
 ];

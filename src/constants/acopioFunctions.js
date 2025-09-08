@@ -9,9 +9,4 @@ export const ACOPIO_FUNCTIONS = [
         icon: 'list-check',
         view: 'pedidos_acopio'
     },
-    {
-        name: 'Movimientos',
-        icon: 'book-content',
-        view: 'movimientos_acopio'
-    },
 ];

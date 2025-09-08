@@ -1,4 +1,4 @@
-import styles from './Menu.module.css';
+import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import { FUNCTIONS } from '../../../constants/functions';
@@ -17,6 +17,7 @@ import Registros from '../formulario-registro/Registros';
 import AlmacenMedio from '../almacen-acopio/AlmacenMedio';
 
 
+
 function Menu({ isOpen, setIsOpen, onViewChange }) {
     const [activeView, setActiveView] = useState(null);
 
@@ -32,9 +33,9 @@ function Menu({ isOpen, setIsOpen, onViewChange }) {
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Menu</h1>
+                <h1 className={styles.title}>Explorar</h1>
                 <p className={styles.subTitle}>General</p>
-                <div className={styles.opciones}>
+                <div className={styles.content}>
                     {FUNCTIONS.map((item, index) => (
                         <ItemLine
                             key={index}
@@ -45,7 +46,7 @@ function Menu({ isOpen, setIsOpen, onViewChange }) {
                     ))}
                 </div>
                 <p className={styles.subTitle}>Almacen</p>
-                <div className={styles.opciones}>
+                <div className={styles.content}>
                     {ALMACEN_FUNCTIONS.map((item, index) => (
                         <ItemLine
                             key={index}
@@ -56,7 +57,7 @@ function Menu({ isOpen, setIsOpen, onViewChange }) {
                     ))}
                 </div>
                 <p className={styles.subTitle}>Acopio</p>
-                <div className={styles.opciones}>
+                <div className={styles.content}>
                     {ACOPIO_FUNCTIONS.map((item, index) => (
                         <ItemLine
                             key={index}
