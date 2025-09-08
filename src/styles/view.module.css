@@ -15,10 +15,28 @@
 .title {
     font-size: 25px;
     font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
 }
+.iconButton {
+    border: none;
+    background: none;
+    display: flex;
+    gap: 10px;
 
+    .icon {
+        color: var(--primary-color) !important;
+        cursor: pointer;
+    }
+    .iconTrash {
+        color: var(--error-color) !important;
+        cursor: pointer;
+    }
+
+}
 .subTitle {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 400;
     color: gray;
     line-height: 1.2;

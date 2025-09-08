@@ -455,7 +455,7 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
 
     return (
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner />}
+            {loading && <LoadingSpinner iconName='map' />}
             <HeaderModal
                 title={title}
                 onClose={handleClose}

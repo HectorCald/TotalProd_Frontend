@@ -7,7 +7,7 @@
 }
 
 .icon {
-    font-size: 15px !important;
+    font-size: 17px !important;
 }
 
 .text {
@@ -16,12 +16,12 @@
     gap: 5px;
 
     .title {
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 500;
     }
 
     .subTitle {
-        font-size: 12px;
+        font-size: 13px;
         color: gray;
         font-weight: 300;
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from './EditarAgregar.module.css';
+import styles from '../../../styles/view.module.css';
 import HeaderModal from '../../common/HeaderModal';
 import ViewModal from '../../ui/ViewModal';
 import Boton from '../../common/Boton';

@@ -200,7 +200,7 @@ function Clientes({ isOpen, setIsOpen }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <LoadingSpinner iconName='user' />
+            {loading && <LoadingSpinner iconName='user' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Clientes</h1>

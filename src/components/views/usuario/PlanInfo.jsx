@@ -80,7 +80,7 @@ function PlanInfo({ isOpen, setIsOpen }) {
                     onClose={() => setIsOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <LoadingSpinner />
+                    <LoadingSpinner iconName='money' />
                 </div>
             </ViewModal>
         );

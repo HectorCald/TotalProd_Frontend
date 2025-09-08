@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from './VerCliente.module.css';
+import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import HeaderModal from '../../common/HeaderModal';
 import View from '../../ui/View';
@@ -152,7 +152,7 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>¿Estás seguro que deseas eliminar al cliente {usuario?.name} ?, Esta acción no se puede deshacer y podría afectar a registros relacionados.</p>
                     <MensajeError mensaje={errorMessage} />
-                    <div className={styles.modalButtons}>
+                    <div className={styles.buttons}>
                         <Boton
                             className='btn-red'
                             label='Si, eliminar'

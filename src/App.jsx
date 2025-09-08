@@ -43,7 +43,7 @@ function AppContent({ hasToken }) {
 
   return (
     <div className="App">
-      {loading && <Loading />}
+      {loading && <Loading iconName='cog' />}
       <BrowserRouter>
         <Routes>
           <Route
