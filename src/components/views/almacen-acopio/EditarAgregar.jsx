@@ -8,6 +8,7 @@ import Select from '../../common/Select';
 import productsAcopioService from '../../../services/productsAcopioService';
 import typeMeasureService from '../../../services/typeMeasureService';
 import categoryAcopioService from '../../../services/categoryAcopioService';
+import EditarAgregarCategoria from './EditarAgregarCategoria';
 import MensajeError from '../../common/MensajeError';
 
 function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated }) {
@@ -25,6 +26,7 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
   const [loadingTypeMeasures, setLoadingTypeMeasures] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [isCategoriaOpen, setIsCategoriaOpen] = useState(false);
 
   // Efecto para cargar los tipos de medida
   useEffect(() => {
@@ -171,6 +173,20 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
     }
   };
 
+  // Función para manejar cuando se crea una nueva categoría
+  const handleCategoriaCreated = (newCategoria) => {
+    // Agregar la nueva categoría a la lista
+    setCategories(prev => [...prev, {
+      value: newCategoria.id,
+      label: newCategoria.name,
+      id: newCategoria.id,
+      name: newCategoria.name
+    }]);
+    // Seleccionar automáticamente la nueva categoría
+    setDataMov(prev => ({ ...prev, category_id: newCategoria.id }));
+    // Cerrar el modal
+    setIsCategoriaOpen(false);
+  };
 
   return (
     <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -213,13 +229,22 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
         </div>
 
         <div className={styles.content} style={{ padding: '10px 15px' }}>
-          <Select
-            value={dataMov.category_id}
-            onChange={(value) => handleChange('category_id', value)}
-            options={categories}
-            placeholder='Categoría'
-            disabled={loadingCategories}
-          />
+
+              <Select
+                value={dataMov.category_id}
+                onChange={(value) => handleChange('category_id', value)}
+                options={categories}
+                placeholder='Categoría'
+                disabled={loadingCategories}
+              />
+
+            <Boton
+              className='btn-default'
+              label='Nueva Categoría'
+              onClick={() => setIsCategoriaOpen(true)}
+              style={{ minWidth: '80px' }}
+            />
+
         </div>
 
         <Boton
@@ -231,6 +256,14 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
           disabled={!dataMov.name.trim() || !dataMov.quantity.trim() || !dataMov.type_measure_id}
         />
       </div>
+
+      {/* Modal de nueva categoría */}
+      <EditarAgregarCategoria
+        isOpen={isCategoriaOpen}
+        setIsOpen={setIsCategoriaOpen}
+        tipo='agregar'
+        onCategoriaCreated={handleCategoriaCreated}
+      />
     </ViewModal>
   );
 }
