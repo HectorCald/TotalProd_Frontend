@@ -102,7 +102,7 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                                 key={product.id || index}
                                 title={product.name || 'Sin nombre'}
                                 description={`${product.quantity || 0} ${product.type_measure?.code || ''}`}
-                                icon="leaf"
+                                icon="box"
                                 arrow={false}
                             />
                         ))

@@ -12,6 +12,7 @@ import ItemLine from '../../common/ItemLine';
 import Boton from '../../common/Boton';
 import EditarAgregar from '../almacen-acopio/EditarAgregar';
 import CategoriasAcopio from './CategoriasAcopio';
+import MovimientoAcopio from './MovimientoAcopio';
 import InputCantidad from '../../common/InputCantidad';
 import Select from '../../common/Select';
 import InputNormal from '../../common/InputNormal';
@@ -32,6 +33,7 @@ const medidas = [
 function Registros({ isOpen, setIsOpen, tipo = '' }) {
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
+    const [isMovimientoOpen, setIsMovimientoOpen] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
     const [isCategoriasOpen, setIsCategoriasOpen] = useState(false);
@@ -87,6 +89,8 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             setIsOpenVerProducto(true);
         } else if (tipo === 'pedido') {
             setOpenItem(true);
+        } else if (tipo === 'entrada' || tipo === 'salida') {
+            setIsMovimientoOpen(true);
         }
     };
 
@@ -240,6 +244,24 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         setIsOpenVerProducto(false);
         mostrarNotificacion('success', 'Producto actualizado correctamente')
     };
+
+    // Función para manejar cuando se crea un movimiento
+    const handleMovimientoCreated = (movimiento) => {
+        
+        // Actualizar la cantidad del producto en la lista
+        if (movimiento && movimiento.product) {
+            setProductoData(prev => prev.map(producto =>
+                producto.id === movimiento.product.id 
+                    ? { ...producto, quantity: movimiento.product.quantity }
+                    : producto
+            ));
+            // Actualizar también el producto que se está viendo
+            setInfoPersona(prev => prev ? { ...prev, quantity: movimiento.product.quantity } : prev);
+        }
+        // Cerrar el modal de movimiento
+        setIsMovimientoOpen(false);
+        mostrarNotificacion('success', `${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente`);
+    };
     // Función para obtener el nombre de la categoría seleccionada
     const getCategoriaNombre = () => {
         if (categoriaFiltro === null) return 'Todas';
@@ -280,14 +302,14 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             <div className={styles.container}>
                 <h1 className={styles.title}>Almacen Acopio</h1>
                 <div className={styles.searchContainer}>
-                    <InputSearch
-                        placeholder='Buscar producto'
-                        type="text"
+                <InputSearch
+                    placeholder='Buscar producto'
+                    type="text"
                         value={searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value);
                         }}
-                    />
+                />
                 </div>
                 <Filtros options={opciones} />
                 <div className={styles.content} onScroll={handleScroll}>
@@ -376,6 +398,15 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 setIsOpen={setIsCategoriasOpen}
             />
 
+            {/* Modal de movimiento (entrada/salida) */}
+            <MovimientoAcopio
+                isOpen={isMovimientoOpen}
+                setIsOpen={setIsMovimientoOpen}
+                producto={infoPersona}
+                tipo={tipo}
+                onMovimientoCreated={handleMovimientoCreated}
+            />
+
             {/* Modal de categorias*/}
             <ViewModal isOpen={isOpenItem} setIsOpen={setOpenItem}>
                 <HeaderModal
@@ -441,15 +472,15 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         </div>
                     ) : (
                         categorias.map((categoria) => (
-                            <ItemLine
+                    <ItemLine
                                 key={categoria.id}
                                 title={categoria.name}
-                                icon='tag'
+                        icon='tag'
                                 onClick={() => {
                                     handleCategoriaFilter(categoria.id);
                                     setOpenCategoria(false);
                                 }}
-                            />
+                    />
                         ))
                     )}
                 </div>

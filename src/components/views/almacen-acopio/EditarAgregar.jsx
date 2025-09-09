@@ -27,6 +27,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [isCategoriaOpen, setIsCategoriaOpen] = useState(false);
+  const [hasMovements, setHasMovements] = useState(false);
+  const [loadingMovements, setLoadingMovements] = useState(false);
 
   // Efecto para cargar los tipos de medida
   useEffect(() => {
@@ -110,6 +112,29 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
     }
     setErrorMessage('');
   }, [isOpen, data, tipo]);
+
+  // Efecto para verificar movimientos cuando se está editando
+  useEffect(() => {
+    const checkMovements = async () => {
+      if (data?.id && tipo === 'editar' && isOpen) {
+        setLoadingMovements(true);
+        try {
+          const response = await productsAcopioService.hasMovements(data.id);
+          if (response.success) {
+            setHasMovements(response.data.hasMovements);
+          }
+        } catch (error) {
+          console.error('Error verificando movimientos:', error);
+        } finally {
+          setLoadingMovements(false);
+        }
+      } else {
+        setHasMovements(false);
+      }
+    };
+
+    checkMovements();
+  }, [data?.id, tipo, isOpen]);
 
   // Función para actualizar los datos del formulario
   const handleChange = (field, value) => {
@@ -223,27 +248,36 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
             value={dataMov.type_measure_id}
             onChange={(value) => handleChange('type_measure_id', value)}
             options={typeMeasures}
-            placeholder='Tipo de medida'
-            disabled={loadingTypeMeasures}
+            placeholder={hasMovements ? 'Tipo de medida (no editable - tiene movimientos)' : 'Tipo de medida'}
+            disabled={loadingTypeMeasures || (tipo === 'editar' && hasMovements)}
           />
+          {tipo === 'editar' && hasMovements && (
+            <div style={{ 
+              color: '#dc3545',
+              fontSize: '12px',
+              textAlign: 'center',
+              marginTop: '5px'
+            }}>
+              No se puede cambiar la unidad de medida porque el producto tiene movimientos registrados
+            </div>
+          )}
         </div>
 
         <div className={styles.content} style={{ padding: '10px 15px' }}>
+          <Select
+            value={dataMov.category_id}
+            onChange={(value) => handleChange('category_id', value)}
+            options={categories}
+            placeholder='Categoría'
+            disabled={loadingCategories}
+          />
 
-              <Select
-                value={dataMov.category_id}
-                onChange={(value) => handleChange('category_id', value)}
-                options={categories}
-                placeholder='Categoría'
-                disabled={loadingCategories}
-              />
-
-            <Boton
-              className='btn-default'
-              label='Nueva Categoría'
-              onClick={() => setIsCategoriaOpen(true)}
-              style={{ minWidth: '80px' }}
-            />
+          <Boton
+            className='btn-default'
+            label='Nueva Categoría'
+            onClick={() => setIsCategoriaOpen(true)}
+            style={{ minWidth: '80px' }}
+          />
 
         </div>
 

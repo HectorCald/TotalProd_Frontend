@@ -104,6 +104,26 @@ class productsAcopioService {
     }
   }
 
+  // Verificar si un producto tiene movimientos
+  static async hasMovements(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products-acopio/${id}/has-movements`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en hasMovements:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
   // Eliminar un producto
   static async delete(id) {
     try {
