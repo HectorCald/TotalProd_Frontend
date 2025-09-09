@@ -9,6 +9,7 @@ import Proveedores from '../components/views/proveedores/Proveedores';
 import Pagos from '../components/views/pagos/Pagos';
 import Reportes from '../components/views/reportes/Reportes';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
+import Screen from '../components/ui/Screen';
 import AtajoAnuncio from '../components/common/AtajoAnuncio';
 import almacenImage from '../assets/almacen.png';
 import acopioImage from '../assets/acopio.png';
@@ -17,6 +18,7 @@ import pedidosImage from '../assets/pedidos.png';
 
 const Home = () => {
   const [activeView, setActiveView] = useState(null);
+  const [activeScreen, setActiveScreen] = useState('inicio');
 
   const handleViewOpen = (viewName) => {
     setActiveView(viewName);
@@ -26,31 +28,78 @@ const Home = () => {
     setActiveView(null);
   };
 
+  const handleScreenChange = (screenId) => {
+    setActiveScreen(screenId);
+  };
+
+  const renderScreen = () => {
+    switch (activeScreen) {
+      case 'inicio':
+        return (
+          <>
+            <p className="subTitle">Funciones</p>
+            <div className="funciones">
+              {FUNCTIONS.slice(0, 4).map((func) => (
+                <Coleccion
+                  key={func.name}
+                  title={func.name}
+                  icon={func.icon}
+                  onClick={() => handleViewOpen(func.view)}
+                />
+              ))}
+            </div>
+            <p className="subTitle">Atajos</p>
+            <div className="atajoAnuncio">
+              <AtajoAnuncio title="Almacen" description="Administra tu almacén de productos terminados, realiza entradas y salidas de productos" image={almacenImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+              <AtajoAnuncio title="Acopio" description="Administra tu acopio de productos, realiza entradas y salidas de materias primas" image={acopioImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+            </div>
+            <p className="subTitle">Otros</p>
+            <div className="atajoAnuncioOtros">
+              <AtajoAnuncio title="Movimientos" description="" image={movimientosImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+              <AtajoAnuncio title="Pedidos" description="" image={pedidosImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+            </div>
+          </>
+        );
+      case 'destacados':
+        return <Screen title="Destacados" />;
+      case 'buscar':
+        return <Screen title="Buscar" />;
+      case 'reportes':
+        return <Screen title="Reportes" />;
+      default:
+        return (
+          <>
+            <p className="subTitle">Funciones</p>
+            <div className="funciones">
+              {FUNCTIONS.slice(0, 4).map((func) => (
+                <Coleccion
+                  key={func.name}
+                  title={func.name}
+                  icon={func.icon}
+                  onClick={() => handleViewOpen(func.view)}
+                />
+              ))}
+            </div>
+            <p className="subTitle">Atajos</p>
+            <div className="atajoAnuncio">
+              <AtajoAnuncio title="Almacen" description="Administra tu almacén de productos terminados, realiza entradas y salidas de productos" image={almacenImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+              <AtajoAnuncio title="Acopio" description="Administra tu acopio de productos, realiza entradas y salidas de materias primas" image={acopioImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+            </div>
+            <p className="subTitle">Otros</p>
+            <div className="atajoAnuncioOtros">
+              <AtajoAnuncio title="Movimientos" description="" image={movimientosImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+              <AtajoAnuncio title="Pedidos" description="" image={pedidosImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+            </div>
+          </>
+        );
+    }
+  };
+
   return (
     <div className="home-page">
       <Nav />
-      <BarraNavegacion />
-      <p className="subTitle">Funciones</p>
-      <div className="funciones">
-        {FUNCTIONS.slice(0, 4).map((func) => (
-          <Coleccion
-            key={func.name}
-            title={func.name}
-            icon={func.icon}
-            onClick={() => handleViewOpen(func.view)}
-          />
-        ))}
-      </div>
-      <p className="subTitle">Atajos</p>
-      <div className="atajoAnuncio">
-        <AtajoAnuncio title="Almacen" description="Administra tu almacén de productos terminados, realiza entradas y salidas de productos" image={almacenImage} onClick={() => handleViewOpen('atajoAnuncio')} />
-        <AtajoAnuncio title="Acopio" description="Administra tu acopio de productos, realiza entradas y salidas de materias primas" image={acopioImage} onClick={() => handleViewOpen('atajoAnuncio')} />
-      </div>
-      <p className="subTitle">Otros</p>
-      <div className="atajoAnuncioOtros">
-        <AtajoAnuncio title="Movimientos" description="" image={movimientosImage} onClick={() => handleViewOpen('atajoAnuncio')} />
-        <AtajoAnuncio title="Pedidos" description="" image={pedidosImage} onClick={() => handleViewOpen('atajoAnuncio')} />
-      </div>
+      <BarraNavegacion activeScreen={activeScreen} onScreenChange={handleScreenChange} />
+      {renderScreen()}
 
       {/* Vistas modales */}
 

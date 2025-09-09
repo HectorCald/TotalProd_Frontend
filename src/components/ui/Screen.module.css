@@ -1,0 +1,14 @@
+.screen {
+    padding: 20px;
+    height: calc(100% - 50px);
+    width: 100%;
+    background-color: var(--background-color);
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    text-align: center;
+}
