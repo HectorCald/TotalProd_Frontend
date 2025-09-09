@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from './AlmacenMedio.module.css';
+import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
@@ -8,7 +8,6 @@ import AlmacenAcopio from './AlmacenAcopio';
 
 function AlmacenMedio({ isOpen, setIsOpen }) {
     const [isAlmacenOpen, setIsAlmcenOpen] = useState(false);
-    const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
     const [type, setType] = useState('');
 
     const handleTypeAlmacen = (tipo) => {
@@ -25,14 +24,14 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
             <div className={styles.modalContent}>
                 <ItemView
                     title='Salida'
-                    description='Realizar una salida de materia (prima-bruta) del almacén'
+                    description='Realizar una salida de materia prima del almacén'
                     icon='up-arrow-alt'
                     arrow={true}
                     onClick={()=> handleTypeAlmacen('salida')}
                 />
                 <ItemView
                     title='Entrada'
-                    description='Realizar una entrada de materia (prima-bruta) al almacén'
+                    description='Realizar una entrada de materia prima al almacén'
                     icon='down-arrow-alt'
                     arrow={true}
                     onClick={()=> handleTypeAlmacen('entrada')}

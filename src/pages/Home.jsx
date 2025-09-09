@@ -16,6 +16,8 @@ import acopioImage from '../assets/acopio.png';
 import movimientosImage from '../assets/movimientos.png';
 import pedidosImage from '../assets/pedidos.png';
 
+import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
+
 const Home = () => {
   const [activeView, setActiveView] = useState(null);
   const [activeScreen, setActiveScreen] = useState('inicio');
@@ -51,7 +53,7 @@ const Home = () => {
             <p className="subTitle">Atajos</p>
             <div className="atajoAnuncio">
               <AtajoAnuncio title="Almacen" description="Administra tu almacén de productos terminados, realiza entradas y salidas de productos" image={almacenImage} onClick={() => handleViewOpen('atajoAnuncio')} />
-              <AtajoAnuncio title="Acopio" description="Administra tu acopio de productos, realiza entradas y salidas de materias primas" image={acopioImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+              <AtajoAnuncio title="Acopio" description="Administra tu acopio de productos, realiza entradas y salidas de materias primas" image={acopioImage} onClick={() => handleViewOpen('almacenMedio')} />
             </div>
             <p className="subTitle">Otros</p>
             <div className="atajoAnuncioOtros">
@@ -83,7 +85,7 @@ const Home = () => {
             <p className="subTitle">Atajos</p>
             <div className="atajoAnuncio">
               <AtajoAnuncio title="Almacen" description="Administra tu almacén de productos terminados, realiza entradas y salidas de productos" image={almacenImage} onClick={() => handleViewOpen('atajoAnuncio')} />
-              <AtajoAnuncio title="Acopio" description="Administra tu acopio de productos, realiza entradas y salidas de materias primas" image={acopioImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+              <AtajoAnuncio title="Acopio" description="Administra tu acopio de productos, realiza entradas y salidas de materias primas" image={acopioImage} onClick={() => handleViewOpen('almacenMedio')} />
             </div>
             <p className="subTitle">Otros</p>
             <div className="atajoAnuncioOtros">
@@ -122,6 +124,10 @@ const Home = () => {
       />
       <Reportes
         isOpen={activeView === 'reportes'}
+        setIsOpen={() => handleViewClose()}
+      />
+      <AlmacenMedio
+        isOpen={activeView === 'almacenMedio'}
         setIsOpen={() => handleViewClose()}
       />
     </div>

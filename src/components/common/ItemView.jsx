@@ -93,7 +93,7 @@ const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaDa
 
   return (
     <div className={styles.itemView} onClick={onClick}>
-      <div className={styles.itemViewIcon} style={{ backgroundColor: initialsBackgroundColor }}>
+      <div className={styles.itemViewIcon} style={{ backgroundColor: icon ? 'rgba(40, 180, 152, 0.3)' : initialsBackgroundColor }}>
         {icon ? (
           <BoxIcon name={icon} className={styles.icon} />
         ) : (
@@ -109,7 +109,7 @@ const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaDa
       </div>
       <div className={styles.itemViewContent}>
         <h1>{title}</h1>
-        {entrada && description ? <p>{description}</p> : null}
+        {description ? <p>{description}</p> : null}
 
         {/* Inputs dinámicos según la longitud de entradaData */}
         {entrada && entradaData?.length > 0 && (

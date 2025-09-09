@@ -1,0 +1,140 @@
+.container   {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    height: calc(100vh - 50px);
+    padding: 15px;
+    padding-top: 0;
+    box-sizing: border-box;
+    gap: 15px;
+    position: relative;
+}
+.title {
+    font-size: 25px;
+    font-weight: 600;
+}
+.subTitle {
+    font-size: 15px;
+    font-weight: 400;
+    color: gray;
+}
+
+.searchContainer {
+    position: relative;
+    width: 100%;
+}
+
+
+
+.content{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    background-color: none;
+    border-radius: 10px;
+    overflow-y: auto !important;
+    height: calc(100vh - 250px);
+}
+
+.loadingMore {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    width: 100%;
+}
+
+.noData {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 40px 20px;
+    color: gray;
+    font-size: 16px;
+}
+
+/* Estilos para filtros activos */
+.filtrosActivos {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.filtrosChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 8px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.chip button {
+    background: none;
+    border: none;
+    color: #1976d2;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 0;
+    margin-left: 4px;
+}
+
+.chip button:hover {
+    color: #d32f2f;
+}
+
+.searchingData {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-style: italic;
+}
+.buttonFooter {
+    width: 100%;
+    display: flex;
+    padding: 10px 15px;
+    background-color: var(--secondary-color);
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    border-top: 1px solid var(--tertiary-color);
+    gap: 10px;
+}
+
+
+
+.modalContent {
+    padding: 20px;
+    padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; 
+    overflow-y: auto;
+    height: 100%;
+}
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}

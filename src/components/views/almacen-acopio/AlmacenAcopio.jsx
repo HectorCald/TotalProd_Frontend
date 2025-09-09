@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import styles from './AlmacenAcopio.module.css';
+import React, { useState, useEffect } from 'react';
+import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import InputSearch from '../../common/InputSearch';
@@ -11,25 +11,15 @@ import HeaderModal from '../../common/HeaderModal';
 import ItemLine from '../../common/ItemLine';
 import Boton from '../../common/Boton';
 import EditarAgregar from '../almacen-acopio/EditarAgregar';
+import CategoriasAcopio from './CategoriasAcopio';
 import InputCantidad from '../../common/InputCantidad';
 import Select from '../../common/Select';
 import InputNormal from '../../common/InputNormal';
+import productsAcopioService from '../../../services/productsAcopioService';
+import categoryAcopioService from '../../../services/categoryAcopioService';
+import LoadingSpinner from '../../common/LoadingSpinner';
+import Notification from '../../common/Notification';
 
-const productoData = [
-    {
-        producto: 'Ajo Molido',
-        lotesBruto: [
-            { lote: 1, peso: 123 },
-            { lote: 2, peso: 150 },
-        ],
-        lotesPrima: [
-            { lote: 1, peso: 456 },
-            { lote: 2, peso: 300 },
-        ],
-        categoria: 'Amapolita',
-        icon: 'leaf',
-    },
-]
 const medidas = [
     { value: 'kilo', label: 'Kilo', icon: 'tag' },
     { value: 'quintal', label: 'Quital', icon: 'tag' },
@@ -39,68 +29,281 @@ const medidas = [
     { value: 'libra', label: 'Libras', icon: 'tag' },
 ];
 
-
 function Registros({ isOpen, setIsOpen, tipo = '' }) {
+    // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
+    const [isCategoriasOpen, setIsCategoriasOpen] = useState(false);
 
-    const [isOpenMateria, setOpenMateria] = useState(false);
+    // Estados para la carga
+    const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+
+    // Estados para paginación y búsqueda
+    const [currentPage, setCurrentPage] = useState(1);
+    const [hasMorePages, setHasMorePages] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+
+    // Estados para los datos
+    const [productoData, setProductoData] = useState([]);
+    const [categorias, setCategorias] = useState([]);
+    const [loadingCategorias, setLoadingCategorias] = useState(false);
+
+    // Estados para la notificación
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
+
+    // Estados para filtros y modales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
     const [isOpenItem, setOpenItem] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
-
     const [selectedMedidas, setSelectedMedidas] = useState('');
-
-
     const [filtroActivo, setFiltroActivo] = useState('todos');
-    const handleRegistro = (registro, tipo) => {
-        setInfoPersona(productoData[registro]);
+    
+    // Estados para filtros de categoría y ordenamiento
+    const [categoriaFiltro, setCategoriaFiltro] = useState(null);
+    const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
+    // Función para manejar el click en un producto
+    const handleRegistro = (producto, tipo) => {
+        setInfoPersona(producto);
         if (tipo === 'almacen') {
             setIsOpenVerProducto(true);
         } else if (tipo === 'pedido') {
             setOpenItem(true);
         }
     };
+
+    // Función para cargar las categorías
+    const fetchCategorias = async () => {
+        try {
+            setLoadingCategorias(true);
+            const response = await categoryAcopioService.getAll();
+            if (response.success && response.data) {
+                const mappedCategorias = response.data.map(cat => ({
+                    value: cat.id,
+                    label: cat.name,
+                    id: cat.id,
+                    name: cat.name
+                }));
+                setCategorias(mappedCategorias);
+            }
+        } catch (error) {
+            console.error('Error cargando categorías:', error);
+        } finally {
+            setLoadingCategorias(false);
+        }
+    };
+
+    // Función para obtener los productos
+    const fetchProducts = async (page = 1, reset = true, isSearch = false, categoriaOverride = null, ordenamientoOverride = null) => {
+        try {
+            if (reset) {
+                if (isSearch) {
+                    setIsSearching(true);
+                } else {
+                    setLoading(true);
+                }
+            } else {
+                setLoadingMore(true);
+            }
+
+            // Usar override si se proporciona, sino usar el estado
+            const categoriaToUse = categoriaOverride !== null ? categoriaOverride : categoriaFiltro;
+            const ordenamientoToUse = ordenamientoOverride !== null ? ordenamientoOverride : ordenamiento;
+
+            const response = await productsAcopioService.getAll(page, 20, searchQuery, categoriaToUse, ordenamientoToUse);
+            if (response.success && response.data) {
+                if (reset) {
+                    setProductoData(response.data);
+                } else {
+                    setProductoData(prev => [...prev, ...response.data]);
+                }
+
+                setCurrentPage(page);
+                setHasMorePages(response.pagination?.hasNextPage || false);
+
+            } else {
+                // Si no es éxito pero tampoco es un error de plan, no abrir modal
+                console.log('Respuesta del servidor:', response);
+            }
+        } catch (error) {
+            console.error('Error obteniendo productos:', error);
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+            setIsSearching(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            // Asegurar que el modal esté cerrado al abrir el componente
+            fetchCategorias();
+            fetchProducts();
+        }
+    }, [isOpen]);
+
+    // Función para manejar scroll infinito
+    const handleScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !loadingMore) {
+            fetchProducts(currentPage + 1, false);
+        }
+    };
+
+    // Función para manejar búsqueda
+    const handleSearch = (query) => {
+        setSearchQuery(query);
+        setCurrentPage(1);
+        setHasMorePages(true);
+        fetchProducts(1, true, true); // isSearch = true
+    };
+
+    // Función para manejar filtro de categoría
+    const handleCategoriaFilter = (categoriaId) => {
+        setCategoriaFiltro(categoriaId);
+        setCurrentPage(1);
+        setHasMorePages(true);
+        fetchProducts(1, true, false, categoriaId);
+    };
+
+    // Función para manejar ordenamiento
+    const handleOrdenamiento = (orden) => {
+        setOrdenamiento(orden);
+        setCurrentPage(1);
+        setHasMorePages(true);
+        fetchProducts(1, true, false, null, orden);
+    };
+
+
+    // Debounce para búsqueda en tiempo real
+    useEffect(() => {
+        if (isOpen) {
+            const timeoutId = setTimeout(() => {
+                if (searchQuery !== '') {
+                    handleSearch(searchQuery);
+                } else {
+                    // Si está vacío, cargar todos los productos
+                    setCurrentPage(1);
+                    setHasMorePages(true);
+                    fetchProducts(1, true);
+                }
+            }, 500); // 500ms de delay para evitar muchas peticiones
+            return () => clearTimeout(timeoutId);
+        }
+    }, [searchQuery, isOpen]);
+
+    // Función para manejar cuando se crea un nuevo producto
+    const handleProductCreated = (newProduct) => {
+        // Agregar el nuevo producto a la lista
+        setProductoData(prev => [newProduct, ...prev]);
+        // Cerrar el modal
+        setIsAgregarOpen(false);
+        mostrarNotificacion('success', 'Producto agregado correctamente')
+    };
+
+    // Función para manejar cuando se elimina un producto
+    const handleProductDeleted = (deletedId) => {
+        // Remover el producto eliminado de la lista
+        setProductoData(prev => prev.filter(producto => producto.id !== deletedId));
+        // Cerrar el modal de ver producto
+        setIsOpenVerProducto(false);
+        mostrarNotificacion('success', 'Producto eliminado correctamente')
+    };
+
+    // Función para manejar cuando se actualiza un producto
+    const handleProductUpdated = (updatedProduct) => {
+        // Actualizar solo el producto específico en la lista
+        setProductoData(prev => prev.map(producto =>
+            producto.id === updatedProduct.id ? updatedProduct : producto
+        ));
+        // Actualizar también el producto que se está viendo
+        setInfoPersona(updatedProduct);
+        // Cerrar el modal de ver producto
+        setIsOpenVerProducto(false);
+        mostrarNotificacion('success', 'Producto actualizado correctamente')
+    };
+    // Función para obtener el nombre de la categoría seleccionada
+    const getCategoriaNombre = () => {
+        if (categoriaFiltro === null) return 'Todas';
+        if (categoriaFiltro === '') return 'Sin categoría';
+        if (!categoriaFiltro) return 'Categorias';
+        const categoria = categorias.find(c => c.id === categoriaFiltro);
+        return categoria ? categoria.name : 'Categorias';
+    };
+
+    // Función para obtener el nombre del ordenamiento
+    const getOrdenamientoNombre = () => {
+        const ordenamientos = {
+            'nombre_asc': 'Nombre A-Z',
+            'nombre_desc': 'Nombre Z-A',
+            'cantidad_asc': 'Cantidad ↑',
+            'cantidad_desc': 'Cantidad ↓'
+        };
+        return ordenamientos[ordenamiento] || 'Ordenamiento';
+    };
+
     const opciones = [
         {
-            label: 'Materia',
-            active: filtroActivo === 'area',
-            onClick: () => setOpenMateria(true)
-        },
-        {
-            label: 'Categorias',
-            active: filtroActivo === 'categorias',
+            label: getCategoriaNombre(),
+            active: filtroActivo === 'categorias' || categoriaFiltro !== null,
             onClick: () => setOpenCategoria(true)
         },
         {
-            label: 'Ordenamiento',
-            active: filtroActivo === 'ordenamiento',
+            label: getOrdenamientoNombre(),
+            active: filtroActivo === 'ordenamiento' || ordenamiento !== 'nombre_asc',
             onClick: () => setOpenOrden(true)
         },
     ];
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-
+            {loading && <LoadingSpinner iconName='leaf' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Almacen Acopio</h1>
-                <InputSearch
-                    placeholder='Buscar producto'
-                    type="text"
-                />
+                <div className={styles.searchContainer}>
+                    <InputSearch
+                        placeholder='Buscar producto'
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                        }}
+                    />
+                </div>
                 <Filtros options={opciones} />
-                <div className={styles.content} >
-                    {
-                        productoData?.map((dato, index) => (
+                <div className={styles.content} onScroll={handleScroll}>
+                    {isSearching ? (
+                        <div className={styles.searchingData}>
+                            <p>Buscando...</p>
+                        </div>
+                    ) : productoData.length > 0 ? (
+                        productoData.map((producto, index) => (
                             <ItemView
-                                key={dato.id || index} // usa id si existe
-                                title={dato.producto}
-                                description={'Bruto: ' + dato.lotesBruto?.reduce((acc, lote) => acc + lote.peso, 0) + ' Kg.' + ' - ' + 'Prima: ' + dato.lotesPrima?.reduce((acc, lote) => acc + lote.peso, 0) + ' kg.'}
-                                icon={dato.icon}
+                                key={producto.id || index}
+                                title={producto.name || 'Sin nombre'}
+                                description={producto.description || 'Sin descripción'}
+                                icon="box"
                                 arrow={tipo !== 'almacen' ? false : true}
-                                onClick={() => handleRegistro(index, tipo)}
+                                onClick={() => handleRegistro(producto, tipo)}
                                 entrada={tipo === 'pesaje' ? true : false}
                                 entradaData={[
                                     { name: "Prima", value: 0 },
@@ -108,8 +311,18 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                                 ]}
                             />
                         ))
+                    ) : (
+                        <div className={styles.noData}>
+                            <p>{searchQuery ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
+                        </div>
+                    )}
 
-                    }
+                    {/* Indicador de carga para más elementos */}
+                    {loadingMore && (
+                        <div className={styles.loadingMore}>
+                            <p>Cargando más productos...</p>
+                        </div>
+                    )}
                 </div>
             </div>
             {tipo === 'almacen' ?
@@ -117,7 +330,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     <Boton
                         className='btn-default'
                         label='Categorias'
-                        onClick={() => { setIsAgregarOpen(true); }}
+                        onClick={() => { setIsCategoriasOpen(true); }}
                     />
                     <Boton
                         className='btn-original'
@@ -135,31 +348,34 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     />
                 </div> : ''}
             {/* Modal de ver registro*/}
-            <VerProducto isOpen={isOpenVerProducto} setIsOpen={setIsOpenVerProducto} registro={infoPersona} />
-
+            <VerProducto 
+                isOpen={isOpenVerProducto} 
+                setIsOpen={setIsOpenVerProducto} 
+                registro={infoPersona}
+                onProductDeleted={handleProductDeleted}
+                onProductUpdated={handleProductUpdated}
+            />
 
             {/* Modal de editar*/}
-            <EditarAgregar isOpen={isAgregarOpen} setIsOpen={setIsAgregarOpen} tipo='agregar' />
-            {/* Modal de materia*/}
-            <ViewModal isOpen={isOpenMateria} setIsOpen={setOpenMateria}>
-                <HeaderModal
-                    title="Tipo de materia"
-                    onClose={() => setOpenMateria(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para mostrar el peso segun la materia.</p>
-                    <ItemLine
-                        title='Materia Bruta'
-                        icon='cube'
-                        onClick={() => setFiltroActivo('produccion')}
-                    />
-                    <ItemLine
-                        title='Materia Prima'
-                        icon='leaf'
-                        onClick={() => setFiltroActivo('acopio')}
-                    />
-                </div>
-            </ViewModal>
+            <EditarAgregar 
+                isOpen={isAgregarOpen} 
+                setIsOpen={setIsAgregarOpen} 
+                tipo='agregar'
+                onProductCreated={handleProductCreated}
+            />
+
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
+
+            {/* Modal de categorías de acopio*/}
+            <CategoriasAcopio
+                isOpen={isCategoriasOpen}
+                setIsOpen={setIsCategoriasOpen}
+            />
+
             {/* Modal de categorias*/}
             <ViewModal isOpen={isOpenItem} setIsOpen={setOpenItem}>
                 <HeaderModal
@@ -197,16 +413,45 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a esa categoria.</p>
+                    
+                    {/* Opción para mostrar todos */}
                     <ItemLine
-                        title='Venado'
+                        title='Todas las categorías'
                         icon='tag'
-                        onClick={() => setFiltroActivo('produccion')}
+                        onClick={() => {
+                            handleCategoriaFilter(null);
+                            setOpenCategoria(false);
+                        }}
                     />
+                    
+                    {/* Opción para productos sin categoría */}
                     <ItemLine
-                        title='Amapolita'
+                        title='Sin categoría'
                         icon='tag'
-                        onClick={() => setFiltroActivo('acopio')}
+                        onClick={() => {
+                            handleCategoriaFilter('');
+                            setOpenCategoria(false);
+                        }}
                     />
+                    
+                    {/* Categorías dinámicas */}
+                    {loadingCategorias ? (
+                        <div className={styles.loadingMore}>
+                            <p>Cargando categorías...</p>
+                        </div>
+                    ) : (
+                        categorias.map((categoria) => (
+                            <ItemLine
+                                key={categoria.id}
+                                title={categoria.name}
+                                icon='tag'
+                                onClick={() => {
+                                    handleCategoriaFilter(categoria.id);
+                                    setOpenCategoria(false);
+                                }}
+                            />
+                        ))
+                    )}
                 </div>
             </ViewModal>
             {/* Modal de ordenamiento*/}
@@ -218,27 +463,41 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>Selecciona una opción para ordenar los productos</p>
                     <ItemLine
-                        title='Orden A-Z'
+                        title='Nombre A-Z'
                         icon='sort-a-z'
-                        onClick={() => setFiltroActivo('produccion')}
+                        onClick={() => {
+                            handleOrdenamiento('nombre_asc');
+                            setOpenOrden(false);
+                        }}
                     />
                     <ItemLine
-                        title='Orden Z-A'
+                        title='Nombre Z-A'
                         icon='sort-z-a'
-                        onClick={() => setFiltroActivo('acopio')}
+                        onClick={() => {
+                            handleOrdenamiento('nombre_desc');
+                            setOpenOrden(false);
+                        }}
                     />
                     <ItemLine
-                        title='Orden Menor-Mayor'
+                        title='Cantidad Menor-Mayor'
                         icon='up-arrow-alt'
-                        onClick={() => setFiltroActivo('acopio')}
+                        onClick={() => {
+                            handleOrdenamiento('cantidad_asc');
+                            setOpenOrden(false);
+                        }}
                     />
                     <ItemLine
-                        title='Orden Mayor-Menor'
+                        title='Cantidad Mayor-Menor'
                         icon='down-arrow-alt'
-                        onClick={() => setFiltroActivo('acopio')}
+                        onClick={() => {
+                            handleOrdenamiento('cantidad_desc');
+                            setOpenOrden(false);
+                        }}
                     />
                 </div>
             </ViewModal>
+            {/* Modal de categorias*/}
+                
         </View>
 
     );

@@ -15,6 +15,7 @@ function Select({
     const selectRef = useRef(null);
     const optionsRef = useRef(null);
 
+
     // Calcular la dirección de apertura
     useEffect(() => {
         if (isOpen && selectRef.current) {

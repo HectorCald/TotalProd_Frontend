@@ -62,9 +62,28 @@
     display: flex;
     flex-direction: column;
     gap: 15px; 
+    overflow-y: auto;
+    height: 100%;
 }
 .buttons {
     display: flex;
     flex-direction: column;
     gap: 7px;
+}
+
+.horizontal{
+    display: flex;
+    gap: 10px;
+}
+
+.noData {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.noData p {
+    font-size: 15px;
+    font-weight: 600;
+    color: gray;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from './Proveedores.module.css';
+import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import InputSearch from '../../common/InputSearch';
