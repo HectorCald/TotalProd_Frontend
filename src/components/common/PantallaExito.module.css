@@ -18,6 +18,7 @@
     max-width: 500px;
     width: 100%;
     gap: 10px;
+    height: 100%;
 }
 
 /* Contenedor fijo para spinner y check */
@@ -139,7 +140,7 @@
 
 .itemNombre {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--white-color);
     line-height: 1.2;
 }

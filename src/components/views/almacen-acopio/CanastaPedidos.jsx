@@ -278,7 +278,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             <PantallaExito
                 isOpen={isExitoOpen}
                 setIsOpen={setIsExitoOpen}
-                titulo="¡Pedido Creado Exitosamente!"
+                titulo="¡Pedido Registrado!"
                 descripcion="Tu pedido ha sido registrado correctamente y está en estado 'Pendiente'."
                 datosPedido={pedidoCreado?.pedido_acopio_detalle?.map(detalle => ({
                     nombre: detalle.producto?.name || 'Producto',

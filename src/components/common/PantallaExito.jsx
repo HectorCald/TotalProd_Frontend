@@ -27,11 +27,14 @@ function PantallaExito({
         if (isOpen) {
             // Mostrar spinner por 2 segundos
             setMostrarSpinner(true);
-            setMostrarCheck(true);
-            const timer = setTimeout(() => {
-                setMostrarSpinner(false);
-            }, 1000);
+            setMostrarCheck(false);
 
+            const timer = setTimeout(() => {
+                setMostrarCheck(true);
+                setTimeout(() => {
+                    setMostrarSpinner(false);
+                }, 1000);
+            }, 500);
 
             return () => clearTimeout(timer);
         }
@@ -119,6 +122,11 @@ function PantallaExito({
                             label='Enviar WhatsApp'
                             icon={whatsappIcon}
                             onClick={onEnviarWhatsapp}
+                        />
+                        <Boton
+                            className='btn-original'
+                            label='Aceptar'
+                            onClick={handleCerrar}
                         />
                     </div>
                 </div>
