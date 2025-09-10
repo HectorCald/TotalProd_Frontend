@@ -27,10 +27,11 @@ function PantallaExito({
         if (isOpen) {
             // Mostrar spinner por 2 segundos
             setMostrarSpinner(true);
+            setMostrarCheck(false);
 
 
             setMostrarCheck(true);
-            setTimeout(() => {
+            const timer = setTimeout(() => {
                 setMostrarSpinner(false);
             }, 1000);
 
