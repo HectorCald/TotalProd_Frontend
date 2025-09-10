@@ -33,7 +33,7 @@ function PantallaExito({
                 setMostrarCheck(true);
                 setTimeout(() => {
                     setMostrarSpinner(false);
-                }, 500);
+                }, 1000);
             }, 1000);
 
             return () => clearTimeout(timer);
