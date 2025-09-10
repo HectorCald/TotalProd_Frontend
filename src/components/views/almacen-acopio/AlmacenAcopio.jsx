@@ -346,7 +346,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             {loading && <LoadingSpinner iconName='leaf' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Almacen Acopio</h1>
+                <h1 className={styles.title}>Materia Prima</h1>
                 <div className={styles.searchContainer}>
                 <InputSearch
                     placeholder='Buscar producto'

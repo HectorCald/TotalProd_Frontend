@@ -18,7 +18,7 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
     return (
         <ViewModal ViewModal isOpen={isOpen} setIsOpen={setIsOpen} >
             <HeaderModal
-                title="Almacén acopio"
+                title="Materia Prima"
                 onClose={() => setIsOpen(false)}
             />
             <div className={styles.modalContent}>
@@ -44,14 +44,7 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
                     onClick={()=> handleTypeAlmacen('pedido')}
                 />
                 <ItemView
-                    title='Pesaje'
-                    description='Registrar el pesaje de la materia prima fisica'
-                    icon='dumbbell'
-                    arrow={true}
-                    onClick={()=> handleTypeAlmacen('pesaje')}
-                />
-                <ItemView
-                    title='Productos'
+                    title='Almacen'
                     description='Ver y gestionar los productos en el almacén'
                     icon='package'
                     arrow={true}

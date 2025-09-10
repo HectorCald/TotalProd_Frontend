@@ -98,6 +98,26 @@ class pedidosAcopioService {
       };
     }
   }
+
+  // Verificar si un producto tiene pedidos asociados
+  static async verificarProductoEnPedidos(productoId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/pedidos-acopio/verificar-producto/${productoId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en pedidosAcopioService.verificarProductoEnPedidos:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
 }
 
 export default pedidosAcopioService;

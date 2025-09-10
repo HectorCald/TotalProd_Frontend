@@ -16,10 +16,10 @@ import PantallaExito from '../../common/PantallaExito';
 const medidasPedido = [
     { value: 'kg', label: 'Kilogramo (kg)', icon: 'tag' },
     { value: 'qq', label: 'Quintal (qq)', icon: 'tag' },
-    { value: 'ml', label: 'Mililitro (ml)', icon: 'tag' },
     { value: 'l', label: 'Litro (l)', icon: 'tag' },
     { value: 'lbrs', label: 'Libras (lbrs)', icon: 'tag' },
     { value: '@', label: 'Arroba (@)', icon: 'tag' },
+    { value: 'cj', label: 'Caja (caja)', icon: 'tag' },
 ];
 
 function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta }) {
@@ -29,6 +29,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     const [isExitoOpen, setIsExitoOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [pedidoCreado, setPedidoCreado] = useState(null);
+    const [animarCantidad, setAnimarCantidad] = useState({});
 
     // Guardar en localStorage cuando cambie la canasta
     useEffect(() => {
@@ -39,10 +40,26 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }
     }, [productosCanasta]);
 
-    const handleActualizarCantidad = (productoId, nuevaCantidad) => {
+    const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
             handleEliminarProducto(productoId);
             return;
+        }
+
+        // Si debe animar, activar la animación
+        if (animar) {
+            setAnimarCantidad(prev => ({
+                ...prev,
+                [productoId]: true
+            }));
+            
+            // Desactivar la animación después de 300ms
+            setTimeout(() => {
+                setAnimarCantidad(prev => ({
+                    ...prev,
+                    [productoId]: false
+                }));
+            }, 300);
         }
 
         setProductosCanasta(prev => prev.map(p =>
@@ -93,17 +110,17 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             if (response.success) {
                 // Guardar datos del pedido para mostrar en pantalla de éxito
                 setPedidoCreado(response.data);
-                
+
                 // Limpiar la canasta inmediatamente al mostrar éxito
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
-                
+
                 // Cerrar modal de confirmación
                 setIsConfirmarModalOpen(false);
-                
+
                 // Mostrar pantalla de éxito
                 setIsExitoOpen(true);
-                
+
             } else {
                 console.error('Error al crear el pedido:', response.message);
                 // Aquí podrías mostrar una notificación de error
@@ -144,53 +161,73 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                     className={styles.productoItem}
                                     data-producto-id={producto.id}
                                 >
-                                        <div className={styles.productoInfo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <div className={styles.productoInfoContent}>
-                                                <BoxIcon name='box' className={styles.productoIcon} />
-                                                <div>
-                                                    <h3 className={styles.productoNombre}>{producto.name}</h3>
-                                                    <p className={styles.descripcion}>{producto.description}</p>
-                                                </div>
+                                    <div className={styles.productoInfo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div className={styles.productoInfoContent}>
+                                            <BoxIcon name='box' className={styles.productoIcon} />
+                                            <div>
+                                                <h3 className={styles.productoNombre}>{producto.name}</h3>
+                                                <p className={styles.descripcion}>{producto.description}</p>
                                             </div>
-
-
-                                            <button
-                                                className={styles.btnEliminar}
-                                                onClick={() => handleEliminarProducto(producto.id)}
-                                            >
-                                                <BoxIcon name='trash' className={styles.btnEliminarIcon} />
-                                            </button>
                                         </div>
 
-                                        <div className={styles.productoControles}>
+
+                                        <button
+                                            className={styles.btnEliminar}
+                                            onClick={() => handleEliminarProducto(producto.id)}
+                                        >
+                                            <BoxIcon name='trash' className={styles.btnEliminarIcon} />
+                                        </button>
+                                    </div>
+
+                                    <div className={styles.productoControles}>
+                                        <div className={styles.medidaControl}>
                                             <Select
                                                 value={producto.medidaPedido || 'kg'}
                                                 onChange={(value) => handleActualizarMedida(producto.id, value)}
                                                 options={medidasPedido}
                                                 placeholder="Medida"
                                             />
-                                            <div className={styles.cantidadControl}>
-                                                <button
-                                                    className={styles.btnCantidad}
-                                                    onClick={() => handleActualizarCantidad(producto.id, producto.cantidad - 1)}
-                                                    disabled={producto.cantidad <= 1}
-                                                >
-                                                    <BoxIcon name='minus' />
-                                                </button>
-                                                <span className={styles.cantidad}>
-                                                    {producto.cantidad}
-                                                </span>
-                                                <button
-                                                    className={styles.btnCantidad}
-                                                    onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1)}
-                                                >
-                                                    <BoxIcon name='plus' />
-                                                </button>
+                                        </div>
+                                        <div className={styles.cantidadControl}>
+                                             <button
+                                                 className={styles.btnCantidad}
+                                                 onClick={() => handleActualizarCantidad(producto.id, producto.cantidad - 1, true)}
+                                                 disabled={producto.cantidad <= 1}
+                                             >
+                                                 <BoxIcon name='minus' />
+                                             </button>
+                                            <motion.span
+                                                animate={animarCantidad[producto.id] ? { scale: [1, 1.3, 0.9, 1] } : { scale: 1 }}
+                                                transition={{ duration: 0.3 }}
+                                                className={styles.cantidad}
+                                            >
+                                                <input
+                                                    type="number"
+                                                    value={producto.cantidad}
+                                                    min="1"
+                                                    onChange={(e) => {
+                                                        const nuevaCantidad = parseInt(e.target.value) || 1;
+                                                        handleActualizarCantidad(producto.id, nuevaCantidad, false);
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        const nuevaCantidad = parseInt(e.target.value) || 1;
+                                                        if (nuevaCantidad < 1) {
+                                                            handleActualizarCantidad(producto.id, 1, false);
+                                                        }
+                                                    }}
+                                                />
+                                            </motion.span>
+                                             <button
+                                                 className={styles.btnCantidad}
+                                                 onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}
+                                             >
+                                                 <BoxIcon name='plus' />
+                                             </button>
 
-                                            </div>
                                         </div>
                                     </div>
-                                ))}
+                                </div>
+                            ))}
                         </div>
                         <div className={styles.buttons}>
                             <Boton
@@ -235,11 +272,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             {/* Modal de confirmar pedido */}
             <ViewModal isOpen={isConfirmarModalOpen} setIsOpen={setIsConfirmarModalOpen}>
                 <HeaderModal
-                    title="Confirmar Pedido"
+                    title="Resumen del Pedido"
                     onClose={() => setIsConfirmarModalOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Resumen del pedido:</p>
+                    <p className={styles.subTitle}>Toca para eliminar un producto:</p>
                     <div className={styles.content}>
                         {productosCanasta.map((producto, index) => (
                             <ItemLine

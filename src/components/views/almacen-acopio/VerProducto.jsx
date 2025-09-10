@@ -10,6 +10,7 @@ import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import productsAcopioService from '../../../services/productsAcopioService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
+import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 
@@ -227,13 +228,34 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                             onClick={async () => {
                                 setLoading(true);
                                 try {
+                                    // Verificar si tiene movimientos
+                                    const movimientosResponse = await movimientosAcopioService.getByProduct(registro.id);
+                                    const tieneMovimientos = movimientosResponse.success && movimientosResponse.data && movimientosResponse.data.length > 0;
+
+                                    // Verificar si tiene pedidos
+                                    const pedidosResponse = await pedidosAcopioService.verificarProductoEnPedidos(registro.id);
+                                    const tienePedidos = pedidosResponse.success && pedidosResponse.data && pedidosResponse.data.tienePedidos;
+
+                                    if (tieneMovimientos) {
+                                        mostrarNotificacion('error', 'No se puede eliminar el producto porque tiene movimientos registrados');
+                                        setLoading(false);
+                                        return;
+                                    }
+
+                                    if (tienePedidos) {
+                                        mostrarNotificacion('error', 'No se puede eliminar el producto porque está incluido en pedidos');
+                                        setLoading(false);
+                                        return;
+                                    }
+
+                                    // Si no tiene movimientos ni pedidos, proceder con la eliminación
                                     const response = await productsAcopioService.delete(registro.id);
                                     if (response.success) {
                                         onProductDeleted(registro.id);
                                         setIsDeleteOpen(false);
                                         setIsOpen(false);
+                                        mostrarNotificacion('success', 'Producto eliminado correctamente');
                                     } else {
-                                        // Mostrar mensaje de error si no se puede eliminar
                                         mostrarNotificacion('error', response.message || 'No se puede eliminar el producto');
                                     }
                                 } catch (error) {

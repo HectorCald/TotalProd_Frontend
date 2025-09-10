@@ -52,8 +52,8 @@ const Home = () => {
             </div>
             <p className="subTitle">Atajos</p>
             <div className="atajoAnuncio">
-              <AtajoAnuncio title="Almacen" description="Administra tu almacén de productos terminados, realiza entradas y salidas de productos" image={almacenImage} onClick={() => handleViewOpen('atajoAnuncio')} />
-              <AtajoAnuncio title="Acopio" description="Administra tu acopio de productos, realiza entradas y salidas de materias primas" image={acopioImage} onClick={() => handleViewOpen('almacenMedio')} />
+              <AtajoAnuncio title="Almacen" description="Administra tu almacén de productos terminados, realiza entradas y salidas." image={almacenImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+              <AtajoAnuncio title="Materia Prima" description="Administra tu materia prima, realiza entradas y salidas." image={acopioImage} onClick={() => handleViewOpen('almacenMedio')} />
             </div>
             <p className="subTitle">Otros</p>
             <div className="atajoAnuncioOtros">

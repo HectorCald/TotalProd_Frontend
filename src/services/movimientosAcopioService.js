@@ -54,6 +54,46 @@ class movimientosAcopioService {
     }
   }
 
+  // Obtener movimientos por cliente
+  static async getByCliente(clienteId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/cliente/${clienteId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en getByCliente:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+  // Obtener movimientos por proveedor
+  static async getByProveedor(proveedorId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/proveedor/${proveedorId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en getByProveedor:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
   // Obtener todos los movimientos
   static async getAll(page = 1, limit = 20) {
     try {

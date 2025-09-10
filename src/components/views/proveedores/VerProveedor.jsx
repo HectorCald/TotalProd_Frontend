@@ -10,6 +10,8 @@ import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import MensajeError from '../../common/MensajeError';
 import proveedorService from '../../../services/proveedorService';
+import movimientosAcopioService from '../../../services/movimientosAcopioService';
+import ItemView from '../../common/ItemView';
 import ItemLine from '../../common/ItemLine';
 import MapaModal from '../clientes/MapaModal';
 import Notification from '../../common/Notification';
@@ -28,6 +30,10 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
 
     // Estados para el mapa
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+    // Estados para movimientos
+    const [movimientos, setMovimientos] = useState([]);
+    const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
 
     // Estado para la notificación
     const [notification, setNotification] = useState({
@@ -90,6 +96,32 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
         }
     }
 
+    // Cargar los movimientos del proveedor
+    useEffect(() => {
+        const loadMovimientos = async () => {
+            if (usuario?.id && isOpen) {
+                setLoadingMovimientosList(true);
+                try {
+                    const response = await movimientosAcopioService.getByProveedor(usuario.id);
+                    if (response.success) {
+                        // Limitar a los últimos 10 movimientos
+                        const limitedMovements = (response.data || []).slice(0, 10);
+                        setMovimientos(limitedMovements);
+                    } else {
+                        setMovimientos([]);
+                    }
+                } catch (error) {
+                    console.error('Error cargando movimientos:', error);
+                    setMovimientos([]);
+                } finally {
+                    setLoadingMovimientosList(false);
+                }
+            }
+        };
+
+        loadMovimientos();
+    }, [usuario?.id, isOpen]);
+
     // Efecto para limpiar mensajes al abrir/cerrar
     useEffect(() => {
         if (isOpen) {
@@ -132,6 +164,42 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                 <div className={styles.content}>
                     <Dato label="Total pedidos" value={usuario?.total_orders} />
                 </div>
+
+                <p className={styles.subTitle}>
+                    ÚLTIMOS MOVIMIENTOS 
+                    {movimientos.length > 0 && (
+                        <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal' }}>
+                            {' '}({movimientos.length} movimientos)
+                        </span>
+                    )}
+                </p>
+                {loadingMovimientosList ? (
+                    <div className={styles.noData}>
+                        <p>Cargando movimientos...</p>
+                    </div>
+                ) : movimientos.length > 0 ? (
+                    movimientos.map((movimiento, index) => (
+                        <ItemView
+                            key={movimiento.id || index}
+                            title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${movimiento.quantity} ${movimiento.product?.type_measure?.code || ''}`}
+                            description={
+                                <div>
+                                    <div>{movimiento.observations || 'Sin observaciones'}</div>
+                                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                        {new Date(movimiento.date).toLocaleDateString()}
+                                        {movimiento.product?.name && ` • ${movimiento.product.name}`}
+                                    </div>
+                                </div>
+                            }
+                            icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                            arrow={false}
+                        />
+                    ))
+                ) : (
+                    <div className={styles.noData}>
+                        <p>No hay movimientos registrados</p>
+                    </div>
+                )}
             </div>
 
             {/* Modal de Editar*/}
