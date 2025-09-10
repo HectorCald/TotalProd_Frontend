@@ -35,9 +35,8 @@
     justify-content: flex-start;
     width: 100%;
     background-color: none;
-    border-radius: 10px;
     overflow-y: auto !important;
-    height: calc(100vh - 280px);
+    height: calc(100vh - 310px);
 }
 
 .loadingMore {

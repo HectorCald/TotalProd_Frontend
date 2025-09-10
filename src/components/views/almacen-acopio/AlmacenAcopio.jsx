@@ -148,8 +148,10 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             }
 
             // Usar override si se proporciona, sino usar el estado
-            const categoriaToUse = categoriaOverride !== null ? categoriaOverride : categoriaFiltro;
-            const ordenamientoToUse = ordenamientoOverride !== null ? ordenamientoOverride : ordenamiento;
+            const categoriaToUse = categoriaOverride !== undefined ? categoriaOverride : categoriaFiltro;
+            const ordenamientoToUse = ordenamientoOverride !== undefined ? ordenamientoOverride : ordenamiento;
+
+            console.log('fetchProducts - categoriaOverride:', categoriaOverride, 'categoriaToUse:', categoriaToUse, 'searchQuery:', searchQuery);
 
             const response = await productsAcopioService.getAll(page, 20, searchQuery, categoriaToUse, ordenamientoToUse);
             if (response.success && response.data) {
@@ -204,6 +206,8 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         setCategoriaFiltro(categoriaId);
         setCurrentPage(1);
         setHasMorePages(true);
+        // Resetear búsqueda cuando se cambia categoría
+        setSearchQuery('');
         fetchProducts(1, true, false, categoriaId);
     };
 
@@ -212,6 +216,8 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         setOrdenamiento(orden);
         setCurrentPage(1);
         setHasMorePages(true);
+        // Resetear búsqueda cuando se cambia ordenamiento
+        setSearchQuery('');
         fetchProducts(1, true, false, null, orden);
     };
 
@@ -346,7 +352,8 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             {loading && <LoadingSpinner iconName='leaf' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Materia Prima</h1>
+                <h1 className={styles.title}>Almacen</h1>
+                <p className={styles.subTitle}>Administra tu almacen de Materia Prima</p>
                 <div className={styles.searchContainer}>
                 <InputSearch
                     placeholder='Buscar producto'

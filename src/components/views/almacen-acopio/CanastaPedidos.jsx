@@ -19,7 +19,7 @@ const medidasPedido = [
     { value: 'l', label: 'Litro (l)', icon: 'tag' },
     { value: 'lbrs', label: 'Libras (lbrs)', icon: 'tag' },
     { value: '@', label: 'Arroba (@)', icon: 'tag' },
-    { value: 'cj', label: 'Caja (caja)', icon: 'tag' },
+    { value: 'cj', label: 'Caja (cj)', icon: 'tag' },
 ];
 
 function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta }) {
@@ -232,7 +232,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         <div className={styles.buttons}>
                             <Boton
                                 className='btn-original'
-                                label='Confirmar Pedido'
+                                label='Resumen del Pedido'
                                 onClick={() => setIsConfirmarModalOpen(true)}
                             />
                         </div>
