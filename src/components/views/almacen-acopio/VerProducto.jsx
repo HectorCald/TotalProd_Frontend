@@ -38,8 +38,8 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         };
 
         movimientos.forEach(movement => {
-            // Parsear la fecha correctamente (formato YYYY-MM-DD)
-            const movementDate = new Date(movement.date + 'T00:00:00');
+            // Parsear la fecha correctamente (timestamp completo)
+            const movementDate = new Date(movement.date);
             const movementDateOnly = new Date(movementDate.getFullYear(), movementDate.getMonth(), movementDate.getDate());
             const diffTime = todayOnly - movementDateOnly;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -55,6 +55,15 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
             } else {
                 groups['Anteriores'].push(movement);
             }
+        });
+
+        // Ordenar movimientos dentro de cada grupo por timestamp (más reciente primero)
+        Object.keys(groups).forEach(groupKey => {
+            groups[groupKey].sort((a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateB - dateA; // Orden descendente (más reciente primero)
+            });
         });
 
         // Filtrar grupos vacíos
@@ -182,8 +191,9 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                             <div>
                                                 <div>{movimiento.observations || 'Sin observaciones'}</div>
                                                 <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                                    {new Date(movimiento.date + 'T00:00:00').toLocaleDateString()}
-                                                    {movimiento.proveedor?.name && ` • ${movimiento.proveedor.name}`}
+                                                    {new Date(movimiento.date).toLocaleDateString()}
+                                                    {movimiento.type === 'entrada' && movimiento.proveedor?.name && ` • ${movimiento.proveedor.name}`}
+                                                    {movimiento.type === 'salida' && movimiento.cliente?.name && ` • ${movimiento.cliente.name}`}
                                                 </div>
                                             </div>
                                         }

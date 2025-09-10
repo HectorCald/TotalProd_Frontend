@@ -237,8 +237,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
           onChange={(e) => handleChange('description', e.target.value)}
         />
 
-        <InputNormal
-          tipo="number"
+            <InputNormal
+              tipo="number"
           value={dataMov.quantity}
           placeholder='Cantidad'
           onChange={(e) => handleChange('quantity', e.target.value)}
@@ -279,8 +279,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
             style={{ minWidth: '80px' }}
           />
 
-        </div>
-
+          </div>
+        
         <Boton
           className='btn-original'
           label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar producto'}

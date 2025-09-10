@@ -1,0 +1,162 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: calc(100vh - 50px);
+    padding: 15px;
+    box-sizing: border-box;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+    gap: 10px;
+}
+
+/* Contenedor fijo para spinner y check */
+.animationContainer {
+    width: 70px !important;
+    height: 70px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Spinner */
+.spinnerContainer {
+    width: 70px;
+    height: 70px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translate(-50%, -50%);
+}
+
+.spinner {
+    width: 70px;
+    height: 70px;
+    border: 4px solid var(--tertiary-color);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Check GIF */
+.checkContainer {
+    width: 70px;
+    height: 70px;
+}
+
+.checkGif {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+}
+
+/* Título */
+.titulo {
+    font-size: 25px !important;
+    font-weight: 700;
+    color: var(--white-color);
+    margin: 0;
+    line-height: 1.2;
+    width: 100%;
+}
+
+/* Descripción */
+.descripcion {
+    font-size: 16px;
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+    max-width: 400px;
+    font-weight: 400;
+}
+
+/* Resumen del pedido */
+.resumenContainer {
+    width: 100%;
+    background:none;
+    border-radius: 15px;
+    margin-bottom: 10px;
+}
+
+.resumenTitulo {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--white-color);
+    text-align: left;
+    margin-bottom: 10px;
+}
+
+.resumenLista {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid var(--quinary-color);
+    padding: 10px;
+    border-radius: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.resumenItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background-color: var(--tertiary-color);
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.itemIcon {
+    color: var(--primary-color);
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.itemInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+}
+
+.itemNombre {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--white-color);
+    line-height: 1.2;
+}
+
+.itemDetalle {
+    font-size: 12px;
+    color: #666;
+    margin-top: 2px;
+}
+
+
+
+/* Botones */
+.botonesContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-top: auto;
+    margin-bottom: 20px;
+}

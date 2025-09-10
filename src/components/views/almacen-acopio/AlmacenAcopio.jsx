@@ -13,6 +13,7 @@ import Boton from '../../common/Boton';
 import EditarAgregar from '../almacen-acopio/EditarAgregar';
 import CategoriasAcopio from './CategoriasAcopio';
 import MovimientoAcopio from './MovimientoAcopio';
+import CanastaPedidos from './CanastaPedidos';
 import InputCantidad from '../../common/InputCantidad';
 import Select from '../../common/Select';
 import InputNormal from '../../common/InputNormal';
@@ -82,13 +83,31 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     // Estados para filtros de categoría y ordenamiento
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
+
+    // Estados para canasta de pedidos
+    const [productosCanasta, setProductosCanasta] = useState([]);
+    const [isCanastaOpen, setIsCanastaOpen] = useState(false);
+
+    // Cargar canasta desde localStorage al inicializar
+    useEffect(() => {
+        const canastaGuardada = localStorage.getItem('canastaPedidos');
+        if (canastaGuardada) {
+            try {
+                setProductosCanasta(JSON.parse(canastaGuardada));
+            } catch (error) {
+                console.error('Error al cargar canasta desde localStorage:', error);
+                localStorage.removeItem('canastaPedidos');
+            }
+        }
+    }, []);
     // Función para manejar el click en un producto
     const handleRegistro = (producto, tipo) => {
         setInfoPersona(producto);
         if (tipo === 'almacen') {
             setIsOpenVerProducto(true);
         } else if (tipo === 'pedido') {
-            setOpenItem(true);
+            // Agregar producto a la canasta
+            handleAgregarACanasta(producto);
         } else if (tipo === 'entrada' || tipo === 'salida') {
             setIsMovimientoOpen(true);
         }
@@ -262,6 +281,33 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         setIsMovimientoOpen(false);
         mostrarNotificacion('success', `${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente`);
     };
+
+    // Función para manejar la canasta de pedidos
+    const handleAgregarACanasta = (producto) => {
+        const productoExistente = productosCanasta.find(p => p.id === producto.id);
+        
+        if (productoExistente) {
+            // Si ya existe, aumentar la cantidad
+            setProductosCanasta(prev => prev.map(p => 
+                p.id === producto.id 
+                    ? { ...p, cantidad: p.cantidad + 1 }
+                    : p
+            ));
+        } else {
+            // Si no existe, agregarlo nuevo
+            setProductosCanasta(prev => [...prev, {
+                ...producto,
+                cantidad: 1,
+                medidaPedido: 'kg',
+                observacionesPedido: ''
+            }]);
+        }
+    };
+
+    const getCantidadEnCanasta = (productoId) => {
+        const producto = productosCanasta.find(p => p.id === productoId);
+        return producto ? producto.cantidad : 0;
+    };
     // Función para obtener el nombre de la categoría seleccionada
     const getCategoriaNombre = () => {
         if (categoriaFiltro === null) return 'Todas';
@@ -318,21 +364,25 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                             <p>Buscando...</p>
                         </div>
                     ) : productoData.length > 0 ? (
-                        productoData.map((producto, index) => (
+                        productoData.map((producto, index) => {
+                            const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
+                            return (
                             <ItemView
-                                key={producto.id || index}
-                                title={producto.name || 'Sin nombre'}
-                                description={producto.description || 'Sin descripción'}
-                                icon="box"
+                                    key={producto.id || index}
+                                    title={producto.name || 'Sin nombre'}
+                                    description={producto.description || 'Sin descripción'}
+                                    icon="box"
                                 arrow={tipo !== 'almacen' ? false : true}
-                                onClick={() => handleRegistro(producto, tipo)}
+                                    onClick={() => handleRegistro(producto, tipo)}
                                 entrada={tipo === 'pesaje' ? true : false}
                                 entradaData={[
                                     { name: "Prima", value: 0 },
                                     { name: "Bruta", value: 0 },
                                 ]}
-                            />
-                        ))
+                                    badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
+                                />
+                            );
+                        })
                     ) : (
                         <div className={styles.noData}>
                             <p>{searchQuery ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
@@ -363,10 +413,10 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             {tipo === 'pedido' ?
                 <div className={styles.buttonFooter}>
                     <Boton
-                        className='btn-default'
-                        label='Ordenes'
-                        onClick={() => { setIsAgregarOpen(true); }}
-                        objeto={3}
+                        className='btn-original'
+                        label={`Canasta (${productosCanasta.length})`}
+                        onClick={() => setIsCanastaOpen(true)}
+                        disabled={productosCanasta.length === 0}
                     />
                 </div> : ''}
             {/* Modal de ver registro*/}
@@ -527,7 +577,17 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     />
                 </div>
             </ViewModal>
-            {/* Modal de categorias*/}
+            {/* View de canasta de pedidos */}
+            <CanastaPedidos
+                isOpen={isCanastaOpen}
+                setIsOpen={setIsCanastaOpen}
+                productosCanasta={productosCanasta}
+                setProductosCanasta={setProductosCanasta}
+                onCerrarCanasta={() => {
+                    setIsCanastaOpen(false);
+                    mostrarNotificacion('success', 'Pedido confirmado correctamente');
+                }}
+            />
                 
         </View>
 

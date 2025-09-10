@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaData }) => {  
+const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaData, badge }) => {  
   // Función para generar iniciales del título
   const generateInitials = (title) => {
     if (!title) return '';
@@ -134,6 +134,11 @@ const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaDa
           <BoxIcon name="chevron-right" className={styles.icon} />
         </div>
       )}
+      {badge && (
+          <div key={`badge-${badge}`} className={styles.badge}>
+            {badge}
+          </div>
+        )}
     </div>
   );
 };
