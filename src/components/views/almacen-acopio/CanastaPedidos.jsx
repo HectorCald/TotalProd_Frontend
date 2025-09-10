@@ -53,7 +53,16 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     };
 
     const handleEliminarProducto = (productoId) => {
-        setProductosCanasta(prev => prev.filter(p => p.id !== productoId));
+        // Agregar clase de animación antes de eliminar
+        const elemento = document.querySelector(`[data-producto-id="${productoId}"]`);
+        if (elemento) {
+            elemento.classList.add(styles.eliminando);
+            setTimeout(() => {
+                setProductosCanasta(prev => prev.filter(p => p.id !== productoId));
+            }, 300);
+        } else {
+            setProductosCanasta(prev => prev.filter(p => p.id !== productoId));
+        }
     };
 
     const handleActualizarMedida = (productoId, nuevaMedida) => {
@@ -129,25 +138,12 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 {productosCanasta.length > 0 ? (
                     <>
                         <div className={styles.productosList}>
-                            <AnimatePresence mode="popLayout">
-                                {productosCanasta.map((producto, index) => (
-                                    <motion.div
-                                        key={`${producto.id}-${index}`}
-                                        className={styles.productoItem}
-                                        initial={{ opacity: 0, x: -50, scale: 0.8 }}
-                                        animate={{ opacity: 1, x: 0, scale: 1 }}
-                                        exit={{
-                                            opacity: 0,
-                                            x: -300,
-                                            transition: { duration: 0.4, ease: "easeInOut" }
-                                        }}
-                                        layout
-                                        transition={{
-                                            type: "spring",
-                                            stiffness: 300,
-                                            damping: 30
-                                        }}
-                                    >
+                            {productosCanasta.map((producto, index) => (
+                                <div
+                                    key={`${producto.id}-${index}`}
+                                    className={styles.productoItem}
+                                    data-producto-id={producto.id}
+                                >
                                         <div className={styles.productoInfo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                             <div className={styles.productoInfoContent}>
                                                 <BoxIcon name='box' className={styles.productoIcon} />
@@ -181,15 +177,9 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                 >
                                                     <BoxIcon name='minus' />
                                                 </button>
-                                                <motion.span
-                                                    className={styles.cantidad}
-                                                    key={producto.cantidad}
-                                                    initial={{ scale: 1.2 }}
-                                                    animate={{ scale: 1 }}
-                                                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                                                >
+                                                <span className={styles.cantidad}>
                                                     {producto.cantidad}
-                                                </motion.span>
+                                                </span>
                                                 <button
                                                     className={styles.btnCantidad}
                                                     onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1)}
@@ -199,9 +189,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
                                             </div>
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 ))}
-                            </AnimatePresence>
                         </div>
                         <div className={styles.buttons}>
                             <Boton
@@ -252,23 +241,14 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>Resumen del pedido:</p>
                     <div className={styles.content}>
-                        <AnimatePresence mode="popLayout">
-                            {productosCanasta.map((producto, index) => (
-                                <motion.div
-                                    key={`resumen-${producto.id}-${index}`}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20, scale: 0.9 }}
-                                    transition={{ delay: index * 0.1 }}
-                                >
-                                    <ItemLine
-                                        icon='box'
-                                        title={producto.name + ' (' + producto.cantidad + ' ' + producto.medidaPedido + ')'}
-                                        onClick={() => handleEliminarProducto(producto.id)}
-                                    />
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                        {productosCanasta.map((producto, index) => (
+                            <ItemLine
+                                key={`resumen-${producto.id}-${index}`}
+                                icon='box'
+                                title={producto.name + ' (' + producto.cantidad + ' ' + producto.medidaPedido + ')'}
+                                onClick={() => handleEliminarProducto(producto.id)}
+                            />
+                        ))}
                     </div>
                     <div className={styles.observacionesGenerales}>
                         <InputNormal
