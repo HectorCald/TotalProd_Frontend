@@ -14,14 +14,15 @@ const getAuthHeaders = () => {
 class productsAcopioService {
 
   // Obtener todos los productos
-  static async getAll(page = 1, limit = 20, search = '', categoria = null, ordenamiento = 'nombre_asc') {
+  static async getAll(page = 1, limit = 20, search = '', categoria = null, tipoMedida = null, ordenamiento = 'nombre_asc') {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
         ordenamiento: ordenamiento,
         ...(search && { search }),
-        ...(categoria !== null && { categoria }) // Solo agregar 'categoria' si no es null
+        ...(categoria !== null && { categoria }), // Solo agregar 'categoria' si no es null
+        ...(tipoMedida !== null && { tipo_medida: tipoMedida }) // Solo agregar 'tipo_medida' si no es null
       });
 
 

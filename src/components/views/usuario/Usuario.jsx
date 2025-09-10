@@ -82,6 +82,14 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         onClick={handleCodigoPromocional}
                     />
                     <ItemLine
+                        icon='wrench'
+                        title='Mejoras sugeridas'
+                    />
+                    <ItemLine
+                        icon='comment'
+                        title='Comentarios'
+                    />
+                    <ItemLine
                         icon='star'
                         title='Plan'
                         onClick={handlePlan}

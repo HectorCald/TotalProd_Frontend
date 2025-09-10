@@ -19,6 +19,7 @@ import Select from '../../common/Select';
 import InputNormal from '../../common/InputNormal';
 import productsAcopioService from '../../../services/productsAcopioService';
 import categoryAcopioService from '../../../services/categoryAcopioService';
+import typeMeasureService from '../../../services/typeMeasureService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 
@@ -53,6 +54,8 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     const [productoData, setProductoData] = useState([]);
     const [categorias, setCategorias] = useState([]);
     const [loadingCategorias, setLoadingCategorias] = useState(false);
+    const [tiposMedida, setTiposMedida] = useState([]);
+    const [loadingTiposMedida, setLoadingTiposMedida] = useState(false);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -75,13 +78,15 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
 
     // Estados para filtros y modales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
+    const [isOpenTipoMedida, setOpenTipoMedida] = useState(false);
     const [isOpenItem, setOpenItem] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [selectedMedidas, setSelectedMedidas] = useState('');
     const [filtroActivo, setFiltroActivo] = useState('todos');
     
-    // Estados para filtros de categoría y ordenamiento
+    // Estados para filtros de categoría, tipo de medida y ordenamiento
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
+    const [tipoMedidaFiltro, setTipoMedidaFiltro] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
 
     // Estados para canasta de pedidos
@@ -134,8 +139,30 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
+    // Función para cargar los tipos de medida
+    const fetchTiposMedida = async () => {
+        try {
+            setLoadingTiposMedida(true);
+            const response = await typeMeasureService.getAll();
+            if (response.success && response.data) {
+                const mappedTiposMedida = response.data.map(tipo => ({
+                    value: tipo.id,
+                    label: tipo.name,
+                    id: tipo.id,
+                    name: tipo.name,
+                    code: tipo.code
+                }));
+                setTiposMedida(mappedTiposMedida);
+            }
+        } catch (error) {
+            console.error('Error cargando tipos de medida:', error);
+        } finally {
+            setLoadingTiposMedida(false);
+        }
+    };
+
     // Función para obtener los productos
-    const fetchProducts = async (page = 1, reset = true, isSearch = false, categoriaOverride = null, ordenamientoOverride = null) => {
+    const fetchProducts = async (page = 1, reset = true, isSearch = false, categoriaOverride = null, tipoMedidaOverride = null, ordenamientoOverride = null) => {
         try {
             if (reset) {
                 if (isSearch) {
@@ -149,10 +176,11 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
 
             // Usar override si se proporciona, sino usar el estado
             const categoriaToUse = categoriaOverride !== undefined ? categoriaOverride : categoriaFiltro;
+            const tipoMedidaToUse = tipoMedidaOverride !== undefined ? tipoMedidaOverride : tipoMedidaFiltro;
             const ordenamientoToUse = ordenamientoOverride !== undefined ? ordenamientoOverride : ordenamiento;
 
 
-            const response = await productsAcopioService.getAll(page, 20, searchQuery, categoriaToUse, ordenamientoToUse);
+            const response = await productsAcopioService.getAll(page, 20, searchQuery, categoriaToUse, tipoMedidaToUse, ordenamientoToUse);
             if (response.success && response.data) {
                 if (reset) {
                     setProductoData(response.data);
@@ -180,6 +208,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         if (isOpen) {
             // Asegurar que el modal esté cerrado al abrir el componente
             fetchCategorias();
+            fetchTiposMedida();
             fetchProducts();
         }
     }, [isOpen]);
@@ -197,7 +226,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         setSearchQuery(query);
         setCurrentPage(1);
         setHasMorePages(true);
-        fetchProducts(1, true, true); // isSearch = true
+        fetchProducts(1, true, true, categoriaFiltro, tipoMedidaFiltro); // isSearch = true
     };
 
     // Función para manejar filtro de categoría
@@ -205,9 +234,15 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         setCategoriaFiltro(categoriaId);
         setCurrentPage(1);
         setHasMorePages(true);
-        // Resetear búsqueda cuando se cambia categoría
-        setSearchQuery('');
-        fetchProducts(1, true, false, categoriaId);
+        fetchProducts(1, true, false, categoriaId, tipoMedidaFiltro);
+    };
+
+    // Función para manejar filtro de tipo de medida
+    const handleTipoMedidaFilter = (tipoMedidaId) => {
+        setTipoMedidaFiltro(tipoMedidaId);
+        setCurrentPage(1);
+        setHasMorePages(true);
+        fetchProducts(1, true, false, categoriaFiltro, tipoMedidaId);
     };
 
     // Función para manejar ordenamiento
@@ -215,9 +250,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         setOrdenamiento(orden);
         setCurrentPage(1);
         setHasMorePages(true);
-        // Resetear búsqueda cuando se cambia ordenamiento
-        setSearchQuery('');
-        fetchProducts(1, true, false, null, orden);
+        fetchProducts(1, true, false, categoriaFiltro, tipoMedidaFiltro, orden);
     };
 
 
@@ -231,7 +264,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     // Si está vacío, cargar todos los productos
                     setCurrentPage(1);
                     setHasMorePages(true);
-                    fetchProducts(1, true);
+                    fetchProducts(1, true, false, categoriaFiltro, tipoMedidaFiltro);
                 }
             }, 500); // 500ms de delay para evitar muchas peticiones
             return () => clearTimeout(timeoutId);
@@ -315,11 +348,20 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     };
     // Función para obtener el nombre de la categoría seleccionada
     const getCategoriaNombre = () => {
-        if (categoriaFiltro === null) return 'Todas';
+        if (categoriaFiltro === null) return 'Categorías';
         if (categoriaFiltro === '') return 'Sin categoría';
-        if (!categoriaFiltro) return 'Categorias';
+        if (!categoriaFiltro) return 'Categorías';
         const categoria = categorias.find(c => c.id === categoriaFiltro);
-        return categoria ? categoria.name : 'Categorias';
+        return categoria ? categoria.name : 'Categorías';
+    };
+
+    // Función para obtener el nombre del tipo de medida seleccionado
+    const getTipoMedidaNombre = () => {
+        if (tipoMedidaFiltro === null) return 'Medidas';
+        if (tipoMedidaFiltro === '') return 'Sin medida';
+        if (!tipoMedidaFiltro) return 'Medidas';
+        const tipoMedida = tiposMedida.find(t => t.id === tipoMedidaFiltro);
+        return tipoMedida ? tipoMedida.name : 'Medidas';
     };
 
     // Función para obtener el nombre del ordenamiento
@@ -336,12 +378,17 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     const opciones = [
         {
             label: getCategoriaNombre(),
-            active: filtroActivo === 'categorias' || categoriaFiltro !== null,
+            active: categoriaFiltro !== null,
             onClick: () => setOpenCategoria(true)
         },
         {
+            label: getTipoMedidaNombre(),
+            active: tipoMedidaFiltro !== null,
+            onClick: () => setOpenTipoMedida(true)
+        },
+        {
             label: getOrdenamientoNombre(),
-            active: filtroActivo === 'ordenamiento' || ordenamiento !== 'nombre_asc',
+            active: ordenamiento !== 'nombre_asc',
             onClick: () => setOpenOrden(true)
         },
     ];
@@ -453,6 +500,46 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 isOpen={isCategoriasOpen}
                 setIsOpen={setIsCategoriasOpen}
             />
+
+            {/* Modal de tipos de medida*/}
+            <ViewModal isOpen={isOpenTipoMedida} setIsOpen={setOpenTipoMedida}>
+                <HeaderModal
+                    title="Tipos de Medida"
+                    onClose={() => setOpenTipoMedida(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a ese tipo de medida.</p>
+                    
+                    {/* Opción para mostrar todos */}
+                    <ItemLine
+                        title='Todas las medidas'
+                        icon='ruler'
+                        onClick={() => {
+                            handleTipoMedidaFilter(null);
+                            setOpenTipoMedida(false);
+                        }}
+                    />
+                    
+                    {/* Tipos de medida dinámicos */}
+                    {loadingTiposMedida ? (
+                        <div className={styles.loadingMore}>
+                            <p>Cargando tipos de medida...</p>
+                        </div>
+                    ) : (
+                        tiposMedida.map((tipoMedida) => (
+                    <ItemLine
+                                key={tipoMedida.id}
+                                title={tipoMedida.name}
+                        icon='ruler'
+                                onClick={() => {
+                                    handleTipoMedidaFilter(tipoMedida.id);
+                                    setOpenTipoMedida(false);
+                                }}
+                    />
+                        ))
+                    )}
+                </div>
+            </ViewModal>
 
             {/* Modal de movimiento (entrada/salida) */}
             <MovimientoAcopio
