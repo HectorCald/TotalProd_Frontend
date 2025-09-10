@@ -219,6 +219,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           value={dataMov.quantity}
           placeholder='Cantidad (obligatorio)'
           onChange={(e) => handleChange('quantity', e.target.value)}
+          icon='calculator'
         />
 
         <InputNormal
@@ -226,6 +227,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           value={dataMov.observations}
           placeholder='Observaciones (opcional)'
           onChange={(e) => handleChange('observations', e.target.value)}
+          icon='comment'
         />
 
         {/* Select de proveedor para entradas */}
@@ -237,6 +239,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
               options={proveedores}
               placeholder='Proveedor (opcional)'
               disabled={loadingProveedores || !!proveedoresError}
+              icon='store'
             />
 
             {!proveedoresError && (
@@ -269,6 +272,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
               options={clientes}
               placeholder='Cliente (opcional)'
               disabled={loadingClientes || !!clientesError}
+              icon='user'
             />
 
             {!clientesError && (

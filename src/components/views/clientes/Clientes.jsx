@@ -227,6 +227,7 @@ function Clientes({ isOpen, setIsOpen }) {
                             <ItemView
                                 key={cliente.id || index}
                                 title={cliente.name || 'Sin nombre'}
+                                description={cliente.description || 'Sin descripción'}
                                 arrow={true}
                                 onClick={() => handleCliente(cliente)}
                             />

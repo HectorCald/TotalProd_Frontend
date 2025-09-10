@@ -238,6 +238,7 @@ function Proveedores({ isOpen, setIsOpen }) {
                             <ItemView
                                 key={proveedor.id || index}
                                 title={proveedor.name || 'Sin nombre'}
+                                description={proveedor.description || 'Sin descripción'}
                                 arrow={true}
                                 onClick={() => handleProveedor(proveedor)}
                             />

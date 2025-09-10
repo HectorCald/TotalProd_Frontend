@@ -6,6 +6,7 @@ import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
+import Dato from '../../common/Dato';
 
 const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readOnly = false, title = "Seleccionar Ubicación" }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -44,12 +45,12 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
             // Resetear estado
             setIsGoogleMapsLoaded(false);
             setLoading(true);
-            
+
             // Timeout de seguridad para evitar loading infinito
             const safetyTimeout = setTimeout(() => {
                 setLoading(false);
             }, 10000); // 10 segundos máximo
-            
+
             // Esperar a que Google Maps esté disponible
             const checkGoogleMaps = () => {
                 if (window.google && window.google.maps && window.google.maps.Map && window.googleMapsLoaded) {
@@ -65,7 +66,7 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                 }
             };
             checkGoogleMaps();
-            
+
         }
     }, [isOpen]);
 
@@ -80,13 +81,13 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
             return;
         }
 
-                // Si hay coordenadas iniciales, usarlas
+        // Si hay coordenadas iniciales, usarlas
         if (initialLocation && typeof initialLocation === 'string' && initialLocation.includes(',')) {
             const coordsMatch = initialLocation.match(/\(([^,]+),([^)]+)\)/);
             if (coordsMatch) {
                 const firstValue = parseFloat(coordsMatch[1]);
                 const secondValue = parseFloat(coordsMatch[2]);
-                
+
                 // Tu base de datos tiene formato (longitud, latitud), Google Maps necesita (latitud, longitud)
                 let lat, lng;
                 if (firstValue >= -90 && firstValue <= 90 && secondValue < -90) {
@@ -98,9 +99,9 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                     lat = secondValue;  // El segundo valor es la latitud
                     lng = firstValue;   // El primer valor es la longitud
                 }
-                
+
                 const initialCoords = { lat, lng };
-                
+
                 const mapInstance = new window.google.maps.Map(mapRef.current, {
                     center: initialCoords,
                     zoom: 15,
@@ -108,31 +109,33 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                     streetViewControl: true,
                     fullscreenControl: true,
                 });
-                
+
                 // Delay para asegurar que Google Maps esté completamente cargado
                 setTimeout(() => {
                     // Forzar el centro del mapa después de la inicialización
                     mapInstance.setCenter(initialCoords);
                     mapInstance.setZoom(15);
-                    
+
                     initializeMapComponents(mapInstance, initialCoords);
-                    
+
                     // Forzar posición del marcador después de inicializar componentes
                     setTimeout(() => {
                         if (marker) {
                             marker.setPosition(initialCoords);
                         }
-                        
+
                         // Hacer geocoding para obtener la dirección real de las coordenadas iniciales
                         const geocoderToUse = geocoder || new window.google.maps.Geocoder();
                         geocoderToUse.geocode({ location: initialCoords }, (results, status) => {
                             if (status === 'OK' && results[0]) {
                                 const result = results[0];
+                                const addressComponents = extractAddressComponents(result.formatted_address);
                                 setSelectedLocation({
                                     lat: initialCoords.lat,
                                     lng: initialCoords.lng,
                                     address: result.formatted_address,
-                                    placeId: result.place_id
+                                    placeId: result.place_id,
+                                    ...addressComponents
                                 });
                             } else {
                                 // Si falla el geocoding, usar coordenadas como fallback
@@ -140,7 +143,10 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                                     lat: initialCoords.lat,
                                     lng: initialCoords.lng,
                                     address: `Ubicación: ${initialCoords.lat.toFixed(6)}, ${initialCoords.lng.toFixed(6)}`,
-                                    placeId: null
+                                    placeId: null,
+                                    direccion: `Ubicación: ${initialCoords.lat.toFixed(6)}, ${initialCoords.lng.toFixed(6)}`,
+                                    ciudad: '',
+                                    pais: ''
                                 });
                             }
                         });
@@ -218,7 +224,7 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
 
         setMap(mapInstance);
         setMarker(markerInstance);
-        
+
         // Forzar posición del marcador si tenemos coordenadas iniciales
         if (initialLocation) {
             setTimeout(() => {
@@ -255,11 +261,13 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                         // Actualizar el valor del buscador
                         setSearchQuery(place.formatted_address);
 
+                        const addressComponents = extractAddressComponents(place.formatted_address);
                         setSelectedLocation({
                             lat: position.lat(),
                             lng: position.lng(),
                             address: place.formatted_address,
-                            placeId: place.place_id
+                            placeId: place.place_id,
+                            ...addressComponents
                         });
                     }
                 });
@@ -275,7 +283,7 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
             // Asegurar que la posición sea válida
             const lat = typeof initialPosition.lat === 'function' ? initialPosition.lat() : initialPosition.lat;
             const lng = typeof initialPosition.lng === 'function' ? initialPosition.lng() : initialPosition.lng;
-            
+
             // Solo hacer reverseGeocode si NO tenemos coordenadas iniciales específicas
             if (!initialLocation) {
                 // Crear un objeto de posición válido para reverseGeocode
@@ -283,7 +291,7 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                     lat: () => lat,
                     lng: () => lng
                 };
-                
+
                 // Pequeño delay para asegurar que el mapa esté completamente cargado
                 setTimeout(() => {
                     reverseGeocode(validPosition);
@@ -320,11 +328,13 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
             newGeocoder.geocode({ location: { lat, lng } }, (results, status) => {
                 if (status === 'OK' && results[0]) {
                     const result = results[0];
+                    const addressComponents = extractAddressComponents(result.formatted_address);
                     setSelectedLocation({
                         lat: lat,
                         lng: lng,
                         address: result.formatted_address,
-                        placeId: result.place_id
+                        placeId: result.place_id,
+                        ...addressComponents
                     });
                     if (!initialLocationSet) {
                         setInitialLocationSet(true);
@@ -334,7 +344,10 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                         lat: lat,
                         lng: lng,
                         address: `Ubicación: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-                        placeId: null
+                        placeId: null,
+                        direccion: `Ubicación: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+                        ciudad: '',
+                        pais: ''
                     });
                 }
             });
@@ -344,11 +357,13 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
         geocoder.geocode({ location: { lat, lng } }, (results, status) => {
             if (status === 'OK' && results[0]) {
                 const result = results[0];
+                const addressComponents = extractAddressComponents(result.formatted_address);
                 setSelectedLocation({
                     lat: lat,
                     lng: lng,
                     address: result.formatted_address,
-                    placeId: result.place_id
+                    placeId: result.place_id,
+                    ...addressComponents
                 });
                 if (!initialLocationSet) {
                     setInitialLocationSet(true);
@@ -358,7 +373,10 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                     lat: lat,
                     lng: lng,
                     address: `Ubicación: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-                    placeId: null
+                    placeId: null,
+                    direccion: `Ubicación: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+                    ciudad: '',
+                    pais: ''
                 });
             }
         });
@@ -384,11 +402,13 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                 map.setZoom(15);
                 marker.setPosition(position);
 
+                const addressComponents = extractAddressComponents(result.formatted_address);
                 setSelectedLocation({
                     lat: position.lat(),
                     lng: position.lng(),
                     address: result.formatted_address,
-                    placeId: result.place_id
+                    placeId: result.place_id,
+                    ...addressComponents
                 });
             } else {
                 if (status === 'ZERO_RESULTS') {
@@ -488,20 +508,37 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
 
                 {selectedLocation && (
                     <div className={styles.locationInfo}>
-                        <h4>Ubicación seleccionada:</h4>
-                        <p>{selectedLocation.address}</p>
-                        <p>Coordenadas: {selectedLocation.lat}, {selectedLocation.lng}</p>
+                        <div className={styles.locationDetails}>
+                            <div className={styles.locationDetailsTop}>
+                            {selectedLocation.pais && (
+                                <Dato
+                                    label="País"
+                                    value={selectedLocation.pais}
+                                />
+                            )}
+                            {selectedLocation.ciudad && (
+                                <Dato
+                                    label="Ciudad"
+                                    value={selectedLocation.ciudad}
+                                />
+                            )}
+                            
+                            </div>
+                            
+                            <Dato
+                                label="Dirección"
+                                value={selectedLocation.direccion || selectedLocation.address}
+                            />
+                        </div>
                     </div>
                 )}
-                
+
                 {!selectedLocation && initialLocation && (
                     <div className={styles.locationInfo}>
-                        <h4>📍 Cargando ubicación del cliente...</h4>
-                        <p>Obteniendo dirección desde las coordenadas</p>
-                        <p>Coordenadas: {initialLocation}</p>
+                        <h4>📍 Cargando ubicación...</h4>
                     </div>
                 )}
-                
+
                 {!selectedLocation && !initialLocation && initialLocationSet && (
                     <div className={styles.locationInfo}>
                         <h4>📍 Ubicación actual:</h4>

@@ -228,6 +228,7 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
           value={dataMov.name}
           placeholder='Nombre del Producto'
           onChange={(e) => handleChange('name', e.target.value)}
+          icon='box'
         />
 
         <InputNormal
@@ -235,13 +236,15 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
           value={dataMov.description}
           placeholder='Descripción'
           onChange={(e) => handleChange('description', e.target.value)}
+          icon='text'
         />
 
-            <InputNormal
-              tipo="number"
+        <InputNormal
+          tipo="number"
           value={dataMov.quantity}
           placeholder='Cantidad'
           onChange={(e) => handleChange('quantity', e.target.value)}
+          icon='calculator'
         />
         <div className={styles.content} style={{ padding: '10px 15px' }}>
           <Select
@@ -250,9 +253,10 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
             options={typeMeasures}
             placeholder={hasMovements ? 'Tipo de medida (no editable - tiene movimientos)' : 'Tipo de medida'}
             disabled={loadingTypeMeasures || (tipo === 'editar' && hasMovements)}
+            icon='ruler'
           />
           {tipo === 'editar' && hasMovements && (
-            <div style={{ 
+            <div style={{
               color: '#dc3545',
               fontSize: '12px',
               textAlign: 'center',
@@ -270,6 +274,7 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
             options={categories}
             placeholder='Categoría'
             disabled={loadingCategories}
+            icon='category'
           />
 
           <Boton
@@ -279,8 +284,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
             style={{ minWidth: '80px' }}
           />
 
-          </div>
-        
+        </div>
+
         <Boton
           className='btn-original'
           label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar producto'}

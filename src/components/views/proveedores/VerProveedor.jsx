@@ -155,10 +155,11 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                 <p className={styles.subTitle}>INFORMACIÓN PERSONAL</p>
                 <div className={styles.content}>
                     <Dato label="Celular" value={usuario?.phone || 'N/A'} />
+                    <Dato label="Descripción" value={usuario?.description || 'Sin descripción'} />
                 </div>
                 <p className={styles.subTitle}>UBICACIÓN</p>
                 <div className={styles.content}>
-                    <ItemLine icon="map-pin" title="Dirección" onClick={handleOpenMap} arrow={true} />
+                    <ItemLine icon="map-pin" title="Ubicación" onClick={handleOpenMap} arrow={true} />
                 </div>
                 <p className={styles.subTitle}>PEDIDOS</p>
                 <div className={styles.content}>

@@ -90,6 +90,7 @@ function EditarAgregarCategoria({ isOpen, setIsOpen, data = '', tipo, onCategori
           value={dataMov.name}
           placeholder='Nombre de la categoría'
           onChange={(e) => handleChange('name', e.target.value)}
+          icon='category'
         />
 
         <Boton

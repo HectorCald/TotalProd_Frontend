@@ -151,7 +151,6 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             const categoriaToUse = categoriaOverride !== undefined ? categoriaOverride : categoriaFiltro;
             const ordenamientoToUse = ordenamientoOverride !== undefined ? ordenamientoOverride : ordenamiento;
 
-            console.log('fetchProducts - categoriaOverride:', categoriaOverride, 'categoriaToUse:', categoriaToUse, 'searchQuery:', searchQuery);
 
             const response = await productsAcopioService.getAll(page, 20, searchQuery, categoriaToUse, ordenamientoToUse);
             if (response.success && response.data) {
@@ -349,7 +348,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='leaf' />}
+            {loading && <LoadingSpinner iconName='box' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Almacen</h1>

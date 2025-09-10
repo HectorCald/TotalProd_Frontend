@@ -15,6 +15,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
         name: '',
         phone: '',
         direccion: '',
+        description: '',
         coordenadas: null
     });
 
@@ -46,6 +47,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 name: usuario.name || '',
                 phone: usuario.phone || '',
                 direccion: usuario.direccion || '',
+                description: usuario.description || '',
                 coordenadas: coordenadasObj
             });
         } else {
@@ -53,6 +55,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 name: '',
                 phone: '',
                 direccion: '',
+                description: '',
                 coordenadas: null
             });
         }
@@ -75,6 +78,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             name: dataEdit.name,
             phone: dataEdit.phone,
             direccion: dataEdit.direccion,
+            description: dataEdit.description,
             location: dataEdit.coordenadas ? `(${dataEdit.coordenadas.lng},${dataEdit.coordenadas.lat})` : null
         };
         setLoading(true);
@@ -180,6 +184,14 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                     value={dataEdit.phone}
                     placeholder='Celular'
                     onChange={(e) => setDataEdit({ ...dataEdit, phone: e.target.value })}
+                    disabled={tipo === 'ver'}
+                />
+                <InputNormal
+                    tipo="text"
+                    icon="text"
+                    value={dataEdit.description}
+                    placeholder='Descripción (opcional)'
+                    onChange={(e) => setDataEdit({ ...dataEdit, description: e.target.value })}
                     disabled={tipo === 'ver'}
                 />
                 <p className={styles.subTitle}>UBICACIÓN</p>
