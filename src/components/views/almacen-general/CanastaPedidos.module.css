@@ -1,0 +1,339 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    height: calc(100vh - 50px);
+    padding: 15px;
+    padding-top:0;
+    box-sizing: border-box;
+    gap: 10px;
+    overflow-y: auto;
+}
+
+.title {
+    font-size: 25px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+.subTitle {
+    font-size: 13px;
+    font-weight: 400;
+    color: gray;
+    line-height: 1.2;
+}
+.content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.productosList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    overflow-y: auto;
+    width: 100%;
+    border-radius: 10px;
+    background:none;
+}
+
+
+.productoInfoContent {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.productoItem {
+    background: none;
+    padding:10px 5px;
+    width: 100%;
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid var(--quinary-color);
+}
+
+.productoItem.eliminando {
+    opacity: 0;
+    transform: scale(0.8);
+    max-height: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+.productoIcon {
+    font-size: 20px;
+    color: var(--primary-color) !important;
+    background-color: #28b49847;
+    border-radius: 8px;
+    padding: 2px;
+    width: 40px;
+    height: 40px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.productoNombre {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--white-color);
+    margin: 0 0 4px 0;
+    width: 100%;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.descripcion {
+    font-size: 13px;
+    font-weight: 400;
+    color: gray;
+    margin: 0;
+    width: 100%;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.productoControles {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: nowrap;
+    width: 100%;
+}
+
+.cantidadControl {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tertiary-color);
+    overflow: hidden;
+    max-width: 140px;
+    border: 1px solid var(--quinary-color);
+    border-radius: 19px;
+    padding: 2px;
+}
+.medidaControl {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tertiary-color);
+    padding: 0 10px;
+    border-radius: 8px;
+    max-width: 180px;
+    width: 100%;
+    border: 1px solid var(--quinary-color);
+}
+
+.btnCantidad {
+    background: #28b574;
+    border: none;
+    color: white;
+    min-width: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-radius: 50%;
+}
+
+.btnCantidad:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.cantidad {
+    padding: 0 8px;
+    font-weight: 600;
+    color: var(--white-color);
+    text-align: center;
+    min-width: 50px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+.cantidad input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: inherit;
+    font-weight: inherit;
+    font-size: inherit;
+    text-align: center;
+    width: 100%;
+    min-width: 30px;
+}
+
+.cantidad input:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.cantidad input::-webkit-outer-spin-button,
+.cantidad input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cantidad input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.btnEliminar {
+    background:none;
+    border: none;
+    color: gray;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    .btnEliminarIcon {
+        font-size: 20px !important;
+    }
+}
+
+.buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 7px;
+    width: 100%;
+    margin-top: auto;
+}
+
+.canastaVacia {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.iconoVacio {
+    font-size: 64px !important;
+    color: gray !important;
+    margin-bottom: 16px;
+}
+
+.canastaVacia p {
+    font-size: 18px;
+    color: gray;
+    margin: 0 0 8px 0;
+    font-weight: 500 !important;
+}
+
+.subtexto {
+    font-size: 14px !important;
+    color: var(--quinary-color) !important;
+}
+
+
+.iconButton {
+    border: none;
+    background: none;
+    display: flex;
+    gap: 10px;
+
+    .icon {
+        color: var(--primary-color) !important;
+        cursor: pointer;
+    }
+    .iconTrash {
+        color: var(--error-color) !important;
+        cursor: pointer;
+    }
+
+}
+
+
+
+
+/* Estilos para modales */
+.modalContent {
+    padding: 20px;
+    padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; 
+    overflow-y: auto;
+    height: 100%;
+    max-height: 90vh;
+}
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    background-color: var(--tertiary-color);
+    border-radius: 10px;
+    padding: 20px;
+    gap: 20px;
+}
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+
+
+.resumenPedido {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.itemResumen {
+    background: var(--tertiary-color);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.itemInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.itemNombre {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.itemDetalle {
+    font-size: 14px;
+    color: #666;
+    background: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.observacionesGenerales {
+    margin-top: 10px;
+}

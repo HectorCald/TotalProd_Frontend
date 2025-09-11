@@ -7,7 +7,7 @@ import ItemView from '../../common/ItemView';
 import VerCategoria from './VerCategoria';
 import Boton from '../../common/Boton';
 import EditarAgregarCategoria from './EditarAgregarCategoria';
-import categoryAcopioService from '../../../services/categoryAcopioService';
+import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
@@ -72,7 +72,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
     const fetchCategories = async () => {
         try {
             setLoading(true);
-            const response = await categoryAcopioService.getAll();
+            const response = await categoryAlmacenService.getAll();
             if (response.success && response.data) {
                 setCategoriaData(response.data);
                 setHasMorePages(false); // Las categorías no tienen paginación
@@ -166,7 +166,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
             {loading && <LoadingSpinner iconName='tag' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Categorías de Almacén</h1>
+                <h1 className={styles.title}>Categorías</h1>
                 <div className={styles.searchContainer}>
                     <InputSearch
                         placeholder='Buscar categoría'
@@ -177,7 +177,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
                         }}
                     />
                 </div>
-                <div className={styles.content}style={{ height: 'calc(100vh - 235px)' }}>
+                <div className={styles.content} style={{ height: 'calc(100vh - 235px)' }}>
                     {isSearching ? (
                         <div className={styles.searchingData}>
                             <p>Buscando...</p>

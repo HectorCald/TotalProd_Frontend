@@ -10,15 +10,15 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemLine from '../../common/ItemLine';
 import Boton from '../../common/Boton';
-import EditarAgregar from '../almacen-acopio/EditarAgregar';
-import CategoriasAcopio from './CategoriasAcopio';
+import EditarAgregar from './EditarAgregar';
+import CategoriasAlmacen from './CategoriasAlmacen';
 import MovimientoAcopio from './MovimientoAcopio';
 import CanastaPedidos from './CanastaPedidos';
 import InputCantidad from '../../common/InputCantidad';
 import Select from '../../common/Select';
 import InputNormal from '../../common/InputNormal';
-import productsAcopioService from '../../../services/productsAcopioService';
-import categoryAcopioService from '../../../services/categoryAcopioService';
+import productsAlmacenService from '../../../services/productsAlmacenService';
+import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import typeMeasureService from '../../../services/typeMeasureService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
@@ -121,7 +121,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     const fetchCategorias = async () => {
         try {
             setLoadingCategorias(true);
-            const response = await categoryAcopioService.getAll();
+            const response = await categoryAlmacenService.getAll();
             if (response.success && response.data) {
                 const mappedCategorias = response.data.map(cat => ({
                     value: cat.id,
@@ -179,7 +179,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             const ordenamientoToUse = ordenamientoOverride !== undefined ? ordenamientoOverride : ordenamiento;
 
 
-            const response = await productsAcopioService.getAll(page, 20, searchQuery, categoriaToUse, tipoMedidaToUse, ordenamientoToUse);
+            const response = await productsAlmacenService.getAll();
             if (response.success && response.data) {
                 if (reset) {
                     setProductoData(response.data);
@@ -398,7 +398,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Almacen</h1>
-                <p className={styles.subTitle}>Administra tu almacen de Materia Prima</p>
+                <p className={styles.subTitle}>Administra tu almacen de productos</p>
                 <div className={styles.searchContainer}>
                 <InputSearch
                     placeholder='Buscar producto'
@@ -495,7 +495,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             />
 
             {/* Modal de categorías de acopio*/}
-            <CategoriasAcopio
+            <CategoriasAlmacen
                 isOpen={isCategoriasOpen}
                 setIsOpen={setIsCategoriasOpen}
             />

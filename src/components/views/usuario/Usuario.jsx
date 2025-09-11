@@ -82,6 +82,14 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         onClick={handleCodigoPromocional}
                     />
                     <ItemLine
+                        icon='cog'
+                        title='Parametros'
+                    />
+                    <ItemLine
+                        icon='cloud-upload'
+                        title='Importar / Exportar datos'
+                    />
+                    <ItemLine
                         icon='wrench'
                         title='Mejoras sugeridas'
                     />
