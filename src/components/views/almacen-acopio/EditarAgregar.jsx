@@ -9,6 +9,8 @@ import productsAcopioService from '../../../services/productsAcopioService';
 import typeMeasureService from '../../../services/typeMeasureService';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import EditarAgregarCategoria from './EditarAgregarCategoria';
+import EditarAgregarReceta from '../almacen-general/EditarAgregarReceta';
+import Switch from '../../common/Switch';
 import MensajeError from '../../common/MensajeError';
 
 function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated }) {
@@ -27,6 +29,9 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [isCategoriaOpen, setIsCategoriaOpen] = useState(false);
+  const [isRecetaOpen, setIsRecetaOpen] = useState(false);
+  const [hasReceta, setHasReceta] = useState(false);
+  const [recetaGuardada, setRecetaGuardada] = useState(null);
   const [hasMovements, setHasMovements] = useState(false);
   const [loadingMovements, setLoadingMovements] = useState(false);
 
@@ -94,6 +99,22 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
   // Efecto para cargar los datos del producto
   useEffect(() => {
     if (data && tipo === 'editar') {
+      // Cargar receta si existe
+      let recetaData = null;
+      if (data.recetas_acopio && data.recetas_acopio.length > 0) {
+        const receta = data.recetas_acopio[0];
+        recetaData = {
+          descripcion: receta.description || '',
+          productos: receta.recetas_acopio_detalle ? receta.recetas_acopio_detalle.map(detalle => ({
+            producto_acopio_id: detalle.products_acopio?.id || detalle.producto_acopio_id,
+            cantidad: detalle.cantidad
+          })) : []
+        };
+        setHasReceta(true);
+      } else {
+        setHasReceta(false);
+      }
+
       setDataMov({
         name: data.name || '',
         description: data.description || '',
@@ -101,6 +122,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
         type_measure_id: data.type_measure_id || '',
         category_id: data.category_id || ''
       });
+
+      setRecetaGuardada(recetaData);
     } else {
       setDataMov({
         name: '',
@@ -109,6 +132,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
         type_measure_id: '',
         category_id: ''
       });
+      setHasReceta(false);
+      setRecetaGuardada(null);
     }
     setErrorMessage('');
   }, [isOpen, data, tipo]);
@@ -141,6 +166,26 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
     setDataMov({ ...dataMov, [field]: value });
   };
 
+  // Función para manejar el switch de receta
+  const handleRecetaSwitch = (checked) => {
+    setHasReceta(checked);
+    if (!checked) {
+      setRecetaGuardada(null);
+    }
+  };
+
+  // Función para manejar cuando se crea una receta
+  const handleRecetaCreated = (recetaData) => {
+    setRecetaGuardada(recetaData);
+    setIsRecetaOpen(false);
+  };
+
+  // Función para manejar cuando se actualiza una receta
+  const handleRecetaUpdated = (recetaData) => {
+    setRecetaGuardada(recetaData);
+    setIsRecetaOpen(false);
+  };
+
   // Función para enviar los datos
   const handleSubmit = async () => {
     if (!dataMov.name.trim()) {
@@ -149,8 +194,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
       return;
     }
 
-    if (!dataMov.quantity.trim()) {
-      setErrorMessage('La cantidad es obligatoria');
+    if (!dataMov.quantity || dataMov.quantity <= 0) {
+      setErrorMessage('La cantidad es obligatoria y debe ser mayor a 0');
       setTimeout(() => setErrorMessage(''), 3000);
       return;
     }
@@ -169,7 +214,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
         description: dataMov.description,
         quantity: dataMov.quantity,
         type_measure_id: dataMov.type_measure_id,
-        category_id: dataMov.category_id
+        category_id: dataMov.category_id,
+        receta: hasReceta ? recetaGuardada : null // Incluir receta solo si está marcado el switch
       };
 
       if (tipo === 'editar') {
@@ -286,13 +332,45 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
 
         </div>
 
+        {/* Switch para receta */}
+        <div className={styles.content} style={{ padding: '10px 15px' }}>
+          <Switch
+            title="¿Tiene receta?"
+            subtitle="Marca si esta materia prima se produce apartir de otra materia prima"
+            checked={hasReceta}
+            onChange={handleRecetaSwitch}
+            icon="receipt"
+          />
+        </div>
+
+        {/* Botón de receta (solo si está marcado el switch) */}
+        {hasReceta && (
+          <div className={styles.content} style={{ padding: '10px 15px' }}>
+            <Boton
+              className='btn-default'
+              label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
+              style={{ marginTop: 'auto' }}
+              onClick={() => setIsRecetaOpen(true)}
+            />
+            {recetaGuardada && recetaGuardada.productos && recetaGuardada.productos.length > 0 ? (
+              <div style={{ fontSize: '12px', color: '#28a745', fontWeight: '500', marginTop: '5px' }}>
+                ✓ Receta guardada con {recetaGuardada.productos.length} productos
+              </div>
+            ) : (
+              <div style={{ fontSize: '12px', color: '#dc3545', fontWeight: '500', marginTop: '5px' }}>
+                ⚠ Debe crear una receta con al menos un producto
+              </div>
+            )}
+          </div>
+        )}
+
         <Boton
           className='btn-original'
           label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar producto'}
           style={{ marginTop: 'auto' }}
           onClick={handleSubmit}
           loading={loading}
-          disabled={!dataMov.name.trim() || !dataMov.quantity.trim() || !dataMov.type_measure_id}
+          disabled={!dataMov.name.trim() || !dataMov.quantity || dataMov.quantity <= 0 || !dataMov.type_measure_id || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
         />
       </div>
 
@@ -302,6 +380,17 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
         setIsOpen={setIsCategoriaOpen}
         tipo='agregar'
         onCategoriaCreated={handleCategoriaCreated}
+      />
+
+      {/* Modal de receta */}
+      <EditarAgregarReceta
+        isOpen={isRecetaOpen}
+        setIsOpen={setIsRecetaOpen}
+        productoAlmacenId={data?.id || null}
+        recetaData={recetaGuardada}
+        onRecetaCreated={handleRecetaCreated}
+        onRecetaUpdated={handleRecetaUpdated}
+        tipoProducto="acopio"
       />
     </ViewModal>
   );

@@ -280,7 +280,7 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
         title={tipo === 'editar' ? 'Editar producto' : 'Nuevo producto'}
         onBack={() => setIsOpen(false)}
       />
-      <div className={styles.modalContent}>
+      <div className={styles.container}>
         <MensajeError mensaje={errorMessage} />
         <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
 
@@ -374,7 +374,6 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
           )}
         </div>
         
-        <div>
           <Boton
             className='btn-original'
             label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar producto'}
@@ -383,7 +382,6 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
             loading={loading}
             disabled={!dataMov.name.trim() || !dataMov.stock || dataMov.stock.toString().trim() === '' || !recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0}
           />
-        </div>
 
       </div>
 

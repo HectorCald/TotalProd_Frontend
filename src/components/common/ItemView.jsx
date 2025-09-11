@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaData, badge }) => {  
+const ItemView = ({ title, description, icon, onClick, arrow, badge, flot1, flot2 }) => {  
   // Función para generar iniciales del título
   const generateInitials = (title) => {
     if (!title) return '';
@@ -110,23 +110,6 @@ const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaDa
       <div className={styles.itemViewContent}>
         <h1>{title}</h1>
         {description ? <p>{description}</p> : null}
-
-        {/* Inputs dinámicos según la longitud de entradaData */}
-        {entrada && entradaData?.length > 0 && (
-          <div className={styles.inputsEntrada}>
-            {entradaData.map((item, i) => (
-              <div key={i} className={styles.inputWithLabel}>
-                <p>{item.name}</p>
-                <input
-                  type="number"
-                  inputMode= 'numeric'
-                  value={item.value}
-                  onChange={(e) => console.log(item.name, e.target.value)}
-                />
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {arrow && (
@@ -139,6 +122,11 @@ const ItemView = ({ title, description, icon, onClick, arrow, entrada, entradaDa
             {badge}
           </div>
         )}
+        <div className={styles.flot}>
+          {flot1 ? <p className={styles.flot1}>{flot1}</p> : ''}
+          {flot2 ? <p className={styles.flot2}>{flot2}</p> : ''}
+        </div>
+        
     </div>
   );
 };

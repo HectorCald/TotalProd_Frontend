@@ -12,6 +12,7 @@ import movimientosAcopioService from '../../../services/movimientosAcopioService
 import MensajeError from '../../common/MensajeError';
 import EditarAgregar from '../proveedores/EditarAgregar';
 import EditarAgregarCliente from '../clientes/EditarAgregar';
+import Switch from '../../common/Switch';
 
 function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreated }) {
   const [dataMov, setDataMov] = useState({
@@ -31,6 +32,11 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   const [clientesError, setClientesError] = useState('');
   const [isProveedorOpen, setIsProveedorOpen] = useState(false);
   const [isClienteOpen, setIsClienteOpen] = useState(false);
+  
+  // Estados para el Switch de materia prima
+  const [restarMateriaPrima, setRestarMateriaPrima] = useState(true);
+  const [tieneReceta, setTieneReceta] = useState(false);
+  const [recetaData, setRecetaData] = useState(null);
 
   // Efecto para cargar los proveedores (solo para entradas)
   useEffect(() => {
@@ -100,6 +106,15 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
     }
   }, [isOpen, tipo]);
 
+  // Efecto para verificar si el producto tiene receta
+  useEffect(() => {
+    if (isOpen && producto) {
+      const tieneReceta = producto.recetas_acopio && producto.recetas_acopio.length > 0;
+      setTieneReceta(tieneReceta);
+      setRecetaData(tieneReceta ? producto.recetas_acopio[0] : null);
+    }
+  }, [isOpen, producto]);
+
   // Efecto para resetear el formulario
   useEffect(() => {
     if (isOpen) {
@@ -112,6 +127,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
       setErrorMessage('');
       setProveedoresError('');
       setClientesError('');
+      setRestarMateriaPrima(true); // Resetear switch a true por defecto
     }
   }, [isOpen]);
 
@@ -152,11 +168,12 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
 
   // Función para enviar los datos
   const handleSubmit = async () => {
-    if (!dataMov.quantity.trim()) {
-      setErrorMessage('La cantidad es obligatoria');
+    if (!dataMov.quantity || dataMov.quantity <= 0) {
+      setErrorMessage('La cantidad es obligatoria y debe ser mayor a 0');
       setTimeout(() => setErrorMessage(''), 3000);
       return;
     }
+
 
     setLoading(true);
     try {
@@ -166,16 +183,18 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         observations: dataMov.observations.trim() || null,
         proveedor_id: tipo === 'entrada' ? (dataMov.proveedor_id || null) : null,
         cliente_id: tipo === 'salida' ? (dataMov.cliente_id || null) : null,
-        quantity: dataMov.quantity.trim()
+        quantity: dataMov.quantity.toString(),
+        // Agregar flag para restar materia prima
+        restar_materia_prima: tipo === 'entrada' && restarMateriaPrima && tieneReceta
       };
-
 
       // Crear el movimiento
       const response = await movimientosAcopioService.create(movimientoData);
 
       if (response.success) {
         if (onMovimientoCreated) {
-          onMovimientoCreated(response.data);
+          // Pasar si tiene receta para determinar si recargar todos los productos
+          onMovimientoCreated(response.data, tieneReceta && restarMateriaPrima);
         }
         setIsOpen(false);
       } else {
@@ -229,6 +248,8 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           onChange={(e) => handleChange('observations', e.target.value)}
           icon='comment'
         />
+
+        
 
         {/* Select de proveedor para entradas */}
         {tipo === 'entrada' && (
@@ -295,6 +316,18 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
             )}
           </div>
         )}
+        {/* Switch para restar materia prima (solo para entradas y si tiene receta) */}
+        {tipo === 'entrada' && tieneReceta && (
+          <div>
+            <Switch
+              title="Restar materia prima"
+              subtitle="Restar automáticamente los ingredientes de la receta del stock"
+              checked={restarMateriaPrima}
+              onChange={setRestarMateriaPrima}
+              icon="minus-circle"
+            />
+          </div>
+        )}
 
         <Boton
           className='btn-original'
@@ -302,7 +335,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           style={{ marginTop: 'auto' }}
           onClick={handleSubmit}
           loading={loading}
-          disabled={!dataMov.quantity.trim()}
+          disabled={!dataMov.quantity || dataMov.quantity <= 0}
         />
       </div>
 

@@ -19,7 +19,6 @@ import Select from '../../common/Select';
 import InputNormal from '../../common/InputNormal';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
-import typeMeasureService from '../../../services/typeMeasureService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 
@@ -54,8 +53,6 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     const [productoData, setProductoData] = useState([]);
     const [categorias, setCategorias] = useState([]);
     const [loadingCategorias, setLoadingCategorias] = useState(false);
-    const [tiposMedida, setTiposMedida] = useState([]);
-    const [loadingTiposMedida, setLoadingTiposMedida] = useState(false);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -78,14 +75,12 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
 
     // Estados para filtros y modales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
-    const [isOpenTipoMedida, setOpenTipoMedida] = useState(false);
     const [isOpenItem, setOpenItem] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [selectedMedidas, setSelectedMedidas] = useState('');
-    
-    // Estados para filtros de categoría, tipo de medida y ordenamiento
+
+    // Estados para filtros de categoría y ordenamiento
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
-    const [tipoMedidaFiltro, setTipoMedidaFiltro] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
 
     // Estados para canasta de pedidos
@@ -138,30 +133,9 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
-    // Función para cargar los tipos de medida
-    const fetchTiposMedida = async () => {
-        try {
-            setLoadingTiposMedida(true);
-            const response = await typeMeasureService.getAll();
-            if (response.success && response.data) {
-                const mappedTiposMedida = response.data.map(tipo => ({
-                    value: tipo.id,
-                    label: tipo.name,
-                    id: tipo.id,
-                    name: tipo.name,
-                    code: tipo.code
-                }));
-                setTiposMedida(mappedTiposMedida);
-            }
-        } catch (error) {
-            console.error('Error cargando tipos de medida:', error);
-        } finally {
-            setLoadingTiposMedida(false);
-        }
-    };
 
     // Función para obtener los productos
-    const fetchProducts = async (page = 1, reset = true, isSearch = false, categoriaOverride = null, tipoMedidaOverride = null, ordenamientoOverride = null) => {
+    const fetchProducts = async (page = 1, reset = true, isSearch = false, categoriaOverride = null, ordenamientoOverride = null, searchQueryOverride = null) => {
         try {
             if (reset) {
                 if (isSearch) {
@@ -175,16 +149,59 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
 
             // Usar override si se proporciona, sino usar el estado
             const categoriaToUse = categoriaOverride !== undefined ? categoriaOverride : categoriaFiltro;
-            const tipoMedidaToUse = tipoMedidaOverride !== undefined ? tipoMedidaOverride : tipoMedidaFiltro;
             const ordenamientoToUse = ordenamientoOverride !== undefined ? ordenamientoOverride : ordenamiento;
-
+            const searchQueryToUse = searchQueryOverride !== undefined ? searchQueryOverride : searchQuery;
 
             const response = await productsAlmacenService.getAll();
             if (response.success && response.data) {
+                let productosFiltrados = response.data;
+
+                // Aplicar búsqueda por texto
+                if (searchQueryToUse && searchQueryToUse.trim() !== '') {
+                    const query = searchQueryToUse.toLowerCase().trim();
+                    productosFiltrados = productosFiltrados.filter(producto => 
+                        (producto.name && producto.name.toLowerCase().includes(query)) ||
+                        (producto.description && producto.description.toLowerCase().includes(query)) ||
+                        (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(query)) ||
+                        (producto.category_almacen && producto.category_almacen.name && producto.category_almacen.name.toLowerCase().includes(query))
+                    );
+                }
+
+                // Aplicar filtro de categoría
+                if (categoriaToUse !== null) {
+                    if (categoriaToUse === '') {
+                        // Productos sin categoría
+                        productosFiltrados = productosFiltrados.filter(producto => !producto.category_almacen);
+                    } else {
+                        // Productos con categoría específica
+                        productosFiltrados = productosFiltrados.filter(producto => 
+                            producto.category_almacen && producto.category_almacen.id === categoriaToUse
+                        );
+                    }
+                }
+
+                // Aplicar ordenamiento
+                if (ordenamientoToUse) {
+                    productosFiltrados.sort((a, b) => {
+                        switch (ordenamientoToUse) {
+                            case 'nombre_asc':
+                                return (a.name || '').localeCompare(b.name || '');
+                            case 'nombre_desc':
+                                return (b.name || '').localeCompare(a.name || '');
+                            case 'stock_asc':
+                                return (a.stock || 0) - (b.stock || 0);
+                            case 'stock_desc':
+                                return (b.stock || 0) - (a.stock || 0);
+                            default:
+                                return 0;
+                        }
+                    });
+                }
+
                 if (reset) {
-                    setProductoData(response.data);
+                    setProductoData(productosFiltrados);
                 } else {
-                    setProductoData(prev => [...prev, ...response.data]);
+                    setProductoData(prev => [...prev, ...productosFiltrados]);
                 }
 
                 setCurrentPage(page);
@@ -207,7 +224,6 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         if (isOpen) {
             // Asegurar que el modal esté cerrado al abrir el componente
             fetchCategorias();
-            fetchTiposMedida();
             fetchProducts();
         }
     }, [isOpen]);
@@ -225,7 +241,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         setSearchQuery(query);
         setCurrentPage(1);
         setHasMorePages(true);
-        fetchProducts(1, true, true, categoriaFiltro, tipoMedidaFiltro); // isSearch = true
+        fetchProducts(1, true, true, categoriaFiltro, ordenamiento, query); // isSearch = true
     };
 
     // Función para manejar filtro de categoría
@@ -233,15 +249,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         setCategoriaFiltro(categoriaId);
         setCurrentPage(1);
         setHasMorePages(true);
-        fetchProducts(1, true, false, categoriaId, tipoMedidaFiltro);
-    };
-
-    // Función para manejar filtro de tipo de medida
-    const handleTipoMedidaFilter = (tipoMedidaId) => {
-        setTipoMedidaFiltro(tipoMedidaId);
-        setCurrentPage(1);
-        setHasMorePages(true);
-        fetchProducts(1, true, false, categoriaFiltro, tipoMedidaId);
+        fetchProducts(1, true, false, categoriaId, ordenamiento, searchQuery);
     };
 
     // Función para manejar ordenamiento
@@ -249,7 +257,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         setOrdenamiento(orden);
         setCurrentPage(1);
         setHasMorePages(true);
-        fetchProducts(1, true, false, categoriaFiltro, tipoMedidaFiltro, orden);
+        fetchProducts(1, true, false, categoriaFiltro, orden, searchQuery);
     };
 
 
@@ -263,7 +271,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     // Si está vacío, cargar todos los productos
                     setCurrentPage(1);
                     setHasMorePages(true);
-                    fetchProducts(1, true, false, categoriaFiltro, tipoMedidaFiltro);
+                    fetchProducts(1, true, false, categoriaFiltro, ordenamiento, '');
                 }
             }, 500); // 500ms de delay para evitar muchas peticiones
             return () => clearTimeout(timeoutId);
@@ -303,11 +311,11 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
 
     // Función para manejar cuando se crea un movimiento
     const handleMovimientoCreated = (movimiento) => {
-        
+
         // Actualizar la cantidad del producto en la lista
         if (movimiento && movimiento.product) {
             setProductoData(prev => prev.map(producto =>
-                producto.id === movimiento.product.id 
+                producto.id === movimiento.product.id
                     ? { ...producto, quantity: movimiento.product.quantity }
                     : producto
             ));
@@ -322,11 +330,11 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     // Función para manejar la canasta de pedidos
     const handleAgregarACanasta = (producto) => {
         const productoExistente = productosCanasta.find(p => p.id === producto.id);
-        
+
         if (productoExistente) {
             // Si ya existe, aumentar la cantidad
-            setProductosCanasta(prev => prev.map(p => 
-                p.id === producto.id 
+            setProductosCanasta(prev => prev.map(p =>
+                p.id === producto.id
                     ? { ...p, cantidad: p.cantidad + 1 }
                     : p
             ));
@@ -354,22 +362,14 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         return categoria ? categoria.name : 'Categorías';
     };
 
-    // Función para obtener el nombre del tipo de medida seleccionado
-    const getTipoMedidaNombre = () => {
-        if (tipoMedidaFiltro === null) return 'Medidas';
-        if (tipoMedidaFiltro === '') return 'Sin medida';
-        if (!tipoMedidaFiltro) return 'Medidas';
-        const tipoMedida = tiposMedida.find(t => t.id === tipoMedidaFiltro);
-        return tipoMedida ? tipoMedida.name : 'Medidas';
-    };
 
     // Función para obtener el nombre del ordenamiento
     const getOrdenamientoNombre = () => {
         const ordenamientos = {
             'nombre_asc': 'Nombre A-Z',
             'nombre_desc': 'Nombre Z-A',
-            'cantidad_asc': 'Cantidad ↑',
-            'cantidad_desc': 'Cantidad ↓'
+            'stock_asc': 'Stock ↑',
+            'stock_desc': 'Stock ↓'
         };
         return ordenamientos[ordenamiento] || 'Ordenamiento';
     };
@@ -379,11 +379,6 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             label: getCategoriaNombre(),
             active: categoriaFiltro !== null,
             onClick: () => setOpenCategoria(true)
-        },
-        {
-            label: getTipoMedidaNombre(),
-            active: tipoMedidaFiltro !== null,
-            onClick: () => setOpenTipoMedida(true)
         },
         {
             label: getOrdenamientoNombre(),
@@ -400,14 +395,14 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 <h1 className={styles.title}>Almacen</h1>
                 <p className={styles.subTitle}>Administra tu almacen de productos</p>
                 <div className={styles.searchContainer}>
-                <InputSearch
-                    placeholder='Buscar producto'
-                    type="text"
+                    <InputSearch
+                        placeholder='Buscar producto'
+                        type="text"
                         value={searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value);
                         }}
-                />
+                    />
                 </div>
                 <Filtros options={opciones} />
                 <div className={styles.content} onScroll={handleScroll}>
@@ -419,20 +414,21 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         productoData.map((producto, index) => {
                             const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
                             return (
-                            <ItemView
+                                <ItemView
                                     key={producto.id || index}
                                     title={producto.name || 'Sin nombre'}
                                     description={producto.description || 'Sin descripción'}
                                     icon="box"
-                                arrow={tipo !== 'almacen' ? false : true}
                                     onClick={() => handleRegistro(producto, tipo)}
-                                entrada={tipo === 'pesaje' ? true : false}
-                                entradaData={[
-                                    { name: "Prima", value: 0 },
-                                    { name: "Bruta", value: 0 },
-                                ]}
+                                    entrada={tipo === 'pesaje' ? true : false}
+                                    entradaData={[
+                                        { name: "Prima", value: 0 },
+                                        { name: "Bruta", value: 0 },
+                                    ]}
                                     badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
+                                    flot1={producto.stock + ' Ud.'}
                                 />
+
                             );
                         })
                     ) : (
@@ -472,18 +468,18 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     />
                 </div> : ''}
             {/* Modal de ver registro*/}
-            <VerProducto 
-                isOpen={isOpenVerProducto} 
-                setIsOpen={setIsOpenVerProducto} 
+            <VerProducto
+                isOpen={isOpenVerProducto}
+                setIsOpen={setIsOpenVerProducto}
                 registro={infoPersona}
                 onProductDeleted={handleProductDeleted}
                 onProductUpdated={handleProductUpdated}
             />
 
             {/* Modal de editar*/}
-            <EditarAgregar 
-                isOpen={isAgregarOpen} 
-                setIsOpen={setIsAgregarOpen} 
+            <EditarAgregar
+                isOpen={isAgregarOpen}
+                setIsOpen={setIsAgregarOpen}
                 tipo='agregar'
                 onProductCreated={handleProductCreated}
             />
@@ -500,45 +496,6 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 setIsOpen={setIsCategoriasOpen}
             />
 
-            {/* Modal de tipos de medida*/}
-            <ViewModal isOpen={isOpenTipoMedida} setIsOpen={setOpenTipoMedida}>
-                <HeaderModal
-                    title="Tipos de Medida"
-                    onClose={() => setOpenTipoMedida(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a ese tipo de medida.</p>
-                    
-                    {/* Opción para mostrar todos */}
-                    <ItemLine
-                        title='Todas las medidas'
-                        icon='ruler'
-                        onClick={() => {
-                            handleTipoMedidaFilter(null);
-                            setOpenTipoMedida(false);
-                        }}
-                    />
-                    
-                    {/* Tipos de medida dinámicos */}
-                    {loadingTiposMedida ? (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando tipos de medida...</p>
-                        </div>
-                    ) : (
-                        tiposMedida.map((tipoMedida) => (
-                    <ItemLine
-                                key={tipoMedida.id}
-                                title={tipoMedida.name}
-                        icon='ruler'
-                                onClick={() => {
-                                    handleTipoMedidaFilter(tipoMedida.id);
-                                    setOpenTipoMedida(false);
-                                }}
-                    />
-                        ))
-                    )}
-                </div>
-            </ViewModal>
 
             {/* Modal de movimiento (entrada/salida) */}
             <MovimientoAcopio
@@ -586,7 +543,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a esa categoria.</p>
-                    
+
                     {/* Opción para mostrar todos */}
                     <ItemLine
                         title='Todas las categorías'
@@ -596,7 +553,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                             setOpenCategoria(false);
                         }}
                     />
-                    
+
                     {/* Opción para productos sin categoría */}
                     <ItemLine
                         title='Sin categoría'
@@ -606,7 +563,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                             setOpenCategoria(false);
                         }}
                     />
-                    
+
                     {/* Categorías dinámicas */}
                     {loadingCategorias ? (
                         <div className={styles.loadingMore}>
@@ -614,15 +571,15 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         </div>
                     ) : (
                         categorias.map((categoria) => (
-                    <ItemLine
+                            <ItemLine
                                 key={categoria.id}
                                 title={categoria.name}
-                        icon='tag'
+                                icon='tag'
                                 onClick={() => {
                                     handleCategoriaFilter(categoria.id);
                                     setOpenCategoria(false);
                                 }}
-                    />
+                            />
                         ))
                     )}
                 </div>
@@ -652,18 +609,18 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         }}
                     />
                     <ItemLine
-                        title='Cantidad Menor-Mayor'
+                        title='Stock Menor-Mayor'
                         icon='up-arrow-alt'
                         onClick={() => {
-                            handleOrdenamiento('cantidad_asc');
+                            handleOrdenamiento('stock_asc');
                             setOpenOrden(false);
                         }}
                     />
                     <ItemLine
-                        title='Cantidad Mayor-Menor'
+                        title='Stock Mayor-Menor'
                         icon='down-arrow-alt'
                         onClick={() => {
-                            handleOrdenamiento('cantidad_desc');
+                            handleOrdenamiento('stock_desc');
                             setOpenOrden(false);
                         }}
                     />
@@ -679,7 +636,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     setIsCanastaOpen(false);
                     mostrarNotificacion('success', 'Pedido confirmado correctamente');
                 }}
-            />  
+            />
         </View>
 
     );

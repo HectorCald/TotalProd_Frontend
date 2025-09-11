@@ -83,9 +83,28 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
 
   // Función para agregar un nuevo producto a la receta
   const agregarProducto = () => {
+    // Calcular el límite de productos disponibles (excluyendo el producto actual)
+    const productosDisponibles = productosAcopio.filter(option => option.value !== productoAlmacenId);
+    const limiteMaximo = productosDisponibles.length;
+    
+    // Solo permitir agregar si no hemos alcanzado el límite de productos disponibles
+    if (dataReceta.productos.length >= limiteMaximo) {
+      setErrorMessage(`Solo se pueden agregar hasta ${limiteMaximo} productos (uno de cada tipo disponible)`);
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+
+    // Solo permitir agregar si hay productos disponibles (no duplicados)
+    const opcionesDisponibles = getOpcionesDisponibles(-1);
+    if (opcionesDisponibles.length === 0) {
+      setErrorMessage('No hay más productos disponibles para agregar');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+
     setDataReceta(prev => ({
       ...prev,
-      productos: [...prev.productos, { producto_acopio_id: '', cantidad: '' }]
+      productos: [{ producto_acopio_id: '', cantidad: '' }, ...prev.productos]
     }));
   };
 
@@ -105,6 +124,18 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
         i === index ? { ...producto, [field]: value } : producto
       )
     }));
+  };
+
+  // Función para obtener las opciones disponibles para un select (excluyendo productos ya seleccionados y el producto actual)
+  const getOpcionesDisponibles = (currentIndex) => {
+    const productosSeleccionados = dataReceta.productos
+      .map((p, index) => index !== currentIndex ? p.producto_acopio_id : null)
+      .filter(id => id && id !== '');
+    
+    return productosAcopio.filter(option => 
+      !productosSeleccionados.includes(option.value) && 
+      option.value !== productoAlmacenId // Excluir el producto que se está editando
+    );
   };
 
   // Función para actualizar la descripción
@@ -127,7 +158,16 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
     );
 
     if (productosIncompletos) {
-      setErrorMessage('Todos los productos deben tener una cantidad válida');
+      setErrorMessage('Todos los productos deben tener un producto seleccionado y una cantidad válida');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+
+    // Validar que no haya productos duplicados
+    const productosIds = dataReceta.productos.map(p => p.producto_acopio_id);
+    const productosUnicos = [...new Set(productosIds)];
+    if (productosIds.length !== productosUnicos.length) {
+      setErrorMessage('No se pueden agregar productos duplicados');
       setTimeout(() => setErrorMessage(''), 3000);
       return;
     }
@@ -177,22 +217,32 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
           onChange={(e) => handleDescripcionChange(e.target.value)}
           icon='text'
         />
-
-
-
-        <p className={styles.subTitle}>PRODUCTOS DE LA RECETA</p>
         
         {loadingProductos ? (
           <div className={styles.noData}>
             <p>Cargando productos...</p>
           </div>
         ) : (
-          <Boton
-            className='btn-default'
-            label='+ Agregar Producto'
-            onClick={agregarProducto}
-            style={{ minWidth: '120px' }}
-          />
+          <>
+            <Boton
+              className='btn-default'
+              label='+ Agregar Producto'
+              onClick={agregarProducto}
+              style={{ minWidth: '120px' }}
+              disabled={
+                dataReceta.productos.length >= (productosAcopio.filter(option => option.value !== productoAlmacenId).length) || 
+                getOpcionesDisponibles(-1).length === 0
+              }
+            />
+            {(dataReceta.productos.length >= (productosAcopio.filter(option => option.value !== productoAlmacenId).length) || getOpcionesDisponibles(-1).length === 0) && dataReceta.productos.length > 0 && (
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                {dataReceta.productos.length >= (productosAcopio.filter(option => option.value !== productoAlmacenId).length)
+                  ? `Límite alcanzado: ${productosAcopio.filter(option => option.value !== productoAlmacenId).length} productos máximo`
+                  : 'Todos los productos disponibles ya están en la receta'
+                }
+              </div>
+            )}
+          </>
         )}
 
 
@@ -202,7 +252,7 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
               <Select
                     value={producto.producto_acopio_id}
                     onChange={(value) => actualizarProducto(index, 'producto_acopio_id', value)}
-                    options={productosAcopio}
+                    options={getOpcionesDisponibles(index)}
                     placeholder='Seleccionar producto'
                     disabled={loadingProductos}
                     icon='box'
@@ -243,7 +293,11 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
           style={{ marginTop: 'auto' }}
           onClick={handleSubmit}
           loading={loading}
-          disabled={dataReceta.productos.length === 0 || loadingProductos}
+          disabled={
+            dataReceta.productos.length === 0 || 
+            loadingProductos ||
+            dataReceta.productos.some(p => !p.producto_acopio_id || !p.cantidad || p.cantidad <= 0)
+          }
         />
       </div>
     </ViewModal>

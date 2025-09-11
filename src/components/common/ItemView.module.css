@@ -48,6 +48,7 @@
     padding: 5px;
     flex: 1;
     min-width: 0;
+    position: relative;
     /* Importante para que flex-shrink funcione */
 
     h1 {
@@ -154,4 +155,38 @@
         transform: translateY(-50%) scale(1);
     }
 
+}
+.flot {
+    position: absolute;
+    top: 10px;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    .flot1 {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--info-color);
+        background-color: #1f74fe3a;
+        padding: 3px 6px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    .flot2 {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--warning-color);
+        background-color: #fb87133a;
+        padding: 3px 6px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
 }

@@ -82,7 +82,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     const [isOpenItem, setOpenItem] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [selectedMedidas, setSelectedMedidas] = useState('');
-    
+
     // Estados para filtros de categoría, tipo de medida y ordenamiento
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
     const [tipoMedidaFiltro, setTipoMedidaFiltro] = useState(null);
@@ -302,18 +302,24 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     };
 
     // Función para manejar cuando se crea un movimiento
-    const handleMovimientoCreated = (movimiento) => {
-        
-        // Actualizar la cantidad del producto en la lista
-        if (movimiento && movimiento.product) {
-            setProductoData(prev => prev.map(producto =>
-                producto.id === movimiento.product.id 
-                    ? { ...producto, quantity: movimiento.product.quantity }
-                    : producto
-            ));
-            // Actualizar también el producto que se está viendo
-            setInfoPersona(prev => prev ? { ...prev, quantity: movimiento.product.quantity } : prev);
+    const handleMovimientoCreated = (movimiento, tieneReceta = false) => {
+
+        // Si es entrada con receta, recargar todos los productos para actualizar ingredientes
+        if (tipo === 'entrada' && tieneReceta) {
+            fetchProducts(1, true, false, categoriaFiltro, tipoMedidaFiltro, ordenamiento);
+        } else {
+            // Solo actualizar la cantidad del producto específico
+            if (movimiento && movimiento.product) {
+                setProductoData(prev => prev.map(producto =>
+                    producto.id === movimiento.product.id
+                        ? { ...producto, quantity: movimiento.product.quantity }
+                        : producto
+                ));
+                // Actualizar también el producto que se está viendo
+                setInfoPersona(prev => prev ? { ...prev, quantity: movimiento.product.quantity } : prev);
+            }
         }
+        
         // Cerrar el modal de movimiento
         setIsMovimientoOpen(false);
         mostrarNotificacion('success', `${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente`);
@@ -322,11 +328,11 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     // Función para manejar la canasta de pedidos
     const handleAgregarACanasta = (producto) => {
         const productoExistente = productosCanasta.find(p => p.id === producto.id);
-        
+
         if (productoExistente) {
             // Si ya existe, aumentar la cantidad
-            setProductosCanasta(prev => prev.map(p => 
-                p.id === producto.id 
+            setProductosCanasta(prev => prev.map(p =>
+                p.id === producto.id
                     ? { ...p, cantidad: p.cantidad + 1 }
                     : p
             ));
@@ -400,17 +406,26 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 <h1 className={styles.title}>Almacen</h1>
                 <p className={styles.subTitle}>Administra tu almacen de Materia Prima</p>
                 <div className={styles.searchContainer}>
-                <InputSearch
-                    placeholder='Buscar producto'
-                    type="text"
+                    <InputSearch
+                        placeholder='Buscar producto'
+                        type="text"
                         value={searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value);
                         }}
-                />
+                    />
                 </div>
                 <Filtros options={opciones} />
-                <div className={styles.content} onScroll={handleScroll}>
+                <div
+                    className={styles.content}
+                    onScroll={handleScroll}
+                    style={{
+                        height: tipo === 'entrada' || tipo === 'salida'
+                          ? ''
+                          : 'calc(100vh - 310px)'
+                      }}
+                >
+
                     {isSearching ? (
                         <div className={styles.searchingData}>
                             <p>Buscando...</p>
@@ -419,19 +434,19 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         productoData.map((producto, index) => {
                             const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
                             return (
-                            <ItemView
+                                <ItemView
                                     key={producto.id || index}
                                     title={producto.name || 'Sin nombre'}
                                     description={producto.description || 'Sin descripción'}
                                     icon="box"
-                                arrow={tipo !== 'almacen' ? false : true}
                                     onClick={() => handleRegistro(producto, tipo)}
-                                entrada={tipo === 'pesaje' ? true : false}
-                                entradaData={[
-                                    { name: "Prima", value: 0 },
-                                    { name: "Bruta", value: 0 },
-                                ]}
+                                    entrada={tipo === 'pesaje' ? true : false}
+                                    entradaData={[
+                                        { name: "Prima", value: 0 },
+                                        { name: "Bruta", value: 0 },
+                                    ]}
                                     badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
+                                    flot1={producto.quantity + ' ' + producto.type_measure.code}
                                 />
                             );
                         })
@@ -472,18 +487,18 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     />
                 </div> : ''}
             {/* Modal de ver registro*/}
-            <VerProducto 
-                isOpen={isOpenVerProducto} 
-                setIsOpen={setIsOpenVerProducto} 
+            <VerProducto
+                isOpen={isOpenVerProducto}
+                setIsOpen={setIsOpenVerProducto}
                 registro={infoPersona}
                 onProductDeleted={handleProductDeleted}
                 onProductUpdated={handleProductUpdated}
             />
 
             {/* Modal de editar*/}
-            <EditarAgregar 
-                isOpen={isAgregarOpen} 
-                setIsOpen={setIsAgregarOpen} 
+            <EditarAgregar
+                isOpen={isAgregarOpen}
+                setIsOpen={setIsAgregarOpen}
                 tipo='agregar'
                 onProductCreated={handleProductCreated}
             />
@@ -508,7 +523,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a ese tipo de medida.</p>
-                    
+
                     {/* Opción para mostrar todos */}
                     <ItemLine
                         title='Todas las medidas'
@@ -518,7 +533,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                             setOpenTipoMedida(false);
                         }}
                     />
-                    
+
                     {/* Tipos de medida dinámicos */}
                     {loadingTiposMedida ? (
                         <div className={styles.loadingMore}>
@@ -526,15 +541,15 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         </div>
                     ) : (
                         tiposMedida.map((tipoMedida) => (
-                    <ItemLine
+                            <ItemLine
                                 key={tipoMedida.id}
                                 title={tipoMedida.name}
-                        icon='ruler'
+                                icon='ruler'
                                 onClick={() => {
                                     handleTipoMedidaFilter(tipoMedida.id);
                                     setOpenTipoMedida(false);
                                 }}
-                    />
+                            />
                         ))
                     )}
                 </div>
@@ -586,7 +601,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a esa categoria.</p>
-                    
+
                     {/* Opción para mostrar todos */}
                     <ItemLine
                         title='Todas las categorías'
@@ -596,7 +611,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                             setOpenCategoria(false);
                         }}
                     />
-                    
+
                     {/* Opción para productos sin categoría */}
                     <ItemLine
                         title='Sin categoría'
@@ -606,7 +621,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                             setOpenCategoria(false);
                         }}
                     />
-                    
+
                     {/* Categorías dinámicas */}
                     {loadingCategorias ? (
                         <div className={styles.loadingMore}>
@@ -614,15 +629,15 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         </div>
                     ) : (
                         categorias.map((categoria) => (
-                    <ItemLine
+                            <ItemLine
                                 key={categoria.id}
                                 title={categoria.name}
-                        icon='tag'
+                                icon='tag'
                                 onClick={() => {
                                     handleCategoriaFilter(categoria.id);
                                     setOpenCategoria(false);
                                 }}
-                    />
+                            />
                         ))
                     )}
                 </div>
@@ -679,7 +694,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     setIsCanastaOpen(false);
                     mostrarNotificacion('success', 'Pedido confirmado correctamente');
                 }}
-            />  
+            />
         </View>
 
     );

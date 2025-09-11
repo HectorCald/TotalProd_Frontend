@@ -17,6 +17,7 @@ import Notification from '../../common/Notification';
 function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductDeleted }) {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditarOpen, setIsEditarOpen] = useState(false);
+    const [isRecetaOpen, setIsRecetaOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [movimientos, setMovimientos] = useState([]);
     const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
@@ -160,6 +161,17 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     />
                 </div>
 
+                {/* Botón para ver receta */}
+                {registro?.recetas_acopio && registro.recetas_acopio.length > 0 && (
+                    <div className={styles.content} style={{ padding: '10px 15px' }}>
+                        <Boton
+                            className='btn-default'
+                            label='Ver Receta'
+                            onClick={() => setIsRecetaOpen(true)}
+                        />
+                    </div>
+                )}
+
                 <p className={styles.subTitle}>
                     ÚLTIMOS MOVIMIENTOS 
                     {movimientos.length > 0 && (
@@ -285,6 +297,40 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 tipo='editar'
                 onProductUpdated={onProductUpdated}
             />
+            {/* Modal de receta */}
+            <ViewModal isOpen={isRecetaOpen} setIsOpen={setIsRecetaOpen}>
+                <HeaderModal
+                    title="Receta del Producto"
+                    onClose={() => setIsRecetaOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    {registro?.recetas_acopio && registro.recetas_acopio.length > 0 && (
+                        <>
+                            <Dato
+                                label="Descripción de la receta"
+                                value={registro.recetas_acopio[0]?.description || 'Sin descripción'}
+                            />
+                            
+                            {registro.recetas_acopio[0]?.recetas_acopio_detalle && registro.recetas_acopio[0].recetas_acopio_detalle.length > 0 && (
+                                <>
+                                    <p className={styles.subTitle}>INGREDIENTES</p>
+                                    <div className={styles.content}>
+                                        {registro.recetas_acopio[0].recetas_acopio_detalle.map((detalle, index) => (
+                                            <div key={detalle.id || index}>
+                                                <Dato
+                                                    label={detalle.products_acopio?.name || 'Producto desconocido'}
+                                                    value={`${detalle.cantidad} ${detalle.products_acopio?.type_measure?.code || ''}`}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    )}
+                </div>
+            </ViewModal>
+
             <Notification
                 isVisible={notification.isVisible}
                 type={notification.type}

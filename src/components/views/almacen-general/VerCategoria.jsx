@@ -10,7 +10,7 @@ import Boton from '../../common/Boton';
 import EditarAgregarCategoria from './EditarAgregarCategoria';
 import ItemView from '../../common/ItemView';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
-import productsAcopioService from '../../../services/productsAcopioService';
+import productsAlmacenService from '../../../services/productsAlmacenService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 
@@ -27,9 +27,13 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
         
         setLoadingProducts(true);
         try {
-            const response = await productsAcopioService.getByCategory(categoria.id);
+            const response = await productsAlmacenService.getAll();
             if (response.success && response.data) {
-                setProducts(response.data);
+                // Filtrar productos por categoría
+                const productosFiltrados = response.data.filter(producto => 
+                    producto.category_almacen && producto.category_almacen.id === categoria.id
+                );
+                setProducts(productosFiltrados);
             }
         } catch (error) {
             console.error('Error obteniendo productos de la categoría:', error);
@@ -101,9 +105,10 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                             <ItemView
                                 key={product.id || index}
                                 title={product.name || 'Sin nombre'}
-                                description={`${product.quantity || 0} ${product.type_measure?.code || ''}`}
+                                description={product.description || 'Sin descripción'}
                                 icon="box"
                                 arrow={false}
+                                flot1={`${product.stock || 0} Ud.`}
                             />
                         ))
                     ) : (
