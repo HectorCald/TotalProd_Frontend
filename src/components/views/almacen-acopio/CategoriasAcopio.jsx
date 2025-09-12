@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -27,6 +28,9 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
     const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    
+    // Debounce para búsqueda
+    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
     // Estados para los datos
     const [categoriaData, setCategoriaData] = useState([]);
@@ -96,17 +100,8 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
         }
     };
 
-    useEffect(() => {
-        if (isOpen) {
-            // Asegurar que el modal esté cerrado al abrir el componente
-            setModalConfig(prev => ({ ...prev, isOpen: false }));
-            fetchCategories();
-        }
-    }, [isOpen]);
-
     // Función para manejar búsqueda
     const handleSearch = (query) => {
-        setSearchQuery(query);
         if (query.trim() === '') {
             fetchCategories();
         } else {
@@ -117,19 +112,27 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
         }
     };
 
-    // Debounce para búsqueda en tiempo real
+    // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
-            const timeoutId = setTimeout(() => {
-                if (searchQuery !== '') {
-                    handleSearch(searchQuery);
-                } else {
-                    fetchCategories();
-                }
-            }, 500); // 500ms de delay para evitar muchas peticiones
-            return () => clearTimeout(timeoutId);
+            setSearchQuery('');
         }
-    }, [searchQuery, isOpen]);
+    }, [isOpen]);
+
+    // Efecto único para cargar datos y búsqueda
+    useEffect(() => {
+        if (isOpen) {
+            // Asegurar que el modal esté cerrado al abrir el componente
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
+            
+            // Si hay búsqueda, buscar; si no, cargar todos
+            if (debouncedSearchQuery) {
+                handleSearch(debouncedSearchQuery);
+            } else {
+                fetchCategories();
+            }
+        }
+    }, [isOpen, debouncedSearchQuery]);
 
     // Función para manejar cuando se crea una nueva categoría
     const handleCategoriaCreated = (newCategoria) => {

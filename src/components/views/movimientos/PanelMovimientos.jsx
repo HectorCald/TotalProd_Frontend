@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -29,6 +30,9 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    
+    // Debounce para búsqueda
+    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
     // Estados para los datos
     const [movimientosData, setMovimientosData] = useState([]);
@@ -115,13 +119,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     };
 
-    useEffect(() => {
-        if (isOpen) {
-            // Asegurar que el modal esté cerrado al abrir el componente
-            fetchMovimientos();
-        }
-    }, [isOpen, tipoMovimiento]);
-
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -154,23 +151,29 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         fetchMovimientos(1, true, false, tipo, null);
     };
 
-
-    // Debounce para búsqueda en tiempo real
+    // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
-            const timeoutId = setTimeout(() => {
-                if (searchQuery !== '') {
-                    handleSearch(searchQuery);
-                } else {
-                    // Si está vacío, cargar todos los movimientos
-                    setCurrentPage(1);
-                    setHasMorePages(true);
-                    fetchMovimientos(1, true, false, null, null);
-                }
-            }, 500); // 500ms de delay para evitar muchas peticiones
-            return () => clearTimeout(timeoutId);
+            setSearchQuery('');
         }
-    }, [searchQuery, isOpen]);
+    }, [isOpen, tipoMovimiento]);
+
+    // Efecto único para cargar datos y búsqueda
+    useEffect(() => {
+        if (isOpen) {
+            console.log('PanelMovimientos - Cargando datos');
+            // Asegurar que el modal esté cerrado al abrir el componente
+            setCurrentPage(1);
+            setHasMorePages(true);
+            
+            // Si hay búsqueda, buscar; si no, cargar todos
+            if (debouncedSearchQuery) {
+                handleSearch(debouncedSearchQuery);
+            } else {
+                fetchMovimientos(1, true, false, filtroTipo, ordenamiento);
+            }
+        }
+    }, [isOpen, tipoMovimiento, debouncedSearchQuery]);
 
     // Función para manejar cuando se anula un movimiento
     const handleMovimientoAnulado = (movimientoId) => {

@@ -16,6 +16,7 @@ import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import { useUser } from '../../../context/UserContext';
 import PlanInfo from './PlanInfo';
+import Precios from './Precios';
 
 
 const Usuario = ({ isOpen, setIsOpen }) => {
@@ -25,6 +26,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const [isOpenApariencia, setIsOpenApariencia] = useState(false);
     const [isOpenPlan, setIsOpenPlan] = useState(false);
     const [isOpenCodigoPromocional, setIsOpenCodigoPromocional] = useState(false);
+    const [isOpenPrecios, setIsOpenPrecios] = useState(false);
     const handleClose = () => {
         setIsOpen(false);
     };
@@ -43,6 +45,9 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     };
     const handleCodigoPromocional = () => {
         setIsOpenCodigoPromocional(true);
+    };
+    const handlePrecios = () => {
+        setIsOpenPrecios(true);
     };
     const handleLogout = () => {
         setIsLogoutOpen(true);
@@ -82,8 +87,9 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         onClick={handleCodigoPromocional}
                     />
                     <ItemLine
-                        icon='cog'
-                        title='Parametros'
+                        icon='dollar'
+                        title='Precios'
+                        onClick={handlePrecios}
                     />
                     <ItemLine
                         icon='cloud-upload'
@@ -116,6 +122,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
             <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña}/>
             <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
             <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
+            <Precios isOpen={isOpenPrecios} setIsOpen={setIsOpenPrecios} />
             {/* Modal de logout*/}
             <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>
                 <HeaderModal

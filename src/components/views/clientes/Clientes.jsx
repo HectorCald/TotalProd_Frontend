@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -14,6 +15,7 @@ import Notification from '../../common/Notification';
 
 
 function Clientes({ isOpen, setIsOpen }) {
+    
     // Estados para los modales
     const [isOpenVerCliente, setIsOpenVerCliente] = useState(false);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
@@ -29,6 +31,9 @@ function Clientes({ isOpen, setIsOpen }) {
     const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    
+    // Debounce para búsqueda
+    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
 
     // Estado para la notificación
@@ -127,14 +132,6 @@ function Clientes({ isOpen, setIsOpen }) {
             setIsSearching(false);
         }
     };
-    useEffect(() => {
-        if (isOpen) {
-            // Asegurar que el modal esté cerrado al abrir el componente
-            setModalConfig(prev => ({ ...prev, isOpen: false }));
-            fetchClients();
-        }
-    }, [isOpen]);
-
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -150,22 +147,31 @@ function Clientes({ isOpen, setIsOpen }) {
         setHasMorePages(true);
         fetchClients(1, true, true); // isSearch = true
     };
-    // Debounce para búsqueda en tiempo real
+
+    // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
-            const timeoutId = setTimeout(() => {
-                if (searchQuery !== '') {
-                    handleSearch(searchQuery);
-                } else {
-                    // Si está vacío, cargar todos los clientes
-                    setCurrentPage(1);
-                    setHasMorePages(true);
-                    fetchClients(1, true);
-                }
-            }, 500); // 500ms de delay para evitar muchas peticiones
-            return () => clearTimeout(timeoutId);
+            setSearchQuery('');
         }
-    }, [searchQuery, isOpen]);
+    }, [isOpen]);
+
+    // Efecto único para cargar datos y búsqueda
+    useEffect(() => {
+        if (isOpen) {
+            console.log('Clientes - Cargando datos');
+            // Asegurar que el modal esté cerrado al abrir el componente
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
+            setCurrentPage(1);
+            setHasMorePages(true);
+            
+            // Si hay búsqueda, buscar; si no, cargar todos
+            if (debouncedSearchQuery) {
+                handleSearch(debouncedSearchQuery);
+            } else {
+                fetchClients(1, true);
+            }
+        }
+    }, [isOpen, debouncedSearchQuery]);
 
 
 

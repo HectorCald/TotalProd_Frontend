@@ -44,7 +44,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const [proveedorSeleccionado, setProveedorSeleccionado] = useState('');
     const [clienteSeleccionado, setClienteSeleccionado] = useState('');
     const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState('');
-    const [restarIngredientes, setRestarIngredientes] = useState(true);
+    const [restarIngredientes, setRestarIngredientes] = useState(() => {
+        const saved = localStorage.getItem('restarIngredientes');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
 
     // Opciones de métodos de pago
     const metodosPago = [
@@ -633,7 +636,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                 title="Restar ingredientes"
                                 subtitle="Restar automáticamente los ingredientes de las recetas del stock"
                                 checked={restarIngredientes}
-                                onChange={setRestarIngredientes}
+                                onChange={(value) => {
+                                    setRestarIngredientes(value);
+                                    localStorage.setItem('restarIngredientes', JSON.stringify(value));
+                                }}
                                 icon="minus-circle"
                             />
                         </div>

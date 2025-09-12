@@ -1,0 +1,21 @@
+.opcion {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--primary-color);
+    background: rgba(40, 180, 152, 0.1);
+    width: 50%;
+}
+
+.icon {
+    font-size: 20px;
+    color: var(--primary-color) !important;
+}
+.label {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--white-color);
+}

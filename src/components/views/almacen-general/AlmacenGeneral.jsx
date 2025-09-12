@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -47,6 +48,9 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
     const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    
+    // Debounce para búsqueda
+    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
     // Estados para los datos
     const [productoData, setProductoData] = useState([]);
@@ -247,14 +251,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
-    useEffect(() => {
-        if (isOpen) {
-            // Asegurar que el modal esté cerrado al abrir el componente
-            fetchCategorias();
-            fetchProducts();
-        }
-    }, [isOpen]);
-
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -287,23 +283,30 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
         fetchProducts(1, true, false, categoriaFiltro, orden, searchQuery);
     };
 
-
-    // Debounce para búsqueda en tiempo real
+    // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
-            const timeoutId = setTimeout(() => {
-                if (searchQuery !== '') {
-                    handleSearch(searchQuery);
-                } else {
-                    // Si está vacío, cargar todos los productos
-                    setCurrentPage(1);
-                    setHasMorePages(true);
-                    fetchProducts(1, true, false, categoriaFiltro, ordenamiento, '');
-                }
-            }, 500); // 500ms de delay para evitar muchas peticiones
-            return () => clearTimeout(timeoutId);
+            setSearchQuery('');
         }
-    }, [searchQuery, isOpen]);
+    }, [isOpen]);
+
+    // Efecto único para cargar datos y búsqueda
+    useEffect(() => {
+        if (isOpen) {
+            console.log('AlmacenGeneral - Cargando datos');
+            // Asegurar que el modal esté cerrado al abrir el componente
+            fetchCategorias();
+            setCurrentPage(1);
+            setHasMorePages(true);
+            
+            // Si hay búsqueda, buscar; si no, cargar todos
+            if (debouncedSearchQuery) {
+                handleSearch(debouncedSearchQuery);
+            } else {
+                fetchProducts(1, true, false, categoriaFiltro, ordenamiento, '');
+            }
+        }
+    }, [isOpen, debouncedSearchQuery]);
 
     // Función para manejar cuando se crea un nuevo producto
     const handleProductCreated = (newProduct) => {

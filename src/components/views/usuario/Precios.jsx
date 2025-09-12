@@ -5,18 +5,18 @@ import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
-import VerCategoria from './VerCategoria';
+import VerPrecio from './VerPrecio';
 import Boton from '../../common/Boton';
-import EditarAgregarCategoria from './EditarAgregarCategoria';
-import categoryAlmacenService from '../../../services/categoryAlmacenService';
+import EditarAgregarPrecio from './EditarAgregarPrecio';
+import pricesTypesService from '../../../services/pricesTypesService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 
-function CategoriasAlmacen({ isOpen, setIsOpen }) {
+function Precios({ isOpen, setIsOpen }) {
     // Estados para los modales
-    const [isOpenVerCategoria, setIsOpenVerCategoria] = useState(false);
-    const [infoCategoria, setInfoCategoria] = useState(null);
+    const [isOpenVerPrecio, setIsOpenVerPrecio] = useState(false);
+    const [infoPrecio, setInfoPrecio] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
 
     // Estados para la carga
@@ -33,7 +33,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
     // Estados para los datos
-    const [categoriaData, setCategoriaData] = useState([]);
+    const [precioData, setPrecioData] = useState([]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -63,30 +63,27 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
         showButton: false
     });
 
-    // Estados para filtros
-    const [filtroActivo, setFiltroActivo] = useState('todos');
-
-    // Función para manejar el click en una categoría
-    const handleCategoria = (categoria) => {
-        setInfoCategoria(categoria);
-        setIsOpenVerCategoria(true);
+    // Función para manejar el click en un precio
+    const handlePrecio = (precio) => {
+        setInfoPrecio(precio);
+        setIsOpenVerPrecio(true);
     };
 
-    // Función para obtener las categorías
-    const fetchCategories = async () => {
+    // Función para obtener los precios
+    const fetchPrecios = async () => {
         try {
             setLoading(true);
-            const response = await categoryAlmacenService.getAll();
+            const response = await pricesTypesService.getAll();
             if (response.success && response.data) {
-                setCategoriaData(response.data);
-                setHasMorePages(false); // Las categorías no tienen paginación
+                setPrecioData(response.data);
+                setHasMorePages(false); // Los precios no tienen paginación
                 // Cerrar modal si estaba abierto y ahora tenemos datos
                 setModalConfig(prev => ({ ...prev, isOpen: false }));
             } else {
-                setCategoriaData([]);
+                setPrecioData([]);
             }
         } catch (error) {
-            console.error('Error obteniendo categorías:', error);
+            console.error('Error obteniendo precios:', error);
             setModalConfig({
                 isOpen: true,
                 type: 'error',
@@ -103,12 +100,12 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
     // Función para manejar búsqueda
     const handleSearch = (query) => {
         if (query.trim() === '') {
-            fetchCategories();
+            fetchPrecios();
         } else {
-            const filtered = categoriaData.filter(categoria =>
-                categoria.name.toLowerCase().includes(query.toLowerCase())
+            const filtered = precioData.filter(precio =>
+                precio.name.toLowerCase().includes(query.toLowerCase())
             );
-            setCategoriaData(filtered);
+            setPrecioData(filtered);
         }
     };
 
@@ -129,50 +126,49 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
             if (debouncedSearchQuery) {
                 handleSearch(debouncedSearchQuery);
             } else {
-                fetchCategories();
+                fetchPrecios();
             }
         }
     }, [isOpen, debouncedSearchQuery]);
 
-    // Función para manejar cuando se crea una nueva categoría
-    const handleCategoriaCreated = (newCategoria) => {
-        // Agregar la nueva categoría a la lista
-        setCategoriaData(prev => [newCategoria, ...prev]);
+    // Función para manejar cuando se crea un nuevo precio
+    const handlePrecioCreated = (newPrecio) => {
+        // Agregar el nuevo precio a la lista
+        setPrecioData(prev => [newPrecio, ...prev]);
         // Cerrar el modal
         setIsAgregarOpen(false);
-        mostrarNotificacion('success', 'Categoría agregada correctamente');
+        mostrarNotificacion('success', 'Tipo de precio agregado correctamente');
     };
 
-    // Función para manejar cuando se elimina una categoría
-    const handleCategoriaDeleted = (deletedId) => {
-        // Remover la categoría eliminada de la lista
-        setCategoriaData(prev => prev.filter(categoria => categoria.id !== deletedId));
-        // Cerrar el modal de ver categoría
-        setIsOpenVerCategoria(false);
-        mostrarNotificacion('success', 'Categoría eliminada correctamente');
+    // Función para manejar cuando se elimina un precio
+    const handlePrecioDeleted = (deletedId) => {
+        // Remover el precio eliminado de la lista
+        setPrecioData(prev => prev.filter(precio => precio.id !== deletedId));
+        // Cerrar el modal de ver precio
+        setIsOpenVerPrecio(false);
+        mostrarNotificacion('success', 'Tipo de precio eliminado correctamente');
     };
 
-    // Función para manejar cuando se actualiza una categoría
-    const handleCategoriaUpdated = (updatedCategoria) => {
-        // Actualizar solo la categoría específica en la lista
-        setCategoriaData(prev => prev.map(categoria =>
-            categoria.id === updatedCategoria.id ? updatedCategoria : categoria
+    // Función para manejar cuando se actualiza un precio
+    const handlePrecioUpdated = (updatedPrecio) => {
+        // Actualizar solo el precio específico en la lista
+        setPrecioData(prev => prev.map(precio =>
+            precio.id === updatedPrecio.id ? updatedPrecio : precio
         ));
-        // Cerrar el modal de ver categoría
-        setIsOpenVerCategoria(false);
-        mostrarNotificacion('success', 'Categoría actualizada correctamente');
+        // Cerrar el modal de ver precio
+        setIsOpenVerPrecio(false);
+        mostrarNotificacion('success', 'Tipo de precio actualizado correctamente');
     };
-
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='tag' />}
+            {loading && <LoadingSpinner iconName='dollar' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Categorías</h1>
+                <h1 className={styles.title}>Tipos de Precios</h1>
                 <div className={styles.searchContainer}>
                     <InputSearch
-                        placeholder='Buscar categoría'
+                        placeholder='Buscar tipo de precio'
                         type="text"
                         value={searchQuery}
                         onChange={(e) => {
@@ -185,19 +181,20 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
                         <div className={styles.searchingData}>
                             <p>Buscando...</p>
                         </div>
-                    ) : categoriaData.length > 0 ? (
-                        categoriaData.map((categoria, index) => (
+                    ) : precioData.length > 0 ? (
+                        precioData.map((precio, index) => (
                             <ItemView
-                                key={categoria.id || index}
-                                title={categoria.name || 'Sin nombre'}
-                                icon="tag"
+                                key={precio.id || index}
+                                title={precio.name || 'Sin nombre'}
+                                description={precio.description || 'Sin descripción'}
+                                icon="dollar"
                                 arrow={true}
-                                onClick={() => handleCategoria(categoria)}
+                                onClick={() => handlePrecio(precio)}
                             />
                         ))
                     ) : (
                         <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron categorías' : 'No hay categorías registradas'}</p>
+                            <p>{searchQuery ? 'No se encontraron tipos de precio' : 'No hay tipos de precio registrados'}</p>
                         </div>
                     )}
                 </div>
@@ -206,26 +203,26 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
             <div className={styles.buttonFooter}>
                 <Boton
                     className='btn-original'
-                    label='Nueva categoría'
+                    label='Nuevo tipo de precio'
                     onClick={() => { setIsAgregarOpen(true); }}
                 />
             </div>
 
-            {/* Modal de ver categoría*/}
-            <VerCategoria 
-                isOpen={isOpenVerCategoria} 
-                setIsOpen={setIsOpenVerCategoria} 
-                categoria={infoCategoria}
-                onCategoriaDeleted={handleCategoriaDeleted}
-                onCategoriaUpdated={handleCategoriaUpdated}
+            {/* Modal de ver precio*/}
+            <VerPrecio 
+                isOpen={isOpenVerPrecio} 
+                setIsOpen={setIsOpenVerPrecio} 
+                precio={infoPrecio}
+                onPrecioDeleted={handlePrecioDeleted}
+                onPrecioUpdated={handlePrecioUpdated}
             />
 
-            {/* Modal de agregar categoría*/}
-            <EditarAgregarCategoria 
+            {/* Modal de agregar precio*/}
+            <EditarAgregarPrecio 
                 isOpen={isAgregarOpen} 
                 setIsOpen={setIsAgregarOpen} 
                 tipo='agregar'
-                onCategoriaCreated={handleCategoriaCreated}
+                onPrecioCreated={handlePrecioCreated}
             />
 
             {/* Modal de Información */}
@@ -248,4 +245,4 @@ function CategoriasAlmacen({ isOpen, setIsOpen }) {
     );
 }
 
-export default CategoriasAlmacen;
+export default Precios;

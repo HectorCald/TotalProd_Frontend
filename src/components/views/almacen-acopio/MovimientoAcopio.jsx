@@ -35,7 +35,10 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   const [isClienteOpen, setIsClienteOpen] = useState(false);
   
   // Estados para el Switch de materia prima
-  const [restarMateriaPrima, setRestarMateriaPrima] = useState(true);
+  const [restarMateriaPrima, setRestarMateriaPrima] = useState(() => {
+    const saved = localStorage.getItem('restarMateriaPrima');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const [tieneReceta, setTieneReceta] = useState(false);
   const [recetaData, setRecetaData] = useState(null);
   
@@ -133,7 +136,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
       setErrorMessage('');
       setProveedoresError('');
       setClientesError('');
-      setRestarMateriaPrima(true); // Resetear switch a true por defecto
+      // No resetear el switch, mantener el valor del localStorage
     }
   }, [isOpen]);
 
@@ -336,7 +339,10 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
               title="Restar materia prima"
               subtitle="Restar automáticamente los ingredientes de la receta del stock"
               checked={restarMateriaPrima}
-              onChange={setRestarMateriaPrima}
+              onChange={(value) => {
+                setRestarMateriaPrima(value);
+                localStorage.setItem('restarMateriaPrima', JSON.stringify(value));
+              }}
               icon="minus-circle"
             />
           </div>

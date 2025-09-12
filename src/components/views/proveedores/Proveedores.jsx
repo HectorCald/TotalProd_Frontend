@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -43,6 +44,9 @@ function Proveedores({ isOpen, setIsOpen }) {
     const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    
+    // Debounce para búsqueda
+    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
 
 
@@ -143,14 +147,6 @@ function Proveedores({ isOpen, setIsOpen }) {
             setIsSearching(false);
         }
     };
-    useEffect(() => {
-        if (isOpen) {
-            // Asegurar que el modal esté cerrado al abrir el componente
-            setModalConfig(prev => ({ ...prev, isOpen: false }));
-            fetchProveedores();
-        }
-    }, [isOpen]);
-
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -166,22 +162,31 @@ function Proveedores({ isOpen, setIsOpen }) {
         setHasMorePages(true);
         fetchProveedores(1, true, true); // isSearch = true
     };
-    // Debounce para búsqueda en tiempo real
+
+    // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
-            const timeoutId = setTimeout(() => {
-                if (searchQuery !== '') {
-                    handleSearch(searchQuery);
-                } else {
-                    // Si está vacío, cargar todos los clientes
-                    setCurrentPage(1);
-                    setHasMorePages(true);
-                    fetchProveedores(1, true);
-                }
-            }, 500); // 500ms de delay para evitar muchas peticiones
-            return () => clearTimeout(timeoutId);
+            setSearchQuery('');
         }
-    }, [searchQuery, isOpen]);
+    }, [isOpen]);
+
+    // Efecto único para cargar datos y búsqueda
+    useEffect(() => {
+        if (isOpen) {
+            console.log('Proveedores - Cargando datos');
+            // Asegurar que el modal esté cerrado al abrir el componente
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
+            setCurrentPage(1);
+            setHasMorePages(true);
+            
+            // Si hay búsqueda, buscar; si no, cargar todos
+            if (debouncedSearchQuery) {
+                handleSearch(debouncedSearchQuery);
+            } else {
+                fetchProveedores(1, true);
+            }
+        }
+    }, [isOpen, debouncedSearchQuery]);
 
     // Función para manejar cuando se crea un nuevo proveedor
     const handleProveedorCreated = (newProveedor) => {
