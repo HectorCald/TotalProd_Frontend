@@ -177,7 +177,7 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     </>
                 )}
 
-                {/* Botón para ver receta */}
+                {/* Botón para ver receta - solo si tiene receta */}
                 {registro?.recetas && registro.recetas.length > 0 && (
                     <div className={styles.content} style={{ padding: '10px 15px' }}>
                         <Boton

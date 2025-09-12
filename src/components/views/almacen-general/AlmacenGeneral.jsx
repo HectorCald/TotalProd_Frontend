@@ -12,8 +12,8 @@ import ItemLine from '../../common/ItemLine';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import CategoriasAlmacen from './CategoriasAlmacen';
-import MovimientoAcopio from './MovimientoAcopio';
 import CanastaPedidos from './CanastaPedidos';
+import CanastaMovimientos from './CanastaMovimientos';
 import InputCantidad from '../../common/InputCantidad';
 import Select from '../../common/Select';
 import InputNormal from '../../common/InputNormal';
@@ -34,7 +34,6 @@ const medidas = [
 function Registros({ isOpen, setIsOpen, tipo = '' }) {
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
-    const [isMovimientoOpen, setIsMovimientoOpen] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
     const [isCategoriasOpen, setIsCategoriasOpen] = useState(false);
@@ -87,6 +86,11 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
     const [productosCanasta, setProductosCanasta] = useState([]);
     const [isCanastaOpen, setIsCanastaOpen] = useState(false);
 
+    // Estados para canasta de movimientos (entradas y salidas separadas)
+    const [productosCanastaEntradas, setProductosCanastaEntradas] = useState([]);
+    const [productosCanastaSalidas, setProductosCanastaSalidas] = useState([]);
+    const [isCanastaMovimientosOpen, setIsCanastaMovimientosOpen] = useState(false);
+
     // Cargar canasta desde localStorage al inicializar
     useEffect(() => {
         const canastaGuardada = localStorage.getItem('canastaPedidos');
@@ -98,6 +102,28 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 localStorage.removeItem('canastaPedidos');
             }
         }
+
+        // Cargar canasta de entradas
+        const canastaEntradasGuardada = localStorage.getItem('canastaEntradas');
+        if (canastaEntradasGuardada) {
+            try {
+                setProductosCanastaEntradas(JSON.parse(canastaEntradasGuardada));
+            } catch (error) {
+                console.error('Error al cargar canasta de entradas desde localStorage:', error);
+                localStorage.removeItem('canastaEntradas');
+            }
+        }
+
+        // Cargar canasta de salidas
+        const canastaSalidasGuardada = localStorage.getItem('canastaSalidas');
+        if (canastaSalidasGuardada) {
+            try {
+                setProductosCanastaSalidas(JSON.parse(canastaSalidasGuardada));
+            } catch (error) {
+                console.error('Error al cargar canasta de salidas desde localStorage:', error);
+                localStorage.removeItem('canastaSalidas');
+            }
+        }
     }, []);
     // Función para manejar el click en un producto
     const handleRegistro = (producto, tipo) => {
@@ -105,10 +131,11 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         if (tipo === 'almacen') {
             setIsOpenVerProducto(true);
         } else if (tipo === 'pedido') {
-            // Agregar producto a la canasta
+            // Agregar producto a la canasta de pedidos
             handleAgregarACanasta(producto);
         } else if (tipo === 'entrada' || tipo === 'salida') {
-            setIsMovimientoOpen(true);
+            // Agregar producto a la canasta de movimientos (entrada o salida)
+            handleAgregarACanastaMovimientos(producto, tipo);
         }
     };
 
@@ -309,23 +336,6 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         mostrarNotificacion('success', 'Producto actualizado correctamente')
     };
 
-    // Función para manejar cuando se crea un movimiento
-    const handleMovimientoCreated = (movimiento) => {
-
-        // Actualizar la cantidad del producto en la lista
-        if (movimiento && movimiento.product) {
-            setProductoData(prev => prev.map(producto =>
-                producto.id === movimiento.product.id
-                    ? { ...producto, quantity: movimiento.product.quantity }
-                    : producto
-            ));
-            // Actualizar también el producto que se está viendo
-            setInfoPersona(prev => prev ? { ...prev, quantity: movimiento.product.quantity } : prev);
-        }
-        // Cerrar el modal de movimiento
-        setIsMovimientoOpen(false);
-        mostrarNotificacion('success', `${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente`);
-    };
 
     // Función para manejar la canasta de pedidos
     const handleAgregarACanasta = (producto) => {
@@ -351,6 +361,59 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
 
     const getCantidadEnCanasta = (productoId) => {
         const producto = productosCanasta.find(p => p.id === productoId);
+        return producto ? producto.cantidad : 0;
+    };
+
+    // Función para manejar la canasta de movimientos (entradas y salidas separadas)
+    const handleAgregarACanastaMovimientos = (producto, tipoMovimiento) => {
+        // Para salidas, validar que el producto tenga stock
+        if (tipoMovimiento === 'salida' && (!producto.stock || producto.stock <= 0)) {
+            mostrarNotificacion('error', 'No se puede agregar el producto porque no tiene stock disponible');
+            return;
+        }
+
+        // Determinar qué canasta usar
+        const esEntrada = tipoMovimiento === 'entrada';
+        const canastaActual = esEntrada ? productosCanastaEntradas : productosCanastaSalidas;
+        const setCanastaActual = esEntrada ? setProductosCanastaEntradas : setProductosCanastaSalidas;
+        const nombreLocalStorage = esEntrada ? 'canastaEntradas' : 'canastaSalidas';
+
+        const productoExistente = canastaActual.find(p => p.id === producto.id);
+
+        // Obtener el primer precio del producto si existe
+        const primerPrecio = producto.price_product && producto.price_product.length > 0 
+            ? producto.price_product[0].valor 
+            : 0;
+
+        if (productoExistente) {
+            // Para salidas, validar que no exceda el stock disponible
+            if (tipoMovimiento === 'salida' && productoExistente.cantidad >= producto.stock) {
+                mostrarNotificacion('error', `No se puede agregar más cantidad. Stock disponible: ${producto.stock}`);
+                return;
+            }
+            
+            // Si ya existe y no excede el stock (para salidas), aumentar la cantidad
+            setCanastaActual(prev => prev.map(p =>
+                p.id === producto.id
+                    ? { ...p, cantidad: p.cantidad + 1 }
+                    : p
+            ));
+        } else {
+            // Si no existe, agregarlo nuevo con el precio del producto
+            setCanastaActual(prev => [...prev, {
+                ...producto,
+                cantidad: 1,
+                precio: primerPrecio
+            }]);
+        }
+
+        // El localStorage se guardará automáticamente en el useEffect de CanastaMovimientos
+    };
+
+    const getCantidadEnCanastaMovimientos = (productoId, tipoMovimiento) => {
+        const esEntrada = tipoMovimiento === 'entrada';
+        const canastaActual = esEntrada ? productosCanastaEntradas : productosCanastaSalidas;
+        const producto = canastaActual.find(p => p.id === productoId);
         return producto ? producto.cantidad : 0;
     };
     // Función para obtener el nombre de la categoría seleccionada
@@ -413,6 +476,9 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     ) : productoData.length > 0 ? (
                         productoData.map((producto, index) => {
                             const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
+                            const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida') 
+                                ? getCantidadEnCanastaMovimientos(producto.id, tipo)
+                                : 0;
                             return (
                                 <ItemView
                                     key={producto.id || index}
@@ -425,7 +491,12 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                                         { name: "Prima", value: 0 },
                                         { name: "Bruta", value: 0 },
                                     ]}
-                                    badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
+                                    badge={
+                                        (tipo === 'pedido' && cantidadEnCanasta > 0) || 
+                                        ((tipo === 'entrada' || tipo === 'salida') && cantidadEnCanastaMovimientos > 0)
+                                            ? (tipo === 'pedido' ? cantidadEnCanasta : cantidadEnCanastaMovimientos)
+                                            : null
+                                    }
                                     flot1={producto.stock + ' Ud.'}
                                 />
 
@@ -467,6 +538,24 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         disabled={productosCanasta.length === 0}
                     />
                 </div> : ''}
+            {tipo === 'entrada' ?
+                <div className={styles.buttonFooter}>
+                    <Boton
+                        className='btn-original'
+                        label={`Canasta (${productosCanastaEntradas.length})`}
+                        onClick={() => setIsCanastaMovimientosOpen(true)}
+                        disabled={productosCanastaEntradas.length === 0}
+                    />
+                </div> : ''}
+            {tipo === 'salida' ?
+                <div className={styles.buttonFooter}>
+                    <Boton
+                        className='btn-original'
+                        label={`Canasta (${productosCanastaSalidas.length})`}
+                        onClick={() => setIsCanastaMovimientosOpen(true)}
+                        disabled={productosCanastaSalidas.length === 0}
+                    />
+                </div> : ''}
             {/* Modal de ver registro*/}
             <VerProducto
                 isOpen={isOpenVerProducto}
@@ -497,14 +586,6 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             />
 
 
-            {/* Modal de movimiento (entrada/salida) */}
-            <MovimientoAcopio
-                isOpen={isMovimientoOpen}
-                setIsOpen={setIsMovimientoOpen}
-                producto={infoPersona}
-                tipo={tipo}
-                onMovimientoCreated={handleMovimientoCreated}
-            />
 
             {/* Modal de categorias*/}
             <ViewModal isOpen={isOpenItem} setIsOpen={setOpenItem}>
@@ -637,6 +718,34 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     mostrarNotificacion('success', 'Pedido confirmado correctamente');
                 }}
             />
+
+            {/* View de canasta de movimientos */}
+            {tipo === 'entrada' && (
+                <CanastaMovimientos
+                    isOpen={isCanastaMovimientosOpen}
+                    setIsOpen={setIsCanastaMovimientosOpen}
+                    productosCanasta={productosCanastaEntradas}
+                    setProductosCanasta={setProductosCanastaEntradas}
+                    tipoMovimiento={tipo}
+                    onCerrarCanasta={() => {
+                        setIsCanastaMovimientosOpen(false);
+                        mostrarNotificacion('success', 'Entradas confirmadas correctamente');
+                    }}
+                />
+            )}
+            {tipo === 'salida' && (
+                <CanastaMovimientos
+                    isOpen={isCanastaMovimientosOpen}
+                    setIsOpen={setIsCanastaMovimientosOpen}
+                    productosCanasta={productosCanastaSalidas}
+                    setProductosCanasta={setProductosCanastaSalidas}
+                    tipoMovimiento={tipo}
+                    onCerrarCanasta={() => {
+                        setIsCanastaMovimientosOpen(false);
+                        mostrarNotificacion('success', 'Salidas confirmadas correctamente');
+                    }}
+                />
+            )}
         </View>
 
     );

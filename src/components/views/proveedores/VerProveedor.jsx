@@ -183,15 +183,7 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                         <ItemView
                             key={movimiento.id || index}
                             title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${movimiento.quantity} ${movimiento.product?.type_measure?.code || ''}`}
-                            description={
-                                <div>
-                                    <div>{movimiento.observations || 'Sin observaciones'}</div>
-                                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                        {new Date(movimiento.date).toLocaleDateString()}
-                                        {movimiento.product?.name && ` • ${movimiento.product.name}`}
-                                    </div>
-                                </div>
-                            }
+                            description={`${movimiento.observations || 'Sin observaciones'}\n${new Date(movimiento.date).toLocaleDateString()}${movimiento.product?.name ? ` • ${movimiento.product.name}` : ''}`}
                             icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
                             arrow={false}
                         />
