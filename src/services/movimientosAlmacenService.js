@@ -1,0 +1,166 @@
+import API_CONFIG from '../config/api';
+
+const API_BASE_URL = API_CONFIG.getBaseURL();
+
+// Función helper para obtener el token de autorización
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  };
+};
+
+class movimientosAlmacenService {
+
+  // Crear un nuevo movimiento de almacén
+  static async create(movimientoData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(movimientoData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al crear el movimiento');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error creando movimiento de almacén:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al crear el movimiento'
+      };
+    }
+  }
+
+  // Obtener todos los movimientos del usuario
+  static async getAll(page = 1, limit = 10, tipo = null, ordenamiento = 'fecha_desc') {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
+      if (tipo) {
+        params.append('tipo', tipo);
+      }
+      if (ordenamiento) {
+        params.append('ordenamiento', ordenamiento);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener los movimientos');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error obteniendo movimientos de almacén:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al obtener los movimientos'
+      };
+    }
+  }
+
+  // Obtener movimientos por tipo (entrada/salida)
+  static async getByType(tipo, page = 1, limit = 10) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/tipo/${tipo}?page=${page}&limit=${limit}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener los movimientos');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error obteniendo movimientos por tipo:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al obtener los movimientos'
+      };
+    }
+  }
+
+  // Obtener un movimiento específico por ID
+  static async getById(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${id}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener el movimiento');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error obteniendo movimiento por ID:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al obtener el movimiento'
+      };
+    }
+  }
+
+  // Anular un movimiento
+  static async anular(movimientoId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${movimientoId}/anular`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en anular:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+  // Eliminar un movimiento
+  static async eliminar(movimientoId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${movimientoId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en eliminar:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
+}
+
+export default movimientosAlmacenService;

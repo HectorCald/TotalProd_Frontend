@@ -13,6 +13,7 @@ import MensajeError from '../../common/MensajeError';
 import EditarAgregar from '../proveedores/EditarAgregar';
 import EditarAgregarCliente from '../clientes/EditarAgregar';
 import Switch from '../../common/Switch';
+import PantallaExito from '../../common/PantallaExito';
 
 function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreated }) {
   const [dataMov, setDataMov] = useState({
@@ -37,6 +38,11 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   const [restarMateriaPrima, setRestarMateriaPrima] = useState(true);
   const [tieneReceta, setTieneReceta] = useState(false);
   const [recetaData, setRecetaData] = useState(null);
+  
+  // Estados para la pantalla de éxito
+  const [isExitoOpen, setIsExitoOpen] = useState(false);
+  const [movimientoCreado, setMovimientoCreado] = useState(null);
+  const [datosParaExito, setDatosParaExito] = useState([]);
 
   // Efecto para cargar los proveedores (solo para entradas)
   useEffect(() => {
@@ -192,11 +198,18 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
       const response = await movimientosAcopioService.create(movimientoData);
 
       if (response.success) {
-        if (onMovimientoCreated) {
-          // Pasar si tiene receta para determinar si recargar todos los productos
-          onMovimientoCreated(response.data, tieneReceta && restarMateriaPrima);
-        }
-        setIsOpen(false);
+        // Guardar datos del movimiento para mostrar en pantalla de éxito
+        setMovimientoCreado(response.data);
+        
+        // Guardar datos del producto para mostrar en la pantalla de éxito
+        setDatosParaExito([{
+          nombre: producto.name,
+          cantidad: `${dataMov.quantity} ${producto.type_measure?.code || 'u'}`,
+          medida: ''
+        }]);
+
+        // Mostrar pantalla de éxito (NO cerrar el modal todavía)
+        setIsExitoOpen(true);
       } else {
         setErrorMessage(response.message || `Error al registrar ${tipo}`);
         setTimeout(() => setErrorMessage(''), 3000);
@@ -221,10 +234,10 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         
         <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
         <div className={styles.content}>
-          <Dato
-            label="Cantidad"
-            value={`${producto?.quantity || 0} ${producto?.type_measure?.code || ''}`}
-          />
+            <Dato
+              label="Cantidad"
+              value={`${parseFloat(producto?.quantity || 0).toFixed(2)} ${producto?.type_measure?.code || ''}`}
+            />
           <Dato
             label="Tipo de medida"
             value={producto?.type_measure?.name || 'No especificado'}
@@ -353,6 +366,32 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         setIsOpen={setIsClienteOpen}
         tipo='agregar'
         onClienteCreated={handleClienteCreated}
+      />
+
+      {/* Pantalla de éxito */}
+      <PantallaExito
+        isOpen={isExitoOpen}
+        setIsOpen={setIsExitoOpen}
+        titulo={`¡${tipo === 'entrada' ? 'Entrada' : 'Salida'} Registrada!`}
+        descripcion={`Tu ${tipo === 'entrada' ? 'entrada' : 'salida'} ha sido registrada correctamente.`}
+        datosPedido={datosParaExito}
+        totalGeneral={null} // No hay total para movimientos individuales
+        onDescargarPDF={() => console.log('Descargar PDF')}
+        onDescargarExcel={() => console.log('Descargar Excel')}
+        onEnviarWhatsapp={() => console.log('Enviar WhatsApp')}
+        onCerrar={() => {
+          // Limpiar datos de éxito
+          setDatosParaExito([]);
+          setMovimientoCreado(null);
+          // Cerrar la pantalla de éxito Y el modal de movimiento
+          setIsExitoOpen(false);
+          setIsOpen(false);
+          
+          // Llamar a onMovimientoCreated cuando se cierre todo
+          if (onMovimientoCreated) {
+            onMovimientoCreated(movimientoCreado, tieneReceta && restarMateriaPrima);
+          }
+        }}
       />
     </ViewModal>
   );

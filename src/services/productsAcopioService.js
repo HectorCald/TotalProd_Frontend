@@ -42,48 +42,6 @@ class productsAcopioService {
     }
   }
 
-  // Obtener un producto por ID
-  static async getById(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/products-acopio/${id}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en getById:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
-  }
-
-  // Obtener productos por categoría
-  static async getByCategory(categoryId) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/products-acopio/category/${categoryId}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al obtener productos de la categoría');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en productsAcopioService.getByCategory:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
-    }
-  }
-
   // Crear un producto
   static async create(productData) {
     try {
@@ -92,32 +50,12 @@ class productsAcopioService {
         headers: getAuthHeaders(),
         body: JSON.stringify(productData),
       });
-      
+
       const data = await response.json();
       return data;
 
     } catch (error) {
       console.error('Error en create:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
-  }
-
-  // Verificar si un producto tiene movimientos
-  static async hasMovements(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/products-acopio/${id}/has-movements`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en hasMovements:', error);
       return {
         success: false,
         error: 'Error de conexión con el servidor'
@@ -132,7 +70,7 @@ class productsAcopioService {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
-      
+
       const data = await response.json();
       return data;
 
@@ -153,12 +91,59 @@ class productsAcopioService {
         headers: getAuthHeaders(),
         body: JSON.stringify(productData),
       });
-      
+
       const data = await response.json();
       return data;
 
     } catch (error) {
       console.error('Error en update:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+
+
+
+
+  // Obtener productos por categoría
+  static async getByCategory(categoryId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products-acopio/category/${categoryId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener productos de la categoría');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error en productsAcopioService.getByCategory:', error);
+      return {
+        success: false,
+        message: error.message || 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+  // Verificar si un producto tiene movimientos
+  static async hasMovements(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products-acopio/${id}/has-movements`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en hasMovements:', error);
       return {
         success: false,
         error: 'Error de conexión con el servidor'

@@ -18,6 +18,7 @@ import pedidosImage from '../assets/pedidos.png';
 
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
 import AlmacenMedioGeneral from '../components/views/almacen-general/AlmacenMedioGeneral';
+import MovimientosMedio from '../components/views/movimientos/MovimientosMedio';
 
 const Home = () => {
   const [activeView, setActiveView] = useState(null);
@@ -53,13 +54,13 @@ const Home = () => {
             </div>
             <p className="subTitle">Atajos</p>
             <div className="atajoAnuncio">
-              <AtajoAnuncio title="Almacen" description="Administra tu almacén de productos terminados, realiza entradas y salidas." image={almacenImage} onClick={() => handleViewOpen('almacenMedioGeneral')} />
+              <AtajoAnuncio title="Almacén General" description="Administra tu almacén de productos terminados, realiza entradas y salidas." image={almacenImage} onClick={() => handleViewOpen('almacenMedioGeneral')} />
               <AtajoAnuncio title="Materia Prima" description="Administra tu materia prima, realiza entradas y salidas." image={acopioImage} onClick={() => handleViewOpen('almacenMedio')} />
             </div>
             <p className="subTitle">Otros</p>
             <div className="atajoAnuncioOtros">
-              <AtajoAnuncio title="Movimientos" description="" image={movimientosImage} onClick={() => handleViewOpen('atajoAnuncio')} />
-              <AtajoAnuncio title="Pedidos" description="" image={pedidosImage} onClick={() => handleViewOpen('atajoAnuncio')} />
+              <AtajoAnuncio title="Movimientos" description="" image={movimientosImage} onClick={() => handleViewOpen('movimientos')} />
+              <AtajoAnuncio title="Pedidos" description="" image={pedidosImage} onClick={() => handleViewOpen('pedidos')} />
             </div>
           </>
         );
@@ -133,6 +134,10 @@ const Home = () => {
       />
       <AlmacenMedioGeneral
         isOpen={activeView === 'almacenMedioGeneral'}
+        setIsOpen={() => handleViewClose()}
+      />
+      <MovimientosMedio
+        isOpen={activeView === 'movimientos'}
         setIsOpen={() => handleViewClose()}
       />
     </div>

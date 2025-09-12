@@ -149,7 +149,7 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     />
                     <Dato
                         label="Cantidad"
-                        value={`${registro?.quantity || 0} ${registro?.type_measure?.code || ''}`}
+                        value={`${parseFloat(registro?.quantity || 0).toFixed(2)} ${registro?.type_measure?.code || ''}`}
                     />
                     <Dato
                         label="Tipo de medida"

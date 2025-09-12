@@ -23,7 +23,7 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
             />
             <div className={styles.modalContent}>
                 <ItemView
-                    title='Salida'
+                    title='Salida o Venta'
                     description='Realizar una salida de productos del almacén'
                     icon='up-arrow-alt'
                     arrow={true}
@@ -37,14 +37,7 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
                     onClick={()=> handleTypeAlmacen('entrada')}
                 />
                 <ItemView
-                    title='Nuevo Pedido'
-                    description='Realizar un nuevo pedido de productos'
-                    icon='cart-add'
-                    arrow={true}
-                    onClick={()=> handleTypeAlmacen('pedido')}
-                />
-                <ItemView
-                    title='Almacen'
+                    title='Productos'
                     description='Ver y gestionar los productos en el almacén'
                     icon='package'
                     arrow={true}

@@ -32,7 +32,7 @@ const medidas = [
     { value: 'libra', label: 'Libras', icon: 'tag' },
 ];
 
-function Registros({ isOpen, setIsOpen, tipo = '' }) {
+function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
     const [isMovimientoOpen, setIsMovimientoOpen] = useState(false);
@@ -312,11 +312,11 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
             if (movimiento && movimiento.product) {
                 setProductoData(prev => prev.map(producto =>
                     producto.id === movimiento.product.id
-                        ? { ...producto, quantity: movimiento.product.quantity }
+                        ? { ...producto, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) }
                         : producto
                 ));
                 // Actualizar también el producto que se está viendo
-                setInfoPersona(prev => prev ? { ...prev, quantity: movimiento.product.quantity } : prev);
+                setInfoPersona(prev => prev ? { ...prev, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) } : prev);
             }
         }
         
@@ -406,14 +406,14 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                 <h1 className={styles.title}>Almacen</h1>
                 <p className={styles.subTitle}>Administra tu almacen de Materia Prima</p>
                 <div className={styles.searchContainer}>
-                    <InputSearch
-                        placeholder='Buscar producto'
-                        type="text"
+                <InputSearch
+                    placeholder='Buscar producto'
+                    type="text"
                         value={searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value);
                         }}
-                    />
+                />
                 </div>
                 <Filtros options={opciones} />
                 <div
@@ -434,19 +434,19 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         productoData.map((producto, index) => {
                             const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
                             return (
-                                <ItemView
+                            <ItemView
                                     key={producto.id || index}
                                     title={producto.name || 'Sin nombre'}
                                     description={producto.description || 'Sin descripción'}
                                     icon="box"
                                     onClick={() => handleRegistro(producto, tipo)}
-                                    entrada={tipo === 'pesaje' ? true : false}
-                                    entradaData={[
-                                        { name: "Prima", value: 0 },
-                                        { name: "Bruta", value: 0 },
-                                    ]}
+                                entrada={tipo === 'pesaje' ? true : false}
+                                entradaData={[
+                                    { name: "Prima", value: 0 },
+                                    { name: "Bruta", value: 0 },
+                                ]}
                                     badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
-                                    flot1={producto.quantity + ' ' + producto.type_measure.code}
+                                    flot1={parseFloat(producto.quantity || 0).toFixed(2) + ' ' + producto.type_measure.code}
                                 />
                             );
                         })
@@ -541,7 +541,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         </div>
                     ) : (
                         tiposMedida.map((tipoMedida) => (
-                            <ItemLine
+                    <ItemLine
                                 key={tipoMedida.id}
                                 title={tipoMedida.name}
                                 icon='ruler'
@@ -629,15 +629,15 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                         </div>
                     ) : (
                         categorias.map((categoria) => (
-                            <ItemLine
+                    <ItemLine
                                 key={categoria.id}
                                 title={categoria.name}
-                                icon='tag'
+                        icon='tag'
                                 onClick={() => {
                                     handleCategoriaFilter(categoria.id);
                                     setOpenCategoria(false);
                                 }}
-                            />
+                    />
                         ))
                     )}
                 </div>
@@ -699,4 +699,4 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
 
     );
 }
-export default Registros;
+export default AlmacenAcopio;

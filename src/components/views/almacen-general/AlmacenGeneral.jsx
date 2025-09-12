@@ -31,7 +31,7 @@ const medidas = [
     { value: 'libra', label: 'Libras', icon: 'tag' },
 ];
 
-function Registros({ isOpen, setIsOpen, tipo = '' }) {
+function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
@@ -334,6 +334,15 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
         // Cerrar el modal de ver producto
         setIsOpenVerProducto(false);
         mostrarNotificacion('success', 'Producto actualizado correctamente')
+    };
+
+    // Función para manejar cuando se actualizan múltiples productos (después de movimientos)
+    const handleProductosUpdated = (productosActualizados) => {
+        // Actualizar cada producto en la lista con su nuevo stock
+        setProductoData(prev => prev.map(producto => {
+            const productoActualizado = productosActualizados.find(p => p.id === producto.id);
+            return productoActualizado ? productoActualizado : producto;
+        }));
     };
 
 
@@ -727,6 +736,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     productosCanasta={productosCanastaEntradas}
                     setProductosCanasta={setProductosCanastaEntradas}
                     tipoMovimiento={tipo}
+                    onProductosUpdated={handleProductosUpdated}
                     onCerrarCanasta={() => {
                         setIsCanastaMovimientosOpen(false);
                         mostrarNotificacion('success', 'Entradas confirmadas correctamente');
@@ -740,6 +750,7 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
                     productosCanasta={productosCanastaSalidas}
                     setProductosCanasta={setProductosCanastaSalidas}
                     tipoMovimiento={tipo}
+                    onProductosUpdated={handleProductosUpdated}
                     onCerrarCanasta={() => {
                         setIsCanastaMovimientosOpen(false);
                         mostrarNotificacion('success', 'Salidas confirmadas correctamente');
@@ -750,4 +761,4 @@ function Registros({ isOpen, setIsOpen, tipo = '' }) {
 
     );
 }
-export default Registros;
+export default AlmacenGeneral;

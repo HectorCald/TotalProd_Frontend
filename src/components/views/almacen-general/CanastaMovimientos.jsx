@@ -13,14 +13,20 @@ import { motion } from 'framer-motion';
 import pricesTypesService from '../../../services/pricesTypesService';
 import proveedorService from '../../../services/proveedorService';
 import clientService from '../../../services/clientService';
+import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import EditarAgregar from '../proveedores/EditarAgregar';
 import EditarAgregarCliente from '../clientes/EditarAgregar';
+import PantallaExito from '../../common/PantallaExito';
+import Switch from '../../common/Switch';
 
-function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta }) {
+function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
+    const [isExitoOpen, setIsExitoOpen] = useState(false);
+    const [movimientoCreado, setMovimientoCreado] = useState(null);
+    const [datosParaExito, setDatosParaExito] = useState([]);
     const [animarCantidad, setAnimarCantidad] = useState({});
     const [preciosTipos, setPreciosTipos] = useState([]);
     const [precioSeleccionado, setPrecioSeleccionado] = useState('');
@@ -37,6 +43,16 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const [isClienteOpen, setIsClienteOpen] = useState(false);
     const [proveedorSeleccionado, setProveedorSeleccionado] = useState('');
     const [clienteSeleccionado, setClienteSeleccionado] = useState('');
+    const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState('');
+    const [restarIngredientes, setRestarIngredientes] = useState(true);
+
+    // Opciones de métodos de pago
+    const metodosPago = [
+        { value: 'qr', label: 'QR', icon: 'qr-scan' },
+        { value: 'transferencia', label: 'Transferencia', icon: 'transfer' },
+        { value: 'tarjeta', label: 'Tarjeta', icon: 'credit-card' },
+        { value: 'efectivo', label: 'Efectivo', icon: 'money' }
+    ];
 
     // Cargar tipos de precios
     useEffect(() => {
@@ -257,29 +273,65 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const handleConfirmarMovimientos = async () => {
         setLoadingConfirmar(true);
         try {
-            // Aquí irá la lógica para registrar los movimientos
-            console.log('Confirmando movimientos:', {
-                tipoMovimiento,
-                productos: productosCanasta,
-                observaciones: observacionesGenerales,
-                precioSeleccionado,
-                proveedor_id: tipoMovimiento === 'entrada' ? proveedorSeleccionado : null,
-                cliente_id: tipoMovimiento === 'salida' ? clienteSeleccionado : null
-            });
+            // Preparar datos para enviar al backend
+            const movimientoData = {
+                tipo: tipoMovimiento,
+                observaciones: observacionesGenerales || null,
+                metodo_pago: tipoMovimiento === 'salida' ? (metodoPagoSeleccionado || null) : null,
+                cliente_id: tipoMovimiento === 'salida' ? (clienteSeleccionado || null) : null,
+                proveedor_id: tipoMovimiento === 'entrada' ? (proveedorSeleccionado || null) : null,
+                restar_ingredientes: tipoMovimiento === 'entrada' && restarIngredientes && tieneProductosConRecetas(),
+                productos: productosCanasta.map(producto => ({
+                    id: producto.id,
+                    cantidad: producto.cantidad,
+                    precio: producto.precio || 0
+                }))
+            };
 
-            // Por ahora solo simulamos el éxito
-            setTimeout(() => {
+            // Enviar al backend
+            const response = await movimientosAlmacenService.create(movimientoData);
+
+            if (response.success) {
+                // Actualizar productos con los datos del backend (stock actualizado)
+                if (response.data?.productos && onProductosUpdated) {
+                    const productosActualizados = response.data.productos.map(productoMovimiento => ({
+                        ...productoMovimiento.producto,
+                        stock: productoMovimiento.producto.stock // Stock actualizado del backend
+                    }));
+                    onProductosUpdated(productosActualizados);
+                }
+
+                // Guardar datos del movimiento para mostrar en pantalla de éxito
+                setMovimientoCreado(response.data);
+                
+                // Guardar datos de los productos para mostrar en la pantalla de éxito
+                setDatosParaExito(productosCanasta.map(producto => ({
+                    nombre: producto.name,
+                    cantidad: `${producto.cantidad} ${producto.type_measure?.code || 'u'} - Bs. ${((producto.precio || 0) * producto.cantidad).toFixed(2)}`,
+                    medida: '' // No usar medida aquí ya que está incluida en cantidad
+                })));
+
+                // Limpiar la canasta inmediatamente al mostrar éxito
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
                 setProveedorSeleccionado('');
                 setClienteSeleccionado('');
+                setMetodoPagoSeleccionado('');
+                
+                // Cerrar modal de confirmación
                 setIsConfirmarModalOpen(false);
-                setIsOpen(false);
-                setLoadingConfirmar(false);
-            }, 2000);
+                
+                // Mostrar pantalla de éxito
+                setIsExitoOpen(true);
+            } else {
+                console.error('Error al crear movimiento:', response.message);
+                // Aquí podrías mostrar una notificación de error
+            }
 
         } catch (error) {
             console.error('Error al confirmar movimientos:', error);
+            // Aquí podrías mostrar una notificación de error
+        } finally {
             setLoadingConfirmar(false);
         }
     };
@@ -293,6 +345,13 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             const valorProducto = (producto.precio || 0) * producto.cantidad;
             return total + valorProducto;
         }, 0);
+    };
+
+    // Verificar si algún producto en la canasta tiene recetas
+    const tieneProductosConRecetas = () => {
+        return productosCanasta.some(producto => 
+            producto.recetas && producto.recetas.length > 0
+        );
     };
 
     return (
@@ -477,7 +536,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             <ItemLine
                                 key={`resumen-${producto.id}-${index}`}
                                 icon='box'
-                                title={`${producto.name} (${producto.cantidad} ${producto.type_measure?.code || ''}) - Bs. ${((producto.precio || 0) * producto.cantidad).toFixed(2)}`}
+                                title={`${producto.name} (${producto.cantidad} ${producto.type_measure?.code ||'u'}) - Bs. ${((producto.precio || 0) * producto.cantidad).toFixed(2)}`}
                                 onClick={() => handleEliminarProducto(producto.id)}
                             />
                         ))}
@@ -515,7 +574,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                     color: '#dc3545',
                                     fontSize: '13px',
                                     textAlign: 'center',
-                                    marginTop: '10px'
                                 }}>
                                     {proveedoresError}
                                 </div>
@@ -555,6 +613,32 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         </div>
                     )}
 
+                    {/* Selector de método de pago para salidas */}
+                    {tipoMovimiento === 'salida' && (
+                        <div className={styles.content} style={{ padding: '10px 15px' }}>
+                            <Select
+                                value={metodoPagoSeleccionado}
+                                onChange={setMetodoPagoSeleccionado}
+                                options={metodosPago}
+                                placeholder='Método de pago (opcional)'
+                                icon='credit-card'
+                            />
+                        </div>
+                    )}
+
+                    {/* Switch para restar ingredientes (solo para entradas y si hay productos con recetas) */}
+                    {tipoMovimiento === 'entrada' && tieneProductosConRecetas() && (
+                        <div className={styles.content} style={{ padding: '10px 15px' }}>
+                            <Switch
+                                title="Restar ingredientes"
+                                subtitle="Restar automáticamente los ingredientes de las recetas del stock"
+                                checked={restarIngredientes}
+                                onChange={setRestarIngredientes}
+                                icon="minus-circle"
+                            />
+                        </div>
+                    )}
+
                     <div className={styles.observacionesGenerales}>
                         <InputNormal
                             tipo="text"
@@ -589,6 +673,33 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 setIsOpen={setIsClienteOpen}
                 tipo='agregar'
                 onClienteCreated={handleClienteCreated}
+            />
+
+            {/* Pantalla de éxito */}
+            <PantallaExito
+                isOpen={isExitoOpen}
+                setIsOpen={setIsExitoOpen}
+                titulo={`¡${tipoMovimiento === 'entrada' ? 'Entrada' : 'Salida'} Registrada!`}
+                descripcion={`Tu ${tipoMovimiento === 'entrada' ? 'entrada' : 'salida'} ha sido registrada correctamente.`}
+                datosPedido={datosParaExito}
+                totalGeneral={datosParaExito.reduce((total, item) => {
+                    // Extraer el precio del texto de cantidad
+                    const precioMatch = item.cantidad.match(/Bs\. (\d+\.?\d*)/);
+                    return total + (precioMatch ? parseFloat(precioMatch[1]) : 0);
+                }, 0)}
+                onDescargarPDF={() => console.log('Descargar PDF')}
+                onDescargarExcel={() => console.log('Descargar Excel')}
+                onEnviarWhatsapp={() => console.log('Enviar WhatsApp')}
+                onCerrar={() => {
+                    // Limpiar datos de éxito
+                    setDatosParaExito([]);
+                    setMovimientoCreado(null);
+                    // Solo cerrar la pantalla de éxito y volver
+                    setIsOpen(false);
+                    if (onCerrarCanasta) {
+                        onCerrarCanasta();
+                    }
+                }}
             />
         </View>
     );

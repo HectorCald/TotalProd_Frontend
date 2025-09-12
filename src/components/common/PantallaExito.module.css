@@ -151,7 +151,32 @@
     margin-top: 2px;
 }
 
+/* Total general */
+.totalGeneral {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: var(--tertiary-color);
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
+.totalGeneralContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.totalGeneralLabel {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--white-color);
+}
+
+.totalGeneralValue {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white-color);
+}
 
 /* Botones */
 .botonesContainer {

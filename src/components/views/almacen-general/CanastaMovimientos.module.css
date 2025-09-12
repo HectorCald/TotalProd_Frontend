@@ -411,17 +411,13 @@
 }
 
 .totalResumenLabel {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--primary-color);
 }
 
 .totalResumenValue {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--white-color);
-}
-
-.observacionesGenerales {
-    margin-top: 10px;
 }

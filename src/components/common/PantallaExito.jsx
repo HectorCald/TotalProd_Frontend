@@ -15,6 +15,7 @@ function PantallaExito({
     titulo,
     descripcion,
     datosPedido = [],
+    totalGeneral = null,
     onDescargarPDF,
     onDescargarExcel,
     onEnviarWhatsapp,
@@ -100,6 +101,16 @@ function PantallaExito({
                                     </div>
                                 ))}
                             </div>
+                            
+                            {/* Total general */}
+                            {totalGeneral !== null && (
+                                <div className={styles.totalGeneral}>
+                                    <div className={styles.totalGeneralContent}>
+                                        <span className={styles.totalGeneralLabel}>Total:</span>
+                                        <span className={styles.totalGeneralValue}>Bs. {totalGeneral.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
