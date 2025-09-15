@@ -19,9 +19,4 @@ export const FUNCTIONS = [
         icon: 'credit-card',
         view: 'pagos'
     },
-    {
-        name: 'Movimientos',
-        icon: 'book-content',
-        view: 'movimientos'
-    },
 ];

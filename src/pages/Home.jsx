@@ -19,6 +19,7 @@ import pedidosImage from '../assets/pedidos.png';
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
 import AlmacenMedioGeneral from '../components/views/almacen-general/AlmacenMedioGeneral';
 import MovimientosMedio from '../components/views/movimientos/MovimientosMedio';
+import PedidosMedio from '../components/views/pedidos/PedidosMedio';
 
 const Home = () => {
   const [activeView, setActiveView] = useState(null);
@@ -138,6 +139,10 @@ const Home = () => {
       />
       <MovimientosMedio
         isOpen={activeView === 'movimientos'}
+        setIsOpen={() => handleViewClose()}
+      />
+      <PedidosMedio
+        isOpen={activeView === 'pedidos'}
         setIsOpen={() => handleViewClose()}
       />
     </div>

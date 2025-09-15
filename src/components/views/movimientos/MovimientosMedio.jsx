@@ -25,14 +25,14 @@ function MovimientosMedio({ isOpen, setIsOpen }) {
                 <ItemView
                     title='Almacén General'
                     description='Ver y gestionar los movimientos del almacén general'
-                    icon='up-arrow-alt'
+                    icon='store'
                     arrow={true}
                     onClick={() => handleTipoMovimiento('almacen')}
                 />
                 <ItemView
                     title='Materia Prima'
                     description='Ver y gestionar los movimientos de materia prima'
-                    icon='down-arrow-alt'
+                    icon='factory'
                     arrow={true}
                     onClick={() => handleTipoMovimiento('acopio')}
                 />

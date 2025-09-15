@@ -104,6 +104,63 @@
     color: rgba(255, 255, 255, 0.8);
 }
 
+/* Estilos para el contador de tiempo */
+.timeCounter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.timeDisplay {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.timeUnit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+}
+
+.timeValue {
+    font-size: 32px;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+}
+
+.timeLabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+.timeSeparator {
+    font-size: 24px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 4px;
+}
+
+.expiredMessage {
+    font-size: 18px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
 .planDescription {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.9);

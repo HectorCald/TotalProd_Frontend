@@ -37,6 +37,13 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
                     onClick={()=> handleTypeAlmacen('entrada')}
                 />
                 <ItemView
+                    title='Nuevo Pedido'
+                    description='Realizar un nuevo pedido de productos'
+                    icon='cart-add'
+                    arrow={true}
+                    onClick={()=> handleTypeAlmacen('pedido')}
+                />
+                <ItemView
                     title='Productos'
                     description='Ver y gestionar los productos en el almacén'
                     icon='package'

@@ -1,28 +1,43 @@
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import { FUNCTIONS } from '../../../constants/functions';
-import { ACOPIO_FUNCTIONS } from '../../../constants/acopioFunctions';
-import { ALMACEN_FUNCTIONS } from '../../../constants/almacenFunctions';
-import ItemLine from '../../common/ItemLine';
 import { useState } from 'react';
-import Personal from '../personal/Personal';
-import Clientes from '../clientes/Clientes';
-import Proveedores from '../proveedores/Proveedores';
-import Pagos from '../pagos/Pagos';
-import Reportes from '../reportes/Reportes';
-import CajaMedio from '../caja/CajaMedio';
-import Formulario from '../formulario-registro/Formulario'
-import Registros from '../formulario-registro/Registros';
-import AlmacenMedio from '../almacen-acopio/AlmacenMedio';
 
+import ModuloExtra from '../../common/ModuloExtra';
+import { EXTRAS } from '../../../constants/extras';
+import Precios from '../extras/Precios';
+import Notification from '../../common/Notification';
 
 
 function Menu({ isOpen, setIsOpen, onViewChange }) {
     const [activeView, setActiveView] = useState(null);
+    const [isOpenPrecios, setIsOpenPrecios] = useState(false);
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'info',
+        text: ''
+    });
 
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
+    
     const handleViewOpen = (viewName) => {
-        setActiveView(viewName);
+        if (viewName === 'precios') {
+            setIsOpenPrecios(true);
+        } else {
+            // Mostrar notificación para módulos no implementados
+            mostrarNotificacion('info', `La función "${viewName}" estará disponible próximamente`);
+        }
     };
 
     const handleViewClose = () => {
@@ -34,77 +49,23 @@ function Menu({ isOpen, setIsOpen, onViewChange }) {
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Explorar</h1>
-                <p className={styles.subTitle}>General</p>
-                <div className={styles.content}>
-                    {FUNCTIONS.map((item, index) => (
-                        <ItemLine
-                            key={index}
-                            icon={item.icon}
-                            title={item.name}
-                            onClick={() => handleViewOpen(item.view)}
+                <p className={styles.subTitle}>OTRAS FUNCIONES</p>
+                <div className={styles.content} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: '10px',justifyContent: 'flex-start'}}>
+                    {EXTRAS.map((extra) => (
+                        <ModuloExtra
+                            key={extra.title}
+                            title={extra.title}
+                            image={extra.image}
+                            onClick={() => handleViewOpen(extra.view)}
                         />
                     ))}
                 </div>
-                <p className={styles.subTitle}>Almacen</p>
-                <div className={styles.content}>
-                    {ALMACEN_FUNCTIONS.map((item, index) => (
-                        <ItemLine
-                            key={index}
-                            icon={item.icon}
-                            title={item.name}
-                            onClick={() => handleViewOpen(item.view)}
-                        />
-                    ))}
-                </div>
-                <p className={styles.subTitle}>Acopio</p>
-                <div className={styles.content}>
-                    {ACOPIO_FUNCTIONS.map((item, index) => (
-                        <ItemLine
-                            key={index}
-                            icon={item.icon}
-                            title={item.name}
-                            onClick={() => handleViewOpen(item.view)}
-                        />
-                    ))}
-                </div>
-                
             </div>
-
-            <Personal
-                isOpen={activeView === 'personal'}
-                setIsOpen={() => handleViewClose()}
-            />
-            <Clientes
-                isOpen={activeView === 'clientes'}
-                setIsOpen={() => handleViewClose()}
-            />
-            <Proveedores
-                isOpen={activeView === 'proveedores'}
-                setIsOpen={() => handleViewClose()}
-            />
-            <Pagos
-                isOpen={activeView === 'pagos'}
-                setIsOpen={() => handleViewClose()}
-            />
-            <Reportes
-                isOpen={activeView === 'reportes'}
-                setIsOpen={() => handleViewClose()}
-            />
-            <CajaMedio
-                isOpen={activeView === 'caja'}
-                setIsOpen={() => handleViewClose()}
-            />
-            <Formulario
-                isOpen={activeView === 'formulario'}
-                setIsOpen={() => handleViewClose()}
-            />
-            <Registros
-                isOpen={activeView === 'registros-produccion'}
-                setIsOpen={() => handleViewClose()}
-            />
-            <AlmacenMedio
-                isOpen={activeView === 'almacen-medio-acopio'}
-                setIsOpen={() => handleViewClose()}
+            <Precios isOpen={isOpenPrecios} setIsOpen={setIsOpenPrecios} />
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
             />
         </View>
 

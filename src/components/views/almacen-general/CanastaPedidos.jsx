@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from './CanastaPedidos.module.css';
+import styles from './CanastaMovimientos.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
 import ViewModal from '../../ui/ViewModal';
@@ -9,27 +9,55 @@ import InputNormal from '../../common/InputNormal';
 import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
 import ItemLine from '../../common/ItemLine';
-import { motion, AnimatePresence } from 'framer-motion';
-import pedidosAcopioService from '../../../services/pedidosAcopioService';
+import { motion } from 'framer-motion';
+import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
+import pricesTypesService from '../../../services/pricesTypesService';
 import PantallaExito from '../../common/PantallaExito';
 
-const medidasPedido = [
-    { value: 'kg', label: 'Kilogramo (kg)', icon: 'tag' },
-    { value: 'qq', label: 'Quintal (qq)', icon: 'tag' },
-    { value: 'l', label: 'Litro (l)', icon: 'tag' },
-    { value: 'lbrs', label: 'Libras (lbrs)', icon: 'tag' },
-    { value: '@', label: 'Arroba (@)', icon: 'tag' },
-    { value: 'cj', label: 'Caja (cj)', icon: 'tag' },
-];
-
-function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta }) {
+function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false);
-    const [isExitoOpen, setIsExitoOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
+    const [isExitoOpen, setIsExitoOpen] = useState(false);
     const [pedidoCreado, setPedidoCreado] = useState(null);
+    const [datosParaExito, setDatosParaExito] = useState([]);
     const [animarCantidad, setAnimarCantidad] = useState({});
+    const [preciosTipos, setPreciosTipos] = useState([]);
+    const [precioSeleccionado, setPrecioSeleccionado] = useState('');
+    const [loadingPrecios, setLoadingPrecios] = useState(false);
+
+    // Cargar tipos de precios
+    useEffect(() => {
+        const loadPreciosTipos = async () => {
+            setLoadingPrecios(true);
+            try {
+                const response = await pricesTypesService.getAll();
+                if (response.success) {
+                    const mappedOptions = response.data.map(precio => ({
+                        value: precio.id,
+                        label: precio.name,
+                        id: precio.id,
+                        name: precio.name,
+                        default_value: precio.default_value
+                    }));
+                    setPreciosTipos(mappedOptions);
+                    // Seleccionar el primer precio por defecto
+                    if (mappedOptions.length > 0) {
+                        setPrecioSeleccionado(mappedOptions[0].value);
+                    }
+                }
+            } catch (error) {
+                console.error('Error al cargar tipos de precios:', error);
+            } finally {
+                setLoadingPrecios(false);
+            }
+        };
+
+        if (isOpen) {
+            loadPreciosTipos();
+        }
+    }, [isOpen]);
 
     // Guardar en localStorage cuando cambie la canasta
     useEffect(() => {
@@ -39,6 +67,25 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             localStorage.removeItem('canastaPedidos');
         }
     }, [productosCanasta]);
+
+    // Actualizar precios cuando cambie el precio seleccionado
+    useEffect(() => {
+        if (precioSeleccionado && preciosTipos.length > 0 && productosCanasta.length > 0) {
+            const tipoPrecio = preciosTipos.find(p => p.value === precioSeleccionado);
+            if (tipoPrecio) {
+                setProductosCanasta(prev => prev.map(producto => {
+                    // Buscar el precio correspondiente al tipo seleccionado en los precios del producto
+                    const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === tipoPrecio.id);
+                    const nuevoPrecio = precioProducto?.valor || tipoPrecio.default_value || 0;
+                    
+                    return {
+                        ...producto,
+                        precio: nuevoPrecio
+                    };
+                }));
+            }
+        }
+    }, [precioSeleccionado, preciosTipos]);
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
@@ -69,6 +116,14 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         ));
     };
 
+    const handleActualizarPrecio = (productoId, nuevoPrecio) => {
+        setProductosCanasta(prev => prev.map(p =>
+            p.id === productoId
+                ? { ...p, precio: parseFloat(nuevoPrecio) || 0 }
+                : p
+        ));
+    };
+
     const handleEliminarProducto = (productoId) => {
         // Agregar clase de animación antes de eliminar
         const elemento = document.querySelector(`[data-producto-id="${productoId}"]`);
@@ -82,14 +137,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }
     };
 
-    const handleActualizarMedida = (productoId, nuevaMedida) => {
-        setProductosCanasta(prev => prev.map(p =>
-            p.id === productoId
-                ? { ...p, medidaPedido: nuevaMedida }
-                : p
-        ));
-    };
-
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
         setIsLimpiarModalOpen(false);
@@ -98,35 +145,46 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     const handleConfirmarPedido = async () => {
         setLoadingConfirmar(true);
         try {
-            // Preparar los datos del pedido
+            // Preparar datos para enviar al backend
             const pedidoData = {
-                productos: productosCanasta,
-                observaciones: observacionesGenerales
+                observaciones: observacionesGenerales || null,
+                productos: productosCanasta.map(producto => ({
+                    id: producto.id,
+                    cantidad: producto.cantidad,
+                    precio: producto.precio || 0
+                }))
             };
 
-            // Enviar el pedido al backend
-            const response = await pedidosAcopioService.create(pedidoData);
+            // Enviar al backend
+            const response = await pedidosAlmacenService.create(pedidoData);
 
             if (response.success) {
                 // Guardar datos del pedido para mostrar en pantalla de éxito
                 setPedidoCreado(response.data);
+                
+                // Guardar datos de los productos para mostrar en la pantalla de éxito
+                setDatosParaExito(productosCanasta.map(producto => ({
+                    nombre: producto.name,
+                    cantidad: `${producto.cantidad} ${producto.type_measure?.code || 'u'} - Bs. ${((producto.precio || 0) * producto.cantidad).toFixed(2)}`,
+                    medida: '' // No usar medida aquí ya que está incluida en cantidad
+                })));
 
                 // Limpiar la canasta inmediatamente al mostrar éxito
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
-
+                
                 // Cerrar modal de confirmación
                 setIsConfirmarModalOpen(false);
-
+                
                 // Mostrar pantalla de éxito
                 setIsExitoOpen(true);
-
             } else {
-                console.error('Error al crear el pedido:', response.message);
+                console.error('Error al crear pedido:', response.message);
                 // Aquí podrías mostrar una notificación de error
             }
+
         } catch (error) {
-            console.error('Error al confirmar el pedido:', error);
+            console.error('Error al confirmar pedido:', error);
             // Aquí podrías mostrar una notificación de error
         } finally {
             setLoadingConfirmar(false);
@@ -137,20 +195,39 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         return productosCanasta.reduce((total, producto) => total + producto.cantidad, 0);
     };
 
+    const getTotalValor = () => {
+        return productosCanasta.reduce((total, producto) => {
+            const valorProducto = (producto.precio || 0) * producto.cantidad;
+            return total + valorProducto;
+        }, 0);
+    };
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Canasta
+                <h1 className={styles.title}>Canasta de Pedidos
                     <div className={styles.iconButton}>
                         <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
                             <BoxIcon name='trash' className={styles.iconTrash} />
                         </button>
                     </div>
-
                 </h1>
                 <p className={styles.subTitle}>({getTotalProductos()} productos)</p>
+
+                {/* Selector de precio general */}
+                {productosCanasta.length > 0 && (
+                    <div className={styles.precioGeneral}>
+                        <Select
+                            value={precioSeleccionado}
+                            onChange={setPrecioSeleccionado}
+                            options={preciosTipos}
+                            placeholder="Seleccionar precio general"
+                            disabled={loadingPrecios}
+                            icon='dollar'
+                        />
+                    </div>
+                )}
 
                 {productosCanasta.length > 0 ? (
                     <>
@@ -166,10 +243,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                             <BoxIcon name='box' className={styles.productoIcon} />
                                             <div>
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
-                                                <p className={styles.descripcion}>{producto.description}</p>
+                                                <p className={styles.stockInfo}>
+                                                    Disponible: {producto.stock || 0} {producto.type_measure?.code || ''}
+                                                </p>
                                             </div>
                                         </div>
-
 
                                         <button
                                             className={styles.btnEliminar}
@@ -180,14 +258,18 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                     </div>
 
                                     <div className={styles.productoControles}>
-                                        <div className={styles.medidaControl}>
-                                            <Select
-                                                value={producto.medidaPedido || 'kg'}
-                                                onChange={(value) => handleActualizarMedida(producto.id, value)}
-                                                options={medidasPedido}
-                                                placeholder="Medida"
+                                        <div className={styles.precioControl}>
+                                            <label className={styles.precioLabel}>Precio (Bs.)</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={producto.precio || 0}
+                                                onChange={(e) => handleActualizarPrecio(producto.id, e.target.value)}
+                                                className={styles.precioInput}
                                             />
                                         </div>
+                                        
                                         <div className={styles.cantidadControl}>
                                              <button
                                                  className={styles.btnCantidad}
@@ -223,16 +305,31 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                              >
                                                  <BoxIcon name='plus' />
                                              </button>
-
                                         </div>
+                                    </div>
+
+                                    <div className={styles.productoTotal}>
+                                        <span className={styles.totalLabel}>Subtotal:</span>
+                                        <span className={styles.totalValue}>
+                                            Bs. {((producto.precio || 0) * producto.cantidad).toFixed(2)}
+                                        </span>
                                     </div>
                                 </div>
                             ))}
                         </div>
+
+                        {/* Total general */}
+                        <div className={styles.totalGeneral}>
+                            <div className={styles.totalGeneralContent}>
+                                <span className={styles.totalGeneralLabel}>Total General:</span>
+                                <span className={styles.totalGeneralValue}>Bs. {getTotalValor().toFixed(2)}</span>
+                            </div>
+                        </div>
+
                         <div className={styles.buttons}>
                             <Boton
                                 className='btn-original'
-                                label='Resumen del Pedido'
+                                label='Resumen de Pedido'
                                 onClick={() => setIsConfirmarModalOpen(true)}
                             />
                         </div>
@@ -241,7 +338,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     <div className={styles.canastaVacia}>
                         <BoxIcon name='cart' className={styles.iconoVacio} />
                         <p>Tu canasta está vacía</p>
-                        <p className={styles.subtexto}>Agrega productos desde la lista para crear tu pedido</p>
+                        <p className={styles.subtexto}>Agrega productos desde la lista para crear pedidos</p>
                     </div>
                 )}
             </div>
@@ -272,40 +369,44 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             {/* Modal de confirmar pedido */}
             <ViewModal isOpen={isConfirmarModalOpen} setIsOpen={setIsConfirmarModalOpen}>
                 <HeaderModal
-                    title="Resumen del Pedido"
+                    title="Resumen de Pedido"
                     onClose={() => setIsConfirmarModalOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Toca para eliminar un producto:</p>
+                    <p className={styles.subTitle}>Productos a pedir:</p>
                     <div className={styles.content}>
                         {productosCanasta.map((producto, index) => (
                             <ItemLine
                                 key={`resumen-${producto.id}-${index}`}
                                 icon='box'
-                                title={producto.name + ' (' + producto.cantidad + ' ' + producto.medidaPedido + ')'}
+                                title={`${producto.name} (${producto.cantidad} ${producto.type_measure?.code ||'u'}) - Bs. ${((producto.precio || 0) * producto.cantidad).toFixed(2)}`}
                                 onClick={() => handleEliminarProducto(producto.id)}
                             />
                         ))}
                     </div>
+                    
+                    <div className={styles.totalResumen}>
+                        <div className={styles.totalResumenContent}>
+                            <span className={styles.totalResumenLabel}>Total:</span>
+                            <span className={styles.totalResumenValue}>Bs. {getTotalValor().toFixed(2)}</span>
+                        </div>
+                    </div>
+
                     <div className={styles.observacionesGenerales}>
                         <InputNormal
                             tipo="text"
                             value={observacionesGenerales}
-                            placeholder="Observaciones generales del pedido"
+                            placeholder="Observaciones del pedido"
                             onChange={(e) => setObservacionesGenerales(e.target.value)}
                         />
                     </div>
+                    
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-original'
                             label='Confirmar Pedido'
                             onClick={handleConfirmarPedido}
                             loading={loadingConfirmar}
-                        />
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            onClick={() => setIsConfirmarModalOpen(false)}
                         />
                     </div>
                 </div>
@@ -315,17 +416,21 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             <PantallaExito
                 isOpen={isExitoOpen}
                 setIsOpen={setIsExitoOpen}
-                titulo="¡Pedido Registrado!"
-                descripcion="Tu pedido ha sido registrado correctamente y está en estado 'Pendiente'."
-                datosPedido={pedidoCreado?.pedido_acopio_detalle?.map(detalle => ({
-                    nombre: detalle.producto?.name || 'Producto',
-                    cantidad: detalle.cantidad,
-                    medida: detalle.medida
-                })) || []}
+                titulo="¡Pedido Creado!"
+                descripcion="Tu pedido ha sido creado correctamente y está pendiente de procesamiento."
+                datosPedido={datosParaExito}
+                totalGeneral={datosParaExito.reduce((total, item) => {
+                    // Extraer el precio del texto de cantidad
+                    const precioMatch = item.cantidad.match(/Bs\. (\d+\.?\d*)/);
+                    return total + (precioMatch ? parseFloat(precioMatch[1]) : 0);
+                }, 0)}
                 onDescargarPDF={() => console.log('Descargar PDF')}
                 onDescargarExcel={() => console.log('Descargar Excel')}
                 onEnviarWhatsapp={() => console.log('Enviar WhatsApp')}
                 onCerrar={() => {
+                    // Limpiar datos de éxito
+                    setDatosParaExito([]);
+                    setPedidoCreado(null);
                     // Solo cerrar la pantalla de éxito y volver
                     setIsOpen(false);
                     if (onCerrarCanasta) {

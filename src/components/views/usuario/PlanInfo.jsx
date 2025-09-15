@@ -8,12 +8,14 @@ import Carousel from '../../common/Carousel';
 import Boton from '../../common/Boton';
 import PlanService from '../../../services/planService';
 import LoadingSpinner from '../../common/LoadingSpinner';
+import useTimeCounter from '../../../hooks/useTimeCounter';
 
 function PlanInfo({ isOpen, setIsOpen }) {
     const { user: usuario } = useUser();
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPlan, setCurrentPlan] = useState(null);
+    const [timeUpdate, setTimeUpdate] = useState(0); // Para forzar actualización del contador
 
     // Cargar todos los planes y el plan actual al abrir el modal
     useEffect(() => {
@@ -22,6 +24,17 @@ function PlanInfo({ isOpen, setIsOpen }) {
             loadCurrentPlan();
         }
     }, [isOpen]);
+
+    // Actualizar contador cada segundo
+    useEffect(() => {
+        if (isOpen && currentPlan) {
+            const interval = setInterval(() => {
+                setTimeUpdate(prev => prev + 1);
+            }, 1000);
+
+            return () => clearInterval(interval);
+        }
+    }, [isOpen, currentPlan]);
 
     const loadPlans = async () => {
         try {
@@ -72,6 +85,156 @@ function PlanInfo({ isOpen, setIsOpen }) {
         return styles.planBadgeInactive; // Badge gris para plan inactivo
     };
 
+    // Componente para renderizar el contador de tiempo
+    const renderTimeCounter = (planStartDate, planEndDate) => {
+        // Usar timeUpdate para forzar re-render
+        const _ = timeUpdate;
+        
+        // Calcular tiempo restante para este plan específico
+        const now = new Date().getTime();
+        const start = new Date(planStartDate).getTime();
+        const end = new Date(planEndDate).getTime();
+
+        // Si el plan aún no ha comenzado
+        if (now < start) {
+            const timeUntilStart = end - start;
+            const timeLeft = calculateTimeComponents(timeUntilStart);
+            return renderTimeDisplay(timeLeft);
+        }
+
+        // Si el plan ha expirado
+        if (now >= end) {
+            return (
+                <div className={styles.expiredMessage}>
+                    Plan Expirado
+                </div>
+            );
+        }
+
+        // Calcular tiempo restante
+        const timeRemaining = end - now;
+        const timeLeft = calculateTimeComponents(timeRemaining);
+        return renderTimeDisplay(timeLeft);
+    };
+
+    // Función para calcular componentes de tiempo
+    const calculateTimeComponents = (milliseconds) => {
+        const seconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        const months = Math.floor(days / 30);
+
+        // Determinar qué mostrar basado en la duración
+        if (months > 0) {
+            return {
+                months: months,
+                days: days % 30,
+                hours: 0,
+                seconds: 0,
+                display: 'months'
+            };
+        } else if (days > 0) {
+            return {
+                months: 0,
+                days: days,
+                hours: hours % 24,
+                seconds: 0,
+                display: 'days'
+            };
+        } else if (hours > 0) {
+            return {
+                months: 0,
+                days: 0,
+                hours: hours,
+                seconds: seconds % 60,
+                display: 'hours'
+            };
+        } else {
+            return {
+                months: 0,
+                days: 0,
+                hours: 0,
+                seconds: seconds,
+                display: 'seconds'
+            };
+        }
+    };
+
+    // Función para renderizar la visualización del tiempo
+    const renderTimeDisplay = (timeLeft) => {
+        if (!timeLeft) return null;
+
+        const { months, days, hours, seconds, display } = timeLeft;
+
+        return (
+            <div className={styles.timeCounter}>
+                <div className={styles.timeDisplay}>
+                    {display === 'months' && (
+                        <>
+                            <div className={styles.timeUnit}>
+                                <span className={styles.timeValue}>{months}</span>
+                                <span className={styles.timeLabel}>Meses</span>
+                            </div>
+                            {days > 0 && (
+                                <>
+                                    <span className={styles.timeSeparator}>:</span>
+                                    <div className={styles.timeUnit}>
+                                        <span className={styles.timeValue}>{days}</span>
+                                        <span className={styles.timeLabel}>Días</span>
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    )}
+                    
+                    {display === 'days' && (
+                        <>
+                            <div className={styles.timeUnit}>
+                                <span className={styles.timeValue}>{days}</span>
+                                <span className={styles.timeLabel}>Días</span>
+                            </div>
+                            {hours > 0 && (
+                                <>
+                                    <span className={styles.timeSeparator}>:</span>
+                                    <div className={styles.timeUnit}>
+                                        <span className={styles.timeValue}>{hours}</span>
+                                        <span className={styles.timeLabel}>Horas</span>
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    )}
+                    
+                    {display === 'hours' && (
+                        <>
+                            <div className={styles.timeUnit}>
+                                <span className={styles.timeValue}>{hours}</span>
+                                <span className={styles.timeLabel}>Horas</span>
+                            </div>
+                            {seconds > 0 && (
+                                <>
+                                    <span className={styles.timeSeparator}>:</span>
+                                    <div className={styles.timeUnit}>
+                                        <span className={styles.timeValue}>{seconds}</span>
+                                        <span className={styles.timeLabel}>Seg</span>
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    )}
+                    
+                    {display === 'seconds' && (
+                        <div className={styles.timeUnit}>
+                            <span className={styles.timeValue}>{seconds}</span>
+                            <span className={styles.timeLabel}>Segundos</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     if (loading) {
         return (
             <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -98,10 +261,17 @@ function PlanInfo({ isOpen, setIsOpen }) {
                         <div className={`${styles.planCard} ${getPlanCardClass(plan.id)}`}>
                             <div className={styles.planHeader}>
                                 <h3 className={styles.planName}>{plan.name}</h3>
-                                <div className={styles.planPrice}>
-                                    <span className={styles.priceAmount}>Bs. {plan.price}</span>
-                                    <span className={styles.pricePeriod}>/{plan.duration}</span>
-                                </div>
+                                
+                                {/* Mostrar contador de tiempo si es el plan activo, sino mostrar precio */}
+                                {currentPlan?.id === plan.id ? (
+                                    renderTimeCounter(currentPlan.start_date, currentPlan.end_date)
+                                ) : (
+                                    <div className={styles.planPrice}>
+                                        <span className={styles.priceAmount}>Bs. {plan.price}</span>
+                                        <span className={styles.pricePeriod}>/{plan.duration}</span>
+                                    </div>
+                                )}
+                                
                                 <div className={`${styles.planBadge} ${getPlanBadgeClass(plan.id)}`}>
                                     {currentPlan?.id === plan.id ? 'Plan Activo' : 'Disponible'}
                                 </div>
