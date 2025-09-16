@@ -1,0 +1,189 @@
+import React, { useEffect, useState } from 'react';
+import styles from '../../../styles/view.module.css';
+import HeaderView from '../../common/HeaderView';
+import View from '../../ui/View';
+import InputNormal from '../../common/InputNormal';
+import Boton from '../../common/Boton';
+import MensajeError from '../../common/MensajeError';
+import personalService from '../../../services/personalService';
+import { useEmployee } from '../../../context/EmployeeContext';
+import Notification from '../../common/Notification';
+
+function CambiarContraseñaEmpleado({ isOpen, setIsOpen }) {
+    // Estado para almacenar el mensaje de error y éxito
+    const [errorMessage, setErrorMessage] = useState('');
+
+    // Estado para almacenar el empleado
+    const { employee: empleado } = useEmployee();
+
+    // Estado para habilitar/deshabilitar el botón
+    const [disabled, setDisabled] = useState(true);
+    const [loading, setLoading] = useState(false);
+
+    // Estado para la notificación
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
+    
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
+
+    // Estado para almacenar el formulario de contraseñas
+    const [formContraseñas, setFormContraseñas] = useState({
+        contraseñaActual: '',
+        nuevaContraseña: '',
+        confirmarNuevaContraseña: ''
+    });
+    
+    useEffect(() => {
+        setFormContraseñas({
+            contraseñaActual: '',
+            nuevaContraseña: '',
+            confirmarNuevaContraseña: ''
+        });
+        setErrorMessage('');
+    }, [isOpen]);
+
+    // Verificar si todos los campos están llenos para habilitar el botón
+    useEffect(() => {
+        const allFieldsFilled = formContraseñas.contraseñaActual.trim() !== '' &&
+            formContraseñas.nuevaContraseña.trim() !== '' &&
+            formContraseñas.confirmarNuevaContraseña.trim() !== '';
+        setDisabled(!allFieldsFilled);
+    }, [formContraseñas]);
+
+    // Función para manejar el cambio de los campos del formulario
+    const handleInputChange = (field, value) => {
+        setFormContraseñas(prev => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+    
+    const handleGuardar = async () => {
+        if (!formContraseñas.contraseñaActual.trim() || !formContraseñas.nuevaContraseña.trim() || !formContraseñas.confirmarNuevaContraseña.trim()) {
+            setErrorMessage('Todos los campos son obligatorios');
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            return;
+        } else if (formContraseñas.nuevaContraseña.length < 8) {
+            setErrorMessage('La nueva contraseña debe tener al menos 8 caracteres');
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            return;
+        }
+        else if (formContraseñas.nuevaContraseña !== formContraseñas.confirmarNuevaContraseña) {
+            setErrorMessage('Las contraseñas nuevas no coinciden');
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            // Obtener el ID del empleado
+            if (!empleado || !empleado.id) {
+                setErrorMessage('No se pudo obtener la información del empleado');
+                setTimeout(() => {
+                    setErrorMessage('')
+                }, 3000);
+                return;
+            }
+
+            // Cambiar la contraseña del empleado
+            const result = await personalService.changePassword(
+                empleado.id,
+                formContraseñas.contraseñaActual,
+                formContraseñas.nuevaContraseña
+            );
+
+            if (result.success) {
+                mostrarNotificacion('success', 'Contraseña cambiada exitosamente');
+                setFormContraseñas({
+                    contraseñaActual: '',
+                    nuevaContraseña: '',
+                    confirmarNuevaContraseña: ''
+                });
+            } else {
+                setErrorMessage(result.message || 'Error al cambiar la contraseña');
+                setTimeout(() => {
+                    setErrorMessage('')
+                }, 3000);
+            }
+        } catch (error) {
+            console.error('Error al cambiar contraseña:', error);
+            setErrorMessage('Error al cambiar la contraseña');
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+        } finally {
+            setLoading(false);
+        }
+    }
+    
+    return (
+        <View isOpen={isOpen} setIsOpen={setIsOpen}>
+            <HeaderView onBack={() => setIsOpen(false)} />
+            <div className={styles.container}>
+                <h1 className={styles.title}>Cambiar Contraseña</h1>
+                <MensajeError mensaje={errorMessage} />
+                <p className={styles.subTitle}>Ingresa la contraseña actual y la nueva contraseña</p>
+                <InputNormal
+                    id='contraseñaActual'
+                    icon='lock'
+                    tipo='password'
+                    value={formContraseñas.contraseñaActual}
+                    placeholder='Contraseña Actual'
+                    onChange={(e) => handleInputChange('contraseñaActual', e.target.value)}
+                />
+                <InputNormal
+                    id='nuevaContraseña'
+                    icon='lock'
+                    tipo='password'
+                    placeholder='Nueva Contraseña'
+                    value={formContraseñas.nuevaContraseña}
+                    onChange={(e) => handleInputChange('nuevaContraseña', e.target.value)}
+                />
+                <InputNormal
+                    id='confirmarNuevaContraseña'
+                    value={formContraseñas.confirmarNuevaContraseña}
+                    icon='lock'
+                    tipo='password'
+                    placeholder='Confirmar Nueva Contraseña'
+                    onChange={(e) => handleInputChange('confirmarNuevaContraseña', e.target.value)}
+                />
+                <Boton
+                    className='btn-original'
+                    label='Guardar'
+                    style={{ marginTop: 'auto' }}
+                    onClick={() => handleGuardar()}
+                    disabled={disabled}
+                    loading={loading}
+                />
+            </div>
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
+        </View>
+    );
+}
+
+export default CambiarContraseñaEmpleado;

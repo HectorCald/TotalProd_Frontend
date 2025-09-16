@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
-import personalStyles from './EditarPersona.module.css';
 import HeaderModal from '../../common/HeaderModal';
 import ViewModal from '../../ui/ViewModal';
 import Boton from '../../common/Boton';
@@ -8,20 +7,22 @@ import InputNormal from '../../common/InputNormal';
 import MensajeError from '../../common/MensajeError';
 import Carousel from '../../common/Carousel';
 import MultiSelect from '../../common/MultiSelect';
-import proveedorService from '../../../services/proveedorService';
+import personalService from '../../../services/personalService';
 import modulesService from '../../../services/modulesService';
+import sucursalesService from '../../../services/sucursalesService';
 import Switch from '../../common/Switch';
+import Select from '../../common/Select';
 
-function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, onProveedorUpdated }) {
+function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated }) {
 
     // Estados para los datos del personal
     const [dataEdit, setDataEdit] = useState({
         first_name: '',
         last_name: '',
-        celular: '',
         codigo: ''
     });
-    const [estado, setEstado] = useState(false);
+    const [estado, setEstado] = useState(false); // Siempre inactivo por defecto
+    const [sucursalId, setSucursalId] = useState('');
     const [permisos, setPermisos] = useState({
         crear: false,
         eliminar: false,
@@ -36,23 +37,47 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
     const [selectedModules, setSelectedModules] = useState([]);
     const [loadingModules, setLoadingModules] = useState(false);
 
+    // Estados para sucursales
+    const [sucursales, setSucursales] = useState([]);
+    const [loadingSucursales, setLoadingSucursales] = useState(false);
+
     // Estados para modales
     const [isConfiguracionOpen, setIsConfiguracionOpen] = useState(false);
 
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
-
+   
 
     // Función para generar código automático
     const generarCodigo = (firstName, lastName) => {
         if (!firstName || !lastName) return '';
 
-        const firstInitial = firstName.charAt(0).toUpperCase();
-        const lastInitial = lastName.charAt(0).toUpperCase();
-        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        // Tomar las dos primeras letras del nombre y apellido
+        const firstTwo = firstName.substring(0, 2).toUpperCase();
+        const lastTwo = lastName.substring(0, 2).toUpperCase();
+        
+        // Generar 4 números aleatorios
+        const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
 
-        return `${firstInitial}${lastInitial}${randomNum}`;
+        return `${firstTwo}${lastTwo}${randomNum}`;
+    };
+
+
+    // Función para copiar código al portapapeles
+    const handleCopyCode = async () => {
+        if (!dataEdit.codigo) {
+            setErrorMessage('No hay código para copiar');
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(dataEdit.codigo);
+            setErrorMessage(''); // Limpiar error si se copió exitosamente
+        } catch (error) {
+            console.error('Error al copiar:', error);
+            setErrorMessage('Error al copiar el código');
+        }
     };
 
     // Función para cargar módulos
@@ -70,13 +95,34 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
         }
     };
 
+    // Función para cargar sucursales
+    const loadSucursales = async () => {
+        try {
+            setLoadingSucursales(true);
+            const response = await sucursalesService.getByEmpresaId();
+            if (response.success) {
+                // Mapear los datos para el Select
+                const mappedOptions = response.data.map(sucursal => ({
+                    value: sucursal.id,
+                    label: sucursal.name,
+                    id: sucursal.id,
+                    name: sucursal.name
+                }));
+                setSucursales(mappedOptions);
+            }
+        } catch (error) {
+            console.error('Error al cargar sucursales:', error);
+        } finally {
+            setLoadingSucursales(false);
+        }
+    };
+
     // Efecto para cargar los datos del personal
     useEffect(() => {
         if (usuario && tipo === 'editar') {
             setDataEdit({
                 first_name: usuario.first_name || '',
                 last_name: usuario.last_name || '',
-                celular: usuario.celular || '',
                 codigo: usuario.codigo || ''
             });
 
@@ -86,17 +132,26 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
                     const modulesArray = Array.isArray(usuario.modules)
                         ? usuario.modules
                         : JSON.parse(usuario.modules);
-                    setSelectedModules(modulesArray);
+                    // Extraer solo los IDs de los módulos
+                    const moduleIds = modulesArray.map(module => module.id || module);
+                    setSelectedModules(moduleIds);
                 } catch (error) {
                     console.error('Error al parsear módulos:', error);
                     setSelectedModules([]);
                 }
             }
 
-            // Cargar estado y permisos si existen
-            if (usuario.estado !== undefined) {
-                setEstado(usuario.estado);
+            // Cargar estado si existe
+            if (usuario.is_active !== undefined) {
+                setEstado(usuario.is_active);
             }
+
+            // Cargar sucursal si existe
+            if (usuario.sucursal_id) {
+                setSucursalId(usuario.sucursal_id);
+            }
+
+            // Cargar permisos si existen
             if (usuario.permisos) {
                 setPermisos(usuario.permisos);
             }
@@ -104,11 +159,11 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
             setDataEdit({
                 first_name: '',
                 last_name: '',
-                celular: '',
                 codigo: ''
             });
             setSelectedModules([]);
-            setEstado(false);
+            setEstado(false); // Siempre inactivo por defecto
+            setSucursalId('');
             setPermisos({
                 crear: false,
                 eliminar: false,
@@ -119,21 +174,27 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
         setErrorMessage('');
     }, [isOpen, usuario, tipo]);
 
-    // Efecto para cargar módulos cuando se abre el modal
+    // Efecto para cargar módulos y sucursales cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
             loadModules();
+            loadSucursales();
         }
     }, [isOpen]);
 
 
     // Función para enviar los datos del personal
     const handleSubmit = async () => {
+        // Activar loading inmediatamente
+        setLoading(true);
+        
+        // Validar campos obligatorios
         if (!dataEdit.first_name.trim()) {
             setErrorMessage('El nombre es obligatorio');
             setTimeout(() => {
                 setErrorMessage('')
             }, 3000);
+            setLoading(false);
             return;
         }
 
@@ -142,6 +203,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
             setTimeout(() => {
                 setErrorMessage('')
             }, 3000);
+            setLoading(false);
             return;
         }
 
@@ -151,32 +213,75 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
             codigoFinal = generarCodigo(dataEdit.first_name, dataEdit.last_name);
         }
 
+        // Validar longitud del código
+        if (codigoFinal.length !== 8) {
+            setErrorMessage('El código debe tener exactamente 8 caracteres');
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            setLoading(false);
+            return;
+        }
+
+        // Validar que se seleccione al menos un submódulo
+        if (selectedModules.length === 0) {
+            setErrorMessage('Debe seleccionar al menos un submódulo');
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            setLoading(false);
+            return;
+        }
+
+        // Verificar que el código no existe en la base de datos
+        try {
+            const codigoCheck = await personalService.checkCodigo(codigoFinal, tipo === 'editar' ? usuario?.id : null);
+            
+            if (codigoCheck.success && codigoCheck.data.exists) {
+                setErrorMessage('El código ya existe en esta empresa');
+                setTimeout(() => {
+                    setErrorMessage('')
+                }, 3000);
+                setLoading(false);
+                return;
+            }
+        } catch (error) {
+            console.error('Error al verificar código:', error);
+            setErrorMessage('Error al verificar el código');
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            setLoading(false);
+            return;
+        }
+
         // Preparar datos para enviar
         const datosParaEnviar = {
             first_name: dataEdit.first_name,
             last_name: dataEdit.last_name,
-            celular: dataEdit.celular,
             codigo: codigoFinal,
             modules: selectedModules,
-            estado: estado,
+            is_active: estado,
+            sucursal_id: sucursalId || null,
             permisos: permisos
         };
-        setLoading(true);
         try {
             let response;
 
             if (tipo === 'editar') {
-                response = await proveedorService.update(usuario.id, datosParaEnviar);
+                response = await personalService.update(usuario.id, datosParaEnviar);
             } else {
-                response = await proveedorService.create(datosParaEnviar);
+                response = await personalService.create(datosParaEnviar);
             }
 
             if (response.success) {
-                if (tipo === 'editar' && onProveedorUpdated) {
-                    onProveedorUpdated(response.data);
-                } else if (tipo === 'agregar' && onProveedorCreated) {
-                    onProveedorCreated(response.data);
+                if (tipo === 'editar' && onPersonalUpdated) {
+                    onPersonalUpdated(response.data);
+                } else if (tipo === 'agregar' && onPersonalCreated) {
+                    onPersonalCreated(response.data);
                 }
+                
+                // Cerrar modal inmediatamente
                 setIsOpen(false);
             } else {
                 setErrorMessage(response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el personal`);
@@ -195,6 +300,18 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
         }
     }
 
+    const hanclePermisos = (permiso, value) => {
+        setPermisos({
+            ...permisos,
+            [permiso]: value
+        })
+    }
+
+
+    const hadleGuardar = (usuarioUpdate) => {
+        console.log('Usuario actualizado' + usuarioUpdate)
+        setIsOpen(false)
+    }
 
     return (
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -236,18 +353,23 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
                     tipo="text"
                     icon="hash"
                     value={dataEdit.codigo}
-                    placeholder='Código (generado automáticamente)'
+                    placeholder='Código (autogenerado)'
                     onChange={(e) => setDataEdit({ ...dataEdit, codigo: e.target.value })}
                     disabled={tipo === 'ver'}
+                    buttonIcon="copy"
+                    buttonIconClick={handleCopyCode}
                 />
-                <InputNormal
-                    tipo="number"
-                    icon="phone"
-                    value={dataEdit.celular}
-                    placeholder='Celular'
-                    onChange={(e) => setDataEdit({ ...dataEdit, celular: e.target.value })}
-                    disabled={tipo === 'ver'}
-                />
+
+                <div className={styles.content} style={{ padding: '10px 15px' }}>
+                    <Select
+                        value={sucursalId}
+                        onChange={(value) => setSucursalId(value)}
+                        options={sucursales}
+                        placeholder='Sucursal (opcional)'
+                        disabled={loadingSucursales || tipo === 'ver'}
+                        icon='store'
+                    />
+                </div>
 
                 {tipo !== 'ver' && (
                     <div className={styles.content} style={{ padding: '10px 15px' }}>
@@ -274,49 +396,51 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
             {/* Modal de Configuración */}
             <ViewModal isOpen={isConfiguracionOpen} setIsOpen={setIsConfiguracionOpen}>
                 <HeaderModal
-                    title="Configuración del Personal"
+                    title="Configuración"
                     onClose={() => setIsConfiguracionOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>ESTADO</p>
-                    <Switch
-                        icon="check-circle"
-                        title="Activo"
-                        subtitle="Indica si el usuario está activo o inactivo"
-                        checked={estado}
-                        onChange={setEstado}
-                    />
-                    
-                    <p className={styles.subTitle}>PERMISOS</p>
-                    <Switch
-                        icon="file"
-                        title="Crear"
-                        subtitle="Permite crear nuevos productos o items"
-                        checked={permisos.crear || false}
-                        onChange={(checked) => setPermisos({ ...permisos, crear: checked })}
-                    />
-                    <Switch
-                        icon="trash"
-                        title="Eliminar"
-                        subtitle="Permite eliminar registros"
-                        checked={permisos.eliminar || false}
-                        onChange={(checked) => setPermisos({ ...permisos, eliminar: checked })}
-                    />
-                    <Switch
-                        icon="edit"
-                        title="Editar"
-                        subtitle="Permite modificar registros y productos"
-                        checked={permisos.editar || false}
-                        onChange={(checked) => setPermisos({ ...permisos, editar: checked })}
-                    />
-                    <Switch
-                        icon="x-circle"
-                        title="Anular"
-                        subtitle="Permite anular registros"
-                        checked={permisos.anular || false}
-                        onChange={(checked) => setPermisos({ ...permisos, anular: checked })}
-                    />
-
+                    {tipo === 'editar' && (
+                        <>
+                            <p className={styles.subTitle}>ESTADO</p>
+                            <Switch
+                                icon="check-circle"
+                                title="Activo"
+                                subtitle="Indica si el usuario está activo o inactivo"
+                                checked={estado}
+                                onChange={setEstado}
+                            />
+                        </>
+                    )}
+<p className={styles.subTitle}>PERMISOS</p>
+                <Switch
+                    icon="file"
+                    title="Crear"
+                    subtitle="Permite crear nuevos productos o items"
+                    checked={permisos.crear || false}
+                    onChange={(checked) => hanclePermisos('crear', checked)}
+                />
+                <Switch
+                    icon="trash"
+                    title="Eliminar"
+                    subtitle="Permite eliminar registros"
+                    checked={permisos.eliminar || false}
+                    onChange={(checked) => hanclePermisos('eliminar', checked)} 
+                />
+                <Switch
+                    icon="edit"
+                    title="Editar"
+                    subtitle="Permite modificar registros"
+                    checked={permisos.editar || false}
+                    onChange={(checked) => hanclePermisos('editar', checked)}
+                />
+                <Switch
+                    icon="x-circle"
+                    title="Anular"
+                    subtitle="Permite anular registros"
+                    checked={permisos.anular || false}
+                    onChange={(checked) => hanclePermisos('anular', checked)}
+                />
                     <p className={styles.subTitle}>MÓDULOS</p>
                     {loadingModules ? (
                         <div className={styles.noData}>
@@ -345,8 +469,16 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
                             <p>No hay módulos con submódulos disponibles</p>
                         </div>
                     )}
+                    <Boton
+                        className='btn-default'
+                        label='Cerrar Configuración'
+                        style={{ marginTop: 'auto' }}
+                        onClick={() => setIsConfiguracionOpen(false)}
+                    />
                 </div>
             </ViewModal>
+
+            {/* Notificación */}
 
         </ViewModal>
     );

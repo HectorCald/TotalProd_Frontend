@@ -1,39 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
-import VerProveedor from './VerPersona';
+import VerPersona from './VerPersona';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import LoadingSpinner from '../../common/LoadingSpinner';
 
-import proveedorService from '../../../services/proveedorService';
+import personalService from '../../../services/personalService';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 
 
 function Personal({ isOpen, setIsOpen }) {
-    const [isOpenVerProveedor, setIsOpenVerProveedor] = useState(false);
+    const [isOpenVerPersona, setIsOpenVerPersona] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
 
-    const [proveedorData, setProveedorData] = useState([]);
+    const [personalData, setPersonalData] = useState([]);
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
 
-    // Estados para paginación y búsqueda
+    // Estados para paginación
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMorePages, setHasMorePages] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-    
-    // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
 
 
@@ -66,32 +59,27 @@ function Personal({ isOpen, setIsOpen }) {
     });
 
 
-    // Función para manejar el click en un proveedor
-    const handleProveedor = (persona) => {
-        setIsOpenVerProveedor(true);
+    // Función para manejar el click en un personal
+    const handlePersonal = (persona) => {
+        setIsOpenVerPersona(true);
         setInfoPersona(persona);
     };
 
-
-    // Función para obtener los proveedores
-    const fetchProveedores = async (page = 1, reset = true, isSearch = false) => {
+    // Función para obtener el personal
+    const fetchPersonal = async (page = 1, reset = true) => {
         try {
             if (reset) {
-                if (isSearch) {
-                    setIsSearching(true);
-                } else {
-                    setLoading(true);
-                }
+                setLoading(true);
             } else {
                 setLoadingMore(true);
             }
 
-            const response = await proveedorService.getAll(page, 20, searchQuery);
+            const response = await personalService.getAll(page, 20, '');
             if (response.success && response.data) {
                 if (reset) {
-                    setProveedorData(response.data);
+                    setPersonalData(response.data);
                 } else {
-                    setProveedorData(prev => [...prev, ...response.data]);
+                    setPersonalData(prev => [...prev, ...response.data]);
                 }
 
                 setCurrentPage(page);
@@ -120,7 +108,7 @@ function Personal({ isOpen, setIsOpen }) {
                 console.log('Respuesta del servidor:', response);
             }
         } catch (error) {
-            console.error('Error obteniendo proveedores:', error);
+            console.error('Error obteniendo personal:', error);
             setModalConfig({
                 isOpen: true,
                 type: 'error',
@@ -131,77 +119,55 @@ function Personal({ isOpen, setIsOpen }) {
         } finally {
             setLoading(false);
             setLoadingMore(false);
-            setIsSearching(false);
         }
     };
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
         if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !loadingMore) {
-            fetchProveedores(currentPage + 1, false);
+            fetchPersonal(currentPage + 1, false);
         }
     };
 
-    // Función para manejar búsqueda
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        setCurrentPage(1);
-        setHasMorePages(true);
-        fetchProveedores(1, true, true); // isSearch = true
-    };
-
-    // Efecto para resetear búsqueda cuando se abre
+    // Efecto para cargar datos cuando se abre
     useEffect(() => {
         if (isOpen) {
-            setSearchQuery('');
-        }
-    }, [isOpen]);
-
-    // Efecto único para cargar datos y búsqueda
-    useEffect(() => {
-        if (isOpen) {
-            console.log('Proveedores - Cargando datos');
+            console.log('Personal - Cargando datos');
             // Asegurar que el modal esté cerrado al abrir el componente
             setModalConfig(prev => ({ ...prev, isOpen: false }));
             setCurrentPage(1);
             setHasMorePages(true);
-            
-            // Si hay búsqueda, buscar; si no, cargar todos
-            if (debouncedSearchQuery) {
-                handleSearch(debouncedSearchQuery);
-            } else {
-                fetchProveedores(1, true);
-            }
+            fetchPersonal(1, true);
         }
-    }, [isOpen, debouncedSearchQuery]);
+    }, [isOpen]);
 
-    // Función para manejar cuando se crea un nuevo proveedor
-    const handleProveedorCreated = (newProveedor) => {
-        // Agregar el nuevo proveedor a la lista
-        setProveedorData(prev => [newProveedor, ...prev]);
+    // Función para manejar cuando se crea un nuevo personal
+    const handlePersonalCreated = (newPersonal) => {
+        // Agregar el nuevo personal a la lista
+        setPersonalData(prev => [newPersonal, ...prev]);
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
-        mostrarNotificacion('success', 'Proveedor agregado correctamente')
+        mostrarNotificacion('success', 'Personal agregado correctamente');
     };
 
-    // Función para manejar cuando se elimina un proveedor
-    const handleProveedorDeleted = (deletedId) => {
-        // Remover el proveedor eliminado de la lista
-        setProveedorData(prev => prev.filter(proveedor => proveedor.id !== deletedId));
-        // Cerrar el modal de ver proveedor
-        setIsOpenVerProveedor(false);
-        mostrarNotificacion('success', 'Proveedor eliminado correctamente')
+    // Función para manejar cuando se elimina un personal
+    const handlePersonalDeleted = (deletedId) => {
+        // Remover el personal eliminado de la lista
+        setPersonalData(prev => prev.filter(personal => personal.id !== deletedId));
+        // Cerrar el modal de ver personal
+        setIsOpenVerPersona(false);
+        mostrarNotificacion('success', 'Personal eliminado correctamente');
     };
 
-    // Función para manejar cuando se actualiza un proveedor
-    const handleProveedorUpdated = (updatedProveedor) => {
-        // Actualizar solo el proveedor específico en la lista
-        setProveedorData(prev => prev.map(proveedor =>
-            proveedor.id === updatedProveedor.id ? updatedProveedor : proveedor
+    // Función para manejar cuando se actualiza un personal
+    const handlePersonalUpdated = (updatedPersonal) => {
+        // Actualizar solo el personal específico en la lista
+        setPersonalData(prev => prev.map(personal =>
+            personal.id === updatedPersonal.id ? updatedPersonal : personal
         ));
-        // Cerrar el modal de ver proveedor
-        setIsOpenVerProveedor(false);
-        mostrarNotificacion('success', 'Proveedor actualizado correctamente')
+        // Cerrar el modal de ver personal
+        setIsOpenVerPersona(false);
+        mostrarNotificacion('success', 'Personal actualizado correctamente');
     };
 
     return (
@@ -210,41 +176,28 @@ function Personal({ isOpen, setIsOpen }) {
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Personal</h1>
-                <div className={styles.searchContainer}>
-                    <InputSearch
-                        placeholder='Buscar por nombre o teléfono...'
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                        }}
-                    />
-                </div>
                 <div className={styles.content} onScroll={handleScroll}>
-                    {isSearching ? (
-                        <div className={styles.searchingData}>
-                            <p>Buscando...</p>
-                        </div>
-                    ) : proveedorData.length > 0 ? (
-                        proveedorData.map((proveedor, index) => (
+                    {personalData.length > 0 ? (
+                        personalData.map((personal, index) => (
                             <ItemView
-                                key={proveedor.id || index}
-                                title={proveedor.name || 'Sin nombre'}
-                                description={proveedor.description || 'Sin descripción'}
+                                key={personal.id || index}
+                                title={`${personal.first_name} ${personal.last_name}`}
+                                description={`Código: ${personal.codigo}`}
                                 arrow={true}
-                                onClick={() => handleProveedor(proveedor)}
+                                onClick={() => handlePersonal(personal)}
+                                float2={personal.is_active ? 'Activo' : 'Inactivo'}
                             />
                         ))
                     ) : (
                         <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron proveedores' : 'No hay proveedores registrados'}</p>
+                            <p>No hay personal registrado</p>
                         </div>
                     )}
 
                     {/* Indicador de carga para más elementos */}
                     {loadingMore && (
                         <div className={styles.loadingMore}>
-                            <p>Cargando más proveedores...</p>
+                            <p>Cargando más personal...</p>
                         </div>
                     )}
                 </div>
@@ -256,13 +209,13 @@ function Personal({ isOpen, setIsOpen }) {
                     />
                 </div>
             </div>
-            {/* Modal de Ver Proveedor */}
-            <VerProveedor
-                isOpen={isOpenVerProveedor}
-                setIsOpen={setIsOpenVerProveedor}
+            {/* Modal de Ver Personal */}
+            <VerPersona
+                isOpen={isOpenVerPersona}
+                setIsOpen={setIsOpenVerPersona}
                 usuario={infoPersona}
-                onProveedorDeleted={handleProveedorDeleted}
-                onProveedorUpdated={handleProveedorUpdated}
+                onProveedorDeleted={handlePersonalDeleted}
+                onProveedorUpdated={handlePersonalUpdated}
             />
 
             {/* Modal de Editar/Agregar */}
@@ -270,7 +223,7 @@ function Personal({ isOpen, setIsOpen }) {
                 isOpen={isOpenEditarAgregar}
                 setIsOpen={setIsOpenEditarAgregar}
                 tipo='agregar'
-                onProveedorCreated={handleProveedorCreated}
+                onPersonalCreated={handlePersonalCreated}
             />
             {/* Modal de Información */}
             <InfoModal

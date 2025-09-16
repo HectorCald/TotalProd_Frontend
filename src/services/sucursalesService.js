@@ -5,9 +5,11 @@ const API_BASE_URL = API_CONFIG.getBaseURL();
 // Función helper para obtener el token de autorización
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
+  const employeeToken = localStorage.getItem('employeeToken');
+  const authToken = token || employeeToken;
   return {
     'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
+    'Authorization': authToken ? `Bearer ${authToken}` : ''
   };
 };
 

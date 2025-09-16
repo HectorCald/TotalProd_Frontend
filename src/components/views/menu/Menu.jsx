@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import ModuloExtra from '../../common/ModuloExtra';
 import { EXTRAS } from '../../../constants/extras';
-import Precios from '../extras/Precios';
+import Precios from '../precios/Precios';
 import Sucursales from '../sucursales/Sucursales';
 import Notification from '../../common/Notification';
 

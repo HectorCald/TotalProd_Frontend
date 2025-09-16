@@ -4,14 +4,44 @@ const API_BASE_URL = API_CONFIG.getBaseURL();
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
+  const employeeToken = localStorage.getItem('employeeToken');
+  const authToken = token || employeeToken;
   return {
     'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
+    'Authorization': authToken ? `Bearer ${authToken}` : ''
   };
 };
 
-// Función helper para obtener empresa_id del localStorage
+// Función helper para obtener personal_id del employeeToken
+const getPersonalId = () => {
+  const employeeToken = localStorage.getItem('employeeToken');
+  if (employeeToken) {
+    try {
+      const payload = JSON.parse(atob(employeeToken.split('.')[1]));
+      return payload.id;
+    } catch (error) {
+      console.error('Error parsing employeeToken:', error);
+    }
+  }
+  return null;
+};
+
+// Función helper para obtener empresa_id
 const getEmpresaId = () => {
+  // Primero verificar si es empleado
+  const employeeToken = localStorage.getItem('employeeToken');
+  if (employeeToken) {
+    try {
+      const payload = JSON.parse(atob(employeeToken.split('.')[1]));
+      if (payload.empresa_id) {
+        return payload.empresa_id;
+      }
+    } catch (error) {
+      console.error('Error parsing employeeToken for empresa:', error);
+    }
+  }
+  
+  // Si no es empleado, usar localStorage
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {
     const parsed = JSON.parse(sucursalSeleccionada);
@@ -31,12 +61,16 @@ class pedidosAcopioService {
         };
       }
 
+      // Obtener personal_id si es un empleado
+      const personalId = getPersonalId();
+
       const response = await fetch(`${API_BASE_URL}/pedidos-acopio`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
           ...pedidoData,
-          empresa_id: empresaId
+          empresa_id: empresaId,
+          personal_id: personalId
         }),
       });
       const data = await response.json();

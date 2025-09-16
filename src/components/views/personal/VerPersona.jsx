@@ -9,12 +9,10 @@ import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import MensajeError from '../../common/MensajeError';
-import proveedorService from '../../../services/proveedorService';
-import movimientosAcopioService from '../../../services/movimientosAcopioService';
+import personalService from '../../../services/personalService';
 import ItemView from '../../common/ItemView';
 import ItemLine from '../../common/ItemLine';
 import MapaModal from '../clientes/MapaModal';
-import Notification from '../../common/Notification';
 
 function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated }) {
 
@@ -31,55 +29,37 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
     // Estados para el mapa
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
-    // Estados para movimientos
-    const [movimientos, setMovimientos] = useState([]);
-    const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
+    // Estados para módulos y permisos
+    const [isModulesOpen, setIsModulesOpen] = useState(false);
+    const [isPermisosOpen, setIsPermisosOpen] = useState(false);
 
-    // Estado para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
 
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
-            // Función para eliminar el proveedor
+    // Función para eliminar el personal
     const handleEliminar = async (id) => {
         if (!id) {
-            setErrorMessage('ID del proveedor no válido');
+            setErrorMessage('ID del personal no válido');
             return;
         }
 
         setLoading(true);
         try {
-            const response = await proveedorService.delete(id);
+            const response = await personalService.delete(id);
 
             if (response.success) {
-                // Notificar al componente padre que se eliminó un proveedor
+                // Notificar al componente padre que se eliminó un personal
                 if (onProveedorDeleted) {
                     onProveedorDeleted(id);
                     setIsDeleteOpen(false);
                     setIsOpen(false);
                 }
             } else {
-                setErrorMessage(response.message || 'Error al eliminar el proveedor');
+                setErrorMessage(response.message || 'Error al eliminar el personal');
                 setTimeout(() => {
                     setErrorMessage('');
                 }, 3000);
             }
         } catch (error) {
-            console.error('Error al eliminar proveedor:', error);
+            console.error('Error al eliminar personal:', error);
             setErrorMessage('Error de conexión con el servidor');
             setTimeout(() => {
                 setErrorMessage('');
@@ -92,35 +72,9 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
         if (usuario.location) {
             setIsMapModalOpen(true);
         } else {
-            mostrarNotificacion('error', 'No hay ubicación para mostrar');
+            setErrorMessage('No hay ubicación para mostrar');
         }
     }
-
-    // Cargar los movimientos del proveedor
-    useEffect(() => {
-        const loadMovimientos = async () => {
-            if (usuario?.id && isOpen) {
-                setLoadingMovimientosList(true);
-                try {
-                    const response = await movimientosAcopioService.getByProveedor(usuario.id);
-                    if (response.success) {
-                        // Limitar a los últimos 10 movimientos
-                        const limitedMovements = (response.data || []).slice(0, 10);
-                        setMovimientos(limitedMovements);
-                    } else {
-                        setMovimientos([]);
-                    }
-                } catch (error) {
-                    console.error('Error cargando movimientos:', error);
-                    setMovimientos([]);
-                } finally {
-                    setLoadingMovimientosList(false);
-                }
-            }
-        };
-
-        loadMovimientos();
-    }, [usuario?.id, isOpen]);
 
     // Efecto para limpiar mensajes al abrir/cerrar
     useEffect(() => {
@@ -134,7 +88,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>
-                    {usuario?.name}
+                    {usuario?.first_name} {usuario?.last_name}
                     <div className={styles.iconButton} >
                         <button className={styles.iconButton} onClick={() => setIsDeleteOpen(true)}>
                             <BoxIcon
@@ -154,43 +108,30 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN PERSONAL</p>
                 <div className={styles.content}>
-                    <Dato label="Celular" value={usuario?.phone || 'N/A'} />
-                    <Dato label="Descripción" value={usuario?.description || 'Sin descripción'} />
-                </div>
-                <p className={styles.subTitle}>UBICACIÓN</p>
-                <div className={styles.content}>
-                    <ItemLine icon="map-pin" title="Ubicación" onClick={handleOpenMap} arrow={true} />
-                </div>
-                <p className={styles.subTitle}>PEDIDOS</p>
-                <div className={styles.content}>
-                    <Dato label="Total pedidos" value={usuario?.total_orders} />
+                    <Dato label="Código" value={usuario?.codigo || 'N/A'} />
+                    <Dato label="Estado" value={usuario?.is_active ? 'Activo' : 'Inactivo'} />
+                    <Dato label="Sucursal" value={usuario?.sucursal?.name || 'Sin sucursal asignada'} />
                 </div>
 
-                <p className={styles.subTitle}>
-                    ÚLTIMOS MOVIMIENTOS 
-                    {movimientos.length > 0 && (
-                        <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal' }}>
-                            {' '}({movimientos.length} movimientos)
-                        </span>
-                    )}
-                </p>
-                {loadingMovimientosList ? (
-                    <div className={styles.noData}>
-                        <p>Cargando movimientos...</p>
-                    </div>
-                ) : movimientos.length > 0 ? (
-                    movimientos.map((movimiento, index) => (
-                        <ItemView
-                            key={movimiento.id || index}
-                            title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${movimiento.quantity} ${movimiento.product?.type_measure?.code || ''}`}
-                            description={`${movimiento.observations || 'Sin observaciones'}\n${new Date(movimiento.date).toLocaleDateString()}${movimiento.product?.name ? ` • ${movimiento.product.name}` : ''}`}
-                            icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
-                            arrow={false}
+                {/* Botón para ver módulos - solo si tiene módulos */}
+                {usuario?.modules && usuario.modules.length > 0 && (
+                    <div className={styles.content} style={{ padding: '10px 15px' }}>
+                        <Boton
+                            className='btn-default'
+                            label='Ver Módulos Asignados'
+                            onClick={() => setIsModulesOpen(true)}
                         />
-                    ))
-                ) : (
-                    <div className={styles.noData}>
-                        <p>No hay movimientos registrados</p>
+                    </div>
+                )}
+
+                {/* Botón para ver permisos - solo si tiene permisos */}
+                {usuario?.permisos && (
+                    <div className={styles.content} style={{ padding: '10px 15px' }}>
+                        <Boton
+                            className='btn-default'
+                            label='Ver Detalles de Permisos'
+                            onClick={() => setIsPermisosOpen(true)}
+                        />
                     </div>
                 )}
             </div>
@@ -201,7 +142,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 setIsOpen={setIsEditOpen}
                 usuario={usuario}
                 tipo='editar'
-                onProveedorUpdated={onProveedorUpdated}
+                onPersonalUpdated={onProveedorUpdated}
             />
 
             {/* Modal de Eliminar*/}
@@ -211,7 +152,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                     onClose={() => setIsDeleteOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Estás seguro que deseas eliminar al proveedor {usuario?.name} ?, Esta acción no se puede deshacer y podría afectar a registros relacionados.</p>
+                    <p className={styles.subTitle}>¿Estás seguro que deseas eliminar al personal {usuario?.first_name} {usuario?.last_name}? Esta acción no se puede deshacer y podría afectar a registros relacionados.</p>
                     <MensajeError mensaje={errorMessage} />
                     <div className={styles.buttons}>
                         <Boton
@@ -231,20 +172,74 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 </div>
             </ViewModal>
 
-            {/* Modal de Mapa*/}
-            <MapaModal
-                isOpen={isMapModalOpen}
-                setIsOpen={setIsMapModalOpen}
-                initialLocation={usuario?.location}
-                readOnly={true}
-            />
+            {/* Modal de Módulos */}
+            <ViewModal isOpen={isModulesOpen} setIsOpen={setIsModulesOpen}>
+                <HeaderModal
+                    title="Módulos Asignados"
+                    onClose={() => setIsModulesOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    {usuario?.modules && usuario.modules.length > 0 ? (
+                        <>
+                            <p className={styles.subTitle}>MÓDULOS Y SUBMÓDULOS</p>
+                            <div className={styles.content}>
+                                {usuario.modules.map((module, index) => (
+                                    <div key={module.id || index}>
+                                        <Dato
+                                            label={module.modulos?.name || 'Módulo'}
+                                            value={module.name || 'Submódulo'}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <div className={styles.noData}>
+                            <p>No hay módulos asignados</p>
+                        </div>
+                    )}
+                </div>
+            </ViewModal>
+
+            {/* Modal de Permisos */}
+            <ViewModal isOpen={isPermisosOpen} setIsOpen={setIsPermisosOpen}>
+                <HeaderModal
+                    title="Detalles de Permisos"
+                    onClose={() => setIsPermisosOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    {usuario?.permisos ? (
+                        <>
+                            <p className={styles.subTitle}>PERMISOS DETALLADOS</p>
+                            <div className={styles.content}>
+                                <Dato
+                                    label="Crear"
+                                    value={usuario.permisos.crear ? 'Permitido' : 'No permitido'}
+                                />
+                                <Dato
+                                    label="Editar"
+                                    value={usuario.permisos.editar ? 'Permitido' : 'No permitido'}
+                                />
+                                <Dato
+                                    label="Eliminar"
+                                    value={usuario.permisos.eliminar ? 'Permitido' : 'No permitido'}
+                                />
+                                <Dato
+                                    label="Anular"
+                                    value={usuario.permisos.anular ? 'Permitido' : 'No permitido'}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <div className={styles.noData}>
+                            <p>No hay permisos configurados</p>
+                        </div>
+                    )}
+                </div>
+            </ViewModal>
+
 
             {/* Modal de Notificación*/}
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </View>
     );
 }

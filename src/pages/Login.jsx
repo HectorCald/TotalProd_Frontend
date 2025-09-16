@@ -8,10 +8,12 @@ import UserService from '../services/userService';
 import LogoAnimation from '../components/common/LogoAnimation';
 import MensajeError from '../components/common/MensajeError';
 import ContraseñaReset from '../components/views/login/ContraseñaReset';
+import LoginEmpleado from '../components/views/login/LoginEmpleado';
 
 const Login = () => {
     const [errorMessage, setErrorMessage] = useState('')
     const [isOpenContraseñaReset, setIsOpenContraseñaReset] = useState(false);
+    const [isOpenLoginEmpleado, setIsOpenLoginEmpleado] = useState(false);
 
     // estado para el modo de registro y login
     const [isRegister, setIsRegister] = useState(false);
@@ -229,6 +231,11 @@ const Login = () => {
         }, 3000);
     }
 
+    const handleEmployeeLoginSuccess = (employeeData) => {
+        // Redirigir a Home y recargar la página
+        window.location.href = '/';
+    }
+
     // Render
     return (
         <div className={styles.loginContainer}>
@@ -351,12 +358,25 @@ const Login = () => {
                 label={isRegister ? 'Registrarse' : 'Iniciar Sesión'}
             />
 
+            {!isRegister && (
+                <Boton
+                    className='btn-default'
+                    onClick={() => setIsOpenLoginEmpleado(true)}
+                    label='Soy empleado'
+                />
+            )}
+
             {!isRegister && <p className={styles.login_footer} ><span onClick={() => setIsOpenContraseñaReset(true)}>¿Olvidaste tu contraseña?</span></p>}
             <p className={styles.login_footer}>
                 {isRegister ? '¿Ya tienes una cuenta?' : '¿No tienes una cuenta?'}
                 <span onClick={toggleMode}>{isRegister ? 'Iniciar sesión' : 'Regístrate'}</span>
             </p>
             <ContraseñaReset isOpen={isOpenContraseñaReset} setIsOpen={setIsOpenContraseñaReset} />
+            <LoginEmpleado 
+                isOpen={isOpenLoginEmpleado} 
+                setIsOpen={setIsOpenLoginEmpleado} 
+                onLoginSuccess={handleEmployeeLoginSuccess}
+            />
         </div >
     );
 };

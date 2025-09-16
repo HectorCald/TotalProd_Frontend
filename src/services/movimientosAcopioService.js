@@ -5,14 +5,44 @@ const API_BASE_URL = API_CONFIG.getBaseURL();
 // Función helper para obtener el token de autorización
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
+  const employeeToken = localStorage.getItem('employeeToken');
+  const authToken = token || employeeToken;
   return {
     'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
+    'Authorization': authToken ? `Bearer ${authToken}` : ''
   };
 };
 
-// Función helper para obtener sucu_id del localStorage
+// Función helper para obtener personal_id del employeeToken
+const getPersonalId = () => {
+  const employeeToken = localStorage.getItem('employeeToken');
+  if (employeeToken) {
+    try {
+      const payload = JSON.parse(atob(employeeToken.split('.')[1]));
+      return payload.id;
+    } catch (error) {
+      console.error('Error parsing employeeToken:', error);
+    }
+  }
+  return null;
+};
+
+// Función helper para obtener sucu_id
 const getSucuId = () => {
+  // Primero verificar si es empleado
+  const employeeToken = localStorage.getItem('employeeToken');
+  if (employeeToken) {
+    try {
+      const payload = JSON.parse(atob(employeeToken.split('.')[1]));
+      if (payload.sucursal_id) {
+        return payload.sucursal_id;
+      }
+    } catch (error) {
+      console.error('Error parsing employeeToken for sucursal:', error);
+    }
+  }
+  
+  // Si no es empleado o no tiene sucursal, usar localStorage
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {
     const parsed = JSON.parse(sucursalSeleccionada);
@@ -34,9 +64,13 @@ class movimientosAcopioService {
         };
       }
 
+      // Obtener personal_id si es un empleado
+      const personalId = getPersonalId();
+
       const dataToSend = {
         ...movimientoData,
-        sucu_id: sucuId
+        sucu_id: sucuId,
+        personal_id: personalId
       };
 
       const response = await fetch(`${API_BASE_URL}/movimientos-acopio`, {

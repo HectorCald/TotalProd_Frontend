@@ -148,7 +148,7 @@ function Sucursales({ isOpen, setIsOpen }) {
             {loading && <LoadingSpinner iconName='building' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Sucursales de {sucursalSeleccionada?.empresas?.name || 'Empresa'}</h1>
+                <h1 className={styles.title}>{sucursalSeleccionada?.empresas?.name || 'Empresa'}</h1>
                 <p className={styles.subTitle}>SUCURSALES</p>
                 <div className={styles.content} style={{ height: 'calc(100vh - 235px)' }}>
                     {sucursalData.length > 0 ? (

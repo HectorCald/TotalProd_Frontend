@@ -31,16 +31,40 @@ export const UserProvider = ({ children }) => {
                     const decoded = JSON.parse(jsonPayload);
                     
                     if (decoded && decoded.id) {
+                        // Si es un token de empleado, no cargar usuario normal
+                        if (decoded.type === 'employee') {
+                            console.log('Token de empleado detectado, no cargar usuario normal');
+                            setLoading(false);
+                            return;
+                        }
+                        
                         const userData = await UserService.getCurrentUser(decoded.id);
                         if (userData.success) {
                             setUser(userData.data.user);
+                        } else {
+                            // Si no se pudo obtener el usuario, limpiar todo y redirigir
+                            console.error('No se pudo obtener el usuario:', userData.error);
+                            clearUserAndRedirect();
                         }
+                    } else {
+                        // Token inválido, limpiar todo y redirigir
+                        console.error('Token inválido');
+                        clearUserAndRedirect();
                     }
                 } catch (error) {
                     console.error('Error al cargar usuario:', error);
+                    clearUserAndRedirect();
                 }
             }
             setLoading(false);
+        };
+
+        // Función para limpiar usuario y redirigir
+        const clearUserAndRedirect = () => {
+            setUser(null);
+            setSucursalSeleccionada(null);
+            localStorage.clear(); // Limpiar todo el localStorage
+            // No redirigir aquí, dejar que App.jsx maneje la navegación
         };
 
         loadUser();
@@ -77,9 +101,7 @@ export const UserProvider = ({ children }) => {
     const clearUser = () => {
         setUser(null);
         setSucursalSeleccionada(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('userInfo');
-        localStorage.removeItem('sucursalSeleccionada');
+        localStorage.clear(); // Limpiar todo el localStorage
     };
 
     // Función para seleccionar sucursal

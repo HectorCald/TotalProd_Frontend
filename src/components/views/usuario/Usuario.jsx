@@ -8,6 +8,7 @@ import Version from '../../common/Version';
 
 import VerUsuario from './VerUsuario';
 import CambiarContraseña from './CambiarContraseña';
+import CambiarContraseñaEmpleado from './CambiarContraseñaEmpleado';
 import Apariencia from './Apariencia';
 import CodigoPromocional from './CodigoPromocional';
 
@@ -15,6 +16,7 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import { useUser } from '../../../context/UserContext';
+import { useEmployee } from '../../../context/EmployeeContext';
 import PlanInfo from './PlanInfo';
 
 
@@ -48,9 +50,14 @@ const Usuario = ({ isOpen, setIsOpen }) => {
         setIsLogoutOpen(true);
     };
     const { user: userInfo, clearUser } = useUser();
+    const { employee: employeeInfo, clearEmployee } = useEmployee();
 
-    // Si el usuario no está cargado, no renderizar nada
-    if (!userInfo) {
+    // Determinar si es usuario normal o empleado
+    const isEmployee = !!employeeInfo;
+    const currentUser = isEmployee ? employeeInfo : userInfo;
+
+    // Si no hay usuario ni empleado cargado, no renderizar nada
+    if (!currentUser) {
         return null;
     }
 
@@ -58,19 +65,21 @@ const Usuario = ({ isOpen, setIsOpen }) => {
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={handleClose} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Perfil</h1>
-                <p className={styles.subTitle}>Cuenta</p>
+                <h1 className={styles.title}>{isEmployee ? 'Perfil de Empleado' : 'Perfil'}</h1>
+                <p className={styles.subTitle}>{isEmployee ? 'Cuenta de Empleado' : 'Cuenta'}</p>
                 <div className={styles.content}>
                     <ItemLine
                         icon='user'
-                        title='Detalles de mi cuenta'
+                        title={isEmployee ? 'Detalles de mi cuenta' : 'Detalles de mi cuenta'}
                         onClick={handlePerfil}
                     />
-                    <ItemLine
-                        icon='store'
-                        title='Mi Empresa'
-                        onClick={handlePerfil}
-                    />
+                    {!isEmployee && (
+                        <ItemLine
+                            icon='store'
+                            title='Mi Empresa'
+                            onClick={handlePerfil}
+                        />
+                    )}
                     <ItemLine
                         icon='lock-open'
                         title='Cambiar contraseña'
@@ -81,20 +90,24 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         title='Apariencia'
                         onClick={handleApariencia}
                     />
-                    <ItemLine
-                        icon='purchase-tag-alt'
-                        title='Codigo promocional'
-                        onClick={handleCodigoPromocional}
-                    />
-                    <ItemLine
-                        icon='comment'
-                        title='Comentarios'
-                    />
-                    <ItemLine
-                        icon='star'
-                        title='Plan'
-                        onClick={handlePlan}
-                    />
+                    {!isEmployee && (
+                        <>
+                            <ItemLine
+                                icon='purchase-tag-alt'
+                                title='Codigo promocional'
+                                onClick={handleCodigoPromocional}
+                            />
+                            <ItemLine
+                                icon='comment'
+                                title='Comentarios'
+                            />
+                            <ItemLine
+                                icon='star'
+                                title='Plan'
+                                onClick={handlePlan}
+                            />
+                        </>
+                    )}
                     <ItemLine
                         icon='power-off'
                         title='Cerrar sesión'
@@ -106,7 +119,11 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                 <Version />
             </div>
             <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} />
-            <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña}/>
+            {isEmployee ? (
+                <CambiarContraseñaEmpleado isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña}/>
+            ) : (
+                <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña}/>
+            )}
             <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
             <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
             {/* Modal de logout*/}
@@ -123,7 +140,11 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                             label='Si, Cerrar sesión'
                             style={{ marginTop: 'auto' }}
                             onClick={() => {
-                                clearUser();
+                                if (isEmployee) {
+                                    clearEmployee();
+                                } else {
+                                    clearUser();
+                                }
                                 window.location.reload();
                                 setIsLogoutOpen(false);
                             }}
@@ -137,7 +158,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                     </div>
                 </div>
             </ViewModal>
-            <PlanInfo isOpen={isOpenPlan} setIsOpen={setIsOpenPlan} />
+            {!isEmployee && <PlanInfo isOpen={isOpenPlan} setIsOpen={setIsOpenPlan} />}
         </View>
     );
 };
