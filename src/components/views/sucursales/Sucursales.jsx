@@ -13,7 +13,7 @@ import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
 
 function Sucursales({ isOpen, setIsOpen }) {
-    const { user } = useUser();
+    const { user, sucursalSeleccionada } = useUser();
     
     // Estados para los modales
     const [isOpenVerSucursal, setIsOpenVerSucursal] = useState(false);
@@ -66,13 +66,30 @@ function Sucursales({ isOpen, setIsOpen }) {
         
         try {
             setLoading(true);
-            const response = await sucursalesService.getByEmpresaId(user.empresa_id);
+            const response = await sucursalesService.getByEmpresaId();
             if (response.success && response.data) {
                 setSucursalData(response.data);
                 // Cerrar modal si estaba abierto y ahora tenemos datos
                 setModalConfig(prev => ({ ...prev, isOpen: false }));
+            } else if (response.code === 'MODULE_NOT_INCLUDED') {
+                setModalConfig({
+                    isOpen: true,
+                    type: 'warning',
+                    title: 'Módulo No Incluido',
+                    description: `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`,
+                    showButton: true
+                });
+            } else if (response.code === 'NO_PLAN') {
+                setModalConfig({
+                    isOpen: true,
+                    type: 'warning',
+                    title: 'Plan Requerido',
+                    description: 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.',
+                    showButton: true
+                });
             } else {
-                setSucursalData([]);
+                // Si no es éxito pero tampoco es un error de plan, no abrir modal
+                console.log('Respuesta del servidor:', response);
             }
         } catch (error) {
             console.error('Error obteniendo sucursales:', error);
@@ -131,7 +148,7 @@ function Sucursales({ isOpen, setIsOpen }) {
             {loading && <LoadingSpinner iconName='building' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>{user?.empresa?.name || 'Empresa'}</h1>
+                <h1 className={styles.title}>Sucursales de {sucursalSeleccionada?.empresas?.name || 'Empresa'}</h1>
                 <p className={styles.subTitle}>SUCURSALES</p>
                 <div className={styles.content} style={{ height: 'calc(100vh - 235px)' }}>
                     {sucursalData.length > 0 ? (

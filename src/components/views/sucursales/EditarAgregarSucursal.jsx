@@ -62,6 +62,12 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
           onSucursalCreated(response.data);
         }
         setIsOpen(false);
+      } else if (response.code === 'MODULE_NOT_INCLUDED') {
+        setErrorMessage(`Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`);
+        setTimeout(() => setErrorMessage(''), 5000);
+      } else if (response.code === 'NO_PLAN') {
+        setErrorMessage('Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.');
+        setTimeout(() => setErrorMessage(''), 5000);
       } else {
         setErrorMessage(response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} la sucursal`);
         setTimeout(() => setErrorMessage(''), 3000);

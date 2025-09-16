@@ -1,21 +1,54 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import API_CONFIG from '../config/api';
+
+const API_BASE_URL = API_CONFIG.getBaseURL();
+
+// Función helper para obtener el token de autorización
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  };
+};
+
+// Función helper para obtener empresa_id del localStorage
+const getEmpresaId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.empresas?.id;
+  }
+  return null;
+};
 
 const sucursalesService = {
     // Obtener sucursales por empresa
-    async getByEmpresaId(empresaId) {
+    async getByEmpresaId() {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/sucursales/empresa/${empresaId}`, {
+            const empresaId = getEmpresaId();
+            console.log('🔍 sucursalesService - empresaId obtenido:', empresaId);
+            
+            if (!empresaId) {
+                console.log('❌ sucursalesService - No hay empresa seleccionada');
+                return {
+                    success: false,
+                    message: 'No hay empresa seleccionada'
+                };
+            }
+
+            console.log('🔍 sucursalesService - URL:', `${API_BASE_URL}/sucursales/empresa/${empresaId}`);
+            const response = await fetch(`${API_BASE_URL}/sucursales/empresa/${empresaId}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: getAuthHeaders()
             });
 
             const data = await response.json();
             
             if (!response.ok) {
+                // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
+                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
+                    return data;
+                }
                 throw new Error(data.message || 'Error al obtener las sucursales');
             }
 
@@ -29,13 +62,9 @@ const sucursalesService = {
     // Obtener sucursal por ID
     async getById(id) {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/sucursales/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/sucursales/${id}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: getAuthHeaders()
             });
 
             const data = await response.json();
@@ -54,19 +83,30 @@ const sucursalesService = {
     // Crear nueva sucursal
     async create(sucursalData) {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/sucursales`, {
+            const empresaId = getEmpresaId();
+            if (!empresaId) {
+                return {
+                    success: false,
+                    message: 'No hay empresa seleccionada'
+                };
+            }
+
+            const response = await fetch(`${API_BASE_URL}/sucursales`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(sucursalData)
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    ...sucursalData,
+                    empresa_id: empresaId
+                })
             });
 
             const data = await response.json();
             
             if (!response.ok) {
+                // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
+                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
+                    return data;
+                }
                 throw new Error(data.message || 'Error al crear la sucursal');
             }
 
@@ -80,19 +120,19 @@ const sucursalesService = {
     // Actualizar sucursal
     async update(id, sucursalData) {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/sucursales/${id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+            const response = await fetch(`${API_BASE_URL}/sucursales/${id}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
                 body: JSON.stringify(sucursalData)
             });
 
             const data = await response.json();
             
             if (!response.ok) {
+                // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
+                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
+                    return data;
+                }
                 throw new Error(data.message || 'Error al actualizar la sucursal');
             }
 
@@ -106,18 +146,18 @@ const sucursalesService = {
     // Eliminar sucursal
     async delete(id) {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/sucursales/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/sucursales/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: getAuthHeaders()
             });
 
             const data = await response.json();
             
             if (!response.ok) {
+                // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
+                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
+                    return data;
+                }
                 throw new Error(data.message || 'Error al eliminar la sucursal');
             }
 

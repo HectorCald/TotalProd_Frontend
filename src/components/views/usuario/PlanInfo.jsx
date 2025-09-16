@@ -8,7 +8,6 @@ import Carousel from '../../common/Carousel';
 import Boton from '../../common/Boton';
 import PlanService from '../../../services/planService';
 import LoadingSpinner from '../../common/LoadingSpinner';
-import useTimeCounter from '../../../hooks/useTimeCounter';
 
 function PlanInfo({ isOpen, setIsOpen }) {
     const { user: usuario } = useUser();

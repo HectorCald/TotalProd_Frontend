@@ -41,6 +41,10 @@ class pricesTypesService {
       const data = await response.json();
       
       if (!response.ok) {
+        // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
+        if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
+          return data;
+        }
         throw new Error(data.message || 'Error al obtener tipos de precios');
       }
 

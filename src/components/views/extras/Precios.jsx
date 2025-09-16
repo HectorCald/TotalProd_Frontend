@@ -79,8 +79,25 @@ function Precios({ isOpen, setIsOpen }) {
                 setHasMorePages(false); // Los precios no tienen paginación
                 // Cerrar modal si estaba abierto y ahora tenemos datos
                 setModalConfig(prev => ({ ...prev, isOpen: false }));
+            } else if (response.code === 'MODULE_NOT_INCLUDED') {
+                setModalConfig({
+                    isOpen: true,
+                    type: 'warning',
+                    title: 'Módulo No Incluido',
+                    description: `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`,
+                    showButton: true
+                });
+            } else if (response.code === 'NO_PLAN') {
+                setModalConfig({
+                    isOpen: true,
+                    type: 'warning',
+                    title: 'Plan Requerido',
+                    description: 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.',
+                    showButton: true
+                });
             } else {
-                setPrecioData([]);
+                // Si no es éxito pero tampoco es un error de plan, no abrir modal
+                console.log('Respuesta del servidor:', response);
             }
         } catch (error) {
             console.error('Error obteniendo precios:', error);
