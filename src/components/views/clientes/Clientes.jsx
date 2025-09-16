@@ -86,7 +86,7 @@ function Clientes({ isOpen, setIsOpen }) {
                 setLoadingMore(true);
             }
 
-            const response = await clientService.getAll(sucursalSeleccionada?.id, page, 20, searchQuery);
+            const response = await clientService.getAll(page, 20, searchQuery);
             if (response.success && response.data) {
                 if (reset) {
                     setPersonaData(response.data);

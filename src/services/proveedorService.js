@@ -14,8 +14,12 @@ const getAuthHeaders = () => {
 // Función helper para obtener sucu_id del localStorage
 const getSucuId = () => {
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  console.log('🔍 proveedorService - sucursalSeleccionada raw:', sucursalSeleccionada);
+  
   if (sucursalSeleccionada) {
     const parsed = JSON.parse(sucursalSeleccionada);
+    console.log('🔍 proveedorService - parsed:', parsed);
+    console.log('🔍 proveedorService - id:', parsed.id);
     return parsed.id;
   }
   return null;

@@ -23,9 +23,10 @@ const getEmpresaId = () => {
 
 const sucursalesService = {
     // Obtener sucursales por empresa
-    async getByEmpresaId() {
+    async getByEmpresaId(empresaIdParam = null) {
         try {
-            const empresaId = getEmpresaId();
+            // Si se pasa empresaId como parámetro, usarlo; si no, intentar obtenerlo del localStorage
+            const empresaId = empresaIdParam || getEmpresaId();
             console.log('🔍 sucursalesService - empresaId obtenido:', empresaId);
             
             if (!empresaId) {
