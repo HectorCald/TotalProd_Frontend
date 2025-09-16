@@ -18,6 +18,8 @@
         font-weight: 400;
         color: gray;
     }
+    z-index: 9999999;
+    border: 1px solid red;
 }
 .opciones {
     display: flex;

@@ -9,6 +9,7 @@
   max-width: 500px;
   position: relative;
   padding-top: 40px;
+  padding-inline: 15px;
 }
 .subTitle{
   font-size: 15px;
@@ -27,7 +28,6 @@
   justify-content: space-around;
   width: 100%;
   overflow-x: auto;
-  padding: 5px;
 }
 .atajoAnuncio{
   display: flex;
@@ -35,7 +35,6 @@
   justify-content: space-between;
   width: 100%;
   overflow-x: auto;
-  padding-inline: 13px;
   flex-direction: column;
   gap: 10px;
 }
@@ -45,7 +44,6 @@
   justify-content: space-between;
   width: 100%;
   overflow-x: auto;
-  padding-inline: 13px;
   gap: 10px;
 }
 
@@ -67,5 +65,18 @@
   color: gray;
   text-align: center;
   line-height: 1.2;
+}
+
+
+.funciones-extras{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  background-color: var(--tertiary-color);
+  border-radius: 10px;
+  padding: 20px;
+  gap: 10px;
 }
 

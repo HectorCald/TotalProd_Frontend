@@ -1,25 +1,17 @@
 import React, { useState } from 'react';
 import '../styles/Home.css';
 import Nav from '../components/ui/Nav';
-import Coleccion from '../components/common/Coleccion';
-import { FUNCTIONS } from '../constants/functions';
-import Personal from '../components/views/personal/Personal';
-import Clientes from '../components/views/clientes/Clientes';
-import Proveedores from '../components/views/proveedores/Proveedores';
-import Pagos from '../components/views/pagos/Pagos';
-import Reportes from '../components/views/reportes/Reportes';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
-import Screen from '../components/ui/Screen';
-import AtajoAnuncio from '../components/common/AtajoAnuncio';
-import almacenImage from '../assets/almacen.png';
-import acopioImage from '../assets/acopio.png';
-import movimientosImage from '../assets/movimientos.png';
-import pedidosImage from '../assets/pedidos.png';
 
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
 import AlmacenMedioGeneral from '../components/views/almacen-general/AlmacenMedioGeneral';
 import MovimientosMedio from '../components/views/movimientos/MovimientosMedio';
 import PedidosMedio from '../components/views/pedidos/PedidosMedio';
+import Personal from '../components/views/personal/Personal';
+import Clientes from '../components/views/clientes/Clientes';
+import Proveedores from '../components/views/proveedores/Proveedores';
+import Pagos from '../components/views/pagos/Pagos';
+import Reportes from '../components/views/reportes/Reportes';
 
 const Home = () => {
   const [activeView, setActiveView] = useState(null);
@@ -37,74 +29,16 @@ const Home = () => {
     setActiveScreen(screenId);
   };
 
-  const renderScreen = () => {
-    switch (activeScreen) {
-      case 'inicio':
-        return (
-          <>
-            <p className="subTitle">Funciones</p>
-            <div className="funciones">
-              {FUNCTIONS.slice(0, 4).map((func) => (
-                <Coleccion
-                  key={func.name}
-                  title={func.name}
-                  icon={func.icon}
-                  onClick={() => handleViewOpen(func.view)}
-                />
-              ))}
-            </div>
-            <p className="subTitle">Atajos</p>
-            <div className="atajoAnuncio">
-              <AtajoAnuncio title="Almacén General" description="Administra tu almacén de productos terminados, realiza entradas y salidas." image={almacenImage} onClick={() => handleViewOpen('almacenMedioGeneral')} />
-              <AtajoAnuncio title="Materia Prima" description="Administra tu materia prima, realiza entradas y salidas." image={acopioImage} onClick={() => handleViewOpen('almacenMedio')} />
-            </div>
-            <p className="subTitle">Otros</p>
-            <div className="atajoAnuncioOtros">
-              <AtajoAnuncio title="Movimientos" description="" image={movimientosImage} onClick={() => handleViewOpen('movimientos')} />
-              <AtajoAnuncio title="Pedidos" description="" image={pedidosImage} onClick={() => handleViewOpen('pedidos')} />
-            </div>
-          </>
-        );
-      case 'destacados':
-        return <Screen title="Destacados" />;
-      case 'buscar':
-        return <Screen title="Buscar" />;
-      case 'reportes':
-        return <Screen title="Reportes" />;
-      default:
-        return (
-          <>
-            <p className="subTitle">Funciones</p>
-            <div className="funciones">
-              {FUNCTIONS.slice(0, 4).map((func) => (
-                <Coleccion
-                  key={func.name}
-                  title={func.name}
-                  icon={func.icon}
-                  onClick={() => handleViewOpen(func.view)}
-                />
-              ))}
-            </div>
-            <p className="subTitle">Atajos</p>
-            <div className="atajoAnuncio">
-              <AtajoAnuncio title="Almacen" description="Administra tu almacén de productos terminados, realiza entradas y salidas de productos" image={almacenImage} onClick={() => handleViewOpen('almacenMedioGeneral')} />
-              <AtajoAnuncio title="Acopio" description="Administra tu acopio de productos, realiza entradas y salidas de materias primas" image={acopioImage} onClick={() => handleViewOpen('almacenMedio')} />
-            </div>
-            <p className="subTitle">Otros</p>
-            <div className="atajoAnuncioOtros">
-              <AtajoAnuncio title="Movimientos" description="" image={movimientosImage} onClick={() => handleViewOpen('atajoAnuncio')} />
-              <AtajoAnuncio title="Pedidos" description="" image={pedidosImage} onClick={() => handleViewOpen('atajoAnuncio')} />
-            </div>
-          </>
-        );
-    }
-  };
 
   return (
     <div className="home-page">
       <Nav />
-      <BarraNavegacion activeScreen={activeScreen} onScreenChange={handleScreenChange} />
-      {renderScreen()}
+      <BarraNavegacion 
+        activeScreen={activeScreen} 
+        onScreenChange={handleScreenChange}
+        onViewOpen={handleViewOpen}
+        isEmployee={false}
+      />
 
       {/* Vistas modales */}
 

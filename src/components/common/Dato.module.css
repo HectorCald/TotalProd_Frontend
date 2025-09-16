@@ -1,9 +1,19 @@
 .dato {
     display: flex;
+    gap: 10px;
+    padding-bottom: 10px;
+    transition: all 0.2s ease;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    border-bottom: 1px solid var(--quaternary-color);
+}
+
+.content {
+    display: flex;
     flex-direction: column;
     gap: 5px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
+    width: 100%;
 }
 
 .clickable {
@@ -13,10 +23,16 @@
 .clickable:hover {
     background-color: var(--surface-hover-color);
 }
-
-.icon {
-    font-size: 20px;
+.iconButton {
+    background: none;
+    border: none;
+    cursor: pointer;
     color: var(--primary-color);
+}
+.icon {
+    font-size: 20px !important;
+    color: var(--primary-color) !important;
+    margin-left: auto;
 }
 
 .label {
@@ -29,20 +45,42 @@
     font-size: 15px;
     font-weight: 500;
     color: var(--white-color);
+    max-width: fit-content;
 }
 
-.orange {
-    color: var(--primary-color);
+.original {
+    background-color: var(--primary-color);
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
     font-weight: 600;
 }
 .green {
-    background-color: rgba(0, 255, 0, 0.145);
+    background-color: var(--success-color);
     padding: 5px 10px;
     border-radius: 5px;
-    color: var(--success-color);
-    font-weight: 500;
+    color: white;
+    font-weight: 600;
 }
 .red {
     color: var(--error-color);
+    font-weight: 600;
+    background-color: var(--error-color);
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
+}
+.orange {
+    background-color: var(--warning-color);
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
+    font-weight: 600;
+}
+.blue {
+    background-color: var(--info-color);
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
     font-weight: 600;
 }

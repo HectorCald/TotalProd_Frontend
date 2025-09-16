@@ -73,13 +73,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         title={isEmployee ? 'Detalles de mi cuenta' : 'Detalles de mi cuenta'}
                         onClick={handlePerfil}
                     />
-                    {!isEmployee && (
-                        <ItemLine
-                            icon='store'
-                            title='Mi Empresa'
-                            onClick={handlePerfil}
-                        />
-                    )}
                     <ItemLine
                         icon='lock-open'
                         title='Cambiar contraseña'

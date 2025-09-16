@@ -1,11 +1,13 @@
 import styles from './BarraNavegacion.module.css';
-import { useState } from 'react';
 import { BoxIcon } from 'boxicons-react';
-import Menu from '../views/menu/Menu';
+import Inicio from '../screens/Inicio';
+import InicioEmpleado from '../screens/InicioEmpleado';
+import Destacados from '../screens/Destacados';
+import Buscar from '../screens/Buscar';
+import Reportes from '../screens/Reportes';
+import Explorar from '../screens/Explorar';
 
-function BarraNavegacion({ activeScreen, onScreenChange }) {
-    const [isOpenMenu, setIsOpenMenu] = useState(false);
-    
+function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee, employee, onMainModuleClick }) {
     const navigationItems = [
         { id: 'inicio', icon: 'home', title: 'Inicio' },
         { id: 'destacados', icon: 'star', title: 'Destacados' },
@@ -15,32 +17,61 @@ function BarraNavegacion({ activeScreen, onScreenChange }) {
     ];
 
     const handleNavigation = (screenId) => {
-        if (screenId === 'explorar') {
-            setIsOpenMenu(true);
-        } else {
-            onScreenChange(screenId);
+        onScreenChange(screenId);
+    };
+
+    const renderScreen = () => {
+        switch (activeScreen) {
+            case 'inicio':
+                return isEmployee ? (
+                    <InicioEmpleado 
+                        employee={employee} 
+                        onMainModuleClick={onMainModuleClick} 
+                    />
+                ) : (
+                    <Inicio onViewOpen={onViewOpen} />
+                );
+            case 'destacados':
+                return <Destacados />;
+            case 'buscar':
+                return <Buscar />;
+            case 'reportes':
+                return <Reportes />;
+            case 'explorar':
+                return <Explorar />;
+            default:
+                return isEmployee ? (
+                    <InicioEmpleado 
+                        employee={employee} 
+                        onMainModuleClick={onMainModuleClick} 
+                    />
+                ) : (
+                    <Inicio onViewOpen={onViewOpen} />
+                );
         }
     };
 
     return (
-        <div className={styles.barraNavegacion}>
-            {navigationItems.map((item) => (
-                <div 
-                    key={item.id}
-                    className={`${styles.opcion} ${activeScreen === item.id ? styles.active : ''}`}
-                    onClick={() => handleNavigation(item.id)}
-                >
-                    <BoxIcon 
-                        name={item.icon} 
-                        className={`${styles.icon} ${activeScreen === item.id ? styles.activeIcon : ''}`} 
-                    />
-                    <p className={`${styles.title} ${activeScreen === item.id ? styles.activeTitle : ''}`}>
-                        {item.title}
-                    </p>
-                </div>
-            ))}
-            <Menu isOpen={isOpenMenu} setIsOpen={setIsOpenMenu} />
-        </div>
+        <>
+            <div className={styles.barraNavegacion}>
+                {navigationItems.map((item) => (
+                    <div 
+                        key={item.id}
+                        className={`${styles.opcion} ${activeScreen === item.id ? styles.active : ''}`}
+                        onClick={() => handleNavigation(item.id)}
+                    >
+                        <BoxIcon 
+                            name={item.icon} 
+                            className={`${styles.icon} ${activeScreen === item.id ? styles.activeIcon : ''}`} 
+                        />
+                        <p className={`${styles.title} ${activeScreen === item.id ? styles.activeTitle : ''}`}>
+                            {item.title}
+                        </p>
+                    </div>
+                ))}
+            </div>
+            {renderScreen()}
+        </>
     );
 }
 

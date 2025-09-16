@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useEmployee } from '../context/EmployeeContext';
 import Nav from '../components/ui/Nav';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
-import Screen from '../components/ui/Screen';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { getAvailableModules, getAvailableMainModules } from '../constants/modules';
 import AlmacenGeneral from '../components/views/almacen-general/AlmacenGeneral';
@@ -10,14 +9,13 @@ import '../styles/Home.css';
 import styles from '../styles/view.module.css';
 import ItemView from '../components/common/ItemView';
 import AlmacenAcopio from '../components/views/almacen-acopio/AlmacenAcopio';
-import AtajoAnuncio from '../components/common/AtajoAnuncio';
 import ViewModal from '../components/ui/ViewModal';
 import HeaderModal from '../components/common/HeaderModal';
 import PanelMovimientos from '../components/views/movimientos/PanelMovimientos';
 import Pedidos from '../components/views/pedidos/PanelPedidos';
-import Precios from '../components/views/precios/Precios';
 import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
+import Precios from '../components/views/precios/Precios';
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, refreshEmployeeData } = useEmployee();
     const [activeScreen, setActiveScreen] = useState('inicio');
@@ -58,49 +56,6 @@ const HomeEmpleado = () => {
     };
 
 
-    const renderScreen = () => {
-        switch (activeScreen) {
-            case 'inicio':
-                return (
-                    <div>
-                        <div className={styles.modulos}>
-                        <p className={styles.subTitle}>Módulos Disponibles</p>
-                            {availableMainModules.map((module, index) => (
-                                <AtajoAnuncio
-                                    key={index}
-                                    title={module.name}
-                                    description={module.description}
-                                    image={module.image}
-                                    onClick={() => handleMainModuleClick(module)}
-                                />
-                            ))}
-                        </div>
-
-                        {availableMainModules.length === 0 && (
-                            <div className={styles.noData}>
-                                <p>No tienes módulos asignados</p>
-                            </div>
-                        )}
-                    </div>
-                );
-            case 'destacados':
-                return <Screen title="Destacados" />;
-            case 'buscar':
-                return <Screen title="Buscar" />;
-            case 'reportes':
-                return <Screen title="Reportes" />;
-            default:
-                return (
-                    <>
-                        <p className={styles.subTitle}>Módulos y Permisos Asignados</p>
-                        <div className={styles.noModules}>
-                            <p>No tienes módulos asignados</p>
-                        </div>
-
-                    </>
-                );
-        }
-    };
 
     // Función para renderizar el componente del submódulo dinámicamente
     const renderSubModuleComponent = () => {
@@ -130,8 +85,13 @@ const HomeEmpleado = () => {
     return (
         <div className="home-page">
             <Nav />
-            <BarraNavegacion activeScreen={activeScreen} onScreenChange={handleScreenChange} />
-            {renderScreen()}
+            <BarraNavegacion 
+                activeScreen={activeScreen} 
+                onScreenChange={handleScreenChange}
+                isEmployee={true}
+                employee={employee}
+                onMainModuleClick={handleMainModuleClick}
+            />
 
             {/* Modal de opciones de módulo */}
             {showModuleOptions && selectedModule && (

@@ -12,6 +12,7 @@ import modulesService from '../../../services/modulesService';
 import sucursalesService from '../../../services/sucursalesService';
 import Switch from '../../common/Switch';
 import Select from '../../common/Select';
+import Notification from '../../common/Notification';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated }) {
 
@@ -31,6 +32,11 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
     });
     // Estados para los mensajes de error y éxito
     const [errorMessage, setErrorMessage] = useState('');
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
 
     // Estados para módulos y submódulos
     const [modules, setModules] = useState([]);
@@ -64,19 +70,33 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
     };
 
 
+    // Función para mostrar notificación
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
+
     // Función para copiar código al portapapeles
     const handleCopyCode = async () => {
         if (!dataEdit.codigo) {
-            setErrorMessage('No hay código para copiar');
+            mostrarNotificacion('error', 'No hay código para copiar');
             return;
         }
 
         try {
             await navigator.clipboard.writeText(dataEdit.codigo);
-            setErrorMessage(''); // Limpiar error si se copió exitosamente
+            mostrarNotificacion('success', 'Código copiado al portapapeles');
         } catch (error) {
             console.error('Error al copiar:', error);
-            setErrorMessage('Error al copiar el código');
+            mostrarNotificacion('error', 'Error al copiar el código');
         }
     };
 
@@ -478,7 +498,11 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                 </div>
             </ViewModal>
 
-            {/* Notificación */}
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
 
         </ViewModal>
     );

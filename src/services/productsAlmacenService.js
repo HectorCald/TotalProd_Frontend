@@ -20,6 +20,15 @@ const getEmpresaId = () => {
   }
   return null;
 };
+// Función helper para obtener sucu_id
+const getSucuId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.id;
+  }
+  return null;
+};
 
 class productsAlmacenService {
 
@@ -27,6 +36,8 @@ class productsAlmacenService {
   static async getAll() {
     try {
       const empresaId = getEmpresaId();
+      const sucuId = getSucuId();
+      
       if (!empresaId) {
         return {
           success: false,
@@ -34,8 +45,16 @@ class productsAlmacenService {
         };
       }
 
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
       const params = new URLSearchParams({
-        empresa_id: empresaId
+        empresa_id: empresaId,
+        sucu_id: sucuId
       });
 
       const response = await fetch(`${API_BASE_URL}/products-almacen?${params}`, {
@@ -62,10 +81,19 @@ class productsAlmacenService {
   static async create(productData) {
     try {
       const empresaId = getEmpresaId();
+      const sucuId = getSucuId();
+      
       if (!empresaId) {
         return {
           success: false,
           message: 'No hay empresa seleccionada'
+        };
+      }
+
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
         };
       }
 
@@ -74,7 +102,8 @@ class productsAlmacenService {
         headers: getAuthHeaders(),
         body: JSON.stringify({
           ...productData,
-          empresa_id: empresaId
+          empresa_id: empresaId,
+          sucu_id: sucuId
         })
       });
       const data = await response.json();
@@ -96,12 +125,21 @@ class productsAlmacenService {
   // Actualizar un producto
   static async update(id, productData) {
     try {
+      const sucuId = getSucuId();
+      
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
 
       const response = await fetch(`${API_BASE_URL}/products-almacen/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
           ...productData,
+          sucu_id: sucuId
         })
       });
       const data = await response.json();
