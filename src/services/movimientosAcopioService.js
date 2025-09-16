@@ -11,15 +11,38 @@ const getAuthHeaders = () => {
   };
 };
 
+// Función helper para obtener sucu_id del localStorage
+const getSucuId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.id;
+  }
+  return null;
+};
+
 class movimientosAcopioService {
 
   // Crear un movimiento
   static async create(movimientoData) {
     try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const dataToSend = {
+        ...movimientoData,
+        sucu_id: sucuId
+      };
+
       const response = await fetch(`${API_BASE_URL}/movimientos-acopio`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(movimientoData),
+        body: JSON.stringify(dataToSend),
       });
 
       const data = await response.json();
@@ -37,7 +60,19 @@ class movimientosAcopioService {
   // Obtener movimientos por producto
   static async getByProduct(productId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/product/${productId}`, {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/product/${productId}?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -57,7 +92,19 @@ class movimientosAcopioService {
   // Obtener movimientos por cliente
   static async getByCliente(clienteId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/cliente/${clienteId}`, {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/cliente/${clienteId}?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -77,7 +124,19 @@ class movimientosAcopioService {
   // Obtener movimientos por proveedor
   static async getByProveedor(proveedorId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/proveedor/${proveedorId}`, {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/proveedor/${proveedorId}?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -97,7 +156,16 @@ class movimientosAcopioService {
   // Obtener todos los movimientos
   static async getAll(page = 1, limit = 20, tipo = null, ordenamiento = 'fecha_desc') {
     try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
       const params = new URLSearchParams({
+        sucu_id: sucuId,
         page: page.toString(),
         limit: limit.toString()
       });

@@ -11,12 +11,34 @@ const getAuthHeaders = () => {
   };
 };
 
+// Función helper para obtener empresa_id del localStorage
+const getEmpresaId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.empresas?.id;
+  }
+  return null;
+};
+
 class categoryAlmacenService {
 
   // Obtener todas las categorías
   static async getAll() {
     try {
-      const response = await fetch(`${API_BASE_URL}/category-almacen`, {
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        empresa_id: empresaId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/category-almacen?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -39,10 +61,21 @@ class categoryAlmacenService {
   // Crear una categoría
   static async create(categoryData) {
     try {
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
       const response = await fetch(`${API_BASE_URL}/category-almacen`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(categoryData)
+        body: JSON.stringify({
+          ...categoryData,
+          empresa_id: empresaId
+        })
       });
       const data = await response.json();
       

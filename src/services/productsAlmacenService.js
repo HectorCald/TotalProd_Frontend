@@ -11,12 +11,34 @@ const getAuthHeaders = () => {
   };
 };
 
+// Función helper para obtener empresa_id del localStorage
+const getEmpresaId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.empresas?.id;
+  }
+  return null;
+};
+
 class productsAlmacenService {
 
   // Obtener todos los productos
   static async getAll() {
     try {
-      const response = await fetch(`${API_BASE_URL}/products-almacen`, {
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        empresa_id: empresaId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/products-almacen?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -39,10 +61,21 @@ class productsAlmacenService {
   // Crear un producto
   static async create(productData) {
     try {
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
       const response = await fetch(`${API_BASE_URL}/products-almacen`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(productData)
+        body: JSON.stringify({
+          ...productData,
+          empresa_id: empresaId
+        })
       });
       const data = await response.json();
       
@@ -63,10 +96,13 @@ class productsAlmacenService {
   // Actualizar un producto
   static async update(id, productData) {
     try {
+
       const response = await fetch(`${API_BASE_URL}/products-almacen/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify(productData)
+        body: JSON.stringify({
+          ...productData,
+        })
       });
       const data = await response.json();
       
@@ -87,9 +123,12 @@ class productsAlmacenService {
   // Eliminar un producto
   static async delete(id) {
     try {
+
       const response = await fetch(`${API_BASE_URL}/products-almacen/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
+        body: JSON.stringify({
+        })
       });
       const data = await response.json();
       

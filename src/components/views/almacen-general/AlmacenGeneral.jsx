@@ -22,7 +22,6 @@ import productsAlmacenService from '../../../services/productsAlmacenService';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
-
 const medidas = [
     { value: 'kilo', label: 'Kilo', icon: 'tag' },
     { value: 'quintal', label: 'Quital', icon: 'tag' },
@@ -33,6 +32,7 @@ const medidas = [
 ];
 
 function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
+    
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
@@ -95,40 +95,29 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
     const [productosCanastaSalidas, setProductosCanastaSalidas] = useState([]);
     const [isCanastaMovimientosOpen, setIsCanastaMovimientosOpen] = useState(false);
 
-    // Cargar canasta desde localStorage al inicializar
-    useEffect(() => {
-        const canastaGuardada = localStorage.getItem('canastaPedidos');
-        if (canastaGuardada) {
-            try {
-                setProductosCanasta(JSON.parse(canastaGuardada));
-            } catch (error) {
-                console.error('Error al cargar canasta desde localStorage:', error);
-                localStorage.removeItem('canastaPedidos');
-            }
-        }
-
         // Cargar canasta de entradas
-        const canastaEntradasGuardada = localStorage.getItem('canastaEntradas');
-        if (canastaEntradasGuardada) {
-            try {
-                setProductosCanastaEntradas(JSON.parse(canastaEntradasGuardada));
-            } catch (error) {
-                console.error('Error al cargar canasta de entradas desde localStorage:', error);
-                localStorage.removeItem('canastaEntradas');
+        useEffect(() => {
+            const canastaEntradasGuardada = localStorage.getItem('canastaEntradas');
+            if (canastaEntradasGuardada) {
+                try {
+                    setProductosCanastaEntradas(JSON.parse(canastaEntradasGuardada));
+                } catch (error) {
+                    console.error('Error al cargar canasta de entradas desde localStorage:', error);
+                    localStorage.removeItem('canastaEntradas');
+                }
             }
-        }
 
-        // Cargar canasta de salidas
-        const canastaSalidasGuardada = localStorage.getItem('canastaSalidas');
-        if (canastaSalidasGuardada) {
-            try {
-                setProductosCanastaSalidas(JSON.parse(canastaSalidasGuardada));
-            } catch (error) {
-                console.error('Error al cargar canasta de salidas desde localStorage:', error);
-                localStorage.removeItem('canastaSalidas');
+            // Cargar canasta de salidas
+            const canastaSalidasGuardada = localStorage.getItem('canastaSalidas');
+            if (canastaSalidasGuardada) {
+                try {
+                    setProductosCanastaSalidas(JSON.parse(canastaSalidasGuardada));
+                } catch (error) {
+                    console.error('Error al cargar canasta de salidas desde localStorage:', error);
+                    localStorage.removeItem('canastaSalidas');
+                }
             }
-        }
-    }, []);
+        }, []);
     // Función para manejar el click en un producto
     const handleRegistro = (producto, tipo) => {
         setInfoPersona(producto);
@@ -305,8 +294,9 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
             } else {
                 fetchProducts(1, true, false, categoriaFiltro, ordenamiento, '');
             }
+
         }
-    }, [isOpen, debouncedSearchQuery]);
+    }, [isOpen, debouncedSearchQuery, tipo]);
 
     // Función para manejar cuando se crea un nuevo producto
     const handleProductCreated = (newProduct) => {

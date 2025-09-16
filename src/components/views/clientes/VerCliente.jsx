@@ -15,8 +15,10 @@ import ItemLine from '../../common/ItemLine';
 import ItemView from '../../common/ItemView';
 import MapaModal from './MapaModal';
 import Notification from '../../common/Notification';
+import { useUser } from '../../../context/UserContext';
 
 function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdated }) {
+    const { sucursalSeleccionada } = useUser();
 
     // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -63,7 +65,7 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
 
         setLoading(true);
         try {
-            const response = await clientService.delete(id);
+            const response = await clientService.delete(id, sucursalSeleccionada?.id);
 
             if (response.success) {
                 // Notificar al componente padre que se eliminó un cliente

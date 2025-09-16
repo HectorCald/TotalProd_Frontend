@@ -11,12 +11,31 @@ const getAuthHeaders = () => {
   };
 };
 
+// Función helper para obtener sucu_id del localStorage
+const getSucuId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.id;
+  }
+  return null;
+};
+
 class proveedorService {
 
-  // Obtener todos los clientes
+  // Obtener todos los proveedores de una sucursal
   static async getAll(page = 1, limit = 20, search = '') {
     try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
       const params = new URLSearchParams({
+        sucu_id: sucuId,
         page: page.toString(),
         limit: limit.toString(),
         ...(search && { search })
@@ -38,13 +57,24 @@ class proveedorService {
     }
   }
 
-  // Crear un cliente
-  static async create(clientData) {
+  // Crear un proveedor
+  static async create(proveedorData) {
     try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
       const response = await fetch(`${API_BASE_URL}/proveedores`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(clientData),
+        body: JSON.stringify({
+          ...proveedorData,
+          sucu_id: sucuId
+        }),
       });
       
       const data = await response.json();
@@ -60,12 +90,15 @@ class proveedorService {
   }
 
 
-  // Eliminar un cliente
+  // Eliminar un proveedor
   static async delete(id) {
     try {
+
       const response = await fetch(`${API_BASE_URL}/proveedores/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
+        body: JSON.stringify({
+        }),
       });
       
       const data = await response.json();
@@ -81,13 +114,16 @@ class proveedorService {
   }
 
 
-  // Actualizar un cliente
+  // Actualizar un proveedor
   static async update(id, proveedorData) {
     try {
+
       const response = await fetch(`${API_BASE_URL}/proveedores/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify(proveedorData),
+        body: JSON.stringify({
+          ...proveedorData,
+        }),
       });
       
       const data = await response.json();

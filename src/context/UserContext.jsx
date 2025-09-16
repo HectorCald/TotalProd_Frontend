@@ -13,6 +13,7 @@ export const useUser = () => {
 
 export const UserProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [sucursalSeleccionada, setSucursalSeleccionada] = useState(null);
     const [loading, setLoading] = useState(true);
 
     // Cargar usuario al inicializar
@@ -45,6 +46,19 @@ export const UserProvider = ({ children }) => {
         loadUser();
     }, []);
 
+    // Cargar sucursal seleccionada al inicializar
+    useEffect(() => {
+        const sucursalGuardada = localStorage.getItem('sucursalSeleccionada');
+        if (sucursalGuardada) {
+            try {
+                setSucursalSeleccionada(JSON.parse(sucursalGuardada));
+            } catch (error) {
+                console.error('Error al cargar sucursal seleccionada:', error);
+                localStorage.removeItem('sucursalSeleccionada');
+            }
+        }
+    }, []);
+
     // Función para actualizar usuario
     const updateUser = async () => {
         if (user?.id) {
@@ -62,15 +76,25 @@ export const UserProvider = ({ children }) => {
     // Función para limpiar usuario (logout)
     const clearUser = () => {
         setUser(null);
+        setSucursalSeleccionada(null);
         localStorage.removeItem('token');
         localStorage.removeItem('userInfo');
+        localStorage.removeItem('sucursalSeleccionada');
+    };
+
+    // Función para seleccionar sucursal
+    const seleccionarSucursal = (sucursal) => {
+        setSucursalSeleccionada(sucursal);
+        localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
     };
 
     const value = {
         user,
+        sucursalSeleccionada,
         loading,
         updateUser,
-        clearUser
+        clearUser,
+        seleccionarSucursal
     };
 
     return (

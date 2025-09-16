@@ -67,6 +67,11 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         onClick={handlePerfil}
                     />
                     <ItemLine
+                        icon='store'
+                        title='Mi Empresa'
+                        onClick={handlePerfil}
+                    />
+                    <ItemLine
                         icon='lock-open'
                         title='Cambiar contraseña'
                         onClick={handleCambiarContraseña}
@@ -80,10 +85,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         icon='purchase-tag-alt'
                         title='Codigo promocional'
                         onClick={handleCodigoPromocional}
-                    />
-                    <ItemLine
-                        icon='wrench'
-                        title='Mejoras sugeridas'
                     />
                     <ItemLine
                         icon='comment'

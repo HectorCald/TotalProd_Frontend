@@ -10,13 +10,34 @@ const getAuthHeaders = () => {
   };
 };
 
+// Función helper para obtener empresa_id del localStorage
+const getEmpresaId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.empresas?.id;
+  }
+  return null;
+};
+
 class pedidosAcopioService {
   static async create(pedidoData) {
     try {
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
       const response = await fetch(`${API_BASE_URL}/pedidos-acopio`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(pedidoData),
+        body: JSON.stringify({
+          ...pedidoData,
+          empresa_id: empresaId
+        }),
       });
       const data = await response.json();
       return data;
@@ -26,12 +47,27 @@ class pedidosAcopioService {
     }
   }
 
-  static async getAll(page = 1, limit = 20) {
+  static async getAll(page = 1, limit = 20, searchQuery = null, ordenamiento = 'fecha_desc') {
     try {
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: limit.toString()
+        limit: limit.toString(),
+        ordenamiento: ordenamiento,
+        empresa_id: empresaId
       });
+      
+      if (searchQuery && searchQuery.trim() !== '') {
+        params.append('search', searchQuery);
+      }
+      
       const response = await fetch(`${API_BASE_URL}/pedidos-acopio?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
@@ -83,6 +119,20 @@ class pedidosAcopioService {
       return data;
     } catch (error) {
       console.error('Error en pedidosAcopioService.verificarProductoEnPedidos:', error);
+      return { success: false, message: 'Error de conexión con el servidor' };
+    }
+  }
+
+  static async eliminar(pedidoId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/pedidos-acopio/${pedidoId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en pedidosAcopioService.eliminar:', error);
       return { success: false, message: 'Error de conexión con el servidor' };
     }
   }

@@ -15,8 +15,10 @@ import ItemView from '../../common/ItemView';
 import ItemLine from '../../common/ItemLine';
 import MapaModal from '../clientes/MapaModal';
 import Notification from '../../common/Notification';
+import { useUser } from '../../../context/UserContext';
 
 function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated }) {
+    const { sucursalSeleccionada } = useUser();
 
     // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -63,7 +65,7 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
 
         setLoading(true);
         try {
-            const response = await proveedorService.delete(id);
+            const response = await proveedorService.delete(id, sucursalSeleccionada?.id);
 
             if (response.success) {
                 // Notificar al componente padre que se eliminó un proveedor

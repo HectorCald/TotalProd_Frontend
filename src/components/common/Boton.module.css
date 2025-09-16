@@ -49,6 +49,9 @@
 .btn-green{
   background-color: var(--success-color);
 }
+.btn-blue{
+  background-color: var(--info-color);
+}
 
 
 /* Estado de carga */

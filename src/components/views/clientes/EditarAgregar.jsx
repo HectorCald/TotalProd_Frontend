@@ -7,8 +7,10 @@ import InputNormal from '../../common/InputNormal';
 import MensajeError from '../../common/MensajeError';
 import MapaModal from './MapaModal';
 import clientService from '../../../services/clientService';
+import { useUser } from '../../../context/UserContext';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onClientUpdated }) {
+    const { sucursalSeleccionada } = useUser();
 
     // Estados para los datos del cliente
     const [dataEdit, setDataEdit] = useState({
@@ -86,9 +88,9 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             let response;
 
             if (tipo === 'editar') {
-                response = await clientService.update(usuario.id, datosParaEnviar);
+                response = await clientService.update(usuario.id, datosParaEnviar, sucursalSeleccionada?.id);
             } else {
-                response = await clientService.create(datosParaEnviar);
+                response = await clientService.create(datosParaEnviar, sucursalSeleccionada?.id);
             }
 
             if (response.success) {

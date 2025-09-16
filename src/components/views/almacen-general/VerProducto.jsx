@@ -13,8 +13,8 @@ import movimientosAcopioService from '../../../services/movimientosAcopioService
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
-
 function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductDeleted }) {
+    
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditarOpen, setIsEditarOpen] = useState(false);
     const [isRecetaOpen, setIsRecetaOpen] = useState(false);

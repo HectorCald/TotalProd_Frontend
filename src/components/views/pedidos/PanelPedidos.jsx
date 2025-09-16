@@ -143,6 +143,14 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     };
 
+    // Función para manejar cuando se elimina un pedido
+    const handlePedidoEliminado = (pedidoId) => {
+        setPedidosData(prev => 
+            prev.filter(pedido => pedido.id !== pedidoId)
+        );
+        mostrarNotificacion('success', 'Pedido eliminado correctamente');
+    };
+
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -221,62 +229,74 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 <Filtros options={opciones} />
 
                 {/* Lista de pedidos */}
-                {pedidosData.length > 0 ? (
-                    <div 
-                        className={styles.content}
-                        onScroll={handleScroll}
-                        style={{
-                            height: 'calc(100vh - 150px)'
-                        }}
-                    >
-                        {pedidosData.map((pedido) => (
-                            <ItemView
-                                key={pedido.id}
-                                title={`Pedido #${pedido.id.slice(-8)}`}
-                                subtitle={formatearFecha(pedido.fecha || pedido.created_at)}
-                                description={pedido.observaciones || 'Sin observaciones'}
-                                icon="file"
-                                onClick={() => handleVerPedido(pedido)}
-                                rightContent={
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        flexDirection: 'column', 
-                                        alignItems: 'flex-end',
-                                        gap: '4px'
-                                    }}>
-                                        <span style={{
-                                            color: getEstadoColor(pedido.estado),
-                                            fontWeight: 'bold',
-                                            fontSize: '12px'
+                <div
+                    className={styles.content}
+                    onScroll={handleScroll}
+                    style={{
+                        height: 'calc(100vh - 150px)'
+                    }}
+                >
+                    {isSearching ? (
+                        <div className={styles.searchingData}>
+                            <p>Buscando...</p>
+                        </div>
+                    ) : pedidosData.length > 0 ? (
+                        pedidosData.map((pedido, index) => {
+                            return (
+                                <ItemView
+                                    key={pedido.id || index}
+                                    title={tipoPedido === 'acopio' 
+                                        ? `${pedido.producto_acopio?.name || 'Producto'} (${pedido.cantidad} ${pedido.tipo_medida})`
+                                        : `Pedido #${pedido.id.slice(-8)}`
+                                    }
+                                    subtitle={formatearFecha(pedido.fecha || pedido.created_at)}
+                                    description={tipoPedido === 'acopio' 
+                                        ? pedido.observaciones || 'Sin observaciones'
+                                        : pedido.observaciones || 'Sin observaciones'
+                                    }
+                                    icon="file"
+                                    onClick={() => handleVerPedido(pedido)}
+                                    rightContent={
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            flexDirection: 'column', 
+                                            alignItems: 'flex-end',
+                                            gap: '4px'
                                         }}>
-                                            {pedido.estado}
-                                        </span>
-                                        <span style={{
-                                            fontSize: '11px',
-                                            color: '#666'
-                                        }}>
-                                            {pedido.pedido_almacen_detalle?.length || pedido.pedido_acopio_detalle?.length || 0} productos
-                                        </span>
-                                    </div>
-                                }
-                            />
-                        ))}
+                                            <span style={{
+                                                color: getEstadoColor(pedido.estado),
+                                                fontWeight: 'bold',
+                                                fontSize: '12px'
+                                            }}>
+                                                {pedido.estado}
+                                            </span>
+                                            <span style={{
+                                                fontSize: '11px',
+                                                color: '#666'
+                                            }}>
+                                                {tipoPedido === 'acopio' 
+                                                    ? `${pedido.cantidad} ${pedido.tipo_medida}`
+                                                    : pedido.pedido_almacen_detalle?.length || 0
+                                                } {tipoPedido === 'acopio' ? '' : 'productos'}
+                                            </span>
+                                        </div>
+                                    }
+                                />
+                            );
+                        })
+                    ) : (
+                        <div className={styles.noData}>
+                            <p>{searchQuery ? 'No se encontraron pedidos' : 'No hay pedidos registrados'}</p>
+                        </div>
+                    )}
 
-                        {/* Indicador de carga para más elementos */}
-                        {loadingMore && (
-                            <div className={styles.loadingMore}>
-                                <p>Cargando más pedidos...</p>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className={styles.emptyContainer}>
-                        <p>No hay pedidos registrados</p>
-                        <p className={styles.emptySubtext}>
-                            Los pedidos aparecerán aquí cuando se creen
-                        </p>
-                    </div>
-                )}
+                    {/* Indicador de carga para más elementos */}
+                    {loadingMore && (
+                        <div className={styles.loadingMore}>
+                            <p>Cargando más pedidos...</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Modal para ver pedido */}
@@ -286,6 +306,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 pedido={infoPedido}
                 tipoPedido={tipoPedido}
                 onEstadoActualizado={handleActualizarEstado}
+                onPedidoEliminado={handlePedidoEliminado}
             />
 
             {/* Modal de ordenamiento*/}

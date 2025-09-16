@@ -11,12 +11,31 @@ const getAuthHeaders = () => {
   };
 };
 
+// Función helper para obtener sucu_id del localStorage
+const getSucuId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.id;
+  }
+  return null;
+};
+
 class clientService {
 
-  // Obtener todos los clientes
+  // Obtener todos los clientes de una sucursal
   static async getAll(page = 1, limit = 20, search = '') {
     try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
       const params = new URLSearchParams({
+        sucu_id: sucuId,
         page: page.toString(),
         limit: limit.toString(),
         ...(search && { search })
@@ -41,12 +60,23 @@ class clientService {
   // Crear un cliente
   static async create(clientData) {
     try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
       const response = await fetch(`${API_BASE_URL}/clients`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(clientData),
+        body: JSON.stringify({
+          ...clientData,
+          sucu_id: sucuId
+        }),
       });
-      
+
       const data = await response.json();
       return data;
 
@@ -63,11 +93,14 @@ class clientService {
   // Eliminar un cliente
   static async delete(id) {
     try {
+
       const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
+        body: JSON.stringify({
+        }),
       });
-      
+
       const data = await response.json();
       return data;
 
@@ -84,12 +117,16 @@ class clientService {
   // Actualizar un cliente
   static async update(id, clientData) {
     try {
+
+
       const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify(clientData),
+        body: JSON.stringify({
+          ...clientData,
+        }),
       });
-      
+
       const data = await response.json();
       return data;
 

@@ -12,9 +12,11 @@ import clientService from '../../../services/clientService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
+import { useUser } from '../../../context/UserContext';
 
 
 function Clientes({ isOpen, setIsOpen }) {
+    const { sucursalSeleccionada } = useUser();
     
     // Estados para los modales
     const [isOpenVerCliente, setIsOpenVerCliente] = useState(false);
@@ -84,7 +86,7 @@ function Clientes({ isOpen, setIsOpen }) {
                 setLoadingMore(true);
             }
 
-            const response = await clientService.getAll(page, 20, searchQuery);
+            const response = await clientService.getAll(sucursalSeleccionada?.id, page, 20, searchQuery);
             if (response.success && response.data) {
                 if (reset) {
                     setPersonaData(response.data);

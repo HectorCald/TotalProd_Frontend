@@ -63,8 +63,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     useEffect(() => {
         if (productosCanasta.length > 0) {
             localStorage.setItem('canastaPedidos', JSON.stringify(productosCanasta));
-        } else {
-            localStorage.removeItem('canastaPedidos');
         }
     }, [productosCanasta]);
 
@@ -139,6 +137,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
+        localStorage.removeItem('canastaPedidos'); // Solo eliminar cuando el usuario limpie explícitamente
         setIsLimpiarModalOpen(false);
     };
 

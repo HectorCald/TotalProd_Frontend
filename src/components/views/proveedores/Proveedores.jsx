@@ -14,21 +14,8 @@ import proveedorService from '../../../services/proveedorService';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 
-const personaData = [
-    {
-        icon: 'id-card',
-        id:'PRTP-001',
-        nombre: 'Héctor Ortiz',
-        telefono: '999888777',
-        direccion: 'Av. Siempre Viva 123',
-        pais: 'Bolivia',
-        ciudad: 'La Paz',
-        totalPedidos: 15,
-    },
-]
-
-
 function Proveedores({ isOpen, setIsOpen }) {
+    
     const [isOpenVerProveedor, setIsOpenVerProveedor] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);

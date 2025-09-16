@@ -11,15 +11,38 @@ const getAuthHeaders = () => {
   };
 };
 
+// Función helper para obtener sucu_id del localStorage
+const getSucuId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.id;
+  }
+  return null;
+};
+
 class movimientosAlmacenService {
 
   // Crear un nuevo movimiento de almacén
   static async create(movimientoData) {
     try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const dataToSend = {
+        ...movimientoData,
+        sucu_id: sucuId
+      };
+
       const response = await fetch(`${API_BASE_URL}/movimientos-almacen`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(movimientoData),
+        body: JSON.stringify(dataToSend),
       });
 
       const data = await response.json();
@@ -38,10 +61,19 @@ class movimientosAlmacenService {
     }
   }
 
-  // Obtener todos los movimientos del usuario
+  // Obtener todos los movimientos de la sucursal
   static async getAll(page = 1, limit = 10, tipo = null, ordenamiento = 'fecha_desc') {
     try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
       const params = new URLSearchParams({
+        sucu_id: sucuId,
         page: page.toString(),
         limit: limit.toString()
       });
@@ -77,7 +109,21 @@ class movimientosAlmacenService {
   // Obtener movimientos por tipo (entrada/salida)
   static async getByType(tipo, page = 1, limit = 10) {
     try {
-      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/tipo/${tipo}?page=${page}&limit=${limit}`, {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId,
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/tipo/${tipo}?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -101,7 +147,19 @@ class movimientosAlmacenService {
   // Obtener un movimiento específico por ID
   static async getById(id) {
     try {
-      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${id}`, {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${id}?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });

@@ -13,8 +13,8 @@ import EditarAgregarReceta from './EditarAgregarReceta';
 import Switch from '../../common/Switch';
 import MensajeError from '../../common/MensajeError';
 import { BoxIcon } from 'boxicons-react';
-
 function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated }) {
+  
   const [dataMov, setDataMov] = useState({
     name: '',
     description: '',

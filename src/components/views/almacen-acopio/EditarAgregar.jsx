@@ -12,8 +12,8 @@ import EditarAgregarCategoria from './EditarAgregarCategoria';
 import EditarAgregarReceta from '../almacen-general/EditarAgregarReceta';
 import Switch from '../../common/Switch';
 import MensajeError from '../../common/MensajeError';
-
 function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated }) {
+  
   const [dataMov, setDataMov] = useState({
     name: '',
     description: '',

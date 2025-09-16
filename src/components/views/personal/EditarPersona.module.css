@@ -12,4 +12,8 @@
         color: gray;
         line-height: 1.2;
     }
+
+    .carouselScreen {
+        padding: 10px 0;
+    }
 }

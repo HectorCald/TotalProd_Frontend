@@ -22,9 +22,9 @@ const Login = () => {
     const [formDataRegister, setFormDataRegister] = useState({
         firstName: '',
         lastName: '',
-        phone: '',
         email: '',
         password: '',
+        nameStore: '',
     });
 
 
@@ -46,9 +46,9 @@ const Login = () => {
         setFormDataRegister({
             firstName: '',
             lastName: '',
-            phone: '',
             email: '',
             password: '',
+            nameStore: '',
         });
         setDelayedMinHeight(0);
     };
@@ -138,9 +138,9 @@ const Login = () => {
         }
     };
     const handleSubmitRegister = async () => {
-        if (!formDataRegister.firstName || !formDataRegister.lastName || !formDataRegister.phone || !formDataRegister.email || !formDataRegister.password) {
+        if (!formDataRegister.firstName || !formDataRegister.lastName || !formDataRegister.email || !formDataRegister.password || !formDataRegister.nameStore) {
 
-            setErrorMessage('Todo los campos son requeridos')
+            setErrorMessage('Todos los campos son requeridos')
 
             setTimeout(() => {
                 setErrorMessage('')
@@ -324,20 +324,20 @@ const Login = () => {
                                     icon="envelope"
                                 />
                                 <InputNormal
-                                    tipo="tel"
-                                    label="Celular"
-                                    value={formDataRegister.phone}
-                                    onChange={(e) => handleInputChangeRegister('phone', e.target.value)}
-                                    placeholder="Celular"
-                                    icon="phone"
-                                />
-                                <InputNormal
                                     tipo="password"
                                     label="Contraseña"
                                     value={formDataRegister.password}
                                     onChange={(e) => handleInputChangeRegister('password', e.target.value)}
                                     placeholder="Contraseña"
                                     icon="lock"
+                                />
+                                <InputNormal
+                                    tipo="text"
+                                    label="Nombre de la Empresa"
+                                    value={formDataRegister.nameStore}
+                                    onChange={(e) => handleInputChangeRegister('nameStore', e.target.value)}
+                                    placeholder="Nombre de la empresa"
+                                    icon="store"
                                 />
                             </div>
                         </motion.div>

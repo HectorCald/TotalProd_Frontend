@@ -7,8 +7,10 @@ import InputNormal from '../../common/InputNormal';
 import MensajeError from '../../common/MensajeError';
 import MapaModal from '../clientes/MapaModal';
 import proveedorService from '../../../services/proveedorService';
+import { useUser } from '../../../context/UserContext';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, onProveedorUpdated }) {
+    const { sucursalSeleccionada } = useUser();
 
     // Estados para los datos del proveedor
     const [dataEdit, setDataEdit] = useState({
@@ -86,9 +88,9 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
             let response;
 
             if (tipo === 'editar') {
-                response = await proveedorService.update(usuario.id, datosParaEnviar);
+                response = await proveedorService.update(usuario.id, datosParaEnviar, sucursalSeleccionada?.id);
             } else {
-                response = await proveedorService.create(datosParaEnviar);
+                response = await proveedorService.create(datosParaEnviar, sucursalSeleccionada?.id);
             }
 
             if (response.success) {

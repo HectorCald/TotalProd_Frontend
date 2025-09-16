@@ -11,12 +11,30 @@ const getAuthHeaders = () => {
   };
 };
 
+// Función helper para obtener empresa_id del localStorage
+const getEmpresaId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.empresas?.id;
+  }
+  return null;
+};
+
 class pricesTypesService {
 
   // Obtener todos los tipos de precios
   static async getAll() {
     try {
-      const response = await fetch(`${API_BASE_URL}/prices-types`, {
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
+      const response = await fetch(`${API_BASE_URL}/prices-types?empresa_id=${empresaId}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -39,10 +57,21 @@ class pricesTypesService {
   // Crear un tipo de precio
   static async create(priceTypeData) {
     try {
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
       const response = await fetch(`${API_BASE_URL}/prices-types`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(priceTypeData)
+        body: JSON.stringify({
+          ...priceTypeData,
+          empresa_id: empresaId
+        })
       });
       const data = await response.json();
       

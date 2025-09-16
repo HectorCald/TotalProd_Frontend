@@ -23,7 +23,6 @@ import categoryAcopioService from '../../../services/categoryAcopioService';
 import typeMeasureService from '../../../services/typeMeasureService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
-
 const medidas = [
     { value: 'kilo', label: 'Kilo', icon: 'tag' },
     { value: 'quintal', label: 'Quital', icon: 'tag' },
@@ -34,6 +33,7 @@ const medidas = [
 ];
 
 function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
+    
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
     const [isMovimientoOpen, setIsMovimientoOpen] = useState(false);
@@ -96,18 +96,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const [productosCanasta, setProductosCanasta] = useState([]);
     const [isCanastaOpen, setIsCanastaOpen] = useState(false);
 
-    // Cargar canasta desde localStorage al inicializar
-    useEffect(() => {
-        const canastaGuardada = localStorage.getItem('canastaPedidos');
-        if (canastaGuardada) {
-            try {
-                setProductosCanasta(JSON.parse(canastaGuardada));
-            } catch (error) {
-                console.error('Error al cargar canasta desde localStorage:', error);
-                localStorage.removeItem('canastaPedidos');
-            }
-        }
-    }, []);
     // Función para manejar el click en un producto
     const handleRegistro = (producto, tipo) => {
         setInfoPersona(producto);
@@ -270,8 +258,9 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
             } else {
                 fetchProducts(1, true, false, categoriaFiltro, tipoMedidaFiltro, ordenamiento);
             }
+
         }
-    }, [isOpen, debouncedSearchQuery]);
+    }, [isOpen, debouncedSearchQuery, tipo]);
 
     // Función para manejar cuando se crea un nuevo producto
     const handleProductCreated = (newProduct) => {
