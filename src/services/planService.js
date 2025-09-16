@@ -28,11 +28,14 @@ class PlanService {
     static async getCurrentPlan() {
         try {
             const token = localStorage.getItem('token');
+            const employeeToken = localStorage.getItem('employeeToken');
+            const authToken = token || employeeToken;
+            
             const response = await fetch(`${API_BASE_URL}/plans/current`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': authToken ? `Bearer ${authToken}` : '',
                 },
             });
 

@@ -11,7 +11,7 @@ const getAuthHeaders = () => {
   };
 };
 
-// Función helper para obtener empresa_id del localStorage
+// Función helper para obtener empresa_id
 const getEmpresaId = () => {
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {

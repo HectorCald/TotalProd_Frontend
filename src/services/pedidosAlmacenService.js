@@ -13,20 +13,6 @@ const getAuthHeaders = () => {
 
 // Función helper para obtener empresa_id
 const getEmpresaId = () => {
-  // Primero verificar si es empleado
-  const employeeToken = localStorage.getItem('employeeToken');
-  if (employeeToken) {
-    try {
-      const payload = JSON.parse(atob(employeeToken.split('.')[1]));
-      if (payload.empresa_id) {
-        return payload.empresa_id;
-      }
-    } catch (error) {
-      console.error('Error parsing employeeToken for empresa:', error);
-    }
-  }
-  
-  // Si no es empleado, usar localStorage
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {
     const parsed = JSON.parse(sucursalSeleccionada);
@@ -35,16 +21,15 @@ const getEmpresaId = () => {
   return null;
 };
 
-// Función helper para obtener personal_id del localStorage (para empleados)
+// Función helper para obtener personal_id del token
 const getPersonalId = () => {
-  const employeeToken = localStorage.getItem('employeeToken');
-  if (employeeToken) {
+  const token = localStorage.getItem('token');
+  if (token) {
     try {
-      // El employeeToken es un JWT, necesitamos decodificarlo
-      const payload = JSON.parse(atob(employeeToken.split('.')[1]));
-      return payload.id; // En el JWT del empleado, el id es el personal_id
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.id;
     } catch (error) {
-      console.error('Error parsing employeeToken:', error);
+      console.error('Error parsing token:', error);
     }
   }
   return null;
@@ -62,7 +47,7 @@ class pedidosAlmacenService {
         };
       }
 
-      // Obtener personal_id si es un empleado
+      // Obtener personal_id
       const personalId = getPersonalId();
 
       const response = await fetch(`${API_BASE_URL}/pedidos-almacen`, {

@@ -15,156 +15,69 @@ export const useEmployee = () => {
 export const EmployeeProvider = ({ children }) => {
   const [employee, setEmployee] = useState(null);
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // Cargar empleado desde localStorage al iniciar
+  // Cargar sucursal seleccionada al inicializar
   useEffect(() => {
-    loadEmployee();
+    const sucursalGuardada = localStorage.getItem('sucursalSeleccionada');
+    if (sucursalGuardada) {
+      try {
+        setSucursalSeleccionada(JSON.parse(sucursalGuardada));
+      } catch (error) {
+        console.error('Error al cargar sucursal seleccionada:', error);
+        localStorage.removeItem('sucursalSeleccionada');
+      }
+    }
   }, []);
 
-  // Para empleados, NO cargar sucursal desde localStorage
-  // La sucursal se obtiene directamente de los datos del empleado
-
-  const loadSucursalForEmployee = async (sucursalId) => {
-    try {
-      const response = await sucursalesService.getById(sucursalId);
-      if (response.success) {
-        setSucursalSeleccionada(response.data);
-        // NO guardar en localStorage para empleados
-        // La sucursal debe obtenerse siempre de los datos del empleado
-      }
-    } catch (error) {
-      console.error('Error al cargar sucursal del empleado:', error);
-    }
-  };
-
-  const loadEmployee = async () => {
-    try {
-      const employeeToken = localStorage.getItem('employeeToken');
-      const token = localStorage.getItem('token');
-      
-      // Si no hay token de empleado, no cargar
-      if (!employeeToken) {
-        setLoading(false);
-        return;
-      }
-      
-      // Usar el token de empleado para decodificar
-      const tokenToUse = employeeToken;
-
-      // Verificar si el token es válido decodificándolo
-      const payload = JSON.parse(atob(tokenToUse.split('.')[1]));
-      const currentTime = Date.now() / 1000;
-      
-      if (payload.exp < currentTime) {
-        // Token expirado
-        clearEmployee();
-        return;
-      }
-
-      // Si el token es válido, usar los datos del payload
-      if (payload.type === 'employee') {
-        setEmployee({
-          id: payload.id,
-          codigo: payload.codigo,
-          first_name: payload.first_name,
-          last_name: payload.last_name,
-          empresa_id: payload.empresa_id,
-          sucursal_id: payload.sucursal_id,
-          is_active: payload.is_active,
-          modules: payload.modules || [],
-          type: 'employee'
-        });
-        
-        // Si tiene sucursal_id, obtener la sucursal completa y guardarla
-        if (payload.sucursal_id) {
-          loadSucursalForEmployee(payload.sucursal_id);
-        }
-      }
-    } catch (error) {
-      console.error('Error al cargar empleado:', error);
-      clearEmployee();
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Función para limpiar empleado (logout)
   const clearEmployee = () => {
     setEmployee(null);
     setSucursalSeleccionada(null);
-    localStorage.removeItem('employeeToken');
-    localStorage.removeItem('token'); // Limpiar también el token normal
-    // NO limpiar sucursalSeleccionada del localStorage para empleados
-    // Solo limpiar si es un empleado
+    localStorage.clear();
   };
 
-  const loginEmployee = async (employeeData, token) => {
+  // Función para seleccionar sucursal
+  const seleccionarSucursal = (sucursal) => {
+    setSucursalSeleccionada(sucursal);
+    localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
+  };
+
+
+  // Función para cargar datos completos del empleado
+  const loadEmployeeData = async (employeeId) => {
     try {
-      // Guardar token de empleado como 'token' para compatibilidad con servicios
-      localStorage.setItem('employeeToken', token);
-      localStorage.setItem('token', token); // Guardar también como 'token' para servicios
-      
-      // Establecer empleado
-      setEmployee(employeeData);
-      
-      // Si tiene sucursal_id, cargar la sucursal inmediatamente
-      if (employeeData.sucursal_id) {
-        console.log('🔍 Cargando sucursal para empleado:', employeeData.sucursal_id);
-        await loadSucursalForEmployee(employeeData.sucursal_id);
-        console.log('✅ Sucursal cargada para empleado');
+      const employeeData = await personalService.getById(employeeId);
+      if (employeeData.success) {
+        setEmployee(employeeData.data);
+        
+        // Si tiene sucursal_id, cargar la sucursal
+        if (employeeData.data.sucursal_id) {
+          const sucursalData = await sucursalesService.getById(employeeData.data.sucursal_id);
+          if (sucursalData.success) {
+            setSucursalSeleccionada(sucursalData.data);
+            localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursalData.data));
+          }
+        }
+        
+        return { success: true, data: employeeData.data };
       } else {
-        console.log('⚠️ Empleado sin sucursal asignada');
+        console.error('No se pudo obtener el empleado:', employeeData.error);
+        return { success: false, error: employeeData.error };
       }
-      
-      return { success: true };
     } catch (error) {
-      console.error('Error al iniciar sesión de empleado:', error);
+      console.error('Error al cargar datos del empleado:', error);
       return { success: false, error: error.message };
     }
-  };
-
-  const updateEmployee = async (employeeData) => {
-    setEmployee(employeeData);
-    
-    // Si tiene sucursal_id, buscar y cargar la sucursal automáticamente
-    if (employeeData.sucursal_id) {
-      console.log('🔍 Cargando sucursal del empleado:', employeeData.sucursal_id);
-      await loadSucursalForEmployee(employeeData.sucursal_id);
-    }
-  };
-
-  const refreshEmployeeData = async () => {
-    if (employee && employee.id) {
-      try {
-        const result = await personalService.getById(employee.id);
-        if (result.success) {
-          await updateEmployee(result.data);
-          return { success: true, data: result.data };
-        } else {
-          return { success: false, message: result.message };
-        }
-      } catch (error) {
-        console.error('Error al refrescar datos del empleado:', error);
-        return { success: false, message: error.message };
-      }
-    }
-    return { success: false, message: 'No hay empleado activo' };
-  };
-
-  const logoutEmployee = () => {
-    clearEmployee();
-    window.location.href = '/login';
   };
 
   const value = {
     employee,
     sucursalSeleccionada,
     loading,
-    loginEmployee,
-    logoutEmployee,
     clearEmployee,
-    updateEmployee,
-    refreshEmployeeData
+    seleccionarSucursal,
+    loadEmployeeData
   };
 
   return (
@@ -173,5 +86,3 @@ export const EmployeeProvider = ({ children }) => {
     </EmployeeContext.Provider>
   );
 };
-
-export default EmployeeContext;

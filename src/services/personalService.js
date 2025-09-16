@@ -2,23 +2,21 @@ import API_CONFIG from '../config/api';
 
 const API_BASE_URL = API_CONFIG.getBaseURL();
 
-// Función helper para obtener empresa_id del localStorage
+// Función helper para obtener empresa_id
 const getEmpresaId = () => {
     const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-    
     if (sucursalSeleccionada) {
         const parsed = JSON.parse(sucursalSeleccionada);
         return parsed.empresas?.id;
     }
     return null;
 };
-
 // Función helper para obtener headers de autenticación
 const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': token ? `Bearer ${token}` : ''
     };
 };
 
@@ -27,7 +25,7 @@ const personalService = {
     async getAll(page = 1, limit = 10, search = '') {
         try {
             const empresaId = getEmpresaId();
-            
+
             if (!empresaId) {
                 return {
                     success: false,
@@ -104,7 +102,7 @@ const personalService = {
     async create(personalData) {
         try {
             const empresaId = getEmpresaId();
-            
+
             if (!empresaId) {
                 return {
                     success: false,
@@ -215,7 +213,7 @@ const personalService = {
     async checkCodigo(codigo, excludeId = null) {
         try {
             const empresaId = getEmpresaId();
-            
+
             if (!empresaId) {
                 return {
                     success: false,
@@ -274,7 +272,7 @@ const personalService = {
             }
 
             const encodedCodigo = encodeURIComponent(codigo);
-            
+
             const response = await fetch(`${API_BASE_URL}/personal/validate-employee/${encodedCodigo}`, {
                 method: 'GET',
                 headers: {
@@ -365,6 +363,11 @@ const personalService = {
                 };
             }
 
+            // Guardar token si el login fue exitoso
+            if (data.success && data.data && data.data.token) {
+                localStorage.setItem('token', data.data.token);
+            }
+
             return data;
         } catch (error) {
             console.error('Error en personalService.loginEmployee:', error);
@@ -390,9 +393,9 @@ const personalService = {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
-                    currentPassword, 
-                    newPassword 
+                body: JSON.stringify({
+                    currentPassword,
+                    newPassword
                 })
             });
 

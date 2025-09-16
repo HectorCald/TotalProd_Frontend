@@ -5,11 +5,14 @@ const modulesService = {
     async getAll() {
         try {
             const token = localStorage.getItem('token');
+            const employeeToken = localStorage.getItem('employeeToken');
+            const authToken = token || employeeToken;
+            
             const response = await fetch(`${API_URL}/modules`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': authToken ? `Bearer ${authToken}` : ''
                 }
             });
 
@@ -30,11 +33,14 @@ const modulesService = {
     async getById(id) {
         try {
             const token = localStorage.getItem('token');
+            const employeeToken = localStorage.getItem('employeeToken');
+            const authToken = token || employeeToken;
+            
             const response = await fetch(`${API_URL}/modules/${id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': authToken ? `Bearer ${authToken}` : ''
                 }
             });
 

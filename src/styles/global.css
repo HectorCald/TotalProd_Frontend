@@ -15,7 +15,7 @@
   -ms-user-select: none;     /* Para IE/Edge antiguos */
 }
 
-body {
+body, html {
   font-family: 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

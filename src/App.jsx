@@ -8,18 +8,37 @@ import Loading from './components/common/LoadingSpinner';
 import { UserProvider, useUser } from './context/UserContext';
 import { EmployeeProvider, useEmployee } from './context/EmployeeContext';
 import SeleccionarSucursal from './components/views/sucursales/SeleccionarSucursal';
-import personalService from './services/personalService';
+
 
 function App() {
-  const [hasToken, setHasToken] = useState(null);
-  const [hasEmployeeToken, setHasEmployeeToken] = useState(null);
+  const [token, setToken] = useState(null);
+  const [tokenType, setTokenType] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const employeeToken = localStorage.getItem('employeeToken');
-    setHasToken(!!token);
-    setHasEmployeeToken(!!employeeToken);
+    const storedToken = localStorage.getItem('token');
+    
+    if (storedToken) {
+      try {
+        // Decodificar token para obtener el tipo
+        const base64Url = storedToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const decoded = JSON.parse(jsonPayload);
+        
+        setToken(storedToken);
+        setTokenType(decoded.type);
+      } catch (error) {
+        console.error('Error al decodificar token:', error);
+        setToken(null);
+        setTokenType(null);
+      }
+    } else {
+      setToken(null);
+      setTokenType(null);
+    }
 
     // Cargar tema guardado
     const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -32,61 +51,96 @@ function App() {
     }
 
     document.documentElement.setAttribute('data-theme', themeToApply);
+    setLoading(false);
   }, []);
-
-  // Si aún está cargando, mostrar loading
-  if (hasToken === null && hasEmployeeToken === null) {
-    return <div>Cargando...</div>;
-  }
 
   return (
     <UserProvider>
       <EmployeeProvider>
-        <AppContent hasToken={hasToken} hasEmployeeToken={hasEmployeeToken} />
+        <AppContent token={token} tokenType={tokenType} />
       </EmployeeProvider>
     </UserProvider>
   );
 }
 
-function AppContent({ hasToken, hasEmployeeToken }) {
-  const { user, sucursalSeleccionada: userSucursal, loading, seleccionarSucursal } = useUser();
-  const { employee, sucursalSeleccionada: employeeSucursal, loading: employeeLoading, updateEmployee } = useEmployee();
+function AppContent({ token, tokenType }) {
+  const { user, sucursalSeleccionada: userSucursal, loading, seleccionarSucursal, loadUserData } = useUser();
+  const { employee, sucursalSeleccionada: employeeSucursal, loading: employeeLoading, loadEmployeeData } = useEmployee();
   const [showSucursalModal, setShowSucursalModal] = useState(false);
+  const [userDataFetched, setUserDataFetched] = useState(false);
   const [employeeDataFetched, setEmployeeDataFetched] = useState(false);
   
+  // Determinar si hay una sesión activa
+  const hasActiveSession = !!token;
+  const isUserSession = tokenType === 'user';
+  const isEmployeeSession = tokenType === 'employee';
+
   // Determinar la sucursal seleccionada según el tipo de sesión
-  const sucursalSeleccionada = hasEmployeeToken ? employeeSucursal : userSucursal;
+  const sucursalSeleccionada = isEmployeeSession ? employeeSucursal : userSucursal;
 
   // Mostrar modal de sucursal si el usuario está cargado pero no hay sucursal seleccionada
   // Solo para usuarios normales, no para empleados
   useEffect(() => {
-    if (hasToken && user && !loading && !sucursalSeleccionada && !hasEmployeeToken) {
+    if (isUserSession && user && !sucursalSeleccionada) {
       setShowSucursalModal(true);
     }
-  }, [hasToken, user, loading, sucursalSeleccionada, hasEmployeeToken]);
+  }, [isUserSession, user, sucursalSeleccionada]);
 
   const handleSucursalSeleccionada = (sucursal) => {
     seleccionarSucursal(sucursal);
     setShowSucursalModal(false);
   };
 
-  // Determinar si hay una sesión activa (usuario o empleado)
-  const hasActiveSession = (hasToken && user) || (hasEmployeeToken && employee);
-  const isUserSession = hasToken && user;
-  const isEmployeeSession = hasEmployeeToken && employee;
+  // Obtener datos completos del usuario desde la base de datos solo una vez al cargar
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (isUserSession && !userDataFetched) {
+        try {
+          if (token) {
+            // Decodificar token para obtener ID
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const decoded = JSON.parse(jsonPayload);
+            
+            if (decoded && decoded.id && decoded.type === 'user') {
+              console.log('🔍 Obteniendo datos completos del usuario desde BD...');
+              await loadUserData(decoded.id);
+              setUserDataFetched(true);
+              console.log('✅ Datos del usuario obtenidos');
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error al obtener datos del usuario:', error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [isUserSession, userDataFetched, loadUserData, token]);
 
   // Obtener datos completos del empleado desde la base de datos solo una vez al cargar
   useEffect(() => {
     const fetchEmployeeData = async () => {
-      if (hasEmployeeToken && employee && employee.id) {
+      if (isEmployeeSession && !employeeDataFetched) {
         try {
-          console.log('🔍 Obteniendo datos completos del empleado desde BD...');
-          const result = await personalService.getById(employee.id);
-          if (result.success) {
-            console.log('✅ Datos del empleado obtenidos:', result.data);
-            await updateEmployee(result.data);
-          } else {
-            console.error('❌ Error al obtener datos del empleado:', result.message);
+          if (token) {
+            // Decodificar token para obtener ID del empleado
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const decoded = JSON.parse(jsonPayload);
+            
+            if (decoded && decoded.id && decoded.type === 'employee') {
+              console.log('🔍 Obteniendo datos completos del empleado desde BD...');
+              await loadEmployeeData(decoded.id);
+              setEmployeeDataFetched(true);
+              console.log('✅ Datos del empleado obtenidos');
+            }
           }
         } catch (error) {
           console.error('❌ Error al obtener datos del empleado:', error);
@@ -95,7 +149,7 @@ function AppContent({ hasToken, hasEmployeeToken }) {
     };
 
     fetchEmployeeData();
-  }, [hasEmployeeToken, employee?.id]); // Solo cuando cambie el token o el ID del empleado
+  }, [isEmployeeSession, employeeDataFetched, loadEmployeeData, token]);
 
   return (
     <div className="App">
@@ -114,9 +168,7 @@ function AppContent({ hasToken, hasEmployeeToken }) {
           <Route
             path="/"
             element={
-              (loading || employeeLoading) ? (
-                <Loading iconName='cog' />
-              ) : !hasActiveSession ? (
+              !hasActiveSession ? (
                 <Navigate to="/login" replace />
               ) : isEmployeeSession ? (
                 <HomeEmpleado />
@@ -128,7 +180,7 @@ function AppContent({ hasToken, hasEmployeeToken }) {
         </Routes>
 
         {/* Modal de selección de sucursal - solo para usuarios normales */}
-        {isUserSession && (
+        {isUserSession && user && (
           <SeleccionarSucursal
             isOpen={showSucursalModal}
             setIsOpen={setShowSucursalModal}

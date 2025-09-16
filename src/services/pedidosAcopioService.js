@@ -4,23 +4,21 @@ const API_BASE_URL = API_CONFIG.getBaseURL();
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
-  const employeeToken = localStorage.getItem('employeeToken');
-  const authToken = token || employeeToken;
   return {
     'Content-Type': 'application/json',
-    'Authorization': authToken ? `Bearer ${authToken}` : ''
+    'Authorization': token ? `Bearer ${token}` : ''
   };
 };
 
-// Función helper para obtener personal_id del employeeToken
+// Función helper para obtener personal_id del token
 const getPersonalId = () => {
-  const employeeToken = localStorage.getItem('employeeToken');
-  if (employeeToken) {
+  const token = localStorage.getItem('token');
+  if (token) {
     try {
-      const payload = JSON.parse(atob(employeeToken.split('.')[1]));
+      const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.id;
     } catch (error) {
-      console.error('Error parsing employeeToken:', error);
+      console.error('Error parsing token:', error);
     }
   }
   return null;
@@ -28,20 +26,6 @@ const getPersonalId = () => {
 
 // Función helper para obtener empresa_id
 const getEmpresaId = () => {
-  // Primero verificar si es empleado
-  const employeeToken = localStorage.getItem('employeeToken');
-  if (employeeToken) {
-    try {
-      const payload = JSON.parse(atob(employeeToken.split('.')[1]));
-      if (payload.empresa_id) {
-        return payload.empresa_id;
-      }
-    } catch (error) {
-      console.error('Error parsing employeeToken for empresa:', error);
-    }
-  }
-  
-  // Si no es empleado, usar localStorage
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {
     const parsed = JSON.parse(sucursalSeleccionada);

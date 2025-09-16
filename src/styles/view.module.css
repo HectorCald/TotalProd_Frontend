@@ -68,6 +68,7 @@
     padding-top: 50px;
     height: calc(100vh - 80px);
     overflow-y: auto;
+    background-color: var(--secondary-color);
 }
 
 

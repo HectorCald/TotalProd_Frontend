@@ -3,23 +3,35 @@ import styles from './Nav.module.css';
 import { BoxIcon } from 'boxicons-react';
 import Usuario from '../views/usuario/Usuario';
 import { useUser } from '../../context/UserContext';
+import { useEmployee } from '../../context/EmployeeContext';
 import SeleccionarSucursal from '../views/sucursales/SeleccionarSucursal';
 
 const Nav = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isSucursalOpen, setIsSucursalOpen] = useState(false);
-    const { sucursalSeleccionada, user, seleccionarSucursal } = useUser();
+    const { sucursalSeleccionada: userSucursal, user, seleccionarSucursal } = useUser();
+    const { sucursalSeleccionada: employeeSucursal, employee } = useEmployee();
+    
+    // Determinar qué datos usar según el tipo de sesión
+    const isEmployee = !!employee;
+    const sucursalSeleccionada = isEmployee ? employeeSucursal : userSucursal;
+    const currentUser = isEmployee ? employee : user;
 
     const handleOpen = () => {
         setIsOpen(!isOpen);
     }
 
     const handleSucursalClick = () => {
-        setIsSucursalOpen(true);
+        // Solo permitir cambio de sucursal para usuarios normales, no empleados
+        if (!isEmployee) {
+            setIsSucursalOpen(true);
+        }
     }
 
     const handleSucursalSeleccionada = (sucursal) => {
-        seleccionarSucursal(sucursal);
+        if (!isEmployee) {
+            seleccionarSucursal(sucursal);
+        }
         setIsSucursalOpen(false);
     }
 
@@ -40,11 +52,11 @@ const Nav = () => {
                 </button>
             </div>
             <Usuario isOpen={isOpen} setIsOpen={setIsOpen}/>
-            {user && (
+            {currentUser && !isEmployee && (
                 <SeleccionarSucursal
                     isOpen={isSucursalOpen}
                     setIsOpen={setIsSucursalOpen}
-                    empresaId={user.empresa_id}
+                    empresaId={currentUser.empresa_id}
                     onSucursalSeleccionada={handleSucursalSeleccionada}
                     canClose={true}
                 />

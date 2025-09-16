@@ -4,23 +4,21 @@ const API_BASE_URL = API_CONFIG.getBaseURL();
 
 // Función helper para obtener el token de autorización
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  const employeeToken = localStorage.getItem('employeeToken');
-  const authToken = token || employeeToken;
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': authToken ? `Bearer ${authToken}` : ''
-  };
+    const token = localStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+    };
 };
 
-// Función helper para obtener empresa_id del localStorage
+// Función helper para obtener empresa_id
 const getEmpresaId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.empresas?.id;
-  }
-  return null;
+    const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+    if (sucursalSeleccionada) {
+        const parsed = JSON.parse(sucursalSeleccionada);
+        return parsed.empresas?.id;
+    }
+    return null;
 };
 
 const sucursalesService = {
@@ -30,7 +28,7 @@ const sucursalesService = {
             // Si se pasa empresaId como parámetro, usarlo; si no, intentar obtenerlo del localStorage
             const empresaId = empresaIdParam || getEmpresaId();
             console.log('🔍 sucursalesService - empresaId obtenido:', empresaId);
-            
+
             if (!empresaId) {
                 console.log('❌ sucursalesService - No hay empresa seleccionada');
                 return {
@@ -46,7 +44,7 @@ const sucursalesService = {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
                 if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
@@ -71,7 +69,7 @@ const sucursalesService = {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.message || 'Error al obtener la sucursal');
             }
@@ -104,7 +102,7 @@ const sucursalesService = {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
                 if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
@@ -130,7 +128,7 @@ const sucursalesService = {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
                 if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
@@ -155,7 +153,7 @@ const sucursalesService = {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
                 if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {

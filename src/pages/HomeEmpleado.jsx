@@ -13,7 +13,7 @@ import AlmacenAcopio from '../components/views/almacen-acopio/AlmacenAcopio';
 import AtajoAnuncio from '../components/common/AtajoAnuncio';
 import ViewModal from '../components/ui/ViewModal';
 import HeaderModal from '../components/common/HeaderModal';
-import Movimientos from '../components/views/movimientos/PanelMovimientos';
+import PanelMovimientos from '../components/views/movimientos/PanelMovimientos';
 import Pedidos from '../components/views/pedidos/PanelPedidos';
 import Precios from '../components/views/precios/Precios';
 import Clientes from '../components/views/clientes/Clientes';
@@ -21,11 +21,10 @@ import Proveedores from '../components/views/proveedores/Proveedores';
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, refreshEmployeeData } = useEmployee();
     const [activeScreen, setActiveScreen] = useState('inicio');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalComponent, setModalComponent] = useState(null);
-    const [modalProps, setModalProps] = useState({});
     const [showModuleOptions, setShowModuleOptions] = useState(false);
     const [selectedModule, setSelectedModule] = useState(null);
+    const [currentSubModule, setCurrentSubModule] = useState(null);
+    const [isSubModuleOpen, setIsSubModuleOpen] = useState(false);
 
     if (loading || !employee) {
         return <LoadingSpinner />;
@@ -46,12 +45,13 @@ const HomeEmpleado = () => {
 
     // Manejar click en submodule
     const handleSubModuleClick = (submodule) => {
-
+        console.log('🔍 HomeEmpleado - Click en submódulo:', submodule);
+        console.log('🔍 HomeEmpleado - Employee sucursal_id:', employee?.sucursal_id);
+        console.log('🔍 HomeEmpleado - Sucursal seleccionada:', sucursalSeleccionada);
         if (submodule.component) {
-            setModalComponent(submodule.component);
-            setModalProps(submodule.props || {});
-            setIsModalOpen(true);
-            setShowModuleOptions(false); // Cerrar modal de opciones
+            setCurrentSubModule(submodule);
+            setIsSubModuleOpen(true);
+            // NO cerrar el ViewModal de opciones
         } else {
             console.log('⚠️ No hay componente definido para este submódulo');
         }
@@ -102,69 +102,27 @@ const HomeEmpleado = () => {
         }
     };
 
-    // Función para renderizar el componente modal dinámicamente
-    const renderModalComponent = () => {
-        if (!modalComponent) return null;
+    // Función para renderizar el componente del submódulo dinámicamente
+    const renderSubModuleComponent = () => {
+        if (!currentSubModule || !currentSubModule.component || !isSubModuleOpen) return null;
 
-        switch (modalComponent) {
+        switch (currentSubModule.component) {
             case 'AlmacenGeneral':
-                return (
-                    <AlmacenGeneral
-                        isOpen={isModalOpen}
-                        setIsOpen={setIsModalOpen}
-                        {...modalProps}
-                    />
-                );
+                return <AlmacenGeneral isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'AlmacenAcopio':
-                return (
-                    <AlmacenAcopio
-                        isOpen={isModalOpen}
-                        setIsOpen={setIsModalOpen}
-                        {...modalProps}
-                    />
-                );
+                return <AlmacenAcopio isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Movimientos':
-                return (
-                    <Movimientos
-                        isOpen={isModalOpen}
-                        setIsOpen={setIsModalOpen}
-                        {...modalProps}
-                    />
-                );
+                return <PanelMovimientos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoMovimiento={currentSubModule.props?.tipo} />;
             case 'Pedidos':
-                return (
-                    <Pedidos
-                        isOpen={isModalOpen}
-                        setIsOpen={setIsModalOpen}
-                        {...modalProps}
-                    />
-                );
+                return <Pedidos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Precios':
-                return (
-                    <Precios
-                        isOpen={isModalOpen}
-                        setIsOpen={setIsModalOpen}
-                        {...modalProps}
-                    />
-                );
+                return <Precios isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Clientes':
-                return (
-                    <Clientes
-                        isOpen={isModalOpen}
-                        setIsOpen={setIsModalOpen}
-                        {...modalProps}
-                    />
-                );
+                return <Clientes isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Proveedores':
-                return (
-                    <Proveedores
-                        isOpen={isModalOpen}
-                        setIsOpen={setIsModalOpen}
-                        {...modalProps}
-                    />
-                );
+                return <Proveedores isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             default:
-                console.log('⚠️ Componente no encontrado:', modalComponent);
+                console.log('⚠️ Componente no encontrado:', currentSubModule.component);
                 return null;
         }
     };
@@ -180,7 +138,11 @@ const HomeEmpleado = () => {
                 <ViewModal isOpen={showModuleOptions} setIsOpen={setShowModuleOptions}>
                     <HeaderModal
                         title={selectedModule.name}
-                        onClose={() => setShowModuleOptions(false)}
+                        onClose={() => {
+                            setShowModuleOptions(false);
+                            setCurrentSubModule(null);
+                            setIsSubModuleOpen(false);
+                        }}
                     />
                     <div className={styles.modalContent}>
                         {selectedModule.submodules.map((submodule, index) => (
@@ -194,11 +156,10 @@ const HomeEmpleado = () => {
                             />
                         ))}
                     </div>
+                    {/* Renderizar componentes dentro del modal como en AlmacenMedioGeneral.jsx */}
+                    {renderSubModuleComponent()}
                 </ViewModal>
             )}
-
-            {/* Modal dinámico */}
-            {renderModalComponent()}
         </div>
     );
 };

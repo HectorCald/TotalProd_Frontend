@@ -11,7 +11,7 @@ const getAuthHeaders = () => {
   };
 };
 
-// Función helper para obtener sucu_id del localStorage
+// Función helper para obtener sucu_id
 const getSucuId = () => {
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {

@@ -7,10 +7,8 @@ import Boton from '../../common/Boton';
 import MensajeError from '../../common/MensajeError';
 import ItemView from '../../common/ItemView';
 import personalService from '../../../services/personalService';
-import { useEmployee } from '../../../context/EmployeeContext';
 
 function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
-    const { loginEmployee } = useEmployee();
     const [step, setStep] = useState(1); // 1: código, 2: contraseña
     const [codigo, setCodigo] = useState('');
     const [password, setPassword] = useState('');
@@ -113,16 +111,9 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
             const response = await personalService.loginEmployee(codigo, password);
             
             if (response.success) {
-                // Usar el contexto de empleado para el login
-                const loginResult = await loginEmployee(response.data.personal, response.data.token);
-                
-                if (loginResult.success) {
-                    onLoginSuccess(response.data);
-                    setIsOpen(false);
-                } else {
-                    setErrorMessage('Error al iniciar sesión');
-                    setTimeout(() => setErrorMessage(''), 3000);
-                }
+                // El token ya se guardó en personalService.loginEmployee
+                onLoginSuccess(response.data);
+                setIsOpen(false);
             } else {
                 setErrorMessage(response.message || 'Credenciales incorrectas');
                 setTimeout(() => setErrorMessage(''), 3000);

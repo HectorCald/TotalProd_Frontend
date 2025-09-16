@@ -5,23 +5,21 @@ const API_BASE_URL = API_CONFIG.getBaseURL();
 // Función helper para obtener el token de autorización
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
-  const employeeToken = localStorage.getItem('employeeToken');
-  const authToken = token || employeeToken;
   return {
     'Content-Type': 'application/json',
-    'Authorization': authToken ? `Bearer ${authToken}` : ''
+    'Authorization': token ? `Bearer ${token}` : ''
   };
 };
 
-// Función helper para obtener personal_id del employeeToken
+// Función helper para obtener personal_id del token
 const getPersonalId = () => {
-  const employeeToken = localStorage.getItem('employeeToken');
-  if (employeeToken) {
+  const token = localStorage.getItem('token');
+  if (token) {
     try {
-      const payload = JSON.parse(atob(employeeToken.split('.')[1]));
+      const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.id;
     } catch (error) {
-      console.error('Error parsing employeeToken:', error);
+      console.error('Error parsing token:', error);
     }
   }
   return null;
@@ -29,20 +27,6 @@ const getPersonalId = () => {
 
 // Función helper para obtener sucu_id
 const getSucuId = () => {
-  // Primero verificar si es empleado
-  const employeeToken = localStorage.getItem('employeeToken');
-  if (employeeToken) {
-    try {
-      const payload = JSON.parse(atob(employeeToken.split('.')[1]));
-      if (payload.sucursal_id) {
-        return payload.sucursal_id;
-      }
-    } catch (error) {
-      console.error('Error parsing employeeToken for sucursal:', error);
-    }
-  }
-  
-  // Si no es empleado o no tiene sucursal, usar localStorage
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {
     const parsed = JSON.parse(sucursalSeleccionada);
@@ -191,6 +175,7 @@ class movimientosAcopioService {
   static async getAll(page = 1, limit = 20, tipo = null, ordenamiento = 'fecha_desc') {
     try {
       const sucuId = getSucuId();
+      console.log('🔍 movimientosAcopioService - sucuId obtenido:', sucuId);
       if (!sucuId) {
         return {
           success: false,

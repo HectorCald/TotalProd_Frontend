@@ -14,61 +14,7 @@ export const useUser = () => {
 export const UserProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [sucursalSeleccionada, setSucursalSeleccionada] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    // Cargar usuario al inicializar
-    useEffect(() => {
-        const loadUser = async () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    // Decodificar token para obtener ID
-                    const base64Url = token.split('.')[1];
-                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                    }).join(''));
-                    const decoded = JSON.parse(jsonPayload);
-                    
-                    if (decoded && decoded.id) {
-                        // Si es un token de empleado, no cargar usuario normal
-                        if (decoded.type === 'employee') {
-                            console.log('Token de empleado detectado, no cargar usuario normal');
-                            setLoading(false);
-                            return;
-                        }
-                        
-                        const userData = await UserService.getCurrentUser(decoded.id);
-                        if (userData.success) {
-                            setUser(userData.data.user);
-                        } else {
-                            // Si no se pudo obtener el usuario, limpiar todo y redirigir
-                            console.error('No se pudo obtener el usuario:', userData.error);
-                            clearUserAndRedirect();
-                        }
-                    } else {
-                        // Token inválido, limpiar todo y redirigir
-                        console.error('Token inválido');
-                        clearUserAndRedirect();
-                    }
-                } catch (error) {
-                    console.error('Error al cargar usuario:', error);
-                    clearUserAndRedirect();
-                }
-            }
-            setLoading(false);
-        };
-
-        // Función para limpiar usuario y redirigir
-        const clearUserAndRedirect = () => {
-            setUser(null);
-            setSucursalSeleccionada(null);
-            localStorage.clear(); // Limpiar todo el localStorage
-            // No redirigir aquí, dejar que App.jsx maneje la navegación
-        };
-
-        loadUser();
-    }, []);
+    const [loading, setLoading] = useState(false);
 
     // Cargar sucursal seleccionada al inicializar
     useEffect(() => {
@@ -83,20 +29,6 @@ export const UserProvider = ({ children }) => {
         }
     }, []);
 
-    // Función para actualizar usuario
-    const updateUser = async () => {
-        if (user?.id) {
-            try {
-                const userData = await UserService.getCurrentUser(user.id);
-                if (userData.success) {
-                    setUser(userData.data.user);
-                }
-            } catch (error) {
-                console.error('Error al actualizar usuario:', error);
-            }
-        }
-    };
-
     // Función para limpiar usuario (logout)
     const clearUser = () => {
         setUser(null);
@@ -110,13 +42,30 @@ export const UserProvider = ({ children }) => {
         localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
     };
 
+    // Función para cargar datos completos del usuario
+    const loadUserData = async (userId) => {
+        try {
+            const userData = await UserService.getCurrentUser(userId);
+            if (userData.success) {
+                setUser(userData.data.user);
+                return { success: true, data: userData.data.user };
+            } else {
+                console.error('No se pudo obtener el usuario:', userData.error);
+                return { success: false, error: userData.error };
+            }
+        } catch (error) {
+            console.error('Error al cargar datos del usuario:', error);
+            return { success: false, error: error.message };
+        }
+    };
+
     const value = {
         user,
         sucursalSeleccionada,
         loading,
-        updateUser,
         clearUser,
-        seleccionarSucursal
+        seleccionarSucursal,
+        loadUserData
     };
 
     return (

@@ -4,8 +4,10 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
 import sucursalesService from '../../../services/sucursalesService';
+import { useUser } from '../../../context/UserContext';
 
 function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccionada, canClose = true }) {
+    const { seleccionarSucursal } = useUser();
     const [sucursales, setSucursales] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -36,8 +38,8 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
     };
 
     const handleSeleccionarSucursal = (sucursal) => {
-        // Guardar sucursal seleccionada en localStorage
-        localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
+        // Guardar sucursal seleccionada en el contexto global
+        seleccionarSucursal(sucursal);
         
         // Notificar al componente padre
         if (onSucursalSeleccionada) {
