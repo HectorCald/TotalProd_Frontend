@@ -108,7 +108,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                 <div className={styles.content}>
                     <Dato
                         label="Tipo"
-                        value={movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}
+                        value={movimiento?.tipo === 'entrada' ? 'Entrada' : 'Salida'}
                     />
                     <Dato
                         label="Estado"
@@ -136,13 +136,13 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                         value={new Date(tipoMovimiento === 'acopio' ? movimiento?.date : movimiento?.fecha).toLocaleString()}
                     />
 
-                    {movimiento?.type === 'entrada' && movimiento?.proveedor?.name && (
+                    {movimiento?.tipo === 'entrada' && movimiento?.proveedor?.name && (
                         <Dato
                             label="Proveedor"
                             value={movimiento.proveedor.name}
                         />
                     )}
-                    {movimiento?.type === 'salida' && movimiento?.cliente?.name && (
+                    {movimiento?.tipo === 'salida' && movimiento?.cliente?.name && (
                         <Dato
                             label="Cliente"
                             value={movimiento.cliente.name}
