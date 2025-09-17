@@ -14,7 +14,7 @@ import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import pricesTypesService from '../../../services/pricesTypesService';
 import PantallaExito from '../../common/PantallaExito';
 
-function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated }) {
+function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, pedidoId = null, onPedidoActualizado = null }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false);
@@ -154,8 +154,14 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 }))
             };
 
-            // Enviar al backend
-            const response = await pedidosAlmacenService.create(pedidoData);
+            let response;
+            if (pedidoId) {
+                // Actualizar pedido existente
+                response = await pedidosAlmacenService.update(pedidoId, pedidoData);
+            } else {
+                // Crear nuevo pedido
+                response = await pedidosAlmacenService.create(pedidoData);
+            }
 
             if (response.success) {
                 // Guardar datos del pedido para mostrar en pantalla de éxito
@@ -168,6 +174,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     medida: '' // No usar medida aquí ya que está incluida en cantidad
                 })));
 
+                // Si es una actualización, notificar al componente padre
+                if (pedidoId && onPedidoActualizado) {
+                    onPedidoActualizado(response.data);
+                }
+
                 // Limpiar la canasta inmediatamente al mostrar éxito
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
@@ -178,7 +189,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 // Mostrar pantalla de éxito
                 setIsExitoOpen(true);
             } else {
-                console.error('Error al crear pedido:', response.message);
+                console.error('Error al procesar pedido:', response.message);
                 // Aquí podrías mostrar una notificación de error
             }
 
@@ -328,7 +339,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         <div className={styles.buttons}>
                             <Boton
                                 className='btn-original'
-                                label='Resumen de Pedido'
+                                label={pedidoId ? 'Resumen de Actualización' : 'Resumen de Pedido'}
                                 onClick={() => setIsConfirmarModalOpen(true)}
                             />
                         </div>
@@ -368,7 +379,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             {/* Modal de confirmar pedido */}
             <ViewModal isOpen={isConfirmarModalOpen} setIsOpen={setIsConfirmarModalOpen}>
                 <HeaderModal
-                    title="Resumen de Pedido"
+                    title={pedidoId ? "Resumen de Actualización" : "Resumen de Pedido"}
                     onClose={() => setIsConfirmarModalOpen(false)}
                 />
                 <div className={styles.modalContent}>
@@ -403,7 +414,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-original'
-                            label='Confirmar Pedido'
+                            label={pedidoId ? 'Actualizar Pedido' : 'Confirmar Pedido'}
                             onClick={handleConfirmarPedido}
                             loading={loadingConfirmar}
                         />
@@ -415,8 +426,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             <PantallaExito
                 isOpen={isExitoOpen}
                 setIsOpen={setIsExitoOpen}
-                titulo="¡Pedido Creado!"
-                descripcion="Tu pedido ha sido creado correctamente y está pendiente de procesamiento."
+                titulo={pedidoId ? "¡Pedido Actualizado!" : "¡Pedido Creado!"}
+                descripcion={pedidoId ? "Tu pedido ha sido actualizado correctamente." : "Tu pedido ha sido creado correctamente y está pendiente de procesamiento."}
                 datosPedido={datosParaExito}
                 totalGeneral={datosParaExito.reduce((total, item) => {
                     // Extraer el precio del texto de cantidad

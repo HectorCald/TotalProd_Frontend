@@ -19,7 +19,7 @@ import EditarAgregarCliente from '../clientes/EditarAgregar';
 import PantallaExito from '../../common/PantallaExito';
 import Switch from '../../common/Switch';
 
-function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated }) {
+function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated, esEntrega = false }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false);
@@ -122,10 +122,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
     }, [isOpen, tipoMovimiento]);
 
-    // Cargar clientes (solo para salidas)
+    // Cargar clientes (solo para salidas normales)
     useEffect(() => {
         const loadClientes = async () => {
-            if (tipoMovimiento !== 'salida') return;
+            if (tipoMovimiento !== 'salida' || esEntrega) return;
             
             setLoadingClientes(true);
             setClientesError('');
@@ -150,10 +150,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             }
         };
 
-        if (isOpen && tipoMovimiento === 'salida') {
+        if (isOpen && tipoMovimiento === 'salida' && !esEntrega) {
             loadClientes();
         }
-    }, [isOpen, tipoMovimiento]);
+    }, [isOpen, tipoMovimiento, esEntrega]);
+
 
     // Guardar en localStorage cuando cambie la canasta (separado por tipo)
     useEffect(() => {
@@ -584,8 +585,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         </div>
                     )}
 
-                    {/* Selector de cliente para salidas */}
-                    {tipoMovimiento === 'salida' && (
+                    {/* Selector de cliente para salidas normales */}
+                    {tipoMovimiento === 'salida' && !esEntrega && (
                         <div className={styles.content} style={{ padding: '10px 15px' }}>
                             <Select
                                 value={clienteSeleccionado}
@@ -615,6 +616,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             )}
                         </div>
                     )}
+
 
                     {/* Selector de método de pago para salidas */}
                     {tipoMovimiento === 'salida' && (
@@ -657,7 +659,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-original'
-                            label={`Confirmar ${tipoMovimiento === 'entrada' ? 'Entradas' : 'Salidas'}`}
+                            label={esEntrega ? 'Entregar Pedido' : `Confirmar ${tipoMovimiento === 'entrada' ? 'Entradas' : 'Salidas'}`}
                             onClick={handleConfirmarMovimientos}
                             loading={loadingConfirmar}
                         />

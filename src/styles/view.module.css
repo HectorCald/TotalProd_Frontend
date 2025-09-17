@@ -34,7 +34,11 @@
         cursor: pointer;
     }
     .iconEdit {
-        color: var(--success-color) !important;
+        color: var(--info-color) !important;
+        cursor: pointer;
+    }
+    .iconDownload {
+        color: gray !important;
         cursor: pointer;
     }
 

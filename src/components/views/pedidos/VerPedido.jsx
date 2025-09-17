@@ -11,14 +11,28 @@ import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
 import Select from '../../common/Select';
+import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 
-function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado, onPedidoEliminado }) {
+function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado, onPedidoEliminado, onPedidoActualizado }) {
     const [loading, setLoading] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isCambiarEstadoOpen, setIsCambiarEstadoOpen] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [nuevoEstado, setNuevoEstado] = useState('');
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
+    const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
+    const [modoAlmacen, setModoAlmacen] = useState('pedido'); // 'pedido' o 'entregar'
+    const [productosParaAlmacen, setProductosParaAlmacen] = useState([]);
+
+    // Función para manejar cuando se actualiza un pedido
+    const handlePedidoActualizado = (pedidoActualizado) => {
+        if (onPedidoActualizado) {
+            onPedidoActualizado(pedidoActualizado);
+        }
+        // Cerrar todos los modales
+        setIsAlmacenOpen(false);
+        setIsOpen(false);
+    };
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -147,6 +161,73 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
         }
     };
 
+    // Función para editar pedido
+    const handleEditarPedido = () => {
+        if (!pedido || tipoPedido === 'acopio') {
+            mostrarNotificacion('error', 'Solo se pueden editar pedidos de almacén');
+            return;
+        }
+
+        // Limpiar completamente la canasta de pedidos en localStorage
+        localStorage.removeItem('canastaPedidos');
+        localStorage.removeItem('pedidoIdEditando');
+        
+        // Preparar los productos del pedido para la canasta
+        const productosParaCanasta = pedido.pedido_almacen_detalle?.map(detalle => ({
+            id: detalle.producto_almacen.id,
+            name: detalle.producto_almacen.name,
+            description: detalle.producto_almacen.description,
+            cantidad: detalle.cantidad,
+            precio: detalle.precio,
+            // No incluir medidaPedido ni observacionesPedido para pedidos de almacén
+            // Estos campos solo se usan para pedidos de acopio
+        })) || [];
+
+        // Guardar los productos y el ID del pedido en localStorage para que AlmacenGeneral los cargue
+        localStorage.setItem('canastaPedidos', JSON.stringify(productosParaCanasta));
+        localStorage.setItem('pedidoIdEditando', pedido.id);
+        
+        // Pasar los productos directamente como props
+        setProductosParaAlmacen(productosParaCanasta);
+        
+        // Abrir AlmacenGeneral en modo pedido
+        setModoAlmacen('pedido');
+        setIsAlmacenOpen(true);
+    };
+
+    // Función para entregar pedido
+    const handleEntregarPedido = () => {
+        if (!pedido || tipoPedido === 'acopio') {
+            mostrarNotificacion('error', 'Solo se pueden entregar pedidos de almacén');
+            return;
+        }
+
+        // Limpiar completamente la canasta de salidas en localStorage
+        localStorage.removeItem('canastaSalidas');
+        localStorage.removeItem('pedidoIdEntregando');
+        
+        // Preparar los productos del pedido para la canasta de salidas
+        const productosParaSalidas = pedido.pedido_almacen_detalle?.map(detalle => ({
+            id: detalle.producto_almacen.id,
+            name: detalle.producto_almacen.name,
+            description: detalle.producto_almacen.description,
+            cantidad: detalle.cantidad,
+            precio: detalle.precio,
+            stock: detalle.producto_almacen.stock || 0
+        })) || [];
+
+        // Guardar los productos y el ID del pedido en localStorage para que AlmacenGeneral los cargue
+        localStorage.setItem('canastaSalidas', JSON.stringify(productosParaSalidas));
+        localStorage.setItem('pedidoIdEntregando', pedido.id);
+        
+        // Pasar los productos directamente como props
+        setProductosParaAlmacen(productosParaSalidas);
+        
+        // Abrir AlmacenGeneral en modo salida
+        setModoAlmacen('entregar');
+        setIsAlmacenOpen(true);
+    };
+
 
     // Función para obtener los detalles del pedido
     const getDetallesPedido = () => {
@@ -198,12 +279,19 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                                 className={styles.iconTrash}
                             />
                         </button>
+                        <button className={styles.iconButton} onClick={handleEditarPedido}>
+                            <BoxIcon
+                                name='edit'
+                                className={styles.iconEdit}
+                            />
+                        </button>
                         <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
                             <BoxIcon
                                 name='download'
-                                className={styles.icon}
+                                className={styles.iconDownload}
                             />
                         </button>
+                        
                     </div>
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL PEDIDO</p>
@@ -215,7 +303,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                     <Dato
                         label="Estado"
                         value={pedido.estado}
-                        especial={pedido.estado === 'Cancelado' ? 'red' : pedido.estado === 'Completado' ? 'green' : 'orange'}
+                        especial={pedido.estado === 'Cancelado' ? 'red' : pedido.estado === 'Completado' ? 'green' : 'gray'}
                     />
                     <Dato
                         label="Fecha"
@@ -256,6 +344,10 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                         />
                     )}
                     <Dato
+                        label="Solicitado por"
+                        value={pedido.user?.name || pedido.personal?.name || 'Usuario desconocido'}
+                    />
+                    <Dato
                         label="Observaciones"
                         value={pedido.observaciones || 'Sin observaciones'}
                     />
@@ -273,17 +365,11 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                 )}
 
                 <div className={styles.buttons}>
-                    <div className={styles.horizontal}>
-                        <Boton
-                            className='btn-red'
-                            label='Rechazar'
-                        />
                         <Boton
                             className='btn-blue'
                             label='Entregar'
+                            onClick={handleEntregarPedido}
                         />
-                    </div>
-
                 </div>
             </div>
 
@@ -392,6 +478,15 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                 isVisible={notification.isVisible}
                 type={notification.type}
                 text={notification.text}
+            />
+
+            {/* Modal de AlmacenGeneral para editar pedido */}
+            <AlmacenGeneral
+                isOpen={isAlmacenOpen}
+                setIsOpen={setIsAlmacenOpen}
+                tipo={modoAlmacen === 'entregar' ? 'salida' : 'pedido'}
+                onPedidoActualizado={handlePedidoActualizado}
+                productosIniciales={productosParaAlmacen}
             />
 
         </View>

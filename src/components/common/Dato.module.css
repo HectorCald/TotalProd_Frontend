@@ -84,3 +84,10 @@
     color: white;
     font-weight: 600;
 }
+.gray {
+    background-color: var(--quinary-color);
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
+    font-weight: 600;
+}

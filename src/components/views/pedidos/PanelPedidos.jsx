@@ -151,6 +151,16 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         mostrarNotificacion('success', 'Pedido eliminado correctamente');
     };
 
+    // Función para manejar cuando se actualiza un pedido
+    const handlePedidoActualizado = (pedidoActualizado) => {
+        setPedidosData(prev => 
+            prev.map(pedido => 
+                pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido
+            )
+        );
+        mostrarNotificacion('success', 'Pedido actualizado correctamente');
+    };
+
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -178,16 +188,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         });
     };
 
-    // Función para obtener el color del estado
-    const getEstadoColor = (estado) => {
-        switch (estado) {
-            case 'Pendiente': return '#f39c12';
-            case 'En Proceso': return '#3498db';
-            case 'Completado': return '#27ae60';
-            case 'Cancelado': return '#e74c3c';
-            default: return '#95a5a6';
-        }
-    };
 
     // Función para obtener el nombre del ordenamiento
     const getOrdenamientoNombre = () => {
@@ -245,42 +245,11 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                             return (
                                 <ItemView
                                     key={pedido.id || index}
-                                    title={tipoPedido === 'acopio' 
-                                        ? `${pedido.producto_acopio?.name || 'Producto'} (${pedido.cantidad} ${pedido.tipo_medida})`
-                                        : `Pedido #${pedido.id.slice(-8)}`
-                                    }
-                                    subtitle={formatearFecha(pedido.fecha || pedido.created_at)}
-                                    description={tipoPedido === 'acopio' 
-                                        ? pedido.observaciones || 'Sin observaciones'
-                                        : pedido.observaciones || 'Sin observaciones'
-                                    }
+                                    title={pedido.user?.name || pedido.personal?.name || 'Usuario desconocido'}
+                                    description={formatearFecha(pedido.fecha || pedido.created_at)}
                                     icon="file"
                                     onClick={() => handleVerPedido(pedido)}
-                                    rightContent={
-                                        <div style={{ 
-                                            display: 'flex', 
-                                            flexDirection: 'column', 
-                                            alignItems: 'flex-end',
-                                            gap: '4px'
-                                        }}>
-                                            <span style={{
-                                                color: getEstadoColor(pedido.estado),
-                                                fontWeight: 'bold',
-                                                fontSize: '12px'
-                                            }}>
-                                                {pedido.estado}
-                                            </span>
-                                            <span style={{
-                                                fontSize: '11px',
-                                                color: '#666'
-                                            }}>
-                                                {tipoPedido === 'acopio' 
-                                                    ? `${pedido.cantidad} ${pedido.tipo_medida}`
-                                                    : pedido.pedido_almacen_detalle?.length || 0
-                                                } {tipoPedido === 'acopio' ? '' : 'productos'}
-                                            </span>
-                                        </div>
-                                    }
+                                    flot1={pedido.estado}
                                 />
                             );
                         })
@@ -307,6 +276,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 tipoPedido={tipoPedido}
                 onEstadoActualizado={handleActualizarEstado}
                 onPedidoEliminado={handlePedidoEliminado}
+                onPedidoActualizado={handlePedidoActualizado}
             />
 
             {/* Modal de ordenamiento*/}

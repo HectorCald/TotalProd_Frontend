@@ -126,6 +126,42 @@ class pedidosAlmacenService {
     }
   }
 
+  // Actualizar pedido completo
+  static async update(pedidoId, pedidoData) {
+    try {
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
+      // Obtener personal_id
+      const personalId = getPersonalId();
+
+      const response = await fetch(`${API_BASE_URL}/pedidos-almacen/${pedidoId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ...pedidoData,
+          empresa_id: empresaId,
+          personal_id: personalId
+        }),
+      });
+      
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en pedidosAlmacenService.update:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
   // Actualizar estado del pedido
   static async updateEstado(pedidoId, nuevoEstado) {
     try {

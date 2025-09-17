@@ -238,6 +238,38 @@ class movimientosAlmacenService {
       };
     }
   }
+
+  // Obtener movimientos por producto
+  static async getByProduct(productId) {
+    try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/product/${productId}?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en getByProduct:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
 }
 
 export default movimientosAlmacenService;

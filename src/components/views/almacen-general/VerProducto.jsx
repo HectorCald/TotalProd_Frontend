@@ -9,7 +9,7 @@ import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import productsAlmacenService from '../../../services/productsAlmacenService';
-import movimientosAcopioService from '../../../services/movimientosAcopioService';
+import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
@@ -41,7 +41,7 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
 
         movimientos.forEach(movement => {
             // Parsear la fecha correctamente (timestamp completo)
-            const movementDate = new Date(movement.date);
+            const movementDate = new Date(movement.fecha || movement.date);
             const movementDateOnly = new Date(movementDate.getFullYear(), movementDate.getMonth(), movementDate.getDate());
             const diffTime = todayOnly - movementDateOnly;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -62,8 +62,8 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         // Ordenar movimientos dentro de cada grupo por timestamp (más reciente primero)
         Object.keys(groups).forEach(groupKey => {
             groups[groupKey].sort((a, b) => {
-                const dateA = new Date(a.date);
-                const dateB = new Date(b.date);
+                const dateA = new Date(a.fecha || a.date);
+                const dateB = new Date(b.fecha || b.date);
                 return dateB - dateA; // Orden descendente (más reciente primero)
             });
         });
@@ -79,7 +79,7 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
             if (registro?.id && isOpen) {
                 setLoadingMovimientosList(true);
                 try {
-                    const response = await movimientosAcopioService.getByProduct(registro.id);
+                    const response = await movimientosAlmacenService.getByProduct(registro.id);
                     if (response.success) {
                         // Limitar a los últimos 10 movimientos
                         const limitedMovements = (response.data || []).slice(0, 10);
@@ -212,24 +212,30 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                 }}>
                                     {dateGroup}
                                 </p>
-                                {groupMovements.map((movimiento, index) => (
-                                    <ItemView
-                                        key={movimiento.id || index}
-                                        title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${movimiento.quantity} ${registro?.type_measure?.code || ''}`}
-                                        description={
-                                            <div>
-                                                <div>{movimiento.observations || 'Sin observaciones'}</div>
-                                                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                                    {new Date(movimiento.date).toLocaleDateString()}
-                                                    {movimiento.type === 'entrada' && movimiento.proveedor?.name && ` • ${movimiento.proveedor.name}`}
-                                                    {movimiento.type === 'salida' && movimiento.cliente?.name && ` • ${movimiento.cliente.name}`}
+                                {groupMovements.map((movimiento, index) => {
+                                    // Para movimientos de almacén, obtener la cantidad del producto específico
+                                    const productoMovimiento = movimiento.productos?.find(p => p.producto?.id === registro?.id);
+                                    const cantidad = productoMovimiento?.cantidad || 0;
+                                    
+                                    return (
+                                        <ItemView
+                                            key={movimiento.id || index}
+                                            title={`${movimiento.tipo === 'entrada' ? 'Entrada' : 'Salida'} - ${cantidad} ud`}
+                                            description={
+                                                <div>
+                                                    <div>{movimiento.observaciones || 'Sin observaciones'}</div>
+                                                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                                        {new Date(movimiento.fecha).toLocaleDateString()}
+                                                        {movimiento.tipo === 'entrada' && movimiento.proveedor?.name && ` • ${movimiento.proveedor.name}`}
+                                                        {movimiento.tipo === 'salida' && movimiento.cliente?.name && ` • ${movimiento.cliente.name}`}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        }
-                                        icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
-                                        arrow={false}
-                                    />
-                                ))}
+                                            }
+                                            icon={movimiento.tipo === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                                            arrow={false}
+                                        />
+                                    );
+                                })}
                             </div>
                         ))
                     ) : (
@@ -257,7 +263,7 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                 setLoading(true);
                                 try {
                                     // Verificar si tiene movimientos
-                                    const movimientosResponse = await movimientosAcopioService.getByProduct(registro.id);
+                                    const movimientosResponse = await movimientosAlmacenService.getByProduct(registro.id);
                                     const tieneMovimientos = movimientosResponse.success && movimientosResponse.data && movimientosResponse.data.length > 0;
 
                                     // Verificar si tiene pedidos

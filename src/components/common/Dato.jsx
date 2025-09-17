@@ -7,7 +7,7 @@ function Dato({ label, value, icon, onClick, especial }) {
             
             <div className={styles.content}>
                 <span className={styles.label}>{label}</span>
-                {value && <span className={`${styles.value} ${especial? especial==='green' ? styles.green : especial==='red' ? styles.red:styles.orange:''}`} >{value}</span>}
+                {value && <span className={`${styles.value} ${especial ? styles[especial] || '' : ''}`} >{value}</span>}
             </div>
             {icon && (
                 <button className={styles.iconButton} onClick={onClick}>

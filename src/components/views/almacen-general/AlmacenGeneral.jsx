@@ -31,8 +31,8 @@ const medidas = [
     { value: 'libra', label: 'Libras', icon: 'tag' },
 ];
 
-function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
-    
+function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, productosIniciales = [] }) {
+
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
@@ -48,7 +48,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
     const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
-    
+
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
@@ -89,35 +89,76 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
     // Estados para canasta de pedidos
     const [productosCanasta, setProductosCanasta] = useState([]);
     const [isCanastaOpen, setIsCanastaOpen] = useState(false);
+    const [pedidoIdEditando, setPedidoIdEditando] = useState(null);
 
     // Estados para canasta de movimientos (entradas y salidas separadas)
     const [productosCanastaEntradas, setProductosCanastaEntradas] = useState([]);
     const [productosCanastaSalidas, setProductosCanastaSalidas] = useState([]);
     const [isCanastaMovimientosOpen, setIsCanastaMovimientosOpen] = useState(false);
 
-        // Cargar canasta de entradas
-        useEffect(() => {
-            const canastaEntradasGuardada = localStorage.getItem('canastaEntradas');
-            if (canastaEntradasGuardada) {
-                try {
-                    setProductosCanastaEntradas(JSON.parse(canastaEntradasGuardada));
-                } catch (error) {
-                    console.error('Error al cargar canasta de entradas desde localStorage:', error);
-                    localStorage.removeItem('canastaEntradas');
-                }
+    // Cargar todas las canastas desde localStorage al inicio
+    useEffect(() => {
+        // Cargar canasta de pedidos
+        const canastaPedidosGuardada = localStorage.getItem('canastaPedidos');
+        if (canastaPedidosGuardada) {
+            try {
+                setProductosCanasta(JSON.parse(canastaPedidosGuardada));
+            } catch (error) {
+                console.error('Error al cargar canasta de pedidos desde localStorage:', error);
+                localStorage.removeItem('canastaPedidos');
             }
+        }
 
-            // Cargar canasta de salidas
-            const canastaSalidasGuardada = localStorage.getItem('canastaSalidas');
-            if (canastaSalidasGuardada) {
-                try {
-                    setProductosCanastaSalidas(JSON.parse(canastaSalidasGuardada));
-                } catch (error) {
-                    console.error('Error al cargar canasta de salidas desde localStorage:', error);
-                    localStorage.removeItem('canastaSalidas');
-                }
+        // Cargar canasta de entradas
+        const canastaEntradasGuardada = localStorage.getItem('canastaEntradas');
+        if (canastaEntradasGuardada) {
+            try {
+                setProductosCanastaEntradas(JSON.parse(canastaEntradasGuardada));
+            } catch (error) {
+                console.error('Error al cargar canasta de entradas desde localStorage:', error);
+                localStorage.removeItem('canastaEntradas');
             }
-        }, []);
+        }
+
+        // Cargar canasta de salidas
+        const canastaSalidasGuardada = localStorage.getItem('canastaSalidas');
+        if (canastaSalidasGuardada) {
+            try {
+                setProductosCanastaSalidas(JSON.parse(canastaSalidasGuardada));
+            } catch (error) {
+                console.error('Error al cargar canasta de salidas desde localStorage:', error);
+                localStorage.removeItem('canastaSalidas');
+            }
+        }
+    }, []);
+
+    // Guardar canasta de pedidos en localStorage cuando cambie
+    useEffect(() => {
+        if (productosCanasta.length > 0) {
+            localStorage.setItem('canastaPedidos', JSON.stringify(productosCanasta));
+        } else {
+            localStorage.removeItem('canastaPedidos');
+        }
+    }, [productosCanasta]);
+
+    // Guardar canasta de entradas en localStorage cuando cambie
+    useEffect(() => {
+        if (productosCanastaEntradas.length > 0) {
+            localStorage.setItem('canastaEntradas', JSON.stringify(productosCanastaEntradas));
+        } else {
+            localStorage.removeItem('canastaEntradas');
+        }
+    }, [productosCanastaEntradas]);
+
+    // Guardar canasta de salidas en localStorage cuando cambie
+    useEffect(() => {
+        if (productosCanastaSalidas.length > 0) {
+            localStorage.setItem('canastaSalidas', JSON.stringify(productosCanastaSalidas));
+        } else {
+            localStorage.removeItem('canastaSalidas');
+        }
+    }, [productosCanastaSalidas]);
+
     // Función para manejar el click en un producto
     const handleRegistro = (producto, tipo) => {
         setInfoPersona(producto);
@@ -153,7 +194,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
-
+    
     // Función para obtener los productos
     const fetchProducts = async (page = 1, reset = true, isSearch = false, categoriaOverride = null, ordenamientoOverride = null, searchQueryOverride = null) => {
         try {
@@ -179,7 +220,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
                 // Aplicar búsqueda por texto
                 if (searchQueryToUse && searchQueryToUse.trim() !== '') {
                     const query = searchQueryToUse.toLowerCase().trim();
-                    productosFiltrados = productosFiltrados.filter(producto => 
+                    productosFiltrados = productosFiltrados.filter(producto =>
                         (producto.name && producto.name.toLowerCase().includes(query)) ||
                         (producto.description && producto.description.toLowerCase().includes(query)) ||
                         (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(query)) ||
@@ -194,7 +235,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
                         productosFiltrados = productosFiltrados.filter(producto => !producto.category_almacen);
                     } else {
                         // Productos con categoría específica
-                        productosFiltrados = productosFiltrados.filter(producto => 
+                        productosFiltrados = productosFiltrados.filter(producto =>
                             producto.category_almacen && producto.category_almacen.id === categoriaToUse
                         );
                     }
@@ -276,18 +317,56 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+        } else {
+            // NO limpiar canastas automáticamente al cerrar el modal
+            // Solo se deben limpiar después de confirmar exitosamente
+            // Las canastas deben persistir para permitir reabrir el modal
         }
     }, [isOpen]);
 
     // Efecto único para cargar datos y búsqueda
     useEffect(() => {
         if (isOpen) {
-            console.log('AlmacenGeneral - Cargando datos');
             // Asegurar que el modal esté cerrado al abrir el componente
             fetchCategorias();
             setCurrentPage(1);
             setHasMorePages(true);
-            
+
+            // Si es modo pedido, cargar canasta desde localStorage
+            if (tipo === 'pedido') {
+                const canastaGuardada = localStorage.getItem('canastaPedidos');
+                const pedidoIdGuardado = localStorage.getItem('pedidoIdEditando');
+                if (canastaGuardada) {
+                    try {
+                        const productosCanastaData = JSON.parse(canastaGuardada);
+                        setProductosCanasta(productosCanastaData);
+                        if (pedidoIdGuardado) {
+                            setPedidoIdEditando(pedidoIdGuardado);
+                        }
+                    } catch (error) {
+                        console.error('Error al cargar canasta de pedidos desde localStorage:', error);
+                        localStorage.removeItem('canastaPedidos');
+                        localStorage.removeItem('pedidoIdEditando');
+                    }
+                }
+            }
+
+            // Si es modo salida, cargar canasta de salidas desde localStorage
+            if (tipo === 'salida') {
+                const canastaSalidasGuardada = localStorage.getItem('canastaSalidas');
+                const pedidoIdEntregando = localStorage.getItem('pedidoIdEntregando');
+                if (canastaSalidasGuardada) {
+                    try {
+                        const productosSalidasData = JSON.parse(canastaSalidasGuardada);
+                        setProductosCanastaSalidas(productosSalidasData);
+                    } catch (error) {
+                        console.error('Error al cargar canasta de salidas desde localStorage:', error);
+                        localStorage.removeItem('canastaSalidas');
+                        localStorage.removeItem('pedidoIdEntregando');
+                    }
+                }
+            }
+
             // Si hay búsqueda, buscar; si no, cargar todos
             if (debouncedSearchQuery) {
                 handleSearch(debouncedSearchQuery);
@@ -297,6 +376,17 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
 
         }
     }, [isOpen, debouncedSearchQuery, tipo]);
+
+    // Efecto para cargar productos iniciales cuando se reciban como props
+    useEffect(() => {
+        if (productosIniciales && productosIniciales.length > 0) {
+            if (tipo === 'pedido') {
+                setProductosCanasta(productosIniciales);
+            } else if (tipo === 'salida') {
+                setProductosCanastaSalidas(productosIniciales);
+            }
+        }
+    }, [productosIniciales, tipo]);
 
     // Función para manejar cuando se crea un nuevo producto
     const handleProductCreated = (newProduct) => {
@@ -383,8 +473,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
         const productoExistente = canastaActual.find(p => p.id === producto.id);
 
         // Obtener el primer precio del producto si existe
-        const primerPrecio = producto.price_product && producto.price_product.length > 0 
-            ? producto.price_product[0].valor 
+        const primerPrecio = producto.price_product && producto.price_product.length > 0
+            ? producto.price_product[0].valor
             : 0;
 
         if (productoExistente) {
@@ -393,7 +483,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
                 mostrarNotificacion('error', `No se puede agregar más cantidad. Stock disponible: ${producto.stock}`);
                 return;
             }
-            
+
             // Si ya existe y no excede el stock (para salidas), aumentar la cantidad
             setCanastaActual(prev => prev.map(p =>
                 p.id === producto.id
@@ -478,7 +568,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
                     ) : productoData.length > 0 ? (
                         productoData.map((producto, index) => {
                             const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
-                            const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida') 
+                            const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida')
                                 ? getCantidadEnCanastaMovimientos(producto.id, tipo)
                                 : 0;
                             return (
@@ -494,8 +584,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
                                         { name: "Bruta", value: 0 },
                                     ]}
                                     badge={
-                                        (tipo === 'pedido' && cantidadEnCanasta > 0) || 
-                                        ((tipo === 'entrada' || tipo === 'salida') && cantidadEnCanastaMovimientos > 0)
+                                        (tipo === 'pedido' && cantidadEnCanasta > 0) ||
+                                            ((tipo === 'entrada' || tipo === 'salida') && cantidadEnCanastaMovimientos > 0)
                                             ? (tipo === 'pedido' ? cantidadEnCanasta : cantidadEnCanastaMovimientos)
                                             : null
                                     }
@@ -715,9 +805,13 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
                 setIsOpen={setIsCanastaOpen}
                 productosCanasta={productosCanasta}
                 setProductosCanasta={setProductosCanasta}
+                pedidoId={pedidoIdEditando}
+                onPedidoActualizado={onPedidoActualizado}
                 onCerrarCanasta={() => {
                     setIsCanastaOpen(false);
-                    mostrarNotificacion('success', 'Pedido confirmado correctamente');
+                    // NO limpiar canasta de pedidos aquí
+                    // La limpieza se maneja en VerPedido.jsx cuando se abre para editar
+                    mostrarNotificacion('success', pedidoIdEditando ? 'Pedido actualizado correctamente' : 'Pedido confirmado correctamente');
                 }}
             />
 
@@ -743,9 +837,12 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '' }) {
                     productosCanasta={productosCanastaSalidas}
                     setProductosCanasta={setProductosCanastaSalidas}
                     tipoMovimiento={tipo}
+                    esEntrega={!!localStorage.getItem('pedidoIdEntregando')}
                     onProductosUpdated={handleProductosUpdated}
                     onCerrarCanasta={() => {
                         setIsCanastaMovimientosOpen(false);
+                        // NO limpiar canasta de salidas aquí
+                        // La limpieza se maneja en VerPedido.jsx cuando se abre para entregar
                         mostrarNotificacion('success', 'Salidas confirmadas correctamente');
                     }}
                 />
