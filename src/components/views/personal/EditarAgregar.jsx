@@ -349,7 +349,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         setDataEdit(prev => ({
                             ...prev,
                             first_name: newFirstName,
-                            codigo: prev.last_name ? generarCodigo(newFirstName, prev.last_name) : prev.codigo
+                            // Solo regenerar código si estamos en modo agregar
+                            codigo: (tipo === 'agregar' && prev.last_name) ? generarCodigo(newFirstName, prev.last_name) : prev.codigo
                         }));
                     }}
                     disabled={tipo === 'ver'}
@@ -364,7 +365,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         setDataEdit(prev => ({
                             ...prev,
                             last_name: newLastName,
-                            codigo: prev.first_name ? generarCodigo(prev.first_name, newLastName) : prev.codigo
+                            // Solo regenerar código si estamos en modo agregar
+                            codigo: (tipo === 'agregar' && prev.first_name) ? generarCodigo(prev.first_name, newLastName) : prev.codigo
                         }));
                     }}
                     disabled={tipo === 'ver'}
@@ -375,7 +377,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                     value={dataEdit.codigo}
                     placeholder='Código (autogenerado)'
                     onChange={(e) => setDataEdit({ ...dataEdit, codigo: e.target.value })}
-                    disabled={tipo === 'ver'}
+                    disabled={tipo === 'ver' || tipo === 'editar'}
+                    readonly={tipo === 'editar'}
                     buttonIcon="copy"
                     buttonIconClick={handleCopyCode}
                 />

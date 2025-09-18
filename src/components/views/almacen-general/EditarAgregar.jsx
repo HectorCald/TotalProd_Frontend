@@ -12,6 +12,7 @@ import EditarAgregarCategoria from './EditarAgregarCategoria';
 import EditarAgregarReceta from './EditarAgregarReceta';
 import Switch from '../../common/Switch';
 import MensajeError from '../../common/MensajeError';
+import CategoriasAlmacen from './CategoriasAlmacen';
 import { BoxIcon } from 'boxicons-react';
 function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated }) {
   
@@ -36,6 +37,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
   const [recetaGuardada, setRecetaGuardada] = useState(null);
   const [hasMovements, setHasMovements] = useState(false);
   const [loadingMovements, setLoadingMovements] = useState(false);
+  const [isCategoriasSeleccionOpen, setIsCategoriasSeleccionOpen] = useState(false);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
 
   // Efecto para cargar los tipos de precios
   useEffect(() => {
@@ -128,6 +131,13 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
         prices: prices
       });
 
+      // Establecer la categoría seleccionada si existe
+      if (data.category_id && data.categoria) {
+        setCategoriaSeleccionada(data.categoria);
+      } else {
+        setCategoriaSeleccionada(null);
+      }
+
       // Cargar receta guardada
       setRecetaGuardada(recetaData);
     } else {
@@ -141,6 +151,7 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
       });
       setHasReceta(false);
       setRecetaGuardada(null);
+      setCategoriaSeleccionada(null);
     }
     setErrorMessage('');
   }, [isOpen, data, tipo]);
@@ -270,8 +281,16 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
     }]);
     // Seleccionar automáticamente la nueva categoría
     setDataMov(prev => ({ ...prev, category_id: newCategoria.id }));
+    setCategoriaSeleccionada(newCategoria);
     // Cerrar el modal
     setIsCategoriaOpen(false);
+  };
+
+  // Función para manejar cuando se selecciona una categoría
+  const handleCategoriaSeleccionada = (categoria) => {
+    setCategoriaSeleccionada(categoria);
+    setDataMov(prev => ({ ...prev, category_id: categoria.id }));
+    setIsCategoriasSeleccionOpen(false);
   };
 
   // Función para manejar cuando se crea una receta
@@ -330,23 +349,13 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
           icon='barcode'
         />
 
-        <div className={styles.content} style={{ padding: '10px 15px' }}>
-          <Select
-            value={dataMov.category_id}
-            onChange={(value) => handleChange('category_id', value)}
-            options={categories}
-            placeholder='Categoría'
-            disabled={loadingCategories}
-            icon='category'
-          />
-
+        <div className={styles.content} style={{ padding: '5px 15px' }}>
           <Boton
-            className='btn-default'
-            label='Nueva Categoría'
-            onClick={() => setIsCategoriaOpen(true)}
-            style={{ minWidth: '80px' }}
+            className='btn-transparent'
+            label={categoriaSeleccionada ? categoriaSeleccionada.name : 'Seleccionar Categoría (opcional)'}
+            onClick={() => setIsCategoriasSeleccionOpen(true)}
+            style={{ width: '100%', justifyContent: 'flex-start' }}
           />
-
         </div>
 
         {/* Sección de Precios */}
@@ -429,6 +438,14 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
         recetaData={recetaGuardada}
         onRecetaCreated={handleRecetaCreated}
         onRecetaUpdated={handleRecetaUpdated}
+      />
+
+      {/* Modal de selección de categorías */}
+      <CategoriasAlmacen
+        isOpen={isCategoriasSeleccionOpen}
+        setIsOpen={setIsCategoriasSeleccionOpen}
+        modoSeleccion={true}
+        onCategoriaSeleccionada={handleCategoriaSeleccionada}
       />
     </View>
   );

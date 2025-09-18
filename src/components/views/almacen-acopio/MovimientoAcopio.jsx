@@ -14,6 +14,8 @@ import EditarAgregar from '../proveedores/EditarAgregar';
 import EditarAgregarCliente from '../clientes/EditarAgregar';
 import Switch from '../../common/Switch';
 import PantallaExito from '../../common/PantallaExito';
+import Proveedores from '../proveedores/Proveedores';
+import Clientes from '../clientes/Clientes';
 
 function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreated }) {
   const [dataMov, setDataMov] = useState({
@@ -33,6 +35,10 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   const [clientesError, setClientesError] = useState('');
   const [isProveedorOpen, setIsProveedorOpen] = useState(false);
   const [isClienteOpen, setIsClienteOpen] = useState(false);
+  const [isProveedoresSeleccionOpen, setIsProveedoresSeleccionOpen] = useState(false);
+  const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
+  const [proveedorSeleccionadoData, setProveedorSeleccionadoData] = useState(null);
+  const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
   
   // Estados para el Switch de materia prima
   const [restarMateriaPrima, setRestarMateriaPrima] = useState(() => {
@@ -156,6 +162,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
     }]);
     // Seleccionar automáticamente el nuevo proveedor
     setDataMov(prev => ({ ...prev, proveedor_id: newProveedor.id }));
+    setProveedorSeleccionadoData(newProveedor);
     // Cerrar el modal
     setIsProveedorOpen(false);
   };
@@ -171,8 +178,23 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
     }]);
     // Seleccionar automáticamente el nuevo cliente
     setDataMov(prev => ({ ...prev, cliente_id: newCliente.id }));
+    setClienteSeleccionadoData(newCliente);
     // Cerrar el modal
     setIsClienteOpen(false);
+  };
+
+  // Función para manejar cuando se selecciona un proveedor
+  const handleProveedorSeleccionado = (proveedor) => {
+    setProveedorSeleccionadoData(proveedor);
+    setDataMov(prev => ({ ...prev, proveedor_id: proveedor.id }));
+    setIsProveedoresSeleccionOpen(false);
+  };
+
+  // Función para manejar cuando se selecciona un cliente
+  const handleClienteSeleccionado = (cliente) => {
+    setClienteSeleccionadoData(cliente);
+    setDataMov(prev => ({ ...prev, cliente_id: cliente.id }));
+    setIsClientesSeleccionOpen(false);
   };
 
   // Función para enviar los datos
@@ -267,69 +289,27 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
 
         
 
-        {/* Select de proveedor para entradas */}
+        {/* Selector de proveedor para entradas */}
         {tipo === 'entrada' && (
-          <div className={styles.content} style={{ padding: '10px 15px' }}>
-            <Select
-              value={dataMov.proveedor_id}
-              onChange={(value) => handleChange('proveedor_id', value)}
-              options={proveedores}
-              placeholder='Proveedor (opcional)'
-              disabled={loadingProveedores || !!proveedoresError}
-              icon='store'
+          <div className={styles.content} style={{ padding: '5px 15px' }}>
+            <Boton
+              className='btn-transparent'
+              label={proveedorSeleccionadoData ? proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
+              onClick={() => setIsProveedoresSeleccionOpen(true)}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
             />
-
-            {!proveedoresError && (
-              <Boton
-                className='btn-default'
-                label='Nuevo Proveedor'
-                onClick={() => setIsProveedorOpen(true)}
-                style={{ minWidth: '80px' }}
-              />
-            )}
-            {proveedoresError && (
-              <div style={{ 
-                color: '#dc3545',
-                fontSize: '13px',
-                textAlign: 'center',
-                marginTop: '10px'
-              }}>
-                {proveedoresError}
-              </div>
-            )}
           </div>
         )}
 
-        {/* Select de cliente para salidas */}
+        {/* Selector de cliente para salidas */}
         {tipo === 'salida' && (
-          <div className={styles.content} style={{ padding: '10px 15px' }}>
-            <Select
-              value={dataMov.cliente_id}
-              onChange={(value) => handleChange('cliente_id', value)}
-              options={clientes}
-              placeholder='Cliente (opcional)'
-              disabled={loadingClientes || !!clientesError}
-              icon='user'
+          <div className={styles.content} style={{ padding: '5px 15px' }}>
+            <Boton
+              className='btn-transparent'
+              label={clienteSeleccionadoData ? clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+              onClick={() => setIsClientesSeleccionOpen(true)}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
             />
-
-            {!clientesError && (
-              <Boton
-                className='btn-default'
-                label='Nuevo Cliente'
-                onClick={() => setIsClienteOpen(true)}
-                style={{ minWidth: '80px' }}
-              />
-            )}
-            {clientesError && (
-              <div style={{ 
-                color: '#dc3545',
-                fontSize: '13px',
-                textAlign: 'center',
-                marginTop: '10px'
-              }}>
-                {clientesError}
-              </div>
-            )}
           </div>
         )}
         {/* Switch para restar materia prima (solo para entradas y si tiene receta) */}
@@ -398,6 +378,22 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
             onMovimientoCreated(movimientoCreado, tieneReceta && restarMateriaPrima);
           }
         }}
+      />
+
+      {/* Modal de selección de proveedores */}
+      <Proveedores
+        isOpen={isProveedoresSeleccionOpen}
+        setIsOpen={setIsProveedoresSeleccionOpen}
+        modoSeleccion={true}
+        onProveedorSeleccionado={handleProveedorSeleccionado}
+      />
+
+      {/* Modal de selección de clientes */}
+      <Clientes
+        isOpen={isClientesSeleccionOpen}
+        setIsOpen={setIsClientesSeleccionOpen}
+        modoSeleccion={true}
+        onClienteSeleccionado={handleClienteSeleccionado}
       />
     </ViewModal>
   );

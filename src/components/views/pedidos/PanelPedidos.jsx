@@ -12,35 +12,57 @@ import HeaderModal from '../../common/HeaderModal';
 import ItemLine from '../../common/ItemLine';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
-import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
+import { usePedidosAcopio, usePedidosAlmacen } from '../../../hooks/useData';
+import { BoxIcon } from 'boxicons-react';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Estados para los modales
     const [isOpenVerPedido, setIsOpenVerPedido] = useState(false);
     const [infoPedido, setInfoPedido] = useState(null);
 
-    // Estados para la carga
-    const [loading, setLoading] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
-
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
-    const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
+    
+    // Estados para RefreshIndicator
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
-
-    // Estados para los datos
-    const [pedidosData, setPedidosData] = useState([]);
 
     // Estados para filtros y modales
     const [isOpenOrden, setOpenOrden] = useState(false);
 
     // Estados para filtros
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
+
+    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
+    const usePedidosHook = tipoPedido === 'acopio' ? usePedidosAcopio : usePedidosAlmacen;
+    const { pedidos, hasMorePages, error, isLoading, refetch } = usePedidosHook(
+        isOpen ? debouncedSearchQuery : '', 
+        isOpen ? currentPage : 1,
+        isOpen,
+        ordenamiento
+    );
+
+    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
+    useEffect(() => {
+        if (isLoading && isOpen) {
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+        } else if (!isLoading && showRefreshIndicator) {
+            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
+    }, [isLoading, isOpen, showRefreshIndicator]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -64,59 +86,41 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         return tipoPedido === 'acopio' ? pedidosAcopioService : pedidosAlmacenService;
     };
 
-    // Función para cargar pedidos
-    const cargarPedidos = async (page = 1, isLoadMore = false) => {
+    // Función para manejar refresh con indicador
+    const handleRefresh = async () => {
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        
         try {
-            if (isLoadMore) {
-                setLoadingMore(true);
-            } else {
-                setLoading(true);
-                setCurrentPage(1);
-            }
-
-            const service = getService();
-            const response = await service.getAll(page, 20, null, ordenamiento);
-
-            if (response.success) {
-                if (isLoadMore) {
-                    setPedidosData(prev => [...prev, ...response.data]);
-                } else {
-                    setPedidosData(response.data);
-                }
-                
-                setHasMorePages(response.pagination?.hasNextPage || false);
-                setCurrentPage(page);
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al cargar pedidos');
-            }
+            await refetch();
+            
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
         } catch (error) {
-            console.error('Error al cargar pedidos:', error);
-            mostrarNotificacion('error', 'Error de conexión');
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
+            setIsRefreshing(false);
+            setShowRefreshIndicator(false);
         }
     };
 
-    // Cargar pedidos al abrir el modal
+    // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
-        if (isOpen && tipoPedido) {
-            cargarPedidos();
+        if (isOpen) {
+            setSearchQuery('');
+            setCurrentPage(1);
         }
     }, [isOpen, tipoPedido]);
 
-    // Búsqueda con debounce
+    // Efecto para manejar errores de SWR
     useEffect(() => {
-        if (debouncedSearchQuery) {
-            setIsSearching(true);
-            // Aquí implementarías la búsqueda específica
-            // Por ahora solo recargamos los datos
-            cargarPedidos();
-        } else if (searchQuery === '') {
-            setIsSearching(false);
-            cargarPedidos();
+        if (error) {
+            console.error('Error obteniendo pedidos:', error);
         }
-    }, [debouncedSearchQuery]);
+    }, [error]);
 
     // Función para ver un pedido
     const handleVerPedido = (pedido) => {
@@ -131,9 +135,21 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             const response = await service.updateEstado(pedidoId, nuevoEstado);
 
             if (response.success) {
+                // Actualizar el cache localmente con el estado actualizado
+                refetch((currentData) => {
+                    if (!currentData) return currentData;
+                    
+                    return {
+                        ...currentData,
+                        data: currentData.data.map(pedido => 
+                            pedido.id === pedidoId 
+                                ? { ...pedido, estado: nuevoEstado }
+                                : pedido
+                        )
+                    };
+                }, { revalidate: false }); // NO revalidar = NO petición al servidor
+                
                 mostrarNotificacion('success', 'Estado actualizado correctamente');
-                // Recargar la lista
-                cargarPedidos();
             } else {
                 mostrarNotificacion('error', response.message || 'Error al actualizar estado');
             }
@@ -145,27 +161,41 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
     // Función para manejar cuando se elimina un pedido
     const handlePedidoEliminado = (pedidoId) => {
-        setPedidosData(prev => 
-            prev.filter(pedido => pedido.id !== pedidoId)
-        );
+        // Actualizar el cache localmente removiendo el pedido eliminado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.filter(pedido => pedido.id !== pedidoId)
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         mostrarNotificacion('success', 'Pedido eliminado correctamente');
     };
 
     // Función para manejar cuando se actualiza un pedido
     const handlePedidoActualizado = (pedidoActualizado) => {
-        setPedidosData(prev => 
-            prev.map(pedido => 
-                pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido
-            )
-        );
+        // Actualizar el cache localmente con el pedido actualizado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.map(pedido => 
+                    pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido
+                )
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         mostrarNotificacion('success', 'Pedido actualizado correctamente');
     };
 
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !loadingMore) {
-            cargarPedidos(currentPage + 1, true);
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+            setCurrentPage(prev => prev + 1);
         }
     };
 
@@ -173,8 +203,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const handleOrdenamiento = (orden) => {
         setOrdenamiento(orden);
         setCurrentPage(1);
-        setHasMorePages(true);
-        cargarPedidos(1, true);
     };
 
     // Función para formatear fecha
@@ -210,20 +238,35 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='box' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    Pedidos de {tipoPedido === 'acopio' ? 'Materia Prima' : 'Almacén'}
-                </h1>
-
+                <div className={styles.titleContainer}>
+                    <h1 className={styles.title}>
+                        Pedidos
+                        <button className={styles.refreshButton} onClick={handleRefresh}>
+                            <BoxIcon name='refresh' />
+                        </button>
+                    </h1>
+                    <RefreshIndicator
+                        isVisible={showRefreshIndicator}
+                        isLoading={isRefreshing}
+                    />
+                </div>
+                <p className={styles.subTitle}>
+                    {tipoPedido === 'acopio' 
+                        ? 'Materia Prima' 
+                        : 'Almacén General'
+                    }
+                </p>
                 {/* Barra de búsqueda */}
                 <div className={styles.searchContainer}>
-                    <InputSearch
+                <InputSearch
+                        placeholder='Buscar pedidos...'
+                        type="text"
                         value={searchQuery}
-                        onChange={setSearchQuery}
-                        placeholder="Buscar pedidos..."
-                        loading={isSearching}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                        }}
                     />
                 </div>
                 <Filtros options={opciones} />
@@ -236,16 +279,12 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         height: 'calc(100vh - 150px)'
                     }}
                 >
-                    {isSearching ? (
-                        <div className={styles.searchingData}>
-                            <p>Buscando...</p>
-                        </div>
-                    ) : pedidosData.length > 0 ? (
-                        pedidosData.map((pedido, index) => {
+                    {pedidos.length > 0 ? (
+                        pedidos.map((pedido, index) => {
                             return (
                                 <ItemView
                                     key={pedido.id || index}
-                                    title={pedido.user?.name || pedido.personal?.name || 'Usuario desconocido'}
+                                    title={pedido.sucursal?.name || 'Sucursal desconocida'}
                                     description={formatearFecha(pedido.fecha || pedido.created_at)}
                                     icon="file"
                                     onClick={() => handleVerPedido(pedido)}
@@ -260,7 +299,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                     )}
 
                     {/* Indicador de carga para más elementos */}
-                    {loadingMore && (
+                    {isLoading && (
                         <div className={styles.loadingMore}>
                             <p>Cargando más pedidos...</p>
                         </div>

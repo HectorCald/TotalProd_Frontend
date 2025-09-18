@@ -344,6 +344,10 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                         />
                     )}
                     <Dato
+                        label="Sucursal"
+                        value={pedido.sucursal?.name || 'Sucursal desconocida'}
+                    />
+                    <Dato
                         label="Solicitado por"
                         value={pedido.user?.name || pedido.personal?.name || 'Usuario desconocido'}
                     />

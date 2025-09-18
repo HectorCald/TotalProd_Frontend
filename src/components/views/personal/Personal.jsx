@@ -7,6 +7,9 @@ import VerPersona from './VerPersona';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import LoadingSpinner from '../../common/LoadingSpinner';
+import { usePersonal } from '../../../hooks/useData';
+import { BoxIcon } from 'boxicons-react';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 import personalService from '../../../services/personalService';
 import InfoModal from '../../common/InfoModal';
@@ -18,15 +21,35 @@ function Personal({ isOpen, setIsOpen }) {
     const [infoPersona, setInfoPersona] = useState(null);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
 
-    const [personalData, setPersonalData] = useState([]);
-
-    // Estados para la carga
-    const [loading, setLoading] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
-
     // Estados para paginación
     const [currentPage, setCurrentPage] = useState(1);
-    const [hasMorePages, setHasMorePages] = useState(true);
+    
+    // Estados para RefreshIndicator
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
+    const { personal, hasMorePages, error, isLoading, refetch } = usePersonal(
+        '', // No hay búsqueda en personal
+        isOpen ? currentPage : 1,
+        isOpen
+    );
+
+    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
+    useEffect(() => {
+        if (isLoading && isOpen) {
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+        } else if (!isLoading && showRefreshIndicator) {
+            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
+    }, [isLoading, isOpen, showRefreshIndicator]);
 
 
 
@@ -65,49 +88,47 @@ function Personal({ isOpen, setIsOpen }) {
         setInfoPersona(persona);
     };
 
-    // Función para obtener el personal
-    const fetchPersonal = async (page = 1, reset = true) => {
+    // 🚀 SWR maneja automáticamente la carga de datos
+    // No necesitamos fetchPersonal manual
+    // Función para manejar scroll infinito
+    const handleScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+            setCurrentPage(prev => prev + 1);
+        }
+    };
+
+    // Función para manejar refresh con indicador
+    const handleRefresh = async () => {
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        
         try {
-            if (reset) {
-                setLoading(true);
-            } else {
-                setLoadingMore(true);
-            }
-
-            const response = await personalService.getAll(page, 20, '');
-            if (response.success && response.data) {
-                if (reset) {
-                    setPersonalData(response.data);
-                } else {
-                    setPersonalData(prev => [...prev, ...response.data]);
-                }
-
-                setCurrentPage(page);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-
-                // Cerrar modal si estaba abierto y ahora tenemos datos
-                setModalConfig(prev => ({ ...prev, isOpen: false }));
-            } else if (response.code === 'MODULE_NOT_INCLUDED') {
-                setModalConfig({
-                    isOpen: true,
-                    type: 'warning',
-                    title: 'Módulo No Incluido',
-                    description: `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`,
-                    showButton: true
-                });
-            } else if (response.code === 'NO_PLAN') {
-                setModalConfig({
-                    isOpen: true,
-                    type: 'warning',
-                    title: 'Plan Requerido',
-                    description: 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.',
-                    showButton: true
-                });
-            } else {
-                // Si no es éxito pero tampoco es un error de plan, no abrir modal
-                console.log('Respuesta del servidor:', response);
-            }
+            await refetch();
+            
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
         } catch (error) {
+            setIsRefreshing(false);
+            setShowRefreshIndicator(false);
+        }
+    };
+
+    // Efecto para resetear página cuando se abre
+    useEffect(() => {
+        if (isOpen) {
+            setCurrentPage(1);
+        }
+    }, [isOpen]);
+
+    // Efecto para manejar errores de SWR
+    useEffect(() => {
+        if (error) {
             console.error('Error obteniendo personal:', error);
             setModalConfig({
                 isOpen: true,
@@ -116,35 +137,21 @@ function Personal({ isOpen, setIsOpen }) {
                 description: 'No tienes permisos para acceder a esta función.',
                 showButton: true
             });
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
         }
-    };
-    // Función para manejar scroll infinito
-    const handleScroll = (e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !loadingMore) {
-            fetchPersonal(currentPage + 1, false);
-        }
-    };
-
-    // Efecto para cargar datos cuando se abre
-    useEffect(() => {
-        if (isOpen) {
-            console.log('Personal - Cargando datos');
-            // Asegurar que el modal esté cerrado al abrir el componente
-            setModalConfig(prev => ({ ...prev, isOpen: false }));
-            setCurrentPage(1);
-            setHasMorePages(true);
-            fetchPersonal(1, true);
-        }
-    }, [isOpen]);
+    }, [error]);
 
     // Función para manejar cuando se crea un nuevo personal
     const handlePersonalCreated = (newPersonal) => {
-        // Agregar el nuevo personal a la lista
-        setPersonalData(prev => [newPersonal, ...prev]);
+        // Actualizar el cache localmente con el personal que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: [newPersonal, ...currentData.data]
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
         mostrarNotificacion('success', 'Personal agregado correctamente');
@@ -152,8 +159,16 @@ function Personal({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se elimina un personal
     const handlePersonalDeleted = (deletedId) => {
-        // Remover el personal eliminado de la lista
-        setPersonalData(prev => prev.filter(personal => personal.id !== deletedId));
+        // Actualizar el cache localmente removiendo el personal eliminado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.filter(personal => personal.id !== deletedId)
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal de ver personal
         setIsOpenVerPersona(false);
         mostrarNotificacion('success', 'Personal eliminado correctamente');
@@ -161,10 +176,18 @@ function Personal({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se actualiza un personal
     const handlePersonalUpdated = (updatedPersonal) => {
-        // Actualizar solo el personal específico en la lista
-        setPersonalData(prev => prev.map(personal =>
-            personal.id === updatedPersonal.id ? updatedPersonal : personal
-        ));
+        // Actualizar el cache localmente con el personal actualizado que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.map(personal => 
+                    personal.id === updatedPersonal.id ? updatedPersonal : personal
+                )
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal de ver personal
         setIsOpenVerPersona(false);
         mostrarNotificacion('success', 'Personal actualizado correctamente');
@@ -172,13 +195,23 @@ function Personal({ isOpen, setIsOpen }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='user' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Personal</h1>
+                <div className={styles.titleContainer}>
+                    <h1 className={styles.title}>
+                        Personal
+                        <button className={styles.refreshButton} onClick={handleRefresh}>
+                            <BoxIcon name='refresh' />
+                        </button>
+                    </h1>
+                    <RefreshIndicator
+                        isVisible={showRefreshIndicator}
+                        isLoading={isRefreshing}
+                    />
+                </div>
                 <div className={styles.content} onScroll={handleScroll}>
-                    {personalData.length > 0 ? (
-                        personalData.map((personal, index) => (
+                    {personal.length > 0 ? (
+                        personal.map((personal, index) => (
                             <ItemView
                                 key={personal.id || index}
                                 title={`${personal.first_name} ${personal.last_name}`}
@@ -195,7 +228,7 @@ function Personal({ isOpen, setIsOpen }) {
                     )}
 
                     {/* Indicador de carga para más elementos */}
-                    {loadingMore && (
+                    {isLoading && (
                         <div className={styles.loadingMore}>
                             <p>Cargando más personal...</p>
                         </div>

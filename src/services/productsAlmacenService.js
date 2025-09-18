@@ -33,7 +33,7 @@ const getSucuId = () => {
 class productsAlmacenService {
 
   // Obtener todos los productos
-  static async getAll() {
+  static async getAll(page = 1, limit = 20, search = '', categoria = null, ordenamiento = 'nombre_asc') {
     try {
       const empresaId = getEmpresaId();
       const sucuId = getSucuId();
@@ -54,14 +54,28 @@ class productsAlmacenService {
 
       const params = new URLSearchParams({
         empresa_id: empresaId,
-        sucu_id: sucuId
+        sucu_id: sucuId,
+        page: page.toString(),
+        limit: limit.toString()
       });
 
+      if (search && search.trim() !== '') {
+        params.append('search', search);
+      }
+
+      if (categoria !== null) {
+        params.append('categoria', categoria);
+      }
+
+      if (ordenamiento && ordenamiento !== 'nombre_asc') {
+        params.append('ordenamiento', ordenamiento);
+      }
       const response = await fetch(`${API_BASE_URL}/products-almacen?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
       const data = await response.json();
+      
       
       if (!response.ok) {
         throw new Error(data.message || 'Error al obtener productos');

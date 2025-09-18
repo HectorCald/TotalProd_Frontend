@@ -19,6 +19,12 @@
     align-items: center;
     width: 100%;
 }
+.refreshButton {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--primary-color);
+}
 .buttonTitle {
     display: flex;
     align-items: center;
@@ -46,7 +52,8 @@
     width: 100%;
     background-color: none;
     overflow-y: auto !important;
-    height: calc(100vh - 310px);
+    max-height: calc(100vh - 325px);
+    height: 100%;
 }
 
 .loadingMore {
@@ -146,4 +153,36 @@
     display: flex;
     flex-direction: column;
     gap: 7px;
+}
+
+/* Container del título con barra de progreso */
+.titleContainer {
+    position: relative;
+    width: 100%;
+}
+
+/* Botón de refresh */
+.refreshButton {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    width: 36px;
+    height: 36px;
+}
+
+.refreshButton:hover {
+    background: rgba(0, 0, 0, 0.1);
+    transform: scale(1.1);
+}
+
+.refreshButton:active {
+    transform: scale(0.95);
 }

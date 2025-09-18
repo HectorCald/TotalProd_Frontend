@@ -18,6 +18,9 @@ import CanastaPedidos from './CanastaPedidos';
 import InputCantidad from '../../common/InputCantidad';
 import Select from '../../common/Select';
 import InputNormal from '../../common/InputNormal';
+import { useProductosAcopio } from '../../../hooks/useData';
+import { BoxIcon } from 'boxicons-react';
+import RefreshIndicator from '../../common/RefreshIndicator';
 import productsAcopioService from '../../../services/productsAcopioService';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import typeMeasureService from '../../../services/typeMeasureService';
@@ -33,7 +36,7 @@ const medidas = [
 ];
 
 function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
-    
+
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
     const [isMovimientoOpen, setIsMovimientoOpen] = useState(false);
@@ -41,25 +44,53 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
     const [isCategoriasOpen, setIsCategoriasOpen] = useState(false);
 
-    // Estados para la carga
-    const [loading, setLoading] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
-
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
-    const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
-    
+
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
     // Estados para los datos
-    const [productoData, setProductoData] = useState([]);
     const [categorias, setCategorias] = useState([]);
     const [loadingCategorias, setLoadingCategorias] = useState(false);
     const [tiposMedida, setTiposMedida] = useState([]);
     const [loadingTiposMedida, setLoadingTiposMedida] = useState(false);
+    // Estados para RefreshIndicator
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // Estados para filtros (deshabilitados)
+    const [categoriaFiltro, setCategoriaFiltro] = useState(null);
+    const [tipoMedidaFiltro, setTipoMedidaFiltro] = useState(null);
+    const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
+
+    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
+    const { productos, hasMorePages, error, isLoading, refetch } = useProductosAcopio(
+        isOpen ? debouncedSearchQuery : '', 
+        isOpen ? currentPage : 1,
+        isOpen,
+        categoriaFiltro,
+        tipoMedidaFiltro,
+        ordenamiento
+    );
+
+    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
+    useEffect(() => {
+        if (isLoading && isOpen) {
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+        } else if (!isLoading && showRefreshIndicator) {
+            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
+    }, [isLoading, isOpen, showRefreshIndicator]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -86,11 +117,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const [isOpenItem, setOpenItem] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [selectedMedidas, setSelectedMedidas] = useState('');
-
-    // Estados para filtros de categoría, tipo de medida y ordenamiento
-    const [categoriaFiltro, setCategoriaFiltro] = useState(null);
-    const [tipoMedidaFiltro, setTipoMedidaFiltro] = useState(null);
-    const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
 
     // Estados para canasta de pedidos
     const [productosCanasta, setProductosCanasta] = useState([]);
@@ -152,54 +178,35 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
-    // Función para obtener los productos
-    const fetchProducts = async (page = 1, reset = true, isSearch = false, categoriaOverride = null, tipoMedidaOverride = null, ordenamientoOverride = null) => {
-        try {
-            if (reset) {
-                if (isSearch) {
-                    setIsSearching(true);
-                } else {
-                    setLoading(true);
-                }
-            } else {
-                setLoadingMore(true);
-            }
-
-            // Usar override si se proporciona, sino usar el estado
-            const categoriaToUse = categoriaOverride !== undefined ? categoriaOverride : categoriaFiltro;
-            const tipoMedidaToUse = tipoMedidaOverride !== undefined ? tipoMedidaOverride : tipoMedidaFiltro;
-            const ordenamientoToUse = ordenamientoOverride !== undefined ? ordenamientoOverride : ordenamiento;
-
-
-            const response = await productsAcopioService.getAll(page, 20, searchQuery, categoriaToUse, tipoMedidaToUse, ordenamientoToUse);
-            if (response.success && response.data) {
-                if (reset) {
-                    setProductoData(response.data);
-                } else {
-                    setProductoData(prev => [...prev, ...response.data]);
-                }
-
-                setCurrentPage(page);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-
-            } else {
-                // Si no es éxito pero tampoco es un error de plan, no abrir modal
-                console.log('Respuesta del servidor:', response);
-            }
-        } catch (error) {
-            console.error('Error obteniendo productos:', error);
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
-            setIsSearching(false);
-        }
-    };
+    // 🚀 SWR maneja automáticamente la carga de datos
+    // No necesitamos fetchProducts manual
 
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !loadingMore) {
-            fetchProducts(currentPage + 1, false);
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+            setCurrentPage(prev => prev + 1);
+        }
+    };
+
+    // Función para manejar refresh con indicador
+    const handleRefresh = async () => {
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+
+        try {
+            await refetch();
+
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        } catch (error) {
+            setIsRefreshing(false);
+            setShowRefreshIndicator(false);
         }
     };
 
@@ -207,65 +214,62 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const handleSearch = (query) => {
         setSearchQuery(query);
         setCurrentPage(1);
-        setHasMorePages(true);
-        fetchProducts(1, true, true, categoriaFiltro, tipoMedidaFiltro); // isSearch = true
     };
 
-    // Función para manejar filtro de categoría
+    // Funciones de filtrado - AHORA SÍ filtran productos
     const handleCategoriaFilter = (categoriaId) => {
-        setCategoriaFiltro(categoriaId);
-        setCurrentPage(1);
-        setHasMorePages(true);
-        fetchProducts(1, true, false, categoriaId, tipoMedidaFiltro);
+        console.log('🔍 Filtro de categoría seleccionado:', categoriaId);
+        setCategoriaFiltro(categoriaId); // Cambia el filtro y hace nueva petición
+        setCurrentPage(1); // Resetear a primera página
     };
 
-    // Función para manejar filtro de tipo de medida
     const handleTipoMedidaFilter = (tipoMedidaId) => {
-        setTipoMedidaFiltro(tipoMedidaId);
-        setCurrentPage(1);
-        setHasMorePages(true);
-        fetchProducts(1, true, false, categoriaFiltro, tipoMedidaId);
+        console.log('🔍 Filtro de tipo de medida seleccionado:', tipoMedidaId);
+        setTipoMedidaFiltro(tipoMedidaId); // Cambia el filtro y hace nueva petición
+        setCurrentPage(1); // Resetear a primera página
     };
 
-    // Función para manejar ordenamiento
     const handleOrdenamiento = (orden) => {
-        setOrdenamiento(orden);
-        setCurrentPage(1);
-        setHasMorePages(true);
-        fetchProducts(1, true, false, categoriaFiltro, tipoMedidaFiltro, orden);
+        console.log('🔍 Ordenamiento seleccionado:', orden);
+        setOrdenamiento(orden); // Cambia el ordenamiento y hace nueva petición
+        setCurrentPage(1); // Resetear a primera página
     };
 
     // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+            setCurrentPage(1);
         }
     }, [isOpen]);
 
-    // Efecto único para cargar datos y búsqueda
+    // Efecto para cargar categorías y tipos de medida cuando se abre
     useEffect(() => {
         if (isOpen) {
-            console.log('AlmacenAcopio - Cargando datos');
-            // Asegurar que el modal esté cerrado al abrir el componente
             fetchCategorias();
             fetchTiposMedida();
-            setCurrentPage(1);
-            setHasMorePages(true);
-            
-            // Si hay búsqueda, buscar; si no, cargar todos
-            if (debouncedSearchQuery) {
-                handleSearch(debouncedSearchQuery);
-            } else {
-                fetchProducts(1, true, false, categoriaFiltro, tipoMedidaFiltro, ordenamiento);
-            }
-
         }
-    }, [isOpen, debouncedSearchQuery, tipo]);
+    }, [isOpen]);
+
+    // Efecto para manejar errores de SWR
+    useEffect(() => {
+        if (error) {
+            console.error('Error obteniendo productos:', error);
+        }
+    }, [error]);
 
     // Función para manejar cuando se crea un nuevo producto
     const handleProductCreated = (newProduct) => {
-        // Agregar el nuevo producto a la lista
-        setProductoData(prev => [newProduct, ...prev]);
+        // Actualizar el cache localmente con el producto que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+
+            return {
+                ...currentData,
+                data: [newProduct, ...currentData.data]
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+
         // Cerrar el modal
         setIsAgregarOpen(false);
         mostrarNotificacion('success', 'Producto agregado correctamente')
@@ -273,8 +277,16 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     // Función para manejar cuando se elimina un producto
     const handleProductDeleted = (deletedId) => {
-        // Remover el producto eliminado de la lista
-        setProductoData(prev => prev.filter(producto => producto.id !== deletedId));
+        // Actualizar el cache localmente removiendo el producto eliminado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+
+            return {
+                ...currentData,
+                data: currentData.data.filter(producto => producto.id !== deletedId)
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+
         // Cerrar el modal de ver producto
         setIsOpenVerProducto(false);
         mostrarNotificacion('success', 'Producto eliminado correctamente')
@@ -282,10 +294,18 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     // Función para manejar cuando se actualiza un producto
     const handleProductUpdated = (updatedProduct) => {
-        // Actualizar solo el producto específico en la lista
-        setProductoData(prev => prev.map(producto =>
-            producto.id === updatedProduct.id ? updatedProduct : producto
-        ));
+        // Actualizar el cache localmente con el producto actualizado que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+
+            return {
+                ...currentData,
+                data: currentData.data.map(producto =>
+                    producto.id === updatedProduct.id ? updatedProduct : producto
+                )
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+
         // Actualizar también el producto que se está viendo
         setInfoPersona(updatedProduct);
         // Cerrar el modal de ver producto
@@ -298,20 +318,28 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
         // Si es entrada con receta, recargar todos los productos para actualizar ingredientes
         if (tipo === 'entrada' && tieneReceta) {
-            fetchProducts(1, true, false, categoriaFiltro, tipoMedidaFiltro, ordenamiento);
+            refetch(); // Recargar todos los productos
         } else {
             // Solo actualizar la cantidad del producto específico
             if (movimiento && movimiento.product) {
-                setProductoData(prev => prev.map(producto =>
-                    producto.id === movimiento.product.id
-                        ? { ...producto, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) }
-                        : producto
-                ));
+                refetch((currentData) => {
+                    if (!currentData) return currentData;
+
+                    return {
+                        ...currentData,
+                        data: currentData.data.map(producto =>
+                            producto.id === movimiento.product.id
+                                ? { ...producto, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) }
+                                : producto
+                        )
+                    };
+                }, { revalidate: false }); // NO revalidar = NO petición al servidor
+
                 // Actualizar también el producto que se está viendo
                 setInfoPersona(prev => prev ? { ...prev, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) } : prev);
             }
         }
-        
+
         // Cerrar el modal de movimiento
         setIsMovimientoOpen(false);
         mostrarNotificacion('success', `${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente`);
@@ -343,7 +371,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         const producto = productosCanasta.find(p => p.id === productoId);
         return producto ? producto.cantidad : 0;
     };
-    // Función para obtener el nombre de la categoría seleccionada
+    // Funciones para obtener nombres de filtros (funcionan pero no afectan el resultado)
     const getCategoriaNombre = () => {
         if (categoriaFiltro === null) return 'Categorías';
         if (categoriaFiltro === '') return 'Sin categoría';
@@ -352,7 +380,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         return categoria ? categoria.name : 'Categorías';
     };
 
-    // Función para obtener el nombre del tipo de medida seleccionado
     const getTipoMedidaNombre = () => {
         if (tipoMedidaFiltro === null) return 'Medidas';
         if (tipoMedidaFiltro === '') return 'Sin medida';
@@ -361,7 +388,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         return tipoMedida ? tipoMedida.name : 'Medidas';
     };
 
-    // Función para obtener el nombre del ordenamiento
     const getOrdenamientoNombre = () => {
         const ordenamientos = {
             'nombre_asc': 'Nombre A-Z',
@@ -392,20 +418,30 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='box' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Almacen</h1>
+                <div className={styles.titleContainer}>
+                    <h1 className={styles.title}>
+                        Materia Prima
+                        <button className={styles.refreshButton} onClick={handleRefresh}>
+                            <BoxIcon name='refresh' />
+                        </button>
+                    </h1>
+                    <RefreshIndicator
+                        isVisible={showRefreshIndicator}
+                        isLoading={isRefreshing}
+                    />
+                </div>
                 <p className={styles.subTitle}>Administra tu almacen de Materia Prima</p>
                 <div className={styles.searchContainer}>
-                <InputSearch
-                    placeholder='Buscar producto'
-                    type="text"
+                    <InputSearch
+                        placeholder='Buscar producto'
+                        type="text"
                         value={searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value);
                         }}
-                />
+                    />
                 </div>
                 <Filtros options={opciones} />
                 <div
@@ -413,30 +449,30 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                     onScroll={handleScroll}
                     style={{
                         height: tipo === 'entrada' || tipo === 'salida'
-                          ? ''
-                          : 'calc(100vh - 310px)'
-                      }}
+                            ? ''
+                            : 'calc(100vh - 310px)'
+                    }}
                 >
 
                     {isSearching ? (
                         <div className={styles.searchingData}>
                             <p>Buscando...</p>
                         </div>
-                    ) : productoData.length > 0 ? (
-                        productoData.map((producto, index) => {
+                    ) : productos.length > 0 ? (
+                        productos.map((producto, index) => {
                             const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
                             return (
-                            <ItemView
+                                <ItemView
                                     key={producto.id || index}
                                     title={producto.name || 'Sin nombre'}
                                     description={producto.description || 'Sin descripción'}
                                     icon="box"
                                     onClick={() => handleRegistro(producto, tipo)}
-                                entrada={tipo === 'pesaje' ? true : false}
-                                entradaData={[
-                                    { name: "Prima", value: 0 },
-                                    { name: "Bruta", value: 0 },
-                                ]}
+                                    entrada={tipo === 'pesaje' ? true : false}
+                                    entradaData={[
+                                        { name: "Prima", value: 0 },
+                                        { name: "Bruta", value: 0 },
+                                    ]}
                                     badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
                                     flot1={parseFloat(producto.quantity || 0).toFixed(2) + ' ' + producto.type_measure.code}
                                 />
@@ -449,7 +485,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                     )}
 
                     {/* Indicador de carga para más elementos */}
-                    {loadingMore && (
+                    {isLoading && (
                         <div className={styles.loadingMore}>
                             <p>Cargando más productos...</p>
                         </div>
@@ -507,45 +543,16 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 setIsOpen={setIsCategoriasOpen}
             />
 
-            {/* Modal de tipos de medida*/}
-            <ViewModal isOpen={isOpenTipoMedida} setIsOpen={setOpenTipoMedida}>
+            {/* Modal de tipos de medida - DESHABILITADO */}
+            {/* <ViewModal isOpen={isOpenTipoMedida} setIsOpen={setOpenTipoMedida}>
                 <HeaderModal
                     title="Tipos de Medida"
                     onClose={() => setOpenTipoMedida(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a ese tipo de medida.</p>
-
-                    {/* Opción para mostrar todos */}
-                    <ItemLine
-                        title='Todas las medidas'
-                        icon='ruler'
-                        onClick={() => {
-                            handleTipoMedidaFilter(null);
-                            setOpenTipoMedida(false);
-                        }}
-                    />
-
-                    {/* Tipos de medida dinámicos */}
-                    {loadingTiposMedida ? (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando tipos de medida...</p>
-                        </div>
-                    ) : (
-                        tiposMedida.map((tipoMedida) => (
-                    <ItemLine
-                                key={tipoMedida.id}
-                                title={tipoMedida.name}
-                                icon='ruler'
-                                onClick={() => {
-                                    handleTipoMedidaFilter(tipoMedida.id);
-                                    setOpenTipoMedida(false);
-                                }}
-                            />
-                        ))
-                    )}
+                    <p className={styles.subTitle}>Filtrado deshabilitado</p>
                 </div>
-            </ViewModal>
+            </ViewModal> */}
 
             {/* Modal de movimiento (entrada/salida) */}
             <MovimientoAcopio
@@ -585,6 +592,47 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                     />
                 </div>
             </ViewModal>
+
+            {/* Modal de tipos de medida*/}
+            <ViewModal isOpen={isOpenTipoMedida} setIsOpen={setOpenTipoMedida}>
+                <HeaderModal
+                    title="Tipos de Medida"
+                    onClose={() => setOpenTipoMedida(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a ese tipo de medida.</p>
+
+                    {/* Opción para mostrar todos */}
+                    <ItemLine
+                        title='Todas las medidas'
+                        icon='ruler'
+                        onClick={() => {
+                            handleTipoMedidaFilter(null);
+                            setOpenTipoMedida(false);
+                        }}
+                    />
+
+                    {/* Tipos de medida dinámicos */}
+                    {loadingTiposMedida ? (
+                        <div className={styles.loadingMore}>
+                            <p>Cargando tipos de medida...</p>
+                        </div>
+                    ) : (
+                        tiposMedida.map((tipoMedida) => (
+                            <ItemLine
+                                key={tipoMedida.id}
+                                title={tipoMedida.name}
+                                icon='ruler'
+                                onClick={() => {
+                                    handleTipoMedidaFilter(tipoMedida.id);
+                                    setOpenTipoMedida(false);
+                                }}
+                            />
+                        ))
+                    )}
+                </div>
+            </ViewModal>
+
             {/* Modal mostrar cantidad item*/}
             <ViewModal isOpen={isOpenCategoria} setIsOpen={setOpenCategoria}>
                 <HeaderModal
@@ -621,15 +669,15 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                         </div>
                     ) : (
                         categorias.map((categoria) => (
-                    <ItemLine
+                            <ItemLine
                                 key={categoria.id}
                                 title={categoria.name}
-                        icon='tag'
+                                icon='tag'
                                 onClick={() => {
                                     handleCategoriaFilter(categoria.id);
                                     setOpenCategoria(false);
                                 }}
-                    />
+                            />
                         ))
                     )}
                 </div>

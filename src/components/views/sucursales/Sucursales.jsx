@@ -11,6 +11,9 @@ import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
+import { useSucursales } from '../../../hooks/useData';
+import { BoxIcon } from 'boxicons-react';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function Sucursales({ isOpen, setIsOpen }) {
     const { user, sucursalSeleccionada } = useUser();
@@ -20,11 +23,31 @@ function Sucursales({ isOpen, setIsOpen }) {
     const [infoSucursal, setInfoSucursal] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
 
-    // Estados para la carga
-    const [loading, setLoading] = useState(false);
+    // Estados para RefreshIndicator
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Estados para los datos
-    const [sucursalData, setSucursalData] = useState([]);
+    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
+    const { sucursales, error, isLoading, refetch } = useSucursales(
+        user?.empresa_id,
+        isOpen
+    );
+
+    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
+    useEffect(() => {
+        if (isLoading && isOpen) {
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+        } else if (!isLoading && showRefreshIndicator) {
+            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
+    }, [isLoading, isOpen, showRefreshIndicator]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -60,38 +83,30 @@ function Sucursales({ isOpen, setIsOpen }) {
         setIsOpenVerSucursal(true);
     };
 
-    // Función para obtener las sucursales
-    const fetchSucursales = async () => {
-        if (!user?.empresa_id) return;
+    // Función para manejar refresh con indicador
+    const handleRefresh = async () => {
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
         
         try {
-            setLoading(true);
-            const response = await sucursalesService.getByEmpresaId();
-            if (response.success && response.data) {
-                setSucursalData(response.data);
-                // Cerrar modal si estaba abierto y ahora tenemos datos
-                setModalConfig(prev => ({ ...prev, isOpen: false }));
-            } else if (response.code === 'MODULE_NOT_INCLUDED') {
-                setModalConfig({
-                    isOpen: true,
-                    type: 'warning',
-                    title: 'Módulo No Incluido',
-                    description: `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`,
-                    showButton: true
-                });
-            } else if (response.code === 'NO_PLAN') {
-                setModalConfig({
-                    isOpen: true,
-                    type: 'warning',
-                    title: 'Plan Requerido',
-                    description: 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.',
-                    showButton: true
-                });
-            } else {
-                // Si no es éxito pero tampoco es un error de plan, no abrir modal
-                console.log('Respuesta del servidor:', response);
-            }
+            await refetch();
+            
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
         } catch (error) {
+            setIsRefreshing(false);
+            setShowRefreshIndicator(false);
+        }
+    };
+
+    // Efecto para manejar errores de SWR
+    useEffect(() => {
+        if (error) {
             console.error('Error obteniendo sucursales:', error);
             setModalConfig({
                 isOpen: true,
@@ -100,24 +115,21 @@ function Sucursales({ isOpen, setIsOpen }) {
                 description: 'No tienes permisos para acceder a esta función.',
                 showButton: true
             });
-        } finally {
-            setLoading(false);
         }
-    };
-
-    // Efecto para cargar datos cuando se abre
-    useEffect(() => {
-        if (isOpen) {
-            // Asegurar que el modal esté cerrado al abrir el componente
-            setModalConfig(prev => ({ ...prev, isOpen: false }));
-            fetchSucursales();
-        }
-    }, [isOpen, user?.empresa_id]);
+    }, [error]);
 
     // Función para manejar cuando se crea una nueva sucursal
     const handleSucursalCreated = (newSucursal) => {
-        // Agregar la nueva sucursal a la lista
-        setSucursalData(prev => [newSucursal, ...prev]);
+        // Actualizar el cache localmente con la sucursal que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: [newSucursal, ...currentData.data]
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal
         setIsAgregarOpen(false);
         mostrarNotificacion('success', 'Sucursal agregada correctamente');
@@ -125,8 +137,16 @@ function Sucursales({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se elimina una sucursal
     const handleSucursalDeleted = (deletedId) => {
-        // Remover la sucursal eliminada de la lista
-        setSucursalData(prev => prev.filter(sucursal => sucursal.id !== deletedId));
+        // Actualizar el cache localmente removiendo la sucursal eliminada
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.filter(sucursal => sucursal.id !== deletedId)
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal de ver sucursal
         setIsOpenVerSucursal(false);
         mostrarNotificacion('success', 'Sucursal eliminada correctamente');
@@ -134,10 +154,18 @@ function Sucursales({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se actualiza una sucursal
     const handleSucursalUpdated = (updatedSucursal) => {
-        // Actualizar solo la sucursal específica en la lista
-        setSucursalData(prev => prev.map(sucursal =>
-            sucursal.id === updatedSucursal.id ? updatedSucursal : sucursal
-        ));
+        // Actualizar el cache localmente con la sucursal actualizada que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.map(sucursal => 
+                    sucursal.id === updatedSucursal.id ? updatedSucursal : sucursal
+                )
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal de ver sucursal
         setIsOpenVerSucursal(false);
         mostrarNotificacion('success', 'Sucursal actualizada correctamente');
@@ -145,14 +173,24 @@ function Sucursales({ isOpen, setIsOpen }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='building' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>{sucursalSeleccionada?.empresas?.name || 'Empresa'}</h1>
+                <div className={styles.titleContainer}>
+                    <h1 className={styles.title}>
+                        {sucursalSeleccionada?.empresas?.name || 'Empresa'}
+                        <button className={styles.refreshButton} onClick={handleRefresh}>
+                            <BoxIcon name='refresh' />
+                        </button>
+                    </h1>
+                    <RefreshIndicator
+                        isVisible={showRefreshIndicator}
+                        isLoading={isRefreshing}
+                    />
+                </div>
                 <p className={styles.subTitle}>SUCURSALES</p>
-                <div className={styles.content} style={{ height: 'calc(100vh - 235px)' }}>
-                    {sucursalData.length > 0 ? (
-                        sucursalData.map((sucursal, index) => (
+                <div className={styles.content}>
+                    {sucursales.length > 0 ? (
+                        sucursales.map((sucursal, index) => (
                             <ItemView
                                 key={sucursal.id || index}
                                 title={sucursal.name || 'Sin nombre'}
@@ -165,6 +203,13 @@ function Sucursales({ isOpen, setIsOpen }) {
                     ) : (
                         <div className={styles.noData}>
                             <p>No hay sucursales registradas</p>
+                        </div>
+                    )}
+
+                    {/* Indicador de carga para más elementos */}
+                    {isLoading && (
+                        <div className={styles.loadingMore}>
+                            <p>Cargando más sucursales...</p>
                         </div>
                     )}
                 </div>

@@ -34,6 +34,16 @@ const getEmpresaId = () => {
   return null;
 };
 
+// Función helper para obtener sucu_id
+const getSucuId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.id;
+  }
+  return null;
+};
+
 class pedidosAcopioService {
   static async create(pedidoData) {
     try {
@@ -42,6 +52,14 @@ class pedidosAcopioService {
         return {
           success: false,
           message: 'No hay empresa seleccionada'
+        };
+      }
+
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
         };
       }
 
@@ -54,7 +72,8 @@ class pedidosAcopioService {
         body: JSON.stringify({
           ...pedidoData,
           empresa_id: empresaId,
-          personal_id: personalId
+          personal_id: personalId,
+          sucu_id: sucuId
         }),
       });
       const data = await response.json();

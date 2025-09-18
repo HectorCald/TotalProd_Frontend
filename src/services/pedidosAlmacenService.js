@@ -21,6 +21,16 @@ const getEmpresaId = () => {
   return null;
 };
 
+// Función helper para obtener sucu_id
+const getSucuId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.id;
+  }
+  return null;
+};
+
 // Función helper para obtener personal_id del token
 const getPersonalId = () => {
   const token = localStorage.getItem('token');
@@ -47,6 +57,14 @@ class pedidosAlmacenService {
         };
       }
 
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
       // Obtener personal_id
       const personalId = getPersonalId();
 
@@ -56,7 +74,8 @@ class pedidosAlmacenService {
         body: JSON.stringify({
           ...pedidoData,
           empresa_id: empresaId,
-          personal_id: personalId
+          personal_id: personalId,
+          sucu_id: sucuId
         }),
       });
       
@@ -137,6 +156,14 @@ class pedidosAlmacenService {
         };
       }
 
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
       // Obtener personal_id
       const personalId = getPersonalId();
 
@@ -146,7 +173,8 @@ class pedidosAlmacenService {
         body: JSON.stringify({
           ...pedidoData,
           empresa_id: empresaId,
-          personal_id: personalId
+          personal_id: personalId,
+          sucu_id: sucuId
         }),
       });
       

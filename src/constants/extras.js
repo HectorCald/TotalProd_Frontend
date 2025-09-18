@@ -13,11 +13,6 @@ export const EXTRAS = [
         view: 'sucursales'
     },
     {
-        title: 'Cotizaciones',
-        image: imageCotizaciones,
-        view: 'cotizaciones'
-    },
-    {
         title: 'Caja',
         image: imageCajaChica,
         view: 'caja-chica'
@@ -32,19 +27,4 @@ export const EXTRAS = [
         image: imagePrecios,
         view: 'precios'
     },
-    {
-        title: 'Reportes IA',
-        image: imageReportIA,
-        view: 'reporte-ia'
-    },
-    {
-        title: 'Deudas',
-        image: imageDeudas,
-        view: 'deudas'
-    },
-    {
-        title: 'Offline',
-        image: imageOffline,
-        view: 'offline'
-    }
 ];

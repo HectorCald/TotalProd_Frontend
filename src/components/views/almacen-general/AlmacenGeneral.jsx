@@ -22,6 +22,9 @@ import productsAlmacenService from '../../../services/productsAlmacenService';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
+import { useProductosAlmacen } from '../../../hooks/useData';
+import { BoxIcon } from 'boxicons-react';
+import RefreshIndicator from '../../common/RefreshIndicator';
 const medidas = [
     { value: 'kilo', label: 'Kilo', icon: 'tag' },
     { value: 'quintal', label: 'Quital', icon: 'tag' },
@@ -40,22 +43,51 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [isCategoriasOpen, setIsCategoriasOpen] = useState(false);
 
     // Estados para la carga
-    const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
 
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
-    const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
 
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
     // Estados para los datos
-    const [productoData, setProductoData] = useState([]);
     const [categorias, setCategorias] = useState([]);
     const [loadingCategorias, setLoadingCategorias] = useState(false);
+    
+    // Estados para RefreshIndicator
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // Estados para filtros
+    const [categoriaFiltro, setCategoriaFiltro] = useState(null);
+    const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
+
+    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
+    const { productos, hasMorePages, error, isLoading, refetch } = useProductosAlmacen(
+        isOpen ? debouncedSearchQuery : '', 
+        isOpen ? currentPage : 1,
+        isOpen,
+        categoriaFiltro,
+        ordenamiento
+    );
+
+    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
+    useEffect(() => {
+        if (isLoading && isOpen) {
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+        } else if (!isLoading && showRefreshIndicator) {
+            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
+    }, [isLoading, isOpen, showRefreshIndicator]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -81,10 +113,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [isOpenItem, setOpenItem] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [selectedMedidas, setSelectedMedidas] = useState('');
-
-    // Estados para filtros de categoría y ordenamiento
-    const [categoriaFiltro, setCategoriaFiltro] = useState(null);
-    const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
 
     // Estados para canasta de pedidos
     const [productosCanasta, setProductosCanasta] = useState([]);
@@ -194,143 +222,56 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }
     };
 
-    
-    // Función para obtener los productos
-    const fetchProducts = async (page = 1, reset = true, isSearch = false, categoriaOverride = null, ordenamientoOverride = null, searchQueryOverride = null) => {
-        try {
-            if (reset) {
-                if (isSearch) {
-                    setIsSearching(true);
-                } else {
-                    setLoading(true);
-                }
-            } else {
-                setLoadingMore(true);
-            }
-
-            // Usar override si se proporciona, sino usar el estado
-            const categoriaToUse = categoriaOverride !== undefined ? categoriaOverride : categoriaFiltro;
-            const ordenamientoToUse = ordenamientoOverride !== undefined ? ordenamientoOverride : ordenamiento;
-            const searchQueryToUse = searchQueryOverride !== undefined ? searchQueryOverride : searchQuery;
-
-            const response = await productsAlmacenService.getAll();
-            if (response.success && response.data) {
-                let productosFiltrados = response.data;
-
-                // Aplicar búsqueda por texto
-                if (searchQueryToUse && searchQueryToUse.trim() !== '') {
-                    const query = searchQueryToUse.toLowerCase().trim();
-                    productosFiltrados = productosFiltrados.filter(producto =>
-                        (producto.name && producto.name.toLowerCase().includes(query)) ||
-                        (producto.description && producto.description.toLowerCase().includes(query)) ||
-                        (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(query)) ||
-                        (producto.category_almacen && producto.category_almacen.name && producto.category_almacen.name.toLowerCase().includes(query))
-                    );
-                }
-
-                // Aplicar filtro de categoría
-                if (categoriaToUse !== null) {
-                    if (categoriaToUse === '') {
-                        // Productos sin categoría
-                        productosFiltrados = productosFiltrados.filter(producto => !producto.category_almacen);
-                    } else {
-                        // Productos con categoría específica
-                        productosFiltrados = productosFiltrados.filter(producto =>
-                            producto.category_almacen && producto.category_almacen.id === categoriaToUse
-                        );
-                    }
-                }
-
-                // Aplicar ordenamiento
-                if (ordenamientoToUse) {
-                    productosFiltrados.sort((a, b) => {
-                        switch (ordenamientoToUse) {
-                            case 'nombre_asc':
-                                return (a.name || '').localeCompare(b.name || '');
-                            case 'nombre_desc':
-                                return (b.name || '').localeCompare(a.name || '');
-                            case 'stock_asc':
-                                return (a.stock || 0) - (b.stock || 0);
-                            case 'stock_desc':
-                                return (b.stock || 0) - (a.stock || 0);
-                            default:
-                                return 0;
-                        }
-                    });
-                }
-
-                if (reset) {
-                    setProductoData(productosFiltrados);
-                } else {
-                    setProductoData(prev => [...prev, ...productosFiltrados]);
-                }
-
-                setCurrentPage(page);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-
-            } else {
-                // Si no es éxito pero tampoco es un error de plan, no abrir modal
-                console.log('Respuesta del servidor:', response);
-            }
-        } catch (error) {
-            console.error('Error obteniendo productos:', error);
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
-            setIsSearching(false);
-        }
-    };
 
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !loadingMore) {
-            fetchProducts(currentPage + 1, false);
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+            setCurrentPage(prev => prev + 1);
         }
     };
 
-    // Función para manejar búsqueda
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        setCurrentPage(1);
-        setHasMorePages(true);
-        fetchProducts(1, true, true, categoriaFiltro, ordenamiento, query); // isSearch = true
+    // Función para manejar refresh con indicador
+    const handleRefresh = async () => {
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+
+        try {
+            await refetch();
+
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        } catch (error) {
+            setIsRefreshing(false);
+            setShowRefreshIndicator(false);
+        }
     };
 
     // Función para manejar filtro de categoría
     const handleCategoriaFilter = (categoriaId) => {
-        setCategoriaFiltro(categoriaId);
-        setCurrentPage(1);
-        setHasMorePages(true);
-        fetchProducts(1, true, false, categoriaId, ordenamiento, searchQuery);
+        console.log('🔍 Filtro de categoría seleccionado:', categoriaId);
+        setCategoriaFiltro(categoriaId); // Cambia el filtro y hace nueva petición
+        setCurrentPage(1); // Resetear a primera página
     };
 
     // Función para manejar ordenamiento
     const handleOrdenamiento = (orden) => {
-        setOrdenamiento(orden);
-        setCurrentPage(1);
-        setHasMorePages(true);
-        fetchProducts(1, true, false, categoriaFiltro, orden, searchQuery);
+        console.log('🔍 Ordenamiento seleccionado:', orden);
+        setOrdenamiento(orden); // Cambia el ordenamiento y hace nueva petición
+        setCurrentPage(1); // Resetear a primera página
     };
 
     // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-        } else {
-            // NO limpiar canastas automáticamente al cerrar el modal
-            // Solo se deben limpiar después de confirmar exitosamente
-            // Las canastas deben persistir para permitir reabrir el modal
-        }
-    }, [isOpen]);
-
-    // Efecto único para cargar datos y búsqueda
-    useEffect(() => {
-        if (isOpen) {
-            // Asegurar que el modal esté cerrado al abrir el componente
-            fetchCategorias();
             setCurrentPage(1);
-            setHasMorePages(true);
+            fetchCategorias();
 
             // Si es modo pedido, cargar canasta desde localStorage
             if (tipo === 'pedido') {
@@ -366,16 +307,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     }
                 }
             }
-
-            // Si hay búsqueda, buscar; si no, cargar todos
-            if (debouncedSearchQuery) {
-                handleSearch(debouncedSearchQuery);
-            } else {
-                fetchProducts(1, true, false, categoriaFiltro, ordenamiento, '');
-            }
-
         }
-    }, [isOpen, debouncedSearchQuery, tipo]);
+    }, [isOpen, tipo]);
 
     // Efecto para cargar productos iniciales cuando se reciban como props
     useEffect(() => {
@@ -390,42 +323,37 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Función para manejar cuando se crea un nuevo producto
     const handleProductCreated = (newProduct) => {
-        // Agregar el nuevo producto a la lista
-        setProductoData(prev => [newProduct, ...prev]);
         // Cerrar el modal
         setIsAgregarOpen(false);
+        // Actualizar cache con SWR
+        refetch();
         mostrarNotificacion('success', 'Producto agregado correctamente')
     };
 
     // Función para manejar cuando se elimina un producto
     const handleProductDeleted = (deletedId) => {
-        // Remover el producto eliminado de la lista
-        setProductoData(prev => prev.filter(producto => producto.id !== deletedId));
         // Cerrar el modal de ver producto
         setIsOpenVerProducto(false);
+        // Actualizar cache con SWR
+        refetch();
         mostrarNotificacion('success', 'Producto eliminado correctamente')
     };
 
     // Función para manejar cuando se actualiza un producto
     const handleProductUpdated = (updatedProduct) => {
-        // Actualizar solo el producto específico en la lista
-        setProductoData(prev => prev.map(producto =>
-            producto.id === updatedProduct.id ? updatedProduct : producto
-        ));
         // Actualizar también el producto que se está viendo
         setInfoPersona(updatedProduct);
         // Cerrar el modal de ver producto
         setIsOpenVerProducto(false);
+        // Actualizar cache con SWR
+        refetch();
         mostrarNotificacion('success', 'Producto actualizado correctamente')
     };
 
     // Función para manejar cuando se actualizan múltiples productos (después de movimientos)
     const handleProductosUpdated = (productosActualizados) => {
-        // Actualizar cada producto en la lista con su nuevo stock
-        setProductoData(prev => prev.map(producto => {
-            const productoActualizado = productosActualizados.find(p => p.id === producto.id);
-            return productoActualizado ? productoActualizado : producto;
-        }));
+        // Actualizar cache con SWR
+        refetch();
     };
 
 
@@ -517,7 +445,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         return categoria ? categoria.name : 'Categorías';
     };
 
-
     // Función para obtener el nombre del ordenamiento
     const getOrdenamientoNombre = () => {
         const ordenamientos = {
@@ -544,10 +471,20 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='box' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Almacen</h1>
+                <div className={styles.titleContainer}>
+                    <h1 className={styles.title}>
+                        Almacen
+                        <button className={styles.refreshButton} onClick={handleRefresh}>
+                            <BoxIcon name='refresh' />
+                        </button>
+                    </h1>
+                    <RefreshIndicator
+                        isVisible={showRefreshIndicator}
+                        isLoading={isRefreshing}
+                    />
+                </div>
                 <p className={styles.subTitle}>Administra tu almacen de productos</p>
                 <div className={styles.searchContainer}>
                     <InputSearch
@@ -561,12 +498,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 </div>
                 <Filtros options={opciones} />
                 <div className={styles.content} onScroll={handleScroll}>
-                    {isSearching ? (
-                        <div className={styles.searchingData}>
-                            <p>Buscando...</p>
-                        </div>
-                    ) : productoData.length > 0 ? (
-                        productoData.map((producto, index) => {
+                    {productos.length > 0 ? (
+                        productos.map((producto, index) => {
                             const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
                             const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida')
                                 ? getCantidadEnCanastaMovimientos(producto.id, tipo)
@@ -848,7 +781,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 />
             )}
         </View>
-
     );
 }
 export default AlmacenGeneral;

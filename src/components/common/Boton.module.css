@@ -40,6 +40,10 @@
   border: 1px solid var(--quinary-color);
   color: var(--white-color);
 }
+.btn-transparent{
+  background-color: transparent;
+  color: var(--white-color);
+}
 .btn-original{
   background-color: var(--primary-color);
 }

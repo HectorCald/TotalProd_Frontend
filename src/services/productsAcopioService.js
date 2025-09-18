@@ -24,7 +24,7 @@ const getEmpresaId = () => {
 class productsAcopioService {
 
   // Obtener todos los productos
-  static async getAll(page = 1, limit = 20, search = '', categoria = null, tipoMedida = null, ordenamiento = 'nombre_asc') {
+  static async getAll(page = 1, limit = 10, search = '', categoria = null, tipoMedida = null, ordenamiento = 'nombre_asc') {
     try {
       const empresaId = getEmpresaId();
       if (!empresaId) {
@@ -37,19 +37,31 @@ class productsAcopioService {
       const params = new URLSearchParams({
         empresa_id: empresaId,
         page: page.toString(),
-        limit: limit.toString(),
-        ordenamiento: ordenamiento,
-        ...(search && { search }),
-        ...(categoria !== null && { categoria }), // Solo agregar 'categoria' si no es null
-        ...(tipoMedida !== null && { tipo_medida: tipoMedida }) // Solo agregar 'tipo_medida' si no es null
+        limit: limit.toString()
       });
 
-
+      if (search && search.trim() !== '') {
+        params.append('search', search);
+      }
+      
+      if (categoria !== null) {
+        params.append('categoria', categoria);
+      }
+      
+      if (tipoMedida !== null) {
+        params.append('tipoMedida', tipoMedida);
+      }
+      
+      if (ordenamiento && ordenamiento !== 'nombre_asc') {
+        params.append('ordenamiento', ordenamiento);
+      }
       const response = await fetch(`${API_BASE_URL}/products-acopio?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
       const data = await response.json();
+    
+      
       return data;
 
     } catch (error) {
@@ -96,12 +108,10 @@ class productsAcopioService {
   // Eliminar un producto
   static async delete(id) {
     try {
-
       const response = await fetch(`${API_BASE_URL}/products-acopio/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-        })
+        body: JSON.stringify({})
       });
 
       const data = await response.json();
@@ -119,8 +129,6 @@ class productsAcopioService {
   // Actualizar un producto
   static async update(id, productData) {
     try {
-
-
       const response = await fetch(`${API_BASE_URL}/products-acopio/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),

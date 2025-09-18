@@ -9,6 +9,7 @@ import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import MensajeError from '../../common/MensajeError';
+import Notification from '../../common/Notification';
 import personalService from '../../../services/personalService';
 import ItemView from '../../common/ItemView';
 import ItemLine from '../../common/ItemLine';
@@ -22,6 +23,11 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
 
     // Estados para los mensajes de error y éxito
     const [errorMessage, setErrorMessage] = useState('');
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
@@ -76,6 +82,36 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
         }
     }
 
+    // Función para mostrar notificación
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
+
+    // Función para copiar código al portapapeles
+    const handleCopyCode = async () => {
+        if (!usuario.codigo) {
+            mostrarNotificacion('error', 'No hay código para copiar');
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(usuario.codigo);
+            mostrarNotificacion('success', 'Código copiado al portapapeles');
+        } catch (error) {
+            console.error('Error al copiar:', error);
+            mostrarNotificacion('error', 'Error al copiar el código');
+        }
+    };
+
     // Efecto para limpiar mensajes al abrir/cerrar
     useEffect(() => {
         if (isOpen) {
@@ -108,8 +144,13 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN PERSONAL</p>
                 <div className={styles.content}>
-                    <Dato label="Código" value={usuario?.codigo || 'N/A'} />
-                    <Dato label="Estado" value={usuario?.is_active ? 'Activo' : 'Inactivo'} />
+                    <Dato 
+                        label="Código" 
+                        value={usuario?.codigo || 'N/A'} 
+                        icon='copy'
+                        onClick={handleCopyCode}
+                    />
+                    <Dato label="Estado" value={usuario?.is_active ? 'Activo' : 'Inactivo'} especial={usuario?.is_active ? 'green' : 'red'} />
                     <Dato label="Sucursal" value={usuario?.sucursal?.name || 'Sin sucursal asignada'} />
                 </div>
 
@@ -240,6 +281,11 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
 
 
             {/* Modal de Notificación*/}
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
         </View>
     );
 }

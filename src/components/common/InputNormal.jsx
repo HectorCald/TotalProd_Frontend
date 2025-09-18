@@ -2,7 +2,7 @@ import React, { useState, forwardRef } from 'react';
 import styles from './InputNormal.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, label, error, buttonIcon, buttonIconClick, onKeyPress }, ref) => {
+const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, label, error, buttonIcon, buttonIconClick, onKeyPress, readonly = false }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     // Actualizar isFocused cuando value cambie
@@ -46,9 +46,12 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                         setIsFocused(false);
                     }
                 }}
+                readOnly={readonly}
                 style={{
                     paddingRight: buttonIcon ? '50px' : '15px',
-                    paddingLeft: icon ? '50px' : '15px'
+                    paddingLeft: icon ? '50px' : '15px',
+                    opacity: readonly ? 0.5 : 1,
+                    cursor: readonly ? 'not-allowed' : 'text'
                 }}
 
             />

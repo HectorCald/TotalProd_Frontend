@@ -12,6 +12,9 @@ import pricesTypesService from '../../../services/pricesTypesService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
+import { usePrecios } from '../../../hooks/useData';
+import { BoxIcon } from 'boxicons-react';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function Precios({ isOpen, setIsOpen }) {
     // Estados para los modales
@@ -19,21 +22,39 @@ function Precios({ isOpen, setIsOpen }) {
     const [infoPrecio, setInfoPrecio] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
 
-    // Estados para la carga
-    const [loading, setLoading] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
-
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
-    const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
+    
+    // Estados para RefreshIndicator
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
-    // Estados para los datos
-    const [precioData, setPrecioData] = useState([]);
+    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
+    const { precios, error, isLoading, refetch } = usePrecios(
+        isOpen ? debouncedSearchQuery : '', 
+        isOpen ? currentPage : 1,
+        isOpen
+    );
+
+    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
+    useEffect(() => {
+        if (isLoading && isOpen) {
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+        } else if (!isLoading && showRefreshIndicator) {
+            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
+    }, [isLoading, isOpen, showRefreshIndicator]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -69,37 +90,38 @@ function Precios({ isOpen, setIsOpen }) {
         setIsOpenVerPrecio(true);
     };
 
-    // Función para obtener los precios
-    const fetchPrecios = async () => {
+    // Función para manejar refresh con indicador
+    const handleRefresh = async () => {
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        
         try {
-            setLoading(true);
-            const response = await pricesTypesService.getAll();
-            if (response.success && response.data) {
-                setPrecioData(response.data);
-                setHasMorePages(false); // Los precios no tienen paginación
-                // Cerrar modal si estaba abierto y ahora tenemos datos
-                setModalConfig(prev => ({ ...prev, isOpen: false }));
-            } else if (response.code === 'MODULE_NOT_INCLUDED') {
-                setModalConfig({
-                    isOpen: true,
-                    type: 'warning',
-                    title: 'Módulo No Incluido',
-                    description: `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`,
-                    showButton: true
-                });
-            } else if (response.code === 'NO_PLAN') {
-                setModalConfig({
-                    isOpen: true,
-                    type: 'warning',
-                    title: 'Plan Requerido',
-                    description: 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.',
-                    showButton: true
-                });
-            } else {
-                // Si no es éxito pero tampoco es un error de plan, no abrir modal
-                console.log('Respuesta del servidor:', response);
-            }
+            await refetch();
+            
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
         } catch (error) {
+            setIsRefreshing(false);
+            setShowRefreshIndicator(false);
+        }
+    };
+
+    // Efecto para resetear búsqueda cuando se abre
+    useEffect(() => {
+        if (isOpen) {
+            setSearchQuery('');
+            setCurrentPage(1);
+        }
+    }, [isOpen]);
+
+    // Efecto para manejar errores de SWR
+    useEffect(() => {
+        if (error) {
             console.error('Error obteniendo precios:', error);
             setModalConfig({
                 isOpen: true,
@@ -108,50 +130,21 @@ function Precios({ isOpen, setIsOpen }) {
                 description: 'No tienes permisos para acceder a esta función.',
                 showButton: true
             });
-        } finally {
-            setLoading(false);
-            setIsSearching(false);
         }
-    };
-
-    // Función para manejar búsqueda
-    const handleSearch = (query) => {
-        if (query.trim() === '') {
-            fetchPrecios();
-        } else {
-            const filtered = precioData.filter(precio =>
-                precio.name.toLowerCase().includes(query.toLowerCase())
-            );
-            setPrecioData(filtered);
-        }
-    };
-
-    // Efecto para resetear búsqueda cuando se abre
-    useEffect(() => {
-        if (isOpen) {
-            setSearchQuery('');
-        }
-    }, [isOpen]);
-
-    // Efecto único para cargar datos y búsqueda
-    useEffect(() => {
-        if (isOpen) {
-            // Asegurar que el modal esté cerrado al abrir el componente
-            setModalConfig(prev => ({ ...prev, isOpen: false }));
-            
-            // Si hay búsqueda, buscar; si no, cargar todos
-            if (debouncedSearchQuery) {
-                handleSearch(debouncedSearchQuery);
-            } else {
-                fetchPrecios();
-            }
-        }
-    }, [isOpen, debouncedSearchQuery]);
+    }, [error]);
 
     // Función para manejar cuando se crea un nuevo precio
     const handlePrecioCreated = (newPrecio) => {
-        // Agregar el nuevo precio a la lista
-        setPrecioData(prev => [newPrecio, ...prev]);
+        // Actualizar el cache localmente con el precio que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: [newPrecio, ...currentData.data]
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal
         setIsAgregarOpen(false);
         mostrarNotificacion('success', 'Tipo de precio agregado correctamente');
@@ -159,8 +152,16 @@ function Precios({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se elimina un precio
     const handlePrecioDeleted = (deletedId) => {
-        // Remover el precio eliminado de la lista
-        setPrecioData(prev => prev.filter(precio => precio.id !== deletedId));
+        // Actualizar el cache localmente removiendo el precio eliminado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.filter(precio => precio.id !== deletedId)
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal de ver precio
         setIsOpenVerPrecio(false);
         mostrarNotificacion('success', 'Tipo de precio eliminado correctamente');
@@ -168,10 +169,18 @@ function Precios({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se actualiza un precio
     const handlePrecioUpdated = (updatedPrecio) => {
-        // Actualizar solo el precio específico en la lista
-        setPrecioData(prev => prev.map(precio =>
-            precio.id === updatedPrecio.id ? updatedPrecio : precio
-        ));
+        // Actualizar el cache localmente con el precio actualizado que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.map(precio => 
+                    precio.id === updatedPrecio.id ? updatedPrecio : precio
+                )
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal de ver precio
         setIsOpenVerPrecio(false);
         mostrarNotificacion('success', 'Tipo de precio actualizado correctamente');
@@ -179,10 +188,20 @@ function Precios({ isOpen, setIsOpen }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='dollar' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Tipos de Precios</h1>
+                <div className={styles.titleContainer}>
+                    <h1 className={styles.title}>
+                        Tipos de Precios
+                        <button className={styles.refreshButton} onClick={handleRefresh}>
+                            <BoxIcon name='refresh' />
+                        </button>
+                    </h1>
+                    <RefreshIndicator
+                        isVisible={showRefreshIndicator}
+                        isLoading={isRefreshing}
+                    />
+                </div>
                 <div className={styles.searchContainer}>
                     <InputSearch
                         placeholder='Buscar tipo de precio'
@@ -193,13 +212,9 @@ function Precios({ isOpen, setIsOpen }) {
                         }}
                     />
                 </div>
-                <div className={styles.content} style={{ height: 'calc(100vh - 235px)' }}>
-                    {isSearching ? (
-                        <div className={styles.searchingData}>
-                            <p>Buscando...</p>
-                        </div>
-                    ) : precioData.length > 0 ? (
-                        precioData.map((precio, index) => (
+                <div className={styles.content}>
+                    {precios.length > 0 ? (
+                        precios.map((precio, index) => (
                             <ItemView
                                 key={precio.id || index}
                                 title={precio.name || 'Sin nombre'}
@@ -212,6 +227,13 @@ function Precios({ isOpen, setIsOpen }) {
                     ) : (
                         <div className={styles.noData}>
                             <p>{searchQuery ? 'No se encontraron tipos de precio' : 'No hay tipos de precio registrados'}</p>
+                        </div>
+                    )}
+
+                    {/* Indicador de carga para más elementos */}
+                    {isLoading && (
+                        <div className={styles.loadingMore}>
+                            <p>Cargando más tipos de precio...</p>
                         </div>
                     )}
                 </div>

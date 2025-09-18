@@ -14,6 +14,9 @@ import movimientosAcopioService from '../../../services/movimientosAcopioService
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
+import { useMovimientosAcopio, useMovimientosAlmacen } from '../../../hooks/useData';
+import { BoxIcon } from 'boxicons-react';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 
 function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
@@ -21,21 +24,46 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [isOpenVerMovimiento, setIsOpenVerMovimiento] = useState(false);
     const [infoMovimiento, setInfoMovimiento] = useState(null);
 
-    // Estados para la carga
-    const [loading, setLoading] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
-
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
-    const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
+    
+    // Estados para RefreshIndicator
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
-    // Estados para los datos
-    const [movimientosData, setMovimientosData] = useState([]);
+    // Estados para filtros
+    const [filtroTipo, setFiltroTipo] = useState(null);
+    const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
+
+    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
+    const useMovimientosHook = tipoMovimiento === 'acopio' ? useMovimientosAcopio : useMovimientosAlmacen;
+    const { movimientos, hasMorePages, error, isLoading, refetch } = useMovimientosHook(
+        isOpen ? debouncedSearchQuery : '', 
+        isOpen ? currentPage : 1,
+        isOpen,
+        filtroTipo,
+        ordenamiento
+    );
+
+    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
+    useEffect(() => {
+        if (isLoading && isOpen) {
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+        } else if (!isLoading && showRefreshIndicator) {
+            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
+    }, [isLoading, isOpen, showRefreshIndicator]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -60,10 +88,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [isOpenTipo, setOpenTipo] = useState(false);
 
-    // Estados para filtros
-    const [filtroTipo, setFiltroTipo] = useState(null); // null = todos, 'entrada', 'salida'
-    const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
-
     // Función para manejar el click en un movimiento
     const handleRegistro = (movimiento) => {
         setInfoMovimiento(movimiento);
@@ -71,59 +95,32 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     };
 
 
-    // Función para obtener los movimientos
-    const fetchMovimientos = async (page = 1, reset = true, isSearch = false, tipoOverride = null, ordenamientoOverride = null) => {
+    // Función para manejar refresh con indicador
+    const handleRefresh = async () => {
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        
         try {
-            if (reset) {
-                if (isSearch) {
-                    setIsSearching(true);
-                } else {
-                    setLoading(true);
-                }
-            } else {
-                setLoadingMore(true);
-            }
-
-            // Usar override si se proporciona, sino usar el estado
-            const tipoToUse = tipoOverride !== undefined ? tipoOverride : filtroTipo;
-            const ordenamientoToUse = ordenamientoOverride !== undefined ? ordenamientoOverride : ordenamiento;
-
-            let response;
-            if (tipoMovimiento === 'acopio') {
-                response = await movimientosAcopioService.getAll(page, 20, tipoToUse, ordenamientoToUse);
-            } else if (tipoMovimiento === 'almacen') {
-                response = await movimientosAlmacenService.getAll(page, 20, tipoToUse, ordenamientoToUse);
-            } else {
-                return;
-            }
-
-            if (response.success && response.data) {
-                if (reset) {
-                    setMovimientosData(response.data);
-                } else {
-                    setMovimientosData(prev => [...prev, ...response.data]);
-                }
-
-                setCurrentPage(page);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-
-            } else {
-                console.log('Respuesta del servidor:', response);
-            }
+            await refetch();
+            
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
         } catch (error) {
-            console.error('Error obteniendo movimientos:', error);
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
-            setIsSearching(false);
+            setIsRefreshing(false);
+            setShowRefreshIndicator(false);
         }
     };
 
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !loadingMore) {
-            fetchMovimientos(currentPage + 1, false);
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+            setCurrentPage(prev => prev + 1);
         }
     };
 
@@ -131,67 +128,66 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const handleSearch = (query) => {
         setSearchQuery(query);
         setCurrentPage(1);
-        setHasMorePages(true);
-        fetchMovimientos(1, true, true, null, null); // isSearch = true
     };
 
     // Función para manejar ordenamiento
     const handleOrdenamiento = (orden) => {
         setOrdenamiento(orden);
         setCurrentPage(1);
-        setHasMorePages(true);
-        fetchMovimientos(1, true, false, null, orden);
     };
 
     // Función para manejar filtro de tipo
     const handleFiltroTipo = (tipo) => {
         setFiltroTipo(tipo);
         setCurrentPage(1);
-        setHasMorePages(true);
-        fetchMovimientos(1, true, false, tipo, null);
     };
 
     // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+            setCurrentPage(1);
         }
     }, [isOpen, tipoMovimiento]);
 
-    // Efecto único para cargar datos y búsqueda
+    // Efecto para manejar errores de SWR
     useEffect(() => {
-        if (isOpen) {
-            console.log('PanelMovimientos - Cargando datos');
-            // Asegurar que el modal esté cerrado al abrir el componente
-            setCurrentPage(1);
-            setHasMorePages(true);
-            
-            // Si hay búsqueda, buscar; si no, cargar todos
-            if (debouncedSearchQuery) {
-                handleSearch(debouncedSearchQuery);
-            } else {
-                fetchMovimientos(1, true, false, filtroTipo, ordenamiento);
-            }
+        if (error) {
+            console.error('Error obteniendo movimientos:', error);
         }
-    }, [isOpen, tipoMovimiento, debouncedSearchQuery]);
+    }, [error]);
 
     // Función para manejar cuando se anula un movimiento
     const handleMovimientoAnulado = (movimientoId) => {
-        setMovimientosData(prev => 
-            prev.map(movimiento => 
-                movimiento.id === movimientoId 
-                    ? { ...movimiento, estado: 'anulado' }
-                    : movimiento
-            )
-        );
+        // Actualizar el cache localmente con el movimiento anulado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.map(movimiento => 
+                    movimiento.id === movimientoId 
+                        ? { ...movimiento, estado: 'anulado' }
+                        : movimiento
+                )
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         mostrarNotificacion('success', 'Movimiento anulado correctamente');
     };
 
     // Función para manejar cuando se elimina un movimiento
     const handleMovimientoEliminado = (movimientoId) => {
-        setMovimientosData(prev => 
-            prev.filter(movimiento => movimiento.id !== movimientoId)
-        );
+        // Actualizar el cache localmente removiendo el movimiento eliminado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.filter(movimiento => movimiento.id !== movimientoId)
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         mostrarNotificacion('success', 'Movimiento eliminado correctamente');
     };
     // Función para obtener el nombre del tipo de filtro
@@ -228,16 +224,24 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='box' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    {tipoMovimiento === 'acopio' ? 'Materia Prima' : 'Almacén General'}
-                </h1>
+                <div className={styles.titleContainer}>
+                    <h1 className={styles.title}>
+                        Movimientos
+                        <button className={styles.refreshButton} onClick={handleRefresh}>
+                            <BoxIcon name='refresh' />
+                        </button>
+                    </h1>
+                    <RefreshIndicator
+                        isVisible={showRefreshIndicator}
+                        isLoading={isRefreshing}
+                    />
+                </div>
                 <p className={styles.subTitle}>
                     {tipoMovimiento === 'acopio' 
-                        ? 'Administra los movimientos de materia prima' 
-                        : 'Administra los movimientos del almacén general'
+                        ? 'Materia Prima' 
+                        : 'Almacén General'
                     }
                 </p>
                 <div className={styles.searchContainer}>
@@ -258,12 +262,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         height: 'calc(100vh - 150px)'
                     }}
                 >
-                    {isSearching ? (
-                        <div className={styles.searchingData}>
-                            <p>Buscando...</p>
-                        </div>
-                    ) : movimientosData.length > 0 ? (
-                        movimientosData.map((movimiento, index) => {
+                    {movimientos.length > 0 ? (
+                        movimientos.map((movimiento, index) => {
                             return (
                                 <ItemView
                                     key={movimiento.id || index}
@@ -300,7 +300,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     )}
 
                     {/* Indicador de carga para más elementos */}
-                    {loadingMore && (
+                    {isLoading && (
                         <div className={styles.loadingMore}>
                             <p>Cargando más movimientos...</p>
                         </div>

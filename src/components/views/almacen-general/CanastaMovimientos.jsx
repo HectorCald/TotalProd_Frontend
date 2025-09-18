@@ -18,6 +18,8 @@ import EditarAgregar from '../proveedores/EditarAgregar';
 import EditarAgregarCliente from '../clientes/EditarAgregar';
 import PantallaExito from '../../common/PantallaExito';
 import Switch from '../../common/Switch';
+import Proveedores from '../proveedores/Proveedores';
+import Clientes from '../clientes/Clientes';
 
 function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated, esEntrega = false }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
@@ -44,6 +46,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const [proveedorSeleccionado, setProveedorSeleccionado] = useState('');
     const [clienteSeleccionado, setClienteSeleccionado] = useState('');
     const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState('');
+    const [isProveedoresSeleccionOpen, setIsProveedoresSeleccionOpen] = useState(false);
+    const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
+    const [proveedorSeleccionadoData, setProveedorSeleccionadoData] = useState(null);
+    const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
     const [restarIngredientes, setRestarIngredientes] = useState(() => {
         const saved = localStorage.getItem('restarIngredientes');
         return saved !== null ? JSON.parse(saved) : true;
@@ -122,10 +128,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
     }, [isOpen, tipoMovimiento]);
 
-    // Cargar clientes (solo para salidas normales)
+    // Cargar clientes (para todas las salidas)
     useEffect(() => {
         const loadClientes = async () => {
-            if (tipoMovimiento !== 'salida' || esEntrega) return;
+            if (tipoMovimiento !== 'salida') return;
             
             setLoadingClientes(true);
             setClientesError('');
@@ -150,10 +156,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             }
         };
 
-        if (isOpen && tipoMovimiento === 'salida' && !esEntrega) {
+        if (isOpen && tipoMovimiento === 'salida') {
             loadClientes();
         }
-    }, [isOpen, tipoMovimiento, esEntrega]);
+    }, [isOpen, tipoMovimiento]);
 
 
     // Guardar en localStorage cuando cambie la canasta (separado por tipo)
@@ -254,6 +260,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             name: newProveedor.name
         }]);
         setProveedorSeleccionado(newProveedor.id);
+        setProveedorSeleccionadoData(newProveedor);
         setIsProveedorOpen(false);
     };
 
@@ -266,7 +273,22 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             name: newCliente.name
         }]);
         setClienteSeleccionado(newCliente.id);
+        setClienteSeleccionadoData(newCliente);
         setIsClienteOpen(false);
+    };
+
+    // Función para manejar cuando se selecciona un proveedor
+    const handleProveedorSeleccionado = (proveedor) => {
+        setProveedorSeleccionadoData(proveedor);
+        setProveedorSeleccionado(proveedor.id);
+        setIsProveedoresSeleccionOpen(false);
+    };
+
+    // Función para manejar cuando se selecciona un cliente
+    const handleClienteSeleccionado = (cliente) => {
+        setClienteSeleccionadoData(cliente);
+        setClienteSeleccionado(cliente.id);
+        setIsClientesSeleccionOpen(false);
     };
 
     const handleLimpiarCanasta = () => {
@@ -555,65 +577,25 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
                     {/* Selector de proveedor para entradas */}
                     {tipoMovimiento === 'entrada' && (
-                        <div className={styles.content} style={{ padding: '10px 15px' }}>
-                            <Select
-                                value={proveedorSeleccionado}
-                                onChange={setProveedorSeleccionado}
-                                options={proveedores}
-                                placeholder='Proveedor (opcional)'
-                                disabled={loadingProveedores || !!proveedoresError}
-                                icon='store'
+                        <div className={styles.content} style={{ padding: '5px 15px' }}>
+                            <Boton
+                                className='btn-transparent'
+                                label={proveedorSeleccionadoData ? proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
+                                onClick={() => setIsProveedoresSeleccionOpen(true)}
+                                style={{ width: '100%', justifyContent: 'flex-start' }}
                             />
-
-                            {!proveedoresError && (
-                                <Boton
-                                    className='btn-default'
-                                    label='Nuevo Proveedor'
-                                    onClick={() => setIsProveedorOpen(true)}
-                                    style={{ minWidth: '80px' }}
-                                />
-                            )}
-                            {proveedoresError && (
-                                <div style={{ 
-                                    color: '#dc3545',
-                                    fontSize: '13px',
-                                    textAlign: 'center',
-                                }}>
-                                    {proveedoresError}
-                                </div>
-                            )}
                         </div>
                     )}
 
-                    {/* Selector de cliente para salidas normales */}
-                    {tipoMovimiento === 'salida' && !esEntrega && (
-                        <div className={styles.content} style={{ padding: '10px 15px' }}>
-                            <Select
-                                value={clienteSeleccionado}
-                                onChange={setClienteSeleccionado}
-                                options={clientes}
-                                placeholder='Cliente (opcional)'
-                                disabled={loadingClientes || !!clientesError}
-                                icon='user'
+                    {/* Selector de cliente para salidas */}
+                    {tipoMovimiento === 'salida' && (
+                        <div className={styles.content} style={{ padding: '5px 15px' }}>
+                            <Boton
+                                className='btn-transparent'
+                                label={clienteSeleccionadoData ? clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+                                onClick={() => setIsClientesSeleccionOpen(true)}
+                                style={{ width: '100%', justifyContent: 'flex-start' }}
                             />
-
-                            {!clientesError && (
-                                <Boton
-                                    className='btn-default'
-                                    label='Nuevo Cliente'
-                                    onClick={() => setIsClienteOpen(true)}
-                                    style={{ minWidth: '80px' }}
-                                />
-                            )}
-                            {clientesError && (
-                                <div style={{ 
-                                    color: '#dc3545',
-                                    fontSize: '13px',
-                                    textAlign: 'center',
-                                }}>
-                                    {clientesError}
-                                </div>
-                            )}
                         </div>
                     )}
 
@@ -708,6 +690,22 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         onCerrarCanasta();
                     }
                 }}
+            />
+
+            {/* Modal de selección de proveedores */}
+            <Proveedores
+                isOpen={isProveedoresSeleccionOpen}
+                setIsOpen={setIsProveedoresSeleccionOpen}
+                modoSeleccion={true}
+                onProveedorSeleccionado={handleProveedorSeleccionado}
+            />
+
+            {/* Modal de selección de clientes */}
+            <Clientes
+                isOpen={isClientesSeleccionOpen}
+                setIsOpen={setIsClientesSeleccionOpen}
+                modoSeleccion={true}
+                onClienteSeleccionado={handleClienteSeleccionado}
             />
         </View>
     );

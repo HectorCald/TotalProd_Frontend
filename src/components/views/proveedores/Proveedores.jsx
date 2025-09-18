@@ -8,32 +8,53 @@ import ItemView from '../../common/ItemView';
 import VerProveedor from './VerProveedor';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import { useProveedores } from '../../../hooks/useData';
+import { BoxIcon } from 'boxicons-react';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
-import proveedorService from '../../../services/proveedorService';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 
-function Proveedores({ isOpen, setIsOpen }) {
+function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSeleccionado }) {
     
     const [isOpenVerProveedor, setIsOpenVerProveedor] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
 
-    const [proveedorData, setProveedorData] = useState([]);
-
-    // Estados para la carga
-    const [loading, setLoading] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
-
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
-    const [hasMorePages, setHasMorePages] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     
+    // Estados para RefreshIndicator
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+
+    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
+    const { proveedores, hasMorePages, error, isLoading, refetch } = useProveedores(
+        isOpen ? debouncedSearchQuery : '', 
+        isOpen ? currentPage : 1,
+        isOpen
+    );
+
+    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
+    useEffect(() => {
+        if (isLoading && isOpen) {
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+        } else if (!isLoading && showRefreshIndicator) {
+            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
+    }, [isLoading, isOpen, showRefreshIndicator]);
 
 
 
@@ -68,58 +89,68 @@ function Proveedores({ isOpen, setIsOpen }) {
 
     // Función para manejar el click en un proveedor
     const handleProveedor = (persona) => {
-        setIsOpenVerProveedor(true);
-        setInfoPersona(persona);
+        if (modoSeleccion) {
+            // En modo selección, seleccionar el proveedor y cerrar
+            if (onProveedorSeleccionado) {
+                onProveedorSeleccionado(persona);
+            }
+            setIsOpen(false);
+        } else {
+            // Modo normal, abrir modal de ver proveedor
+            setIsOpenVerProveedor(true);
+            setInfoPersona(persona);
+        }
     };
 
 
-    // Función para obtener los proveedores
-    const fetchProveedores = async (page = 1, reset = true, isSearch = false) => {
+    // 🚀 SWR maneja automáticamente la carga de datos
+    // No necesitamos fetchProveedores manual
+    // Función para manejar scroll infinito
+    const handleScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+            setCurrentPage(prev => prev + 1);
+        }
+    };
+
+    // Función para manejar búsqueda
+    const handleSearch = (query) => {
+        setSearchQuery(query);
+        setCurrentPage(1);
+    };
+
+    // Función para manejar refresh con indicador
+    const handleRefresh = async () => {
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        
         try {
-            if (reset) {
-                if (isSearch) {
-                    setIsSearching(true);
-                } else {
-                    setLoading(true);
-                }
-            } else {
-                setLoadingMore(true);
-            }
-
-            const response = await proveedorService.getAll(page, 20, searchQuery);
-            if (response.success && response.data) {
-                if (reset) {
-                    setProveedorData(response.data);
-                } else {
-                    setProveedorData(prev => [...prev, ...response.data]);
-                }
-
-                setCurrentPage(page);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-
-                // Cerrar modal si estaba abierto y ahora tenemos datos
-                setModalConfig(prev => ({ ...prev, isOpen: false }));
-            } else if (response.code === 'MODULE_NOT_INCLUDED') {
-                setModalConfig({
-                    isOpen: true,
-                    type: 'warning',
-                    title: 'Módulo No Incluido',
-                    description: `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`,
-                    showButton: true
-                });
-            } else if (response.code === 'NO_PLAN') {
-                setModalConfig({
-                    isOpen: true,
-                    type: 'warning',
-                    title: 'Plan Requerido',
-                    description: 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.',
-                    showButton: true
-                });
-            } else {
-                // Si no es éxito pero tampoco es un error de plan, no abrir modal
-                console.log('Respuesta del servidor:', response);
-            }
+            await refetch();
+            
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
         } catch (error) {
+            setIsRefreshing(false);
+            setShowRefreshIndicator(false);
+        }
+    };
+
+    // Efecto para resetear búsqueda cuando se abre
+    useEffect(() => {
+        if (isOpen) {
+            setSearchQuery('');
+            setCurrentPage(1);
+        }
+    }, [isOpen]);
+
+    // Efecto para manejar errores de SWR
+    useEffect(() => {
+        if (error) {
             console.error('Error obteniendo proveedores:', error);
             setModalConfig({
                 isOpen: true,
@@ -128,57 +159,21 @@ function Proveedores({ isOpen, setIsOpen }) {
                 description: 'No tienes permisos para acceder a esta función.',
                 showButton: true
             });
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
-            setIsSearching(false);
         }
-    };
-    // Función para manejar scroll infinito
-    const handleScroll = (e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !loadingMore) {
-            fetchProveedores(currentPage + 1, false);
-        }
-    };
-
-    // Función para manejar búsqueda
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        setCurrentPage(1);
-        setHasMorePages(true);
-        fetchProveedores(1, true, true); // isSearch = true
-    };
-
-    // Efecto para resetear búsqueda cuando se abre
-    useEffect(() => {
-        if (isOpen) {
-            setSearchQuery('');
-        }
-    }, [isOpen]);
-
-    // Efecto único para cargar datos y búsqueda
-    useEffect(() => {
-        if (isOpen) {
-            console.log('Proveedores - Cargando datos');
-            // Asegurar que el modal esté cerrado al abrir el componente
-            setModalConfig(prev => ({ ...prev, isOpen: false }));
-            setCurrentPage(1);
-            setHasMorePages(true);
-            
-            // Si hay búsqueda, buscar; si no, cargar todos
-            if (debouncedSearchQuery) {
-                handleSearch(debouncedSearchQuery);
-            } else {
-                fetchProveedores(1, true);
-            }
-        }
-    }, [isOpen, debouncedSearchQuery]);
+    }, [error]);
 
     // Función para manejar cuando se crea un nuevo proveedor
     const handleProveedorCreated = (newProveedor) => {
-        // Agregar el nuevo proveedor a la lista
-        setProveedorData(prev => [newProveedor, ...prev]);
+        // Actualizar el cache localmente con el proveedor que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: [newProveedor, ...currentData.data]
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
         mostrarNotificacion('success', 'Proveedor agregado correctamente')
@@ -186,8 +181,16 @@ function Proveedores({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se elimina un proveedor
     const handleProveedorDeleted = (deletedId) => {
-        // Remover el proveedor eliminado de la lista
-        setProveedorData(prev => prev.filter(proveedor => proveedor.id !== deletedId));
+        // Actualizar el cache localmente removiendo el proveedor eliminado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.filter(proveedor => proveedor.id !== deletedId)
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal de ver proveedor
         setIsOpenVerProveedor(false);
         mostrarNotificacion('success', 'Proveedor eliminado correctamente')
@@ -195,10 +198,18 @@ function Proveedores({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se actualiza un proveedor
     const handleProveedorUpdated = (updatedProveedor) => {
-        // Actualizar solo el proveedor específico en la lista
-        setProveedorData(prev => prev.map(proveedor =>
-            proveedor.id === updatedProveedor.id ? updatedProveedor : proveedor
-        ));
+        // Actualizar el cache localmente con el proveedor actualizado que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.map(proveedor => 
+                    proveedor.id === updatedProveedor.id ? updatedProveedor : proveedor
+                )
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal de ver proveedor
         setIsOpenVerProveedor(false);
         mostrarNotificacion('success', 'Proveedor actualizado correctamente')
@@ -206,10 +217,20 @@ function Proveedores({ isOpen, setIsOpen }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='user' />}
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>Proveedores</h1>
+                <div className={styles.titleContainer}>
+                    <h1 className={styles.title}>
+                        {modoSeleccion ? 'Seleccionar Proveedor' : 'Proveedores'}
+                        <button className={styles.refreshButton} onClick={handleRefresh}>
+                            <BoxIcon name='refresh' />
+                        </button>
+                    </h1>
+                    <RefreshIndicator
+                        isVisible={showRefreshIndicator}
+                        isLoading={isRefreshing}
+                    />
+                </div>
                 <div className={styles.searchContainer}>
                     <InputSearch
                         placeholder='Buscar por nombre o teléfono...'
@@ -225,8 +246,8 @@ function Proveedores({ isOpen, setIsOpen }) {
                         <div className={styles.searchingData}>
                             <p>Buscando...</p>
                         </div>
-                    ) : proveedorData.length > 0 ? (
-                        proveedorData.map((proveedor, index) => (
+                    ) : proveedores.length > 0 ? (
+                        proveedores.map((proveedor, index) => (
                             <ItemView
                                 key={proveedor.id || index}
                                 title={proveedor.name || 'Sin nombre'}
@@ -242,7 +263,7 @@ function Proveedores({ isOpen, setIsOpen }) {
                     )}
 
                     {/* Indicador de carga para más elementos */}
-                    {loadingMore && (
+                    {isLoading && (
                         <div className={styles.loadingMore}>
                             <p>Cargando más proveedores...</p>
                         </div>
@@ -256,14 +277,16 @@ function Proveedores({ isOpen, setIsOpen }) {
                     />
                 </div>
             </div>
-            {/* Modal de Ver Proveedor */}
-            <VerProveedor
-                isOpen={isOpenVerProveedor}
-                setIsOpen={setIsOpenVerProveedor}
-                usuario={infoPersona}
-                onProveedorDeleted={handleProveedorDeleted}
-                onProveedorUpdated={handleProveedorUpdated}
-            />
+            {/* Modal de Ver Proveedor - solo en modo normal */}
+            {!modoSeleccion && (
+                <VerProveedor
+                    isOpen={isOpenVerProveedor}
+                    setIsOpen={setIsOpenVerProveedor}
+                    usuario={infoPersona}
+                    onProveedorDeleted={handleProveedorDeleted}
+                    onProveedorUpdated={handleProveedorUpdated}
+                />
+            )}
 
             {/* Modal de Editar/Agregar */}
             <EditarAgregar
