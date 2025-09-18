@@ -148,19 +148,22 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
         }
     }, [isOpen]);
 
-    // Efecto para manejar errores de SWR
+    // Manejar error 403 con useEffect para evitar bucle infinito
     useEffect(() => {
-        if (error) {
-            console.error('Error obteniendo proveedores:', error);
+        if (error && error.status === 403 && isOpen) {
+            const errorMessage = error.message || 'No tienes acceso a este módulo';
+            const currentPlan = error.currentPlan || 'Plan actual';
+            const requiredModule = error.requiredModule || 'Proveedores';
+            
             setModalConfig({
                 isOpen: true,
-                type: 'error',
-                title: 'Error de Acceso',
-                description: 'No tienes permisos para acceder a esta función.',
+                type: 'info',
+                title: 'Plan Insuficiente',
+                description: `${errorMessage}`,
                 showButton: true
             });
         }
-    }, [error]);
+    }, [error, isOpen]);
 
     // Función para manejar cuando se crea un nuevo proveedor
     const handleProveedorCreated = (newProveedor) => {

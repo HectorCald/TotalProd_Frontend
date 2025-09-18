@@ -171,6 +171,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
         // Limpiar completamente la canasta de pedidos en localStorage
         localStorage.removeItem('canastaPedidos');
         localStorage.removeItem('pedidoIdEditando');
+        localStorage.removeItem('precioIdEditando');
         
         // Preparar los productos del pedido para la canasta
         const productosParaCanasta = pedido.pedido_almacen_detalle?.map(detalle => ({
@@ -183,9 +184,10 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
             // Estos campos solo se usan para pedidos de acopio
         })) || [];
 
-        // Guardar los productos y el ID del pedido en localStorage para que AlmacenGeneral los cargue
+        // Guardar los productos, el ID del pedido y el precio_id en localStorage para que AlmacenGeneral los cargue
         localStorage.setItem('canastaPedidos', JSON.stringify(productosParaCanasta));
         localStorage.setItem('pedidoIdEditando', pedido.id);
+        localStorage.setItem('precioIdEditando', pedido.precio_id || '');
         
         // Pasar los productos directamente como props
         setProductosParaAlmacen(productosParaCanasta);
@@ -205,6 +207,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
         // Limpiar completamente la canasta de salidas en localStorage
         localStorage.removeItem('canastaSalidas');
         localStorage.removeItem('pedidoIdEntregando');
+        localStorage.removeItem('precioIdEntregando');
         
         // Preparar los productos del pedido para la canasta de salidas
         const productosParaSalidas = pedido.pedido_almacen_detalle?.map(detalle => ({
@@ -212,13 +215,13 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
             name: detalle.producto_almacen.name,
             description: detalle.producto_almacen.description,
             cantidad: detalle.cantidad,
-            precio: detalle.precio,
             stock: detalle.producto_almacen.stock || 0
         })) || [];
 
-        // Guardar los productos y el ID del pedido en localStorage para que AlmacenGeneral los cargue
+        // Guardar los productos, el ID del pedido y el precio_id en localStorage para que AlmacenGeneral los cargue
         localStorage.setItem('canastaSalidas', JSON.stringify(productosParaSalidas));
         localStorage.setItem('pedidoIdEntregando', pedido.id);
+        localStorage.setItem('precioIdEntregando', pedido.precio_id || '');
         
         // Pasar los productos directamente como props
         setProductosParaAlmacen(productosParaSalidas);
@@ -341,11 +344,16 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                         <Dato
                             label="Total"
                             value={`Bs. ${total.toFixed(2)}`}
+                            especial='orange'
                         />
                     )}
                     <Dato
                         label="Sucursal"
                         value={pedido.sucursal?.name || 'Sucursal desconocida'}
+                    />
+                    <Dato
+                        label="Tipo de Precio"
+                        value={pedido.precio?.name || 'Precio desconocido'}
                     />
                     <Dato
                         label="Solicitado por"

@@ -83,7 +83,6 @@ class movimientosAlmacenService {
   static async getAll(page = 1, limit = 10, tipo = null, ordenamiento = 'fecha_desc') {
     try {
       const sucuId = getSucuId();
-      console.log('🔍 movimientosAlmacenService - sucuId obtenido:', sucuId);
       if (!sucuId) {
         return {
           success: false,

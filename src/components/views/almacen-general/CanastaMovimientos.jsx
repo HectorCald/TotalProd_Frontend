@@ -20,6 +20,7 @@ import PantallaExito from '../../common/PantallaExito';
 import Switch from '../../common/Switch';
 import Proveedores from '../proveedores/Proveedores';
 import Clientes from '../clientes/Clientes';
+import MensajeError from '../../common/MensajeError';
 
 function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated, esEntrega = false }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
@@ -50,6 +51,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
     const [proveedorSeleccionadoData, setProveedorSeleccionadoData] = useState(null);
     const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
+    const [errorMessage, setErrorMessage] = useState('');
     const [restarIngredientes, setRestarIngredientes] = useState(() => {
         const saved = localStorage.getItem('restarIngredientes');
         return saved !== null ? JSON.parse(saved) : true;
@@ -78,9 +80,20 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         default_value: precio.default_value
                     }));
                     setPreciosTipos(mappedOptions);
-                    // Seleccionar el primer precio por defecto
-                    if (mappedOptions.length > 0) {
-                        setPrecioSeleccionado(mappedOptions[0].value);
+                    
+                    // Verificar si hay un precio específico guardado para entregas
+                    if (esEntrega) {
+                        const precioIdEntregando = localStorage.getItem('precioIdEntregando');
+                        if (precioIdEntregando && mappedOptions.find(p => p.value === precioIdEntregando)) {
+                            setPrecioSeleccionado(precioIdEntregando);
+                        } else if (mappedOptions.length > 0) {
+                            setPrecioSeleccionado(mappedOptions[0].value);
+                        }
+                    } else {
+                        // Para otros casos, seleccionar el primer precio por defecto
+                        if (mappedOptions.length > 0) {
+                            setPrecioSeleccionado(mappedOptions[0].value);
+                        }
                     }
                 }
             } catch (error) {
@@ -93,7 +106,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         if (isOpen) {
             loadPreciosTipos();
         }
-    }, [isOpen]);
+    }, [isOpen, esEntrega]);
 
     // Cargar proveedores (solo para entradas)
     useEffect(() => {
@@ -299,11 +312,22 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const handleConfirmarMovimientos = async () => {
         setLoadingConfirmar(true);
         try {
+            // Validar método de pago para salidas
+            if (tipoMovimiento === 'salida' && !metodoPagoSeleccionado) {
+                setErrorMessage('El método de pago es obligatorio');
+                setTimeout(() => {
+                    setErrorMessage('');
+                }, 3000);
+                setLoadingConfirmar(false);
+                return;
+            }
+
             // Preparar datos para enviar al backend
             const movimientoData = {
                 tipo: tipoMovimiento,
                 observaciones: observacionesGenerales || null,
-                metodo_pago: tipoMovimiento === 'salida' ? (metodoPagoSeleccionado || null) : null,
+                precio_id: precioSeleccionado,
+                metodo_pago: tipoMovimiento === 'salida' ? metodoPagoSeleccionado : null,
                 cliente_id: tipoMovimiento === 'salida' ? (clienteSeleccionado || null) : null,
                 proveedor_id: tipoMovimiento === 'entrada' ? (proveedorSeleccionado || null) : null,
                 restar_ingredientes: tipoMovimiento === 'entrada' && restarIngredientes && tieneProductosConRecetas(),
@@ -556,6 +580,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     onClose={() => setIsConfirmarModalOpen(false)}
                 />
                 <div className={styles.modalContent}>
+                    <MensajeError mensaje={errorMessage} />
                     <p className={styles.subTitle}>Productos a {tipoMovimiento === 'entrada' ? 'ingresar' : 'retirar'}:</p>
                     <div className={styles.content}>
                         {productosCanasta.map((producto, index) => (
@@ -607,7 +632,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                 value={metodoPagoSeleccionado}
                                 onChange={setMetodoPagoSeleccionado}
                                 options={metodosPago}
-                                placeholder='Método de pago (opcional)'
+                                placeholder='Método de pago (obligatorio)'
                                 icon='credit-card'
                             />
                         </div>

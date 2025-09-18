@@ -154,6 +154,12 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                             value={movimiento.metodo_pago}
                         />
                     )}
+                    {movimiento?.precio && (
+                        <Dato
+                            label="Tipo de precio"
+                            value={movimiento.precio.name || 'Precio desconocido'}
+                        />
+                    )}
                     {/* Total calculado para movimientos de almacén */}
                     {tipoMovimiento === 'almacen' && movimiento?.productos && movimiento.productos.length > 0 && (
                         <Dato

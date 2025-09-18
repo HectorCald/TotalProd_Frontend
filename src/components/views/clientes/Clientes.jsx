@@ -8,7 +8,6 @@ import ItemView from '../../common/ItemView';
 import VerCliente from './VerCliente';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 import { useClientes } from '../../../hooks/useData';
@@ -35,7 +34,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
-    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
+    // 🚀 Hook genérico con SWR
     const { clientes, hasMorePages, error, isLoading, refetch } = useClientes(
         isOpen ? debouncedSearchQuery : '', 
         isOpen ? currentPage : 1,
@@ -86,6 +85,23 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         description: '',
         showButton: false
     });
+
+    // Manejar error 403 con useEffect para evitar bucle infinito
+    useEffect(() => {
+        if (error && error.status === 403 && isOpen) {
+            const errorMessage = error.message || 'No tienes acceso a este módulo';
+            const currentPlan = error.currentPlan || 'Plan actual';
+            const requiredModule = error.requiredModule || 'Clientes';
+            
+            setModalConfig({
+                isOpen: true,
+                type: 'info',
+                title: 'Plan Insuficiente',
+                description: `${errorMessage}`,
+                showButton: true
+            });
+        }
+    }, [error, isOpen]);
 
 
     // Función para manejar el click en un cliente
@@ -148,19 +164,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         }
     }, [isOpen]);
 
-    // Efecto para manejar errores de SWR
-    useEffect(() => {
-        if (error) {
-            console.error('Error obteniendo clientes:', error);
-            setModalConfig({
-                isOpen: true,
-                type: 'error',
-                title: 'Error de Acceso',
-                description: 'No tienes permisos para acceder a esta función.',
-                showButton: true
-            });
-        }
-    }, [error]);
 
 
 
@@ -311,7 +314,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                 description={modalConfig.description}
                 showButton={modalConfig.showButton}
                 buttonText="Aceptar"
-                onButtonClick={(setIsOpen)}
+                onButtonClick={() => setIsOpen(false)}
             />
             <Notification
                 isVisible={notification.isVisible}

@@ -42,8 +42,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         default_value: precio.default_value
                     }));
                     setPreciosTipos(mappedOptions);
-                    // Seleccionar el primer precio por defecto
-                    if (mappedOptions.length > 0) {
+                    
+                    // Si estamos editando un pedido, cargar el precio_id desde localStorage
+                    const precioIdGuardado = localStorage.getItem('precioIdEditando');
+                    if (precioIdGuardado && mappedOptions.find(p => p.value === precioIdGuardado)) {
+                        setPrecioSeleccionado(precioIdGuardado);
+                    } else if (mappedOptions.length > 0) {
+                        // Seleccionar el primer precio por defecto
                         setPrecioSeleccionado(mappedOptions[0].value);
                     }
                 }
@@ -147,6 +152,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             // Preparar datos para enviar al backend
             const pedidoData = {
                 observaciones: observacionesGenerales || null,
+                precio_id: precioSeleccionado,
                 productos: productosCanasta.map(producto => ({
                     id: producto.id,
                     cantidad: producto.cantidad,
@@ -214,7 +220,10 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView onBack={() => {
+                localStorage.removeItem('precioIdEditando');
+                setIsOpen(false);
+            }} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Canasta de Pedidos
                     <div className={styles.iconButton}>

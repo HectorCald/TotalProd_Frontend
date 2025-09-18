@@ -44,6 +44,13 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
                     onClick={()=> handleTypeAlmacen('pedido')}
                 />
                 <ItemView
+                    title='Transferencia'
+                    description='Realizar una transferencia de productos entre sucursales'
+                    icon='transfer'
+                    arrow={true}
+                    onClick={()=> handleTypeAlmacen('almacen')}
+                />
+                <ItemView
                     title='Productos'
                     description='Ver y gestionar los productos en el almacén'
                     icon='package'

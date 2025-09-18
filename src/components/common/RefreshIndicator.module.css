@@ -5,7 +5,7 @@
   left: 0;
   right: 0;
   width: 100%;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--primary-color);
   overflow: hidden;
   z-index: 10;
   border-radius: 0 0 4px 4px;
@@ -14,9 +14,9 @@
 .progressFill {
   height: 100%;
   background: linear-gradient(90deg, 
-    var(--primary-color) 0%, 
-    #00ff88 50%, 
-    var(--primary-color) 100%
+    var(--tertiary-color) 0%, 
+    var(--primary-color) 50%, 
+    var(--tertiary-color) 100%
   );
   background-size: 200% 100%;
   border-radius: 0 0 2px 2px;

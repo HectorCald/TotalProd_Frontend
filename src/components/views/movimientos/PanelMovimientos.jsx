@@ -275,16 +275,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                                 : `${movimiento.productos.length} productos`
                                             : 'Sin productos'
                                     }
-                                    description={
-                                        <div>
-                                            <div>{movimiento.observations || 'Sin observaciones'}</div>
-                                            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                                {new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}
-                                                {movimiento.tipo === 'entrada' && movimiento.proveedor?.name && ` • ${movimiento.proveedor.name}`}
-                                                {movimiento.tipo === 'salida' && movimiento.cliente?.name && ` • ${movimiento.cliente.name}`}
-                                            </div>
-                                        </div>
-                                    }
+                                    description={`${movimiento.observations || 'Sin observaciones'} • ${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.tipo === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.tipo === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
                                     icon={movimiento.tipo === 'entrada' ? 'plus-circle' : 'minus-circle'}
                                     onClick={() => handleRegistro(movimiento)}
                                     arrow={false}

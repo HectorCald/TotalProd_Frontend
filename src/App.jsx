@@ -16,6 +16,12 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Limpiar datos residuales de pedidos al iniciar la aplicación
+        localStorage.removeItem('pedidoIdEditando');
+        localStorage.removeItem('pedidoIdEntregando');
+        localStorage.removeItem('precioIdEditando');
+        localStorage.removeItem('precioIdEntregando');
+    
     const storedToken = localStorage.getItem('token');
     
     if (storedToken) {
@@ -106,10 +112,8 @@ function AppContent({ token, tokenType }) {
             const decoded = JSON.parse(jsonPayload);
             
             if (decoded && decoded.id && decoded.type === 'user') {
-              console.log('🔍 Obteniendo datos completos del usuario desde BD...');
               await loadUserData(decoded.id);
               setUserDataFetched(true);
-              console.log('✅ Datos del usuario obtenidos');
             }
           }
         } catch (error) {
@@ -136,10 +140,8 @@ function AppContent({ token, tokenType }) {
             const decoded = JSON.parse(jsonPayload);
             
             if (decoded && decoded.id && decoded.type === 'employee') {
-              console.log('🔍 Obteniendo datos completos del empleado desde BD...');
               await loadEmployeeData(decoded.id);
               setEmployeeDataFetched(true);
-              console.log('✅ Datos del empleado obtenidos');
             }
           }
         } catch (error) {

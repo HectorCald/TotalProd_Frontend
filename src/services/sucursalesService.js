@@ -27,7 +27,6 @@ const sucursalesService = {
         try {
             // Si se pasa empresaId como parámetro, usarlo; si no, intentar obtenerlo del localStorage
             const empresaId = empresaIdParam || getEmpresaId();
-            console.log('🔍 sucursalesService - empresaId obtenido:', empresaId);
 
             if (!empresaId) {
                 console.log('❌ sucursalesService - No hay empresa seleccionada');
@@ -37,7 +36,7 @@ const sucursalesService = {
                 };
             }
 
-            console.log('🔍 sucursalesService - URL:', `${API_BASE_URL}/sucursales/empresa/${empresaId}`);
+            
             const response = await fetch(`${API_BASE_URL}/sucursales/empresa/${empresaId}`, {
                 method: 'GET',
                 headers: getAuthHeaders()

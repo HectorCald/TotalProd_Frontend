@@ -45,15 +45,25 @@ class proveedorService {
         method: 'GET',
         headers: getAuthHeaders(),
       });
+      
       const data = await response.json();
+      
+      // Si la respuesta no es exitosa, crear un error con toda la información
+      if (!response.ok) {
+        const error = new Error(data.message || 'Error en la petición');
+        error.status = response.status;
+        error.code = data.code;
+        error.currentPlan = data.currentPlan;
+        error.requiredModule = data.requiredModule;
+        throw error;
+      }
+      
       return data;
 
     } catch (error) {
       console.error('Error en getAll:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
+      // Re-lanzar el error para que SWR lo capture correctamente
+      throw error;
     }
   }
 

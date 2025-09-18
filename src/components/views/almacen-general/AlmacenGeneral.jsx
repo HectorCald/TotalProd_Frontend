@@ -266,6 +266,42 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         setCurrentPage(1); // Resetear a primera página
     };
 
+    // Función para actualizar productos de canasta con datos actuales del servidor
+    const updateCanastaWithCurrentData = async (productosCanasta, setCanasta) => {
+        try {
+            // Obtener todos los productos actuales del servidor
+            const response = await productsAlmacenService.getAll();
+            if (response.success && response.data) {
+                const productosActuales = response.data;
+                
+                // Actualizar cada producto de la canasta con datos actuales
+                const productosActualizados = productosCanasta.map(productoCanasta => {
+                    const productoActual = productosActuales.find(p => p.id === productoCanasta.id);
+                    if (productoActual) {
+                        // Mantener cantidad y datos específicos de la canasta, pero actualizar stock y precios
+                        return {
+                            ...productoActual, // Datos actuales del servidor
+                            cantidad: productoCanasta.cantidad, // Mantener cantidad de la canasta
+                            medidaPedido: productoCanasta.medidaPedido, // Mantener medida si existe
+                            observacionesPedido: productoCanasta.observacionesPedido, // Mantener observaciones si existen
+                            precio: productoCanasta.precio || (productoActual.price_product && productoActual.price_product.length > 0 ? productoActual.price_product[0].valor : 0)
+                        };
+                    }
+                    return productoCanasta; // Si no se encuentra, mantener como está
+                });
+                
+                setCanasta(productosActualizados);
+            } else {
+                // Si falla la actualización, usar los productos de la canasta tal como están
+                setCanasta(productosCanasta);
+            }
+        } catch (error) {
+            console.error('Error actualizando productos de canasta:', error);
+            // Si falla la actualización, usar los productos de la canasta tal como están
+            setCanasta(productosCanasta);
+        }
+    };
+
     // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
@@ -280,7 +316,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 if (canastaGuardada) {
                     try {
                         const productosCanastaData = JSON.parse(canastaGuardada);
-                        setProductosCanasta(productosCanastaData);
+                        // Actualizar productos de la canasta con datos actuales del servidor
+                        updateCanastaWithCurrentData(productosCanastaData, setProductosCanasta);
                         if (pedidoIdGuardado) {
                             setPedidoIdEditando(pedidoIdGuardado);
                         }
@@ -299,13 +336,25 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 if (canastaSalidasGuardada) {
                     try {
                         const productosSalidasData = JSON.parse(canastaSalidasGuardada);
-                        setProductosCanastaSalidas(productosSalidasData);
+                        // Actualizar productos de la canasta con datos actuales del servidor
+                        updateCanastaWithCurrentData(productosSalidasData, setProductosCanastaSalidas);
                     } catch (error) {
                         console.error('Error al cargar canasta de salidas desde localStorage:', error);
                         localStorage.removeItem('canastaSalidas');
                         localStorage.removeItem('pedidoIdEntregando');
                     }
                 }
+            }
+        } else {
+            // Cuando se cierra el modal, limpiar pedidoIdEditando, pedidoIdEntregando, precioIdEditando y precioIdEntregando del localStorage
+            if (tipo === 'pedido') {
+                localStorage.removeItem('pedidoIdEditando');
+                localStorage.removeItem('precioIdEditando');
+                setPedidoIdEditando(null);
+            }
+            if (tipo === 'salida') {
+                localStorage.removeItem('pedidoIdEntregando');
+                localStorage.removeItem('precioIdEntregando');
             }
         }
     }, [isOpen, tipo]);
@@ -742,6 +791,10 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 onPedidoActualizado={onPedidoActualizado}
                 onCerrarCanasta={() => {
                     setIsCanastaOpen(false);
+                    // Limpiar pedidoIdEditando y precioIdEditando del localStorage cuando se confirma la edición
+                    localStorage.removeItem('pedidoIdEditando');
+                    localStorage.removeItem('precioIdEditando');
+                    setPedidoIdEditando(null);
                     // NO limpiar canasta de pedidos aquí
                     // La limpieza se maneja en VerPedido.jsx cuando se abre para editar
                     mostrarNotificacion('success', pedidoIdEditando ? 'Pedido actualizado correctamente' : 'Pedido confirmado correctamente');
@@ -774,6 +827,9 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     onProductosUpdated={handleProductosUpdated}
                     onCerrarCanasta={() => {
                         setIsCanastaMovimientosOpen(false);
+                        // Limpiar pedidoIdEntregando y precioIdEntregando del localStorage cuando se confirma la entrega
+                        localStorage.removeItem('pedidoIdEntregando');
+                        localStorage.removeItem('precioIdEntregando');
                         // NO limpiar canasta de salidas aquí
                         // La limpieza se maneja en VerPedido.jsx cuando se abre para entregar
                         mostrarNotificacion('success', 'Salidas confirmadas correctamente');
