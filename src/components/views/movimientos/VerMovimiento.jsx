@@ -76,118 +76,99 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
         }, 3000);
     };
 
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>
                     Detalles
-                    {movimiento?.estado === 'anulado' ? (
-                        <div 
-                            className={styles.iconButton} 
-                            onClick={() => setIsEliminarOpen(true)}
-                        >
+                    <div className={styles.iconButton} >
+                        <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
                             <BoxIcon
-                                name='trash'
-                                className={styles.iconTrash}
+                                name='download'
+                                className={styles.iconDownload}
                             />
-                        </div>
-                    ) : (
-                        <div 
-                            className={styles.iconButton} 
-                            onClick={() => setIsAnularOpen(true)}
-                        >
-                            <BoxIcon
-                                name='no-entry'
-                                className={styles.iconTrash}
-                            />
-                        </div>
-                    )}
+                        </button>
+                    </div>
                 </h1>
+                <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
+                <ItemView
+                    title={movimiento?.user?.name || movimiento?.personal?.name || 'Usuario desconocido'}
+                    description="Responsable del movimiento"
+                    transparent={false}
+                />
                 <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
-                <div className={styles.content}>
-                    <Dato
-                        label="Tipo"
-                        value={movimiento?.tipo === 'entrada' ? 'Entrada' : 'Salida'}
-                    />
-                    <Dato
-                        label="Estado"
-                        value={movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'}
-                        especial={movimiento?.estado === 'anulado' ? 'red' : 'green'}
-                    />
-                    {tipoMovimiento === 'acopio' && (
-                        <Dato
-                            label="Cantidad"
-                            value={`${movimiento?.quantity || '0'} ${movimiento?.product?.type_measure?.code || ''}`}
-                        />
-                    )}
-                    {tipoMovimiento === 'acopio' && (
-                        <Dato
-                            label="Producto"
-                            value={movimiento?.product?.name || 'Sin producto'}
-                        />
-                    )}
-                    <Dato
-                        label="Observaciones"
-                        value={movimiento?.observations || 'Sin observaciones'}
-                    />
-                    <Dato
-                        label="Fecha"
-                        value={new Date(tipoMovimiento === 'acopio' ? movimiento?.date : movimiento?.fecha).toLocaleString()}
-                    />
+                <ItemView
+                    title={movimiento?.tipo === 'entrada' ? 'Entrada' : 'Salida'}
+                    description={`Fecha y hora: ${new Date(tipoMovimiento === 'acopio' ? movimiento?.date : movimiento?.fecha).toLocaleString()}`}
+                    description2={tipoMovimiento === 'acopio' ? '' : `Tipo de precio: ${movimiento?.precio?.name || 'Precio desconocido'}`}
+                    transparent={false}
+                    circulo={false}
+                    flot6={movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'}
 
-                    {movimiento?.tipo === 'entrada' && movimiento?.proveedor?.name && (
-                        <Dato
-                            label="Proveedor"
-                            value={movimiento.proveedor.name}
-                        />
-                    )}
-                    {movimiento?.tipo === 'salida' && movimiento?.cliente?.name && (
-                        <Dato
-                            label="Cliente"
-                            value={movimiento.cliente.name}
-                        />
-                    )}
-                    {movimiento?.metodo_pago && (
-                        <Dato
-                            label="Método de pago"
-                            value={movimiento.metodo_pago}
-                        />
-                    )}
-                    {movimiento?.precio && (
-                        <Dato
-                            label="Tipo de precio"
-                            value={movimiento.precio.name || 'Precio desconocido'}
-                        />
-                    )}
-                    {/* Total calculado para movimientos de almacén */}
-                    {tipoMovimiento === 'almacen' && movimiento?.productos && movimiento.productos.length > 0 && (
-                        <Dato
-                            label="Total del Movimiento"
-                            value={`Bs. ${(movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
-                        />
-                    )}
-
-
-                </div>
+                />
+                <ItemView
+                    title={movimiento?.tipo === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
+                    description={movimiento?.tipo === 'entrada' ? 'Proveedor' : 'Cliente'}
+                    transparent={false}
+                />
+                {tipoMovimiento === 'acopio' && <p className={styles.subTitle}>PRODUCTO</p>}
+                {tipoMovimiento === 'acopio' && (
+                    <ItemView
+                        title={movimiento?.product?.name || 'Sin producto'}
+                        description={`${movimiento?.quantity || '0'} ${movimiento?.product?.type_measure?.code || ''}`}
+                        transparent={false}
+                        icon='package'
+                    />
+                )}
+                {movimiento?.metodo_pago && (
+                    <Dato
+                        label="Método de pago"
+                        value={movimiento.metodo_pago}
+                        vertical={false}
+                    />
+                )}
                 {tipoMovimiento === 'almacen' && <p className={styles.subTitle}>DETALLES DE PRODUCTOS Y SUBTOTAL</p>}
                 {/* Botón para ver productos - solo para movimientos de almacén con múltiples productos */}
                 {tipoMovimiento === 'almacen' && movimiento?.productos && movimiento.productos.length > 0 && (
-                    <div className={styles.content} style={{ padding: '10px 15px' }}>
-                        <Boton
-                            className='btn-default'
-                            label={`Ver Productos (${movimiento.productos.length})`}
-                            onClick={() => setIsProductosOpen(true)}
+
+                    <Boton
+                        className='btn-gray'
+                        label={`Productos (${movimiento.productos.length})`}
+                        onClick={() => setIsProductosOpen(true)}
+                    />
+
+                )}
+
+                {/* Total calculado para movimientos de almacén */}
+                {tipoMovimiento === 'almacen' && movimiento?.productos && movimiento.productos.length > 0 && (
+                    <div className={styles.content}>
+                        <Dato
+                            label="Total del Movimiento"
+                            value={`Bs. ${(movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
+                            vertical={false}
+                            especial='green'
                         />
                     </div>
                 )}
-
+                <div className={styles.buttons}>
+                {movimiento?.estado === 'anulado' ? (
                     <Boton
-                        className='btn-default'
-                        label='Descargar Movimiento'
+                        className='btn-red'
+                        label='Eliminar Movimiento'
                         style={{ marginTop: 'auto' }}
-                        onClick={() => setIsDescargaOpen(true)}
+                        onClick={() => setIsEliminarOpen(true)}
                     />
+                ) : (
+                    <Boton
+                        className='btn-red'
+                        label='Anular Movimiento'
+                        style={{ marginTop: 'auto' }}
+                        onClick={() => setIsAnularOpen(true)}
+                    />
+                )}
+                </div>
             </div>
 
 
@@ -252,7 +233,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                                     if (response.success) {
                                         setIsAnularOpen(false);
                                         setIsOpen(false);
-                                        
+
                                         if (onMovimientoAnulado) {
                                             onMovimientoAnulado(movimiento.id);
                                         }
@@ -306,7 +287,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                                     if (response.success) {
                                         setIsEliminarOpen(false);
                                         setIsOpen(false);
-                                        
+
                                         if (onMovimientoEliminado) {
                                             onMovimientoEliminado(movimiento.id);
                                         }

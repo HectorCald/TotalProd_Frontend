@@ -30,8 +30,8 @@ code {
 :root{
   --primary-color: #28b498;
 
-  --error-color: #ff0000;
-  --success-color: #01a001;
+  --error-color: #ff4c4c;
+  --success-color: rgb(70, 242, 70);
   --warning-color: #FB8713;
   --info-color: #3482ff;
 }

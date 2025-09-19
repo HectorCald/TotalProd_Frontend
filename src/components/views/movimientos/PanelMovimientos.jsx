@@ -32,6 +32,9 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     
+    // Estado para acumular todos los movimientos de todas las páginas
+    const [allMovimientos, setAllMovimientos] = useState([]);
+    
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
@@ -48,6 +51,34 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         filtroTipo,
         ordenamiento
     );
+
+    // Acumular datos de todas las páginas cuando llegan nuevos movimientos
+    useEffect(() => {
+        if (movimientos && movimientos.length > 0 && isOpen) {
+            if (currentPage === 1) {
+                // Si es la primera página, solo tomar los primeros 10
+                const primeros10 = movimientos.slice(0, 10);
+                setAllMovimientos(primeros10);
+            } else {
+                // Si es una página posterior, acumular los datos
+                setAllMovimientos(prevMovimientos => {
+                    // Evitar duplicados por si acaso
+                    const existingIds = new Set(prevMovimientos.map(m => m.id));
+                    const newMovimientos = movimientos.filter(m => !existingIds.has(m.id));
+                    return [...prevMovimientos, ...newMovimientos];
+                });
+            }
+        }
+    }, [movimientos, currentPage, isOpen]);
+
+    // Efecto para inicializar datos cuando se abre el modal - SOLO los primeros 10
+    useEffect(() => {
+        if (isOpen && movimientos && movimientos.length > 0 && allMovimientos.length === 0 && currentPage === 1) {
+            // Solo tomar los primeros 10 movimientos del cache
+            const primeros10 = movimientos.slice(0, 10);
+            setAllMovimientos(primeros10);
+        }
+    }, [isOpen, movimientos, allMovimientos.length, currentPage]);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
@@ -150,6 +181,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     }, [isOpen, tipoMovimiento]);
 
+    // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
+    useEffect(() => {
+        if (isOpen) {
+            setAllMovimientos([]);
+            setCurrentPage(1);
+        }
+    }, [debouncedSearchQuery, filtroTipo, ordenamiento]);
+
     // Efecto para manejar errores de SWR
     useEffect(() => {
         if (error) {
@@ -159,34 +198,24 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Función para manejar cuando se anula un movimiento
     const handleMovimientoAnulado = (movimientoId) => {
-        // Actualizar el cache localmente con el movimiento anulado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.map(movimiento => 
-                    movimiento.id === movimientoId 
-                        ? { ...movimiento, estado: 'anulado' }
-                        : movimiento
-                )
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local acumulado
+        setAllMovimientos(prevMovimientos => 
+            prevMovimientos.map(movimiento => 
+                movimiento.id === movimientoId 
+                    ? { ...movimiento, estado: 'anulado' }
+                    : movimiento
+            )
+        );
         
         mostrarNotificacion('success', 'Movimiento anulado correctamente');
     };
 
     // Función para manejar cuando se elimina un movimiento
     const handleMovimientoEliminado = (movimientoId) => {
-        // Actualizar el cache localmente removiendo el movimiento eliminado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.filter(movimiento => movimiento.id !== movimientoId)
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local acumulado removiendo el movimiento eliminado
+        setAllMovimientos(prevMovimientos => 
+            prevMovimientos.filter(movimiento => movimiento.id !== movimientoId)
+        );
         
         mostrarNotificacion('success', 'Movimiento eliminado correctamente');
     };
@@ -259,11 +288,11 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     className={styles.content}
                     onScroll={handleScroll}
                     style={{
-                        height: 'calc(100vh - 150px)'
+                        minHeight: 'calc(100vh - 250px)',
                     }}
                 >
-                    {movimientos.length > 0 ? (
-                        movimientos.map((movimiento, index) => {
+                    {allMovimientos.length > 0 ? (
+                        allMovimientos.map((movimiento, index) => {
                             return (
                                 <ItemView
                                     key={movimiento.id || index}

@@ -30,6 +30,9 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     
+    // Estado para acumular todos los pedidos de todas las páginas
+    const [allPedidos, setAllPedidos] = useState([]);
+    
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
@@ -47,6 +50,34 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         isOpen,
         ordenamiento
     );
+
+    // Acumular datos de todas las páginas cuando llegan nuevos pedidos
+    useEffect(() => {
+        if (pedidos && pedidos.length > 0 && isOpen) {
+            if (currentPage === 1) {
+                // Si es la primera página, solo tomar los primeros 10
+                const primeros10 = pedidos.slice(0, 10);
+                setAllPedidos(primeros10);
+            } else {
+                // Si es una página posterior, acumular los datos
+                setAllPedidos(prevPedidos => {
+                    // Evitar duplicados por si acaso
+                    const existingIds = new Set(prevPedidos.map(p => p.id));
+                    const newPedidos = pedidos.filter(p => !existingIds.has(p.id));
+                    return [...prevPedidos, ...newPedidos];
+                });
+            }
+        }
+    }, [pedidos, currentPage, isOpen]);
+
+    // Efecto para inicializar datos cuando se abre el modal - SOLO los primeros 10
+    useEffect(() => {
+        if (isOpen && pedidos && pedidos.length > 0 && allPedidos.length === 0 && currentPage === 1) {
+            // Solo tomar los primeros 10 pedidos del cache
+            const primeros10 = pedidos.slice(0, 10);
+            setAllPedidos(primeros10);
+        }
+    }, [isOpen, pedidos, allPedidos.length, currentPage]);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
@@ -115,6 +146,14 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     }, [isOpen, tipoPedido]);
 
+    // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda o ordenamiento
+    useEffect(() => {
+        if (isOpen) {
+            setAllPedidos([]);
+            setCurrentPage(1);
+        }
+    }, [debouncedSearchQuery, ordenamiento]);
+
     // Efecto para manejar errores de SWR
     useEffect(() => {
         if (error) {
@@ -135,19 +174,14 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             const response = await service.updateEstado(pedidoId, nuevoEstado);
 
             if (response.success) {
-                // Actualizar el cache localmente con el estado actualizado
-                refetch((currentData) => {
-                    if (!currentData) return currentData;
-                    
-                    return {
-                        ...currentData,
-                        data: currentData.data.map(pedido => 
-                            pedido.id === pedidoId 
-                                ? { ...pedido, estado: nuevoEstado }
-                                : pedido
-                        )
-                    };
-                }, { revalidate: false }); // NO revalidar = NO petición al servidor
+                // Actualizar el estado local acumulado
+                setAllPedidos(prevPedidos => 
+                    prevPedidos.map(pedido => 
+                        pedido.id === pedidoId 
+                            ? { ...pedido, estado: nuevoEstado }
+                            : pedido
+                    )
+                );
                 
                 mostrarNotificacion('success', 'Estado actualizado correctamente');
             } else {
@@ -161,32 +195,22 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
     // Función para manejar cuando se elimina un pedido
     const handlePedidoEliminado = (pedidoId) => {
-        // Actualizar el cache localmente removiendo el pedido eliminado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.filter(pedido => pedido.id !== pedidoId)
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local acumulado removiendo el pedido eliminado
+        setAllPedidos(prevPedidos => 
+            prevPedidos.filter(pedido => pedido.id !== pedidoId)
+        );
         
         mostrarNotificacion('success', 'Pedido eliminado correctamente');
     };
 
     // Función para manejar cuando se actualiza un pedido
     const handlePedidoActualizado = (pedidoActualizado) => {
-        // Actualizar el cache localmente con el pedido actualizado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.map(pedido => 
-                    pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido
-                )
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local acumulado con el pedido actualizado
+        setAllPedidos(prevPedidos => 
+            prevPedidos.map(pedido => 
+                pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido
+            )
+        );
         
         mostrarNotificacion('success', 'Pedido actualizado correctamente');
     };
@@ -276,11 +300,11 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                     className={styles.content}
                     onScroll={handleScroll}
                     style={{
-                        height: 'calc(100vh - 150px)'
+                        minHeight: 'calc(100vh - 250px)',
                     }}
                 >
-                    {pedidos.length > 0 ? (
-                        pedidos.map((pedido, index) => {
+                    {allPedidos.length > 0 ? (
+                        allPedidos.map((pedido, index) => {
                             return (
                                 <ItemView
                                     key={pedido.id || index}

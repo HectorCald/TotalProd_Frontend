@@ -4,10 +4,10 @@
   height: 45px;
   padding: 10px 20px;
   border: none;
-  border-radius: 20px;
+  border-radius: 8px;
   font-size: 14px;
   position: relative;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   color: white;
 
   img{
@@ -40,6 +40,26 @@
   border: 1px solid var(--quinary-color);
   color: var(--white-color);
 }
+.btn-default-red{
+  background-color: #ff4c4c2e;
+  color: var(--error-color);
+}
+.btn-default-green{
+  background-color: #28b4982e;
+  color: var(--success-color);
+}
+.btn-default-orange{
+  background-color: #ffa5002e;
+  color: var(--warning-color);
+}
+.btn-default-blue{
+  background-color: #2888b42e;
+  color: var(--info-color);
+}
+.btn-gray{
+  background-color: var(--tertiary-color);
+  color: white;
+}
 .btn-transparent{
   background-color: transparent;
   color: var(--white-color);
@@ -51,10 +71,14 @@
   background-color: var(--error-color);
 }
 .btn-green{
-  background-color: var(--success-color);
+  color: black;
+  background-color: rgb(70, 242, 70);
 }
 .btn-blue{
   background-color: var(--info-color);
+}
+.btn-orange{
+  background-color: var(--warning-color);
 }
 
 

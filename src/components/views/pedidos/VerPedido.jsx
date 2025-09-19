@@ -172,7 +172,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
         localStorage.removeItem('canastaPedidos');
         localStorage.removeItem('pedidoIdEditando');
         localStorage.removeItem('precioIdEditando');
-        
+
         // Preparar los productos del pedido para la canasta
         const productosParaCanasta = pedido.pedido_almacen_detalle?.map(detalle => ({
             id: detalle.producto_almacen.id,
@@ -188,10 +188,10 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
         localStorage.setItem('canastaPedidos', JSON.stringify(productosParaCanasta));
         localStorage.setItem('pedidoIdEditando', pedido.id);
         localStorage.setItem('precioIdEditando', pedido.precio_id || '');
-        
+
         // Pasar los productos directamente como props
         setProductosParaAlmacen(productosParaCanasta);
-        
+
         // Abrir AlmacenGeneral en modo pedido
         setModoAlmacen('pedido');
         setIsAlmacenOpen(true);
@@ -208,7 +208,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
         localStorage.removeItem('canastaSalidas');
         localStorage.removeItem('pedidoIdEntregando');
         localStorage.removeItem('precioIdEntregando');
-        
+
         // Preparar los productos del pedido para la canasta de salidas
         const productosParaSalidas = pedido.pedido_almacen_detalle?.map(detalle => ({
             id: detalle.producto_almacen.id,
@@ -222,10 +222,10 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
         localStorage.setItem('canastaSalidas', JSON.stringify(productosParaSalidas));
         localStorage.setItem('pedidoIdEntregando', pedido.id);
         localStorage.setItem('precioIdEntregando', pedido.precio_id || '');
-        
+
         // Pasar los productos directamente como props
         setProductosParaAlmacen(productosParaSalidas);
-        
+
         // Abrir AlmacenGeneral en modo salida
         setModoAlmacen('entregar');
         setIsAlmacenOpen(true);
@@ -275,113 +275,76 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                 <h1 className={styles.title}>
                     Detalles del Pedido
                     <div className={styles.iconButton}>
-                        <button
-                            className={styles.iconButton}onClick={() => setIsEliminarOpen(true)}>
-                            <BoxIcon
-                                name='trash'
-                                className={styles.iconTrash}
-                            />
-                        </button>
-                        <button className={styles.iconButton} onClick={handleEditarPedido}>
-                            <BoxIcon
-                                name='edit'
-                                className={styles.iconEdit}
-                            />
-                        </button>
                         <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
                             <BoxIcon
                                 name='download'
                                 className={styles.iconDownload}
                             />
                         </button>
-                        
+
                     </div>
                 </h1>
+                <p className={styles.subTitle}>INFORMACIÓN DEL SOLICITANTE</p>
+                <ItemView
+                    title={pedido.user?.name || pedido.personal?.name || 'Usuario desconocido'}
+                    description={pedido.sucursal?.name || 'Sucursal desconocida'}
+                    transparent={false}
+                />
                 <p className={styles.subTitle}>INFORMACIÓN DEL PEDIDO</p>
-                <div className={styles.content}>
-                    <Dato
-                        label="ID del Pedido"
-                        value={`#${pedido.id.slice(-8)}`}
+                <ItemView
+                    title={`Pedido #${pedido.id.slice(-8)}`}
+                    description={`Fecha y hora: ${formatearFecha(pedido.fecha || pedido.created_at)}`}
+                    description2={tipoPedido !== 'acopio' ? `Tipo de precio: ${pedido.precio?.name || 'Precio desconocido'}` : ''}
+                    flot6={pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'En Proceso' ? 'En Proceso' : 'Pendiente'}
+                    circulo={false}
+                    transparent={false}
+                />
+                {/* Botón para ver productos (solo para almacén) */}
+                {tipoPedido !== 'acopio' && detalles.length > 0 && (
+
+                    <Boton
+                        className='btn-gray'
+                        label={`Productos (${detalles.length})`}
+                        onClick={() => setIsProductosOpen(true)}
                     />
-                    <Dato
-                        label="Estado"
-                        value={pedido.estado}
-                        especial={pedido.estado === 'Cancelado' ? 'red' : pedido.estado === 'Completado' ? 'green' : 'gray'}
-                    />
-                    <Dato
-                        label="Fecha"
-                        value={(() => {
-                            const date = new Date(pedido.fecha || pedido.created_at);
-                            return date.toLocaleDateString('es-ES', {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit'
-                            });
-                        })()}
-                    />
-                    <Dato
-                        label="Hora"
-                        value={(() => {
-                            const date = new Date(pedido.fecha || pedido.created_at);
-                            return date.toLocaleTimeString('es-ES', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            });
-                        })()}
-                    />
+
+                )}
+
                     {tipoPedido === 'acopio' ? (
-                        <>
-                            <Dato
-                                label="Producto"
-                                value={pedido.producto_acopio?.name || 'Producto no encontrado'}
-                            />
-                            <Dato
-                                label="Cantidad"
-                                value={`${pedido.cantidad} ${pedido.tipo_medida}`}
-                            />
-                        </>
+
+                        <ItemView
+                            title={pedido.producto_acopio?.name || 'Producto no encontrado'}
+                            description={`Cantidad: ${pedido.cantidad} ${pedido.tipo_medida}`}
+                            icon='package'
+                            transparent={false}
+                        />
+
                     ) : (
                         <Dato
                             label="Total"
                             value={`Bs. ${total.toFixed(2)}`}
-                            especial='orange'
+                            especial='green'
+                            vertical={false}
                         />
                     )}
-                    <Dato
-                        label="Sucursal"
-                        value={pedido.sucursal?.name || 'Sucursal desconocida'}
-                    />
-                    <Dato
-                        label="Tipo de Precio"
-                        value={pedido.precio?.name || 'Precio desconocido'}
-                    />
-                    <Dato
-                        label="Solicitado por"
-                        value={pedido.user?.name || pedido.personal?.name || 'Usuario desconocido'}
-                    />
-                    <Dato
-                        label="Observaciones"
-                        value={pedido.observaciones || 'Sin observaciones'}
-                    />
-                </div>
 
-                {/* Botón para ver productos (solo para almacén) */}
-                {tipoPedido !== 'acopio' && detalles.length > 0 && (
-                    <div className={styles.content} style={{ padding: '10px 15px' }}>
-                        <Boton
-                            className='btn-default'
-                            label={`Ver Productos (${detalles.length})`}
-                            onClick={() => setIsProductosOpen(true)}
-                        />
-                    </div>
-                )}
 
                 <div className={styles.buttons}>
-                        <Boton
-                            className='btn-blue'
-                            label='Entregar'
-                            onClick={handleEntregarPedido}
-                        />
+                    <Boton
+                        className='btn-default-blue'
+                        label='Editar Pedido'
+                        onClick={handleEditarPedido}
+                    />
+                    <Boton
+                        className='btn-default-red'
+                        label='Eliminar Pedido'
+                        onClick={() => setIsEliminarOpen(true)}
+                    />
+                    <Boton
+                        className='btn-green'
+                        label='Entregar Pedido'
+                        onClick={handleEntregarPedido}
+                    />
                 </div>
             </div>
 
@@ -401,12 +364,17 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                                     title={producto.nombre}
                                     description={tipoPedido === 'acopio'
                                         ? `${producto.cantidad} ${producto.medida}`
-                                        : `${producto.cantidad} ${producto.medida} - Bs. ${producto.precio.toFixed(2)} c/u`
+                                        : `Bs. ${producto.precio.toFixed(2)}`
+                                    }
+                                    description2={tipoPedido === 'acopio'
+                                        ? ''
+                                        : `Subtotal: Bs. ${producto.subtotal.toFixed(2)}`
                                     }
                                     flot2={tipoPedido === 'acopio'
                                         ? ''
-                                        : `Bs. ${producto.subtotal.toFixed(2)}`
+                                        : `${producto.cantidad} Und.`
                                     }
+                                    icon='package'
                                 />
                             ))}
                         </>

@@ -28,20 +28,23 @@ function ModalDescarga({ isOpen, setIsOpen, titulo = "Descargar", subtitulo = "S
             />
             <div className={styles.modalContent}>
                 <p className={styles.subTitle}>{subtitulo}</p>
-                <Boton
-                    className='btn-default'
-                    label='Archivo Excel'
-                    style={{ marginTop: 'auto' }}
-                    icon={excelIcon}
-                    onClick={handleDescargaExcel}
-                />
-                <Boton
-                    className='btn-default'
-                    label='Archivo PDF'
-                    style={{ marginTop: 'auto' }}
-                    icon={pdfIcon}
-                    onClick={handleDescargaPDF}
-                />
+
+                <div className={styles.buttons}>
+                    <Boton
+                        className='btn-default'
+                        label='Archivo Excel'
+                        style={{ marginTop: 'auto' }}
+                        icon={excelIcon}
+                        onClick={handleDescargaExcel}
+                    />
+                    <Boton
+                        className='btn-default'
+                        label='Archivo PDF'
+                        style={{ marginTop: 'auto' }}
+                        icon={pdfIcon}
+                        onClick={handleDescargaPDF}
+                    />
+                </div>
             </div>
         </ViewModal>
     );

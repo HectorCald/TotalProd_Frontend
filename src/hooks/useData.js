@@ -395,7 +395,7 @@ export const useMovimientosAcopio = (searchQuery = '', page = 1, isOpen = false,
   const fetcher = async () => {
     console.log('fetcher movimientos acopio');
     const movimientosAcopioService = (await import('../services/movimientosAcopioService')).default;
-    const response = await movimientosAcopioService.getAll(page, 20, tipoFiltro, ordenamiento);
+    const response = await movimientosAcopioService.getAll(page, 10, tipoFiltro, ordenamiento);
     return response;
   };
 
@@ -440,7 +440,7 @@ export const useMovimientosAlmacen = (searchQuery = '', page = 1, isOpen = false
   const fetcher = async () => {
     console.log('fetcher movimientos almacen');
     const movimientosAlmacenService = (await import('../services/movimientosAlmacenService')).default;
-    const response = await movimientosAlmacenService.getAll(page, 20, tipoFiltro, ordenamiento);
+    const response = await movimientosAlmacenService.getAll(page, 10, tipoFiltro, ordenamiento);
     return response;
   };
 
@@ -484,13 +484,15 @@ export const usePedidosAcopio = (searchQuery = '', page = 1, isOpen = false, ord
   const fetcher = async () => {
     console.log('fetcher pedidos acopio');
     const pedidosAcopioService = (await import('../services/pedidosAcopioService')).default;
-    const response = await pedidosAcopioService.getAll(page, 20, null, ordenamiento);
+    const response = await pedidosAcopioService.getAll(page, 10, null, ordenamiento);
     return response;
   };
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0,
     revalidateOnMount: isOpen,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
   });
 
   return {
@@ -535,6 +537,8 @@ export const usePedidosAlmacen = (searchQuery = '', page = 1, isOpen = false, or
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0,
     revalidateOnMount: isOpen,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
   });
 
   return {
