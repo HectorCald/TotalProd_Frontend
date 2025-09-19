@@ -7,6 +7,7 @@ import HomeEmpleado from './pages/HomeEmpleado';
 import Loading from './components/common/LoadingSpinner';
 import { UserProvider, useUser } from './context/UserContext';
 import { EmployeeProvider, useEmployee } from './context/EmployeeContext';
+import { ModalStackProvider } from './context/ModalStackContext';
 import SeleccionarSucursal from './components/views/sucursales/SeleccionarSucursal';
 
 
@@ -63,7 +64,9 @@ function App() {
   return (
     <UserProvider>
       <EmployeeProvider>
-        <AppContent token={token} tokenType={tokenType} />
+        <ModalStackProvider>
+          <AppContent token={token} tokenType={tokenType} />
+        </ModalStackProvider>
       </EmployeeProvider>
     </UserProvider>
   );

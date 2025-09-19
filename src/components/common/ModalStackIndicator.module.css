@@ -1,0 +1,38 @@
+.indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  max-width: 200px;
+}
+
+.badge {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #4CAF50;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modalItem {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+/* Solo mostrar en desarrollo */
+@media (max-width: 768px) {
+  .indicator {
+    display: none;
+  }
+}
