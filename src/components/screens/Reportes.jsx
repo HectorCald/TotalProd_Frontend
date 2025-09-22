@@ -74,7 +74,9 @@ const Reportes = () => {
     
     return {
       fechaInicio: fechaInicio.toISOString(),
-      fechaFin: hoy.toISOString()
+      fechaFin: hoy.toISOString(),
+      fechaInicioFormateada: fechaInicio.toLocaleDateString('es-ES'),
+      fechaFinFormateada: hoy.toLocaleDateString('es-ES')
     };
   };
 
@@ -122,7 +124,7 @@ const Reportes = () => {
   };
 
   // Función para generar reporte de ventas (solo salidas de almacén)
-  const generarReporteVentas = async (movimientos) => {
+  const generarReporteVentas = async (movimientos, fechasPeriodo) => {
     const salidas = movimientos.filter(m => m.type === 'salida');
     
     // Agrupar productos
@@ -153,10 +155,18 @@ const Reportes = () => {
 
     const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
+    // Formatear período con fechas específicas
+    let periodoConFechas = opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '';
+    if (periodoSeleccionado === 'hoy') {
+      periodoConFechas = `Hoy (${fechasPeriodo.fechaFinFormateada})`;
+    } else {
+      periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
+    }
+
     return {
       informacionSuperior: {
         'Tipo de Reporte': 'Ventas',
-        'Período': opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '',
+        'Período': periodoConFechas,
         'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
         'Total Ventas': `Bs. ${total.toFixed(2)}`,
         'Cantidad de Movimientos': salidas.length.toString()
@@ -167,7 +177,7 @@ const Reportes = () => {
   };
 
   // Función para generar reporte de almacén general (entradas y salidas por separado)
-  const generarReporteAlmacen = async (movimientos) => {
+  const generarReporteAlmacen = async (movimientos, fechasPeriodo) => {
     const entradas = movimientos.filter(m => m.type === 'entrada');
     const salidas = movimientos.filter(m => m.type === 'salida');
 
@@ -235,10 +245,18 @@ const Reportes = () => {
     const totalEntradas = Object.values(productosEntradas).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
     const totalSalidas = Object.values(productosSalidas).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
+    // Formatear período con fechas específicas
+    let periodoConFechas = opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '';
+    if (periodoSeleccionado === 'hoy') {
+      periodoConFechas = `Hoy (${fechasPeriodo.fechaFinFormateada})`;
+    } else {
+      periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
+    }
+
     return {
       informacionSuperior: {
         'Tipo de Reporte': 'Almacén General',
-        'Período': opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '',
+        'Período': periodoConFechas,
         'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
         'Total Entradas': `Bs. ${totalEntradas.toFixed(2)}`,
         'Total Salidas': `Bs. ${totalSalidas.toFixed(2)}`,
@@ -251,7 +269,7 @@ const Reportes = () => {
   };
 
   // Función para generar reporte de materia prima (entradas con costo)
-  const generarReporteMateriaPrima = async (movimientos) => {
+  const generarReporteMateriaPrima = async (movimientos, fechasPeriodo) => {
     console.log('🌾 Movimientos de materia prima recibidos:', movimientos);
     const entradas = movimientos.filter(m => m.type === 'entrada');
     console.log('🌾 Entradas filtradas:', entradas);
@@ -287,10 +305,18 @@ const Reportes = () => {
 
     const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
+    // Formatear período con fechas específicas
+    let periodoConFechas = opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '';
+    if (periodoSeleccionado === 'hoy') {
+      periodoConFechas = `Hoy (${fechasPeriodo.fechaFinFormateada})`;
+    } else {
+      periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
+    }
+
     const reporteData = {
       informacionSuperior: {
         'Tipo de Reporte': 'Materia Prima',
-        'Período': opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '',
+        'Período': periodoConFechas,
         'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
         'Total Costo': `Bs. ${total.toFixed(2)}`,
         'Cantidad de Movimientos': entradas.length.toString()
@@ -304,7 +330,7 @@ const Reportes = () => {
   };
 
   // Función para generar reporte de pedidos
-  const generarReportePedidos = async (pedidos) => {
+  const generarReportePedidos = async (pedidos, fechasPeriodo) => {
     // Agrupar productos de pedidos
     const productosAgrupados = {};
     pedidos.forEach(pedido => {
@@ -333,10 +359,18 @@ const Reportes = () => {
 
     const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
+    // Formatear período con fechas específicas
+    let periodoConFechas = opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '';
+    if (periodoSeleccionado === 'hoy') {
+      periodoConFechas = `Hoy (${fechasPeriodo.fechaFinFormateada})`;
+    } else {
+      periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
+    }
+
     return {
       informacionSuperior: {
         'Tipo de Reporte': 'Pedidos',
-        'Período': opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '',
+        'Período': periodoConFechas,
         'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
         'Total Pedidos': `Bs. ${total.toFixed(2)}`,
         'Cantidad de Pedidos': pedidos.length.toString()
@@ -364,7 +398,8 @@ const Reportes = () => {
 
     setIsLoading(true);
     try {
-      const { fechaInicio, fechaFin } = getFechasPeriodo(periodoSeleccionado);
+      const fechasPeriodo = getFechasPeriodo(periodoSeleccionado);
+      const { fechaInicio, fechaFin } = fechasPeriodo;
       let reporteData = {};
 
       switch (areaSeleccionada) {
@@ -392,7 +427,7 @@ const Reportes = () => {
               return;
             }
             
-            reporteData = await generarReporteVentas(movimientosFiltradosVentas);
+            reporteData = await generarReporteVentas(movimientosFiltradosVentas, fechasPeriodo);
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de ventas');
             return;
@@ -417,7 +452,7 @@ const Reportes = () => {
               return;
             }
             
-            reporteData = await generarReporteAlmacen(movimientosFiltradosAlmacen);
+            reporteData = await generarReporteAlmacen(movimientosFiltradosAlmacen, fechasPeriodo);
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de almacén');
             return;
@@ -458,7 +493,7 @@ const Reportes = () => {
               return;
             }
             
-            reporteData = await generarReporteMateriaPrima(movimientosFiltrados);
+            reporteData = await generarReporteMateriaPrima(movimientosFiltrados, fechasPeriodo);
           } else {
             console.log('🌾 Error obteniendo movimientos:', movimientosAcopio);
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de materia prima');
@@ -484,7 +519,7 @@ const Reportes = () => {
               return;
             }
             
-            reporteData = await generarReportePedidos(pedidosFiltrados);
+            reporteData = await generarReportePedidos(pedidosFiltrados, fechasPeriodo);
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los pedidos');
             return;

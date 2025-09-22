@@ -15,10 +15,6 @@
   font-weight: 400;
 }
 
-.selectButton:hover {
-  border-color: var(--primary-color);
-}
-
 .active {
   border-color: var(--primary-color);
 }
@@ -77,4 +73,39 @@
   .optionIcon {
       color: var(--primary-color);
   }
+}
+
+/* Modo solo icono */
+.iconOnly {
+  width: auto;
+}
+
+.iconOnly .optionsContainer {
+  left: 0;
+  right: auto;
+  min-width: 200px;
+  width: auto;
+}
+
+.iconOnlyButton {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--quaternary-color);
+  background-color: var(--tertiary-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+}
+
+.iconOnlyButton.active {
+  border-color: var(--primary-color);
+  background-color: var(--quaternary-color);
+}
+
+.iconOnlyIcon {
+  font-size: 18px !important;
+  color: var(--primary-color);
 }

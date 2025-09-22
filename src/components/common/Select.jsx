@@ -8,7 +8,8 @@ function Select({
     options = [], 
     value, 
     onChange,
-    icon
+    icon,
+    iconOnly = false
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
@@ -48,22 +49,33 @@ function Select({
     const selectedOption = options.find(opt => opt.value === value);
 
     return (
-        <div className={styles.selectContainer} ref={selectRef}>
+        <div className={`${styles.selectContainer} ${iconOnly ? styles.iconOnly : ''}`} ref={selectRef}>
             
             <div 
-                className={`${styles.selectButton} ${isOpen ? styles.active : ''}`}
+                className={`${styles.selectButton} ${isOpen ? styles.active : ''} ${iconOnly ? styles.iconOnlyButton : ''}`}
                 onClick={() => setIsOpen(!isOpen)}
             >
-                {icon && <BoxIcon name={icon} className={styles.icon} />}
-                <span className={styles.selectedText}>
-                    {selectedOption ? selectedOption.label : placeholder}
-                </span>
-                <motion.div
-                    animate={{ rotate: isOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    <BoxIcon name='chevron-down' className={styles.arrow} />
-                </motion.div>
+                {iconOnly ? (
+                    // Modo solo icono
+                    <BoxIcon 
+                        name={selectedOption ? selectedOption.icon : icon} 
+                        className={styles.iconOnlyIcon} 
+                    />
+                ) : (
+                    // Modo normal
+                    <>
+                        {icon && <BoxIcon name={icon} className={styles.icon} />}
+                        <span className={styles.selectedText}>
+                            {selectedOption ? selectedOption.label : placeholder}
+                        </span>
+                        <motion.div
+                            animate={{ rotate: isOpen ? 180 : 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <BoxIcon name='chevron-down' className={styles.arrow} />
+                        </motion.div>
+                    </>
+                )}
             </div>
 
             <AnimatePresence>

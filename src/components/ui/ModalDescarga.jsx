@@ -211,7 +211,7 @@ function ModalDescarga({
             const footerYPosition = pageHeight - 15; // 15px desde abajo
             
             // Texto descriptivo
-            const descText = 'Fue generado por la app de TotalProd - Gestión de Procesos';
+            const descText = 'Fue generado por la app de TotalProd - Gestión de Procesos y Ventas';
             const descTextWidth = doc.getTextWidth(descText);
             const descXPosition = (pageWidth - descTextWidth) / 2; // Centrado
             const descYPosition = pageHeight - 8; // 8px desde abajo

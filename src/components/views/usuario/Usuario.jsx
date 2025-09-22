@@ -18,6 +18,7 @@ import Boton from '../../common/Boton';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
 import PlanInfo from './PlanInfo';
+import Comentarios from '../comentarios/Comentarios';
 
 
 const Usuario = ({ isOpen, setIsOpen }) => {
@@ -27,6 +28,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const [isOpenApariencia, setIsOpenApariencia] = useState(false);
     const [isOpenPlan, setIsOpenPlan] = useState(false);
     const [isOpenCodigoPromocional, setIsOpenCodigoPromocional] = useState(false);
+    const [isOpenComentarios, setIsOpenComentarios] = useState(false);
     const handleClose = () => {
         setIsOpen(false);
     };
@@ -45,6 +47,9 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     };
     const handleCodigoPromocional = () => {
         setIsOpenCodigoPromocional(true);
+    };
+    const handleComentarios = () => {
+        setIsOpenComentarios(true);
     };
     const handleLogout = () => {
         setIsLogoutOpen(true);
@@ -91,10 +96,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                                 onClick={handleCodigoPromocional}
                             />
                             <ItemLine
-                                icon='comment'
-                                title='Comentarios'
-                            />
-                            <ItemLine
                                 icon='star'
                                 title='Plan'
                                 onClick={handlePlan}
@@ -102,23 +103,29 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         </>
                     )}
                     <ItemLine
+                        icon='comment'
+                        title='Comentarios'
+                        onClick={handleComentarios}
+                    />
+                    <ItemLine
                         icon='power-off'
                         title='Cerrar sesión'
                         onClick={handleLogout}
                     />
-                    
+
                 </div>
                 <PieIcons />
                 <Version />
             </div>
             <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} />
             {isEmployee ? (
-                <CambiarContraseñaEmpleado isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña}/>
+                <CambiarContraseñaEmpleado isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} />
             ) : (
-                <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña}/>
+                <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} />
             )}
             <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
             <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
+            <Comentarios isOpen={isOpenComentarios} setIsOpen={setIsOpenComentarios} />
             {/* Modal de logout*/}
             <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>
                 <HeaderModal
