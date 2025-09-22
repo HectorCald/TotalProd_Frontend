@@ -370,7 +370,7 @@ const Reportes = () => {
       switch (areaSeleccionada) {
         case 'ventas':
           // Para ventas, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosVentas = await movimientosAlmacenService.getAll(1, 1000, 'salida', 'fecha_desc');
+          const movimientosVentas = await movimientosAlmacenService.getAll(1, 1000, 'salida', 'fecha_desc', sucursalSeleccionada);
           
           if (movimientosVentas.success && movimientosVentas.data) {
             // Filtrar por fecha en el frontend
@@ -401,7 +401,7 @@ const Reportes = () => {
 
         case 'almacen_general':
           // Para almacén general, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosAlmacen = await movimientosAlmacenService.getAll(1, 1000, null, 'fecha_desc');
+          const movimientosAlmacen = await movimientosAlmacenService.getAll(1, 1000, null, 'fecha_desc', sucursalSeleccionada);
           
           if (movimientosAlmacen.success && movimientosAlmacen.data) {
             // Filtrar por fecha en el frontend
@@ -427,7 +427,7 @@ const Reportes = () => {
         case 'materia_Prima':
           // Para materia prima, obtener todos los movimientos y filtrar por fecha en el frontend
           console.log('🌾 Obteniendo movimientos de acopio...');
-          const movimientosAcopio = await movimientosAcopioService.getAll(1, 1000, 'entrada', 'fecha_desc');
+          const movimientosAcopio = await movimientosAcopioService.getAll(1, 1000, 'entrada', 'fecha_desc', sucursalSeleccionada);
           console.log('🌾 Respuesta del servicio:', movimientosAcopio);
           
           if (movimientosAcopio.success && movimientosAcopio.data) {
@@ -468,7 +468,7 @@ const Reportes = () => {
 
         case 'pedidos':
           // Para pedidos, obtener todos los pedidos y filtrar por fecha en el frontend
-          const pedidos = await pedidosAlmacenService.getAll(1, 1000);
+          const pedidos = await pedidosAlmacenService.getAll(1, 1000, sucursalSeleccionada);
           
           if (pedidos.success && pedidos.data) {
             // Filtrar por fecha en el frontend

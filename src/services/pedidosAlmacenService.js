@@ -92,9 +92,9 @@ class pedidosAlmacenService {
   }
 
   // Obtener todos los pedidos de la sucursal
-  static async getAll(page = 1, limit = 20) {
+  static async getAll(page = 1, limit = 20, sucuIdParam = null) {
     try {
-      const sucuId = getSucuId();
+      const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
         return {
           success: false,
