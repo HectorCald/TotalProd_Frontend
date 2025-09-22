@@ -380,7 +380,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Movimiento"
                 subtitulo="Selecciona el formato que prefieras para descargar este movimiento."
-                nombreArchivo={`Movimiento_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(tipoMovimiento === 'acopio' ? movimiento?.date : movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`}
+                nombreArchivo={`Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(tipoMovimiento === 'acopio' ? movimiento?.date : movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`}
                 {...prepararDatosDescarga()}
             />
 

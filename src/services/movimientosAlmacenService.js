@@ -97,7 +97,7 @@ class movimientosAlmacenService {
       });
 
       if (tipo) {
-        params.append('tipo', tipo);
+        params.append('type', tipo);
       }
       if (ordenamiento) {
         params.append('ordenamiento', ordenamiento);

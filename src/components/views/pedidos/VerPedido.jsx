@@ -12,6 +12,7 @@ import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import { useUser } from '../../../context/UserContext';
+import { useSucursales } from '../../../hooks/useData';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
@@ -24,6 +25,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [modoAlmacen, setModoAlmacen] = useState('pedido'); // 'pedido' o 'entregar'
+
+    // Hook para obtener sucursales
+    const { sucursales } = useSucursales(isOpen);
 
 
 
@@ -317,6 +321,66 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     };
 
 
+    // Función para preparar datos de descarga
+    // eslint-disable-next-line no-unused-vars
+    const prepararDatosDescarga = () => {
+        if (!pedido) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
+
+        // Obtener nombre de la sucursal
+        const sucursal = sucursales?.find(s => s.id === pedido?.sucu_id);
+        const nombreSucursal = sucursal?.name || 'Sucursal no encontrada';
+
+        // Información superior
+        const informacionSuperior = {
+            'Solicitante': pedido?.user?.name || pedido?.personal?.name || 'Usuario desconocido',
+            'Sucursal': nombreSucursal,
+            'Número de Pedido': `#${pedido.id.slice(-8)}`,
+            'Fecha': new Date(pedido.fecha || pedido.created_at).toLocaleString(),
+            'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'En Proceso' ? 'En Proceso' : pedido.estado === 'Enviado' ? 'Enviado' : 'Pendiente'
+        };
+
+        // Para pedidos de acopio
+        if (tipoPedido === 'acopio') {
+            // Tabla para acopio (un solo producto)
+            const tablaHeaders = ['Producto', 'Cantidad', 'Unidad de Medida'];
+            const tablaValores = [[
+                pedido?.producto_acopio?.name || 'Sin producto',
+                pedido?.cantidad || '0',
+                pedido?.tipo_medida || ''
+            ]];
+
+            return { informacionSuperior, tablaHeaders, tablaValores };
+        }
+
+        // Para pedidos de almacén
+        if (tipoPedido === 'almacen') {
+            if (pedido?.precio?.name) {
+                informacionSuperior['Tipo de Precio'] = pedido.precio.name;
+            }
+
+            // Calcular total
+            const total = (pedido?.pedido_almacen_detalle || []).reduce((sum, detalle) => {
+                const precio = detalle.precio || 0;
+                const cantidad = detalle.cantidad || 0;
+                return sum + (precio * cantidad);
+            }, 0);
+            informacionSuperior['Total'] = `Bs. ${total.toFixed(2)}`;
+
+            // Tabla para almacén (múltiples productos)
+            const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+            const tablaValores = (pedido?.pedido_almacen_detalle || []).map(detalle => [
+                detalle?.producto_almacen?.name || 'Sin producto',
+                detalle?.cantidad || '0',
+                `Bs. ${(detalle?.precio || 0).toFixed(2)}`,
+                `Bs. ${((detalle?.precio || 0) * (detalle?.cantidad || 0)).toFixed(2)}`
+            ]);
+
+            return { informacionSuperior, tablaHeaders, tablaValores };
+        }
+
+        return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
+    };
+
     // Función para obtener los detalles del pedido
     const getDetallesPedido = () => {
         if (!pedido) return [];
@@ -525,9 +589,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Pedido"
-                onDescargarPDF={() => console.log('Descargar PDF')}
-                onDescargarExcel={() => console.log('Descargar Excel')}
-                onEnviarWhatsapp={() => console.log('Enviar WhatsApp')}
+                subtitulo="Selecciona el formato que prefieras para descargar este pedido."
+                nombreArchivo={`Pedido_${tipoPedido === 'acopio' ? 'Acopio' : 'Almacen'}_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`}
+                {...prepararDatosDescarga()}
             />
 
             {/* Modal de eliminar pedido */}

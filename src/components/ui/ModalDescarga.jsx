@@ -175,7 +175,49 @@ function ModalDescarga({
                     headStyles: { fillColor: [66, 139, 202] },
                     styles: { fontSize: 8 }
                 });
+
+                // Agregar total debajo de la tabla si es un movimiento de almacén
+                const finalY = doc.lastAutoTable.finalY || (yPosition + 5);
+                
+                // Verificar si hay información de total en los datos superiores
+                const totalInfo = Object.entries(informacionSuperior).find(([key, value]) => 
+                    key === 'Total' && value && value.toString().includes('Bs.')
+                );
+                
+                if (totalInfo) {
+                    doc.setFontSize(10);
+                    doc.setTextColor(0, 0, 0); // Resetear color a negro
+                    doc.setFont(undefined, 'bold'); // Negrita para el total
+                    
+                    const totalText = `Total: ${totalInfo[1]}`;
+                    const totalTextWidth = doc.getTextWidth(totalText);
+                    const totalXPosition = pageWidth - totalTextWidth - 20; // Alineado a la derecha con margen
+                    const totalYPosition = finalY + 15; // 15px debajo de la tabla
+                    
+                    doc.text(totalText, totalXPosition, totalYPosition);
+                }
             }
+            
+            // Pie de página
+            const pageHeight = doc.internal.pageSize.getHeight();
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'italic'); // Cursiva
+            doc.setTextColor(128, 128, 128); // Color gris
+            
+            // TotalProd
+            const footerText = 'TotalProd';
+            const footerTextWidth = doc.getTextWidth(footerText);
+            const footerXPosition = (pageWidth - footerTextWidth) / 2; // Centrado
+            const footerYPosition = pageHeight - 15; // 15px desde abajo
+            
+            // Texto descriptivo
+            const descText = 'Fue generado por la app de TotalProd - Gestión de Procesos';
+            const descTextWidth = doc.getTextWidth(descText);
+            const descXPosition = (pageWidth - descTextWidth) / 2; // Centrado
+            const descYPosition = pageHeight - 8; // 8px desde abajo
+            
+            doc.text(footerText, footerXPosition, footerYPosition);
+            doc.text(descText, descXPosition, descYPosition);
             
             // Descargar archivo
             doc.save(`${nombreArchivoState.replace(/\s+/g, '_')}.pdf`);

@@ -16,31 +16,31 @@ function Notification({
             case 'success':
                 return {
                     icon: 'check',
-                    bgColor: 'var(--tertiary-color)', // green
-                    borderColor: '#374151', // Lighter gray border
-                    iconBgColor: 'var(--success-color)' // Medium gray for icon
+                    bgColor: 'rgba(34, 197, 94, 0.1)', // Verde suave
+                    iconBgColor: 'var(--success-color)',
+                    textColor: 'white'
                 };
             case 'error':
                 return {
                     icon: 'x',
-                    bgColor: 'var(--tertiary-color)',
-                    borderColor: '#374151',
-                    iconBgColor: 'var(--error-color)'
+                    bgColor: 'rgba(239, 68, 68, 0.1)', // Rojo suave
+                    iconBgColor: 'var(--error-color)',
+                    textColor: 'white'
                 };
             case 'warning':
                 return {
                     icon: 'error-circle',
-                    bgColor: 'var(--tertiary-color)',
-                    borderColor: '#374151',
-                    iconBgColor: 'var(--warning-color)'
+                    bgColor: 'rgba(245, 158, 11, 0.1)', // Amarillo suave
+                    iconBgColor: 'var(--warning-color)',
+                    textColor: 'white'
                 };
             case 'info':
             default:
                 return {
                     icon: 'info-circle',
-                    bgColor: 'var(--tertiary-color)',
-                    borderColor: '#374151',
-                    iconBgColor: 'var(--info-color)'
+                    bgColor: 'rgba(59, 130, 246, 0.1)', // Azul suave
+                    iconBgColor: 'var(--info-color)',
+                    textColor: 'white'
                 };
         }
     };
@@ -53,7 +53,7 @@ function Notification({
                 className={styles.notification}
                 style={{ 
                     backgroundColor: typeConfig.bgColor,
-                    borderColor: typeConfig.borderColor
+                    border: 'none'
                 }}
             >
                 <div 
@@ -62,7 +62,12 @@ function Notification({
                 >
                     <BoxIcon name={typeConfig.icon} size="sm" />
                 </div>
-                <span className={styles.text}>{text}</span>
+                <span 
+                    className={styles.text}
+                    style={{ color: typeConfig.textColor }}
+                >
+                    {text}
+                </span>
             </div>
         </div>
     );
