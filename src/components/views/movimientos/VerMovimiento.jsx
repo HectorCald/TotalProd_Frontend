@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -13,6 +13,7 @@ import movimientosAlmacenService from '../../../services/movimientosAlmacenServi
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
+import { useSucursales } from '../../../hooks/useData';
 
 function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimientoAnulado, onMovimientoEliminado }) {
     const [loading, setLoading] = useState(false);
@@ -24,26 +25,110 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isDestacado, setIsDestacado] = useState(false);
 
+    // Hook para obtener sucursales
+    const { sucursales } = useSucursales(isOpen);
+
     // Cargar estado de destacado desde localStorage
     useEffect(() => {
         if (movimiento?.id) {
             const movimientosDestacados = JSON.parse(localStorage.getItem('MovimientosDestacados') || '[]');
-            const esDestacado = movimientosDestacados.some(m => 
+            const esDestacado = movimientosDestacados.some(m =>
                 m.id === movimiento.id && m.tipo === tipoMovimiento
             );
             setIsDestacado(esDestacado);
         }
     }, [movimiento?.id, tipoMovimiento]);
 
+    // Función para preparar datos de descarga
+    // eslint-disable-next-line no-unused-vars
+    const prepararDatosDescarga = () => {
+        if (!movimiento) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
+
+        // Obtener nombre de la sucursal
+        const sucursal = sucursales?.find(s => s.id === movimiento?.sucu_id);
+        const nombreSucursal = sucursal?.name || 'Sucursal no encontrada';
+
+        // Información superior
+        const informacionSuperior = {
+            'Responsable': movimiento?.user?.name || movimiento?.personal?.name || 'Usuario desconocido',
+            'Tipo': movimiento?.type === 'entrada' ? 'Entrada' : 'Salida',
+            'Fecha': new Date(tipoMovimiento === 'acopio' ? movimiento?.date : movimiento?.fecha).toLocaleString(),
+            'Estado': movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado',
+            'Sucursal': nombreSucursal
+        };
+
+        // Para movimientos de acopio
+        if (tipoMovimiento === 'acopio') {
+            if (movimiento?.type === 'entrada' && movimiento?.proveedor?.name) {
+                informacionSuperior['Proveedor'] = movimiento.proveedor.name;
+            }
+            if (movimiento?.type === 'salida' && movimiento?.cliente?.name) {
+                informacionSuperior['Cliente'] = movimiento.cliente.name;
+            }
+            if (movimiento?.metodo_pago) {
+                informacionSuperior['Método de Pago'] = movimiento.metodo_pago;
+            }
+            if (movimiento?.costo) {
+                informacionSuperior['Costo'] = `Bs. ${parseFloat(movimiento.costo).toFixed(2)}`;
+            }
+            if (movimiento?.restar_ingredientes !== undefined) {
+                informacionSuperior['Restar Ingredientes'] = movimiento.restar_ingredientes ? 'Sí' : 'No';
+            }
+            if (movimiento?.observaciones) {
+                informacionSuperior['Observaciones'] = movimiento.observaciones;
+            }
+
+            // Tabla para acopio (un solo producto)
+            const tablaHeaders = ['Producto', 'Cantidad', 'Unidad de Medida'];
+            const tablaValores = [[
+                movimiento?.product?.name || 'Sin producto',
+                movimiento?.quantity || '0',
+                movimiento?.product?.type_measure?.code || ''
+            ]];
+
+            return { informacionSuperior, tablaHeaders, tablaValores };
+        }
+
+        // Para movimientos de almacén
+        if (tipoMovimiento === 'almacen') {
+            if (movimiento?.precio?.name) {
+                informacionSuperior['Tipo de Precio'] = movimiento.precio.name;
+            }
+            if (movimiento?.metodo_pago) {
+                informacionSuperior['Método de Pago'] = movimiento.metodo_pago;
+            }
+            if (movimiento?.productos && movimiento.productos.length > 0) {
+                const total = movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
+                informacionSuperior['Total'] = `Bs. ${total.toFixed(2)}`;
+            }
+            if (movimiento?.observaciones) {
+                informacionSuperior['Observaciones'] = movimiento.observaciones;
+            }
+
+            // Tabla para almacén (múltiples productos)
+            const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+            const tablaValores = (movimiento?.productos || []).map(producto => [
+                producto?.producto?.name || 'Sin producto',
+                producto?.cantidad || '0',
+                `Bs. ${(parseFloat(producto?.precio_unitario) || 0).toFixed(2)}`,
+                `Bs. ${(parseFloat(producto?.subtotal) || 0).toFixed(2)}`
+            ]);
+
+            return { informacionSuperior, tablaHeaders, tablaValores };
+        }
+
+        return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
+    };
+
     // Función para manejar el destacado
     const handleDestacar = () => {
         if (!movimiento?.id) return;
 
         let movimientosDestacados = JSON.parse(localStorage.getItem('MovimientosDestacados') || '[]');
-        
+
         if (isDestacado) {
             // Quitar de destacados
-            movimientosDestacados = movimientosDestacados.filter(m => 
+            movimientosDestacados = movimientosDestacados.filter(m =>
                 !(m.id === movimiento.id && m.tipo === tipoMovimiento)
             );
             setIsDestacado(false);
@@ -53,7 +138,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                 mostrarNotificacion('error', 'Solo puedes destacar máximo 10 movimientos');
                 return;
             }
-            
+
             // Agregar a destacados
             movimientosDestacados.push({
                 id: movimiento.id,
@@ -98,7 +183,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
         };
 
         loadMovimientos();
-    }, [movimiento?.id, isOpen, tipoMovimiento]);
+    }, [movimiento?.id, isOpen, tipoMovimiento]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -126,18 +211,18 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                 <h1 className={styles.title}>
                     Detalles
                     <div className={styles.iconButton}>
-                        <button 
-                            className={styles.iconButton} 
+                        <button
+                            className={styles.iconButton}
                             onClick={handleDestacar}
                             title={isDestacado ? 'Quitar de destacados' : 'Destacar movimiento'}
                         >
                             {isDestacado ? (
-                                <FaStar 
+                                <FaStar
                                     className={styles.iconStar}
                                     style={{ color: '#FFD700' }}
                                 />
                             ) : (
-                                <FaRegStar 
+                                <FaRegStar
                                     className={styles.iconStar}
                                     style={{ color: '#666' }}
                                 />
@@ -181,7 +266,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                         icon='package'
                     />
                 )}
-                
+
                 {/* Mostrar costo solo para movimientos de acopio */}
                 {tipoMovimiento === 'acopio' && movimiento?.type === 'entrada' && (
                     <div className={styles.content}>
@@ -245,21 +330,21 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                     </div>
                 )}
                 <div className={styles.buttons}>
-                {movimiento?.estado === 'anulado' ? (
-                    <Boton
-                        className='btn-red'
-                        label='Eliminar Movimiento'
-                        style={{ marginTop: 'auto' }}
-                        onClick={() => setIsEliminarOpen(true)}
-                    />
-                ) : !movimiento?.tiene_pedido_relacionado ? (
-                    <Boton
-                        className='btn-red'
-                        label='Anular Movimiento'
-                        style={{ marginTop: 'auto' }}
-                        onClick={() => setIsAnularOpen(true)}
-                    />
-                ) : null}
+                    {movimiento?.estado === 'anulado' ? (
+                        <Boton
+                            className='btn-red'
+                            label='Eliminar Movimiento'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsEliminarOpen(true)}
+                        />
+                    ) : !movimiento?.tiene_pedido_relacionado ? (
+                        <Boton
+                            className='btn-red'
+                            label='Anular Movimiento'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsAnularOpen(true)}
+                        />
+                    ) : null}
                 </div>
             </div>
 
@@ -295,6 +380,8 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Movimiento"
                 subtitulo="Selecciona el formato que prefieras para descargar este movimiento."
+                nombreArchivo={`Movimiento_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(tipoMovimiento === 'acopio' ? movimiento?.date : movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`}
+                {...prepararDatosDescarga()}
             />
 
             {/* Modal de anular movimiento */}

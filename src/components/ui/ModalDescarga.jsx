@@ -1,23 +1,189 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ViewModal from './ViewModal';
 import HeaderModal from '../common/HeaderModal';
 import Boton from '../common/Boton';
+import InputNormal from '../common/InputNormal';
 import styles from '../../styles/Inicial.module.css';
 import pdfIcon from '../../assets/pdf.png';
 import excelIcon from '../../assets/xls.png';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
+function ModalDescarga({ 
+    isOpen, 
+    setIsOpen, 
+    titulo = "Descargar", 
+    subtitulo = "Selecciona el formato que prefieras para descargar.",
+    informacionSuperior = {},
+    tablaHeaders = [],
+    tablaValores = [],
+    nombreArchivo = "Descargar Movimiento"
+}) {
+    const [nombreArchivoState, setNombreArchivoState] = useState(nombreArchivo);
 
-function ModalDescarga({ isOpen, setIsOpen, titulo = "Descargar", subtitulo = "Selecciona el formato que prefieras para descargar." }) {
+    // Actualizar el estado cuando cambie la prop
+    useEffect(() => {
+        setNombreArchivoState(nombreArchivo);
+    }, [nombreArchivo]);
 
     const handleDescargaExcel = () => {
-        // Aquí puedes agregar la lógica para descargar Excel
-        console.log('Descargando Excel...');
-        setIsOpen(false);
+        try {
+            // Crear un nuevo workbook
+            const workbook = XLSX.utils.book_new();
+            
+            // Crear datos combinados (título + información superior + tabla)
+            const allData = [];
+            
+            // 1. Título
+            allData.push([nombreArchivoState]);
+            allData.push([]); // Línea vacía
+            
+            // 2. Información superior (en 2 columnas)
+            const keys = Object.keys(informacionSuperior);
+            
+            for (let i = 0; i < keys.length; i += 2) {
+                const row = [];
+                row.push(`${keys[i]}: ${informacionSuperior[keys[i]]}`);
+                
+                if (i + 1 < keys.length) {
+                    row.push(`${keys[i + 1]}: ${informacionSuperior[keys[i + 1]]}`);
+                } else {
+                    row.push('');
+                }
+                allData.push(row);
+            }
+            
+            // 3. Líneas vacías para separar
+            allData.push([]);
+            allData.push([]);
+            
+            // 4. Tabla de productos
+            if (tablaHeaders.length > 0 && tablaValores.length > 0) {
+                allData.push(tablaHeaders);
+                allData.push(...tablaValores);
+            }
+            
+            // Crear worksheet con todos los datos
+            const worksheet = XLSX.utils.aoa_to_sheet(allData);
+            
+            // Configurar el ancho de las columnas (auto-fit)
+            const colWidths = [];
+            const maxCols = Math.max(
+                keys.length > 0 ? 2 : 0, // Para información superior
+                tablaHeaders.length // Para tabla
+            );
+            
+            // Calcular ancho automático para cada columna
+            for (let i = 0; i < maxCols; i++) {
+                let maxWidth = 10; // Ancho mínimo
+                
+                // Revisar todas las filas para encontrar el contenido más largo
+                for (let rowIndex = 0; rowIndex < allData.length; rowIndex++) {
+                    const cellValue = allData[rowIndex][i];
+                    if (cellValue && cellValue.toString().length > maxWidth) {
+                        maxWidth = Math.min(cellValue.toString().length + 2, 50); // Máximo 50 caracteres
+                    }
+                }
+                
+                colWidths.push({ wch: maxWidth });
+            }
+            worksheet['!cols'] = colWidths;
+            
+            // Aplicar estilos a los headers de la tabla
+            if (tablaHeaders.length > 0) {
+                const headerRowIndex = allData.length - tablaValores.length - 1; // Fila de headers
+                
+                // Estilo para headers (fondo azul, texto blanco, negrita)
+                for (let i = 0; i < tablaHeaders.length; i++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: i });
+                    if (!worksheet[cellAddress]) worksheet[cellAddress] = { v: tablaHeaders[i] };
+                    
+                    worksheet[cellAddress].s = {
+                        fill: { fgColor: { rgb: "428BCA" } }, // Color azul como en PDF
+                        font: { 
+                            color: { rgb: "FFFFFF" }, // Texto blanco
+                            bold: true 
+                        },
+                        alignment: { horizontal: "center", vertical: "center" },
+                        border: {
+                            top: { style: "thin", color: { rgb: "000000" } },
+                            bottom: { style: "thin", color: { rgb: "000000" } },
+                            left: { style: "thin", color: { rgb: "000000" } },
+                            right: { style: "thin", color: { rgb: "000000" } }
+                        }
+                    };
+                }
+            }
+            
+            // Estilo para el título (negrita y centrado)
+            if (allData.length > 0) {
+                const titleCellAddress = XLSX.utils.encode_cell({ r: 0, c: 0 });
+                if (!worksheet[titleCellAddress]) worksheet[titleCellAddress] = { v: allData[0][0] };
+                
+                worksheet[titleCellAddress].s = {
+                    font: { bold: true, size: 16 },
+                    alignment: { horizontal: "center" }
+                };
+            }
+            
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte');
+            
+            // Generar y descargar archivo
+            XLSX.writeFile(workbook, `${nombreArchivoState.replace(/\s+/g, '_')}.xlsx`);
+            
+            setIsOpen(false);
+        } catch (error) {
+            console.error('Error generando Excel:', error);
+        }
     };
+
     const handleDescargaPDF = () => {
-        // Aquí puedes agregar la lógica para descargar PDF
-        console.log('Descargando PDF...');
-        setIsOpen(false);
+        try {
+            const doc = new jsPDF();
+            
+            // Título centrado
+            doc.setFontSize(16);
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const textWidth = doc.getTextWidth(nombreArchivoState);
+            const xPosition = (pageWidth - textWidth) / 2;
+            doc.text(nombreArchivoState, xPosition, 20);
+            
+            // Información superior
+            let yPosition = 35;
+            const keys = Object.keys(informacionSuperior);
+            
+            doc.setFontSize(10);
+            for (let i = 0; i < keys.length; i += 2) {
+                const leftText = `${keys[i]}: ${informacionSuperior[keys[i]]}`;
+                doc.text(leftText, 20, yPosition);
+                
+                if (i + 1 < keys.length) {
+                    const rightText = `${keys[i + 1]}: ${informacionSuperior[keys[i + 1]]}`;
+                    doc.text(rightText, 110, yPosition);
+                }
+                yPosition += 8;
+            }
+            
+            // Tabla
+            if (tablaHeaders.length > 0 && tablaValores.length > 0) {
+                autoTable(doc, {
+                    startY: yPosition + 5,
+                    head: [tablaHeaders],
+                    body: tablaValores,
+                    theme: 'grid',
+                    headStyles: { fillColor: [66, 139, 202] },
+                    styles: { fontSize: 8 }
+                });
+            }
+            
+            // Descargar archivo
+            doc.save(`${nombreArchivoState.replace(/\s+/g, '_')}.pdf`);
+            
+            setIsOpen(false);
+        } catch (error) {
+            console.error('Error generando PDF:', error);
+        }
     };
 
     return (
@@ -28,6 +194,17 @@ function ModalDescarga({ isOpen, setIsOpen, titulo = "Descargar", subtitulo = "S
             />
             <div className={styles.modalContent}>
                 <p className={styles.subTitle}>{subtitulo}</p>
+
+                <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                    <InputNormal
+                        label="Nombre del archivo"
+                        value={nombreArchivoState}
+                        onChange={(e) => setNombreArchivoState(e.target.value)}
+                        placeholder="Ingresa el nombre del archivo"
+                        style={{ width: '300px' }}
+                        icon="file"
+                    />
+                </div>
 
                 <div className={styles.buttons}>
                     <Boton
