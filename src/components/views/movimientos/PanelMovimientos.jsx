@@ -338,8 +338,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                                 : `${movimiento.productos.length} productos`
                                             : 'Sin productos'
                                     }
-                                    description={`${movimiento.observations || 'Sin observaciones'} • ${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.tipo === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.tipo === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
-                                    icon={movimiento.tipo === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                                    description={`${movimiento.observations || 'Sin observaciones'} • ${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
+                                    icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
                                     onClick={() => handleRegistro(movimiento)}
                                     arrow={false}
                                     flot2={movimiento?.estado === 'anulado' ? 'Anulado' : ''}

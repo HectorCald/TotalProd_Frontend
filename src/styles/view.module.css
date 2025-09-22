@@ -13,7 +13,7 @@
 }
 
 .title {
-    font-size: 25px;
+    font-size: 20px !important;
     font-weight: 600;
     display: flex;
     justify-content: space-between;
@@ -40,6 +40,11 @@
     .iconDownload {
         color: gray !important;
         cursor: pointer;
+    }
+    .iconStar {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 25px;
     }
 
 }

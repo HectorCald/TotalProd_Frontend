@@ -16,7 +16,8 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
     observations: '',
     proveedor_id: '',
     cliente_id: '',
-    quantity: ''
+    quantity: '',
+    costo: ''
   });
 
   const [errorMessage, setErrorMessage] = useState('');
@@ -25,7 +26,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
   const [proveedorSeleccionadoData, setProveedorSeleccionadoData] = useState(null);
   const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
-  
+
   // Estados para el Switch de materia prima
   const [restarMateriaPrima, setRestarMateriaPrima] = useState(() => {
     const saved = localStorage.getItem('restarMateriaPrima');
@@ -33,7 +34,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   });
   const [tieneReceta, setTieneReceta] = useState(false);
   const [recetaData, setRecetaData] = useState(null);
-  
+
 
 
   // Efecto para verificar si el producto tiene receta
@@ -52,9 +53,10 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         observations: '',
         proveedor_id: '',
         cliente_id: '',
-        quantity: ''
+        quantity: '',
+        costo: ''
       });
-        setErrorMessage('');
+      setErrorMessage('');
       // No resetear el switch, mantener el valor del localStorage
     }
   }, [isOpen]);
@@ -97,8 +99,11 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         proveedor_id: tipo === 'entrada' ? (dataMov.proveedor_id || null) : null,
         cliente_id: tipo === 'salida' ? (dataMov.cliente_id || null) : null,
         quantity: dataMov.quantity.toString(),
+        costo: tipo === 'entrada' ? (dataMov.costo ? parseFloat(dataMov.costo) : null) : null,
         // Agregar flag para restar materia prima
-        restar_materia_prima: tipo === 'entrada' && restarMateriaPrima && tieneReceta
+        restar_materia_prima: tipo === 'entrada' && restarMateriaPrima && tieneReceta,
+        // Agregar campo restar_ingredientes
+        restar_ingredientes: tipo === 'entrada' && restarMateriaPrima && tieneReceta
       };
 
       // Crear el movimiento
@@ -131,13 +136,13 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
       />
       <div className={styles.modalContent}>
         <MensajeError mensaje={errorMessage} />
-        
+
         <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
         <div className={styles.content}>
-            <Dato
-              label="Cantidad"
-              value={`${parseFloat(producto?.quantity || 0).toFixed(2)} ${producto?.type_measure?.code || ''}`}
-            />
+          <Dato
+            label="Cantidad"
+            value={`${parseFloat(producto?.quantity || 0).toFixed(2)} ${producto?.type_measure?.code || ''}`}
+          />
           <Dato
             label="Tipo de medida"
             value={producto?.type_measure?.name || 'No especificado'}
@@ -154,6 +159,21 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           icon='calculator'
         />
 
+
+
+        {/* Campo de costo solo para entradas */}
+        {tipo === 'entrada' && (
+          <InputNormal
+            tipo="number"
+            value={dataMov.costo}
+            placeholder='Costo (opcional)'
+            onChange={(e) => handleChange('costo', e.target.value)}
+            icon='money'
+            step="0.01"
+            min="0"
+          />
+        )}
+
         <InputNormal
           tipo="text"
           value={dataMov.observations}
@@ -161,8 +181,6 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           onChange={(e) => handleChange('observations', e.target.value)}
           icon='comment'
         />
-
-        
 
         {/* Selector de proveedor para entradas */}
         {tipo === 'entrada' && (

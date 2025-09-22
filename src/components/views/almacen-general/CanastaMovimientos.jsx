@@ -226,7 +226,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
             // Preparar datos para enviar al backend
             const movimientoData = {
-                tipo: tipoMovimiento,
+                type: tipoMovimiento,
                 observaciones: observacionesFinales || null,
                 precio_id: precioSeleccionado,
                 metodo_pago: tipoMovimiento === 'salida' ? metodoPagoSeleccionado : null,

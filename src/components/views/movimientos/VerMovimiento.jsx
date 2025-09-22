@@ -6,6 +6,7 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Dato from '../../common/Dato';
 import { BoxIcon } from 'boxicons-react';
+import { FaStar, FaRegStar } from 'react-icons/fa';
 import Boton from '../../common/Boton';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
@@ -21,7 +22,48 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
+    const [isDestacado, setIsDestacado] = useState(false);
 
+    // Cargar estado de destacado desde localStorage
+    useEffect(() => {
+        if (movimiento?.id) {
+            const movimientosDestacados = JSON.parse(localStorage.getItem('MovimientosDestacados') || '[]');
+            const esDestacado = movimientosDestacados.some(m => 
+                m.id === movimiento.id && m.tipo === tipoMovimiento
+            );
+            setIsDestacado(esDestacado);
+        }
+    }, [movimiento?.id, tipoMovimiento]);
+
+    // Función para manejar el destacado
+    const handleDestacar = () => {
+        if (!movimiento?.id) return;
+
+        let movimientosDestacados = JSON.parse(localStorage.getItem('MovimientosDestacados') || '[]');
+        
+        if (isDestacado) {
+            // Quitar de destacados
+            movimientosDestacados = movimientosDestacados.filter(m => 
+                !(m.id === movimiento.id && m.tipo === tipoMovimiento)
+            );
+            setIsDestacado(false);
+        } else {
+            // Verificar si ya hay 10 movimientos destacados
+            if (movimientosDestacados.length >= 10) {
+                mostrarNotificacion('error', 'Solo puedes destacar máximo 10 movimientos');
+                return;
+            }
+            
+            // Agregar a destacados
+            movimientosDestacados.push({
+                id: movimiento.id,
+                tipo: tipoMovimiento
+            });
+            setIsDestacado(true);
+        }
+
+        localStorage.setItem('MovimientosDestacados', JSON.stringify(movimientosDestacados));
+    };
 
     // Cargar los movimientos relacionados
     useEffect(() => {
@@ -83,7 +125,24 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
             <div className={styles.container}>
                 <h1 className={styles.title}>
                     Detalles
-                    <div className={styles.iconButton} >
+                    <div className={styles.iconButton}>
+                        <button 
+                            className={styles.iconButton} 
+                            onClick={handleDestacar}
+                            title={isDestacado ? 'Quitar de destacados' : 'Destacar movimiento'}
+                        >
+                            {isDestacado ? (
+                                <FaStar 
+                                    className={styles.iconStar}
+                                    style={{ color: '#FFD700' }}
+                                />
+                            ) : (
+                                <FaRegStar 
+                                    className={styles.iconStar}
+                                    style={{ color: '#666' }}
+                                />
+                            )}
+                        </button>
                         <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
                             <BoxIcon
                                 name='download'
@@ -100,7 +159,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                 />
                 <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
                 <ItemView
-                    title={movimiento?.tipo === 'entrada' ? 'Entrada' : 'Salida'}
+                    title={movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}
                     description={`Fecha y hora: ${new Date(tipoMovimiento === 'acopio' ? movimiento?.date : movimiento?.fecha).toLocaleString()}`}
                     description2={tipoMovimiento === 'acopio' ? '' : `Tipo de precio: ${movimiento?.precio?.name || 'Precio desconocido'}`}
                     transparent={false}
@@ -109,8 +168,8 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
 
                 />
                 <ItemView
-                    title={movimiento?.tipo === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
-                    description={movimiento?.tipo === 'entrada' ? 'Proveedor' : 'Cliente'}
+                    title={movimiento?.type === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
+                    description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
                     transparent={false}
                 />
                 {tipoMovimiento === 'acopio' && <p className={styles.subTitle}>PRODUCTO</p>}
@@ -121,6 +180,28 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                         transparent={false}
                         icon='package'
                     />
+                )}
+                
+                {/* Mostrar costo solo para movimientos de acopio */}
+                {tipoMovimiento === 'acopio' && movimiento?.type === 'entrada' && (
+                    <div className={styles.content}>
+                        <Dato
+                            label="Costo"
+                            value={`Bs. ${(movimiento?.costo || 0).toFixed(2)}`}
+                            vertical={false}
+                        />
+                    </div>
+                )}
+
+                {/* Mostrar restar_ingredientes para movimientos de entrada */}
+                {movimiento?.type === 'entrada' && (
+                    <div className={styles.content}>
+                        <Dato
+                            label="Restar Ingredientes"
+                            value={movimiento?.restar_ingredientes ? 'Sí' : 'No'}
+                            vertical={false}
+                        />
+                    </div>
                 )}
                 {movimiento?.metodo_pago && (
                     <Dato

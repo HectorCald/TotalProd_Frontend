@@ -28,6 +28,7 @@ function PedidosMedio({ isOpen, setIsOpen }) {
                     arrow={true}
                     onClick={() => handleTipoPedido('almacen')}
                 />
+                {/*
                 <ItemView
                     title='Materia Prima'
                     description='Ver y gestionar los pedidos de materia prima'
@@ -35,6 +36,7 @@ function PedidosMedio({ isOpen, setIsOpen }) {
                     arrow={true}
                     onClick={() => handleTipoPedido('acopio')}
                 />
+                */}
             </div>
             <PanelPedidos 
                 isOpen={isPedidosOpen} 

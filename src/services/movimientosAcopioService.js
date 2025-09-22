@@ -252,6 +252,26 @@ class movimientosAcopioService {
       };
     }
   }
+
+  // Obtener un movimiento por ID
+  static async getById(movimientoId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/${movimientoId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en getById:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
 }
 
 export default movimientosAcopioService;

@@ -182,7 +182,7 @@ export const useProductosAlmacen = (isOpen = false) => {
   };
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
-    refreshInterval: 0, // No revalidar automáticamente
+    refreshInterval: 10000, // No revalidar automáticamente
     revalidateOnMount: true, // Siempre revalidar al montar
     revalidateOnFocus: false, // No revalidar al cambiar de ventana
     revalidateOnReconnect: false, // No revalidar al reconectar
@@ -391,7 +391,7 @@ export const useMovimientosAcopio = (searchQuery = '', page = 1, isOpen = false,
   };
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
-    refreshInterval: 0,
+    refreshInterval: 10000,
     revalidateOnMount: true, // Siempre revalidar al montar
     revalidateOnFocus: false, // No revalidar al cambiar de ventana
     revalidateOnReconnect: false, // No revalidar al reconectar
@@ -438,7 +438,7 @@ export const useMovimientosAlmacen = (searchQuery = '', page = 1, isOpen = false
   };
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
-    refreshInterval: 0,
+    refreshInterval: 10000,
     revalidateOnMount: true, // Siempre revalidar al montar
     revalidateOnFocus: false, // No revalidar al cambiar de ventana
     revalidateOnReconnect: false, // No revalidar al reconectar
@@ -530,7 +530,7 @@ export const usePedidosAlmacen = (searchQuery = '', page = 1, isOpen = false, or
   };
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
-    refreshInterval: 0,
+    refreshInterval: 10000,
     revalidateOnMount: true, // Siempre revalidar al montar
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
@@ -574,7 +574,7 @@ export const useProductosAcopio = (isOpen = false) => {
   };
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
-    refreshInterval: 0, // No revalidar automáticamente
+    refreshInterval: 10000, // No revalidar automáticamente
     revalidateOnMount: true, // Siempre revalidar al montar
     revalidateOnFocus: false, // No revalidar al cambiar de ventana
     revalidateOnReconnect: false, // No revalidar al reconectar
