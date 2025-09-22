@@ -24,7 +24,7 @@ const getSucuId = () => {
 class clientService {
 
   // Obtener todos los clientes de una sucursal
-  static async getAll(page = 1, limit = 20, search = '') {
+  static async getAll() {
     try {
       const sucuId = getSucuId();
       if (!sucuId) {
@@ -35,10 +35,7 @@ class clientService {
       }
 
       const params = new URLSearchParams({
-        sucu_id: sucuId,
-        page: page.toString(),
-        limit: limit.toString(),
-        ...(search && { search })
+        sucu_id: sucuId
       });
 
       const response = await fetch(`${API_BASE_URL}/clients?${params}`, {

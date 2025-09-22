@@ -6,14 +6,12 @@ import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import Select from '../../common/Select';
 import productsAcopioService from '../../../services/productsAcopioService';
-import typeMeasureService from '../../../services/typeMeasureService';
-import categoryAcopioService from '../../../services/categoryAcopioService';
-import EditarAgregarCategoria from './EditarAgregarCategoria';
 import EditarAgregarReceta from '../almacen-general/EditarAgregarReceta';
 import Switch from '../../common/Switch';
 import MensajeError from '../../common/MensajeError';
 import CategoriasAcopio from './CategoriasAcopio';
-function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated }) {
+
+function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, typeMeasures = [] }) {
   
   const [dataMov, setDataMov] = useState({
     name: '',
@@ -21,15 +19,10 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
     quantity: '',
     type_measure_id: '',
     category_id: ''
-  });
+  }); 
 
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [typeMeasures, setTypeMeasures] = useState([]);
-  const [loadingTypeMeasures, setLoadingTypeMeasures] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [loadingCategories, setLoadingCategories] = useState(false);
-  const [isCategoriaOpen, setIsCategoriaOpen] = useState(false);
   const [isRecetaOpen, setIsRecetaOpen] = useState(false);
   const [hasReceta, setHasReceta] = useState(false);
   const [recetaGuardada, setRecetaGuardada] = useState(null);
@@ -38,66 +31,6 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
   const [isCategoriasSeleccionOpen, setIsCategoriasSeleccionOpen] = useState(false);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
 
-  // Efecto para cargar los tipos de medida
-  useEffect(() => {
-    const loadTypeMeasures = async () => {
-      setLoadingTypeMeasures(true);
-      try {
-        const response = await typeMeasureService.getAll();
-        if (response.success) {
-          // Mapear los datos para el Select
-          const mappedOptions = response.data.map(tm => ({
-            value: tm.id,
-            label: `${tm.name} (${tm.code})`,
-            id: tm.id,
-            name: tm.name,
-            code: tm.code
-          }));
-          setTypeMeasures(mappedOptions);
-        } else {
-          console.error('Error al cargar tipos de medida:', response.message);
-        }
-      } catch (error) {
-        console.error('Error al cargar tipos de medida:', error);
-      } finally {
-        setLoadingTypeMeasures(false);
-      }
-    };
-
-    if (isOpen) {
-      loadTypeMeasures();
-    }
-  }, [isOpen]);
-
-  // Efecto para cargar las categorías
-  useEffect(() => {
-    const loadCategories = async () => {
-      setLoadingCategories(true);
-      try {
-        const response = await categoryAcopioService.getAll();
-        if (response.success) {
-          // Mapear los datos para el Select
-          const mappedOptions = response.data.map(cat => ({
-            value: cat.id,
-            label: cat.name,
-            id: cat.id,
-            name: cat.name
-          }));
-          setCategories(mappedOptions);
-        } else {
-          console.error('Error al cargar categorías:', response.message);
-        }
-      } catch (error) {
-        console.error('Error al cargar categorías:', error);
-      } finally {
-        setLoadingCategories(false);
-      }
-    };
-
-    if (isOpen) {
-      loadCategories();
-    }
-  }, [isOpen]);
 
   // Efecto para cargar los datos del producto
   useEffect(() => {
@@ -127,8 +60,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
       });
 
       // Establecer la categoría seleccionada si existe
-      if (data.category_id && data.categoria) {
-        setCategoriaSeleccionada(data.categoria);
+      if (data.category_id && data.category) {
+        setCategoriaSeleccionada(data.category);
       } else {
         setCategoriaSeleccionada(null);
       }
@@ -255,21 +188,6 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
     }
   };
 
-  // Función para manejar cuando se crea una nueva categoría
-  const handleCategoriaCreated = (newCategoria) => {
-    // Agregar la nueva categoría a la lista
-    setCategories(prev => [...prev, {
-      value: newCategoria.id,
-      label: newCategoria.name,
-      id: newCategoria.id,
-      name: newCategoria.name
-    }]);
-    // Seleccionar automáticamente la nueva categoría
-    setDataMov(prev => ({ ...prev, category_id: newCategoria.id }));
-    setCategoriaSeleccionada(newCategoria);
-    // Cerrar el modal
-    setIsCategoriaOpen(false);
-  };
 
   // Función para manejar cuando se selecciona una categoría
   const handleCategoriaSeleccionada = (categoria) => {
@@ -317,7 +235,7 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
             onChange={(value) => handleChange('type_measure_id', value)}
             options={typeMeasures}
             placeholder={hasMovements ? 'Tipo de medida (no editable - tiene movimientos)' : 'Tipo de medida'}
-            disabled={loadingTypeMeasures || (tipo === 'editar' && hasMovements)}
+            disabled={tipo === 'editar' && hasMovements}
             icon='ruler'
           />
           {tipo === 'editar' && hasMovements && (
@@ -332,14 +250,13 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
           )}
         </div>
 
-        <div className={styles.content} style={{ padding: '5px 15px' }}>
           <Boton
-            className='btn-transparent'
+            className='btn-default'
             label={categoriaSeleccionada ? categoriaSeleccionada.name : 'Seleccionar Categoría (opcional)'}
             onClick={() => setIsCategoriasSeleccionOpen(true)}
             style={{ width: '100%', justifyContent: 'flex-start' }}
           />
-        </div>
+
 
         {/* Switch para receta */}
         <div className={styles.content} style={{ padding: '10px 15px' }}>
@@ -383,13 +300,6 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
         />
       </div>
 
-      {/* Modal de nueva categoría */}
-      <EditarAgregarCategoria
-        isOpen={isCategoriaOpen}
-        setIsOpen={setIsCategoriaOpen}
-        tipo='agregar'
-        onCategoriaCreated={handleCategoriaCreated}
-      />
 
       {/* Modal de receta */}
       <EditarAgregarReceta
@@ -413,4 +323,4 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
   );
 }
 
-export default Formulario;
+export default EditarAgregar;

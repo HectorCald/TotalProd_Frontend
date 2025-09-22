@@ -4,16 +4,10 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
-import Select from '../../common/Select';
 import Dato from '../../common/Dato';
-import proveedorService from '../../../services/proveedorService';
-import clientService from '../../../services/clientService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import MensajeError from '../../common/MensajeError';
-import EditarAgregar from '../proveedores/EditarAgregar';
-import EditarAgregarCliente from '../clientes/EditarAgregar';
 import Switch from '../../common/Switch';
-import PantallaExito from '../../common/PantallaExito';
 import Proveedores from '../proveedores/Proveedores';
 import Clientes from '../clientes/Clientes';
 
@@ -27,14 +21,6 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
 
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [proveedores, setProveedores] = useState([]);
-  const [clientes, setClientes] = useState([]);
-  const [loadingProveedores, setLoadingProveedores] = useState(false);
-  const [loadingClientes, setLoadingClientes] = useState(false);
-  const [proveedoresError, setProveedoresError] = useState('');
-  const [clientesError, setClientesError] = useState('');
-  const [isProveedorOpen, setIsProveedorOpen] = useState(false);
-  const [isClienteOpen, setIsClienteOpen] = useState(false);
   const [isProveedoresSeleccionOpen, setIsProveedoresSeleccionOpen] = useState(false);
   const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
   const [proveedorSeleccionadoData, setProveedorSeleccionadoData] = useState(null);
@@ -48,78 +34,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   const [tieneReceta, setTieneReceta] = useState(false);
   const [recetaData, setRecetaData] = useState(null);
   
-  // Estados para la pantalla de éxito
-  const [isExitoOpen, setIsExitoOpen] = useState(false);
-  const [movimientoCreado, setMovimientoCreado] = useState(null);
-  const [datosParaExito, setDatosParaExito] = useState([]);
 
-  // Efecto para cargar los proveedores (solo para entradas)
-  useEffect(() => {
-    const loadProveedores = async () => {
-      if (tipo !== 'entrada') return;
-      
-      setLoadingProveedores(true);
-      setProveedoresError('');
-      setProveedores([]); // Limpiar proveedores al inicio
-      try {
-        const response = await proveedorService.getAll();
-        if (response.success) {
-          // Mapear los datos para el Select
-          const mappedOptions = response.data.map(prov => ({
-            value: prov.id,
-            label: prov.name,
-            id: prov.id,
-            name: prov.name
-          }));
-          setProveedores(mappedOptions);
-        } else {
-          setProveedoresError(response.message || 'Error al cargar proveedores');
-        }
-      } catch (error) {
-        setProveedoresError('Error al cargar proveedores');
-      } finally {
-        setLoadingProveedores(false);
-      }
-    };
-
-    if (isOpen && tipo === 'entrada') {
-      loadProveedores();
-    }
-  }, [isOpen, tipo]);
-
-  // Efecto para cargar los clientes (solo para salidas)
-  useEffect(() => {
-    const loadClientes = async () => {
-      if (tipo !== 'salida') return;
-      
-      setLoadingClientes(true);
-      setClientesError('');
-      setClientes([]); // Limpiar clientes al inicio
-      try {
-        const response = await clientService.getAll();
-        if (response.success) {
-          // Mapear los datos para el Select
-          const mappedOptions = response.data.map(cliente => ({
-            value: cliente.id,
-            label: cliente.name,
-            id: cliente.id,
-            name: cliente.name
-          }));
-          setClientes(mappedOptions);
-        } else {
-          setClientesError(response.message || 'Error al cargar clientes');
-        }
-      } catch (error) {
-        setClientesError('Error al cargar clientes');
-      } finally {
-        setLoadingClientes(false);
-      }
-    };
-
-    if (isOpen && tipo === 'salida') {
-      loadClientes();
-    }
-  }, [isOpen, tipo]);
 
   // Efecto para verificar si el producto tiene receta
   useEffect(() => {
@@ -139,9 +54,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         cliente_id: '',
         quantity: ''
       });
-      setErrorMessage('');
-      setProveedoresError('');
-      setClientesError('');
+        setErrorMessage('');
       // No resetear el switch, mantener el valor del localStorage
     }
   }, [isOpen]);
@@ -151,37 +64,6 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
     setDataMov({ ...dataMov, [field]: value });
   };
 
-  // Función para manejar cuando se crea un nuevo proveedor
-  const handleProveedorCreated = (newProveedor) => {
-    // Agregar el nuevo proveedor a la lista
-    setProveedores(prev => [...prev, {
-      value: newProveedor.id,
-      label: newProveedor.name,
-      id: newProveedor.id,
-      name: newProveedor.name
-    }]);
-    // Seleccionar automáticamente el nuevo proveedor
-    setDataMov(prev => ({ ...prev, proveedor_id: newProveedor.id }));
-    setProveedorSeleccionadoData(newProveedor);
-    // Cerrar el modal
-    setIsProveedorOpen(false);
-  };
-
-  // Función para manejar cuando se crea un nuevo cliente
-  const handleClienteCreated = (newCliente) => {
-    // Agregar el nuevo cliente a la lista
-    setClientes(prev => [...prev, {
-      value: newCliente.id,
-      label: newCliente.name,
-      id: newCliente.id,
-      name: newCliente.name
-    }]);
-    // Seleccionar automáticamente el nuevo cliente
-    setDataMov(prev => ({ ...prev, cliente_id: newCliente.id }));
-    setClienteSeleccionadoData(newCliente);
-    // Cerrar el modal
-    setIsClienteOpen(false);
-  };
 
   // Función para manejar cuando se selecciona un proveedor
   const handleProveedorSeleccionado = (proveedor) => {
@@ -223,18 +105,11 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
       const response = await movimientosAcopioService.create(movimientoData);
 
       if (response.success) {
-        // Guardar datos del movimiento para mostrar en pantalla de éxito
-        setMovimientoCreado(response.data);
-        
-        // Guardar datos del producto para mostrar en la pantalla de éxito
-        setDatosParaExito([{
-          nombre: producto.name,
-          cantidad: `${dataMov.quantity} ${producto.type_measure?.code || 'u'}`,
-          medida: ''
-        }]);
-
-        // Mostrar pantalla de éxito (NO cerrar el modal todavía)
-        setIsExitoOpen(true);
+        // Cerrar el modal y notificar al componente padre
+        setIsOpen(false);
+        if (onMovimientoCreated) {
+          onMovimientoCreated(response.data, tieneReceta && restarMateriaPrima);
+        }
       } else {
         setErrorMessage(response.message || `Error al registrar ${tipo}`);
         setTimeout(() => setErrorMessage(''), 3000);
@@ -338,47 +213,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         />
       </div>
 
-      {/* Modal de nuevo proveedor */}
-      <EditarAgregar
-        isOpen={isProveedorOpen}
-        setIsOpen={setIsProveedorOpen}
-        tipo='agregar'
-        onProveedorCreated={handleProveedorCreated}
-      />
 
-      {/* Modal de nuevo cliente */}
-      <EditarAgregarCliente
-        isOpen={isClienteOpen}
-        setIsOpen={setIsClienteOpen}
-        tipo='agregar'
-        onClienteCreated={handleClienteCreated}
-      />
-
-      {/* Pantalla de éxito */}
-      <PantallaExito
-        isOpen={isExitoOpen}
-        setIsOpen={setIsExitoOpen}
-        titulo={`¡${tipo === 'entrada' ? 'Entrada' : 'Salida'} Registrada!`}
-        descripcion={`Tu ${tipo === 'entrada' ? 'entrada' : 'salida'} ha sido registrada correctamente.`}
-        datosPedido={datosParaExito}
-        totalGeneral={null} // No hay total para movimientos individuales
-        onDescargarPDF={() => console.log('Descargar PDF')}
-        onDescargarExcel={() => console.log('Descargar Excel')}
-        onEnviarWhatsapp={() => console.log('Enviar WhatsApp')}
-        onCerrar={() => {
-          // Limpiar datos de éxito
-          setDatosParaExito([]);
-          setMovimientoCreado(null);
-          // Cerrar la pantalla de éxito Y el modal de movimiento
-          setIsExitoOpen(false);
-          setIsOpen(false);
-          
-          // Llamar a onMovimientoCreated cuando se cierre todo
-          if (onMovimientoCreated) {
-            onMovimientoCreated(movimientoCreado, tieneReceta && restarMateriaPrima);
-          }
-        }}
-      />
 
       {/* Modal de selección de proveedores */}
       <Proveedores

@@ -9,9 +9,8 @@ import InputNormal from '../../common/InputNormal';
 import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
 import ItemLine from '../../common/ItemLine';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion} from 'framer-motion';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
-import PantallaExito from '../../common/PantallaExito';
 
 const medidasPedido = [
     { value: 'kg', label: 'Kilogramo (kg)', icon: 'tag' },
@@ -22,21 +21,13 @@ const medidasPedido = [
     { value: 'cj', label: 'Caja (cj)', icon: 'tag' },
 ];
 
-function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta }) {
+function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onPedidoCreado }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false);
-    const [isExitoOpen, setIsExitoOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
-    const [pedidoCreado, setPedidoCreado] = useState(null);
     const [animarCantidad, setAnimarCantidad] = useState({});
 
-    // Guardar en localStorage cuando cambie la canasta
-    useEffect(() => {
-        if (productosCanasta.length > 0) {
-            localStorage.setItem('canastaPedidosAcopio', JSON.stringify(productosCanasta));
-        }
-    }, [productosCanasta]);
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
@@ -88,10 +79,35 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         ));
     };
 
+    // Guardar en localStorage cuando cambie la canasta
+    useEffect(() => {
+        if (productosCanasta.length > 0) {
+            localStorage.setItem('canastaPedidosAcopio', JSON.stringify(productosCanasta));
+        }
+        // NO remover del localStorage aquí para evitar que se borre al recargar la página
+        // La limpieza se maneja en las funciones específicas
+    }, [productosCanasta]);
+
+    // Cargar canasta desde localStorage al abrir el modal
+    useEffect(() => {
+        if (isOpen) {
+            const canastaGuardada = localStorage.getItem('canastaPedidosAcopio');
+            if (canastaGuardada) {
+                try {
+                    const productosGuardados = JSON.parse(canastaGuardada);
+                    setProductosCanasta(productosGuardados);
+                } catch (error) {
+                    console.error('Error al cargar canasta desde localStorage:', error);
+                }
+            }
+        }
+    }, [isOpen]);
+
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
-        localStorage.removeItem('canastaPedidosAcopio'); // Solo eliminar cuando el usuario limpie explícitamente
+        localStorage.removeItem('canastaPedidosAcopio');
         setIsLimpiarModalOpen(false);
+        setIsOpen(false);
     };
 
     const handleConfirmarPedido = async () => {
@@ -107,18 +123,21 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             const response = await pedidosAcopioService.create(pedidoData);
 
             if (response.success) {
-                // Guardar datos del pedido para mostrar en pantalla de éxito
-                setPedidoCreado(response.data);
-
-                // Limpiar la canasta inmediatamente al mostrar éxito
+                // Limpiar la canasta
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
+
+                // Limpiar localStorage
+                localStorage.removeItem('canastaPedidosAcopio');
 
                 // Cerrar modal de confirmación
                 setIsConfirmarModalOpen(false);
 
-                // Mostrar pantalla de éxito
-                setIsExitoOpen(true);
+                // Cerrar la canasta y notificar al padre
+                setIsOpen(false);
+                if (onPedidoCreado) {
+                    onPedidoCreado(response.data);
+                }
 
             } else {
                 console.error('Error al crear el pedido:', response.message);
@@ -193,7 +212,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                  onClick={() => handleActualizarCantidad(producto.id, producto.cantidad - 1, true)}
                                                  disabled={producto.cantidad <= 1}
                                              >
-                                                 <BoxIcon name='minus' />
+                                                 <BoxIcon name='minus' className={styles.iconMinus} />
                                              </button>
                                             <motion.span
                                                 animate={animarCantidad[producto.id] ? { scale: [1, 1.3, 0.9, 1] } : { scale: 1 }}
@@ -220,7 +239,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                  className={styles.btnCantidad}
                                                  onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}
                                              >
-                                                 <BoxIcon name='plus' />
+                                                 <BoxIcon name='plus' className={styles.iconPlus} />
                                              </button>
 
                                         </div>
@@ -301,37 +320,9 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                             onClick={handleConfirmarPedido}
                             loading={loadingConfirmar}
                         />
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            onClick={() => setIsConfirmarModalOpen(false)}
-                        />
                     </div>
                 </div>
             </ViewModal>
-
-            {/* Pantalla de éxito */}
-            <PantallaExito
-                isOpen={isExitoOpen}
-                setIsOpen={setIsExitoOpen}
-                titulo="¡Pedido Registrado!"
-                descripcion="Tu pedido ha sido registrado correctamente y está en estado 'Pendiente'."
-                datosPedido={pedidoCreado?.pedido_acopio_detalle?.map(detalle => ({
-                    nombre: detalle.producto?.name || 'Producto',
-                    cantidad: detalle.cantidad,
-                    medida: detalle.medida
-                })) || []}
-                onDescargarPDF={() => console.log('Descargar PDF')}
-                onDescargarExcel={() => console.log('Descargar Excel')}
-                onEnviarWhatsapp={() => console.log('Enviar WhatsApp')}
-                onCerrar={() => {
-                    // Solo cerrar la pantalla de éxito y volver
-                    setIsOpen(false);
-                    if (onCerrarCanasta) {
-                        onCerrarCanasta();
-                    }
-                }}
-            />
         </View>
     );
 }

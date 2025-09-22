@@ -92,6 +92,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1;
 }
 .descripcion {
     font-size: 13px;
@@ -103,6 +104,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1;
 }
 
 .productoControles {
@@ -120,8 +122,7 @@
     justify-content: center;
     background: var(--tertiary-color);
     overflow: hidden;
-    max-width: 140px;
-    border: 1px solid var(--quinary-color);
+    max-width: 130px;
     border-radius: 19px;
     padding: 2px;
 }
@@ -134,11 +135,10 @@
     border-radius: 8px;
     max-width: 180px;
     width: 100%;
-    border: 1px solid var(--quinary-color);
 }
 
 .btnCantidad {
-    background: #28b574;
+    background: var(--quaternary-color);
     border: none;
     color: white;
     min-width: 32px;
@@ -149,11 +149,25 @@
     cursor: pointer;
     transition: background-color 0.2s ease;
     border-radius: 50%;
+
+    .iconMinus {
+        font-size: 20px !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .iconPlus {
+        font-size: 20px !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 }
 
 .btnCantidad:disabled {
     background: #6c757d;
     cursor: not-allowed;
+    opacity: 0.2;
 }
 
 .cantidad {
@@ -305,7 +319,6 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: 200px;
     overflow-y: auto;
 }
 
@@ -332,8 +345,4 @@
     background: #f0f0f0;
     padding: 4px 8px;
     border-radius: 4px;
-}
-
-.observacionesGenerales {
-    margin-top: 10px;
 }

@@ -10,9 +10,6 @@ import Filtros from '../../common/Filtros';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemLine from '../../common/ItemLine';
-import movimientosAcopioService from '../../../services/movimientosAcopioService';
-import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
-import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 import { useMovimientosAcopio, useMovimientosAlmacen } from '../../../hooks/useData';
 import { BoxIcon } from 'boxicons-react';
@@ -82,10 +79,10 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
-        if (isLoading && isOpen) {
+        if (isLoading && isOpen && !showRefreshIndicator) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator) {
+        } else if (!isLoading && showRefreshIndicator && isOpen) {
             // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
@@ -95,6 +92,25 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
+    // Forzar revalidación cada vez que se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            // Mostrar indicador inmediatamente al abrir
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+            // Ejecutar refetch
+            refetch();
+        }
+    }, [isOpen]);
+
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -155,12 +171,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     };
 
-    // Función para manejar búsqueda
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        setCurrentPage(1);
-    };
-
     // Función para manejar ordenamiento
     const handleOrdenamiento = (orden) => {
         setOrdenamiento(orden);
@@ -198,7 +208,21 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Función para manejar cuando se anula un movimiento
     const handleMovimientoAnulado = (movimientoId) => {
-        // Actualizar el estado local acumulado
+        // Actualizar el cache de SWR localmente con el movimiento anulado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.map(movimiento => 
+                    movimiento.id === movimientoId 
+                        ? { ...movimiento, estado: 'anulado' }
+                        : movimiento
+                )
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
+        // También actualizar el estado local acumulado
         setAllMovimientos(prevMovimientos => 
             prevMovimientos.map(movimiento => 
                 movimiento.id === movimientoId 
@@ -212,7 +236,17 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Función para manejar cuando se elimina un movimiento
     const handleMovimientoEliminado = (movimientoId) => {
-        // Actualizar el estado local acumulado removiendo el movimiento eliminado
+        // Actualizar el cache de SWR localmente removiendo el movimiento eliminado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.filter(movimiento => movimiento.id !== movimientoId)
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
+        // También actualizar el estado local acumulado
         setAllMovimientos(prevMovimientos => 
             prevMovimientos.filter(movimiento => movimiento.id !== movimientoId)
         );

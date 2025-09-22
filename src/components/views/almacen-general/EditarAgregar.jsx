@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
-import View from '../../ui/View';
-import HeaderView from '../../common/HeaderView';
+import ViewModal from '../../ui/ViewModal';
+import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
-import Select from '../../common/Select';
 import productsAlmacenService from '../../../services/productsAlmacenService';
-import categoryAlmacenService from '../../../services/categoryAlmacenService';
-import pricesTypesService from '../../../services/pricesTypesService';
-import EditarAgregarCategoria from './EditarAgregarCategoria';
 import EditarAgregarReceta from './EditarAgregarReceta';
 import Switch from '../../common/Switch';
 import MensajeError from '../../common/MensajeError';
 import CategoriasAlmacen from './CategoriasAlmacen';
-import { BoxIcon } from 'boxicons-react';
-function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated }) {
-  
+
+function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, preciosTipos = [], loadingPrecios = false }) {
+
   const [dataMov, setDataMov] = useState({
     name: '',
     description: '',
@@ -27,11 +23,6 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
 
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [loadingCategories, setLoadingCategories] = useState(false);
-  const [pricesTypes, setPricesTypes] = useState([]);
-  const [loadingPricesTypes, setLoadingPricesTypes] = useState(false);
-  const [isCategoriaOpen, setIsCategoriaOpen] = useState(false);
   const [isRecetaOpen, setIsRecetaOpen] = useState(false);
   const [hasReceta, setHasReceta] = useState(false);
   const [recetaGuardada, setRecetaGuardada] = useState(null);
@@ -40,60 +31,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
   const [isCategoriasSeleccionOpen, setIsCategoriasSeleccionOpen] = useState(false);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
 
-  // Efecto para cargar los tipos de precios
-  useEffect(() => {
-    const loadPricesTypes = async () => {
-      setLoadingPricesTypes(true);
-      try {
-        const response = await pricesTypesService.getAll();
-        if (response.success) {
-          setPricesTypes(response.data);
-        } else {
-          console.error('Error al cargar tipos de precios:', response.message);
-        }
-      } catch (error) {
-        console.error('Error al cargar tipos de precios:', error);
-      } finally {
-        setLoadingPricesTypes(false);
-      }
-    };
 
-    if (isOpen) {
-      loadPricesTypes();
-    }
-  }, [isOpen]);
-
-  // Efecto para cargar las categorías
-  useEffect(() => {
-    const loadCategories = async () => {
-      setLoadingCategories(true);
-      try {
-        const response = await categoryAlmacenService.getAll();
-        if (response.success) {
-          // Mapear los datos para el Select
-          const mappedOptions = response.data.map(cat => ({
-            value: cat.id,
-            label: cat.name,
-            id: cat.id,
-            name: cat.name
-          }));
-          setCategories(mappedOptions);
-        } else {
-          console.error('Error al cargar categorías:', response.message);
-        }
-      } catch (error) {
-        console.error('Error al cargar categorías:', error);
-      } finally {
-        setLoadingCategories(false);
-      }
-    };
-
-    if (isOpen) {
-      loadCategories();
-    }
-  }, [isOpen]);
-
-  // Efecto para cargar los datos del producto
+  // Efecto para cargar los datos del producto en editar
   useEffect(() => {
     if (data && tipo === 'editar') {
       // Convertir price_product a prices
@@ -132,8 +71,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
       });
 
       // Establecer la categoría seleccionada si existe
-      if (data.category_id && data.categoria) {
-        setCategoriaSeleccionada(data.categoria);
+      if (data.category_id && data.category_almacen) {
+        setCategoriaSeleccionada(data.category_almacen);
       } else {
         setCategoriaSeleccionada(null);
       }
@@ -270,21 +209,6 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
     }
   };
 
-  // Función para manejar cuando se crea una nueva categoría
-  const handleCategoriaCreated = (newCategoria) => {
-    // Agregar la nueva categoría a la lista
-    setCategories(prev => [...prev, {
-      value: newCategoria.id,
-      label: newCategoria.name,
-      id: newCategoria.id,
-      name: newCategoria.name
-    }]);
-    // Seleccionar automáticamente la nueva categoría
-    setDataMov(prev => ({ ...prev, category_id: newCategoria.id }));
-    setCategoriaSeleccionada(newCategoria);
-    // Cerrar el modal
-    setIsCategoriaOpen(false);
-  };
 
   // Función para manejar cuando se selecciona una categoría
   const handleCategoriaSeleccionada = (categoria) => {
@@ -308,12 +232,12 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
   };
 
   return (
-    <View isOpen={isOpen} setIsOpen={setIsOpen}>
-      <HeaderView
+    <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
+      <HeaderModal
         title={tipo === 'editar' ? 'Editar producto' : 'Nuevo producto'}
-        onBack={() => setIsOpen(false)}
+        onClose={() => setIsOpen(false)}
       />
-      <div className={styles.container}>
+      <div className={styles.modalContent}>
         <MensajeError mensaje={errorMessage} />
         <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
 
@@ -349,20 +273,23 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
           icon='barcode'
         />
 
-        <div className={styles.content} style={{ padding: '5px 15px' }}>
-          <Boton
-            className='btn-transparent'
-            label={categoriaSeleccionada ? categoriaSeleccionada.name : 'Seleccionar Categoría (opcional)'}
-            onClick={() => setIsCategoriasSeleccionOpen(true)}
-            style={{ width: '100%', justifyContent: 'flex-start' }}
-          />
-        </div>
+        <Boton
+          className='btn-default'
+          label={categoriaSeleccionada ? categoriaSeleccionada.name : 'Seleccionar Categoría (opcional)'}
+          onClick={() => setIsCategoriasSeleccionOpen(true)}
+          style={{ width: '100%', justifyContent: 'flex-start' }}
+        />
 
         {/* Sección de Precios */}
         <p className={styles.subTitle}>PRECIOS</p>
-        {pricesTypes.map(priceType => (
-          <div key={priceType.id} className={styles.priceContainer}>
+        {loadingPrecios ? (
+          <div className={styles.loadingMore}>
+            <p>Cargando precios...</p>
+          </div>
+        ) : (
+          preciosTipos.map(priceType => (
             <InputNormal
+              key={priceType.id}
               tipo="number"
               value={dataMov.prices[priceType.id] || ''}
               placeholder={`Precio ${priceType.name}`}
@@ -371,14 +298,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
               step="0.01"
               min="0"
             />
-            {priceType.description && (
-              <div className={styles.priceDescription}>
-                <BoxIcon name='info-circle' className={styles.icon} />
-                {priceType.description}
-              </div>
-            )}
-          </div>
-        ))}
+          ))
+        )}
         {/* Switch para receta */}
         <div className={styles.content} style={{ padding: '10px 15px' }}>
           <Switch
@@ -410,25 +331,17 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
             )}
           </div>
         )}
-        
-          <Boton
-            className='btn-original'
-            label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar producto'}
-            style={{ marginTop: 'auto' }}
-            onClick={handleSubmit}
-            loading={loading}
-            disabled={!dataMov.name.trim() || !dataMov.stock || dataMov.stock.toString().trim() === '' || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
-          />
+
+        <Boton
+          className='btn-original'
+          label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar producto'}
+          style={{ marginTop: 'auto' }}
+          onClick={handleSubmit}
+          loading={loading}
+          disabled={!dataMov.name.trim() || !dataMov.stock || dataMov.stock.toString().trim() === '' || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
+        />
 
       </div>
-
-      {/* Modal de nueva categoría */}
-      <EditarAgregarCategoria
-        isOpen={isCategoriaOpen}
-        setIsOpen={setIsCategoriaOpen}
-        tipo='agregar'
-        onCategoriaCreated={handleCategoriaCreated}
-      />
 
       {/* Modal de receta */}
       <EditarAgregarReceta
@@ -447,8 +360,8 @@ function Formulario({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onPr
         modoSeleccion={true}
         onCategoriaSeleccionada={handleCategoriaSeleccionada}
       />
-    </View>
+      </ViewModal>
   );
 }
 
-export default Formulario;
+export default EditarAgregar;

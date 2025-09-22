@@ -5,17 +5,13 @@ import HeaderModal from '../../common/HeaderModal';
 import View from '../../ui/View';
 import ViewModal from '../../ui/ViewModal';
 import Dato from '../../common/Dato';
-import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import MensajeError from '../../common/MensajeError';
 import Notification from '../../common/Notification';
 import personalService from '../../../services/personalService';
-import ItemView from '../../common/ItemView';
-import ItemLine from '../../common/ItemLine';
-import MapaModal from '../clientes/MapaModal';
 
-function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated }) {
+function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated, sucursales = [] }) {
 
     // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -126,19 +122,6 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 <h1 className={styles.title}>
                     {usuario?.first_name} {usuario?.last_name}
                     <div className={styles.iconButton} >
-                        <button className={styles.iconButton} onClick={() => setIsDeleteOpen(true)}>
-                            <BoxIcon
-                                name='trash'
-                                className={styles.iconTrash}
-                            />
-                        </button>
-
-                        <button className={styles.iconButton} onClick={() => setIsEditOpen(true)}>
-                            <BoxIcon
-                                name='edit'
-                                className={styles.icon}
-                            />
-                        </button>
                     </div>
 
                 </h1>
@@ -156,25 +139,36 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
 
                 {/* Botón para ver módulos - solo si tiene módulos */}
                 {usuario?.modules && usuario.modules.length > 0 && (
-                    <div className={styles.content} style={{ padding: '10px 15px' }}>
+
                         <Boton
-                            className='btn-default'
+                            className='btn-gray'
                             label='Ver Módulos Asignados'
                             onClick={() => setIsModulesOpen(true)}
                         />
-                    </div>
+
                 )}
 
                 {/* Botón para ver permisos - solo si tiene permisos */}
                 {usuario?.permisos && (
-                    <div className={styles.content} style={{ padding: '10px 15px' }}>
                         <Boton
-                            className='btn-default'
+                            className='btn-gray'
                             label='Ver Detalles de Permisos'
                             onClick={() => setIsPermisosOpen(true)}
                         />
-                    </div>
+
                 )}
+                <div className={styles.buttons}>
+                    <Boton
+                        className='btn-red'
+                        label='Eliminar Persona'
+                        onClick={() => setIsDeleteOpen(true)}
+                    />
+                    <Boton
+                        className='btn-default'
+                        label='Editar Persona'
+                        onClick={() => setIsEditOpen(true)}
+                    />
+                </div>
             </div>
 
             {/* Modal de Editar*/}
@@ -184,6 +178,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 usuario={usuario}
                 tipo='editar'
                 onPersonalUpdated={onProveedorUpdated}
+                sucursales={sucursales}
             />
 
             {/* Modal de Eliminar*/}
@@ -193,7 +188,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                     onClose={() => setIsDeleteOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Estás seguro que deseas eliminar al personal {usuario?.first_name} {usuario?.last_name}? Esta acción no se puede deshacer y podría afectar a registros relacionados.</p>
+                    <p className={styles.subTitle}>¿Eliminar al personal {usuario?.first_name} {usuario?.last_name}? Esta acción es irreversible y puede afectar registros relacionados.</p>
                     <MensajeError mensaje={errorMessage} />
                     <div className={styles.buttons}>
                         <Boton

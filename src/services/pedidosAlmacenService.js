@@ -91,21 +91,21 @@ class pedidosAlmacenService {
     }
   }
 
-  // Obtener todos los pedidos de la empresa
+  // Obtener todos los pedidos de la sucursal
   static async getAll(page = 1, limit = 20) {
     try {
-      const empresaId = getEmpresaId();
-      if (!empresaId) {
+      const sucuId = getSucuId();
+      if (!sucuId) {
         return {
           success: false,
-          message: 'No hay empresa seleccionada'
+          message: 'No hay sucursal seleccionada'
         };
       }
 
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
-        empresa_id: empresaId
+        sucu_id: sucuId
       });
 
       const response = await fetch(`${API_BASE_URL}/pedidos-almacen?${params}`, {
@@ -190,13 +190,39 @@ class pedidosAlmacenService {
     }
   }
 
-  // Actualizar estado del pedido
-  static async updateEstado(pedidoId, nuevoEstado) {
+  // Actualizar entrega de pedido (solo precio, productos y cantidades)
+  static async updateEntrega(pedidoId, pedidoData) {
     try {
+      const response = await fetch(`${API_BASE_URL}/pedidos-almacen/${pedidoId}/entrega`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(pedidoData),
+      });
+      
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en pedidosAlmacenService.updateEntrega:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+  // Actualizar estado del pedido
+  static async updateEstado(pedidoId, nuevoEstado, movimientoEntradaId = null) {
+    try {
+      const body = { estado: nuevoEstado };
+      if (movimientoEntradaId) {
+        body.movimiento_entrada_id = movimientoEntradaId;
+      }
+      
       const response = await fetch(`${API_BASE_URL}/pedidos-almacen/${pedidoId}/estado`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ estado: nuevoEstado }),
+        body: JSON.stringify(body),
       });
       
       const data = await response.json();

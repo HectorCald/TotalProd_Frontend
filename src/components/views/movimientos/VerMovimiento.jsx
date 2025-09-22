@@ -152,6 +152,17 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                         />
                     </div>
                 )}
+
+                {/* Observaciones del movimiento */}
+                {movimiento?.observaciones && (
+                    <div className={styles.content}>
+                        <Dato
+                            label="Observaciones"
+                            value={movimiento.observaciones}
+                            vertical={true}
+                        />
+                    </div>
+                )}
                 <div className={styles.buttons}>
                 {movimiento?.estado === 'anulado' ? (
                     <Boton
@@ -160,14 +171,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                         style={{ marginTop: 'auto' }}
                         onClick={() => setIsEliminarOpen(true)}
                     />
-                ) : (
+                ) : !movimiento?.tiene_pedido_relacionado ? (
                     <Boton
                         className='btn-red'
                         label='Anular Movimiento'
                         style={{ marginTop: 'auto' }}
                         onClick={() => setIsAnularOpen(true)}
                     />
-                )}
+                ) : null}
                 </div>
             </div>
 

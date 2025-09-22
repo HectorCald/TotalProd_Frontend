@@ -17,6 +17,7 @@ import Notification from '../../common/Notification';
 function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCategoriaDeleted }) {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditarOpen, setIsEditarOpen] = useState(false);
+    const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [products, setProducts] = useState([]);
     const [loadingProducts, setLoadingProducts] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -24,7 +25,7 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
     // Función para obtener los productos de la categoría
     const fetchProductsByCategory = async () => {
         if (!categoria?.id) return;
-        
+
         setLoadingProducts(true);
         try {
             const response = await productsAcopioService.getByCategory(categoria.id);
@@ -69,21 +70,9 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                 <h1 className={styles.title}>
                     {categoria?.name}
                     <div className={styles.iconButton} >
-                        <button className={styles.iconButton} onClick={() => setIsDeleteOpen(true)}>
-                            <BoxIcon
-                                name='trash'
-                                className={styles.iconTrash}
-                            />
-                        </button>
-                        <button className={styles.iconButton} onClick={() => setIsEditarOpen(true)}>
-                            <BoxIcon
-                                name='edit'
-                                className={styles.icon}
-                            />
-                        </button>
                     </div>
                 </h1>
-                
+
                 <p className={styles.subTitle}>INFORMACIÓN DE LA CATEGORÍA</p>
                 <div className={styles.content}>
                     <Dato
@@ -92,26 +81,25 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                     />
                 </div>
 
-                <p className={styles.subTitle}>PRODUCTOS EN ESTA CATEGORÍA</p>
+                {/* Botón para ver productos */}
+                <Boton
+                    className='btn-gray'
+                    label='Productos'
+                    onClick={() => setIsProductosOpen(true)}
+                />
 
-                    {loadingProducts ? (
-                        <LoadingSpinner iconName='leaf' />
-                    ) : products.length > 0 ? (
-                        products.map((product, index) => (
-                            <ItemView
-                                key={product.id || index}
-                                title={product.name || 'Sin nombre'}
-                                description={`${product.quantity || 0} ${product.type_measure?.code || ''}`}
-                                icon="box"
-                                arrow={false}
-                            />
-                        ))
-                    ) : (
-                        <div className={styles.noData}>
-                            <p>No hay productos en esta categoría</p>
-                        </div>
-                    )}
-       
+                <div className={styles.buttons}>
+                    <Boton
+                        className='btn-red'
+                        label='Eliminar Categoría'
+                        onClick={() => setIsDeleteOpen(true)}
+                    />
+                    <Boton
+                        className='btn-default'
+                        label='Editar Categoría'
+                        onClick={() => setIsEditarOpen(true)}
+                    />
+                </div>
             </div>
 
             {/* Modal de eliminar*/}
@@ -121,7 +109,7 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                     onClose={() => setIsDeleteOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Estás seguro que deseas eliminar la categoría "{categoria?.name}" ? Esta acción no se puede deshacer y podria afectar a registros relacionados.</p>
+                    <p className={styles.subTitle}>¿Eliminar la categoría "{categoria?.name}"? Esta acción es irreversible y puede afectar registros relacionados.</p>
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-red'
@@ -158,13 +146,43 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
             </ViewModal>
 
             {/* Modal de editar*/}
-            <EditarAgregarCategoria 
-                isOpen={isEditarOpen} 
-                setIsOpen={setIsEditarOpen} 
-                data={categoria} 
+            <EditarAgregarCategoria
+                isOpen={isEditarOpen}
+                setIsOpen={setIsEditarOpen}
+                data={categoria}
                 tipo='editar'
                 onCategoriaUpdated={onCategoriaUpdated}
             />
+
+            {/* Modal de productos*/}
+            <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
+                <HeaderModal
+                    title={`Productos de ${categoria?.name}`}
+                    onClose={() => setIsProductosOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    {loadingProducts ? (
+                        <LoadingSpinner iconName='leaf' />
+                    ) : products.length > 0 ? (
+                        <>
+                            <p className={styles.subTitle}>PRODUCTOS EN ESTA CATEGORÍA</p>
+                            {products.map((product, index) => (
+                                <ItemView
+                                    key={product.id || index}
+                                    title={product.name || 'Sin nombre'}
+                                    description={`${product.quantity || 0} ${product.type_measure?.code || ''}`}
+                                    icon="box"
+                                    arrow={false}
+                                />
+                            ))}
+                        </>
+                    ) : (
+                        <div className={styles.noData}>
+                            <p>No hay productos en esta categoría</p>
+                        </div>
+                    )}
+                </div>
+            </ViewModal>
 
             {/* Modal de notificación*/}
             <Notification

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -15,25 +14,12 @@ import EditarAgregar from '../almacen-acopio/EditarAgregar';
 import CategoriasAcopio from './CategoriasAcopio';
 import MovimientoAcopio from './MovimientoAcopio';
 import CanastaPedidos from './CanastaPedidos';
-import InputCantidad from '../../common/InputCantidad';
-import Select from '../../common/Select';
-import InputNormal from '../../common/InputNormal';
 import { useProductosAcopio } from '../../../hooks/useData';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
-import productsAcopioService from '../../../services/productsAcopioService';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import typeMeasureService from '../../../services/typeMeasureService';
-import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
-const medidas = [
-    { value: 'kilo', label: 'Kilo', icon: 'tag' },
-    { value: 'quintal', label: 'Quital', icon: 'tag' },
-    { value: 'arroba', label: 'Arroba', icon: 'tag' },
-    { value: 'caja', label: 'Caja', icon: 'tag' },
-    { value: 'unidad', label: 'Unidad', icon: 'tag' },
-    { value: 'libra', label: 'Libras', icon: 'tag' },
-];
 
 function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
@@ -44,13 +30,8 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
     const [isCategoriasOpen, setIsCategoriasOpen] = useState(false);
 
-    // Estados para paginación y búsqueda
-    const [currentPage, setCurrentPage] = useState(1);
+    // Estados para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-
-    // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
     // Estados para los datos
     const [categorias, setCategorias] = useState([]);
@@ -61,27 +42,20 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Estados para filtros (deshabilitados)
+    // Estados para filtros locales
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
     const [tipoMedidaFiltro, setTipoMedidaFiltro] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
 
     // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { productos, hasMorePages, error, isLoading, refetch } = useProductosAcopio(
-        isOpen ? debouncedSearchQuery : '', 
-        isOpen ? currentPage : 1,
-        isOpen,
-        categoriaFiltro,
-        tipoMedidaFiltro,
-        ordenamiento
-    );
+    const { productos, error, isLoading, refetch } = useProductosAcopio(isOpen);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
-        if (isLoading && isOpen) {
+        if (isLoading && isOpen && !showRefreshIndicator) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator) {
+        } else if (!isLoading && showRefreshIndicator && isOpen) {
             // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
@@ -91,6 +65,25 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
+    // Forzar revalidación cada vez que se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            // Mostrar indicador inmediatamente al abrir
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+            // Ejecutar refetch
+            refetch();
+        }
+    }, [isOpen]);
+
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -114,9 +107,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     // Estados para filtros y modales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
     const [isOpenTipoMedida, setOpenTipoMedida] = useState(false);
-    const [isOpenItem, setOpenItem] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
-    const [selectedMedidas, setSelectedMedidas] = useState('');
 
     // Estados para canasta de pedidos
     const [productosCanasta, setProductosCanasta] = useState([]);
@@ -181,14 +172,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     // 🚀 SWR maneja automáticamente la carga de datos
     // No necesitamos fetchProducts manual
 
-    // Función para manejar scroll infinito
-    const handleScroll = (e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
-            setCurrentPage(prev => prev + 1);
-        }
-    };
-
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
         setShowRefreshIndicator(true);
@@ -210,38 +193,80 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
-    // Función para manejar búsqueda
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        setCurrentPage(1);
-    };
-
-    // Funciones de filtrado - AHORA SÍ filtran productos
+    // Funciones de filtrado locales
     const handleCategoriaFilter = (categoriaId) => {
         console.log('🔍 Filtro de categoría seleccionado:', categoriaId);
-        setCategoriaFiltro(categoriaId); // Cambia el filtro y hace nueva petición
-        setCurrentPage(1); // Resetear a primera página
+        setCategoriaFiltro(categoriaId);
     };
 
     const handleTipoMedidaFilter = (tipoMedidaId) => {
         console.log('🔍 Filtro de tipo de medida seleccionado:', tipoMedidaId);
-        setTipoMedidaFiltro(tipoMedidaId); // Cambia el filtro y hace nueva petición
-        setCurrentPage(1); // Resetear a primera página
+        setTipoMedidaFiltro(tipoMedidaId);
     };
 
     const handleOrdenamiento = (orden) => {
         console.log('🔍 Ordenamiento seleccionado:', orden);
-        setOrdenamiento(orden); // Cambia el ordenamiento y hace nueva petición
-        setCurrentPage(1); // Resetear a primera página
+        setOrdenamiento(orden);
     };
 
-    // Efecto para resetear búsqueda cuando se abre
+    // Efecto para resetear búsqueda y filtros cuando se abre
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-            setCurrentPage(1);
+            setCategoriaFiltro(null);
+            setTipoMedidaFiltro(null);
+            setOrdenamiento('nombre_asc');
+            
+            // Cargar canastas desde localStorage
+            cargarCanastasDesdeLocalStorage();
         }
     }, [isOpen]);
+
+    // Filtrar y ordenar productos localmente
+    const productosFiltrados = productos.filter(producto => {
+        // Filtro de búsqueda
+        const matchesSearch = !searchQuery || 
+            producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        // Filtro de categoría
+        const matchesCategoria = categoriaFiltro === null || 
+            (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
+
+        // Filtro de tipo de medida
+        const matchesTipoMedida = tipoMedidaFiltro === null || 
+            (tipoMedidaFiltro === '' ? !producto.type_measure_id : producto.type_measure_id === tipoMedidaFiltro);
+
+        return matchesSearch && matchesCategoria && matchesTipoMedida;
+    }).sort((a, b) => {
+        // Ordenamiento
+        switch (ordenamiento) {
+            case 'nombre_asc':
+                return a.name.localeCompare(b.name);
+            case 'nombre_desc':
+                return b.name.localeCompare(a.name);
+            case 'cantidad_asc':
+                return parseFloat(a.quantity || 0) - parseFloat(b.quantity || 0);
+            case 'cantidad_desc':
+                return parseFloat(b.quantity || 0) - parseFloat(a.quantity || 0);
+            default:
+                return a.name.localeCompare(b.name);
+        }
+    });
+
+    // Función para cargar canastas desde localStorage
+    const cargarCanastasDesdeLocalStorage = () => {
+        try {
+            // Cargar canasta de pedidos de acopio
+            const canastaPedidosAcopio = localStorage.getItem('canastaPedidosAcopio');
+            if (canastaPedidosAcopio) {
+                const productosPedidos = JSON.parse(canastaPedidosAcopio);
+                setProductosCanasta(productosPedidos);
+            }
+        } catch (error) {
+            console.error('Error al cargar canastas desde localStorage:', error);
+        }
+    };
 
     // Efecto para cargar categorías y tipos de medida cuando se abre
     useEffect(() => {
@@ -340,8 +365,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
             }
         }
 
-        // Cerrar el modal de movimiento
-        setIsMovimientoOpen(false);
+        // Mostrar notificación de éxito
         mostrarNotificacion('success', `${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente`);
     };
 
@@ -367,10 +391,18 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
+    // Función para manejar cuando se crea un pedido
+    const handlePedidoCreado = (pedidoData) => {
+        // Mostrar notificación de éxito
+        mostrarNotificacion('success', 'Pedido registrado correctamente');
+    };
+
     const getCantidadEnCanasta = (productoId) => {
         const producto = productosCanasta.find(p => p.id === productoId);
         return producto ? producto.cantidad : 0;
     };
+
+    
     // Funciones para obtener nombres de filtros (funcionan pero no afectan el resultado)
     const getCategoriaNombre = () => {
         if (categoriaFiltro === null) return 'Categorías';
@@ -446,20 +478,14 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 <Filtros options={opciones} />
                 <div
                     className={styles.content}
-                    onScroll={handleScroll}
                     style={{
                         height: tipo === 'entrada' || tipo === 'salida'
                             ? ''
                             : 'calc(100vh - 310px)'
                     }}
                 >
-
-                    {isSearching ? (
-                        <div className={styles.searchingData}>
-                            <p>Buscando...</p>
-                        </div>
-                    ) : productos.length > 0 ? (
-                        productos.map((producto, index) => {
+                    {productosFiltrados.length > 0 ? (
+                        productosFiltrados.map((producto, index) => {
                             const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
                             return (
                                 <ItemView
@@ -480,14 +506,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                         })
                     ) : (
                         <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
-                        </div>
-                    )}
-
-                    {/* Indicador de carga para más elementos */}
-                    {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más productos...</p>
+                            <p>{searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
                         </div>
                     )}
                 </div>
@@ -521,6 +540,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 registro={infoPersona}
                 onProductDeleted={handleProductDeleted}
                 onProductUpdated={handleProductUpdated}
+                typeMeasures={tiposMedida}
             />
 
             {/* Modal de editar*/}
@@ -529,6 +549,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 setIsOpen={setIsAgregarOpen}
                 tipo='agregar'
                 onProductCreated={handleProductCreated}
+                typeMeasures={tiposMedida}
             />
 
             <Notification
@@ -543,17 +564,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 setIsOpen={setIsCategoriasOpen}
             />
 
-            {/* Modal de tipos de medida - DESHABILITADO */}
-            {/* <ViewModal isOpen={isOpenTipoMedida} setIsOpen={setOpenTipoMedida}>
-                <HeaderModal
-                    title="Tipos de Medida"
-                    onClose={() => setOpenTipoMedida(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Filtrado deshabilitado</p>
-                </div>
-            </ViewModal> */}
-
             {/* Modal de movimiento (entrada/salida) */}
             <MovimientoAcopio
                 isOpen={isMovimientoOpen}
@@ -562,36 +572,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 tipo={tipo}
                 onMovimientoCreated={handleMovimientoCreated}
             />
-
-            {/* Modal de categorias*/}
-            <ViewModal isOpen={isOpenItem} setIsOpen={setOpenItem}>
-                <HeaderModal
-                    title={infoPersona?.producto}
-                    onClose={() => setOpenItem(false)}
-                />
-                <div className={styles.modalContent}>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '10px' }}>
-                        <InputCantidad value={1} onChange={() => { }} min={1} max={100000} />
-                        <Select
-                            placeholder="Medida"
-                            options={medidas}
-                            value={selectedMedidas}
-                            onChange={setSelectedMedidas}
-                            icon="ruler"
-                        />
-                    </div>
-                    <InputNormal
-                        tipo="text"
-                        value={''}
-                        placeholder='Obervaciones'
-                    />
-                    <Boton
-                        className='btn-original'
-                        label='Agregar orden'
-                        style={{ marginTop: 'auto' }}
-                    />
-                </div>
-            </ViewModal>
 
             {/* Modal de tipos de medida*/}
             <ViewModal isOpen={isOpenTipoMedida} setIsOpen={setOpenTipoMedida}>
@@ -633,7 +613,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 </div>
             </ViewModal>
 
-            {/* Modal mostrar cantidad item*/}
+            {/* Modal mostrar categorias*/}
             <ViewModal isOpen={isOpenCategoria} setIsOpen={setOpenCategoria}>
                 <HeaderModal
                     title="Categorias"
@@ -730,10 +710,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 setIsOpen={setIsCanastaOpen}
                 productosCanasta={productosCanasta}
                 setProductosCanasta={setProductosCanasta}
-                onCerrarCanasta={() => {
-                    setIsCanastaOpen(false);
-                    mostrarNotificacion('success', 'Pedido confirmado correctamente');
-                }}
+                onPedidoCreado={handlePedidoCreado}
             />
         </View>
 

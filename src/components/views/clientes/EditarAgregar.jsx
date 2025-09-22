@@ -210,7 +210,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 {tipo !== 'ver' && (
                     <Boton
                         className='btn-original'
-                        label={tipo === 'editar' ? 'Actualizar' : 'Guardar'}
+                        label={tipo === 'editar' ? 'Actualizar Cliente' : 'Agregar Cliente'}
                         style={{ marginTop: 'auto' }}
                         onClick={handleSubmit}
                         loading={loading}
@@ -227,8 +227,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 readOnly={isMapReadOnly}
                 title={getMapTitle()}
             />
-
-
         </ViewModal>
     );
 }

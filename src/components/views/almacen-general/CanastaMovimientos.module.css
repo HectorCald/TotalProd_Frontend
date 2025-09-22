@@ -37,7 +37,6 @@
     padding: 5px 10px;
     background: var(--tertiary-color);
     border-radius: 10px;
-    border: 1px solid var(--quinary-color);
 }
 
 .productosList {
@@ -138,7 +137,6 @@
     background: var(--tertiary-color);
     padding: 8px 10px;
     border-radius: 8px;
-    border: 1px solid var(--quinary-color);
     min-width: 120px;
     justify-content: center;
     align-items: center;
@@ -162,11 +160,6 @@
     width: 80px;
 }
 
-.precioInput:focus {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-}
-
 .precioInput::-webkit-outer-spin-button,
 .precioInput::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -183,29 +176,44 @@
     justify-content: center;
     background: var(--tertiary-color);
     overflow: hidden;
-    max-width: 140px;
-    border: 1px solid var(--quinary-color);
+    max-width: 130px;
     border-radius: 19px;
     padding: 2px;
 }
 
 .btnCantidad {
-    background: #28b574;
+    background: var(--quaternary-color);
     border: none;
     color: white;
     min-width: 32px;
     min-height: 32px;
+    max-width: 32px;
+    max-height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: background-color 0.2s ease;
     border-radius: 50%;
+
+    .iconMinus {
+        font-size: 20px !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .iconPlus {
+        font-size: 20px !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 }
 
 .btnCantidad:disabled {
     background: #6c757d;
     cursor: not-allowed;
+    opacity: 0.2;
 }
 
 .cantidad {
@@ -213,7 +221,7 @@
     font-weight: 600;
     color: var(--white-color);
     text-align: center;
-    min-width: 50px;
+    min-width: 40px;
     font-size: 18px;
     display: flex;
     align-items: center;
@@ -252,30 +260,28 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    background: rgba(40, 180, 152, 0.1);
+    padding: 5px 5px;
+    background: none;
     border-radius: 8px;
-    margin-top: 8px;
 }
 
 .totalLabel {
     font-size: 14px;
     font-weight: 500;
-    color: var(--primary-color);
+    color: gray;
 }
 
 .totalValue {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 500;
     color: var(--white-color);
 }
 
 .totalGeneral {
     width: 100%;
-    padding: 12px 15px;
-    background: rgba(40, 180, 152, 0.1);
-    border-radius: 8px;
-    border: 1px solid var(--primary-color);
+    padding: 12px 10px;
+    background: none;
+    border-top: 1px solid var(--tertiary-color);
 }
 
 .totalGeneralContent {
@@ -286,13 +292,13 @@
 
 .totalGeneralLabel {
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--primary-color);
 }
 
 .totalGeneralValue {
     font-size: 17px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--white-color);
 }
 
@@ -399,9 +405,8 @@
 .totalResumen {
     width: 100%;
     padding: 12px;
-    background: rgba(40, 180, 152, 0.1);
-    border-radius: 8px;
-    border: 1px solid var(--primary-color);
+    background: none;
+    border-top: 1px solid var(--tertiary-color);
 }
 
 .totalResumenContent {
@@ -418,6 +423,6 @@
 
 .totalResumenValue {
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 500;
     color: var(--white-color);
 }

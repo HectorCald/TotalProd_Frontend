@@ -23,11 +23,10 @@ export const useData = (key, fetcher, options = {}) => {
 
 /**
  * Hook específico para clientes
- * @param {string} searchQuery - Término de búsqueda
- * @param {number} page - Página actual
+ * @param {boolean} isOpen - Si el modal está abierto
  * @returns {object} { clientes, error, isLoading, refetch }
  */
-export const useClientes = (searchQuery = '', page = 1, isOpen = false) => {
+export const useClientes = (isOpen = false) => {
   // Obtener sucu_id del localStorage para incluir en la key
   const getSucuId = () => {
     const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
@@ -41,25 +40,24 @@ export const useClientes = (searchQuery = '', page = 1, isOpen = false) => {
   const sucuId = getSucuId();
 
   // Solo crear key si el modal está abierto
-  const key = isOpen && sucuId ? (searchQuery ?
-    `clientes-${sucuId}-${searchQuery}-${page}` :
-    `clientes-${sucuId}-${page}`) : null;
+  const key = isOpen && sucuId ? `clientes-${sucuId}` : null;
 
   const fetcher = async () => {
     console.log('fetcher clientes');
     const clientService = (await import('../services/clientService')).default;
-    const response = await clientService.getAll(page, 20, searchQuery);
+    const response = await clientService.getAll();
     return response;
   };
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0, // No revalidar automáticamente
-    revalidateOnMount: isOpen, // Solo revalidar al montar si está abierto
+    revalidateOnMount: true, // Siempre revalidar al montar
+    revalidateOnFocus: false, // No revalidar al cambiar de ventana
+    revalidateOnReconnect: false, // No revalidar al reconectar
   });
 
   return {
     clientes: data?.data || [],
-    hasMorePages: data?.pagination?.hasNextPage || false,
     error,
     isLoading: isLoading, // SIEMPRE mostrar loading cuando se ejecuta fetcher
     refetch: mutate
@@ -69,11 +67,10 @@ export const useClientes = (searchQuery = '', page = 1, isOpen = false) => {
 
 /**
  * Hook específico para proveedores
- * @param {string} searchQuery - Término de búsqueda
- * @param {number} page - Página actual
+ * @param {boolean} isOpen - Si el modal está abierto
  * @returns {object} { proveedores, error, isLoading, refetch }
  */
-export const useProveedores = (searchQuery = '', page = 1, isOpen = false) => {
+export const useProveedores = (isOpen = false) => {
   // Obtener sucu_id del localStorage para incluir en la key
   const getSucuId = () => {
     const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
@@ -87,25 +84,24 @@ export const useProveedores = (searchQuery = '', page = 1, isOpen = false) => {
   const sucuId = getSucuId();
 
   // Solo crear key si el modal está abierto
-  const key = isOpen && sucuId ? (searchQuery ?
-    `proveedores-${sucuId}-${searchQuery}-${page}` :
-    `proveedores-${sucuId}-${page}`) : null;
+  const key = isOpen && sucuId ? `proveedores-${sucuId}` : null;
 
   const fetcher = async () => {
     console.log('fetcher proveedores');
     const proveedorService = (await import('../services/proveedorService')).default;
-    const response = await proveedorService.getAll(page, 20, searchQuery);
+    const response = await proveedorService.getAll();
     return response;
   };
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0, // No revalidar automáticamente
-    revalidateOnMount: isOpen, // Solo revalidar al montar si está abierto
+    revalidateOnMount: true, // Siempre revalidar al montar
+    revalidateOnFocus: false, // No revalidar al cambiar de ventana
+    revalidateOnReconnect: false, // No revalidar al reconectar
   });
 
   return {
     proveedores: data?.data || [],
-    hasMorePages: data?.pagination?.hasNextPage || false,
     error,
     isLoading: isLoading, // SIEMPRE mostrar loading cuando se ejecuta fetcher
     refetch: mutate
@@ -115,43 +111,41 @@ export const useProveedores = (searchQuery = '', page = 1, isOpen = false) => {
 
 /**
  * Hook específico para personal
- * @param {string} searchQuery - Término de búsqueda
- * @param {number} page - Página actual
+ * @param {boolean} isOpen - Si el modal está abierto
  * @returns {object} { personal, error, isLoading, refetch }
  */
-export const usePersonal = (searchQuery = '', page = 1, isOpen = false) => {
-  // Obtener sucu_id del localStorage para incluir en la key
-  const getSucuId = () => {
+export const usePersonal = (isOpen = false) => {
+  // Obtener empresa_id del localStorage para incluir en la key
+  const getEmpresaId = () => {
     const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
     if (sucursalSeleccionada) {
       const parsed = JSON.parse(sucursalSeleccionada);
-      return parsed.id;
+      return parsed.empresas?.id;
     }
     return null;
   };
 
-  const sucuId = getSucuId();
+  const empresaId = getEmpresaId();
   
   // Solo crear key si el modal está abierto
-  const key = isOpen && sucuId ? (searchQuery ? 
-    `personal-${sucuId}-${searchQuery}-${page}` : 
-    `personal-${sucuId}-${page}`) : null;
+  const key = isOpen && empresaId ? `personal-${empresaId}` : null;
   
   const fetcher = async () => {
     console.log('fetcher personal');
     const personalService = (await import('../services/personalService')).default;
-    const response = await personalService.getAll(page, 20, searchQuery);
+    const response = await personalService.getAll();
     return response;
   };
   
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0, // No revalidar automáticamente
-    revalidateOnMount: isOpen, // Solo revalidar al montar si está abierto
+    revalidateOnMount: true, // Siempre revalidar al montar
+    revalidateOnFocus: false, // No revalidar al cambiar de ventana
+    revalidateOnReconnect: false, // No revalidar al reconectar
   });
   
   return {
     personal: data?.data || [],
-    hasMorePages: data?.pagination?.hasNextPage || false,
     error,
     isLoading: isLoading, // SIEMPRE mostrar loading cuando se ejecuta fetcher
     refetch: mutate
@@ -161,11 +155,10 @@ export const usePersonal = (searchQuery = '', page = 1, isOpen = false) => {
 
 /**
  * Hook específico para productos de almacén general
- * @param {string} searchQuery - Término de búsqueda
- * @param {number} page - Página actual
+ * @param {boolean} isOpen - Si el modal está abierto
  * @returns {object} { productos, error, isLoading, refetch }
  */
-export const useProductosAlmacen = (searchQuery = '', page = 1, isOpen = false, categoriaFiltro = null, ordenamiento = 'nombre_asc') => {
+export const useProductosAlmacen = (isOpen = false) => {
   // Obtener sucu_id del localStorage para incluir en la key
   const getSucuId = () => {
     const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
@@ -179,23 +172,24 @@ export const useProductosAlmacen = (searchQuery = '', page = 1, isOpen = false, 
   const sucuId = getSucuId();
 
   // Solo crear key si el modal está abierto
-  const key = isOpen && sucuId ? `productos-almacen-${sucuId}-${searchQuery}-${page}-${categoriaFiltro || 'null'}-${ordenamiento}` : null;
+  const key = isOpen && sucuId ? `productos-almacen-${sucuId}` : null;
 
   const fetcher = async () => {
     console.log('fetcher productos almacen');
     const productsAlmacenService = (await import('../services/productsAlmacenService')).default;
-    const response = await productsAlmacenService.getAll(page, 20, searchQuery, categoriaFiltro, ordenamiento);
+    const response = await productsAlmacenService.getAll();
     return response;
   };
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0, // No revalidar automáticamente
-    revalidateOnMount: isOpen, // Solo revalidar al montar si está abierto
+    revalidateOnMount: true, // Siempre revalidar al montar
+    revalidateOnFocus: false, // No revalidar al cambiar de ventana
+    revalidateOnReconnect: false, // No revalidar al reconectar
   });
 
   return {
     productos: data?.data || [],
-    hasMorePages: data?.pagination?.hasNextPage || false,
     error,
     isLoading: isLoading, // SIEMPRE mostrar loading cuando se ejecuta fetcher
     refetch: mutate
@@ -205,27 +199,24 @@ export const useProductosAlmacen = (searchQuery = '', page = 1, isOpen = false, 
 
 /**
  * Hook específico para categorías de almacén
- * @param {string} searchQuery - Término de búsqueda
- * @param {number} page - Página actual
+ * @param {boolean} isOpen - Si el modal está abierto
  * @returns {object} { categorias, error, isLoading, refetch }
  */
-export const useCategoriasAlmacen = (searchQuery = '', page = 1, isOpen = false) => {
-  // Obtener sucu_id del localStorage para incluir en la key
-  const getSucuId = () => {
+export const useCategoriasAlmacen = (isOpen = false) => {
+  // Obtener empresa_id del localStorage para incluir en la key
+  const getEmpresaId = () => {
     const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
     if (sucursalSeleccionada) {
       const parsed = JSON.parse(sucursalSeleccionada);
-      return parsed.id;
+      return parsed.empresas?.id;
     }
     return null;
   };
 
-  const sucuId = getSucuId();
+  const empresaId = getEmpresaId();
 
   // Solo crear key si el modal está abierto
-  const key = isOpen && sucuId ? (searchQuery ?
-    `categorias-almacen-${sucuId}-${searchQuery}-${page}` :
-    `categorias-almacen-${sucuId}-${page}`) : null;
+  const key = isOpen && empresaId ? `categorias-almacen-${empresaId}` : null;
 
   const fetcher = async () => {
     console.log('fetcher categorias almacen');
@@ -236,7 +227,9 @@ export const useCategoriasAlmacen = (searchQuery = '', page = 1, isOpen = false)
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0, // No revalidar automáticamente
-    revalidateOnMount: isOpen, // Solo revalidar al montar si está abierto
+    revalidateOnMount: true, // Siempre revalidar al montar
+    revalidateOnFocus: false, // No revalidar al cambiar de ventana
+    revalidateOnReconnect: false, // No revalidar al reconectar
   });
 
   return {
@@ -250,27 +243,24 @@ export const useCategoriasAlmacen = (searchQuery = '', page = 1, isOpen = false)
 
 /**
  * Hook específico para categorías de acopio
- * @param {string} searchQuery - Término de búsqueda
- * @param {number} page - Página actual
+ * @param {boolean} isOpen - Si el modal está abierto
  * @returns {object} { categorias, error, isLoading, refetch }
  */
-export const useCategoriasAcopio = (searchQuery = '', page = 1, isOpen = false) => {
-  // Obtener sucu_id del localStorage para incluir en la key
-  const getSucuId = () => {
+export const useCategoriasAcopio = (isOpen = false) => {
+  // Obtener empresa_id del localStorage para incluir en la key
+  const getEmpresaId = () => {
     const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
     if (sucursalSeleccionada) {
       const parsed = JSON.parse(sucursalSeleccionada);
-      return parsed.id;
+      return parsed.empresas?.id;
     }
     return null;
   };
 
-  const sucuId = getSucuId();
+  const empresaId = getEmpresaId();
 
   // Solo crear key si el modal está abierto
-  const key = isOpen && sucuId ? (searchQuery ?
-    `categorias-acopio-${sucuId}-${searchQuery}-${page}` :
-    `categorias-acopio-${sucuId}-${page}`) : null;
+  const key = isOpen && empresaId ? `categorias-acopio-${empresaId}` : null;
 
   const fetcher = async () => {
     console.log('fetcher categorias acopio');
@@ -281,7 +271,9 @@ export const useCategoriasAcopio = (searchQuery = '', page = 1, isOpen = false) 
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0, // No revalidar automáticamente
-    revalidateOnMount: isOpen, // Solo revalidar al montar si está abierto
+    revalidateOnMount: true, // Siempre revalidar al montar
+    revalidateOnFocus: false, // No revalidar al cambiar de ventana
+    revalidateOnReconnect: false, // No revalidar al reconectar
   });
 
   return {
@@ -295,27 +287,24 @@ export const useCategoriasAcopio = (searchQuery = '', page = 1, isOpen = false) 
 
 /**
  * Hook específico para tipos de precios
- * @param {string} searchQuery - Término de búsqueda
- * @param {number} page - Página actual
+ * @param {boolean} isOpen - Si el modal está abierto
  * @returns {object} { precios, error, isLoading, refetch }
  */
-export const usePrecios = (searchQuery = '', page = 1, isOpen = false) => {
-  // Obtener sucu_id del localStorage para incluir en la key
-  const getSucuId = () => {
+export const usePrecios = (isOpen = false) => {
+  // Obtener empresa_id del localStorage para incluir en la key
+  const getEmpresaId = () => {
     const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
     if (sucursalSeleccionada) {
       const parsed = JSON.parse(sucursalSeleccionada);
-      return parsed.id;
+      return parsed.empresas?.id;
     }
     return null;
   };
 
-  const sucuId = getSucuId();
+  const empresaId = getEmpresaId();
 
   // Solo crear key si el modal está abierto
-  const key = isOpen && sucuId ? (searchQuery ?
-    `precios-${sucuId}-${searchQuery}-${page}` :
-    `precios-${sucuId}-${page}`) : null;
+  const key = isOpen && empresaId ? `precios-${empresaId}` : null;
 
   const fetcher = async () => {
     console.log('fetcher precios');
@@ -326,7 +315,9 @@ export const usePrecios = (searchQuery = '', page = 1, isOpen = false) => {
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0, // No revalidar automáticamente
-    revalidateOnMount: isOpen, // Solo revalidar al montar si está abierto
+    revalidateOnMount: true, // Siempre revalidar al montar
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
   });
 
   return {
@@ -343,9 +334,9 @@ export const usePrecios = (searchQuery = '', page = 1, isOpen = false) => {
  * @param {string} empresaId - ID de la empresa
  * @returns {object} { sucursales, error, isLoading, refetch }
  */
-export const useSucursales = (empresaId = null, isOpen = false) => {
-  // Solo crear key si el modal está abierto y hay empresaId
-  const key = isOpen && empresaId ? `sucursales-${empresaId}` : null;
+export const useSucursales = (isOpen = false) => {
+  // Solo crear key si el modal está abierto
+  const key = isOpen ? 'sucursales' : null;
 
   const fetcher = async () => {
     console.log('fetcher sucursales');
@@ -401,7 +392,9 @@ export const useMovimientosAcopio = (searchQuery = '', page = 1, isOpen = false,
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0,
-    revalidateOnMount: isOpen,
+    revalidateOnMount: true, // Siempre revalidar al montar
+    revalidateOnFocus: false, // No revalidar al cambiar de ventana
+    revalidateOnReconnect: false, // No revalidar al reconectar
   });
 
   return {
@@ -446,7 +439,9 @@ export const useMovimientosAlmacen = (searchQuery = '', page = 1, isOpen = false
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0,
-    revalidateOnMount: isOpen,
+    revalidateOnMount: true, // Siempre revalidar al montar
+    revalidateOnFocus: false, // No revalidar al cambiar de ventana
+    revalidateOnReconnect: false, // No revalidar al reconectar
   });
 
   return {
@@ -490,7 +485,7 @@ export const usePedidosAcopio = (searchQuery = '', page = 1, isOpen = false, ord
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0,
-    revalidateOnMount: isOpen,
+    revalidateOnMount: true, // Siempre revalidar al montar
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
@@ -536,7 +531,7 @@ export const usePedidosAlmacen = (searchQuery = '', page = 1, isOpen = false, or
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0,
-    revalidateOnMount: isOpen,
+    revalidateOnMount: true, // Siempre revalidar al montar
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
@@ -552,41 +547,41 @@ export const usePedidosAlmacen = (searchQuery = '', page = 1, isOpen = false, or
 
 /**
  * Hook específico para productos de acopio
- * @param {string} searchQuery - Término de búsqueda
- * @param {number} page - Página actual
+ * @param {boolean} isOpen - Si el modal está abierto
  * @returns {object} { productos, error, isLoading, refetch }
  */
-export const useProductosAcopio = (searchQuery = '', page = 1, isOpen = false, categoriaFiltro = null, tipoMedidaFiltro = null, ordenamiento = 'nombre_asc') => {
-  // Obtener sucu_id del localStorage para incluir en la key
-  const getSucuId = () => {
+export const useProductosAcopio = (isOpen = false) => {
+  // Obtener empresa_id del localStorage para incluir en la key
+  const getEmpresaId = () => {
     const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
     if (sucursalSeleccionada) {
       const parsed = JSON.parse(sucursalSeleccionada);
-      return parsed.id;
+      return parsed.empresas?.id;
     }
     return null;
   };
 
-  const sucuId = getSucuId();
+  const empresaId = getEmpresaId();
 
   // Solo crear key si el modal está abierto
-  const key = isOpen && sucuId ? `productos-acopio-${sucuId}-${searchQuery}-${page}-${categoriaFiltro || 'null'}-${tipoMedidaFiltro || 'null'}-${ordenamiento}` : null;
+  const key = isOpen && empresaId ? `productos-acopio-${empresaId}` : null;
 
   const fetcher = async () => {
     console.log('fetcher productos acopio');
     const productsAcopioService = (await import('../services/productsAcopioService')).default;
-    const response = await productsAcopioService.getAll(page, 10, searchQuery, categoriaFiltro, tipoMedidaFiltro, ordenamiento);
+    const response = await productsAcopioService.getAll();
     return response;
   };
 
   const { data, error, isLoading, mutate } = useData(key, fetcher, {
     refreshInterval: 0, // No revalidar automáticamente
-    revalidateOnMount: isOpen, // Solo revalidar al montar si está abierto
+    revalidateOnMount: true, // Siempre revalidar al montar
+    revalidateOnFocus: false, // No revalidar al cambiar de ventana
+    revalidateOnReconnect: false, // No revalidar al reconectar
   });
 
   return {
     productos: data?.data || [],
-    hasMorePages: data?.pagination?.hasNextPage || false,
     error,
     isLoading: isLoading, // SIEMPRE mostrar loading cuando se ejecuta fetcher
     refetch: mutate

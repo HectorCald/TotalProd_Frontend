@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -12,73 +11,86 @@ import HeaderModal from '../../common/HeaderModal';
 import ItemLine from '../../common/ItemLine';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import CategoriasAlmacen from './CategoriasAlmacen';
 import CanastaPedidos from './CanastaPedidos';
 import CanastaMovimientos from './CanastaMovimientos';
-import InputCantidad from '../../common/InputCantidad';
-import Select from '../../common/Select';
-import InputNormal from '../../common/InputNormal';
-import productsAlmacenService from '../../../services/productsAlmacenService';
-import categoryAlmacenService from '../../../services/categoryAlmacenService';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import CategoriasAlmacen from './CategoriasAlmacen';
 import Notification from '../../common/Notification';
-import { useProductosAlmacen } from '../../../hooks/useData';
+import { useProductosAlmacen, useCategoriasAlmacen, usePrecios, useSucursales } from '../../../hooks/useData';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
-const medidas = [
-    { value: 'kilo', label: 'Kilo', icon: 'tag' },
-    { value: 'quintal', label: 'Quital', icon: 'tag' },
-    { value: 'arroba', label: 'Arroba', icon: 'tag' },
-    { value: 'caja', label: 'Caja', icon: 'tag' },
-    { value: 'unidad', label: 'Unidad', icon: 'tag' },
-    { value: 'libra', label: 'Libras', icon: 'tag' },
-];
+import { useUser } from '../../../context/UserContext';
 
-function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, productosIniciales = [] }) {
+
+function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null }) {
+    const { sucursalSeleccionada: sucursalActual } = useUser();
 
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
-    const [isCategoriasOpen, setIsCategoriasOpen] = useState(false);
 
-    // Estados para la carga
-    const [loadingMore, setLoadingMore] = useState(false);
-
-    // Estados para paginación y búsqueda
-    const [currentPage, setCurrentPage] = useState(1);
+    // Estados para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
-
-    // Estados para los datos
-    const [categorias, setCategorias] = useState([]);
-    const [loadingCategorias, setLoadingCategorias] = useState(false);
-    
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Estados para filtros
+    // Estados para filtros locales
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
 
+    // Estados para filtros y modales
+    const [isOpenCategoria, setOpenCategoria] = useState(false);
+    const [isOpenOrden, setOpenOrden] = useState(false);
+    const [isCategoriasAlmacenOpen, setIsCategoriasAlmacenOpen] = useState(false);
+
+    // Estados para canasta de pedidos
+    const [productosCanasta, setProductosCanasta] = useState([]);
+    const [isCanastaOpen, setIsCanastaOpen] = useState(false);
+
+    // Estados para canasta de movimientos (entradas y salidas separadas)
+    const [productosCanastaEntradas, setProductosCanastaEntradas] = useState([]);
+    const [productosCanastaSalidas, setProductosCanastaSalidas] = useState([]);
+    const [isCanastaMovimientosOpen, setIsCanastaMovimientosOpen] = useState(false);
+
     // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { productos, hasMorePages, error, isLoading, refetch } = useProductosAlmacen(
-        isOpen ? debouncedSearchQuery : '', 
-        isOpen ? currentPage : 1,
-        isOpen,
-        categoriaFiltro,
-        ordenamiento
-    );
+    const { productos, error, isLoading, refetch } = useProductosAlmacen(isOpen);
+    const { categorias: categoriasData, isLoading: loadingCategorias } = useCategoriasAlmacen(isOpen);
+    const { precios: preciosData, isLoading: loadingPrecios } = usePrecios(isOpen);
+    const { sucursales: sucursalesData, isLoading: loadingSucursales } = useSucursales(isOpen);
+
+    // Mapear datos al formato esperado por los componentes
+    const categorias = categoriasData.map(cat => ({
+        value: cat.id,
+        label: cat.name,
+        id: cat.id,
+        name: cat.name
+    }));
+
+    const preciosTipos = preciosData.map(precio => ({
+        value: precio.id,
+        label: precio.name,
+        id: precio.id,
+        name: precio.name,
+        default_value: precio.default_value
+    }));
+
+    const sucursales = sucursalesData
+        .filter(sucursal => sucursal.id !== sucursalActual?.id)
+        .map(sucursal => ({
+            value: sucursal.id,
+            label: sucursal.name,
+            id: sucursal.id,
+            name: sucursal.name
+        }));
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
-        if (isLoading && isOpen) {
+        if (isLoading && isOpen && !showRefreshIndicator) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator) {
+        } else if (!isLoading && showRefreshIndicator && isOpen) {
             // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
@@ -88,6 +100,25 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
+    // Forzar revalidación cada vez que se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            // Mostrar indicador inmediatamente al abrir
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+            // Ejecutar refetch
+            refetch();
+        }
+    }, [isOpen]);
+
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -108,84 +139,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }, 3000);
     };
 
-    // Estados para filtros y modales
-    const [isOpenCategoria, setOpenCategoria] = useState(false);
-    const [isOpenItem, setOpenItem] = useState(false);
-    const [isOpenOrden, setOpenOrden] = useState(false);
-    const [selectedMedidas, setSelectedMedidas] = useState('');
-
-    // Estados para canasta de pedidos
-    const [productosCanasta, setProductosCanasta] = useState([]);
-    const [isCanastaOpen, setIsCanastaOpen] = useState(false);
-    const [pedidoIdEditando, setPedidoIdEditando] = useState(null);
-
-    // Estados para canasta de movimientos (entradas y salidas separadas)
-    const [productosCanastaEntradas, setProductosCanastaEntradas] = useState([]);
-    const [productosCanastaSalidas, setProductosCanastaSalidas] = useState([]);
-    const [isCanastaMovimientosOpen, setIsCanastaMovimientosOpen] = useState(false);
-
-    // Cargar todas las canastas desde localStorage al inicio
-    useEffect(() => {
-        // Cargar canasta de pedidos
-        const canastaPedidosGuardada = localStorage.getItem('canastaPedidos');
-        if (canastaPedidosGuardada) {
-            try {
-                setProductosCanasta(JSON.parse(canastaPedidosGuardada));
-            } catch (error) {
-                console.error('Error al cargar canasta de pedidos desde localStorage:', error);
-                localStorage.removeItem('canastaPedidos');
-            }
-        }
-
-        // Cargar canasta de entradas
-        const canastaEntradasGuardada = localStorage.getItem('canastaEntradas');
-        if (canastaEntradasGuardada) {
-            try {
-                setProductosCanastaEntradas(JSON.parse(canastaEntradasGuardada));
-            } catch (error) {
-                console.error('Error al cargar canasta de entradas desde localStorage:', error);
-                localStorage.removeItem('canastaEntradas');
-            }
-        }
-
-        // Cargar canasta de salidas
-        const canastaSalidasGuardada = localStorage.getItem('canastaSalidas');
-        if (canastaSalidasGuardada) {
-            try {
-                setProductosCanastaSalidas(JSON.parse(canastaSalidasGuardada));
-            } catch (error) {
-                console.error('Error al cargar canasta de salidas desde localStorage:', error);
-                localStorage.removeItem('canastaSalidas');
-            }
-        }
-    }, []);
-
-    // Guardar canasta de pedidos en localStorage cuando cambie
-    useEffect(() => {
-        if (productosCanasta.length > 0) {
-            localStorage.setItem('canastaPedidos', JSON.stringify(productosCanasta));
-        } else {
-            localStorage.removeItem('canastaPedidos');
-        }
-    }, [productosCanasta]);
-
-    // Guardar canasta de entradas en localStorage cuando cambie
-    useEffect(() => {
-        if (productosCanastaEntradas.length > 0) {
-            localStorage.setItem('canastaEntradas', JSON.stringify(productosCanastaEntradas));
-        } else {
-            localStorage.removeItem('canastaEntradas');
-        }
-    }, [productosCanastaEntradas]);
-
-    // Guardar canasta de salidas en localStorage cuando cambie
-    useEffect(() => {
-        if (productosCanastaSalidas.length > 0) {
-            localStorage.setItem('canastaSalidas', JSON.stringify(productosCanastaSalidas));
-        } else {
-            localStorage.removeItem('canastaSalidas');
-        }
-    }, [productosCanastaSalidas]);
 
     // Función para manejar el click en un producto
     const handleRegistro = (producto, tipo) => {
@@ -201,35 +154,10 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }
     };
 
-    // Función para cargar las categorías
-    const fetchCategorias = async () => {
-        try {
-            setLoadingCategorias(true);
-            const response = await categoryAlmacenService.getAll();
-            if (response.success && response.data) {
-                const mappedCategorias = response.data.map(cat => ({
-                    value: cat.id,
-                    label: cat.name,
-                    id: cat.id,
-                    name: cat.name
-                }));
-                setCategorias(mappedCategorias);
-            }
-        } catch (error) {
-            console.error('Error cargando categorías:', error);
-        } finally {
-            setLoadingCategorias(false);
-        }
-    };
 
 
-    // Función para manejar scroll infinito
-    const handleScroll = (e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
-            setCurrentPage(prev => prev + 1);
-        }
-    };
+    // 🚀 SWR maneja automáticamente la carga de datos
+    // No necesitamos fetchProducts manual
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
@@ -252,105 +180,34 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }
     };
 
-    // Función para manejar filtro de categoría
+    // Funciones de filtrado locales
     const handleCategoriaFilter = (categoriaId) => {
-        console.log('🔍 Filtro de categoría seleccionado:', categoriaId);
-        setCategoriaFiltro(categoriaId); // Cambia el filtro y hace nueva petición
-        setCurrentPage(1); // Resetear a primera página
+        setCategoriaFiltro(categoriaId);
     };
 
-    // Función para manejar ordenamiento
     const handleOrdenamiento = (orden) => {
-        console.log('🔍 Ordenamiento seleccionado:', orden);
-        setOrdenamiento(orden); // Cambia el ordenamiento y hace nueva petición
-        setCurrentPage(1); // Resetear a primera página
+        setOrdenamiento(orden);
     };
 
-    // Función para actualizar productos de canasta con datos actuales del servidor
-    const updateCanastaWithCurrentData = async (productosCanasta, setCanasta) => {
-        try {
-            // Obtener todos los productos actuales del servidor
-            const response = await productsAlmacenService.getAll();
-            if (response.success && response.data) {
-                const productosActuales = response.data;
-                
-                // Actualizar cada producto de la canasta con datos actuales
-                const productosActualizados = productosCanasta.map(productoCanasta => {
-                    const productoActual = productosActuales.find(p => p.id === productoCanasta.id);
-                    if (productoActual) {
-                        // Mantener cantidad y datos específicos de la canasta, pero actualizar stock y precios
-                        return {
-                            ...productoActual, // Datos actuales del servidor
-                            cantidad: productoCanasta.cantidad, // Mantener cantidad de la canasta
-                            medidaPedido: productoCanasta.medidaPedido, // Mantener medida si existe
-                            observacionesPedido: productoCanasta.observacionesPedido, // Mantener observaciones si existen
-                            precio: productoCanasta.precio || (productoActual.price_product && productoActual.price_product.length > 0 ? productoActual.price_product[0].valor : 0)
-                        };
-                    }
-                    return productoCanasta; // Si no se encuentra, mantener como está
-                });
-                
-                setCanasta(productosActualizados);
-            } else {
-                // Si falla la actualización, usar los productos de la canasta tal como están
-                setCanasta(productosCanasta);
-            }
-        } catch (error) {
-            console.error('Error actualizando productos de canasta:', error);
-            // Si falla la actualización, usar los productos de la canasta tal como están
-            setCanasta(productosCanasta);
-        }
-    };
-
-    // Efecto para resetear búsqueda cuando se abre
+    // Efecto para resetear búsqueda y filtros cuando se abre
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-            setCurrentPage(1);
-            fetchCategorias();
+            setCategoriaFiltro(null);
+            setOrdenamiento('nombre_asc');
+            
+            // Cargar canastas desde localStorage
+            cargarCanastasDesdeLocalStorage();
+        }
+    }, [isOpen]);
 
-            // Si es modo pedido, cargar canasta desde localStorage
-            if (tipo === 'pedido') {
-                const canastaGuardada = localStorage.getItem('canastaPedidos');
-                const pedidoIdGuardado = localStorage.getItem('pedidoIdEditando');
-                if (canastaGuardada) {
-                    try {
-                        const productosCanastaData = JSON.parse(canastaGuardada);
-                        // Actualizar productos de la canasta con datos actuales del servidor
-                        updateCanastaWithCurrentData(productosCanastaData, setProductosCanasta);
-                        if (pedidoIdGuardado) {
-                            setPedidoIdEditando(pedidoIdGuardado);
-                        }
-                    } catch (error) {
-                        console.error('Error al cargar canasta de pedidos desde localStorage:', error);
-                        localStorage.removeItem('canastaPedidos');
-                        localStorage.removeItem('pedidoIdEditando');
-                    }
-                }
-            }
-
-            // Si es modo salida, cargar canasta de salidas desde localStorage
-            if (tipo === 'salida') {
-                const canastaSalidasGuardada = localStorage.getItem('canastaSalidas');
-                const pedidoIdEntregando = localStorage.getItem('pedidoIdEntregando');
-                if (canastaSalidasGuardada) {
-                    try {
-                        const productosSalidasData = JSON.parse(canastaSalidasGuardada);
-                        // Actualizar productos de la canasta con datos actuales del servidor
-                        updateCanastaWithCurrentData(productosSalidasData, setProductosCanastaSalidas);
-                    } catch (error) {
-                        console.error('Error al cargar canasta de salidas desde localStorage:', error);
-                        localStorage.removeItem('canastaSalidas');
-                        localStorage.removeItem('pedidoIdEntregando');
-                    }
-                }
-            }
-        } else {
-            // Cuando se cierra el modal, limpiar pedidoIdEditando, pedidoIdEntregando, precioIdEditando y precioIdEntregando del localStorage
+    // Efecto separado para limpiar variables cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            // Cuando se cierra el modal, limpiar pedidoIdEntregando, precioIdEditando y precioIdEntregando del localStorage
             if (tipo === 'pedido') {
                 localStorage.removeItem('pedidoIdEditando');
                 localStorage.removeItem('precioIdEditando');
-                setPedidoIdEditando(null);
             }
             if (tipo === 'salida') {
                 localStorage.removeItem('pedidoIdEntregando');
@@ -359,46 +216,143 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }
     }, [isOpen, tipo]);
 
-    // Efecto para cargar productos iniciales cuando se reciban como props
-    useEffect(() => {
-        if (productosIniciales && productosIniciales.length > 0) {
-            if (tipo === 'pedido') {
-                setProductosCanasta(productosIniciales);
-            } else if (tipo === 'salida') {
-                setProductosCanastaSalidas(productosIniciales);
+    // Función para cargar canastas desde localStorage
+    const cargarCanastasDesdeLocalStorage = () => {
+        try {
+            // Cargar canasta de pedidos
+            const canastaPedidos = localStorage.getItem('canastaPedidos');
+            if (canastaPedidos) {
+                const productosPedidos = JSON.parse(canastaPedidos);
+                
+                // Si es edición de pedido, actualizar el stock de los productos con los datos actuales
+                if (localStorage.getItem('pedidoIdEditando')) {
+                    const productosConStockActualizado = productosPedidos.map(productoCanasta => {
+                        const productoActual = productos.find(p => p.id === productoCanasta.id);
+                        return {
+                            ...productoCanasta,
+                            stock: productoActual?.stock || 0
+                        };
+                    });
+                    setProductosCanasta(productosConStockActualizado);
+                } else {
+                    setProductosCanasta(productosPedidos);
+                }
             }
+
+            // Cargar canasta de entradas
+            const canastaEntradas = localStorage.getItem('canastaEntradas');
+            if (canastaEntradas) {
+                const productosEntradas = JSON.parse(canastaEntradas);
+                setProductosCanastaEntradas(productosEntradas);
+            }
+
+            // Cargar canasta de salidas
+            const canastaSalidas = localStorage.getItem('canastaSalidas');
+            if (canastaSalidas) {
+                const productosSalidas = JSON.parse(canastaSalidas);
+                
+                // Si es una entrega, actualizar el stock de los productos con los datos actuales
+                if (localStorage.getItem('pedidoIdEntregando')) {
+                    const productosConStockActualizado = productosSalidas.map(productoCanasta => {
+                        const productoActual = productos.find(p => p.id === productoCanasta.id);
+                        return {
+                            ...productoCanasta,
+                            stock: productoActual?.stock || 0
+                        };
+                    });
+                    setProductosCanastaSalidas(productosConStockActualizado);
+                } else {
+                    setProductosCanastaSalidas(productosSalidas);
+                }
+            }
+        } catch (error) {
+            console.error('Error al cargar canastas desde localStorage:', error);
         }
-    }, [productosIniciales, tipo]);
+    };
+    // Filtrar y ordenar productos localmente
+    const productosFiltrados = productos.filter(producto => {
+        // Filtro de búsqueda
+        const matchesSearch = !searchQuery || 
+            producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        // Filtro de categoría
+        const matchesCategoria = categoriaFiltro === null || 
+            (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
+
+        return matchesSearch && matchesCategoria;
+    }).sort((a, b) => {
+        // Ordenamiento
+        switch (ordenamiento) {
+            case 'nombre_asc':
+                return a.name.localeCompare(b.name);
+            case 'nombre_desc':
+                return b.name.localeCompare(a.name);
+            case 'stock_asc':
+                return (a.stock || 0) - (b.stock || 0);
+            case 'stock_desc':
+                return (b.stock || 0) - (a.stock || 0);
+            default:
+                return a.name.localeCompare(b.name);
+        }
+    });
+
+
+
 
     // Función para manejar cuando se crea un nuevo producto
     const handleProductCreated = (newProduct) => {
+        // Actualizar el cache localmente con el producto que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: [newProduct, ...currentData.data]
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal
         setIsAgregarOpen(false);
-        // Actualizar cache con SWR
-        refetch();
-        mostrarNotificacion('success', 'Producto agregado correctamente')
+        mostrarNotificacion('success', 'Producto agregado correctamente');
     };
-
     // Función para manejar cuando se elimina un producto
     const handleProductDeleted = (deletedId) => {
+        // Actualizar el cache localmente removiendo el producto eliminado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.filter(producto => producto.id !== deletedId)
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Cerrar el modal de ver producto
         setIsOpenVerProducto(false);
-        // Actualizar cache con SWR
-        refetch();
-        mostrarNotificacion('success', 'Producto eliminado correctamente')
+        mostrarNotificacion('success', 'Producto eliminado correctamente');
     };
-
     // Función para manejar cuando se actualiza un producto
     const handleProductUpdated = (updatedProduct) => {
+        // Actualizar el cache localmente con el producto actualizado que devuelve el servidor
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.map(producto => 
+                    producto.id === updatedProduct.id ? updatedProduct : producto
+                )
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
         // Actualizar también el producto que se está viendo
         setInfoPersona(updatedProduct);
         // Cerrar el modal de ver producto
         setIsOpenVerProducto(false);
-        // Actualizar cache con SWR
-        refetch();
-        mostrarNotificacion('success', 'Producto actualizado correctamente')
+        mostrarNotificacion('success', 'Producto actualizado correctamente');
     };
-
     // Función para manejar cuando se actualizan múltiples productos (después de movimientos)
     const handleProductosUpdated = (productosActualizados) => {
         // Actualizar cache con SWR
@@ -427,7 +381,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             }]);
         }
     };
-
     const getCantidadEnCanasta = (productoId) => {
         const producto = productosCanasta.find(p => p.id === productoId);
         return producto ? producto.cantidad : 0;
@@ -478,13 +431,13 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
         // El localStorage se guardará automáticamente en el useEffect de CanastaMovimientos
     };
-
     const getCantidadEnCanastaMovimientos = (productoId, tipoMovimiento) => {
         const esEntrada = tipoMovimiento === 'entrada';
         const canastaActual = esEntrada ? productosCanastaEntradas : productosCanastaSalidas;
         const producto = canastaActual.find(p => p.id === productoId);
         return producto ? producto.cantidad : 0;
     };
+
     // Función para obtener el nombre de la categoría seleccionada
     const getCategoriaNombre = () => {
         if (categoriaFiltro === null) return 'Categorías';
@@ -493,7 +446,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         const categoria = categorias.find(c => c.id === categoriaFiltro);
         return categoria ? categoria.name : 'Categorías';
     };
-
     // Función para obtener el nombre del ordenamiento
     const getOrdenamientoNombre = () => {
         const ordenamientos = {
@@ -546,9 +498,9 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     />
                 </div>
                 <Filtros options={opciones} />
-                <div className={styles.content} onScroll={handleScroll}>
-                    {productos.length > 0 ? (
-                        productos.map((producto, index) => {
+                <div className={styles.content}>
+                    {productosFiltrados.length > 0 ? (
+                        productosFiltrados.map((producto, index) => {
                             const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
                             const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida')
                                 ? getCantidadEnCanastaMovimientos(producto.id, tipo)
@@ -578,14 +530,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         })
                     ) : (
                         <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
-                        </div>
-                    )}
-
-                    {/* Indicador de carga para más elementos */}
-                    {loadingMore && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más productos...</p>
+                            <p>{searchQuery || categoriaFiltro !== null ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
                         </div>
                     )}
                 </div>
@@ -595,7 +540,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     <Boton
                         className='btn-default'
                         label='Categorias'
-                        onClick={() => { setIsCategoriasOpen(true); }}
+                        onClick={() => { setIsCategoriasAlmacenOpen(true); }}
                     />
                     <Boton
                         className='btn-original'
@@ -637,6 +582,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 registro={infoPersona}
                 onProductDeleted={handleProductDeleted}
                 onProductUpdated={handleProductUpdated}
+                preciosTipos={preciosTipos}
+                loadingPrecios={loadingPrecios}
             />
 
             {/* Modal de editar*/}
@@ -645,6 +592,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 setIsOpen={setIsAgregarOpen}
                 tipo='agregar'
                 onProductCreated={handleProductCreated}
+                preciosTipos={preciosTipos}
+                loadingPrecios={loadingPrecios}
             />
 
             <Notification
@@ -653,44 +602,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 text={notification.text}
             />
 
-            {/* Modal de categorías de acopio*/}
-            <CategoriasAlmacen
-                isOpen={isCategoriasOpen}
-                setIsOpen={setIsCategoriasOpen}
-            />
 
-
-
-            {/* Modal de categorias*/}
-            <ViewModal isOpen={isOpenItem} setIsOpen={setOpenItem}>
-                <HeaderModal
-                    title={infoPersona?.producto}
-                    onClose={() => setOpenItem(false)}
-                />
-                <div className={styles.modalContent}>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '10px' }}>
-                        <InputCantidad value={1} onChange={() => { }} min={1} max={100000} />
-                        <Select
-                            placeholder="Medida"
-                            options={medidas}
-                            value={selectedMedidas}
-                            onChange={setSelectedMedidas}
-                            icon="ruler"
-                        />
-                    </div>
-                    <InputNormal
-                        tipo="text"
-                        value={''}
-                        placeholder='Obervaciones'
-                    />
-                    <Boton
-                        className='btn-original'
-                        label='Agregar orden'
-                        style={{ marginTop: 'auto' }}
-                    />
-                </div>
-            </ViewModal>
-            {/* Modal mostrar cantidad item*/}
+            {/* Modal categorias*/}
             <ViewModal isOpen={isOpenCategoria} setIsOpen={setOpenCategoria}>
                 <HeaderModal
                     title="Categorias"
@@ -789,14 +702,22 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 setProductosCanasta={setProductosCanasta}
                 pedidoId={pedidoIdEditando}
                 onPedidoActualizado={onPedidoActualizado}
+                preciosTipos={preciosTipos}
+                sucursales={sucursales}
+                loadingPrecios={loadingPrecios}
+                loadingSucursales={loadingSucursales}
                 onCerrarCanasta={() => {
                     setIsCanastaOpen(false);
                     // Limpiar pedidoIdEditando y precioIdEditando del localStorage cuando se confirma la edición
                     localStorage.removeItem('pedidoIdEditando');
                     localStorage.removeItem('precioIdEditando');
-                    setPedidoIdEditando(null);
-                    // NO limpiar canasta de pedidos aquí
-                    // La limpieza se maneja en VerPedido.jsx cuando se abre para editar
+                    
+                    // Si estamos editando un pedido, limpiar la canasta
+                    if (pedidoIdEditando) {
+                        setProductosCanasta([]);
+                        localStorage.removeItem('canastaPedidos');
+                    }
+                    
                     mostrarNotificacion('success', pedidoIdEditando ? 'Pedido actualizado correctamente' : 'Pedido confirmado correctamente');
                 }}
             />
@@ -810,6 +731,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     setProductosCanasta={setProductosCanastaEntradas}
                     tipoMovimiento={tipo}
                     onProductosUpdated={handleProductosUpdated}
+                    preciosTipos={preciosTipos}
+                    loadingPrecios={loadingPrecios}
                     onCerrarCanasta={() => {
                         setIsCanastaMovimientosOpen(false);
                         mostrarNotificacion('success', 'Entradas confirmadas correctamente');
@@ -825,17 +748,26 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     tipoMovimiento={tipo}
                     esEntrega={!!localStorage.getItem('pedidoIdEntregando')}
                     onProductosUpdated={handleProductosUpdated}
-                    onCerrarCanasta={() => {
-                        setIsCanastaMovimientosOpen(false);
-                        // Limpiar pedidoIdEntregando y precioIdEntregando del localStorage cuando se confirma la entrega
-                        localStorage.removeItem('pedidoIdEntregando');
-                        localStorage.removeItem('precioIdEntregando');
-                        // NO limpiar canasta de salidas aquí
-                        // La limpieza se maneja en VerPedido.jsx cuando se abre para entregar
-                        mostrarNotificacion('success', 'Salidas confirmadas correctamente');
+                    preciosTipos={preciosTipos}
+                    loadingPrecios={loadingPrecios}
+                    onCerrarCanasta={(productosActualizados, precioId, movimientoId) => {
+                        // Si es una entrega, NO cerrar la canasta aquí, solo llamar a la función de entrega
+                        if (onEntregaConfirmada && localStorage.getItem('pedidoIdEntregando')) {
+                            onEntregaConfirmada(productosActualizados, precioId, movimientoId);
+                        } else {
+                            // Para movimientos normales, cerrar la canasta y mostrar notificación
+                            setIsCanastaMovimientosOpen(false);
+                            mostrarNotificacion('success', 'Salidas confirmadas correctamente');
+                        }
                     }}
                 />
             )}
+
+            {/* Modal de Categorías de Almacén */}
+            <CategoriasAlmacen
+                isOpen={isCategoriasAlmacenOpen}
+                setIsOpen={setIsCategoriasAlmacenOpen}
+            />
         </View>
     );
 }

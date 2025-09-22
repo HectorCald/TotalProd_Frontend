@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -8,7 +7,6 @@ import ItemView from '../../common/ItemView';
 import VerCategoria from './VerCategoria';
 import Boton from '../../common/Boton';
 import EditarAgregarCategoria from './EditarAgregarCategoria';
-import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 import { useCategoriasAlmacen } from '../../../hooks/useData';
 import { BoxIcon } from 'boxicons-react';
@@ -20,30 +18,22 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     const [infoCategoria, setInfoCategoria] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
 
-    // Estados para paginación y búsqueda
-    const [currentPage, setCurrentPage] = useState(1);
-    const [searchQuery, setSearchQuery] = useState('');
-    
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     
-    // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    // Estado para búsqueda local
+    const [searchQuery, setSearchQuery] = useState('');
 
     // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { categorias, error, isLoading, refetch } = useCategoriasAlmacen(
-        isOpen ? debouncedSearchQuery : '', 
-        isOpen ? currentPage : 1,
-        isOpen
-    );
+    const { categorias, error, isLoading, refetch } = useCategoriasAlmacen(isOpen);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
-        if (isLoading && isOpen) {
+        if (isLoading && isOpen && !showRefreshIndicator) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator) {
+        } else if (!isLoading && showRefreshIndicator && isOpen) {
             // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
@@ -53,6 +43,25 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
+    // Forzar revalidación cada vez que se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            // Mostrar indicador inmediatamente al abrir
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+            // Ejecutar refetch
+            refetch();
+        }
+    }, [isOpen]);
+
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -73,14 +82,6 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
         }, 3000);
     };
 
-    // Estados y configuraciones para el modal de información
-    const [modalConfig, setModalConfig] = useState({
-        isOpen: false,
-        type: 'info',
-        title: '',
-        description: '',
-        showButton: false
-    });
 
     // Función para manejar el click en una categoría
     const handleCategoria = (categoria) => {
@@ -122,23 +123,14 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-            setCurrentPage(1);
         }
     }, [isOpen]);
 
-    // Efecto para manejar errores de SWR
-    useEffect(() => {
-        if (error) {
-            console.error('Error obteniendo categorías:', error);
-            setModalConfig({
-                isOpen: true,
-                type: 'error',
-                title: 'Error de Acceso',
-                description: 'No tienes permisos para acceder a esta función.',
-                showButton: true
-            });
-        }
-    }, [error]);
+    // Filtrar categorías localmente basado en la búsqueda
+    const categoriasFiltradas = categorias.filter(categoria => 
+        categoria.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
 
     // Función para manejar cuando se crea una nueva categoría
     const handleCategoriaCreated = (newCategoria) => {
@@ -221,12 +213,12 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                     />
                 </div>
                 <div className={styles.content}>
-                    {categorias.length > 0 ? (
-                        categorias.map((categoria, index) => (
+                    {categoriasFiltradas.length > 0 ? (
+                        categoriasFiltradas.map((categoria, index) => (
                             <ItemView
                                 key={categoria.id || index}
                                 title={categoria.name || 'Sin nombre'}
-                                icon="tag"
+                                icon="category"
                                 arrow={true}
                                 onClick={() => handleCategoria(categoria)}
                             />
@@ -234,13 +226,6 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                     ) : (
                         <div className={styles.noData}>
                             <p>{searchQuery ? 'No se encontraron categorías' : 'No hay categorías registradas'}</p>
-                        </div>
-                    )}
-
-                    {/* Indicador de carga para más elementos */}
-                    {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más categorías...</p>
                         </div>
                     )}
                 </div>
@@ -271,18 +256,6 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                 setIsOpen={setIsAgregarOpen} 
                 tipo='agregar'
                 onCategoriaCreated={handleCategoriaCreated}
-            />
-
-            {/* Modal de Información */}
-            <InfoModal
-                isOpen={modalConfig.isOpen}
-                setIsOpen={(isOpen) => setModalConfig(prev => ({ ...prev, isOpen }))}
-                type={modalConfig.type}
-                title={modalConfig.title}
-                description={modalConfig.description}
-                showButton={modalConfig.showButton}
-                buttonText="Aceptar"
-                onButtonClick={() => setIsOpen(false)}
             />
             <Notification
                 isVisible={notification.isVisible}

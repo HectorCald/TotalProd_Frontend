@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
+import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerPersona from './VerPersona';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import LoadingSpinner from '../../common/LoadingSpinner';
-import { usePersonal } from '../../../hooks/useData';
+import { usePersonal, useSucursales } from '../../../hooks/useData';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
-
-import personalService from '../../../services/personalService';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 
@@ -21,26 +19,25 @@ function Personal({ isOpen, setIsOpen }) {
     const [infoPersona, setInfoPersona] = useState(null);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
 
-    // Estados para paginación
-    const [currentPage, setCurrentPage] = useState(1);
-    
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    
+    // Estado para búsqueda local
+    const [searchQuery, setSearchQuery] = useState('');
 
     // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { personal, hasMorePages, error, isLoading, refetch } = usePersonal(
-        '', // No hay búsqueda en personal
-        isOpen ? currentPage : 1,
-        isOpen
-    );
+    const { personal, error, isLoading, refetch } = usePersonal(isOpen);
+
+    // Hook para cargar sucursales
+    const { sucursales, error: sucursalesError, isLoading: sucursalesLoading, refetch: refetchSucursales } = useSucursales(isOpen);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
-        if (isLoading && isOpen) {
+        if (isLoading && isOpen && !showRefreshIndicator) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator) {
+        } else if (!isLoading && showRefreshIndicator && isOpen) {
             // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
@@ -50,6 +47,25 @@ function Personal({ isOpen, setIsOpen }) {
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
+    // Forzar revalidación cada vez que se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            // Mostrar indicador inmediatamente al abrir
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+            // Ejecutar refetch
+            refetch();
+        }
+    }, [isOpen]);
+
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
 
 
 
@@ -90,13 +106,6 @@ function Personal({ isOpen, setIsOpen }) {
 
     // 🚀 SWR maneja automáticamente la carga de datos
     // No necesitamos fetchPersonal manual
-    // Función para manejar scroll infinito
-    const handleScroll = (e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
-            setCurrentPage(prev => prev + 1);
-        }
-    };
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
@@ -119,12 +128,18 @@ function Personal({ isOpen, setIsOpen }) {
         }
     };
 
-    // Efecto para resetear página cuando se abre
+    // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
-            setCurrentPage(1);
+            setSearchQuery('');
         }
     }, [isOpen]);
+
+    // Filtrar personal localmente basado en la búsqueda
+    const personalFiltrado = personal.filter(persona => 
+        `${persona.first_name} ${persona.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (persona.codigo && persona.codigo.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
 
     // Efecto para manejar errores de SWR
     useEffect(() => {
@@ -209,28 +224,31 @@ function Personal({ isOpen, setIsOpen }) {
                         isLoading={isRefreshing}
                     />
                 </div>
-                <div className={styles.content} onScroll={handleScroll}>
-                    {personal.length > 0 ? (
-                        personal.map((personal, index) => (
+                <div className={styles.searchContainer}>
+                    <InputSearch
+                        placeholder='Buscar por nombre o código...'
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                        }}
+                    />
+                </div>
+                <div className={styles.content}>
+                    {personalFiltrado.length > 0 ? (
+                        personalFiltrado.map((persona, index) => (
                             <ItemView
-                                key={personal.id || index}
-                                title={`${personal.first_name} ${personal.last_name}`}
-                                description={`Código: ${personal.codigo}`}
+                                key={persona.id || index}
+                                title={`${persona.first_name} ${persona.last_name}`}
+                                description={`Código: ${persona.codigo}`}
                                 arrow={true}
-                                onClick={() => handlePersonal(personal)}
-                                float2={personal.is_active ? 'Activo' : 'Inactivo'}
+                                onClick={() => handlePersonal(persona)}
+                                float2={persona.is_active ? 'Activo' : 'Inactivo'}
                             />
                         ))
                     ) : (
                         <div className={styles.noData}>
-                            <p>No hay personal registrado</p>
-                        </div>
-                    )}
-
-                    {/* Indicador de carga para más elementos */}
-                    {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más personal...</p>
+                            <p>{searchQuery ? 'No se encontró personal' : 'No hay personal registrado'}</p>
                         </div>
                     )}
                 </div>
@@ -249,6 +267,7 @@ function Personal({ isOpen, setIsOpen }) {
                 usuario={infoPersona}
                 onProveedorDeleted={handlePersonalDeleted}
                 onProveedorUpdated={handlePersonalUpdated}
+                sucursales={sucursales}
             />
 
             {/* Modal de Editar/Agregar */}
@@ -257,6 +276,7 @@ function Personal({ isOpen, setIsOpen }) {
                 setIsOpen={setIsOpenEditarAgregar}
                 tipo='agregar'
                 onPersonalCreated={handlePersonalCreated}
+                sucursales={sucursales}
             />
             {/* Modal de Información */}
             <InfoModal

@@ -10,40 +10,21 @@ import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
 import ItemLine from '../../common/ItemLine';
 import { motion } from 'framer-motion';
-import pricesTypesService from '../../../services/pricesTypesService';
-import proveedorService from '../../../services/proveedorService';
-import clientService from '../../../services/clientService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
-import EditarAgregar from '../proveedores/EditarAgregar';
-import EditarAgregarCliente from '../clientes/EditarAgregar';
-import PantallaExito from '../../common/PantallaExito';
 import Switch from '../../common/Switch';
 import Proveedores from '../proveedores/Proveedores';
 import Clientes from '../clientes/Clientes';
 import MensajeError from '../../common/MensajeError';
 
-function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated, esEntrega = false }) {
+function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
-    const [isExitoOpen, setIsExitoOpen] = useState(false);
-    const [movimientoCreado, setMovimientoCreado] = useState(null);
-    const [datosParaExito, setDatosParaExito] = useState([]);
     const [animarCantidad, setAnimarCantidad] = useState({});
-    const [preciosTipos, setPreciosTipos] = useState([]);
     const [precioSeleccionado, setPrecioSeleccionado] = useState('');
-    const [loadingPrecios, setLoadingPrecios] = useState(false);
 
-    // Estados para clientes y proveedores
-    const [proveedores, setProveedores] = useState([]);
-    const [clientes, setClientes] = useState([]);
-    const [loadingProveedores, setLoadingProveedores] = useState(false);
-    const [loadingClientes, setLoadingClientes] = useState(false);
-    const [proveedoresError, setProveedoresError] = useState('');
-    const [clientesError, setClientesError] = useState('');
-    const [isProveedorOpen, setIsProveedorOpen] = useState(false);
-    const [isClienteOpen, setIsClienteOpen] = useState(false);
+    // Estados para proveedores y clientes
     const [proveedorSeleccionado, setProveedorSeleccionado] = useState('');
     const [clienteSeleccionado, setClienteSeleccionado] = useState('');
     const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState('');
@@ -62,117 +43,29 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         { value: 'qr', label: 'QR', icon: 'qr-scan' },
         { value: 'transferencia', label: 'Transferencia', icon: 'transfer' },
         { value: 'tarjeta', label: 'Tarjeta', icon: 'credit-card' },
-        { value: 'efectivo', label: 'Efectivo', icon: 'money' }
+        { value: 'efectivo', label: 'Efectivo', icon: 'money' },
+        { value: 'credito', label: 'Crédito', icon: 'credit-card' }
     ];
 
-    // Cargar tipos de precios
+    // Inicializar precio seleccionado cuando se abren los precios (solo si no hay uno seleccionado)
     useEffect(() => {
-        const loadPreciosTipos = async () => {
-            setLoadingPrecios(true);
-            try {
-                const response = await pricesTypesService.getAll();
-                if (response.success) {
-                    const mappedOptions = response.data.map(precio => ({
-                        value: precio.id,
-                        label: precio.name, // Solo mostrar el nombre, no el valor
-                        id: precio.id,
-                        name: precio.name,
-                        default_value: precio.default_value
-                    }));
-                    setPreciosTipos(mappedOptions);
-                    
-                    // Verificar si hay un precio específico guardado para entregas
-                    if (esEntrega) {
-                        const precioIdEntregando = localStorage.getItem('precioIdEntregando');
-                        if (precioIdEntregando && mappedOptions.find(p => p.value === precioIdEntregando)) {
-                            setPrecioSeleccionado(precioIdEntregando);
-                        } else if (mappedOptions.length > 0) {
-                            setPrecioSeleccionado(mappedOptions[0].value);
-                        }
-                    } else {
-                        // Para otros casos, seleccionar el primer precio por defecto
-                        if (mappedOptions.length > 0) {
-                            setPrecioSeleccionado(mappedOptions[0].value);
-                        }
-                    }
+        if (isOpen && preciosTipos.length > 0 && !precioSeleccionado) {
+            // Verificar si hay un precio específico guardado para entregas
+            if (esEntrega) {
+                const precioIdEntregando = localStorage.getItem('precioIdEntregando');
+                if (precioIdEntregando && preciosTipos.find(p => p.value === precioIdEntregando)) {
+                    setPrecioSeleccionado(precioIdEntregando);
+                } else if (preciosTipos.length > 0) {
+                    setPrecioSeleccionado(preciosTipos[0].value);
                 }
-            } catch (error) {
-                console.error('Error al cargar tipos de precios:', error);
-            } finally {
-                setLoadingPrecios(false);
-            }
-        };
-
-        if (isOpen) {
-            loadPreciosTipos();
-        }
-    }, [isOpen, esEntrega]);
-
-    // Cargar proveedores (solo para entradas)
-    useEffect(() => {
-        const loadProveedores = async () => {
-            if (tipoMovimiento !== 'entrada') return;
-            
-            setLoadingProveedores(true);
-            setProveedoresError('');
-            setProveedores([]);
-            try {
-                const response = await proveedorService.getAll();
-                if (response.success) {
-                    const mappedOptions = response.data.map(prov => ({
-                        value: prov.id,
-                        label: prov.name,
-                        id: prov.id,
-                        name: prov.name
-                    }));
-                    setProveedores(mappedOptions);
-                } else {
-                    setProveedoresError(response.message || 'Error al cargar proveedores');
+            } else {
+                // Para otros casos, seleccionar el primer precio por defecto
+                if (preciosTipos.length > 0) {
+                    setPrecioSeleccionado(preciosTipos[0].value);
                 }
-            } catch (error) {
-                setProveedoresError('Error al cargar proveedores');
-            } finally {
-                setLoadingProveedores(false);
             }
-        };
-
-        if (isOpen && tipoMovimiento === 'entrada') {
-            loadProveedores();
         }
-    }, [isOpen, tipoMovimiento]);
-
-    // Cargar clientes (para todas las salidas)
-    useEffect(() => {
-        const loadClientes = async () => {
-            if (tipoMovimiento !== 'salida') return;
-            
-            setLoadingClientes(true);
-            setClientesError('');
-            setClientes([]);
-            try {
-                const response = await clientService.getAll();
-                if (response.success) {
-                    const mappedOptions = response.data.map(cliente => ({
-                        value: cliente.id,
-                        label: cliente.name,
-                        id: cliente.id,
-                        name: cliente.name
-                    }));
-                    setClientes(mappedOptions);
-                } else {
-                    setClientesError(response.message || 'Error al cargar clientes');
-                }
-            } catch (error) {
-                setClientesError('Error al cargar clientes');
-            } finally {
-                setLoadingClientes(false);
-            }
-        };
-
-        if (isOpen && tipoMovimiento === 'salida') {
-            loadClientes();
-        }
-    }, [isOpen, tipoMovimiento]);
+    }, [isOpen, preciosTipos, esEntrega, precioSeleccionado]);
 
 
     // Guardar en localStorage cuando cambie la canasta (separado por tipo)
@@ -180,29 +73,35 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         const localStorageKey = tipoMovimiento === 'entrada' ? 'canastaEntradas' : 'canastaSalidas';
         if (productosCanasta.length > 0) {
             localStorage.setItem(localStorageKey, JSON.stringify(productosCanasta));
-        } else {
-            localStorage.removeItem(localStorageKey);
         }
-    }, [productosCanasta, tipoMovimiento]);
+        // NO remover del localStorage aquí para evitar que se borre al recargar la página
+        // La limpieza se maneja en las funciones específicas
+    }, [productosCanasta, tipoMovimiento, esEntrega]);
 
-    // Actualizar precios cuando cambie el precio seleccionado
+    // Cargar canasta desde localStorage al abrir el modal
     useEffect(() => {
-        if (precioSeleccionado && preciosTipos.length > 0 && productosCanasta.length > 0) {
-            const tipoPrecio = preciosTipos.find(p => p.value === precioSeleccionado);
-            if (tipoPrecio) {
-                setProductosCanasta(prev => prev.map(producto => {
-                    // Buscar el precio correspondiente al tipo seleccionado en los precios del producto
-                    const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === tipoPrecio.id);
-                    const nuevoPrecio = precioProducto?.valor || tipoPrecio.default_value || 0;
+        if (isOpen) {
+            const localStorageKey = tipoMovimiento === 'entrada' ? 'canastaEntradas' : 'canastaSalidas';
+            const canastaGuardada = localStorage.getItem(localStorageKey);
+            if (canastaGuardada) {
+                try {
+                    const productosGuardados = JSON.parse(canastaGuardada);
                     
-                    return {
-                        ...producto,
-                        precio: nuevoPrecio
-                    };
-                }));
+                    // Si es una entrega (salida), actualizar el stock de los productos
+                    if (tipoMovimiento === 'salida' && esEntrega) {
+                        // Los productos ya vienen con el stock actualizado desde VerPedido.jsx
+                        setProductosCanasta(productosGuardados);
+                    } else {
+                        setProductosCanasta(productosGuardados);
+                    }
+                } catch (error) {
+                    console.error('Error al cargar canasta desde localStorage:', error);
+                }
             }
         }
-    }, [precioSeleccionado, preciosTipos]);
+    }, [isOpen, tipoMovimiento, esEntrega]);
+
+
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
@@ -264,30 +163,19 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         ));
     };
 
-    // Función para manejar cuando se crea un nuevo proveedor
-    const handleProveedorCreated = (newProveedor) => {
-        setProveedores(prev => [...prev, {
-            value: newProveedor.id,
-            label: newProveedor.name,
-            id: newProveedor.id,
-            name: newProveedor.name
-        }]);
-        setProveedorSeleccionado(newProveedor.id);
-        setProveedorSeleccionadoData(newProveedor);
-        setIsProveedorOpen(false);
-    };
-
-    // Función para manejar cuando se crea un nuevo cliente
-    const handleClienteCreated = (newCliente) => {
-        setClientes(prev => [...prev, {
-            value: newCliente.id,
-            label: newCliente.name,
-            id: newCliente.id,
-            name: newCliente.name
-        }]);
-        setClienteSeleccionado(newCliente.id);
-        setClienteSeleccionadoData(newCliente);
-        setIsClienteOpen(false);
+    const handleCambiarTipoPrecio = (nuevoTipoPrecio) => {
+        setPrecioSeleccionado(nuevoTipoPrecio);
+        
+        // Actualizar precios de todos los productos
+        setProductosCanasta(prev => prev.map(producto => {
+            const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
+            const nuevoPrecio = precioProducto?.valor || 0;
+            
+            return {
+                ...producto,
+                precio: nuevoPrecio
+            };
+        }));
     };
 
     // Función para manejar cuando se selecciona un proveedor
@@ -306,7 +194,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
+        // Limpiar también el localStorage
+        const localStorageKey = tipoMovimiento === 'entrada' ? 'canastaEntradas' : 'canastaSalidas';
+        localStorage.removeItem(localStorageKey);
         setIsLimpiarModalOpen(false);
+        setIsOpen(false);
     };
 
     const handleConfirmarMovimientos = async () => {
@@ -322,10 +214,20 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 return;
             }
 
+            // Preparar observaciones (agregar info del pedido si es entrega)
+            let observacionesFinales = observacionesGenerales || '';
+            if (esEntrega && localStorage.getItem('pedidoIdEntregando')) {
+                const pedidoId = localStorage.getItem('pedidoIdEntregando');
+                const infoPedido = `Entrega automática del pedido #${pedidoId.slice(-8)}`;
+                observacionesFinales = observacionesFinales 
+                    ? `${infoPedido} - ${observacionesFinales}`
+                    : infoPedido;
+            }
+
             // Preparar datos para enviar al backend
             const movimientoData = {
                 tipo: tipoMovimiento,
-                observaciones: observacionesGenerales || null,
+                observaciones: observacionesFinales || null,
                 precio_id: precioSeleccionado,
                 metodo_pago: tipoMovimiento === 'salida' ? metodoPagoSeleccionado : null,
                 cliente_id: tipoMovimiento === 'salida' ? (clienteSeleccionado || null) : null,
@@ -351,28 +253,33 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     onProductosUpdated(productosActualizados);
                 }
 
-                // Guardar datos del movimiento para mostrar en pantalla de éxito
-                setMovimientoCreado(response.data);
-                
-                // Guardar datos de los productos para mostrar en la pantalla de éxito
-                setDatosParaExito(productosCanasta.map(producto => ({
-                    nombre: producto.name,
-                    cantidad: `${producto.cantidad} ${producto.type_measure?.code || 'u'} - Bs. ${((producto.precio || 0) * producto.cantidad).toFixed(2)}`,
-                    medida: '' // No usar medida aquí ya que está incluida en cantidad
-                })));
-
-                // Limpiar la canasta inmediatamente al mostrar éxito
-                setProductosCanasta([]);
-                setObservacionesGenerales('');
-                setProveedorSeleccionado('');
-                setClienteSeleccionado('');
-                setMetodoPagoSeleccionado('');
-                
-                // Cerrar modal de confirmación
-                setIsConfirmarModalOpen(false);
-                
-                // Mostrar pantalla de éxito
-                setIsExitoOpen(true);
+                if (esEntrega) {
+                    // Para entregas, NO cerrar la canasta aquí, solo pasar el movimiento_id
+                    // La canasta se cerrará cuando se complete la entrega del pedido
+                    if (onCerrarCanasta) {
+                        onCerrarCanasta(productosCanasta, precioSeleccionado, response.data.id);
+                    }
+                } else {
+                    // Para movimientos normales, cerrar canasta y mostrar notificación
+                    setProductosCanasta([]);
+                    setObservacionesGenerales('');
+                    setProveedorSeleccionado('');
+                    setClienteSeleccionado('');
+                    setMetodoPagoSeleccionado('');
+                    
+                    // Limpiar localStorage
+                    const localStorageKey = tipoMovimiento === 'entrada' ? 'canastaEntradas' : 'canastaSalidas';
+                    localStorage.removeItem(localStorageKey);
+                    
+                    // Cerrar modal de confirmación
+                    setIsConfirmarModalOpen(false);
+                    
+                    // Cerrar canasta y mostrar notificación
+                    setIsOpen(false);
+                    if (onCerrarCanasta) {
+                        onCerrarCanasta(productosCanasta, precioSeleccionado);
+                    }
+                }
             } else {
                 console.error('Error al crear movimiento:', response.message);
                 // Aquí podrías mostrar una notificación de error
@@ -396,7 +303,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             return total + valorProducto;
         }, 0);
     };
-
+    
     // Verificar si algún producto en la canasta tiene recetas
     const tieneProductosConRecetas = () => {
         return productosCanasta.some(producto => 
@@ -415,14 +322,13 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         </button>
                     </div>
                 </h1>
-                <p className={styles.subTitle}>({getTotalProductos()} productos)</p>
 
                 {/* Selector de precio general */}
                 {productosCanasta.length > 0 && (
                     <div className={styles.precioGeneral}>
                         <Select
                             value={precioSeleccionado}
-                            onChange={setPrecioSeleccionado}
+                            onChange={handleCambiarTipoPrecio}
                             options={preciosTipos}
                             placeholder="Seleccionar precio general"
                             disabled={loadingPrecios}
@@ -446,7 +352,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                             <div>
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
-                                                    Stock actual: {producto.stock || 0} {producto.type_measure?.code || ''}
+                                                    Stock: {producto.stock || 0} {producto.type_measure?.code || ''}
                                                 </p>
                                             </div>
                                         </div>
@@ -478,7 +384,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                                  onClick={() => handleActualizarCantidad(producto.id, producto.cantidad - 1, true)}
                                                  disabled={producto.cantidad <= 1}
                                              >
-                                                 <BoxIcon name='minus' />
+                                                 <BoxIcon name='minus' className={styles.iconMinus} />
                                              </button>
                                             <motion.span
                                                 animate={animarCantidad[producto.id] ? { scale: [1, 1.3, 0.9, 1] } : { scale: 1 }}
@@ -510,7 +416,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                                  onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}
                                                  disabled={producto.cantidad >= producto.stock}
                                              >
-                                                 <BoxIcon name='plus' />
+                                                 <BoxIcon name='plus' className={styles.iconPlus} />
                                              </button>
                                         </div>
                                     </div>
@@ -528,7 +434,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         {/* Total general */}
                         <div className={styles.totalGeneral}>
                             <div className={styles.totalGeneralContent}>
-                                <span className={styles.totalGeneralLabel}>Total General:</span>
+                                <span className={styles.totalGeneralLabel}>Total:</span>
                                 <span className={styles.totalGeneralValue}>Bs. {getTotalValor().toFixed(2)}</span>
                             </div>
                         </div>
@@ -536,7 +442,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         <div className={styles.buttons}>
                             <Boton
                                 className='btn-original'
-                                label={`Resumen de ${tipoMovimiento === 'entrada' ? 'Entradas' : 'Salidas'}`}
+                                label={`Resumen de ${tipoMovimiento === 'entrada' ? 'Entrada' : 'Salida'}`}
                                 onClick={() => setIsConfirmarModalOpen(true)}
                             />
                         </div>
@@ -576,7 +482,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             {/* Modal de confirmar movimientos */}
             <ViewModal isOpen={isConfirmarModalOpen} setIsOpen={setIsConfirmarModalOpen}>
                 <HeaderModal
-                    title={`Resumen de ${tipoMovimiento === 'entrada' ? 'Entradas' : 'Salidas'}`}
+                    title={`Resumen de ${tipoMovimiento === 'entrada' ? 'Entrada' : 'Salida'}`}
                     onClose={() => setIsConfirmarModalOpen(false)}
                 />
                 <div className={styles.modalContent}>
@@ -612,8 +518,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         </div>
                     )}
 
-                    {/* Selector de cliente para salidas */}
-                    {tipoMovimiento === 'salida' && (
+                    {/* Selector de cliente para salidas (oculto en entregas) */}
+                    {tipoMovimiento === 'salida' && !esEntrega && (
                         <div className={styles.content} style={{ padding: '5px 15px' }}>
                             <Boton
                                 className='btn-transparent'
@@ -666,7 +572,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-original'
-                            label={esEntrega ? 'Entregar Pedido' : `Confirmar ${tipoMovimiento === 'entrada' ? 'Entradas' : 'Salidas'}`}
+                            label={esEntrega ? 'Entregar Pedido' : `Confirmar ${tipoMovimiento === 'Entrada' ? 'Entradas' : 'Salida'}`}
                             onClick={handleConfirmarMovimientos}
                             loading={loadingConfirmar}
                         />
@@ -674,50 +580,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 </div>
             </ViewModal>
 
-            {/* Modal de nuevo proveedor */}
-            <EditarAgregar
-                isOpen={isProveedorOpen}
-                setIsOpen={setIsProveedorOpen}
-                tipo='agregar'
-                onProveedorCreated={handleProveedorCreated}
-            />
 
-            {/* Modal de nuevo cliente */}
-            <EditarAgregarCliente
-                isOpen={isClienteOpen}
-                setIsOpen={setIsClienteOpen}
-                tipo='agregar'
-                onClienteCreated={handleClienteCreated}
-            />
-
-            {/* Pantalla de éxito */}
-            <PantallaExito
-                isOpen={isExitoOpen}
-                setIsOpen={setIsExitoOpen}
-                titulo={`¡${tipoMovimiento === 'entrada' ? 'Entrada' : 'Salida'} Registrada!`}
-                descripcion={`Tu ${tipoMovimiento === 'entrada' ? 'entrada' : 'salida'} ha sido registrada correctamente.`}
-                datosPedido={datosParaExito}
-                totalGeneral={datosParaExito.reduce((total, item) => {
-                    // Extraer el precio del texto de cantidad
-                    const precioMatch = item.cantidad.match(/Bs\. (\d+\.?\d*)/);
-                    return total + (precioMatch ? parseFloat(precioMatch[1]) : 0);
-                }, 0)}
-                onDescargarPDF={() => console.log('Descargar PDF')}
-                onDescargarExcel={() => console.log('Descargar Excel')}
-                onEnviarWhatsapp={() => console.log('Enviar WhatsApp')}
-                onCerrar={() => {
-                    // Limpiar datos de éxito
-                    setDatosParaExito([]);
-                    setMovimientoCreado(null);
-                    // Solo cerrar la pantalla de éxito y volver
-                    setIsOpen(false);
-                    if (onCerrarCanasta) {
-                        onCerrarCanasta();
-                    }
-                }}
-            />
-
-            {/* Modal de selección de proveedores */}
+            {/* View de selección de proveedores */}
             <Proveedores
                 isOpen={isProveedoresSeleccionOpen}
                 setIsOpen={setIsProveedoresSeleccionOpen}
@@ -725,7 +589,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 onProveedorSeleccionado={handleProveedorSeleccionado}
             />
 
-            {/* Modal de selección de clientes */}
+            {/* View de selección de clientes */}
             <Clientes
                 isOpen={isClientesSeleccionOpen}
                 setIsOpen={setIsClientesSeleccionOpen}

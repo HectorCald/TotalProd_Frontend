@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -21,31 +20,22 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
     const [infoPersona, setInfoPersona] = useState(null);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
 
-    // Estados para paginación y búsqueda
-    const [currentPage, setCurrentPage] = useState(1);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-    
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     
-    // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    // Estado para búsqueda local
+    const [searchQuery, setSearchQuery] = useState('');
 
     // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { proveedores, hasMorePages, error, isLoading, refetch } = useProveedores(
-        isOpen ? debouncedSearchQuery : '', 
-        isOpen ? currentPage : 1,
-        isOpen
-    );
+    const { proveedores, error, isLoading, refetch } = useProveedores(isOpen);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
-        if (isLoading && isOpen) {
+        if (isLoading && isOpen && !showRefreshIndicator) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator) {
+        } else if (!isLoading && showRefreshIndicator && isOpen) {
             // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
@@ -55,6 +45,25 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
+    // Forzar revalidación cada vez que se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            // Mostrar indicador inmediatamente al abrir
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+            // Ejecutar refetch
+            refetch();
+        }
+    }, [isOpen]);
+
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
 
 
 
@@ -105,19 +114,6 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
 
     // 🚀 SWR maneja automáticamente la carga de datos
     // No necesitamos fetchProveedores manual
-    // Función para manejar scroll infinito
-    const handleScroll = (e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
-            setCurrentPage(prev => prev + 1);
-        }
-    };
-
-    // Función para manejar búsqueda
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        setCurrentPage(1);
-    };
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
@@ -144,9 +140,14 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-            setCurrentPage(1);
         }
     }, [isOpen]);
+
+    // Filtrar proveedores localmente basado en la búsqueda
+    const proveedoresFiltrados = proveedores.filter(proveedor => 
+        proveedor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (proveedor.phone && proveedor.phone.includes(searchQuery))
+    );
 
     // Manejar error 403 con useEffect para evitar bucle infinito
     useEffect(() => {
@@ -244,13 +245,9 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                         }}
                     />
                 </div>
-                <div className={styles.content} onScroll={handleScroll}>
-                    {isSearching ? (
-                        <div className={styles.searchingData}>
-                            <p>Buscando...</p>
-                        </div>
-                    ) : proveedores.length > 0 ? (
-                        proveedores.map((proveedor, index) => (
+                <div className={styles.content}>
+                    {proveedoresFiltrados.length > 0 ? (
+                        proveedoresFiltrados.map((proveedor, index) => (
                             <ItemView
                                 key={proveedor.id || index}
                                 title={proveedor.name || 'Sin nombre'}
@@ -262,13 +259,6 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                     ) : (
                         <div className={styles.noData}>
                             <p>{searchQuery ? 'No se encontraron proveedores' : 'No hay proveedores registrados'}</p>
-                        </div>
-                    )}
-
-                    {/* Indicador de carga para más elementos */}
-                    {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más proveedores...</p>
                         </div>
                     )}
                 </div>

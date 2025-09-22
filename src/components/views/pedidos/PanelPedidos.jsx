@@ -10,15 +10,13 @@ import Filtros from '../../common/Filtros';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemLine from '../../common/ItemLine';
-import pedidosAcopioService from '../../../services/pedidosAcopioService';
-import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import Notification from '../../common/Notification';
 import { usePedidosAcopio, usePedidosAlmacen } from '../../../hooks/useData';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 
 function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
-    // Estados para los modales
+    // Estados para los modal de ver pedido
     const [isOpenVerPedido, setIsOpenVerPedido] = useState(false);
     const [infoPedido, setInfoPedido] = useState(null);
 
@@ -30,6 +28,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     
+
     // Estado para acumular todos los pedidos de todas las páginas
     const [allPedidos, setAllPedidos] = useState([]);
     
@@ -81,10 +80,10 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
-        if (isLoading && isOpen) {
+        if (isLoading && isOpen && !showRefreshIndicator) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator) {
+        } else if (!isLoading && showRefreshIndicator && isOpen) {
             // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
@@ -94,6 +93,25 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
+    // Forzar revalidación cada vez que se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            // Mostrar indicador inmediatamente al abrir
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+            // Ejecutar refetch
+            refetch();
+        }
+    }, [isOpen]);
+
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -110,11 +128,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setTimeout(() => {
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 3000);
-    };
-
-    // Función para obtener el servicio correcto
-    const getService = () => {
-        return tipoPedido === 'acopio' ? pedidosAcopioService : pedidosAlmacenService;
     };
 
     // Función para manejar refresh con indicador
@@ -161,51 +174,48 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     }, [error]);
 
+
+
     // Función para ver un pedido
     const handleVerPedido = (pedido) => {
         setInfoPedido(pedido);
         setIsOpenVerPedido(true);
     };
-
-    // Función para actualizar estado de pedido
-    const handleActualizarEstado = async (pedidoId, nuevoEstado) => {
-        try {
-            const service = getService();
-            const response = await service.updateEstado(pedidoId, nuevoEstado);
-
-            if (response.success) {
-                // Actualizar el estado local acumulado
-                setAllPedidos(prevPedidos => 
-                    prevPedidos.map(pedido => 
-                        pedido.id === pedidoId 
-                            ? { ...pedido, estado: nuevoEstado }
-                            : pedido
-                    )
-                );
-                
-                mostrarNotificacion('success', 'Estado actualizado correctamente');
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al actualizar estado');
-            }
-        } catch (error) {
-            console.error('Error al actualizar estado:', error);
-            mostrarNotificacion('error', 'Error de conexión');
-        }
-    };
-
     // Función para manejar cuando se elimina un pedido
     const handlePedidoEliminado = (pedidoId) => {
-        // Actualizar el estado local acumulado removiendo el pedido eliminado
+        // Actualizar el cache de SWR localmente removiendo el pedido eliminado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.filter(pedido => pedido.id !== pedidoId)
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
+        // También actualizar el estado local acumulado
         setAllPedidos(prevPedidos => 
             prevPedidos.filter(pedido => pedido.id !== pedidoId)
         );
         
         mostrarNotificacion('success', 'Pedido eliminado correctamente');
+        setIsOpenVerPedido(false);
     };
-
     // Función para manejar cuando se actualiza un pedido
     const handlePedidoActualizado = (pedidoActualizado) => {
-        // Actualizar el estado local acumulado con el pedido actualizado
+        // Actualizar el cache de SWR localmente con el pedido actualizado
+        refetch((currentData) => {
+            if (!currentData) return currentData;
+            
+            return {
+                ...currentData,
+                data: currentData.data.map(pedido => 
+                    pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido
+                )
+            };
+        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        
+        // También actualizar el estado local acumulado
         setAllPedidos(prevPedidos => 
             prevPedidos.map(pedido => 
                 pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido
@@ -213,7 +223,12 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         );
         
         mostrarNotificacion('success', 'Pedido actualizado correctamente');
+        setIsOpenVerPedido(false);
     };
+
+
+
+
 
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
@@ -228,18 +243,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setOrdenamiento(orden);
         setCurrentPage(1);
     };
-
-    // Función para formatear fecha
-    const formatearFecha = (fecha) => {
-        return new Date(fecha).toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
 
     // Función para obtener el nombre del ordenamiento
     const getOrdenamientoNombre = () => {
@@ -309,7 +312,13 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                 <ItemView
                                     key={pedido.id || index}
                                     title={pedido.sucursal?.name || 'Sucursal desconocida'}
-                                    description={formatearFecha(pedido.fecha || pedido.created_at)}
+                                    description={new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })}
                                     icon="file"
                                     onClick={() => handleVerPedido(pedido)}
                                     flot1={pedido.estado}
@@ -337,7 +346,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 setIsOpen={setIsOpenVerPedido}
                 pedido={infoPedido}
                 tipoPedido={tipoPedido}
-                onEstadoActualizado={handleActualizarEstado}
                 onPedidoEliminado={handlePedidoEliminado}
                 onPedidoActualizado={handlePedidoActualizado}
             />

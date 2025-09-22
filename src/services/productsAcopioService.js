@@ -24,7 +24,7 @@ const getEmpresaId = () => {
 class productsAcopioService {
 
   // Obtener todos los productos
-  static async getAll(page = 1, limit = 10, search = '', categoria = null, tipoMedida = null, ordenamiento = 'nombre_asc') {
+  static async getAll() {
     try {
       const empresaId = getEmpresaId();
       if (!empresaId) {
@@ -35,26 +35,9 @@ class productsAcopioService {
       }
 
       const params = new URLSearchParams({
-        empresa_id: empresaId,
-        page: page.toString(),
-        limit: limit.toString()
+        empresa_id: empresaId
       });
 
-      if (search && search.trim() !== '') {
-        params.append('search', search);
-      }
-      
-      if (categoria !== null) {
-        params.append('categoria', categoria);
-      }
-      
-      if (tipoMedida !== null) {
-        params.append('tipoMedida', tipoMedida);
-      }
-      
-      if (ordenamiento && ordenamiento !== 'nombre_asc') {
-        params.append('ordenamiento', ordenamiento);
-      }
       const response = await fetch(`${API_BASE_URL}/products-acopio?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -22,31 +21,22 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
 
-    // Estados para paginación y búsqueda
-    const [currentPage, setCurrentPage] = useState(1);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-    
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     
-    // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    // Estado para búsqueda local
+    const [searchQuery, setSearchQuery] = useState('');
 
     // 🚀 Hook genérico con SWR
-    const { clientes, hasMorePages, error, isLoading, refetch } = useClientes(
-        isOpen ? debouncedSearchQuery : '', 
-        isOpen ? currentPage : 1,
-        isOpen
-    );
+    const { clientes, error, isLoading, refetch } = useClientes(isOpen);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
-        if (isLoading && isOpen) {
+        if (isLoading && isOpen && !showRefreshIndicator) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator) {
+        } else if (!isLoading && showRefreshIndicator && isOpen) {
             // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
@@ -56,6 +46,25 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
+    // Forzar revalidación cada vez que se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            // Mostrar indicador inmediatamente al abrir
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+            // Ejecutar refetch
+            refetch();
+        }
+    }, [isOpen]);
+
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
 
 
     // Estado para la notificación
@@ -121,19 +130,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
 
     // 🚀 SWR maneja automáticamente la carga de datos
     // No necesitamos fetchClients manual
-    // Función para manejar scroll infinito
-    const handleScroll = (e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
-            setCurrentPage(prev => prev + 1);
-        }
-    };
 
-    // Función para manejar búsqueda
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        setCurrentPage(1);
-    };
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
@@ -160,9 +157,14 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-            setCurrentPage(1);
         }
     }, [isOpen]);
+
+    // Filtrar clientes localmente basado en la búsqueda
+    const clientesFiltrados = clientes.filter(cliente => 
+        cliente.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (cliente.phone && cliente.phone.includes(searchQuery))
+    );
 
 
 
@@ -249,13 +251,9 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                         }}
                     />
                 </div>
-                <div className={styles.content} onScroll={handleScroll}>
-                    {isSearching ? (
-                        <div className={styles.searchingData}>
-                            <p>Buscando...</p>
-                        </div>
-                    ) : clientes.length > 0 ? (
-                        clientes.map((cliente, index) => (
+                <div className={styles.content}>
+                    {clientesFiltrados.length > 0 ? (
+                        clientesFiltrados.map((cliente, index) => (
                             <ItemView
                                 key={cliente.id || index}
                                 title={cliente.name || 'Sin nombre'}
@@ -267,13 +265,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                     ) : (
                         <div className={styles.noData}>
                             <p>{searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}</p>
-                        </div>
-                    )}
-
-                    {/* Indicador de carga para más elementos */}
-                    {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más clientes...</p>
                         </div>
                     )}
                 </div>

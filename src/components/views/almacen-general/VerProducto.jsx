@@ -13,11 +13,13 @@ import movimientosAlmacenService from '../../../services/movimientosAlmacenServi
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
-function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductDeleted }) {
-    
+function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductDeleted, preciosTipos = [], loadingPrecios = false }) {
+
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditarOpen, setIsEditarOpen] = useState(false);
     const [isRecetaOpen, setIsRecetaOpen] = useState(false);
+    const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
+    const [isPreciosOpen, setIsPreciosOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [movimientos, setMovimientos] = useState([]);
     const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
@@ -25,12 +27,12 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
     // Agrupar movimientos por fecha usando useMemo
     const groupedMovements = useMemo(() => {
         if (!movimientos || movimientos.length === 0) return [];
-        
+
         const today = new Date();
         const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const yesterday = new Date(todayOnly);
         yesterday.setDate(yesterday.getDate() - 1);
-        
+
         const groups = {
             'Hoy': [],
             'Ayer': [],
@@ -124,21 +126,6 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 <h1 className={styles.title}>
                     {registro?.name}
                     <div className={styles.iconButton} >
-                        <button 
-                            className={styles.iconButton} 
-                            onClick={() => setIsDeleteOpen(true)}
-                        >
-                            <BoxIcon
-                                name='trash'
-                                className={styles.iconTrash}
-                            />
-                        </button>
-                        <button className={styles.iconButton} onClick={() => setIsEditarOpen(true)}>
-                            <BoxIcon
-                                name='edit'
-                                className={styles.icon}
-                            />
-                        </button>
                     </div>
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
@@ -161,89 +148,46 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     />
                 </div>
 
-                {/* Sección de Precios */}
+
+                {/* Botones de acciones */}
+                {/* Botón para ver precios - siempre visible */}
                 {registro?.price_product && registro.price_product.length > 0 && (
-                    <>
-                        <p className={styles.subTitle}>PRECIOS</p>
-                        <div className={styles.content}>
-                            {registro.price_product.map((precio, index) => (
-                                <Dato
-                                    key={precio.id || index}
-                                    label={precio.prices_types?.name || 'Precio'}
-                                    value={`Bs. ${precio.valor || 0}`}
-                                />
-                            ))}
-                        </div>
-                    </>
+                    <Boton
+                        className='btn-gray'
+                        label={`Precios (${registro.price_product.length})`}
+                        onClick={() => setIsPreciosOpen(true)}
+                    />
                 )}
 
                 {/* Botón para ver receta - solo si tiene receta */}
                 {registro?.recetas && registro.recetas.length > 0 && (
-                    <div className={styles.content} style={{ padding: '10px 15px' }}>
-                        <Boton
-                            className='btn-default'
-                            label='Ver Receta'
-                            onClick={() => setIsRecetaOpen(true)}
-                        />
-                    </div>
+                    <Boton
+                        className='btn-gray'
+                        label='Receta'
+                        onClick={() => setIsRecetaOpen(true)}
+                    />
                 )}
 
-                <p className={styles.subTitle}>
-                    ÚLTIMOS MOVIMIENTOS 
-                    {movimientos.length > 0 && (
-                        <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal' }}>
-                            {' '}({movimientos.length} movimientos)
-                        </span>
-                    )}
-                </p>
-                    {loadingMovimientosList ? (
-                        <div className={styles.noData}>
-                            <p>Cargando movimientos...</p>
-                        </div>
-                    ) : movimientos.length > 0 ? (
-                        groupedMovements.map(([dateGroup, groupMovements]) => (
-                            <div key={dateGroup} style={{ width: '100%' }}>
-                                <p className={styles.subTitle} style={{ 
-                                    fontSize: '14px', 
-                                    color: '#666', 
-                                    marginTop: '10px',
-                                    marginBottom: '10px',
-                                    fontWeight: '600',
-                                }}>
-                                    {dateGroup}
-                                </p>
-                                {groupMovements.map((movimiento, index) => {
-                                    // Para movimientos de almacén, obtener la cantidad del producto específico
-                                    const productoMovimiento = movimiento.productos?.find(p => p.producto?.id === registro?.id);
-                                    const cantidad = productoMovimiento?.cantidad || 0;
-                                    
-                                    return (
-                                        <ItemView
-                                            key={movimiento.id || index}
-                                            title={`${movimiento.tipo === 'entrada' ? 'Entrada' : 'Salida'} - ${cantidad} ud`}
-                                            description={
-                                                <div>
-                                                    <div>{movimiento.observaciones || 'Sin observaciones'}</div>
-                                                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                                        {new Date(movimiento.fecha).toLocaleDateString()}
-                                                        {movimiento.tipo === 'entrada' && movimiento.proveedor?.name && ` • ${movimiento.proveedor.name}`}
-                                                        {movimiento.tipo === 'salida' && movimiento.cliente?.name && ` • ${movimiento.cliente.name}`}
-                                                    </div>
-                                                </div>
-                                            }
-                                            icon={movimiento.tipo === 'entrada' ? 'plus-circle' : 'minus-circle'}
-                                            arrow={false}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        ))
-                    ) : (
-                        <div className={styles.noData}>
-                            <p>No hay movimientos registrados</p>
-                        </div>
-                    )}
+                {/* Botón para ver movimientos - siempre visible */}
+                <Boton
+                    className='btn-gray'
+                    label={`Movimientos (${movimientos.length})`}
+                    onClick={() => setIsMovimientosOpen(true)}
+                />
+                <div className={styles.buttons}>
+                    <Boton
+                        className='btn-red'
+                        label='Eliminar Producto'
+                        onClick={() => setIsDeleteOpen(true)}
+                    />
+                    <Boton
+                        className='btn-default'
+                        label='Editar Producto'
+                        onClick={() => setIsEditarOpen(true)}
+                    />
                 </div>
+            </div>
+
 
 
             {/* Modal de eliminar*/}
@@ -253,7 +197,7 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     onClose={() => setIsDeleteOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Estás seguro que deseas eliminar el producto "{registro?.name}" ? Esta acción no se puede deshacer y podria afectar a registros relacionados.</p>
+                    <p className={styles.subTitle}>¿Eliminar el producto "{registro?.name}"? Esta acción es irreversible y puede afectar registros relacionados.</p>
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-red'
@@ -312,12 +256,14 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 </div>
             </ViewModal>
             {/* Modal de editar*/}
-            <EditarAgregar 
-                isOpen={isEditarOpen} 
-                setIsOpen={setIsEditarOpen} 
-                data={registro} 
+            <EditarAgregar
+                isOpen={isEditarOpen}
+                setIsOpen={setIsEditarOpen}
+                data={registro}
                 tipo='editar'
                 onProductUpdated={onProductUpdated}
+                preciosTipos={preciosTipos}
+                loadingPrecios={loadingPrecios}
             />
             {/* Modal de receta */}
             <ViewModal isOpen={isRecetaOpen} setIsOpen={setIsRecetaOpen}>
@@ -332,7 +278,7 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                 label="Descripción de la receta"
                                 value={registro.recetas[0]?.descripcion || 'Sin descripción'}
                             />
-                            
+
                             {registro.recetas[0]?.recetas_detalle && registro.recetas[0].recetas_detalle.length > 0 && (
                                 <>
                                     <p className={styles.subTitle}>INGREDIENTES</p>
@@ -353,6 +299,94 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 </div>
             </ViewModal>
 
+            {/* Modal de movimientos */}
+            <ViewModal isOpen={isMovimientosOpen} setIsOpen={setIsMovimientosOpen}>
+                <HeaderModal
+                    title="Movimientos del Producto"
+                    onClose={() => setIsMovimientosOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    {loadingMovimientosList ? (
+                        <div className={styles.noData}>
+                            <p>Cargando movimientos...</p>
+                        </div>
+                    ) : movimientos.length > 0 ? (
+                        <>
+                            <p className={styles.subTitle}>HISTORIAL DE MOVIMIENTOS</p>
+                            {groupedMovements.map(([dateGroup, groupMovements]) => (
+                                <div key={dateGroup} style={{ width: '100%' }}>
+                                    <p className={styles.subTitle} style={{
+                                        fontSize: '14px',
+                                        color: '#666',
+                                        marginTop: '10px',
+                                        marginBottom: '10px',
+                                        fontWeight: '600',
+                                    }}>
+                                        {dateGroup}
+                                    </p>
+                                    {groupMovements.map((movimiento, index) => {
+                                        // Para movimientos de almacén, obtener la cantidad del producto específico
+                                        const productoMovimiento = movimiento.productos?.find(p => p.producto?.id === registro?.id);
+                                        const cantidad = productoMovimiento?.cantidad || 0;
+
+                                        return (
+                                            <ItemView
+                                                key={movimiento.id || index}
+                                                title={`${movimiento.tipo === 'entrada' ? 'Entrada' : 'Salida'} - ${cantidad} ud`}
+                                                description={
+                                                    <div>
+                                                        <div>{movimiento.observaciones || 'Sin observaciones'}</div>
+                                                        <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                                            {new Date(movimiento.fecha).toLocaleDateString()}
+                                                            {movimiento.tipo === 'entrada' && movimiento.proveedor?.name && ` • ${movimiento.proveedor.name}`}
+                                                            {movimiento.tipo === 'salida' && movimiento.cliente?.name && ` • ${movimiento.cliente.name}`}
+                                                        </div>
+                                                    </div>
+                                                }
+                                                icon={movimiento.tipo === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                                                arrow={false}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            ))}
+                        </>
+                    ) : (
+                        <div className={styles.noData}>
+                            <p>No hay movimientos registrados</p>
+                        </div>
+                    )}
+                </div>
+            </ViewModal>
+
+            {/* Modal de precios */}
+            <ViewModal isOpen={isPreciosOpen} setIsOpen={setIsPreciosOpen}>
+                <HeaderModal
+                    title="Precios del Producto"
+                    onClose={() => setIsPreciosOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    {registro?.price_product && registro.price_product.length > 0 ? (
+                        <>
+                            <p className={styles.subTitle}>PRECIOS CONFIGURADOS</p>
+                            <div className={styles.content}>
+                                {registro.price_product.map((precio, index) => (
+                                    <Dato
+                                        key={precio.id || index}
+                                        label={precio.prices_types?.name || 'Precio'}
+                                        value={`Bs. ${precio.valor || 0}`}
+                                    />
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <div className={styles.noData}>
+                            <p>No hay precios configurados para este producto</p>
+                        </div>
+                    )}
+                </div>
+            </ViewModal>
+
             <Notification
                 isVisible={notification.isVisible}
                 type={notification.type}
@@ -361,4 +395,4 @@ function VerRegistro({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         </View>
     );
 }
-export default VerRegistro;
+export default VerProducto;

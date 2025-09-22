@@ -9,12 +9,11 @@ import Carousel from '../../common/Carousel';
 import MultiSelect from '../../common/MultiSelect';
 import personalService from '../../../services/personalService';
 import modulesService from '../../../services/modulesService';
-import sucursalesService from '../../../services/sucursalesService';
 import Switch from '../../common/Switch';
 import Select from '../../common/Select';
 import Notification from '../../common/Notification';
 
-function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated }) {
+function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated, sucursales = [] }) {
 
     // Estados para los datos del personal
     const [dataEdit, setDataEdit] = useState({
@@ -43,9 +42,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
     const [selectedModules, setSelectedModules] = useState([]);
     const [loadingModules, setLoadingModules] = useState(false);
 
-    // Estados para sucursales
-    const [sucursales, setSucursales] = useState([]);
-    const [loadingSucursales, setLoadingSucursales] = useState(false);
 
     // Estados para modales
     const [isConfiguracionOpen, setIsConfiguracionOpen] = useState(false);
@@ -53,7 +49,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
-   
+
 
     // Función para generar código automático
     const generarCodigo = (firstName, lastName) => {
@@ -62,7 +58,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
         // Tomar las dos primeras letras del nombre y apellido
         const firstTwo = firstName.substring(0, 2).toUpperCase();
         const lastTwo = lastName.substring(0, 2).toUpperCase();
-        
+
         // Generar 4 números aleatorios
         const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
 
@@ -115,27 +111,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
         }
     };
 
-    // Función para cargar sucursales
-    const loadSucursales = async () => {
-        try {
-            setLoadingSucursales(true);
-            const response = await sucursalesService.getByEmpresaId();
-            if (response.success) {
-                // Mapear los datos para el Select
-                const mappedOptions = response.data.map(sucursal => ({
-                    value: sucursal.id,
-                    label: sucursal.name,
-                    id: sucursal.id,
-                    name: sucursal.name
-                }));
-                setSucursales(mappedOptions);
-            }
-        } catch (error) {
-            console.error('Error al cargar sucursales:', error);
-        } finally {
-            setLoadingSucursales(false);
-        }
-    };
 
     // Efecto para cargar los datos del personal
     useEffect(() => {
@@ -194,11 +169,10 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
         setErrorMessage('');
     }, [isOpen, usuario, tipo]);
 
-    // Efecto para cargar módulos y sucursales cuando se abre el modal
+    // Efecto para cargar módulos cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
             loadModules();
-            loadSucursales();
         }
     }, [isOpen]);
 
@@ -207,7 +181,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
     const handleSubmit = async () => {
         // Activar loading inmediatamente
         setLoading(true);
-        
+
         // Validar campos obligatorios
         if (!dataEdit.first_name.trim()) {
             setErrorMessage('El nombre es obligatorio');
@@ -256,7 +230,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
         // Verificar que el código no existe en la base de datos
         try {
             const codigoCheck = await personalService.checkCodigo(codigoFinal, tipo === 'editar' ? usuario?.id : null);
-            
+
             if (codigoCheck.success && codigoCheck.data.exists) {
                 setErrorMessage('El código ya existe en esta empresa');
                 setTimeout(() => {
@@ -300,7 +274,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                 } else if (tipo === 'agregar' && onPersonalCreated) {
                     onPersonalCreated(response.data);
                 }
-                
+
                 // Cerrar modal inmediatamente
                 setIsOpen(false);
             } else {
@@ -325,12 +299,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             ...permisos,
             [permiso]: value
         })
-    }
-
-
-    const hadleGuardar = (usuarioUpdate) => {
-        console.log('Usuario actualizado' + usuarioUpdate)
-        setIsOpen(false)
     }
 
     return (
@@ -387,27 +355,32 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                     <Select
                         value={sucursalId}
                         onChange={(value) => setSucursalId(value)}
-                        options={sucursales}
+                        options={sucursales.map(sucursal => ({
+                            value: sucursal.id,
+                            label: sucursal.name,
+                            id: sucursal.id,
+                            name: sucursal.name
+                        }))}
                         placeholder='Sucursal (opcional)'
-                        disabled={loadingSucursales || tipo === 'ver'}
+                        disabled={tipo === 'ver'}
                         icon='store'
                     />
                 </div>
 
                 {tipo !== 'ver' && (
-                    <div className={styles.content} style={{ padding: '10px 15px' }}>
-                        <Boton
-                            className='btn-default'
-                            label='Ver Configuración'
-                            onClick={() => setIsConfiguracionOpen(true)}
-                        />
-                    </div>
+
+                    <Boton
+                        className='btn-gray'
+                        label='Ver Configuración'
+                        onClick={() => setIsConfiguracionOpen(true)}
+                    />
+
                 )}
 
                 {tipo !== 'ver' && (
                     <Boton
                         className='btn-original'
-                        label={tipo === 'editar' ? 'Actualizar' : 'Guardar'}
+                        label={tipo === 'editar' ? 'Actualizar Personal' : 'Agregar Personal'}
                         style={{ marginTop: 'auto' }}
                         onClick={handleSubmit}
                         loading={loading}
@@ -435,35 +408,35 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             />
                         </>
                     )}
-<p className={styles.subTitle}>PERMISOS</p>
-                <Switch
-                    icon="file"
-                    title="Crear"
-                    subtitle="Permite crear nuevos productos o items"
-                    checked={permisos.crear || false}
-                    onChange={(checked) => hanclePermisos('crear', checked)}
-                />
-                <Switch
-                    icon="trash"
-                    title="Eliminar"
-                    subtitle="Permite eliminar registros"
-                    checked={permisos.eliminar || false}
-                    onChange={(checked) => hanclePermisos('eliminar', checked)} 
-                />
-                <Switch
-                    icon="edit"
-                    title="Editar"
-                    subtitle="Permite modificar registros"
-                    checked={permisos.editar || false}
-                    onChange={(checked) => hanclePermisos('editar', checked)}
-                />
-                <Switch
-                    icon="x-circle"
-                    title="Anular"
-                    subtitle="Permite anular registros"
-                    checked={permisos.anular || false}
-                    onChange={(checked) => hanclePermisos('anular', checked)}
-                />
+                    <p className={styles.subTitle}>PERMISOS</p>
+                    <Switch
+                        icon="file"
+                        title="Crear"
+                        subtitle="Permite crear nuevos productos o items"
+                        checked={permisos.crear || false}
+                        onChange={(checked) => hanclePermisos('crear', checked)}
+                    />
+                    <Switch
+                        icon="trash"
+                        title="Eliminar"
+                        subtitle="Permite eliminar registros"
+                        checked={permisos.eliminar || false}
+                        onChange={(checked) => hanclePermisos('eliminar', checked)}
+                    />
+                    <Switch
+                        icon="edit"
+                        title="Editar"
+                        subtitle="Permite modificar registros"
+                        checked={permisos.editar || false}
+                        onChange={(checked) => hanclePermisos('editar', checked)}
+                    />
+                    <Switch
+                        icon="x-circle"
+                        title="Anular"
+                        subtitle="Permite anular registros"
+                        checked={permisos.anular || false}
+                        onChange={(checked) => hanclePermisos('anular', checked)}
+                    />
                     <p className={styles.subTitle}>MÓDULOS</p>
                     {loadingModules ? (
                         <div className={styles.noData}>
@@ -493,7 +466,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         </div>
                     )}
                     <Boton
-                        className='btn-default'
+                        className='btn-original'
                         label='Cerrar Configuración'
                         style={{ marginTop: 'auto' }}
                         onClick={() => setIsConfiguracionOpen(false)}

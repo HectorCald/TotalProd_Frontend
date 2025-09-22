@@ -11,7 +11,6 @@ import Personal from '../components/views/personal/Personal';
 import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
 import Pagos from '../components/views/pagos/Pagos';
-import Reportes from '../components/views/reportes/Reportes';
 
 const Home = () => {
   const [activeView, setActiveView] = useState(null);
@@ -57,10 +56,6 @@ const Home = () => {
       />
       <Pagos
         isOpen={activeView === 'pagos'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <Reportes
-        isOpen={activeView === 'reportes'}
         setIsOpen={() => handleViewClose()}
       />
       <AlmacenMedio

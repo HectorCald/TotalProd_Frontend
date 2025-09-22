@@ -7,7 +7,7 @@
   border-radius: 8px;
   font-size: 14px;
   position: relative;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   color: white;
 
   img{
@@ -41,20 +41,24 @@
   color: var(--white-color);
 }
 .btn-default-red{
-  background-color: #ff4c4c2e;
+  background:none;
   color: var(--error-color);
+  border: 1px solid var(--error-color);
 }
 .btn-default-green{
-  background-color: #28b4982e;
+  background:none;
   color: var(--success-color);
+  border: 1px solid var(--success-color);
 }
 .btn-default-orange{
-  background-color: #ffa5002e;
+  background:none;
   color: var(--warning-color);
+  border: 1px solid var(--warning-color);
 }
 .btn-default-blue{
-  background-color: #2888b42e;
+  background:none;
   color: var(--info-color);
+  border: 1px solid var(--info-color);
 }
 .btn-gray{
   background-color: var(--tertiary-color);

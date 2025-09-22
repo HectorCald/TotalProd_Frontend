@@ -23,6 +23,7 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
     // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
 
     // Estados para los mensajes de error y éxito
     const [errorMessage, setErrorMessage] = useState('');
@@ -138,19 +139,6 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                 <h1 className={styles.title}>
                     {usuario?.name}
                     <div className={styles.iconButton} >
-                        <button className={styles.iconButton} onClick={() => setIsDeleteOpen(true)}>
-                            <BoxIcon
-                                name='trash'
-                                className={styles.iconTrash}
-                            />
-                        </button>
-
-                        <button className={styles.iconButton} onClick={() => setIsEditOpen(true)}>
-                            <BoxIcon
-                                name='edit'
-                                className={styles.icon}
-                            />
-                        </button>
                     </div>
 
                 </h1>
@@ -163,38 +151,26 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                 <div className={styles.content}>
                     <ItemLine icon="map-pin" title="Ubicación" onClick={handleOpenMap} arrow={true} />
                 </div>
-                <p className={styles.subTitle}>PEDIDOS</p>
-                <div className={styles.content}>
-                    <Dato label="Total pedidos" value={usuario?.total_orders} />
-                </div>
 
-                <p className={styles.subTitle}>
-                    ÚLTIMOS MOVIMIENTOS 
-                    {movimientos.length > 0 && (
-                        <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal' }}>
-                            {' '}({movimientos.length} movimientos)
-                        </span>
-                    )}
-                </p>
-                {loadingMovimientosList ? (
-                    <div className={styles.noData}>
-                        <p>Cargando movimientos...</p>
-                    </div>
-                ) : movimientos.length > 0 ? (
-                    movimientos.map((movimiento, index) => (
-                        <ItemView
-                            key={movimiento.id || index}
-                            title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${movimiento.quantity} ${movimiento.product?.type_measure?.code || ''}`}
-                            description={`${movimiento.observations || 'Sin observaciones'}\n${new Date(movimiento.date).toLocaleDateString()}${movimiento.product?.name ? ` • ${movimiento.product.name}` : ''}`}
-                            icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
-                            arrow={false}
-                        />
-                    ))
-                ) : (
-                    <div className={styles.noData}>
-                        <p>No hay movimientos registrados</p>
-                    </div>
-                )}
+                {/* Botón para ver movimientos */}
+                <Boton
+                    className='btn-gray'
+                    label={`Movimientos (${movimientos.length})`}
+                    onClick={() => setIsMovimientosOpen(true)}
+                />
+
+                <div className={styles.buttons}>
+                    <Boton
+                        className='btn-red'
+                        label='Eliminar Proveedor'
+                        onClick={() => setIsDeleteOpen(true)}
+                    />
+                    <Boton
+                        className='btn-default'
+                        label='Editar Proveedor'
+                        onClick={() => setIsEditOpen(true)}
+                    />
+                </div>
             </div>
 
             {/* Modal de Editar*/}
@@ -213,7 +189,7 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                     onClose={() => setIsDeleteOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Estás seguro que deseas eliminar al proveedor {usuario?.name} ?, Esta acción no se puede deshacer y podría afectar a registros relacionados.</p>
+                    <p className={styles.subTitle}>¿Eliminar al proveedor {usuario?.name}? Esta acción es irreversible y puede afectar registros relacionados.</p>
                     <MensajeError mensaje={errorMessage} />
                     <div className={styles.buttons}>
                         <Boton
@@ -240,6 +216,46 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                 initialLocation={usuario?.location}
                 readOnly={true}
             />
+
+            {/* Modal de movimientos */}
+            <ViewModal isOpen={isMovimientosOpen} setIsOpen={setIsMovimientosOpen}>
+                <HeaderModal
+                    title="Movimientos del Proveedor"
+                    onClose={() => setIsMovimientosOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    {loadingMovimientosList ? (
+                        <div className={styles.noData}>
+                            <p>Cargando movimientos...</p>
+                        </div>
+                    ) : movimientos.length > 0 ? (
+                        <>
+                            <p className={styles.subTitle}>HISTORIAL DE MOVIMIENTOS</p>
+                            {movimientos.map((movimiento, index) => (
+                                <ItemView
+                                    key={movimiento.id || index}
+                                    title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${movimiento.quantity} ${movimiento.product?.type_measure?.code || ''}`}
+                                    description={
+                                        <div>
+                                            <div>{movimiento.observations || 'Sin observaciones'}</div>
+                                            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                                {new Date(movimiento.date).toLocaleDateString()}
+                                                {movimiento.product?.name && ` • ${movimiento.product.name}`}
+                                            </div>
+                                        </div>
+                                    }
+                                    icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                                    arrow={false}
+                                />
+                            ))}
+                        </>
+                    ) : (
+                        <div className={styles.noData}>
+                            <p>No hay movimientos registrados</p>
+                        </div>
+                    )}
+                </div>
+            </ViewModal>
 
             {/* Modal de Notificación*/}
             <Notification

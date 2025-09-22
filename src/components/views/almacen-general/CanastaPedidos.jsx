@@ -11,84 +11,92 @@ import { BoxIcon } from 'boxicons-react';
 import ItemLine from '../../common/ItemLine';
 import { motion } from 'framer-motion';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
-import pricesTypesService from '../../../services/pricesTypesService';
-import PantallaExito from '../../common/PantallaExito';
+import MensajeError from '../../common/MensajeError';
+import { useUser } from '../../../context/UserContext';
 
-function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, pedidoId = null, onPedidoActualizado = null }) {
+function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], sucursales = [], loadingPrecios = false, loadingSucursales = false }) {
+    const { sucursalSeleccionada: sucursalActual } = useUser();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
-    const [isExitoOpen, setIsExitoOpen] = useState(false);
-    const [pedidoCreado, setPedidoCreado] = useState(null);
-    const [datosParaExito, setDatosParaExito] = useState([]);
     const [animarCantidad, setAnimarCantidad] = useState({});
-    const [preciosTipos, setPreciosTipos] = useState([]);
     const [precioSeleccionado, setPrecioSeleccionado] = useState('');
-    const [loadingPrecios, setLoadingPrecios] = useState(false);
+    const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
 
-    // Cargar tipos de precios
+    // Inicializar precio seleccionado cuando se abren los precios (solo si no hay uno seleccionado)
     useEffect(() => {
-        const loadPreciosTipos = async () => {
-            setLoadingPrecios(true);
-            try {
-                const response = await pricesTypesService.getAll();
-                if (response.success) {
-                    const mappedOptions = response.data.map(precio => ({
-                        value: precio.id,
-                        label: precio.name,
-                        id: precio.id,
-                        name: precio.name,
-                        default_value: precio.default_value
-                    }));
-                    setPreciosTipos(mappedOptions);
-                    
-                    // Si estamos editando un pedido, cargar el precio_id desde localStorage
-                    const precioIdGuardado = localStorage.getItem('precioIdEditando');
-                    if (precioIdGuardado && mappedOptions.find(p => p.value === precioIdGuardado)) {
-                        setPrecioSeleccionado(precioIdGuardado);
-                    } else if (mappedOptions.length > 0) {
-                        // Seleccionar el primer precio por defecto
-                        setPrecioSeleccionado(mappedOptions[0].value);
-                    }
+        if (isOpen && preciosTipos.length > 0 && !precioSeleccionado) {
+            // Si estamos editando un pedido, cargar el precio_id desde localStorage
+            if (pedidoId) {
+                const precioIdGuardado = localStorage.getItem('precioIdEditando');
+                if (precioIdGuardado && preciosTipos.find(p => p.value === precioIdGuardado)) {
+                    setPrecioSeleccionado(precioIdGuardado);
+                } else if (preciosTipos.length > 0) {
+                    setPrecioSeleccionado(preciosTipos[0].value);
                 }
-            } catch (error) {
-                console.error('Error al cargar tipos de precios:', error);
-            } finally {
-                setLoadingPrecios(false);
+            } else if (preciosTipos.length > 0) {
+                // Seleccionar el primer precio por defecto
+                setPrecioSeleccionado(preciosTipos[0].value);
             }
-        };
-
-        if (isOpen) {
-            loadPreciosTipos();
         }
-    }, [isOpen]);
+    }, [isOpen, preciosTipos, precioSeleccionado, pedidoId]);
+
+    // Actualizar precios cuando se inicializa el precioSeleccionado
+    useEffect(() => {
+        if (precioSeleccionado && preciosTipos.length > 0 && productosCanasta.length > 0) {
+            const precioSeleccionadoData = preciosTipos.find(p => p.value === precioSeleccionado);
+            if (precioSeleccionadoData) {
+                // Solo actualizar productos que no tienen precio o tienen precio 0 (recién agregados)
+                const productosNecesitanPrecio = productosCanasta.filter(producto => 
+                    !producto.precio || producto.precio === 0
+                );
+
+                if (productosNecesitanPrecio.length > 0) {
+                    setProductosCanasta(prev => prev.map(producto => {
+                        // Solo actualizar si el producto no tiene precio o tiene precio 0
+                        if (!producto.precio || producto.precio === 0) {
+                            const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === precioSeleccionadoData.value);
+                            const nuevoPrecio = precioProducto?.valor || 0;
+                            
+                            return {
+                                ...producto,
+                                precio: nuevoPrecio
+                            };
+                        }
+                        return producto; // Mantener el precio actual si ya tiene uno
+                    }));
+                }
+            }
+        }
+    }, [precioSeleccionado, preciosTipos, productosCanasta.length]);
+
 
     // Guardar en localStorage cuando cambie la canasta
     useEffect(() => {
         if (productosCanasta.length > 0) {
             localStorage.setItem('canastaPedidos', JSON.stringify(productosCanasta));
         }
-    }, [productosCanasta]);
+        // NO remover del localStorage aquí para evitar que se borre al recargar la página
+        // La limpieza se maneja en las funciones específicas
+    }, [productosCanasta, pedidoId]);
 
-    // Actualizar precios cuando cambie el precio seleccionado
+    // Cargar canasta desde localStorage al abrir el modal (solo si no estamos editando)
     useEffect(() => {
-        if (precioSeleccionado && preciosTipos.length > 0 && productosCanasta.length > 0) {
-            const tipoPrecio = preciosTipos.find(p => p.value === precioSeleccionado);
-            if (tipoPrecio) {
-                setProductosCanasta(prev => prev.map(producto => {
-                    // Buscar el precio correspondiente al tipo seleccionado en los precios del producto
-                    const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === tipoPrecio.id);
-                    const nuevoPrecio = precioProducto?.valor || tipoPrecio.default_value || 0;
-                    
-                    return {
-                        ...producto,
-                        precio: nuevoPrecio
-                    };
-                }));
+        if (isOpen && !pedidoId) {
+            const canastaGuardada = localStorage.getItem('canastaPedidos');
+            if (canastaGuardada) {
+                try {
+                    const productosGuardados = JSON.parse(canastaGuardada);
+                    setProductosCanasta(productosGuardados);
+                } catch (error) {
+                    console.error('Error al cargar canasta desde localStorage:', error);
+                }
             }
         }
-    }, [precioSeleccionado, preciosTipos]);
+    }, [isOpen, pedidoId]);
+
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
@@ -127,6 +135,21 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         ));
     };
 
+    const handleCambiarTipoPrecio = (nuevoTipoPrecio) => {
+        setPrecioSeleccionado(nuevoTipoPrecio);
+        
+        // Actualizar precios de todos los productos
+        setProductosCanasta(prev => prev.map(producto => {
+            const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
+            const nuevoPrecio = precioProducto?.valor || 0;
+            
+            return {
+                ...producto,
+                precio: nuevoPrecio
+            };
+        }));
+    };
+
     const handleEliminarProducto = (productoId) => {
         // Agregar clase de animación antes de eliminar
         const elemento = document.querySelector(`[data-producto-id="${productoId}"]`);
@@ -142,13 +165,36 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
-        localStorage.removeItem('canastaPedidos'); // Solo eliminar cuando el usuario limpie explícitamente
+        localStorage.removeItem('canastaPedidos');
         setIsLimpiarModalOpen(false);
+        setIsOpen(false);
     };
 
     const handleConfirmarPedido = async () => {
         setLoadingConfirmar(true);
         try {
+            // Validar sucursal seleccionada solo si no estamos editando
+            if (!pedidoId) {
+                if (!sucursalSeleccionada) {
+                    setErrorMessage('La sucursal es obligatoria');
+                    setTimeout(() => {
+                        setErrorMessage('');
+                    }, 3000);
+                    setLoadingConfirmar(false);
+                    return;
+                }
+
+                // Validar que no se seleccione la sucursal actual
+                if (sucursalSeleccionada === sucursalActual?.id) {
+                    setErrorMessage('No puedes seleccionar tu sucursal actual como destino');
+                    setTimeout(() => {
+                        setErrorMessage('');
+                    }, 3000);
+                    setLoadingConfirmar(false);
+                    return;
+                }
+            }
+
             // Preparar datos para enviar al backend
             const pedidoData = {
                 observaciones: observacionesGenerales || null,
@@ -160,6 +206,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 }))
             };
 
+            // Solo incluir pedido_sucursal_id si no estamos editando
+            if (!pedidoId) {
+                pedidoData.pedido_sucursal_id = sucursalSeleccionada;
+            }
+
             let response;
             if (pedidoId) {
                 // Actualizar pedido existente
@@ -170,30 +221,27 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             }
 
             if (response.success) {
-                // Guardar datos del pedido para mostrar en pantalla de éxito
-                setPedidoCreado(response.data);
-                
-                // Guardar datos de los productos para mostrar en la pantalla de éxito
-                setDatosParaExito(productosCanasta.map(producto => ({
-                    nombre: producto.name,
-                    cantidad: `${producto.cantidad} ${producto.type_measure?.code || 'u'} - Bs. ${((producto.precio || 0) * producto.cantidad).toFixed(2)}`,
-                    medida: '' // No usar medida aquí ya que está incluida en cantidad
-                })));
-
                 // Si es una actualización, notificar al componente padre
                 if (pedidoId && onPedidoActualizado) {
                     onPedidoActualizado(response.data);
                 }
 
-                // Limpiar la canasta inmediatamente al mostrar éxito
+                // Limpiar la canasta
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
+                setSucursalSeleccionada('');
+                
+                // Limpiar localStorage
+                localStorage.removeItem('canastaPedidos');
                 
                 // Cerrar modal de confirmación
                 setIsConfirmarModalOpen(false);
                 
-                // Mostrar pantalla de éxito
-                setIsExitoOpen(true);
+                // Cerrar canasta y mostrar notificación
+                setIsOpen(false);
+                if (onCerrarCanasta) {
+                    onCerrarCanasta();
+                }
             } else {
                 console.error('Error al procesar pedido:', response.message);
                 // Aquí podrías mostrar una notificación de error
@@ -239,7 +287,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     <div className={styles.precioGeneral}>
                         <Select
                             value={precioSeleccionado}
-                            onChange={setPrecioSeleccionado}
+                            onChange={handleCambiarTipoPrecio}
                             options={preciosTipos}
                             placeholder="Seleccionar precio general"
                             disabled={loadingPrecios}
@@ -392,6 +440,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     onClose={() => setIsConfirmarModalOpen(false)}
                 />
                 <div className={styles.modalContent}>
+                    <MensajeError mensaje={errorMessage} />
                     <p className={styles.subTitle}>Productos a pedir:</p>
                     <div className={styles.content}>
                         {productosCanasta.map((producto, index) => (
@@ -410,6 +459,20 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                             <span className={styles.totalResumenValue}>Bs. {getTotalValor().toFixed(2)}</span>
                         </div>
                     </div>
+
+                    {/* Selector de sucursal - Solo mostrar si no estamos editando */}
+                    {!pedidoId && (
+                        <div className={styles.content} style={{ padding: '10px 15px' }}>
+                            <Select
+                                value={sucursalSeleccionada}
+                                onChange={setSucursalSeleccionada}
+                                options={sucursales}
+                                placeholder='Sucursal de destino (obligatorio)'
+                                disabled={loadingSucursales}
+                                icon='building'
+                            />
+                        </div>
+                    )}
 
                     <div className={styles.observacionesGenerales}>
                         <InputNormal
@@ -431,32 +494,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 </div>
             </ViewModal>
 
-            {/* Pantalla de éxito */}
-            <PantallaExito
-                isOpen={isExitoOpen}
-                setIsOpen={setIsExitoOpen}
-                titulo={pedidoId ? "¡Pedido Actualizado!" : "¡Pedido Creado!"}
-                descripcion={pedidoId ? "Tu pedido ha sido actualizado correctamente." : "Tu pedido ha sido creado correctamente y está pendiente de procesamiento."}
-                datosPedido={datosParaExito}
-                totalGeneral={datosParaExito.reduce((total, item) => {
-                    // Extraer el precio del texto de cantidad
-                    const precioMatch = item.cantidad.match(/Bs\. (\d+\.?\d*)/);
-                    return total + (precioMatch ? parseFloat(precioMatch[1]) : 0);
-                }, 0)}
-                onDescargarPDF={() => console.log('Descargar PDF')}
-                onDescargarExcel={() => console.log('Descargar Excel')}
-                onEnviarWhatsapp={() => console.log('Enviar WhatsApp')}
-                onCerrar={() => {
-                    // Limpiar datos de éxito
-                    setDatosParaExito([]);
-                    setPedidoCreado(null);
-                    // Solo cerrar la pantalla de éxito y volver
-                    setIsOpen(false);
-                    if (onCerrarCanasta) {
-                        onCerrarCanasta();
-                    }
-                }}
-            />
         </View>
     );
 }

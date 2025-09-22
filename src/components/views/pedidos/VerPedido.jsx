@@ -10,129 +10,37 @@ import Boton from '../../common/Boton';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
-import Select from '../../common/Select';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
+import { useUser } from '../../../context/UserContext';
+import pedidosAcopioService from '../../../services/pedidosAcopioService';
+import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
+import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 
-function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado, onPedidoEliminado, onPedidoActualizado }) {
+function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, onPedidoActualizado }) {
+    const { sucursalSeleccionada: sucursalActual } = useUser();
     const [loading, setLoading] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
-    const [isCambiarEstadoOpen, setIsCambiarEstadoOpen] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
-    const [nuevoEstado, setNuevoEstado] = useState('');
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [modoAlmacen, setModoAlmacen] = useState('pedido'); // 'pedido' o 'entregar'
-    const [productosParaAlmacen, setProductosParaAlmacen] = useState([]);
+
+
 
     // Función para manejar cuando se actualiza un pedido
     const handlePedidoActualizado = (pedidoActualizado) => {
         if (onPedidoActualizado) {
             onPedidoActualizado(pedidoActualizado);
         }
-        // Cerrar todos los modales
+        // Cerrar AlmacenGeneral cuando se actualiza el pedido
         setIsAlmacenOpen(false);
-        setIsOpen(false);
     };
-
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
-    // Opciones de estados
-    const estadosOpciones = [
-        { value: 'Pendiente', label: 'Pendiente' },
-        { value: 'En Proceso', label: 'En Proceso' },
-        { value: 'Completado', label: 'Completado' },
-        { value: 'Cancelado', label: 'Cancelado' }
-    ];
-
-    // Función para formatear fecha
-    const formatearFecha = (fecha) => {
-        const date = new Date(fecha);
-        const fechaFormateada = date.toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-        const horaFormateada = date.toLocaleTimeString('es-ES', {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        return `${fechaFormateada} ${horaFormateada}`;
-    };
-
-    // Función para obtener el color del estado
-    const getEstadoColor = (estado) => {
-        switch (estado) {
-            case 'Pendiente': return '#f39c12';
-            case 'En Proceso': return '#3498db';
-            case 'Completado': return '#27ae60';
-            case 'Cancelado': return '#e74c3c';
-            default: return '#95a5a6';
-        }
-    };
-
-    // Función para calcular el total del pedido
-    const calcularTotal = () => {
-        if (!pedido) return 0;
-
-        if (tipoPedido === 'acopio') {
-            // Para acopio, el pedido es un solo producto
-            return 0; // No hay precio en la nueva estructura
-        } else {
-            // Para almacén, usar la estructura de detalles
-            const detalles = pedido.pedido_almacen_detalle || [];
-            return detalles.reduce((total, detalle) => {
-                const precio = detalle.precio || 0;
-                const cantidad = detalle.cantidad || 0;
-                return total + (precio * cantidad);
-            }, 0);
-        }
-    };
-
-    // Función para cambiar estado
-    const handleCambiarEstado = async () => {
-        if (!nuevoEstado || !pedido) return;
-
-        try {
-            setLoading(true);
-            if (onEstadoActualizado) {
-                await onEstadoActualizado(pedido.id, nuevoEstado);
-                setIsCambiarEstadoOpen(false);
-                setNuevoEstado('');
-            }
-        } catch (error) {
-            console.error('Error al cambiar estado:', error);
-            mostrarNotificacion('error', 'Error al cambiar estado');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     // Función para eliminar pedido
     const handleEliminarPedido = async () => {
         if (!pedido) return;
 
         try {
             setLoading(true);
-
-            // Importar los servicios
-            const pedidosAcopioService = (await import('../../../services/pedidosAcopioService')).default;
-            const pedidosAlmacenService = (await import('../../../services/pedidosAlmacenService')).default;
 
             let response;
             if (tipoPedido === 'acopio') {
@@ -144,7 +52,6 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
             if (response.success) {
                 mostrarNotificacion('success', 'Pedido eliminado correctamente');
                 setIsEliminarOpen(false);
-                setIsOpen(false);
 
                 // Llamar a la función para actualizar la lista en el padre
                 if (onPedidoEliminado) {
@@ -160,7 +67,6 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
             setLoading(false);
         }
     };
-
     // Función para editar pedido
     const handleEditarPedido = () => {
         if (!pedido || tipoPedido === 'acopio') {
@@ -189,14 +95,174 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
         localStorage.setItem('pedidoIdEditando', pedido.id);
         localStorage.setItem('precioIdEditando', pedido.precio_id || '');
 
-        // Pasar los productos directamente como props
-        setProductosParaAlmacen(productosParaCanasta);
-
         // Abrir AlmacenGeneral en modo pedido
         setModoAlmacen('pedido');
         setIsAlmacenOpen(true);
     };
+    // Función para manejar la entrega de pedido
+    const handleEntregaConfirmada = async (productosActualizados, precioId, movimientoId) => {
+        if (!pedido) return;
 
+        // Validar que hay productos
+        if (!productosActualizados || productosActualizados.length === 0) {
+            mostrarNotificacion('error', 'No hay productos para entregar');
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            // Actualizar el pedido con los nuevos productos y precio
+            const pedidoData = {
+                precio_id: precioId,
+                movimiento_id: movimientoId,
+                productos: productosActualizados.map(producto => ({
+                    id: producto.id,
+                    cantidad: producto.cantidad,
+                    precio: producto.precio || 0
+                }))
+            };
+
+            const response = await pedidosAlmacenService.updateEntrega(pedido.id, pedidoData);
+
+            if (response.success) {
+                mostrarNotificacion('success', 'Pedido entregado correctamente');
+
+                // Actualizar el pedido local con los datos de la respuesta
+                const pedidoActualizado = response.data;
+
+                if (onPedidoActualizado) {
+                    onPedidoActualizado(pedidoActualizado);
+                }
+
+                // Limpiar localStorage de entrega
+                localStorage.removeItem('pedidoIdEntregando');
+                localStorage.removeItem('precioIdEntregando');
+                localStorage.removeItem('canastaSalidas');
+
+                // Cerrar modales
+                setIsAlmacenOpen(false);
+                setIsOpen(false);
+                
+                // Limpiar loading DESPUÉS de cerrar todo
+                setLoading(false);
+            } else {
+                setLoading(false);
+                mostrarNotificacion('error', response.message || 'Error al entregar el pedido');
+            }
+        } catch (error) {
+            setLoading(false);
+            console.error('Error al entregar pedido:', error);
+            mostrarNotificacion('error', 'Error al entregar el pedido');
+        }
+    };
+    // Función para cancelar entrega
+    const handleCancelarEntrega = async () => {
+        if (!pedido) return;
+
+        try {
+            setLoading(true);
+
+            // Si hay un movimiento asociado, anularlo primero
+            if (pedido.movimiento_id) {
+                const anularResponse = await movimientosAlmacenService.anular(pedido.movimiento_id);
+
+                if (!anularResponse.success) {
+                    mostrarNotificacion('error', 'Error al anular el movimiento: ' + anularResponse.message);
+                    return;
+                }
+            }
+
+            // Cambiar estado del pedido a Pendiente
+            const response = await pedidosAlmacenService.updateEstado(pedido.id, 'Pendiente');
+
+            if (response.success) {
+                mostrarNotificacion('success', 'Entrega cancelada correctamente');
+
+                // Actualizar el pedido local
+                const pedidoActualizado = {
+                    ...pedido,
+                    estado: 'Pendiente',
+                    movimiento_id: null
+                };
+
+                if (onPedidoActualizado) {
+                    onPedidoActualizado(pedidoActualizado);
+                }
+
+                // Cerrar modal y regresar a PanelPedidos
+                setIsOpen(false);
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al cancelar entrega');
+            }
+        } catch (error) {
+            console.error('Error al cancelar entrega:', error);
+            mostrarNotificacion('error', 'Error al cancelar entrega');
+        } finally {
+            setLoading(false);
+        }
+    };
+    // Función para ingresar pedido
+    const handleIngresarPedido = async () => {
+        if (!pedido) return;
+
+        try {
+            setLoading(true);
+
+            // Preparar los productos del pedido para el ingreso
+            const productosParaIngreso = pedido.pedido_almacen_detalle?.map(detalle => ({
+                id: detalle.producto_almacen.id,
+                cantidad: detalle.cantidad,
+                precio: detalle.precio || 0
+            })) || [];
+
+            if (productosParaIngreso.length === 0) {
+                mostrarNotificacion('error', 'No hay productos para ingresar');
+                return;
+            }
+
+            // Crear el movimiento de entrada usando el MVC de movimientos
+            const movimientoData = {
+                tipo: 'entrada',
+                observaciones: `Ingreso automático del pedido #${pedido.id.slice(-8)}`,
+                productos: productosParaIngreso,
+                precio_id: pedido.precio_id
+            };
+
+            const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
+
+            if (movimientoResponse.success) {
+                // Actualizar el estado del pedido a Completado y registrar el movimiento de entrada
+                const estadoResponse = await pedidosAlmacenService.updateEstado(pedido.id, 'Completado', movimientoResponse.data.id);
+
+                if (estadoResponse.success) {
+                    mostrarNotificacion('success', 'Pedido ingresado correctamente');
+
+                    // Actualizar el pedido local
+                    const pedidoActualizado = {
+                        ...pedido,
+                        estado: 'Completado'
+                    };
+
+                    if (onPedidoActualizado) {
+                        onPedidoActualizado(pedidoActualizado);
+                    }
+
+                    // Cerrar modal y regresar a PanelPedidos
+                    setIsOpen(false);
+                } else {
+                    mostrarNotificacion('error', 'Error al actualizar estado del pedido: ' + estadoResponse.message);
+                }
+            } else {
+                mostrarNotificacion('error', 'Error al crear el ingreso: ' + movimientoResponse.message);
+            }
+        } catch (error) {
+            console.error('Error al ingresar pedido:', error);
+            mostrarNotificacion('error', 'Error al ingresar pedido');
+        } finally {
+            setLoading(false);
+        }
+    };
     // Función para entregar pedido
     const handleEntregarPedido = () => {
         if (!pedido || tipoPedido === 'acopio') {
@@ -215,20 +281,39 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
             name: detalle.producto_almacen.name,
             description: detalle.producto_almacen.description,
             cantidad: detalle.cantidad,
-            stock: detalle.producto_almacen.stock || 0
+            precio: detalle.precio || 0,
+            // No incluir stock aquí, se actualizará en AlmacenGeneral.jsx
+            type_measure: detalle.producto_almacen.type_measure
         })) || [];
 
-        // Guardar los productos, el ID del pedido y el precio_id en localStorage para que AlmacenGeneral los cargue
+        // Guardar los productos del pedido en canastaSalidas
+        console.log('productosParaSalidas', productosParaSalidas);
         localStorage.setItem('canastaSalidas', JSON.stringify(productosParaSalidas));
         localStorage.setItem('pedidoIdEntregando', pedido.id);
         localStorage.setItem('precioIdEntregando', pedido.precio_id || '');
-
-        // Pasar los productos directamente como props
-        setProductosParaAlmacen(productosParaSalidas);
+        console.log('canastaSalidas guardada:', localStorage.getItem('canastaSalidas'));
 
         // Abrir AlmacenGeneral en modo salida
         setModoAlmacen('entregar');
         setIsAlmacenOpen(true);
+    };
+
+
+    // Estados para la notificación
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
     };
 
 
@@ -264,9 +349,30 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
     };
 
     if (!pedido) return null;
-
     const detalles = getDetallesPedido();
-    const total = calcularTotal();
+
+
+
+    const puedeEditarPedido = () => {
+        if (!pedido || !sucursalActual) return false;
+        return pedido.sucu_id === sucursalActual.id && pedido.estado !== 'Enviado' && pedido.estado !== 'Completado';
+    };
+    const puedeEntregarPedido = () => {
+        if (!pedido || !sucursalActual) return false;
+        return pedido.pedido_sucursal_id === sucursalActual.id && pedido.estado !== 'Enviado';
+    };
+    const puedeCancelarEntrega = () => {
+        if (!pedido || !sucursalActual) return false;
+        return pedido.pedido_sucursal_id === sucursalActual.id && pedido.estado === 'Enviado';
+    };
+    const puedeIngresarPedido = () => {
+        if (!pedido || !sucursalActual) return false;
+        return pedido.sucu_id === sucursalActual.id && pedido.estado === 'Enviado';
+    };
+    const puedeEliminarPedido = () => {
+        if (!pedido || !sucursalActual) return false;
+        return pedido.sucu_id === sucursalActual.id && pedido.estado !== 'Completado' && pedido.estado !== 'Enviado';
+    };
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -293,9 +399,15 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                 <p className={styles.subTitle}>INFORMACIÓN DEL PEDIDO</p>
                 <ItemView
                     title={`Pedido #${pedido.id.slice(-8)}`}
-                    description={`Fecha y hora: ${formatearFecha(pedido.fecha || pedido.created_at)}`}
+                    description={`Fecha y hora: ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })}`}
                     description2={tipoPedido !== 'acopio' ? `Tipo de precio: ${pedido.precio?.name || 'Precio desconocido'}` : ''}
-                    flot6={pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'En Proceso' ? 'En Proceso' : 'Pendiente'}
+                    flot6={pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'En Proceso' ? 'En Proceso' : pedido.estado === 'Enviado' ? 'Enviado' : 'Pendiente'}
                     circulo={false}
                     transparent={false}
                 />
@@ -310,41 +422,67 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
 
                 )}
 
-                    {tipoPedido === 'acopio' ? (
+                {tipoPedido === 'acopio' ? (
 
-                        <ItemView
-                            title={pedido.producto_acopio?.name || 'Producto no encontrado'}
-                            description={`Cantidad: ${pedido.cantidad} ${pedido.tipo_medida}`}
-                            icon='package'
-                            transparent={false}
-                        />
+                    <ItemView
+                        title={pedido.producto_acopio?.name || 'Producto no encontrado'}
+                        description={`Cantidad: ${pedido.cantidad} ${pedido.tipo_medida}`}
+                        icon='package'
+                        transparent={false}
+                    />
 
-                    ) : (
-                        <Dato
-                            label="Total"
-                            value={`Bs. ${total.toFixed(2)}`}
-                            especial='green'
-                            vertical={false}
-                        />
-                    )}
+                ) : (
+                    <Dato
+                        label="Total"
+                        value={`Bs. ${(pedido.pedido_almacen_detalle || []).reduce((total, detalle) => {
+                            const precio = detalle.precio || 0;
+                            const cantidad = detalle.cantidad || 0;
+                            return total + (precio * cantidad);
+                        }, 0).toFixed(2)}`}
+                        especial='green'
+                        vertical={false}
+                    />
+                )}
 
 
                 <div className={styles.buttons}>
-                    <Boton
-                        className='btn-default-blue'
-                        label='Editar Pedido'
-                        onClick={handleEditarPedido}
-                    />
-                    <Boton
-                        className='btn-default-red'
-                        label='Eliminar Pedido'
-                        onClick={() => setIsEliminarOpen(true)}
-                    />
-                    <Boton
-                        className='btn-green'
-                        label='Entregar Pedido'
-                        onClick={handleEntregarPedido}
-                    />
+                    {puedeEliminarPedido() && (
+                        <Boton
+                            className='btn-red'
+                            label='Eliminar Pedido'
+                            onClick={() => setIsEliminarOpen(true)}
+                        />
+                    )}
+                    {puedeEditarPedido() && (
+                        <Boton
+                            className='btn-default'
+                            label='Editar Pedido'
+                            onClick={handleEditarPedido}
+                        />
+                    )}
+                    {puedeEntregarPedido() && (
+                        <Boton
+                            className='btn-green'
+                            label='Entregar Pedido'
+                            onClick={handleEntregarPedido}
+                        />
+                    )}
+                    {puedeCancelarEntrega() && (
+                        <Boton
+                            className='btn-orange'
+                            label='Cancelar Entrega'
+                            onClick={handleCancelarEntrega}
+                            loading={loading}
+                        />
+                    )}
+                    {puedeIngresarPedido() && (
+                        <Boton
+                            className='btn-green'
+                            label='Ingresar Pedido'
+                            onClick={handleIngresarPedido}
+                            loading={loading}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -379,39 +517,6 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                             ))}
                         </>
                     )}
-                </div>
-            </ViewModal>
-
-            {/* Modal para cambiar estado */}
-            <ViewModal isOpen={isCambiarEstadoOpen} setIsOpen={setIsCambiarEstadoOpen}>
-                <HeaderModal
-                    title="Cambiar Estado del Pedido"
-                    onClose={() => setIsCambiarEstadoOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Nuevo Estado:</label>
-                        <Select
-                            value={nuevoEstado}
-                            onChange={setNuevoEstado}
-                            options={estadosOpciones}
-                            placeholder="Seleccionar estado"
-                            icon="check-circle"
-                        />
-                    </div>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className="btn-original"
-                            label="Confirmar"
-                            onClick={handleCambiarEstado}
-                            loading={loading}
-                        />
-                        <Boton
-                            className="btn-default"
-                            label="Cancelar"
-                            onClick={() => setIsCambiarEstadoOpen(false)}
-                        />
-                    </div>
                 </div>
             </ViewModal>
 
@@ -466,7 +571,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onEstadoActualizado,
                 setIsOpen={setIsAlmacenOpen}
                 tipo={modoAlmacen === 'entregar' ? 'salida' : 'pedido'}
                 onPedidoActualizado={handlePedidoActualizado}
-                productosIniciales={productosParaAlmacen}
+                onEntregaConfirmada={modoAlmacen === 'entregar' ? handleEntregaConfirmada : null}
+                pedidoIdEditando={modoAlmacen === 'pedido' ? pedido?.id : null}
             />
 
         </View>

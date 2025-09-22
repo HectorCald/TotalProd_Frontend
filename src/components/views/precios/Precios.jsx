@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -22,30 +21,22 @@ function Precios({ isOpen, setIsOpen }) {
     const [infoPrecio, setInfoPrecio] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
 
-    // Estados para paginación y búsqueda
-    const [currentPage, setCurrentPage] = useState(1);
-    const [searchQuery, setSearchQuery] = useState('');
-    
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     
-    // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    // Estado para búsqueda local
+    const [searchQuery, setSearchQuery] = useState('');
 
     // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { precios, error, isLoading, refetch } = usePrecios(
-        isOpen ? debouncedSearchQuery : '', 
-        isOpen ? currentPage : 1,
-        isOpen
-    );
+    const { precios, error, isLoading, refetch } = usePrecios(isOpen);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
-        if (isLoading && isOpen) {
+        if (isLoading && isOpen && !showRefreshIndicator) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator) {
+        } else if (!isLoading && showRefreshIndicator && isOpen) {
             // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
@@ -55,6 +46,25 @@ function Precios({ isOpen, setIsOpen }) {
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
+    // Forzar revalidación cada vez que se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            // Mostrar indicador inmediatamente al abrir
+            setShowRefreshIndicator(true);
+            setIsRefreshing(true);
+            // Ejecutar refetch
+            refetch();
+        }
+    }, [isOpen]);
+
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -115,23 +125,31 @@ function Precios({ isOpen, setIsOpen }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-            setCurrentPage(1);
         }
     }, [isOpen]);
 
-    // Efecto para manejar errores de SWR
+    // Manejar error 403 con useEffect para evitar bucle infinito
     useEffect(() => {
-        if (error) {
-            console.error('Error obteniendo precios:', error);
+        if (error && error.status === 403 && isOpen) {
+            const errorMessage = error.message || 'No tienes acceso a este módulo';
+            const currentPlan = error.currentPlan || 'Plan actual';
+            const requiredModule = error.requiredModule || 'Tipos de Precios';
+            
             setModalConfig({
                 isOpen: true,
-                type: 'error',
-                title: 'Error de Acceso',
-                description: 'No tienes permisos para acceder a esta función.',
+                type: 'info',
+                title: 'Plan Insuficiente',
+                description: `${errorMessage}`,
                 showButton: true
             });
         }
-    }, [error]);
+    }, [error, isOpen]);
+
+    // Filtrar precios localmente basado en la búsqueda
+    const preciosFiltrados = precios.filter(precio => 
+        precio.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (precio.description && precio.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
 
     // Función para manejar cuando se crea un nuevo precio
     const handlePrecioCreated = (newPrecio) => {
@@ -213,8 +231,8 @@ function Precios({ isOpen, setIsOpen }) {
                     />
                 </div>
                 <div className={styles.content}>
-                    {precios.length > 0 ? (
-                        precios.map((precio, index) => (
+                    {preciosFiltrados.length > 0 ? (
+                        preciosFiltrados.map((precio, index) => (
                             <ItemView
                                 key={precio.id || index}
                                 title={precio.name || 'Sin nombre'}
@@ -227,13 +245,6 @@ function Precios({ isOpen, setIsOpen }) {
                     ) : (
                         <div className={styles.noData}>
                             <p>{searchQuery ? 'No se encontraron tipos de precio' : 'No hay tipos de precio registrados'}</p>
-                        </div>
-                    )}
-
-                    {/* Indicador de carga para más elementos */}
-                    {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más tipos de precio...</p>
                         </div>
                     )}
                 </div>

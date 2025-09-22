@@ -22,7 +22,7 @@ const getAuthHeaders = () => {
 
 const personalService = {
     // Obtener todo el personal de una empresa
-    async getAll(page = 1, limit = 10, search = '') {
+    async getAll() {
         try {
             const empresaId = getEmpresaId();
 
@@ -34,10 +34,7 @@ const personalService = {
             }
 
             const params = new URLSearchParams({
-                empresa_id: empresaId,
-                page: page.toString(),
-                limit: limit.toString(),
-                search: search
+                empresa_id: empresaId
             });
 
             const response = await fetch(`${API_BASE_URL}/personal?${params}`, {
