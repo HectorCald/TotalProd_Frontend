@@ -117,12 +117,12 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         }
       } else {
         setErrorMessage(response.message || `Error al registrar ${tipo}`);
-        setTimeout(() => setErrorMessage(''), 3000);
+        setTimeout(() => setErrorMessage(''), 5000);
       }
     } catch (error) {
       console.error(`Error al registrar ${tipo}:`, error);
-      setErrorMessage('Error de conexión con el servidor');
-      setTimeout(() => setErrorMessage(''), 3000);
+      setErrorMessage(error.message || 'Error de conexión con el servidor');
+      setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       setLoading(false);
     }

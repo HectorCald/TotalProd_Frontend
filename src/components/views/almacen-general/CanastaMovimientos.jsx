@@ -113,10 +113,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         const productoActual = productosCanasta.find(p => p.id === productoId);
         if (!productoActual) return;
 
-        // Validar que no exceda el stock disponible
-        if (nuevaCantidad > productoActual.stock) {
+        // Validar que no exceda el stock disponible SOLO para salidas
+        if (tipoMovimiento === 'salida' && nuevaCantidad > productoActual.stock) {
             console.warn(`No se puede exceder el stock disponible: ${productoActual.stock}`);
-            return; // No actualizar si excede el stock
+            return; // No actualizar si excede el stock (solo para salidas)
         }
 
         // Si debe animar, activar la animación
@@ -282,12 +282,18 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 }
             } else {
                 console.error('Error al crear movimiento:', response.message);
-                // Aquí podrías mostrar una notificación de error
+                setErrorMessage(response.message || 'Error al crear el movimiento');
+                setTimeout(() => {
+                    setErrorMessage('');
+                }, 5000);
             }
 
         } catch (error) {
             console.error('Error al confirmar movimientos:', error);
-            // Aquí podrías mostrar una notificación de error
+            setErrorMessage(error.message || 'Error al confirmar movimientos');
+            setTimeout(() => {
+                setErrorMessage('');
+            }, 5000);
         } finally {
             setLoadingConfirmar(false);
         }
@@ -395,7 +401,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                                     type="number"
                                                     value={producto.cantidad}
                                                     min="1"
-                                                    max={producto.stock}
+                                                    max={tipoMovimiento === 'salida' ? producto.stock : undefined}
                                                     onChange={(e) => {
                                                         const nuevaCantidad = parseInt(e.target.value) || 1;
                                                         handleActualizarCantidad(producto.id, nuevaCantidad, false);
@@ -404,8 +410,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                                         const nuevaCantidad = parseInt(e.target.value) || 1;
                                                         if (nuevaCantidad < 1) {
                                                             handleActualizarCantidad(producto.id, 1, false);
-                                                        } else if (nuevaCantidad > producto.stock) {
-                                                            // Si excede el stock, ajustar al stock máximo
+                                                        } else if (tipoMovimiento === 'salida' && nuevaCantidad > producto.stock) {
+                                                            // Si excede el stock, ajustar al stock máximo (solo para salidas)
                                                             handleActualizarCantidad(producto.id, producto.stock, false);
                                                         }
                                                     }}
@@ -414,7 +420,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                              <button
                                                  className={styles.btnCantidad}
                                                  onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}
-                                                 disabled={producto.cantidad >= producto.stock}
+                                                 disabled={tipoMovimiento === 'salida' && producto.cantidad >= producto.stock}
                                              >
                                                  <BoxIcon name='plus' className={styles.iconPlus} />
                                              </button>
