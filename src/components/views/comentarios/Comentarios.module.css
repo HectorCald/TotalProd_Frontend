@@ -41,7 +41,7 @@
   justify-content: flex-start;
   width: 100%;
   background: none;
-  height: calc(100% - 70px);
+  height: calc(100% - 80px);
   overflow-y: auto;
   padding-block: 10px;
   gap: 5px;
@@ -238,6 +238,7 @@
   right: 0;
   z-index: 1000;
   border-radius: 15px 15px 0 0;
+  padding-bottom: 10px;
 }
 
 /* Información de comentarios */
