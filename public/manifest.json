@@ -27,5 +27,8 @@
   "background_color": "#ffffff",
   "orientation": "portrait",
   "scope": "/",
-  "description": "Sistema de gestión integral de gestión de procesos y ventas"
+  "description": "Sistema de gestión integral de gestión de procesos y ventas",
+  "categories": ["business", "productivity"],
+  "lang": "es",
+  "dir": "ltr"
 }
