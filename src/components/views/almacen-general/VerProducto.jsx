@@ -238,7 +238,8 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                     }
                                 } catch (error) {
                                     console.error('Error al eliminar producto:', error);
-                                    mostrarNotificacion('error', 'Error al eliminar el producto');
+                                    // Mostrar el mensaje de error del servidor (incluyendo permisos)
+                                    mostrarNotificacion('error', error.message || 'Error al eliminar el producto');
                                 } finally {
                                     setLoading(false);
                                 }

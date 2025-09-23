@@ -16,6 +16,7 @@ import Pedidos from '../components/views/pedidos/PanelPedidos';
 import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
 import Precios from '../components/views/precios/Precios';
+import Gastos from '../components/views/gastos/PanelGastos';
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, refreshEmployeeData } = useEmployee();
     const [activeScreen, setActiveScreen] = useState('inicio');
@@ -76,6 +77,8 @@ const HomeEmpleado = () => {
                 return <Clientes isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Proveedores':
                 return <Proveedores isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'Gastos':
+                return <Gastos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             default:
                 console.log('⚠️ Componente no encontrado:', currentSubModule.component);
                 return null;

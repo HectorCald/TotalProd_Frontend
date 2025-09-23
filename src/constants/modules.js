@@ -6,25 +6,26 @@ import imagenPedidos from '../assets/pedidos.png';
 import imagenPrecios from '../assets/precios.png';
 import imagenClientes from '../assets/clientes.png';
 import imagenProveedores from '../assets/proveedores.png';
+import imagenGastos from '../assets/gastos.png';
 export const MODULES = {
     // Módulos principales
     Almacen: {
         name: 'Almacén General',
         imagen: imagenAlmacen,
         descripcion: 'Administra tu almacén de productos terminados, realiza entradas y salidas.',
+        realizar_salidas: {
+            name: 'Salida o Venta',
+            description: 'Realizar salida de productos en almacén',
+            icon: 'minus',
+            component: 'AlmacenGeneral',
+            props: { tipo: 'salida' }
+        },
         realizar_entradas: {
             name: 'Entrada',
             description: 'Realizar entrada de productos en almacén',
             icon: 'plus',
             component: 'AlmacenGeneral',
             props: { tipo: 'entrada' }
-        },
-        realizar_salidas: {
-            name: 'Salida',
-            description: 'Realizar salida de productos en almacén',
-            icon: 'minus',
-            component: 'AlmacenGeneral',
-            props: { tipo: 'salida' }
         },
         realizar_pedidos: {
             name: 'Nuevo Pedido',
@@ -149,6 +150,18 @@ export const MODULES = {
             props: { tipo: 'almacen' }
         },
     },
+    Gastos: {
+        name: 'Gastos',
+        imagen: imagenGastos,
+        descripcion: 'Administra tus gastos, realiza entradas y salidas.',
+        gestionar: {
+            name: 'Gastos',
+            description: 'Administra tus gastos.',
+            icon: 'file',
+            component: 'Gastos',
+            props: { tipo: 'almacen' }
+        },
+    },
 };
 
 // Función para obtener los módulos principales disponibles para un empleado
@@ -174,6 +187,8 @@ export const getAvailableMainModules = (employeeModules) => {
                 mainModules.add('Clientes');
             } else if (module.modulos.name === 'Proveedores') {
                 mainModules.add('Proveedores');
+            } else if (module.modulos.name === 'Gastos') {
+                mainModules.add('Gastos');
             }
         }
     });
@@ -281,6 +296,19 @@ export const getAvailableModules = (employeeModules) => {
         }
         if (module.modulos && module.modulos.name === 'Proveedores') {
             const submodule = MODULES.Proveedores[module.name];
+            if (submodule) {
+                return {
+                    ...module,
+                    name: submodule.name,
+                    description: submodule.description,
+                    component: submodule.component,
+                    props: submodule.props,
+                    icon: submodule.imagen
+                };
+            }
+        }
+        if (module.modulos && module.modulos.name === 'Gastos') {
+            const submodule = MODULES.Gastos[module.name];
             if (submodule) {
                 return {
                     ...module,

@@ -74,7 +74,8 @@
     justify-content: flex-start;
     width: 100%;
     gap: 10px;
-    height: calc(100vh - 140px);
+    height: calc(100vh - 130px);
+    padding-bottom: 10px;
     overflow-y: auto;
     background-color: var(--secondary-color);
 }

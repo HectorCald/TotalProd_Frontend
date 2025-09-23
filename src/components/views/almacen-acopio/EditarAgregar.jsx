@@ -9,6 +9,7 @@ import productsAcopioService from '../../../services/productsAcopioService';
 import EditarAgregarReceta from '../almacen-general/EditarAgregarReceta';
 import Switch from '../../common/Switch';
 import MensajeError from '../../common/MensajeError';
+import Notification from '../../common/Notification';
 import CategoriasAcopio from './CategoriasAcopio';
 
 function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, typeMeasures = [] }) {
@@ -30,6 +31,26 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [isCategoriasSeleccionOpen, setIsCategoriasSeleccionOpen] = useState(false);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
+
+  // Estado para notificaciones
+  const [notification, setNotification] = useState({
+    isVisible: false,
+    type: 'error',
+    text: ''
+  });
+
+  const mostrarNotificacion = (tipo, texto) => {
+    setNotification({
+      isVisible: true,
+      type: tipo,
+      text: texto
+    });
+
+    // Auto-ocultar después de 3 segundos
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, isVisible: false }));
+    }, 3000);
+  };
 
 
   // Efecto para cargar los datos del producto
@@ -176,13 +197,12 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         }
         setIsOpen(false);
       } else {
-        setErrorMessage(response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el producto`);
-        setTimeout(() => setErrorMessage(''), 3000);
+        mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el producto`);
       }
     } catch (error) {
       console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} producto:`, error);
-      setErrorMessage('Error de conexión con el servidor');
-      setTimeout(() => setErrorMessage(''), 3000);
+      // Mostrar el mensaje de error del servidor (incluyendo permisos) con notificación
+      mostrarNotificacion('error', error.message || 'Error de conexión con el servidor');
     } finally {
       setLoading(false);
     }
@@ -318,6 +338,12 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         setIsOpen={setIsCategoriasSeleccionOpen}
         modoSeleccion={true}
         onCategoriaSeleccionada={handleCategoriaSeleccionada}
+      />
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        text={notification.text}
       />
     </ViewModal>
   );
