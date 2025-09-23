@@ -60,13 +60,6 @@ export const MODULES = {
             component: 'AlmacenAcopio',
             props: { tipo: 'salida' }
         },
-        realizar_pedidos: {
-            name: 'Nuevo Pedido',
-            description: 'Realizar pedidos de productos en almacén',
-            icon: 'cart',
-            component: 'AlmacenAcopio',
-            props: { tipo: 'pedido' }
-        },
         gestionar: {
             name: 'Gestionar',
             description: 'Gestionar almacen de productos',
@@ -105,13 +98,6 @@ export const MODULES = {
             icon: 'file',
             component: 'Pedidos',
             props: { tipo: 'almacen' }
-        },
-        pedidos_materia_prima: {
-            name: 'Materia Prima',
-            description: 'Administra tus pedidos de productos.',
-            icon: 'file',
-            component: 'Pedidos',
-            props: { tipo: 'acopio' }
         },
     },
     Precios: {  
