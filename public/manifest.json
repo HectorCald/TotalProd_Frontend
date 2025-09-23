@@ -1,6 +1,6 @@
 {
   "short_name": "TotalProd",
-  "name": "TotalProd - Gestióna tus procesos",
+  "name": "TotalProd - Gestióna procesos y ventas",
   "icons": [
     {
       "src": "icon.png",
@@ -27,5 +27,5 @@
   "background_color": "#ffffff",
   "orientation": "portrait",
   "scope": "/",
-  "description": "Sistema de gestión integral para la empresa"
+  "description": "Sistema de gestión integral de gestión de procesos y ventas"
 }
