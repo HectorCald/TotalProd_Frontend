@@ -1,4 +1,4 @@
-const CACHE_NAME = 'summa-v1';
+const CACHE_NAME = 'totalprod-v1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -7,9 +7,9 @@ const urlsToCache = [
   '/static/js/0.chunk.js',
   '/static/js/bundle.js',
   '/static/css/main.chunk.css',
-  '/logo192.png',
-  '/logo512.png',
-  '/favicon.ico'
+  '/icon-192x192.png',
+  '/icon-512x512.png',
+  '/icon.png'
 ];
 
 self.addEventListener('install', event => {
