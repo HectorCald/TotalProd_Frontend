@@ -18,21 +18,21 @@ function Notification({
                     icon: 'check',
                     bgColor: 'rgba(34, 197, 94, 0.1)', // Verde suave
                     iconBgColor: 'var(--success-color)',
-                    textColor: 'white'
+                    textColor: 'var(--white-color)'
                 };
             case 'error':
                 return {
                     icon: 'x',
                     bgColor: 'rgba(239, 68, 68, 0.1)', // Rojo suave
                     iconBgColor: 'var(--error-color)',
-                    textColor: 'white'
+                    textColor: 'var(--white-color)'
                 };
             case 'warning':
                 return {
                     icon: 'error-circle',
                     bgColor: 'rgba(245, 158, 11, 0.1)', // Amarillo suave
                     iconBgColor: 'var(--warning-color)',
-                    textColor: 'white'
+                    textColor: 'var(--white-color)'
                 };
             case 'info':
             default:
@@ -40,7 +40,7 @@ function Notification({
                     icon: 'info-circle',
                     bgColor: 'rgba(59, 130, 246, 0.1)', // Azul suave
                     iconBgColor: 'var(--info-color)',
-                    textColor: 'white'
+                    textColor: 'var(--white-color)'
                 };
         }
     };

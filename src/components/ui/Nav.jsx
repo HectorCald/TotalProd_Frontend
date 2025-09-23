@@ -5,6 +5,7 @@ import Usuario from '../views/usuario/Usuario';
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import SeleccionarSucursal from '../views/sucursales/SeleccionarSucursal';
+import Icon from '../../assets/icons/icon.png';
 
 const Nav = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -39,7 +40,7 @@ const Nav = () => {
         <div className={styles.navContainer}>
             <div className={styles.navContent}>
                 <div className={styles.titleContainer}>
-                    <h1 className={styles.navTitle}>Total<span className={styles.navTitleSpan}>Prod</span></h1>
+                    <h1 className={styles.navTitle}> <img src={Icon} alt="Icon" className={styles.iconOne} /> Total<span className={styles.navTitleSpan}>Prod</span></h1>
                     {sucursalSeleccionada && (
                         <div className={styles.sucursalBadge} onClick={handleSucursalClick}>
                             <span>{sucursalSeleccionada.name}</span>

@@ -49,7 +49,7 @@ code {
 
 /* Tema oscuro (por defecto) */
 [data-theme="dark"] {
-  --secondary-color: #121212;
+  --secondary-color: #171717;
   --tertiary-color: #242424;
   --quaternary-color: #343434;
   --quinary-color: #4d4d4d;;

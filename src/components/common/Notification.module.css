@@ -48,11 +48,11 @@
 .iconContainer svg {
     width: 14px;
     height: 14px;
-    color: white;
+    color: white !important;
 }
 
 .text {
-    color: white;
+    color: var(--white-color);
     font-size: 14px;
     font-weight: 500;
     line-height: 1.4;

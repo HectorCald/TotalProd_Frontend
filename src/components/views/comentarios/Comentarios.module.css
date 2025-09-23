@@ -71,7 +71,6 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color), #20a085);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -99,6 +98,19 @@
   align-items: flex-start;
   gap: 5px;
   margin-bottom: 5px;
+}
+
+.userNameContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.userType {
+  font-size: 12px;
+  color: gray;
+  font-weight: 400;
+  opacity: 0.7;
 }
 
 .timestamp {
@@ -238,7 +250,7 @@
   right: 0;
   z-index: 1000;
   border-radius: 15px 15px 0 0;
-  padding-bottom: 10px;
+  padding-bottom: 20px;
 }
 
 /* Información de comentarios */
