@@ -5,22 +5,23 @@ import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
-import VerMovimiento from './VerMovimiento';
+import VerGasto from './VerGasto';
+import EditarAgregarGasto from './EditarAgregarGasto';
 import Filtros from '../../common/Filtros';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemLine from '../../common/ItemLine';
 import Notification from '../../common/Notification';
-import movimientosAcopioService from '../../../services/movimientosAcopioService';
-import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
+import gastosService from '../../../services/gastosService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import Boton from '../../common/Boton';
 
-
-function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
+function PanelGastos({ isOpen, setIsOpen }) {
     // Estados para los modales
-    const [isOpenVerMovimiento, setIsOpenVerMovimiento] = useState(false);
-    const [infoMovimiento, setInfoMovimiento] = useState(null);
+    const [isOpenVerGasto, setIsOpenVerGasto] = useState(false);
+    const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
+    const [infoGasto, setInfoGasto] = useState(null);
 
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
@@ -30,36 +31,43 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     
-    // Estado para acumular todos los movimientos de todas las páginas
-    const [allMovimientos, setAllMovimientos] = useState([]);
+    // Estado para acumular todos los gastos de todas las páginas
+    const [allGastos, setAllGastos] = useState([]);
     
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
     // Estados para filtros
-    const [filtroTipo, setFiltroTipo] = useState(null);
+    const [filtroMetodoPago, setFiltroMetodoPago] = useState(null);
+    const [filtroProveedor, setFiltroProveedor] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
 
-    // Estados para movimientos
-    const [movimientos, setMovimientos] = useState([]);
+    // Estados para gastos
+    const [gastos, setGastos] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // Opciones de métodos de pago
+    const metodosPago = [
+        { value: null, label: 'Todos los métodos' },
+        { value: 'qr', label: 'QR' },
+        { value: 'transferencia', label: 'Transferencia' },
+        { value: 'tarjeta', label: 'Tarjeta' },
+        { value: 'efectivo', label: 'Efectivo' }
+    ];
 
-    // Función para cargar movimientos
-    const cargarMovimientos = async (page = 1, search = '', filtro = null, orden = 'fecha_desc') => {
-        console.log('cargando movimientos');
+    // Función para cargar gastos
+    const cargarGastos = async (page = 1, search = '', metodoPago = null, proveedor = null, orden = 'fecha_desc') => {
+        console.log('cargando gastos');
         setIsLoading(true);
         setError(null);
         
         try {
-            const response = tipoMovimiento === 'acopio' 
-                ? await movimientosAcopioService.getAll(page, 10, filtro, orden)
-                : await movimientosAlmacenService.getAll(page, 10, filtro, orden);
+            const response = await gastosService.getAll(page, 10, search, metodoPago, proveedor, orden);
                 
             if (response.success) {
-                setMovimientos(response.data);
+                setGastos(response.data);
                 setHasMorePages(response.pagination?.hasNextPage || false);
             } else {
                 setError(response);
@@ -71,23 +79,23 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     };
 
-    // Acumular datos de todas las páginas cuando llegan nuevos movimientos
+    // Acumular datos de todas las páginas cuando llegan nuevos gastos
     useEffect(() => {
-        if (movimientos && movimientos.length > 0 && isOpen) {
+        if (gastos && gastos.length > 0 && isOpen) {
             if (currentPage === 1) {
-                // Si es la primera página, tomar todos los movimientos que vienen del servicio
-                setAllMovimientos(movimientos);
+                // Si es la primera página, tomar todos los gastos que vienen del servicio
+                setAllGastos(gastos);
             } else {
                 // Si es una página posterior, acumular los datos
-                setAllMovimientos(prevMovimientos => {
+                setAllGastos(prevGastos => {
                     // Evitar duplicados por si acaso
-                    const existingIds = new Set(prevMovimientos.map(m => m.id));
-                    const newMovimientos = movimientos.filter(m => !existingIds.has(m.id));
-                    return [...prevMovimientos, ...newMovimientos];
+                    const existingIds = new Set(prevGastos.map(g => g.id));
+                    const newGastos = gastos.filter(g => !existingIds.has(g.id));
+                    return [...prevGastos, ...newGastos];
                 });
             }
         }
-    }, [movimientos, currentPage, isOpen]);
+    }, [gastos, currentPage, isOpen]);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
@@ -105,23 +113,23 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
 
-    // Cargar movimientos cuando se abre el modal
+    // Cargar gastos cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
             // Mostrar indicador inmediatamente al abrir
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
             // Cargar primera página
-            cargarMovimientos(1, debouncedSearchQuery, filtroTipo, ordenamiento);
+            cargarGastos(1, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento);
         }
     }, [isOpen]);
 
-    // Cargar movimientos cuando cambian los parámetros
+    // Cargar gastos cuando cambian los parámetros
     useEffect(() => {
         if (isOpen) {
-            cargarMovimientos(currentPage, debouncedSearchQuery, filtroTipo, ordenamiento);
+            cargarGastos(currentPage, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento);
         }
-    }, [currentPage, debouncedSearchQuery, filtroTipo, ordenamiento]);
+    }, [currentPage, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -152,14 +160,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Estados para filtros y modales
     const [isOpenOrden, setOpenOrden] = useState(false);
-    const [isOpenTipo, setOpenTipo] = useState(false);
+    const [isOpenMetodoPago, setOpenMetodoPago] = useState(false);
+    const [isOpenProveedor, setOpenProveedor] = useState(false);
 
-    // Función para manejar el click en un movimiento
-    const handleRegistro = (movimiento) => {
-        setInfoMovimiento(movimiento);
-        setIsOpenVerMovimiento(true);
+    // Función para manejar el click en un gasto
+    const handleGasto = (gasto) => {
+        setInfoGasto(gasto);
+        setIsOpenVerGasto(true);
     };
-
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
@@ -167,7 +175,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setIsRefreshing(true);
         
         try {
-            await cargarMovimientos(currentPage, debouncedSearchQuery, filtroTipo, ordenamiento);
+            await cargarGastos(currentPage, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento);
             
             // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
@@ -196,9 +204,15 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setCurrentPage(1);
     };
 
-    // Función para manejar filtro de tipo
-    const handleFiltroTipo = (tipo) => {
-        setFiltroTipo(tipo);
+    // Función para manejar filtro de método de pago
+    const handleFiltroMetodoPago = (metodo) => {
+        setFiltroMetodoPago(metodo);
+        setCurrentPage(1);
+    };
+
+    // Función para manejar filtro de proveedor
+    const handleFiltroProveedor = (proveedor) => {
+        setFiltroProveedor(proveedor);
         setCurrentPage(1);
     };
 
@@ -208,52 +222,60 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setSearchQuery('');
             setCurrentPage(1);
         }
-    }, [isOpen, tipoMovimiento]);
+    }, [isOpen]);
 
     // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
     useEffect(() => {
         if (isOpen) {
-            setAllMovimientos([]);
+            setAllGastos([]);
             setCurrentPage(1);
         }
-    }, [debouncedSearchQuery, filtroTipo, ordenamiento]);
+    }, [debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]);
 
-    // Efecto para manejar errores de SWR
+    // Efecto para manejar errores
     useEffect(() => {
         if (error) {
-            console.error('Error obteniendo movimientos:', error);
+            console.error('Error obteniendo gastos:', error);
         }
     }, [error]);
 
-    // Función para manejar cuando se anula un movimiento
-    const handleMovimientoAnulado = (movimientoId) => {
+    // Función para manejar cuando se elimina un gasto
+    const handleGastoEliminado = (gastoId) => {
         // Actualizar el estado local acumulado
-        setAllMovimientos(prevMovimientos => 
-            prevMovimientos.map(movimiento => 
-                movimiento.id === movimientoId 
-                    ? { ...movimiento, estado: 'anulado' }
-                    : movimiento
+        setAllGastos(prevGastos => 
+            prevGastos.filter(gasto => gasto.id !== gastoId)
+        );
+        
+        mostrarNotificacion('success', 'Gasto eliminado correctamente');
+    };
+
+    // Función para manejar cuando se actualiza un gasto
+    const handleGastoActualizado = (gastoActualizado) => {
+        // Actualizar el estado local acumulado
+        setAllGastos(prevGastos => 
+            prevGastos.map(gasto => 
+                gasto.id === gastoActualizado.id ? gastoActualizado : gasto
             )
         );
         
-        mostrarNotificacion('success', 'Movimiento anulado correctamente');
+        mostrarNotificacion('success', 'Gasto actualizado correctamente');
     };
 
-    // Función para manejar cuando se elimina un movimiento
-    const handleMovimientoEliminado = (movimientoId) => {
-        // Actualizar el estado local acumulado
-        setAllMovimientos(prevMovimientos => 
-            prevMovimientos.filter(movimiento => movimiento.id !== movimientoId)
-        );
+    // Función para manejar cuando se crea un nuevo gasto
+    const handleGastoCreated = (newGasto) => {
+        // Actualizar el estado local con el gasto que devuelve el servidor
+        setAllGastos(prevGastos => [newGasto, ...prevGastos]);
         
-        mostrarNotificacion('success', 'Movimiento eliminado correctamente');
+        // Cerrar el modal
+        setIsOpenEditarAgregar(false);
+        mostrarNotificacion('success', 'Gasto agregado correctamente');
     };
-    // Función para obtener el nombre del tipo de filtro
-    const getTipoNombre = () => {
-        if (filtroTipo === null) return 'Todos los tipos';
-        if (filtroTipo === 'entrada') return 'Entradas';
-        if (filtroTipo === 'salida') return 'Salidas';
-        return 'Todos los tipos';
+
+    // Función para obtener el nombre del método de pago
+    const getMetodoPagoNombre = () => {
+        if (filtroMetodoPago === null) return 'Todos los métodos';
+        const metodo = metodosPago.find(m => m.value === filtroMetodoPago);
+        return metodo ? metodo.label : 'Todos los métodos';
     };
 
     // Función para obtener el nombre del ordenamiento
@@ -261,17 +283,19 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         const ordenamientos = {
             'fecha_desc': 'Más recientes',
             'fecha_asc': 'Más antiguos',
-            'tipo_asc': 'Tipo A-Z',
-            'tipo_desc': 'Tipo Z-A'
+            'valor_desc': 'Mayor valor',
+            'valor_asc': 'Menor valor',
+            'concepto_asc': 'Concepto A-Z',
+            'concepto_desc': 'Concepto Z-A'
         };
         return ordenamientos[ordenamiento] || 'Ordenamiento';
     };
 
     const opciones = [
         {
-            label: getTipoNombre(),
-            active: filtroTipo !== null,
-            onClick: () => setOpenTipo(true)
+            label: getMetodoPagoNombre(),
+            active: filtroMetodoPago !== null,
+            onClick: () => setOpenMetodoPago(true)
         },
         {
             label: getOrdenamientoNombre(),
@@ -286,7 +310,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
                     <h1 className={styles.title}>
-                        Movimientos
+                        Gastos
                         <button className={styles.refreshButton} onClick={handleRefresh}>
                             <BoxIcon name='refresh' />
                         </button>
@@ -296,15 +320,9 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         isLoading={isRefreshing}
                     />
                 </div>
-                <p className={styles.subTitle}>
-                    {tipoMovimiento === 'acopio' 
-                        ? 'Materia Prima' 
-                        : 'Almacén General'
-                    }
-                </p>
                 <div className={styles.searchContainer}>
                     <InputSearch
-                        placeholder='Buscar movimiento'
+                        placeholder='Buscar gasto por concepto...'
                         type="text"
                         value={searchQuery}
                         onChange={(e) => {
@@ -320,51 +338,56 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         minHeight: 'calc(100vh - 250px)',
                     }}
                 >
-                    {allMovimientos.length > 0 ? (
-                        allMovimientos.map((movimiento, index) => {
+                    {allGastos.length > 0 ? (
+                        allGastos.map((gasto, index) => {
                             return (
                                 <ItemView
-                                    key={movimiento.id || index}
-                                    title={tipoMovimiento === 'acopio' 
-                                        ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
-                                        : movimiento.productos && movimiento.productos.length > 0
-                                            ? movimiento.productos.length === 1
-                                                ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'} - ${movimiento.productos[0]?.cantidad || '0'} ud`
-                                                : `${movimiento.productos.length} productos`
-                                            : 'Sin productos'
-                                    }
-                                    description={`${movimiento.observations || 'Sin observaciones'} • ${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
-                                    icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
-                                    onClick={() => handleRegistro(movimiento)}
+                                    key={gasto.id || index}
+                                    title={gasto.concepto || 'Sin concepto'}
+                                    description={`${new Date(gasto.fecha_gasto).toLocaleDateString()} • ${gasto.metodo_pago || 'Sin método de pago'}${gasto.proveedor?.name ? ` • ${gasto.proveedor.name}` : ''}`}
+                                    icon='money'
+                                    onClick={() => handleGasto(gasto)}
                                     arrow={false}
-                                    flot2={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
-                                    flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
+                                    flot3={`Bs. ${(gasto.valor || 0).toFixed(2)}`}
                                 />
                             );
                         })
                     ) : (
                         <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron movimientos' : 'No hay movimientos registrados'}</p>
+                            <p>{searchQuery ? 'No se encontraron gastos' : 'No hay gastos registrados'}</p>
                         </div>
                     )}
 
                     {/* Indicador de carga para más elementos */}
                     {isLoading && (
                         <div className={styles.loadingMore}>
-                            <p>Cargando más movimientos...</p>
+                            <p>Cargando más gastos...</p>
                         </div>
                     )}
                 </div>
+                <div className={styles.buttonFooter}>
+                    <Boton
+                        className='btn-original'
+                        label='Agregar gasto'
+                        onClick={() => setIsOpenEditarAgregar(true)}
+                    />
+                </div>
             </div>
             
-            {/* Modal de ver movimiento*/}
-            <VerMovimiento
-                isOpen={isOpenVerMovimiento}
-                setIsOpen={setIsOpenVerMovimiento}
-                movimiento={infoMovimiento}
-                tipoMovimiento={tipoMovimiento}
-                onMovimientoAnulado={handleMovimientoAnulado}
-                onMovimientoEliminado={handleMovimientoEliminado}
+            {/* Modal de ver gasto*/}
+            <VerGasto
+                isOpen={isOpenVerGasto}
+                setIsOpen={setIsOpenVerGasto}
+                gasto={infoGasto}
+                onGastoEliminado={handleGastoEliminado}
+                onGastoActualizado={handleGastoActualizado}
+            />
+
+            {/* Modal de editar/agregar gasto */}
+            <EditarAgregarGasto
+                isOpen={isOpenEditarAgregar}
+                setIsOpen={setIsOpenEditarAgregar}
+                onGastoCreated={handleGastoCreated}
             />
 
             <Notification
@@ -373,38 +396,25 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 text={notification.text}
             />
 
-            {/* Modal de filtro de tipo*/}
-            <ViewModal isOpen={isOpenTipo} setIsOpen={setOpenTipo}>
+            {/* Modal de filtro de método de pago*/}
+            <ViewModal isOpen={isOpenMetodoPago} setIsOpen={setOpenMetodoPago}>
                 <HeaderModal
-                    title="Tipo de Movimiento"
-                    onClose={() => setOpenTipo(false)}
+                    title="Método de Pago"
+                    onClose={() => setOpenMetodoPago(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona el tipo de movimiento a mostrar</p>
-                    <ItemLine
-                        title='Todos los tipos'
-                        icon='list-ul'
-                        onClick={() => {
-                            handleFiltroTipo(null);
-                            setOpenTipo(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Entradas'
-                        icon='plus-circle'
-                        onClick={() => {
-                            handleFiltroTipo('entrada');
-                            setOpenTipo(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Salidas'
-                        icon='minus-circle'
-                        onClick={() => {
-                            handleFiltroTipo('salida');
-                            setOpenTipo(false);
-                        }}
-                    />
+                    <p className={styles.subTitle}>Selecciona el método de pago a mostrar</p>
+                    {metodosPago.map((metodo) => (
+                        <ItemLine
+                            key={metodo.value || 'todos'}
+                            title={metodo.label}
+                            icon='credit-card'
+                            onClick={() => {
+                                handleFiltroMetodoPago(metodo.value);
+                                setOpenMetodoPago(false);
+                            }}
+                        />
+                    ))}
                 </div>
             </ViewModal>
 
@@ -415,7 +425,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     onClose={() => setOpenOrden(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para ordenar los movimientos</p>
+                    <p className={styles.subTitle}>Selecciona una opción para ordenar los gastos</p>
                     <ItemLine
                         title='Más recientes'
                         icon='time'
@@ -433,25 +443,41 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         }}
                     />
                     <ItemLine
-                        title='Tipo A-Z'
-                        icon='sort-a-z'
+                        title='Mayor valor'
+                        icon='trending-up'
                         onClick={() => {
-                            handleOrdenamiento('tipo_asc');
+                            handleOrdenamiento('valor_desc');
                             setOpenOrden(false);
                         }}
                     />
                     <ItemLine
-                        title='Tipo Z-A'
+                        title='Menor valor'
+                        icon='trending-down'
+                        onClick={() => {
+                            handleOrdenamiento('valor_asc');
+                            setOpenOrden(false);
+                        }}
+                    />
+                    <ItemLine
+                        title='Concepto A-Z'
+                        icon='sort-a-z'
+                        onClick={() => {
+                            handleOrdenamiento('concepto_asc');
+                            setOpenOrden(false);
+                        }}
+                    />
+                    <ItemLine
+                        title='Concepto Z-A'
                         icon='sort-z-a'
                         onClick={() => {
-                            handleOrdenamiento('tipo_desc');
+                            handleOrdenamiento('concepto_desc');
                             setOpenOrden(false);
                         }}
                     />
                 </div>
             </ViewModal>
         </View>
-
     );
 }
-export default PanelMovimientos;
+
+export default PanelGastos;

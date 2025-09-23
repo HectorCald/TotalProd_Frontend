@@ -11,7 +11,8 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemLine from '../../common/ItemLine';
 import Notification from '../../common/Notification';
-import { usePedidosAcopio, usePedidosAlmacen } from '../../../hooks/useData';
+import pedidosAcopioService from '../../../services/pedidosAcopioService';
+import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 
@@ -41,22 +42,43 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Estados para filtros
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
 
-    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const usePedidosHook = tipoPedido === 'acopio' ? usePedidosAcopio : usePedidosAlmacen;
-    const { pedidos, hasMorePages, error, isLoading, refetch } = usePedidosHook(
-        isOpen ? debouncedSearchQuery : '', 
-        isOpen ? currentPage : 1,
-        isOpen,
-        ordenamiento
-    );
+    // Estados para pedidos
+    const [pedidos, setPedidos] = useState([]);
+    const [hasMorePages, setHasMorePages] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+
+    // Función para cargar pedidos
+    const cargarPedidos = async (page = 1, search = '', orden = 'fecha_desc') => {
+        console.log('cargando pedidos');
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const response = tipoPedido === 'acopio' 
+                ? await pedidosAcopioService.getAll(page, 10, search, orden)
+                : await pedidosAlmacenService.getAll(page, 10, search, orden);
+                
+            if (response.success) {
+                setPedidos(response.data);
+                setHasMorePages(response.pagination?.hasNextPage || false);
+            } else {
+                setError(response);
+            }
+        } catch (error) {
+            setError(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     // Acumular datos de todas las páginas cuando llegan nuevos pedidos
     useEffect(() => {
         if (pedidos && pedidos.length > 0 && isOpen) {
             if (currentPage === 1) {
-                // Si es la primera página, solo tomar los primeros 10
-                const primeros10 = pedidos.slice(0, 10);
-                setAllPedidos(primeros10);
+                // Si es la primera página, tomar todos los pedidos que vienen del servicio
+                setAllPedidos(pedidos);
             } else {
                 // Si es una página posterior, acumular los datos
                 setAllPedidos(prevPedidos => {
@@ -68,15 +90,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             }
         }
     }, [pedidos, currentPage, isOpen]);
-
-    // Efecto para inicializar datos cuando se abre el modal - SOLO los primeros 10
-    useEffect(() => {
-        if (isOpen && pedidos && pedidos.length > 0 && allPedidos.length === 0 && currentPage === 1) {
-            // Solo tomar los primeros 10 pedidos del cache
-            const primeros10 = pedidos.slice(0, 10);
-            setAllPedidos(primeros10);
-        }
-    }, [isOpen, pedidos, allPedidos.length, currentPage]);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
@@ -94,16 +107,23 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
 
-    // Forzar revalidación cada vez que se abre el modal
+    // Cargar pedidos cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
             // Mostrar indicador inmediatamente al abrir
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
-            // Ejecutar refetch
-            refetch();
+            // Cargar primera página
+            cargarPedidos(1, debouncedSearchQuery, ordenamiento);
         }
     }, [isOpen]);
+
+    // Cargar pedidos cuando cambian los parámetros
+    useEffect(() => {
+        if (isOpen) {
+            cargarPedidos(currentPage, debouncedSearchQuery, ordenamiento);
+        }
+    }, [currentPage, debouncedSearchQuery, ordenamiento]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -136,7 +156,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setIsRefreshing(true);
         
         try {
-            await refetch();
+            await cargarPedidos(currentPage, debouncedSearchQuery, ordenamiento);
             
             // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
@@ -183,17 +203,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     };
     // Función para manejar cuando se elimina un pedido
     const handlePedidoEliminado = (pedidoId) => {
-        // Actualizar el cache de SWR localmente removiendo el pedido eliminado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.filter(pedido => pedido.id !== pedidoId)
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
-        
-        // También actualizar el estado local acumulado
+        // Actualizar el estado local acumulado
         setAllPedidos(prevPedidos => 
             prevPedidos.filter(pedido => pedido.id !== pedidoId)
         );
@@ -203,19 +213,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     };
     // Función para manejar cuando se actualiza un pedido
     const handlePedidoActualizado = (pedidoActualizado) => {
-        // Actualizar el cache de SWR localmente con el pedido actualizado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.map(pedido => 
-                    pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido
-                )
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
-        
-        // También actualizar el estado local acumulado
+        // Actualizar el estado local acumulado
         setAllPedidos(prevPedidos => 
             prevPedidos.map(pedido => 
                 pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido

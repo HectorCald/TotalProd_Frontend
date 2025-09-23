@@ -11,7 +11,6 @@ import pricesTypesService from '../../../services/pricesTypesService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
-import { usePrecios } from '../../../hooks/useData';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 
@@ -28,16 +27,31 @@ function Precios({ isOpen, setIsOpen }) {
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
 
-    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { precios, error, isLoading, refetch } = usePrecios(isOpen);
+    // Estados para precios
+    const [precios, setPrecios] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+    // Función para cargar precios
+    const cargarPrecios = async () => {
+        console.log('cargando precios');
+        setIsLoading(true);
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        setError(null);
+        
+        try {
+            const response = await pricesTypesService.getAll();
+            if (response.success) {
+                setPrecios(response.data);
+            } else {
+                setError(response);
+            }
+        } catch (error) {
+            setError(error);
+        } finally {
+            setIsLoading(false);
+            // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
                 setTimeout(() => {
@@ -45,16 +59,12 @@ function Precios({ isOpen, setIsOpen }) {
                 }, 1000);
             }, 500);
         }
-    }, [isLoading, isOpen, showRefreshIndicator]);
+    };
 
-    // Forzar revalidación cada vez que se abre el modal
+    // Cargar precios cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-            // Ejecutar refetch
-            refetch();
+            cargarPrecios();
         }
     }, [isOpen]);
 
@@ -102,23 +112,7 @@ function Precios({ isOpen, setIsOpen }) {
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
-        try {
-            await refetch();
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
+        await cargarPrecios();
     };
 
     // Efecto para resetear búsqueda cuando se abre
@@ -153,15 +147,8 @@ function Precios({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se crea un nuevo precio
     const handlePrecioCreated = (newPrecio) => {
-        // Actualizar el cache localmente con el precio que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: [newPrecio, ...currentData.data]
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el precio que devuelve el servidor
+        setPrecios(prevPrecios => [newPrecio, ...prevPrecios]);
         
         // Cerrar el modal
         setIsAgregarOpen(false);
@@ -170,15 +157,8 @@ function Precios({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se elimina un precio
     const handlePrecioDeleted = (deletedId) => {
-        // Actualizar el cache localmente removiendo el precio eliminado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.filter(precio => precio.id !== deletedId)
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local removiendo el precio eliminado
+        setPrecios(prevPrecios => prevPrecios.filter(precio => precio.id !== deletedId));
         
         // Cerrar el modal de ver precio
         setIsOpenVerPrecio(false);
@@ -187,17 +167,10 @@ function Precios({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se actualiza un precio
     const handlePrecioUpdated = (updatedPrecio) => {
-        // Actualizar el cache localmente con el precio actualizado que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.map(precio => 
-                    precio.id === updatedPrecio.id ? updatedPrecio : precio
-                )
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el precio actualizado que devuelve el servidor
+        setPrecios(prevPrecios => prevPrecios.map(precio => 
+            precio.id === updatedPrecio.id ? updatedPrecio : precio
+        ));
         
         // Cerrar el modal de ver precio
         setIsOpenVerPrecio(false);

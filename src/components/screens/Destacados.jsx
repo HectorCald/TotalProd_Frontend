@@ -56,17 +56,18 @@ const Destacados = () => {
 
   // Función para cargar todos los movimientos destacados
   const loadDestacados = async () => {
+    const destacados = loadDestacadosFromStorage();
+    
+    if (destacados.length === 0) {
+      setMovimientosDestacados([]);
+      return;
+    }
+
     setLoading(true);
     setShowRefreshIndicator(true);
     setIsRefreshing(true);
 
     try {
-      const destacados = loadDestacadosFromStorage();
-      
-      if (destacados.length === 0) {
-        setMovimientosDestacados([]);
-        return;
-      }
 
       // Agrupar por tipo
       const acopioIds = destacados.filter(d => d.tipo === 'acopio').map(d => d.id);

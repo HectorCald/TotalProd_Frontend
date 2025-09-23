@@ -43,8 +43,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         { value: 'qr', label: 'QR', icon: 'qr-scan' },
         { value: 'transferencia', label: 'Transferencia', icon: 'transfer' },
         { value: 'tarjeta', label: 'Tarjeta', icon: 'credit-card' },
-        { value: 'efectivo', label: 'Efectivo', icon: 'money' },
-        { value: 'credito', label: 'Crédito', icon: 'credit-card' }
+        { value: 'efectivo', label: 'Efectivo', icon: 'money' }
     ];
 
     // Inicializar precio seleccionado cuando se abren los precios (solo si no hay uno seleccionado)

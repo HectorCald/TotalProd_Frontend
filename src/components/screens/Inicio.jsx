@@ -1,13 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Coleccion from '../common/Coleccion';
 import { FUNCTIONS } from '../../constants/functions';
 import AtajoAnuncio from '../common/AtajoAnuncio';
+import Notification from '../common/Notification';
 import almacenImage from '../../assets/almacen.png';
 import acopioImage from '../../assets/acopio.png';
 import movimientosImage from '../../assets/movimientos.png';
 import pedidosImage from '../../assets/pedidos.png';
 
 const Inicio = ({ onViewOpen }) => {
+  const [notification, setNotification] = useState({
+    isVisible: false,
+    type: 'info',
+    text: ''
+  });
+
+  const mostrarNotificacion = (tipo, texto) => {
+    setNotification({
+      isVisible: true,
+      type: tipo,
+      text: texto
+    });
+
+    // Auto-ocultar después de 3 segundos
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, isVisible: false }));
+    }, 3000);
+  };
+
+  const handleFunctionClick = (func) => {
+    if (func.view === 'transferencias') {
+      mostrarNotificacion('info', 'Transferencias estará disponible próximamente');
+    } else {
+      onViewOpen(func.view);
+    }
+  };
+
   return (
     <>
       <p className="subTitle">Funciones</p>
@@ -17,7 +45,7 @@ const Inicio = ({ onViewOpen }) => {
             key={func.name}
             title={func.name}
             icon={func.icon}
-            onClick={() => onViewOpen(func.view)}
+            onClick={() => handleFunctionClick(func)}
           />
         ))}
       </div>
@@ -51,6 +79,12 @@ const Inicio = ({ onViewOpen }) => {
           onClick={() => onViewOpen('pedidos')} 
         />
       </div>
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        text={notification.text}
+      />
     </>
   );
 };

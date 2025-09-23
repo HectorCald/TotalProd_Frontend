@@ -12,7 +12,6 @@ import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import { useUser } from '../../../context/UserContext';
-import { useSucursales } from '../../../hooks/useData';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
@@ -25,10 +24,6 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [modoAlmacen, setModoAlmacen] = useState('pedido'); // 'pedido' o 'entregar'
-
-    // Hook para obtener sucursales
-    const { sucursales } = useSucursales(isOpen);
-
 
 
     // Función para manejar cuando se actualiza un pedido
@@ -326,9 +321,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     const prepararDatosDescarga = () => {
         if (!pedido) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
 
-        // Obtener nombre de la sucursal
-        const sucursal = sucursales?.find(s => s.id === pedido?.sucu_id);
-        const nombreSucursal = sucursal?.name || 'Sucursal no encontrada';
+        // Obtener nombre de la sucursal (ya viene del backend)
+        const nombreSucursal = pedido?.sucursal?.name || 'Sucursal no encontrada';
 
         // Información superior
         const informacionSuperior = {

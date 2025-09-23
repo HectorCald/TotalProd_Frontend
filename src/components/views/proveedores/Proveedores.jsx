@@ -7,7 +7,7 @@ import ItemView from '../../common/ItemView';
 import VerProveedor from './VerProveedor';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import { useProveedores } from '../../../hooks/useData';
+import proveedorService from '../../../services/proveedorService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 
@@ -27,16 +27,31 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
 
-    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { proveedores, error, isLoading, refetch } = useProveedores(isOpen);
+    // Estados para proveedores
+    const [proveedores, setProveedores] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+    // Función para cargar proveedores
+    const cargarProveedores = async () => {
+        console.log('cargando proveedores');
+        setIsLoading(true);
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        setError(null);
+        
+        try {
+            const response = await proveedorService.getAll();
+            if (response.success) {
+                setProveedores(response.data);
+            } else {
+                setError(response);
+            }
+        } catch (error) {
+            setError(error);
+        } finally {
+            setIsLoading(false);
+            // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
                 setTimeout(() => {
@@ -44,18 +59,15 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                 }, 1000);
             }, 500);
         }
-    }, [isLoading, isOpen, showRefreshIndicator]);
+    };
 
-    // Forzar revalidación cada vez que se abre el modal
+    // Cargar proveedores cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-            // Ejecutar refetch
-            refetch();
+            cargarProveedores();
         }
     }, [isOpen]);
+
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -64,7 +76,6 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
             setIsRefreshing(false);
         }
     }, [isOpen]);
-
 
 
     // Estado para la notificación
@@ -85,6 +96,7 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 3000);
     };
+
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -112,29 +124,11 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
     };
 
 
-    // 🚀 SWR maneja automáticamente la carga de datos
-    // No necesitamos fetchProveedores manual
-
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
-        try {
-            await refetch();
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
+        await cargarProveedores();
     };
+
 
     // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
@@ -143,11 +137,13 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
         }
     }, [isOpen]);
 
+
     // Filtrar proveedores localmente basado en la búsqueda
     const proveedoresFiltrados = proveedores.filter(proveedor => 
         proveedor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (proveedor.phone && proveedor.phone.includes(searchQuery))
     );
+
 
     // Manejar error 403 con useEffect para evitar bucle infinito
     useEffect(() => {
@@ -166,17 +162,11 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
         }
     }, [error, isOpen]);
 
+
     // Función para manejar cuando se crea un nuevo proveedor
     const handleProveedorCreated = (newProveedor) => {
-        // Actualizar el cache localmente con el proveedor que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: [newProveedor, ...currentData.data]
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el proveedor que devuelve el servidor
+        setProveedores(prevProveedores => [newProveedor, ...prevProveedores]);
         
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
@@ -185,15 +175,8 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
 
     // Función para manejar cuando se elimina un proveedor
     const handleProveedorDeleted = (deletedId) => {
-        // Actualizar el cache localmente removiendo el proveedor eliminado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.filter(proveedor => proveedor.id !== deletedId)
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local removiendo el proveedor eliminado
+        setProveedores(prevProveedores => prevProveedores.filter(proveedor => proveedor.id !== deletedId));
         
         // Cerrar el modal de ver proveedor
         setIsOpenVerProveedor(false);
@@ -202,23 +185,17 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
 
     // Función para manejar cuando se actualiza un proveedor
     const handleProveedorUpdated = (updatedProveedor) => {
-        // Actualizar el cache localmente con el proveedor actualizado que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.map(proveedor => 
-                    proveedor.id === updatedProveedor.id ? updatedProveedor : proveedor
-                )
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el proveedor actualizado que devuelve el servidor
+        setProveedores(prevProveedores => prevProveedores.map(proveedor => 
+            proveedor.id === updatedProveedor.id ? updatedProveedor : proveedor
+        ));
         
         // Cerrar el modal de ver proveedor
         setIsOpenVerProveedor(false);
         mostrarNotificacion('success', 'Proveedor actualizado correctamente')
     };
 
+    
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />

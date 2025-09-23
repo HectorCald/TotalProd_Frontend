@@ -3,7 +3,7 @@ import { BoxIcon } from 'boxicons-react';
 import Inicio from '../screens/Inicio';
 import InicioEmpleado from '../screens/InicioEmpleado';
 import Destacados from '../screens/Destacados';
-import Buscar from '../screens/Buscar';
+import Balance from '../screens/Balance';
 import Reportes from '../screens/Reportes';
 import Explorar from '../screens/Explorar';
 
@@ -11,7 +11,7 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
     const navigationItems = [
         { id: 'inicio', icon: 'home', title: 'Inicio' },
         { id: 'destacados', icon: 'star', title: 'Destacados' },
-        { id: 'buscar', icon: 'search', title: 'Buscar' },
+        { id: 'balance', icon: 'trending-up', title: 'Balance' },
         { id: 'reportes', icon: 'receipt', title: 'Reportes' },
         { id: 'explorar', icon: 'category', title: 'Explorar' }
     ];
@@ -33,8 +33,8 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
                 );
             case 'destacados':
                 return <Destacados />;
-            case 'buscar':
-                return <Buscar />;
+            case 'balance':
+                return <Balance />;
             case 'reportes':
                 return <Reportes />;
             case 'explorar':

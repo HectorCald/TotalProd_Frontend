@@ -9,7 +9,7 @@ import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
-import { useClientes } from '../../../hooks/useData';
+import clientService from '../../../services/clientService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 
@@ -28,16 +28,32 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
 
-    // 🚀 Hook genérico con SWR
-    const { clientes, error, isLoading, refetch } = useClientes(isOpen);
+    // Estados para clientes
+    const [clientes, setClientes] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+
+    // Función para cargar clientes
+    const cargarClientes = async () => {
+        console.log('cargando clientes');
+        setIsLoading(true);
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        setError(null);
+        
+        try {
+            const response = await clientService.getAll();
+            if (response.success) {
+                setClientes(response.data);
+            } else {
+                setError(response);
+            }
+        } catch (error) {
+            setError(error);
+        } finally {
+            setIsLoading(false);
+            // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
                 setTimeout(() => {
@@ -45,18 +61,16 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                 }, 1000);
             }, 500);
         }
-    }, [isLoading, isOpen, showRefreshIndicator]);
+    };
 
-    // Forzar revalidación cada vez que se abre el modal
+    
+    // Cargar clientes cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-            // Ejecutar refetch
-            refetch();
+            cargarClientes();
         }
     }, [isOpen]);
+
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -128,29 +142,10 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         }
     };
 
-    // 🚀 SWR maneja automáticamente la carga de datos
-    // No necesitamos fetchClients manual
-
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
-        try {
-            await refetch();
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
+        await cargarClientes();
     };
 
     // Efecto para resetear búsqueda cuando se abre
@@ -167,55 +162,34 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     );
 
 
-
-
     // Función para manejar cuando se crea un nuevo cliente
     const handleClientCreated = (newClient) => {
-        // Actualizar el cache localmente con el cliente que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: [newClient, ...currentData.data]
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el cliente que devuelve el servidor
+        setClientes(prevClientes => [newClient, ...prevClientes]);
         
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
         mostrarNotificacion('success', 'Cliente agregado correctamente')
     };
 
+
     // Función para manejar cuando se elimina un cliente
     const handleClientDeleted = (deletedId) => {
-        // Actualizar el cache localmente removiendo el cliente eliminado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.filter(cliente => cliente.id !== deletedId)
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local removiendo el cliente eliminado
+        setClientes(prevClientes => prevClientes.filter(cliente => cliente.id !== deletedId));
         
         // Cerrar el modal de ver cliente
         setIsOpenVerCliente(false);
         mostrarNotificacion('success', 'Cliente eliminado correctamente')
     };
 
+
     // Función para manejar cuando se actualiza un cliente
     const handleClientUpdated = (updatedClient) => {
-        // Actualizar el cache localmente con el cliente actualizado que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.map(cliente => 
-                    cliente.id === updatedClient.id ? updatedClient : cliente
-                )
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el cliente actualizado que devuelve el servidor
+        setClientes(prevClientes => prevClientes.map(cliente => 
+            cliente.id === updatedClient.id ? updatedClient : cliente
+        ));
         
         // Cerrar el modal de ver cliente
         setIsOpenVerCliente(false);

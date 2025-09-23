@@ -238,6 +238,51 @@ class movimientosAlmacenService {
     }
   }
 
+  // Obtener todos los movimientos sin límite (para reportes y balance)
+  static async getAllSinLimite(tipo = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+    try {
+      const sucuId = sucuIdParam || getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId,
+        page: '1',
+        limit: '999999' // Límite muy alto para obtener todos los registros
+      });
+
+      if (tipo) {
+        params.append('type', tipo);
+      }
+      if (ordenamiento) {
+        params.append('ordenamiento', ordenamiento);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener los movimientos');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error obteniendo movimientos de almacén sin límite:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al obtener los movimientos'
+      };
+    }
+  }
+
   // Obtener movimientos por producto
   static async getByProduct(productId) {
     try {

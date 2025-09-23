@@ -15,7 +15,11 @@ import CanastaPedidos from './CanastaPedidos';
 import CanastaMovimientos from './CanastaMovimientos';
 import CategoriasAlmacen from './CategoriasAlmacen';
 import Notification from '../../common/Notification';
-import { useProductosAlmacen, useCategoriasAlmacen, usePrecios, useSucursales } from '../../../hooks/useData';
+import productsAlmacenService from '../../../services/productsAlmacenService';
+import categoryAlmacenService from '../../../services/categoryAlmacenService';
+import pricesTypesService from '../../../services/pricesTypesService';
+import sucursalesService from '../../../services/sucursalesService';
+import { useSucursales } from '../../../hooks/useData';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import { useUser } from '../../../context/UserContext';
@@ -54,11 +58,19 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [productosCanastaSalidas, setProductosCanastaSalidas] = useState([]);
     const [isCanastaMovimientosOpen, setIsCanastaMovimientosOpen] = useState(false);
 
-    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { productos, error, isLoading, refetch } = useProductosAlmacen(isOpen);
-    const { categorias: categoriasData, isLoading: loadingCategorias } = useCategoriasAlmacen(isOpen);
-    const { precios: preciosData, isLoading: loadingPrecios } = usePrecios(isOpen);
-    const { sucursales: sucursalesData, isLoading: loadingSucursales } = useSucursales(isOpen);
+    // Estados para datos
+    const [productos, setProductos] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    
+    const [categoriasData, setCategoriasData] = useState([]);
+    const [loadingCategorias, setLoadingCategorias] = useState(false);
+    
+    const [preciosData, setPreciosData] = useState([]);
+    const [loadingPrecios, setLoadingPrecios] = useState(false);
+    
+    const [sucursalesData, setSucursalesData] = useState([]);
+    const [loadingSucursales, setLoadingSucursales] = useState(false);
 
     // Mapear datos al formato esperado por los componentes
     const categorias = categoriasData.map(cat => ({
@@ -85,13 +97,26 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             name: sucursal.name
         }));
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+    // Función para cargar productos
+    const cargarProductos = async () => {
+        console.log('cargando productos almacen general');
+        setIsLoading(true);
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        setError(null);
+        
+        try {
+            const response = await productsAlmacenService.getAll();
+            if (response.success) {
+                setProductos(response.data);
+            } else {
+                setError(response);
+            }
+        } catch (error) {
+            setError(error);
+        } finally {
+            setIsLoading(false);
+            // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
                 setTimeout(() => {
@@ -99,16 +124,60 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 }, 1000);
             }, 500);
         }
-    }, [isLoading, isOpen, showRefreshIndicator]);
+    };
 
-    // Forzar revalidación cada vez que se abre el modal
+    // Función para cargar categorías
+    const cargarCategorias = async () => {
+        setLoadingCategorias(true);
+        try {
+            const response = await categoryAlmacenService.getAll();
+            if (response.success) {
+                setCategoriasData(response.data);
+            }
+        } catch (error) {
+            console.error('Error cargando categorías:', error);
+        } finally {
+            setLoadingCategorias(false);
+        }
+    };
+
+    // Función para cargar precios
+    const cargarPrecios = async () => {
+        setLoadingPrecios(true);
+        try {
+            const response = await pricesTypesService.getAll();
+            if (response.success) {
+                setPreciosData(response.data);
+            }
+        } catch (error) {
+            console.error('Error cargando precios:', error);
+        } finally {
+            setLoadingPrecios(false);
+        }
+    };
+
+    // Función para cargar sucursales
+    const cargarSucursales = async () => {
+        setLoadingSucursales(true);
+        try {
+            const response = await sucursalesService.getByEmpresaId();
+            if (response.success) {
+                setSucursalesData(response.data);
+            }
+        } catch (error) {
+            console.error('Error cargando sucursales:', error);
+        } finally {
+            setLoadingSucursales(false);
+        }
+    };
+
+    // Cargar datos cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-            // Ejecutar refetch
-            refetch();
+            cargarProductos();
+            cargarCategorias();
+            cargarPrecios();
+            cargarSucursales();
         }
     }, [isOpen]);
 
@@ -156,28 +225,13 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
 
 
-    // 🚀 SWR maneja automáticamente la carga de datos
-    // No necesitamos fetchProducts manual
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-
-        try {
-            await refetch();
-
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
+        await cargarProductos();
+        await cargarCategorias();
+        await cargarPrecios();
+        await cargarSucursales();
     };
 
     // Funciones de filtrado locales
@@ -303,15 +357,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Función para manejar cuando se crea un nuevo producto
     const handleProductCreated = (newProduct) => {
-        // Actualizar el cache localmente con el producto que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: [newProduct, ...currentData.data]
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el producto que devuelve el servidor
+        setProductos(prevProductos => [newProduct, ...prevProductos]);
         
         // Cerrar el modal
         setIsAgregarOpen(false);
@@ -319,15 +366,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     };
     // Función para manejar cuando se elimina un producto
     const handleProductDeleted = (deletedId) => {
-        // Actualizar el cache localmente removiendo el producto eliminado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.filter(producto => producto.id !== deletedId)
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local removiendo el producto eliminado
+        setProductos(prevProductos => prevProductos.filter(producto => producto.id !== deletedId));
         
         // Cerrar el modal de ver producto
         setIsOpenVerProducto(false);
@@ -335,17 +375,10 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     };
     // Función para manejar cuando se actualiza un producto
     const handleProductUpdated = (updatedProduct) => {
-        // Actualizar el cache localmente con el producto actualizado que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.map(producto => 
-                    producto.id === updatedProduct.id ? updatedProduct : producto
-                )
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el producto actualizado que devuelve el servidor
+        setProductos(prevProductos => prevProductos.map(producto => 
+            producto.id === updatedProduct.id ? updatedProduct : producto
+        ));
         
         // Actualizar también el producto que se está viendo
         setInfoPersona(updatedProduct);
@@ -355,8 +388,13 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     };
     // Función para manejar cuando se actualizan múltiples productos (después de movimientos)
     const handleProductosUpdated = (productosActualizados) => {
-        // Actualizar cache con SWR
-        refetch();
+        // Actualizar solo el stock de los productos que cambiaron, sin hacer nueva petición
+        setProductos(prevProductos => 
+            prevProductos.map(producto => {
+                const productoActualizado = productosActualizados.find(p => p.id === producto.id);
+                return productoActualizado ? productoActualizado : producto;
+            })
+        );
     };
 
 

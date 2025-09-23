@@ -8,7 +8,7 @@ import VerCategoria from './VerCategoria';
 import Boton from '../../common/Boton';
 import EditarAgregarCategoria from './EditarAgregarCategoria';
 import Notification from '../../common/Notification';
-import { useCategoriasAcopio } from '../../../hooks/useData';
+import categoryAcopioService from '../../../services/categoryAcopioService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 
@@ -25,16 +25,30 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
 
-    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { categorias, error, isLoading, refetch } = useCategoriasAcopio(isOpen);
+    // Estados para categorías
+    const [categorias, setCategorias] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+    // Función para cargar categorías
+    const cargarCategorias = async () => {
+        setIsLoading(true);
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        setError(null);
+        
+        try {
+            const response = await categoryAcopioService.getAll();
+            if (response.success) {
+                setCategorias(response.data);
+            } else {
+                setError(response);
+            }
+        } catch (error) {
+            setError(error);
+        } finally {
+            setIsLoading(false);
+            // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
                 setTimeout(() => {
@@ -42,16 +56,12 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                 }, 1000);
             }, 500);
         }
-    }, [isLoading, isOpen, showRefreshIndicator]);
+    };
 
-    // Forzar revalidación cada vez que se abre el modal
+    // Cargar categorías cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-            // Ejecutar refetch
-            refetch();
+            cargarCategorias();
         }
     }, [isOpen]);
 
@@ -100,23 +110,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
-        try {
-            await refetch();
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
+        await cargarCategorias();
     };
 
     // Efecto para resetear búsqueda cuando se abre
@@ -134,15 +128,8 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
 
     // Función para manejar cuando se crea una nueva categoría
     const handleCategoriaCreated = (newCategoria) => {
-        // Actualizar el cache localmente con la categoría que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: [newCategoria, ...currentData.data]
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con la categoría que devuelve el servidor
+        setCategorias(prevCategorias => [newCategoria, ...prevCategorias]);
         
         // Cerrar el modal
         setIsAgregarOpen(false);
@@ -151,15 +138,8 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
 
     // Función para manejar cuando se elimina una categoría
     const handleCategoriaDeleted = (deletedId) => {
-        // Actualizar el cache localmente removiendo la categoría eliminada
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.filter(categoria => categoria.id !== deletedId)
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local removiendo la categoría eliminada
+        setCategorias(prevCategorias => prevCategorias.filter(categoria => categoria.id !== deletedId));
         
         // Cerrar el modal de ver categoría
         setIsOpenVerCategoria(false);
@@ -168,17 +148,10 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
 
     // Función para manejar cuando se actualiza una categoría
     const handleCategoriaUpdated = (updatedCategoria) => {
-        // Actualizar el cache localmente con la categoría actualizada que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.map(categoria => 
-                    categoria.id === updatedCategoria.id ? updatedCategoria : categoria
-                )
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con la categoría actualizada que devuelve el servidor
+        setCategorias(prevCategorias => prevCategorias.map(categoria => 
+            categoria.id === updatedCategoria.id ? updatedCategoria : categoria
+        ));
         
         // Cerrar el modal de ver categoría
         setIsOpenVerCategoria(false);

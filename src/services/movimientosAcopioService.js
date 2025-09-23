@@ -175,7 +175,6 @@ class movimientosAcopioService {
   static async getAll(page = 1, limit = 10, tipo = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
-      console.log('🔍 movimientosAcopioService - sucuId obtenido:', sucuId);
       if (!sucuId) {
         return {
           success: false,
@@ -246,6 +245,47 @@ class movimientosAcopioService {
 
     } catch (error) {
       console.error('Error en eliminar:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+  // Obtener todos los movimientos sin límite (para reportes y balance)
+  static async getAllSinLimite(tipo = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+    try {
+      const sucuId = sucuIdParam || getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId,
+        page: '1',
+        limit: '999999' // Límite muy alto para obtener todos los registros
+      });
+
+      if (tipo) {
+        params.append('tipo', tipo);
+      }
+      if (ordenamiento) {
+        params.append('ordenamiento', ordenamiento);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-acopio?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error obteniendo movimientos de acopio sin límite:', error);
       return {
         success: false,
         error: 'Error de conexión con el servidor'

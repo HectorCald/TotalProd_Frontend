@@ -15,8 +15,8 @@ export const FUNCTIONS = [
         view: 'personal'
     },
     {
-        name: 'Pagos',
-        icon: 'credit-card',
-        view: 'pagos'
+        name: 'Transferencias',
+        icon: 'transfer',
+        view: 'transferencias'
     },
 ];

@@ -3,11 +3,13 @@ import ModuloExtra from '../common/ModuloExtra';
 import { EXTRAS } from '../../constants/extras';
 import Precios from '../views/precios/Precios';
 import Sucursales from '../views/sucursales/Sucursales';
+import PanelGastos from '../views/gastos/PanelGastos';
 import Notification from '../common/Notification';
 
 const Explorar = () => {
   const [isOpenPrecios, setIsOpenPrecios] = useState(false);
   const [isOpenSucursales, setIsOpenSucursales] = useState(false);
+  const [isOpenGastos, setIsOpenGastos] = useState(false);
   const [notification, setNotification] = useState({
     isVisible: false,
     type: 'info',
@@ -32,6 +34,8 @@ const Explorar = () => {
       setIsOpenPrecios(true);
     } else if (viewName === 'sucursales') {
       setIsOpenSucursales(true);
+    } else if (viewName === 'gastos') {
+      setIsOpenGastos(true);
     } else {
       // Mostrar notificación para módulos no implementados
       mostrarNotificacion('info', `La función "${viewName}" estará disponible próximamente`);
@@ -55,6 +59,7 @@ const Explorar = () => {
       {/* Modales de explorar */}
       <Precios isOpen={isOpenPrecios} setIsOpen={setIsOpenPrecios} />
       <Sucursales isOpen={isOpenSucursales} setIsOpen={setIsOpenSucursales} />
+      <PanelGastos isOpen={isOpenGastos} setIsOpen={setIsOpenGastos} />
       <Notification
         isVisible={notification.isVisible}
         type={notification.type}

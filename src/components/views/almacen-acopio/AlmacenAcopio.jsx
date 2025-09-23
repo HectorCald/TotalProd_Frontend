@@ -14,7 +14,7 @@ import EditarAgregar from '../almacen-acopio/EditarAgregar';
 import CategoriasAcopio from './CategoriasAcopio';
 import MovimientoAcopio from './MovimientoAcopio';
 import CanastaPedidos from './CanastaPedidos';
-import { useProductosAcopio } from '../../../hooks/useData';
+import productsAcopioService from '../../../services/productsAcopioService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import categoryAcopioService from '../../../services/categoryAcopioService';
@@ -47,16 +47,31 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const [tipoMedidaFiltro, setTipoMedidaFiltro] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
 
-    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { productos, error, isLoading, refetch } = useProductosAcopio(isOpen);
+    // Estados para productos
+    const [productos, setProductos] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+    // Función para cargar productos
+    const cargarProductos = async () => {
+        console.log('cargando productos almacen acopio');
+        setIsLoading(true);
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        setError(null);
+        
+        try {
+            const response = await productsAcopioService.getAll();
+            if (response.success) {
+                setProductos(response.data);
+            } else {
+                setError(response);
+            }
+        } catch (error) {
+            setError(error);
+        } finally {
+            setIsLoading(false);
+            // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
                 setTimeout(() => {
@@ -64,16 +79,12 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 }, 1000);
             }, 500);
         }
-    }, [isLoading, isOpen, showRefreshIndicator]);
+    };
 
-    // Forzar revalidación cada vez que se abre el modal
+    // Cargar productos cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-            // Ejecutar refetch
-            refetch();
+            cargarProductos();
         }
     }, [isOpen]);
 
@@ -169,28 +180,10 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
-    // 🚀 SWR maneja automáticamente la carga de datos
-    // No necesitamos fetchProducts manual
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-
-        try {
-            await refetch();
-
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
+        await cargarProductos();
     };
 
     // Funciones de filtrado locales
@@ -285,15 +278,8 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     // Función para manejar cuando se crea un nuevo producto
     const handleProductCreated = (newProduct) => {
-        // Actualizar el cache localmente con el producto que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-
-            return {
-                ...currentData,
-                data: [newProduct, ...currentData.data]
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el producto que devuelve el servidor
+        setProductos(prevProductos => [newProduct, ...prevProductos]);
 
         // Cerrar el modal
         setIsAgregarOpen(false);
@@ -302,15 +288,8 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     // Función para manejar cuando se elimina un producto
     const handleProductDeleted = (deletedId) => {
-        // Actualizar el cache localmente removiendo el producto eliminado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-
-            return {
-                ...currentData,
-                data: currentData.data.filter(producto => producto.id !== deletedId)
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local removiendo el producto eliminado
+        setProductos(prevProductos => prevProductos.filter(producto => producto.id !== deletedId));
 
         // Cerrar el modal de ver producto
         setIsOpenVerProducto(false);
@@ -319,17 +298,10 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     // Función para manejar cuando se actualiza un producto
     const handleProductUpdated = (updatedProduct) => {
-        // Actualizar el cache localmente con el producto actualizado que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-
-            return {
-                ...currentData,
-                data: currentData.data.map(producto =>
-                    producto.id === updatedProduct.id ? updatedProduct : producto
-                )
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el producto actualizado que devuelve el servidor
+        setProductos(prevProductos => prevProductos.map(producto =>
+            producto.id === updatedProduct.id ? updatedProduct : producto
+        ));
 
         // Actualizar también el producto que se está viendo
         setInfoPersona(updatedProduct);
@@ -341,28 +313,16 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     // Función para manejar cuando se crea un movimiento
     const handleMovimientoCreated = (movimiento, tieneReceta = false) => {
 
-        // Si es entrada con receta, recargar todos los productos para actualizar ingredientes
-        if (tipo === 'entrada' && tieneReceta) {
-            refetch(); // Recargar todos los productos
-        } else {
-            // Solo actualizar la cantidad del producto específico
-            if (movimiento && movimiento.product) {
-                refetch((currentData) => {
-                    if (!currentData) return currentData;
+        // Actualizar solo el stock del producto específico, sin hacer recarga completa
+        if (movimiento && movimiento.product) {
+            setProductos(prevProductos => prevProductos.map(producto =>
+                producto.id === movimiento.product.id
+                    ? { ...producto, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) }
+                    : producto
+            ));
 
-                    return {
-                        ...currentData,
-                        data: currentData.data.map(producto =>
-                            producto.id === movimiento.product.id
-                                ? { ...producto, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) }
-                                : producto
-                        )
-                    };
-                }, { revalidate: false }); // NO revalidar = NO petición al servidor
-
-                // Actualizar también el producto que se está viendo
-                setInfoPersona(prev => prev ? { ...prev, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) } : prev);
-            }
+            // Actualizar también el producto que se está viendo
+            setInfoPersona(prev => prev ? { ...prev, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) } : prev);
         }
 
         // Mostrar notificación de éxito

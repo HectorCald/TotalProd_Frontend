@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Screen from '../ui/Screen';
 import Select from '../common/Select';
 import RefreshIndicator from '../common/RefreshIndicator';
-import { useSucursales } from '../../hooks/useData';
+import sucursalesService from '../../services/sucursalesService';
 import ModalDescarga from '../ui/ModalDescarga';
 import movimientosAlmacenService from '../../services/movimientosAlmacenService';
 import movimientosAcopioService from '../../services/movimientosAcopioService';
@@ -27,8 +27,49 @@ const Reportes = () => {
     text: ''
   });
 
-  // Hook para cargar sucursales
-  const { sucursales, error, isLoading: loadingSucursales, refetch } = useSucursales(true);
+  // Estados para sucursales
+  const [sucursales, setSucursales] = useState([]);
+  const [loadingSucursales, setLoadingSucursales] = useState(false);
+  const [error, setError] = useState(null);
+  const [sucursalesCargadas, setSucursalesCargadas] = useState(false);
+  const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Función para cargar sucursales
+  const cargarSucursales = async () => {
+    console.log('cargando sucursales');
+    setLoadingSucursales(true);
+    setShowRefreshIndicator(true);
+    setIsRefreshing(true);
+    setError(null);
+    
+    try {
+      const response = await sucursalesService.getByEmpresaId();
+      if (response.success) {
+        setSucursales(response.data);
+        setSucursalesCargadas(true);
+      } else {
+        setError(response);
+      }
+    } catch (error) {
+      setError(error);
+    } finally {
+      setLoadingSucursales(false);
+      setTimeout(() => {
+        setIsRefreshing(false);
+        setTimeout(() => {
+          setShowRefreshIndicator(false);
+        }, 1000);
+      }, 500);
+    }
+  };
+
+  // Cargar sucursales solo la primera vez
+  React.useEffect(() => {
+    if (!sucursalesCargadas) {
+      cargarSucursales();
+    }
+  }, [sucursalesCargadas]);
 
   // Función para mostrar notificaciones
   const mostrarNotificacion = (tipo, texto) => {
@@ -120,7 +161,7 @@ const Reportes = () => {
   };
 
   const handleRefresh = async () => {
-    await refetch();
+    await cargarSucursales();
   };
 
   // Función para generar reporte de ventas (solo salidas de almacén)
@@ -548,8 +589,8 @@ const Reportes = () => {
         <div className={styles.headerContainer}>
           <p className={styles.subTitle}>SELECCIONAR</p>
           <RefreshIndicator
-            isVisible={isLoading}
-            isLoading={isLoading}
+            isVisible={showRefreshIndicator || isLoading}
+            isLoading={isRefreshing || isLoading}
           />
         </div>
 

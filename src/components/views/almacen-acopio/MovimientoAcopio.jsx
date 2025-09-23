@@ -6,8 +6,10 @@ import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import Dato from '../../common/Dato';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
+import gastosService from '../../../services/gastosService';
 import MensajeError from '../../common/MensajeError';
 import Switch from '../../common/Switch';
+import Select from '../../common/Select';
 import Proveedores from '../proveedores/Proveedores';
 import Clientes from '../clientes/Clientes';
 
@@ -17,7 +19,8 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
     proveedor_id: '',
     cliente_id: '',
     quantity: '',
-    costo: ''
+    costo: '',
+    metodo_pago: ''
   });
 
   const [errorMessage, setErrorMessage] = useState('');
@@ -34,6 +37,17 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   });
   const [tieneReceta, setTieneReceta] = useState(false);
   const [recetaData, setRecetaData] = useState(null);
+
+  // Estado para el Switch de registrar gasto
+  const [registrarGasto, setRegistrarGasto] = useState(false);
+
+  // Opciones de métodos de pago (sin crédito)
+  const metodosPago = [
+    { value: 'qr', label: 'QR', icon: 'qr-scan' },
+    { value: 'transferencia', label: 'Transferencia', icon: 'transfer' },
+    { value: 'tarjeta', label: 'Tarjeta', icon: 'credit-card' },
+    { value: 'efectivo', label: 'Efectivo', icon: 'money' }
+  ];
 
 
 
@@ -54,10 +68,13 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         proveedor_id: '',
         cliente_id: '',
         quantity: '',
-        costo: ''
+        costo: '',
+        metodo_pago: ''
       });
       setErrorMessage('');
-      // No resetear el switch, mantener el valor del localStorage
+      // Resetear el switch de registrar gasto siempre a false
+      setRegistrarGasto(false);
+      // No resetear el switch de materia prima, mantener el valor del localStorage
     }
   }, [isOpen]);
 
@@ -89,6 +106,21 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
       return;
     }
 
+    // Validaciones específicas para entradas con registro de gasto
+    if (tipo === 'entrada' && registrarGasto) {
+      if (!dataMov.costo || dataMov.costo <= 0) {
+        setErrorMessage('El costo es obligatorio cuando se registra un gasto');
+        setTimeout(() => setErrorMessage(''), 3000);
+        return;
+      }
+      
+      if (!dataMov.metodo_pago || dataMov.metodo_pago.trim() === '') {
+        setErrorMessage('El método de pago es obligatorio cuando se registra un gasto');
+        setTimeout(() => setErrorMessage(''), 3000);
+        return;
+      }
+    }
+
 
     setLoading(true);
     try {
@@ -100,13 +132,39 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         cliente_id: tipo === 'salida' ? (dataMov.cliente_id || null) : null,
         quantity: dataMov.quantity.toString(),
         costo: tipo === 'entrada' ? (dataMov.costo ? parseFloat(dataMov.costo) : null) : null,
+        metodo_pago: tipo === 'entrada' ? (dataMov.metodo_pago || null) : null,
         // Agregar flag para restar materia prima
         restar_materia_prima: tipo === 'entrada' && restarMateriaPrima && tieneReceta,
         // Agregar campo restar_ingredientes
         restar_ingredientes: tipo === 'entrada' && restarMateriaPrima && tieneReceta
       };
 
-      // Crear el movimiento
+      let gastoId = null;
+      
+      // Si es entrada con registro de gasto activado, crear gasto simultáneamente
+      if (tipo === 'entrada' && registrarGasto) {
+        const gastoData = {
+          fecha_gasto: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
+          valor: parseFloat(dataMov.costo),
+          concepto: `${producto.name} - ${dataMov.quantity} ${producto?.type_measure?.code || ''}`,
+          metodo_pago: dataMov.metodo_pago,
+          proveedor_id: dataMov.proveedor_id || null
+        };
+
+        const gastoResponse = await gastosService.create(gastoData);
+        
+        if (gastoResponse.success) {
+          gastoId = gastoResponse.data.id;
+          movimientoData.gasto_id = gastoId;
+          console.log('Gasto creado simultáneamente:', gastoResponse.data);
+        } else {
+          setErrorMessage(`Error al crear gasto: ${gastoResponse.message}`);
+          setTimeout(() => setErrorMessage(''), 5000);
+          return;
+        }
+      }
+
+      // Crear el movimiento (con o sin gasto_id)
       const response = await movimientosAcopioService.create(movimientoData);
 
       if (response.success) {
@@ -116,6 +174,16 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           onMovimientoCreated(response.data, tieneReceta && restarMateriaPrima);
         }
       } else {
+        // Si hay error y se creó un gasto, intentar eliminarlo
+        if (gastoId) {
+          try {
+            await gastosService.delete(gastoId);
+            console.log('Gasto eliminado debido a error en movimiento');
+          } catch (deleteError) {
+            console.error('Error al eliminar gasto:', deleteError);
+          }
+        }
+        
         setErrorMessage(response.message || `Error al registrar ${tipo}`);
         setTimeout(() => setErrorMessage(''), 5000);
       }
@@ -159,21 +227,6 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           icon='calculator'
         />
 
-
-
-        {/* Campo de costo solo para entradas */}
-        {tipo === 'entrada' && (
-          <InputNormal
-            tipo="number"
-            value={dataMov.costo}
-            placeholder='Costo (opcional)'
-            onChange={(e) => handleChange('costo', e.target.value)}
-            icon='money'
-            step="0.01"
-            min="0"
-          />
-        )}
-
         <InputNormal
           tipo="text"
           value={dataMov.observations}
@@ -182,16 +235,50 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           icon='comment'
         />
 
-        {/* Selector de proveedor para entradas */}
+        {/* Switch para registrar gasto solo para entradas */}
         {tipo === 'entrada' && (
-          <div className={styles.content} style={{ padding: '5px 15px' }}>
-            <Boton
-              className='btn-transparent'
-              label={proveedorSeleccionadoData ? proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
-              onClick={() => setIsProveedoresSeleccionOpen(true)}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+          <div className={styles.content} style={{ padding: '10px 15px' }}>
+            <Switch
+              title="Registrar gasto"
+              subtitle="Crear un gasto automáticamente con este movimiento"
+              checked={registrarGasto}
+              onChange={setRegistrarGasto}
+              icon="money"
             />
           </div>
+        )}
+
+        {/* Campos de gasto */}
+        {tipo === 'entrada' && registrarGasto && (
+          <>
+            <InputNormal
+              tipo="number"
+              value={dataMov.costo}
+              placeholder='Costo (obligatorio)'
+              onChange={(e) => handleChange('costo', e.target.value)}
+              icon='money'
+              step="0.01"
+              min="0"
+            />
+
+            <div className={styles.content} style={{ padding: '10px 15px' }}>
+              <Select
+                value={dataMov.metodo_pago}
+                onChange={(value) => handleChange('metodo_pago', value)}
+                options={metodosPago}
+                placeholder='Método de pago (obligatorio)'
+                icon='credit-card'
+              />
+            </div>
+
+              <Boton
+                className='btn-gray'
+                label={proveedorSeleccionadoData ? proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
+                onClick={() => setIsProveedoresSeleccionOpen(true)}
+                style={{ width: '100%', justifyContent: 'flex-start' }}
+              />
+
+          </>
         )}
 
         {/* Selector de cliente para salidas */}
@@ -227,7 +314,11 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           style={{ marginTop: 'auto' }}
           onClick={handleSubmit}
           loading={loading}
-          disabled={!dataMov.quantity || dataMov.quantity <= 0}
+          disabled={
+            !dataMov.quantity || 
+            dataMov.quantity <= 0 ||
+            (tipo === 'entrada' && registrarGasto && (!dataMov.costo || dataMov.costo <= 0 || !dataMov.metodo_pago || dataMov.metodo_pago.trim() === ''))
+          }
         />
       </div>
 

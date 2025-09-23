@@ -13,7 +13,6 @@ import movimientosAlmacenService from '../../../services/movimientosAlmacenServi
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
-import { useSucursales } from '../../../hooks/useData';
 
 function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimientoAnulado, onMovimientoEliminado }) {
     const [loading, setLoading] = useState(false);
@@ -25,8 +24,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isDestacado, setIsDestacado] = useState(false);
 
-    // Hook para obtener sucursales
-    const { sucursales } = useSucursales(isOpen);
 
     // Cargar estado de destacado desde localStorage
     useEffect(() => {
@@ -44,9 +41,8 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
     const prepararDatosDescarga = () => {
         if (!movimiento) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
 
-        // Obtener nombre de la sucursal
-        const sucursal = sucursales?.find(s => s.id === movimiento?.sucu_id);
-        const nombreSucursal = sucursal?.name || 'Sucursal no encontrada';
+        // Obtener nombre de la sucursal (ya viene del backend)
+        const nombreSucursal = movimiento?.sucursal?.name || 'Sucursal no encontrada';
 
         // Información superior
         const informacionSuperior = {

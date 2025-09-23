@@ -7,7 +7,8 @@ import ItemView from '../../common/ItemView';
 import VerPersona from './VerPersona';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import { usePersonal, useSucursales } from '../../../hooks/useData';
+import personalService from '../../../services/personalService';
+import sucursalesService from '../../../services/sucursalesService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import InfoModal from '../../common/InfoModal';
@@ -26,19 +27,36 @@ function Personal({ isOpen, setIsOpen }) {
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
 
-    // 🚀 Hook genérico con SWR - Solo se ejecuta cuando el modal está abierto
-    const { personal, error, isLoading, refetch } = usePersonal(isOpen);
+    // Estados para personal
+    const [personal, setPersonal] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Hook para cargar sucursales
-    const { sucursales, error: sucursalesError, isLoading: sucursalesLoading, refetch: refetchSucursales } = useSucursales(isOpen);
+    // Estados para sucursales
+    const [sucursales, setSucursales] = useState([]);
+    const [sucursalesLoading, setSucursalesLoading] = useState(false);
+    const [sucursalesError, setSucursalesError] = useState(null);
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
+    // Función para cargar personal
+    const cargarPersonal = async () => {
+        console.log('cargando personal');
+        setIsLoading(true);
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+        setError(null);
+        
+        try {
+            const response = await personalService.getAll();
+            if (response.success) {
+                setPersonal(response.data);
+            } else {
+                setError(response);
+            }
+        } catch (error) {
+            setError(error);
+        } finally {
+            setIsLoading(false);
+            // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
                 setIsRefreshing(false);
                 setTimeout(() => {
@@ -46,16 +64,32 @@ function Personal({ isOpen, setIsOpen }) {
                 }, 1000);
             }, 500);
         }
-    }, [isLoading, isOpen, showRefreshIndicator]);
+    };
 
-    // Forzar revalidación cada vez que se abre el modal
+    // Función para cargar sucursales
+    const cargarSucursales = async () => {
+        setSucursalesLoading(true);
+        setSucursalesError(null);
+        
+        try {
+            const response = await sucursalesService.getByEmpresaId();
+            if (response.success) {
+                setSucursales(response.data);
+            } else {
+                setSucursalesError(response);
+            }
+        } catch (error) {
+            setSucursalesError(error);
+        } finally {
+            setSucursalesLoading(false);
+        }
+    };
+
+    // Cargar datos cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-            // Ejecutar refetch
-            refetch();
+            cargarPersonal();
+            cargarSucursales();
         }
     }, [isOpen]);
 
@@ -104,28 +138,11 @@ function Personal({ isOpen, setIsOpen }) {
         setInfoPersona(persona);
     };
 
-    // 🚀 SWR maneja automáticamente la carga de datos
-    // No necesitamos fetchPersonal manual
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
-        try {
-            await refetch();
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
+        await cargarPersonal();
+        await cargarSucursales();
     };
 
     // Efecto para resetear búsqueda cuando se abre
@@ -157,15 +174,8 @@ function Personal({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se crea un nuevo personal
     const handlePersonalCreated = (newPersonal) => {
-        // Actualizar el cache localmente con el personal que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: [newPersonal, ...currentData.data]
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el personal que devuelve el servidor
+        setPersonal(prevPersonal => [newPersonal, ...prevPersonal]);
         
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
@@ -174,15 +184,8 @@ function Personal({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se elimina un personal
     const handlePersonalDeleted = (deletedId) => {
-        // Actualizar el cache localmente removiendo el personal eliminado
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.filter(personal => personal.id !== deletedId)
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local removiendo el personal eliminado
+        setPersonal(prevPersonal => prevPersonal.filter(personal => personal.id !== deletedId));
         
         // Cerrar el modal de ver personal
         setIsOpenVerPersona(false);
@@ -191,17 +194,10 @@ function Personal({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se actualiza un personal
     const handlePersonalUpdated = (updatedPersonal) => {
-        // Actualizar el cache localmente con el personal actualizado que devuelve el servidor
-        refetch((currentData) => {
-            if (!currentData) return currentData;
-            
-            return {
-                ...currentData,
-                data: currentData.data.map(personal => 
-                    personal.id === updatedPersonal.id ? updatedPersonal : personal
-                )
-            };
-        }, { revalidate: false }); // NO revalidar = NO petición al servidor
+        // Actualizar el estado local con el personal actualizado que devuelve el servidor
+        setPersonal(prevPersonal => prevPersonal.map(personal => 
+            personal.id === updatedPersonal.id ? updatedPersonal : personal
+        ));
         
         // Cerrar el modal de ver personal
         setIsOpenVerPersona(false);
