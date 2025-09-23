@@ -1,6 +1,7 @@
 {
   "short_name": "TotalProd",
   "name": "TotalProd - Gestióna procesos y ventas",
+  "id": "TotalProd",
   "icons": [
     {
       "src": "icon.png",
@@ -21,10 +22,44 @@
       "purpose": "any maskable"
     }
   ],
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "clearSiteData",
+    "geolocation",
+    "webauthn",
+    "push",
+    "notifications" 
+  ],
+  "storage": {
+    "clearOnUninstall": true,
+    "preferences": "clear",
+    "cache": "clear"
+  },
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "app.totalprod.twa",
+      "url": "https://play.google.com/store/apps/details?id=app.totalprod.twa",
+      "uninstall_action": {
+        "clear_data": true,
+        "clear_cache": true,
+        "remove_shortcuts": true
+      }
+    }
+  ],
+"android_package": "app.totalprod.twa",
+  "play_store_data": {
+    "uninstall_behavior": {
+      "clear_app_data": true,
+      "clear_cache": true,
+      "remove_tasks": true
+    }
+  },
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff",
+  "theme_color": "transparent",
+  "background_color": "#28b498",
   "orientation": "portrait",
   "scope": "/",
   "description": "Sistema de gestión integral de gestión de procesos y ventas",
