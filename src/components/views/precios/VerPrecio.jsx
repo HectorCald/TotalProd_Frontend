@@ -11,12 +11,12 @@ import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
 import pricesTypesService from '../../../services/pricesTypesService';
 import productsAlmacenService from '../../../services/productsAlmacenService';
-import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 
 function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated }) {
     const [isEditarOpen, setIsEditarOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
+    const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [products, setProducts] = useState([]);
     const [loadingProducts, setLoadingProducts] = useState(false);
@@ -41,12 +41,6 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
             setLoadingProducts(false);
         }
     };
-
-    useEffect(() => {
-        if (isOpen && precio) {
-            fetchProductsByPriceType();
-        }
-    }, [isOpen, precio]);
 
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -100,20 +94,6 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
             <div className={styles.container}>
                 <h1 className={styles.title}>
                     {precio?.name}
-                    <div className={styles.iconButton}>
-                        <button className={styles.iconButton} onClick={() => setIsEliminarOpen(true)}>
-                            <BoxIcon
-                                name='trash'
-                                className={styles.iconTrash}
-                            />
-                        </button>
-                        <button className={styles.iconButton} onClick={() => setIsEditarOpen(true)}>
-                            <BoxIcon
-                                name='edit'
-                                className={styles.icon}
-                            />
-                        </button>
-                    </div>
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL TIPO DE PRECIO</p>
                 <div className={styles.content}>
@@ -125,39 +105,30 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                         label="Descripción"
                         value={precio?.description || 'Sin descripción'}
                     />
-                    <Dato
-                        label="Total de productos"
-                        value={`${products.length} productos`}
-                    />
                 </div>
 
-                <p className={styles.subTitle}>PRODUCTOS CON ESTE TIPO DE PRECIO</p>
+                {/* Botón para ver productos */}
+                <Boton
+                    className='btn-gray'
+                    label='Ver Productos'
+                    onClick={() => {
+                        setIsProductosOpen(true);
+                        fetchProductsByPriceType();
+                    }}
+                />
 
-                {loadingProducts ? (
-                    <LoadingSpinner iconName='dollar' />
-                ) : products.length > 0 ? (
-                    products.map((product, index) => {
-                        // Encontrar el precio específico para este tipo de precio
-                        const precioProducto = product.price_product?.find(pp => 
-                            pp.prices_types && pp.prices_types.id === precio.id
-                        );
-                        
-                        return (
-                            <ItemView
-                                key={product.id || index}
-                                title={product.name || 'Sin nombre'}
-                                description={product.description || 'Sin descripción'}
-                                icon="box"
-                                arrow={false}
-                                flot1={`Bs. ${precioProducto?.valor || 0}`}
-                            />
-                        );
-                    })
-                ) : (
-                    <div className={styles.noData}>
-                        <p>No hay productos con este tipo de precio</p>
-                    </div>
-                )}
+                <div className={styles.buttons}>
+                    <Boton
+                        className='btn-red'
+                        label='Eliminar Tipo de Precio'
+                        onClick={() => setIsEliminarOpen(true)}
+                    />
+                    <Boton
+                        className='btn-default'
+                        label='Editar Tipo de Precio'
+                        onClick={() => setIsEditarOpen(true)}
+                    />
+                </div>
             </div>
 
             {/* Modal de editar precio */}
@@ -194,6 +165,46 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                             onClick={() => setIsEliminarOpen(false)}
                         />
                     </div>
+                </div>
+            </ViewModal>
+
+            {/* Modal de productos */}
+            <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
+                <HeaderModal
+                    title={`Productos con ${precio?.name}`}
+                    onClose={() => setIsProductosOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    {loadingProducts ? (
+                        <div className={styles.noData}>
+                            <p>Cargando productos...</p>
+                        </div>
+                    ) : products.length > 0 ? (
+                        <>
+                            <p className={styles.subTitle}>PRODUCTOS CON ESTE TIPO DE PRECIO</p>
+                            {products.map((product, index) => {
+                                // Encontrar el precio específico para este tipo de precio
+                                const precioProducto = product.price_product?.find(pp => 
+                                    pp.prices_types && pp.prices_types.id === precio.id
+                                );
+                                
+                                return (
+                                    <ItemView
+                                        key={product.id || index}
+                                        title={product.name || 'Sin nombre'}
+                                        description={product.description || 'Sin descripción'}
+                                        icon="box"
+                                        arrow={false}
+                                        flot1={`Bs. ${precioProducto?.valor || 0}`}
+                                    />
+                                );
+                            })}
+                        </>
+                    ) : (
+                        <div className={styles.noData}>
+                            <p>No hay productos con este tipo de precio</p>
+                        </div>
+                    )}
                 </div>
             </ViewModal>
 

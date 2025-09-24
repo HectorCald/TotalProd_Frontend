@@ -7,7 +7,6 @@ import ModalDescarga from '../ui/ModalDescarga';
 import movimientosAlmacenService from '../../services/movimientosAlmacenService';
 import movimientosAcopioService from '../../services/movimientosAcopioService';
 import pedidosAlmacenService from '../../services/pedidosAlmacenService';
-import pedidosAcopioService from '../../services/pedidosAcopioService';
 import Notification from '../common/Notification';
 import styles from './Reportes.module.css';
 import Boton from '../common/Boton';
@@ -446,7 +445,7 @@ const Reportes = () => {
       switch (areaSeleccionada) {
         case 'ventas':
           // Para ventas, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosVentas = await movimientosAlmacenService.getAll(1, 1000, 'salida', 'fecha_desc', sucursalSeleccionada);
+          const movimientosVentas = await movimientosAlmacenService.getAllSinLimite('salida', 'fecha_desc', sucursalSeleccionada);
           
           if (movimientosVentas.success && movimientosVentas.data) {
             // Filtrar por fecha en el frontend
@@ -477,7 +476,7 @@ const Reportes = () => {
 
         case 'almacen_general':
           // Para almacén general, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosAlmacen = await movimientosAlmacenService.getAll(1, 1000, null, 'fecha_desc', sucursalSeleccionada);
+          const movimientosAlmacen = await movimientosAlmacenService.getAllSinLimite(null, 'fecha_desc', sucursalSeleccionada);
           
           if (movimientosAlmacen.success && movimientosAlmacen.data) {
             // Filtrar por fecha en el frontend
@@ -503,7 +502,7 @@ const Reportes = () => {
         case 'materia_Prima':
           // Para materia prima, obtener todos los movimientos y filtrar por fecha en el frontend
           console.log('🌾 Obteniendo movimientos de acopio...');
-          const movimientosAcopio = await movimientosAcopioService.getAll(1, 1000, 'entrada', 'fecha_desc', sucursalSeleccionada);
+          const movimientosAcopio = await movimientosAcopioService.getAllSinLimite('entrada', 'fecha_desc', sucursalSeleccionada);
           console.log('🌾 Respuesta del servicio:', movimientosAcopio);
           
           if (movimientosAcopio.success && movimientosAcopio.data) {
@@ -544,7 +543,7 @@ const Reportes = () => {
 
         case 'pedidos':
           // Para pedidos, obtener todos los pedidos y filtrar por fecha en el frontend
-          const pedidos = await pedidosAlmacenService.getAll(1, 1000, sucursalSeleccionada);
+          const pedidos = await pedidosAlmacenService.getAllSinLimite(sucursalSeleccionada);
           
           if (pedidos.success && pedidos.data) {
             // Filtrar por fecha en el frontend

@@ -257,6 +257,40 @@ class pedidosAlmacenService {
     }
   }
 
+  // Obtener todos los pedidos sin límite (para reportes)
+  static async getAllSinLimite(sucuIdParam = null) {
+    try {
+      const sucuId = sucuIdParam || getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '999999', // Límite muy alto para obtener todos los registros
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/pedidos-almacen?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en pedidosAlmacenService.getAllSinLimite:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
   // Eliminar pedido
   static async eliminar(pedidoId) {
     try {

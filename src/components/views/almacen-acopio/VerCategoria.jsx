@@ -5,13 +5,11 @@ import HeaderModal from '../../common/HeaderModal';
 import View from '../../ui/View';
 import ViewModal from '../../ui/ViewModal';
 import Dato from '../../common/Dato';
-import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import EditarAgregarCategoria from './EditarAgregarCategoria';
 import ItemView from '../../common/ItemView';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import productsAcopioService from '../../../services/productsAcopioService';
-import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 
 function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCategoriaDeleted }) {
@@ -162,7 +160,9 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                 />
                 <div className={styles.modalContent}>
                     {loadingProducts ? (
-                        <LoadingSpinner iconName='leaf' />
+                        <div className={styles.noData}>
+                            <p>Cargando productos...</p>
+                        </div>
                     ) : products.length > 0 ? (
                         <>
                             <p className={styles.subTitle}>PRODUCTOS EN ESTA CATEGORÍA</p>

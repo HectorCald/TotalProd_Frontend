@@ -9,7 +9,6 @@ import EditarAgregarSucursal from './EditarAgregarSucursal';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import sucursalesService from '../../../services/sucursalesService';
-import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 
 function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursalUpdated }) {
@@ -69,20 +68,6 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
             <div className={styles.container}>
                 <h1 className={styles.title}>
                     {sucursal?.name}
-                    <div className={styles.iconButton}>
-                        <button className={styles.iconButton} onClick={() => setIsEliminarOpen(true)}>
-                            <BoxIcon
-                                name='trash'
-                                className={styles.iconTrash}
-                            />
-                        </button>
-                        <button className={styles.iconButton} onClick={() => setIsEditarOpen(true)}>
-                            <BoxIcon
-                                name='edit'
-                                className={styles.icon}
-                            />
-                        </button>
-                    </div>
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DE LA SUCURSAL</p>
                 <div className={styles.content}>
@@ -93,6 +78,19 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
                     <Dato
                         label="Fecha de creación"
                         value={sucursal?.created_at ? new Date(sucursal.created_at).toLocaleDateString('es-ES') : 'Sin fecha'}
+                    />
+                </div>
+
+                <div className={styles.buttons}>
+                    <Boton
+                        className='btn-red'
+                        label='Eliminar Sucursal'
+                        onClick={() => setIsEliminarOpen(true)}
+                    />
+                    <Boton
+                        className='btn-default'
+                        label='Editar Sucursal'
+                        onClick={() => setIsEditarOpen(true)}
                     />
                 </div>
             </div>

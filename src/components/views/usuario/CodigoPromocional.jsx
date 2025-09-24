@@ -145,15 +145,15 @@ function CodigoPromocional({ isOpen, setIsOpen }) {
                     onChange={(e) => handleInputChange('codigoPromocional', e.target.value)}
                 />
                 {codigoValidado && (
-                    
-                    <Checkbox
-                        title={`Plan: ${codigoValidado.plan.name}`}
-                        subtitle={`Duración: ${codigoValidado.duration} meses.`}
-                        checked={confirmarAplicacion}
-                        onChange={setConfirmarAplicacion}
-                        icon="star"
-                    />
-
+                    <div className={styles.content} style={{ padding: '10px  15px' }}>
+                        <Checkbox
+                            title={`Plan: ${codigoValidado.plan.name}`}
+                            subtitle={`Duración: ${codigoValidado.duration} meses.`}
+                            checked={confirmarAplicacion}
+                            onChange={setConfirmarAplicacion}
+                            icon="star"
+                        />
+                    </div>
                 )}
 
                 <Boton

@@ -10,7 +10,6 @@ import EditarAgregarCategoria from './EditarAgregarCategoria';
 import ItemView from '../../common/ItemView';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import productsAlmacenService from '../../../services/productsAlmacenService';
-import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 
 function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCategoriaDeleted }) {
@@ -166,7 +165,9 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                 />
                 <div className={styles.modalContent}>
                     {loadingProducts ? (
-                        <LoadingSpinner iconName='leaf' />
+                        <div className={styles.noData}>
+                            <p>Cargando productos...</p>
+                        </div>
                     ) : products.length > 0 ? (
                         <>
                             <p className={styles.subTitle}>PRODUCTOS EN ESTA CATEGORÍA</p>
