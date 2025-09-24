@@ -53,8 +53,6 @@ class UserService {
   // Login de usuario
   static async login(credentials) {
     try {
-      console.log('🔗 Intentando conectar a:', API_BASE_URL);
-      console.log('📱 Credenciales:', credentials);
       
       const response = await fetch(`${API_BASE_URL}/users/login`, {
         method: 'POST',
@@ -65,14 +63,11 @@ class UserService {
         body: JSON.stringify(credentials),
       });
 
-      console.log('📡 Respuesta del servidor:', response.status, response.statusText);
       
       const data = await response.json();
-      console.log('📄 Datos recibidos:', data);
       
       if (data.success && data.data && data.data.token) {
         this.saveToken(data.data.token);
-        console.log('✅ Token guardado exitosamente');
       }
 
       return data;

@@ -33,7 +33,12 @@ export const UserProvider = ({ children }) => {
     const clearUser = () => {
         setUser(null);
         setSucursalSeleccionada(null);
-        localStorage.clear(); // Limpiar todo el localStorage
+        
+        // Limpiar solo los datos específicos del usuario, no todo el localStorage
+        const keysToRemove = ['user', 'token', 'sucursalSeleccionada', 'userData'];
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+        });
     };
 
     // Función para seleccionar sucursal

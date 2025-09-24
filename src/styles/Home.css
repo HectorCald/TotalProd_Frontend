@@ -10,6 +10,7 @@
   position: relative;
   padding-top: 50px;
   padding-inline: 15px;
+  overflow: hidden;
 }
 .subTitle{
   font-size: 15px;

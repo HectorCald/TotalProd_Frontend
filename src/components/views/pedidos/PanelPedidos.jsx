@@ -155,8 +155,12 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setShowRefreshIndicator(true);
         setIsRefreshing(true);
         
+        // Limpiar estado acumulado y resetear página
+        setAllPedidos([]);
+        setCurrentPage(1);
+        
         try {
-            await cargarPedidos(currentPage, debouncedSearchQuery, ordenamiento);
+            await cargarPedidos(1, debouncedSearchQuery, ordenamiento);
             
             // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {

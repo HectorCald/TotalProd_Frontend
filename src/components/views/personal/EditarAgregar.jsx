@@ -201,6 +201,15 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             return;
         }
 
+        if (!sucursalId) {
+            setErrorMessage('La sucursal es obligatoria');
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            setLoading(false);
+            return;
+        }
+
         // Generar código automáticamente si no existe
         let codigoFinal = dataEdit.codigo;
         if (!codigoFinal && dataEdit.first_name && dataEdit.last_name) {
@@ -361,7 +370,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             id: sucursal.id,
                             name: sucursal.name
                         }))}
-                        placeholder='Sucursal (opcional)'
+                        placeholder='Sucursal (obligatorio)'
                         disabled={tipo === 'ver'}
                         icon='store'
                     />
@@ -384,7 +393,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         style={{ marginTop: 'auto' }}
                         onClick={handleSubmit}
                         loading={loading}
-                        disabled={!dataEdit.first_name || !dataEdit.last_name}
+                        disabled={!dataEdit.first_name || !dataEdit.last_name || !sucursalId}
                     />
                 )}
             </div>

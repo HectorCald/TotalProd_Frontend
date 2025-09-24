@@ -17,6 +17,7 @@ import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
+import { useNavigate } from 'react-router-dom';
 import PlanInfo from './PlanInfo';
 import Comentarios from '../comentarios/Comentarios';
 
@@ -56,6 +57,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     };
     const { user: userInfo, clearUser } = useUser();
     const { employee: employeeInfo, clearEmployee } = useEmployee();
+    const navigate = useNavigate();
 
     // Determinar si es usuario normal o empleado
     const isEmployee = !!employeeInfo;
@@ -140,13 +142,15 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                             label='Si, Cerrar sesión'
                             style={{ marginTop: 'auto' }}
                             onClick={() => {
+                                // Limpiar context inmediatamente
                                 if (isEmployee) {
                                     clearEmployee();
                                 } else {
                                     clearUser();
                                 }
-                                window.location.reload();
-                                setIsLogoutOpen(false);
+                                
+                                // Redireccionar inmediatamente sin delay
+                                window.location.href = '/login';
                             }}
                         />
                         <Boton

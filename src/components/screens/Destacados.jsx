@@ -189,7 +189,7 @@ const Destacados = () => {
               />
             ))
           ) : (
-            <div className={styles.noData}>
+            <div className={styles.noData} style={{ background: 'none' }}>
               <BoxIcon name='star' className={styles.noDataIcon} />
               <p className={styles.noDataTitle}>No tienes  destacados</p>
               <p className={styles.noDataDescription}>

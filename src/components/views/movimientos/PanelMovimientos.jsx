@@ -166,8 +166,12 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setShowRefreshIndicator(true);
         setIsRefreshing(true);
         
+        // Limpiar estado acumulado y resetear página
+        setAllMovimientos([]);
+        setCurrentPage(1);
+        
         try {
-            await cargarMovimientos(currentPage, debouncedSearchQuery, filtroTipo, ordenamiento);
+            await cargarMovimientos(1, debouncedSearchQuery, filtroTipo, ordenamiento);
             
             // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {

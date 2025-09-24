@@ -34,7 +34,12 @@ export const EmployeeProvider = ({ children }) => {
   const clearEmployee = () => {
     setEmployee(null);
     setSucursalSeleccionada(null);
-    localStorage.clear();
+    
+    // Limpiar solo los datos específicos del empleado, no todo el localStorage
+    const keysToRemove = ['employee', 'token', 'sucursalSeleccionada', 'employeeData'];
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+    });
   };
 
   // Función para seleccionar sucursal
