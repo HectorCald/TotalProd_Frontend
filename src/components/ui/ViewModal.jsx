@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import styles from './ViewModal.module.css';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useModalStack } from '../../context/ModalStackContext';
 
 const ViewModal = ({ isOpen, setIsOpen, children }) => {
@@ -23,24 +24,37 @@ const ViewModal = ({ isOpen, setIsOpen, children }) => {
     }, [isOpen, registerModal, unregisterModal]);
 
     return (
-        <>
+        <AnimatePresence mode="wait">
             {isOpen && (
                 <>
                     {/* Overlay oscuro */}
-                    <div
-                        className={`${styles.overlay} ${isOpen ? styles.overlayVisible : ''}`}
+                    <motion.div
+                        className={styles.overlay}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
                         onClick={handleClose}
                     />
                     
                     {/* Panel Modal */}
-                    <div 
-                        className={`${styles.modalContainer} ${isOpen ? styles.modalVisible : ''}`}
+                    <motion.div 
+                        className={styles.modalContainer}
+                        initial={{ y: '100%' }}
+                        animate={{ y: 0 }}
+                        exit={{ y: '100%' }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 30,
+                            duration: 0.4
+                        }}
                     >
                         {children}
-                    </div>
+                    </motion.div>
                 </>
             )}
-        </>
+        </AnimatePresence>
     );
 };
 
