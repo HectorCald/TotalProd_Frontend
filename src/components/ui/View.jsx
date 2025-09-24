@@ -27,12 +27,6 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
         <AnimatePresence mode="wait">
             {isOpen && (
                 <>
-                    {/* Overlay oscuro */}
-                    <div
-                        className={styles.overlay}
-                        onClick={handleClose}
-                    />
-                    
                     {/* Panel principal */}
                     <motion.div 
                         className={styles.viewContainer}
@@ -41,7 +35,7 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
                         exit={{ x: '100%' }}
                         transition={{ duration: 0.3 }}
                     >
-                        {/* Contenido removido para probar rendimiento */}
+                        {children}
                     </motion.div>
                 </>
             )}
