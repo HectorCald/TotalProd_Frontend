@@ -110,9 +110,9 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
         </div>
       )}
       <div className={styles.itemViewContent}>
-        <h1>{title}</h1>
-        {description ? <p>{description}</p> : null}
-        {description2 ? <p>{description2}</p> : null}
+        <h1 className={styles.title}>{title}</h1>
+        {description ? <p className={styles.description}>{description}</p> : null}
+        {description2 ? <p className={styles.description}>{description2}</p> : null}
       </div>
 
       {arrow && (

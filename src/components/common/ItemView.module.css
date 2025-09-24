@@ -50,63 +50,27 @@
     min-width: 0;
     position: relative;
     /* Importante para que flex-shrink funcione */
-
-    h1 {
-        font-size: 16px;
-        font-weight: 500;
-        width: 100%;
-    }
-
-    p {
-        font-size: 12px;
-        color: gray;
-        font-weight: 400;
-        line-height: 1.2;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        /* Máximo 2 líneas */
-        -webkit-box-orient: vertical;
-        width: 100%;
-        min-height: 14px;
-    }
-
-    .inputsEntrada {
-        display: flex;
-        width: 100%;
-        gap: 10px;
-
-        .inputWithLabel {
-            display: flex;
-            font-size: 10px;
-            color: gray;
-            width: 100%;
-            justify-content: center;
-            align-items: center;
-
-            p{
-                display: flex;
-                justify-content: flex-start;
-                align-items: center;
-                max-width: fit-content;
-                padding-right: 5px;
-            }
-
-            input {
-                width: 100%;
-                padding: 5px 10px;
-                border-radius: 8px;
-                border: none;
-                font-size: 12px;
-                background-color: var(--quaternary-color);
-                outline: none;
-                color: white;
-            }
-        }
-    }
+}
+.title {
+    font-size: 16px;
+    font-weight: 500;
+    width: 100%;
 }
 
+.description {
+    font-size: 12px;
+    color: gray;
+    font-weight: 400;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    /* Máximo 2 líneas */
+    -webkit-box-orient: vertical;
+    width: 100%;
+    min-height: 14px;
+}
 .itemViewArrow {
     margin-left: auto;
     padding: 0;
@@ -118,10 +82,11 @@
     flex-shrink: 0;
     /* Evita que la flecha se encoja */
 
-    .icon {
-        font-size: 30px !important;
-        color: var(--quinary-color) !important;
-    }
+}
+
+.icon {
+    font-size: 30px !important;
+    color: var(--quinary-color) !important;
 }
 
 .badge {
@@ -164,61 +129,60 @@
     align-items: center;
     justify-content: center;
     gap: 5px;
-
-    .flot1 {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--info-color);
-        background-color: #1f74fe3a;
-        padding: 5px 8px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-    }
-    .flot2 {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--warning-color);
-        background-color: #fb87133a;
-        padding: 5px 8px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-    }
-    .flot3 {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--error-color);
-        background-color: #e74c3c3a;
-        padding: 5px 8px;
-        border-radius: 8px;
-    }
-    .flot4 {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--success-color);
-        background-color: #2ecc713a;
-        padding: 5px 8px;
-        border-radius: 8px;
-    }
-    .flot5 {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--info-color);
-        background-color: #3482ff3a;
-        padding: 5px 8px;
-        border-radius: 8px;
-    }
-    .flot6 {
-        font-size: 12px;
-        font-weight: 700;
-        color: gray;
-        background-color: #cccccc20;
-        padding: 5px 8px;
-        border-radius: 8px;
-    }
+}
+.flot1 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--info-color);
+    background-color: #1f74fe3a;
+    padding: 5px 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.flot2 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--warning-color);
+    background-color: #fb87133a;
+    padding: 5px 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.flot3 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--error-color);
+    background-color: #e74c3c3a;
+    padding: 5px 8px;
+    border-radius: 8px;
+}
+.flot4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--success-color);
+    background-color: #2ecc713a;
+    padding: 5px 8px;
+    border-radius: 8px;
+}
+.flot5 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--info-color);
+    background-color: #3482ff3a;
+    padding: 5px 8px;
+    border-radius: 8px;
+}
+.flot6 {
+    font-size: 12px;
+    font-weight: 700;
+    color: gray;
+    background-color: #cccccc20;
+    padding: 5px 8px;
+    border-radius: 8px;
 }
