@@ -59,14 +59,13 @@
     padding: 20px;
     border-radius: 15px;
     position: relative;
-
-    .content_title {
-        font-size: 16px;
-        color: var(--white-color);
-        text-align: center;
-        margin-bottom: 20px;
-        font-weight: 500;
-    }
+}
+.content_title {
+    font-size: 16px;
+    color: var(--white-color);
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: 500;
 }
 
 
