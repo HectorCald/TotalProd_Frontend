@@ -303,7 +303,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         {/* Sección de Precios */}
         <p className={styles.subTitle}>PRECIOS</p>
         {loadingPrecios ? (
-          <div className={styles.loadingMore}>
+          <div className={styles.noData}>
             <p>Cargando precios...</p>
           </div>
         ) : (

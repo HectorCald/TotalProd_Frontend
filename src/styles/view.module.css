@@ -26,29 +26,27 @@
     background: none;
     display: flex;
     gap: 10px;
-
-    .icon {
-        color: var(--primary-color) !important;
-        cursor: pointer;
-    }
-    .iconTrash {
-        color: var(--error-color) !important;
-        cursor: pointer;
-    }
-    .iconEdit {
-        color: var(--info-color) !important;
-        cursor: pointer;
-    }
-    .iconDownload {
-        color: gray !important;
-        cursor: pointer;
-    }
-    .iconStar {
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 25px;
-    }
-
+}
+.icon {
+    color: var(--primary-color) !important;
+    cursor: pointer;
+}
+.iconTrash {
+    color: var(--error-color) !important;
+    cursor: pointer;
+}
+.iconEdit {
+    color: var(--info-color) !important;
+    cursor: pointer;
+}
+.iconDownload {
+    color: gray !important;
+    cursor: pointer;
+}
+.iconStar {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 25px;
 }
 .subTitle {
     font-size: 13px;
