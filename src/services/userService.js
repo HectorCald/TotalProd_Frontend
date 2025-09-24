@@ -1,6 +1,7 @@
 import API_CONFIG from '../config/api';
 
 const API_BASE_URL = API_CONFIG.getBaseURL();
+
 class UserService {
   // Métodos auxiliares para manejar token e ID
   static saveToken(token) {

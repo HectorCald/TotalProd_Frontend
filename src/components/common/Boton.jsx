@@ -4,7 +4,7 @@ import styles from './Boton.module.css';
 function Boton({ label, onClick, className, icon, loading, disabled, style='', objeto}) {
   return (
     <button className={`${styles.btn} ${styles[className] } ${loading ? styles.loading : ''} ${disabled ? styles.disabledButton : ''}`} onClick={onClick} style={{...style}}>
-      {icon && <img src={icon} alt="icon" />}
+      {icon && <img src={icon} alt="icon" className={styles.icon}/>}
       {objeto && <span className={styles.objeto} >{objeto}</span>}
       
       {loading ? (

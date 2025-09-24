@@ -3,14 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@capacitor/android": "^7.4.3",
-    "@capacitor/app": "^7.1.0",
-    "@capacitor/device": "^7.0.2",
-    "@capacitor/ios": "^7.4.3",
-    "@capacitor/keyboard": "^7.0.3",
-    "@capacitor/network": "^7.0.2",
-    "@capacitor/splash-screen": "^7.0.3",
-    "@capacitor/status-bar": "^7.0.3",
     "@types/react-datepicker": "^6.2.0",
     "boxicons-react": "^0.1.1",
     "framer-motion": "^12.23.12",
@@ -30,11 +22,7 @@
     "start": "set BROWSER=none && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "cap:build": "npm run build && cap sync",
-    "cap:android": "cap open android",
-    "cap:ios": "cap open ios",
-    "cap:sync": "cap sync"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
