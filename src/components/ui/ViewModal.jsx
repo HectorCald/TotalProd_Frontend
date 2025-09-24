@@ -44,10 +44,9 @@ const ViewModal = ({ isOpen, setIsOpen, children }) => {
                         animate={{ y: 0 }}
                         exit={{ y: '100%' }}
                         transition={{
-                            type: "spring",
-                            stiffness: 300,
-                            damping: 30,
-                            duration: 0.4
+                            type: "tween",
+                            ease: "easeOut",
+                            duration: 0.3
                         }}
                     >
                         {children}

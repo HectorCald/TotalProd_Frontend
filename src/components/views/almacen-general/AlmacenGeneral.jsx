@@ -171,13 +171,18 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }
     };
 
-    // Cargar datos cuando se abre el modal
+    // Cargar datos cuando se abre el modal con delay para mejor rendimiento
     useEffect(() => {
         if (isOpen) {
-            cargarProductos();
-            cargarCategorias();
-            cargarPrecios();
-            cargarSucursales();
+            // Delay pequeño para que la animación termine primero
+            const timer = setTimeout(() => {
+                cargarProductos();
+                cargarCategorias();
+                cargarPrecios();
+                cargarSucursales();
+            }, 100);
+            
+            return () => clearTimeout(timer);
         }
     }, [isOpen]);
 

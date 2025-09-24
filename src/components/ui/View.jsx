@@ -41,22 +41,12 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
                     <motion.div 
                         className={styles.viewContainer}
                         initial={{ x: '100%' }}
-                        animate={{ 
-                            x: 0,
-                            scale: [0.95, 1.02, 1]
-                        }}
+                        animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{
-                            x: {
-                                type: "spring",
-                                stiffness: 300,
-                                damping: 30,
-                                duration: 0.4
-                            },
-                            scale: {
-                                duration: 0.3,
-                                times: [0, 0.5, 1]
-                            }
+                            type: "tween",
+                            ease: "easeOut",
+                            duration: 0.25
                         }}
                     >
                         {children}
