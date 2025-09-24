@@ -1,15 +1,25 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styles from './View.module.css';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useModalStack } from '../../context/ModalStackContext';
 
 const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
     const { registerModal, unregisterModal, isLastModal, getOpenModalsCount } = useModalStack();
     const modalIdRef = useRef(null);
+    const [isVisible, setIsVisible] = useState(false);
 
     const handleClose = () => {
-        setIsOpen(false);
+        setIsVisible(false);
+        setTimeout(() => {
+            setIsOpen(false);
+        }, 300); // Tiempo de la animación
     };
+
+    // Manejar animación de entrada
+    useEffect(() => {
+        if (isOpen) {
+            setIsVisible(true);
+        }
+    }, [isOpen]);
 
     // Registrar el modal cuando se abre
     useEffect(() => {
@@ -24,28 +34,19 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
     }, [isOpen, registerModal, unregisterModal]);
 
     return (
-        <AnimatePresence mode="wait">
+        <>
             {isOpen && (
                 <>
-                    {/* Overlay oscuro */}
-                    <div
-                        className={styles.overlay}
-                        onClick={handleClose}
-                    />
                     
                     {/* Panel principal */}
-                    <motion.div 
-                        className={styles.viewContainer}
-                        initial={{ x: '100%' }}
-                        animate={{ x: 0 }}
-                        exit={{ x: '100%' }}
-                        transition={{ duration: 0.3 }}
+                    <div 
+                        className={`${styles.viewContainer} ${isVisible ? styles.viewVisible : ''}`}
                     >
                         {children}
-                    </motion.div>
+                    </div>
                 </>
             )}
-        </AnimatePresence>
+        </>
     );
 };
 

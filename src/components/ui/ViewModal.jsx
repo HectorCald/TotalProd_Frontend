@@ -1,15 +1,25 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styles from './ViewModal.module.css';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useModalStack } from '../../context/ModalStackContext';
 
 const ViewModal = ({ isOpen, setIsOpen, children }) => {
     const { registerModal, unregisterModal, isLastModal, getOpenModalsCount } = useModalStack();
     const modalIdRef = useRef(null);
+    const [isVisible, setIsVisible] = useState(false);
 
     const handleClose = () => {
-        setIsOpen(false);
+        setIsVisible(false);
+        setTimeout(() => {
+            setIsOpen(false);
+        }, 300); // Tiempo de la animación
     };
+
+    // Manejar animación de entrada
+    useEffect(() => {
+        if (isOpen) {
+            setIsVisible(true);
+        }
+    }, [isOpen]);
 
     // Registrar el modal cuando se abre
     useEffect(() => {
@@ -24,28 +34,24 @@ const ViewModal = ({ isOpen, setIsOpen, children }) => {
     }, [isOpen, registerModal, unregisterModal]);
 
     return (
-        <AnimatePresence mode="wait">
+        <>
             {isOpen && (
                 <>
                     {/* Overlay oscuro */}
                     <div
-                        className={styles.overlay}
+                        className={`${styles.overlay} ${isVisible ? styles.overlayVisible : ''}`}
                         onClick={handleClose}
                     />
                     
                     {/* Panel Modal */}
-                    <motion.div 
-                        className={styles.modalContainer}
-                        initial={{ y: '100%' }}
-                        animate={{ y: 0 }}
-                        exit={{ y: '100%' }}
-                        transition={{ duration: 0.3 }}
+                    <div 
+                        className={`${styles.modalContainer} ${isVisible ? styles.modalVisible : ''}`}
                     >
                         {children}
-                    </motion.div>
+                    </div>
                 </>
             )}
-        </AnimatePresence>
+        </>
     );
 };
 
