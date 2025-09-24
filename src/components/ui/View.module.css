@@ -1,5 +1,5 @@
 .overlay {
-    position: fixed !important;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -11,10 +11,11 @@
 
 .viewContainer {
     position: fixed;
-    top: 0 !important;
+    top: 0;
     right: 0;
     width: 100%;
     max-width: 500px;
+    height: 100vh;
     background-color: var(--secondary-color);
     z-index: 9999999;
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);

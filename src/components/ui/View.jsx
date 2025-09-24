@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import styles from './View.module.css';
-import { motion, AnimatePresence, PanInfo } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useModalStack } from '../../context/ModalStackContext';
 
 const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
@@ -43,11 +43,7 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
                         initial={{ x: '100%' }}
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
-                        transition={{
-                            type: "tween",
-                            ease: "easeOut",
-                            duration: 0.25
-                        }}
+                        transition={{ duration: 0.3 }}
                     >
                         {children}
                     </motion.div>

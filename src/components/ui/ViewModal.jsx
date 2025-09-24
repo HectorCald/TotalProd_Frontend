@@ -43,11 +43,7 @@ const ViewModal = ({ isOpen, setIsOpen, children }) => {
                         initial={{ y: '100%' }}
                         animate={{ y: 0 }}
                         exit={{ y: '100%' }}
-                        transition={{
-                            type: "tween",
-                            ease: "easeOut",
-                            duration: 0.3
-                        }}
+                        transition={{ duration: 0.3 }}
                     >
                         {children}
                     </motion.div>
