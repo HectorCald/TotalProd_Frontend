@@ -1,24 +1,23 @@
+import React, { useEffect, useState } from 'react';
 import styles from './MensajeError.module.css';
-import { motion, AnimatePresence } from 'framer-motion';
 import { BoxIcon } from 'boxicons-react';
 
 function MensajeError({ mensaje }) {
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        if (mensaje !== '') {
+            setIsVisible(true);
+        } else {
+            setIsVisible(false);
+        }
+    }, [mensaje]);
 
     return (
-        <motion.div
-            className={styles.info}
-            animate={{
-                height: mensaje !== '' ? 40 : 0,
-                opacity: mensaje !== '' ? 1 : 0
-            }}
-            transition={{
-                duration: 0.3,
-                ease: "easeOut"
-            }}
-        >
+        <div className={`${styles.info} ${isVisible ? styles.infoVisible : ''}`}>
             <BoxIcon name='info-circle' className={styles.icon} />
-            <p className={styles.text} >{mensaje}</p>
-        </motion.div>
+            <p className={styles.text}>{mensaje}</p>
+        </div>
     );
 }
 export default MensajeError;
