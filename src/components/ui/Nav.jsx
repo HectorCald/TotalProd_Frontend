@@ -5,7 +5,7 @@ import Usuario from '../views/usuario/Usuario';
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import SeleccionarSucursal from '../views/sucursales/SeleccionarSucursal';
-import Icon from '../../assets/icons/icon.png';
+import Icon from '../../assets/icons/iconBlancoTrans.png';
 
 const Nav = () => {
     const [isOpen, setIsOpen] = useState(false);

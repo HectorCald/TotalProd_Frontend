@@ -59,7 +59,7 @@
   "start_url": ".",
   "display": "standalone",
   "theme_color": "transparent",
-  "background_color": "#28b498",
+  "background_color": "#ffffff",
   "orientation": "portrait",
   "scope": "/",
   "description": "Sistema de gestión integral de gestión de procesos y ventas",
