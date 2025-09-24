@@ -6,13 +6,29 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  line-height: 1;
+  line-height: 1.2;
 
   font-family: 'Poppins', sans-serif;
   user-select: none;      /* Bloquea selección de texto */
   -webkit-user-select: none; /* Para navegadores WebKit (Chrome, Safari) */
   -moz-user-select: none;    /* Para Firefox */
   -ms-user-select: none;     /* Para IE/Edge antiguos */
+}
+
+/* Reset para elementos de texto en móvil */
+h1, h2, h3, h4, h5, h6 {
+  font-size: inherit;
+  font-weight: inherit;
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
+}
+
+/* Asegurar que las imágenes no se desborden */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 body, html {
@@ -56,6 +72,28 @@ code {
 
   --dark-color: #000000;
   --white-color: #ffffff;
+}
+
+/* Estilos específicos para móvil */
+@media (max-width: 768px) {
+  /* Asegurar que las imágenes no se desborden en móvil */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+  
+  /* Reset de tamaños de fuente para móvil */
+  h1, h2, h3, h4, h5, h6 {
+    font-size: inherit !important;
+    line-height: 1.2 !important;
+  }
+  
+  /* Asegurar que los contenedores no se desborden */
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
 }
 
 

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import UserService from '../services/userService';
 import LogoAnimation from '../components/common/LogoAnimation';
 import MensajeError from '../components/common/MensajeError';
+import Notification from '../components/common/Notification';
 import ContraseñaReset from '../components/views/login/ContraseñaReset';
 import LoginEmpleado from '../components/views/login/LoginEmpleado';
 
@@ -14,6 +15,27 @@ const Login = () => {
     const [errorMessage, setErrorMessage] = useState('')
     const [isOpenContraseñaReset, setIsOpenContraseñaReset] = useState(false);
     const [isOpenLoginEmpleado, setIsOpenLoginEmpleado] = useState(false);
+    
+    // Estados para Notification
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'error',
+        text: ''
+    });
+
+    // Función helper para mostrar notificaciones
+    const showNotification = (type, text) => {
+        setNotification({
+            isVisible: true,
+            type: type,
+            text: text
+        });
+        
+        // Auto-ocultar después de 5 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 5000);
+    };
 
     // estado para el modo de registro y login
     const [isRegister, setIsRegister] = useState(false);
@@ -111,6 +133,9 @@ const Login = () => {
                 email: formDataLogin.email,
                 password: formDataLogin.password
             });
+            
+            console.log('🔍 Resultado completo del login:', result);
+            
             if (result.success) {
                 // Guardar preferencia de "recordar sesión"
                 if (remember) {
@@ -121,20 +146,29 @@ const Login = () => {
                     localStorage.removeItem('savedEmail');
                 }
                 
+                showNotification('success', '¡Login exitoso!');
+                
                 if (result.data) {
                     // Redirigir a Home y recargar la página
-                    window.location.href = '/';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
                 }
             } else {
-                // Manejar el caso cuando result.success es false
-                console.log('Error en login:', result.error);
+                // Mostrar error completo del backend
+                const errorText = result.error || 'Error desconocido';
+                console.log('❌ Error en login:', result);
+                showNotification('error', `Error: ${errorText}`);
+                
+                // También mostrar en el mensaje de error tradicional
                 setErrorMessage('Contraseña o email incorrectos')
                 setTimeout(() => {
                     setErrorMessage('')
                 }, 3000);
             }
         } catch (error) {
-            console.error('Error al loguear el usuario:', error);
+            console.error('❌ Error al loguear el usuario:', error);
+            showNotification('error', `Error de conexión: ${error.message || 'Error desconocido'}`);
         } finally {
             setLoading(false);
         }
@@ -376,6 +410,14 @@ const Login = () => {
                 isOpen={isOpenLoginEmpleado} 
                 setIsOpen={setIsOpenLoginEmpleado} 
                 onLoginSuccess={handleEmployeeLoginSuccess}
+            />
+            
+            {/* Componente de notificación para errores detallados */}
+            <Notification
+                type={notification.type}
+                text={notification.text}
+                isVisible={notification.isVisible}
+                onClose={() => setNotification(prev => ({ ...prev, isVisible: false }))}
             />
         </div >
     );
