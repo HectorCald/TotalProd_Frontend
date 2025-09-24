@@ -37,6 +37,11 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
         <>
             {isOpen && (
                 <>
+                    {/* Overlay oscuro */}
+                    <div
+                        className={`${styles.overlay} ${isVisible ? styles.overlayVisible : ''}`}
+                        onClick={handleClose}
+                    />
                     
                     {/* Panel principal */}
                     <div 
