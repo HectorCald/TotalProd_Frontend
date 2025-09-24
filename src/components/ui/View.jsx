@@ -28,12 +28,8 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
             {isOpen && (
                 <>
                     {/* Overlay oscuro */}
-                    <motion.div
+                    <div
                         className={styles.overlay}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
                         onClick={handleClose}
                     />
                     
@@ -45,7 +41,7 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
                         exit={{ x: '100%' }}
                         transition={{ duration: 0.3 }}
                     >
-                        {children}
+                        {/* Contenido removido para probar rendimiento */}
                     </motion.div>
                 </>
             )}

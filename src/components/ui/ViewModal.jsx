@@ -28,12 +28,8 @@ const ViewModal = ({ isOpen, setIsOpen, children }) => {
             {isOpen && (
                 <>
                     {/* Overlay oscuro */}
-                    <motion.div
+                    <div
                         className={styles.overlay}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
                         onClick={handleClose}
                     />
                     
