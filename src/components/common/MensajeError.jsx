@@ -12,8 +12,8 @@ function MensajeError({ mensaje }) {
                 opacity: mensaje !== '' ? 1 : 0
             }}
             transition={{
-                duration: 0.5,
-                ease: "easeInOut"
+                duration: 0.3,
+                ease: "easeOut"
             }}
         >
             <BoxIcon name='info-circle' className={styles.icon} />
