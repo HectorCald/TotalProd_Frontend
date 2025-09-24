@@ -14,11 +14,14 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
     // Manejar animación de entrada
     useEffect(() => {
         if (isOpen) {
+            setIsVisible(false); // Resetear estado inicial
             // Pequeño delay para que se vea la animación de entrada
             const timer = setTimeout(() => {
                 setIsVisible(true);
             }, 10);
             return () => clearTimeout(timer);
+        } else {
+            setIsVisible(false); // Limpiar estado al cerrar
         }
     }, [isOpen]);
 
