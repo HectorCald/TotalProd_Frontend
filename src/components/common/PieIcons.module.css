@@ -4,12 +4,12 @@
     gap: 20px;
     justify-content: center;
     align-items: center;
-
-    .icon{
-        background: none;
-        color: gray;
-        border: none;
-        cursor: pointer;
-        font-size: 20px;
-    }
+    margin-top: 10px;
+}
+.icon{
+    background: none;
+    color: gray;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
 }

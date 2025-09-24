@@ -18,6 +18,7 @@ function Checkbox({ title, subtitle, checked, onChange, icon }) {
             </div>
             <div className={styles.check}>
                 <input
+                    className={styles.input}
                     type="checkbox"
                     checked={checked}
                     onChange={(e) => {

@@ -12,11 +12,10 @@
     caret-color: var(--primary-color);
     font-weight: 500;
     padding-left: 50px;
-
-    &::placeholder{
-        font-size: 15px;
-        color: var(--quinary-color);
-    }
+}
+.input::placeholder{
+  font-size: 15px;
+  color: var(--quinary-color);
 }
 /* Para Chrome, Safari, Edge y Opera */
 .input[type=number]::-webkit-inner-spin-button,

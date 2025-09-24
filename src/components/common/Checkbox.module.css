@@ -16,16 +16,17 @@
     flex-direction: column;
     gap: 5px;
 
-    .title {
-        font-size: 15px;
-        font-weight: 500;
-    }
+   
+}
+.title {
+    font-size: 15px;
+    font-weight: 500;
+}
 
-    .subTitle {
-        font-size: 13px;
-        color: gray;
-        font-weight: 300;
-    }
+.subTitle {
+    font-size: 13px;
+    color: gray;
+    font-weight: 300;
 }
 
 .check {
@@ -33,40 +34,39 @@
     display: flex;
     justify-content: center;
     align-items: center;
+}
+.input {
+    display: none;
+}
 
-    input {
-        display: none;
-    }
+.input:checked+.checkmark::before {
+    opacity: 1;
+}
 
-    input:checked+.checkmark::before {
-        opacity: 1;
-    }
+.checkmark {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border: 2px solid var(--primary-color);
+    border-radius: 50%;
+    position: relative;
+    vertical-align: middle;
+    box-sizing: border-box;
+}
 
-    .checkmark {
-        display: inline-block;
-        width: 15px;
-        height: 15px;
-        border: 2px solid var(--primary-color);
-        border-radius: 50%;
-        position: relative;
-        vertical-align: middle;
-        box-sizing: border-box;
-    }
-
-    .checkmark::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 9px;
-        /* tamaño del círculo interno */
-        height: 9px;
-        border-radius: 50%;
-        background-color: var(--primary-color);
-        /* mismo color que el borde */
-        opacity: 0;
-        /* invisible por defecto */
-        transition: opacity 0.2s;
-    }
+.checkmark::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 9px;
+    /* tamaño del círculo interno */
+    height: 9px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    /* mismo color que el borde */
+    opacity: 0;
+    /* invisible por defecto */
+    transition: opacity 0.2s;
 }
