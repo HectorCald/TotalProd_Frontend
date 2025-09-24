@@ -400,10 +400,10 @@ const Login = () => {
                 />
             )}
 
-            {!isRegister && <p className={styles.login_footer} ><span onClick={() => setIsOpenContraseñaReset(true)}>¿Olvidaste tu contraseña?</span></p>}
+            {!isRegister && <p className={styles.login_footer} ><span className={styles.login_footer_span} onClick={() => setIsOpenContraseñaReset(true)}>¿Olvidaste tu contraseña?</span></p>}
             <p className={styles.login_footer}>
                 {isRegister ? '¿Ya tienes una cuenta?' : '¿No tienes una cuenta?'}
-                <span onClick={toggleMode}>{isRegister ? 'Iniciar sesión' : 'Regístrate'}</span>
+                <span onClick={toggleMode} className={styles.login_footer_span}>{isRegister ? 'Iniciar sesión' : 'Regístrate'}</span>
             </p>
             <ContraseñaReset isOpen={isOpenContraseñaReset} setIsOpen={setIsOpenContraseñaReset} />
             <LoginEmpleado 

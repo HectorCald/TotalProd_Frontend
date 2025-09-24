@@ -39,6 +39,7 @@ const LogoAnimation = () => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.4 }}
                     style={{ display: "inline-block" }}
+                    className={styles.login_logo_span_span}
                 >
                     T
                 </motion.span>
@@ -47,6 +48,7 @@ const LogoAnimation = () => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.6 }}
                     style={{ display: "inline-block" }}
+                    className={styles.login_logo_span_span}
                 >
                     o
                 </motion.span>
@@ -57,12 +59,14 @@ const LogoAnimation = () => {
                     style={{ display: "inline-block" }}
                 >
                     t
+                    className={styles.login_logo_span_span}
                 </motion.span>
                 <motion.span
                     initial={{ x: -100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 1.0 }}
                     style={{ display: "inline-block"}}
+                    className={styles.login_logo_span_span}
                 >
                     a
                 </motion.span>
@@ -71,6 +75,7 @@ const LogoAnimation = () => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 1.2 }}
                     style={{ display: "inline-block" }}
+                    className={styles.login_logo_span_span}
                 >
                     l
                 </motion.span>
@@ -79,6 +84,7 @@ const LogoAnimation = () => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 1.3 }}
                     style={{ display: "inline-block", color: "var(--primary-color)" }}
+                    className={styles.login_logo_span_span}
                 >
                     P
                 </motion.span>
@@ -87,6 +93,7 @@ const LogoAnimation = () => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 1.4 }}
                     style={{ display: "inline-block", color: "var(--primary-color)" }}
+                    className={styles.login_logo_span_span}
                 >
                     r
                 </motion.span>
@@ -95,6 +102,7 @@ const LogoAnimation = () => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 1.5 }}
                     style={{ display: "inline-block", color: "var(--primary-color)" }}
+                    className={styles.login_logo_span_span}
                 >
                     o
                 </motion.span>
@@ -103,6 +111,7 @@ const LogoAnimation = () => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 1.6 }}
                     style={{ display: "inline-block", color: "var(--primary-color)" }}
+                    className={styles.login_logo_span_span}
                 >
                     d
                 </motion.span>

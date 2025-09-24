@@ -28,19 +28,18 @@
 .login_logo {
     font-size: 45px;
     color: var(--white-color);
+}
 
-    .login_logo_span {
-        position: relative;
+.login_logo_span {
+    position: relative;
+}
+.login_logo_span span {
+    font-weight: 700;
+}
 
-        span{
-            font-weight: 700;
-        }
-    }
-
-    .icon {
-        font-size: 47px !important;
-        transform: rotate(0deg);
-    }
+.icon {
+    font-size: 47px !important;
+    transform: rotate(0deg);
 }
 
 .login_subtitle {
@@ -60,6 +59,7 @@
     border-radius: 15px;
     position: relative;
 }
+
 .content_title {
     font-size: 16px;
     color: var(--white-color);
@@ -99,12 +99,12 @@
     display: flex;
     align-items: center;
     gap: 5px;
+}
 
-    span {
-        cursor: pointer;
-        text-decoration: underline;
-        color: var(--primary-color);
-    }
+.login_footer_span {
+    cursor: pointer;
+    text-decoration: underline;
+    color: var(--primary-color);
 }
 
 .info {
@@ -134,6 +134,7 @@
     justify-content: flex-start;
     gap: 10px !important;
 }
+
 .content_company {
     display: flex;
     justify-content: center;
