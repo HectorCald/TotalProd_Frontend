@@ -8,10 +8,7 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
     const [isVisible, setIsVisible] = useState(false);
 
     const handleClose = () => {
-        setIsVisible(false);
-        setTimeout(() => {
-            setIsOpen(false);
-        }, 300); // Tiempo de la animación
+        setIsOpen(false);
     };
 
     // Manejar animación de entrada
@@ -22,8 +19,6 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
                 setIsVisible(true);
             }, 10);
             return () => clearTimeout(timer);
-        } else {
-            setIsVisible(false);
         }
     }, [isOpen]);
 
@@ -43,16 +38,9 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
         <>
             {isOpen && (
                 <div 
-                    className={`${styles.viewWrapper} ${isVisible ? styles.viewWrapperVisible : ''}`}
-                    onClick={handleClose}
+                    className={`${styles.viewContainer} ${isVisible ? styles.viewContainerVisible : ''}`}
                 >
-                    {/* Panel principal */}
-                    <div 
-                        className={styles.viewContainer}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {children}
-                    </div>
+                    {children}
                 </div>
             )}
         </>

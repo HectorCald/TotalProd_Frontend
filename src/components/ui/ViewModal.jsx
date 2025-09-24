@@ -8,10 +8,7 @@ const ViewModal = ({ isOpen, setIsOpen, children }) => {
     const [isVisible, setIsVisible] = useState(false);
 
     const handleClose = () => {
-        setIsVisible(false);
-        setTimeout(() => {
-            setIsOpen(false);
-        }, 300); // Tiempo de la animación
+        setIsOpen(false);
     };
 
     // Manejar animación de entrada
@@ -22,8 +19,6 @@ const ViewModal = ({ isOpen, setIsOpen, children }) => {
                 setIsVisible(true);
             }, 10);
             return () => clearTimeout(timer);
-        } else {
-            setIsVisible(false);
         }
     }, [isOpen]);
 
