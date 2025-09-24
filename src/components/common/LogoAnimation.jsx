@@ -57,9 +57,10 @@ const LogoAnimation = () => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.8 }}
                     style={{ display: "inline-block" }}
+                    className={styles.login_logo_span_span}
                 >
                     t
-                    className={styles.login_logo_span_span}
+                    
                 </motion.span>
                 <motion.span
                     initial={{ x: -100, opacity: 0 }}
