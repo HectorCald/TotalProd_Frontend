@@ -17,7 +17,13 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
     // Manejar animación de entrada
     useEffect(() => {
         if (isOpen) {
-            setIsVisible(true);
+            // Pequeño delay para que se vea la animación de entrada
+            const timer = setTimeout(() => {
+                setIsVisible(true);
+            }, 10);
+            return () => clearTimeout(timer);
+        } else {
+            setIsVisible(false);
         }
     }, [isOpen]);
 
@@ -36,20 +42,18 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
     return (
         <>
             {isOpen && (
-                <>
-                    {/* Overlay oscuro */}
-                    <div
-                        className={`${styles.overlay} ${isVisible ? styles.overlayVisible : ''}`}
-                        onClick={handleClose}
-                    />
-                    
+                <div 
+                    className={`${styles.viewWrapper} ${isVisible ? styles.viewWrapperVisible : ''}`}
+                    onClick={handleClose}
+                >
                     {/* Panel principal */}
                     <div 
-                        className={`${styles.viewContainer} ${isVisible ? styles.viewVisible : ''}`}
+                        className={styles.viewContainer}
+                        onClick={(e) => e.stopPropagation()}
                     >
                         {children}
                     </div>
-                </>
+                </div>
             )}
         </>
     );

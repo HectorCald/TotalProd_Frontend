@@ -1,37 +1,32 @@
-.overlay {
+.viewWrapper {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100vh;
     background-color: rgba(0, 0, 0, 0);
-    z-index: 9999999;
     backdrop-filter: blur(0px);
+    z-index: 9999999;
+    transform: translateX(100%);
     transition: all 0.3s ease;
 }
 
-.overlayVisible {
+.viewWrapperVisible {
     background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(2px);
+    transform: translateX(0);
 }
 
 .viewContainer {
-    position: fixed;
+    position: absolute;
     top: 0;
     right: 0;
     width: 100%;
     max-width: 500px;
     height: 100vh;
     background-color: var(--secondary-color);
-    z-index: 9999999;
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
     cursor: grab;
     overflow: hidden;
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-}
-
-.viewVisible {
-    transform: translateX(0);
 }
 

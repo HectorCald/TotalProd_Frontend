@@ -17,7 +17,13 @@ const ViewModal = ({ isOpen, setIsOpen, children }) => {
     // Manejar animación de entrada
     useEffect(() => {
         if (isOpen) {
-            setIsVisible(true);
+            // Pequeño delay para que se vea la animación de entrada
+            const timer = setTimeout(() => {
+                setIsVisible(true);
+            }, 10);
+            return () => clearTimeout(timer);
+        } else {
+            setIsVisible(false);
         }
     }, [isOpen]);
 
@@ -36,20 +42,18 @@ const ViewModal = ({ isOpen, setIsOpen, children }) => {
     return (
         <>
             {isOpen && (
-                <>
-                    {/* Overlay oscuro */}
-                    <div
-                        className={`${styles.overlay} ${isVisible ? styles.overlayVisible : ''}`}
-                        onClick={handleClose}
-                    />
-                    
+                <div 
+                    className={`${styles.modalWrapper} ${isVisible ? styles.modalWrapperVisible : ''}`}
+                    onClick={handleClose}
+                >
                     {/* Panel Modal */}
                     <div 
-                        className={`${styles.modalContainer} ${isVisible ? styles.modalVisible : ''}`}
+                        className={styles.modalContainer}
+                        onClick={(e) => e.stopPropagation()}
                     >
                         {children}
                     </div>
-                </>
+                </div>
             )}
         </>
     );
