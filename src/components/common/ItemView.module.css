@@ -84,11 +84,6 @@
 
 }
 
-.icon {
-    font-size: 30px !important;
-    color: var(--quinary-color) !important;
-}
-
 .badge {
     position: absolute;
     bottom: 15px;
