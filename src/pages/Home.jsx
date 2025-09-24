@@ -39,41 +39,63 @@ const Home = () => {
         isEmployee={false}
       />
 
-      {/* Vistas modales */}
+      {/* Vistas modales - Solo cargar cuando están abiertas */}
 
-      <Personal
-        isOpen={activeView === 'personal'}
-        setIsOpen={() => handleViewClose()}
-      />
+      {activeView === 'personal' && (
+        <Personal
+          isOpen={true}
+          setIsOpen={() => handleViewClose()}
+        />
+      )}
 
-      <Clientes
-        isOpen={activeView === 'clientes'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <Proveedores
-        isOpen={activeView === 'proveedores'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <Pagos
-        isOpen={activeView === 'pagos'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <AlmacenMedio
-        isOpen={activeView === 'almacenMedio'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <AlmacenMedioGeneral
-        isOpen={activeView === 'almacenMedioGeneral'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <MovimientosMedio
-        isOpen={activeView === 'movimientos'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <PedidosMedio
-        isOpen={activeView === 'pedidos'}
-        setIsOpen={() => handleViewClose()}
-      />
+      {activeView === 'clientes' && (
+        <Clientes
+          isOpen={true}
+          setIsOpen={() => handleViewClose()}
+        />
+      )}
+
+      {activeView === 'proveedores' && (
+        <Proveedores
+          isOpen={true}
+          setIsOpen={() => handleViewClose()}
+        />
+      )}
+
+      {activeView === 'pagos' && (
+        <Pagos
+          isOpen={true}
+          setIsOpen={() => handleViewClose()}
+        />
+      )}
+
+      {activeView === 'almacenMedio' && (
+        <AlmacenMedio
+          isOpen={true}
+          setIsOpen={() => handleViewClose()}
+        />
+      )}
+
+      {activeView === 'almacenMedioGeneral' && (
+        <AlmacenMedioGeneral
+          isOpen={true}
+          setIsOpen={() => handleViewClose()}
+        />
+      )}
+
+      {activeView === 'movimientos' && (
+        <MovimientosMedio
+          isOpen={true}
+          setIsOpen={() => handleViewClose()}
+        />
+      )}
+
+      {activeView === 'pedidos' && (
+        <PedidosMedio
+          isOpen={true}
+          setIsOpen={() => handleViewClose()}
+        />
+      )}
     </div>
   );
 };

@@ -27,6 +27,12 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
         <AnimatePresence mode="wait">
             {isOpen && (
                 <>
+                    {/* Overlay oscuro */}
+                    <div
+                        className={styles.overlay}
+                        onClick={handleClose}
+                    />
+                    
                     {/* Panel principal */}
                     <motion.div 
                         className={styles.viewContainer}
