@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -12,9 +12,13 @@ import Notification from '../../common/Notification';
 import clientService from '../../../services/clientService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
+import FetchData from '../../mixed/FetchData';
 
 
 function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccionado }) {
+    const { isLargeScreen } = useLayout();
     
     // Estados para los modales
     const [isOpenVerCliente, setIsOpenVerCliente] = useState(false);
@@ -34,42 +38,19 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     const [error, setError] = useState(null);
 
 
-    // Función para cargar clientes
-    const cargarClientes = async () => {
-        console.log('cargando clientes');
-        setIsLoading(true);
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        setError(null);
-        
-        try {
-            const response = await clientService.getAll();
-            if (response.success) {
-                setClientes(response.data);
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            setIsLoading(false);
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    };
+    // Función simple para manejar el indicador de carga
+    const handleLoading = useCallback((isLoading) => {
+        setShowRefreshIndicator(isLoading);
+        setIsRefreshing(isLoading);
+    }, []);
+
+    // Función para manejar cuando se cargan los clientes
+    const handleClientesLoaded = useCallback((data) => {
+        setClientes(data);
+    }, []);
 
     
-    // Cargar clientes cuando se abre el modal
-    useEffect(() => {
-        if (isOpen) {
-            cargarClientes();
-        }
-    }, [isOpen]);
+
 
 
     // Limpiar indicador cuando se cierra el modal
@@ -145,7 +126,25 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        await cargarClientes();
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+
+        try {
+            const response = await clientService.getAll();
+            if (response.success) {
+                setClientes(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar clientes:', error);
+        } finally {
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
     };
 
     // Efecto para resetear búsqueda cuando se abre
@@ -196,10 +195,26 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         mostrarNotificacion('success', 'Cliente actualizado correctamente')
     };
 
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'name', label: 'Cliente', icon: 'user' },
+        { key: 'description', label: 'Descripción', icon: 'comment' },
+        { key: 'telefono', label: 'Teléfono', icon: 'phone' },
+    ];
+
+    // Datos para la tabla
+    const tableData = clientesFiltrados.map(cliente => ({
+        id: cliente.id,
+        name: cliente.name || 'Sin nombre',
+        description: cliente.description || '--',
+        telefono: cliente.phone || '--',
+    }));
+
     return (
         <View 
             isOpen={isOpen} 
             setIsOpen={setIsOpen}
+            isMainView={!modoSeleccion}
         >
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
@@ -225,21 +240,37 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                         }}
                     />
                 </div>
-                <div className={styles.content}>
-                    {clientesFiltrados.length > 0 ? (
-                        clientesFiltrados.map((cliente, index) => (
-                            <ItemView
-                                key={cliente.id || index}
-                                title={cliente.name || 'Sin nombre'}
-                                description={cliente.description || 'Sin descripción'}
-                                arrow={true}
-                                onClick={() => handleCliente(cliente)}
-                            />
-                        ))
+                <div className={styles.content} style={{
+                        maxHeight: 'calc(100% - 185px)',
+                    }}>
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(cliente) => {
+                                // Buscar el cliente original sin formatear
+                                const clienteOriginal = clientesFiltrados.find(c => c.id === cliente.id);
+                                handleCliente(clienteOriginal);
+                            }}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        clientesFiltrados.length > 0 ? (
+                            clientesFiltrados.map((cliente, index) => (
+                                <ItemView
+                                    key={cliente.id || index}
+                                    title={cliente.name || 'Sin nombre'}
+                                    description={cliente.description || 'Sin descripción'}
+                                    arrow={true}
+                                    onClick={() => handleCliente(cliente)}
+                                />
+                            ))
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}</p>
+                            </div>
+                        )
                     )}
                 </div>
                 <div className={styles.buttonFooter}>
@@ -286,6 +317,18 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                 type={notification.type}
                 text={notification.text}
             />
+
+            {/* Carga de datos - solo cuando está abierto */}
+            {isOpen && (
+                <FetchData
+                    service={clientService}
+                    serviceName="clientService"
+                    isOpen={isOpen}
+                    onDataLoaded={handleClientesLoaded}
+                    onLoadingStart={() => handleLoading(true)}
+                    onLoadingEnd={() => handleLoading(false)}
+                />
+            )}
         </View>
     );
 }

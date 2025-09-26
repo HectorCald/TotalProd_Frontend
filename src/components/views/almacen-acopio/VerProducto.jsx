@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import HeaderModal from '../../common/HeaderModal';
@@ -12,6 +12,7 @@ import movimientosAcopioService from '../../../services/movimientosAcopioService
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
+import FetchData from '../../mixed/FetchData';
 
 
 function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductDeleted, typeMeasures = [] }) {
@@ -73,33 +74,12 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         // Filtrar grupos vacíos
         return Object.entries(groups).filter(([_, movements]) => movements.length > 0);
     }, [movimientos]);
-
-
-    // Cargar los movimientos del producto
-    useEffect(() => {
-        const loadMovimientos = async () => {
-            if (registro?.id && isOpen) {
-                setLoadingMovimientosList(true);
-                try {
-                    const response = await movimientosAcopioService.getByProduct(registro.id);
-                    if (response.success) {
-                        // Limitar a los últimos 10 movimientos
-                        const limitedMovements = (response.data || []).slice(0, 10);
-                        setMovimientos(limitedMovements);
-                    } else {
-                        setMovimientos([]);
-                    }
-                } catch (error) {
-                    console.error('Error cargando movimientos:', error);
-                    setMovimientos([]);
-                } finally {
-                    setLoadingMovimientosList(false);
-                }
-            }
-        };
-
-        loadMovimientos();
-    }, [registro?.id, isOpen]);
+    // Función para manejar cuando se cargan los movimientos
+    const handleMovimientosLoaded = useCallback((data) => {
+        // Limitar a los últimos 10 movimientos
+        const limitedMovements = (data || []).slice(0, 10);
+        setMovimientos(limitedMovements);
+    }, []);
 
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -117,6 +97,49 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         setTimeout(() => {
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 3000);
+    };
+
+    // Handle para eliminar producto
+    const handleDelete = async () => {
+        setLoading(true);
+        try {
+            // Verificar si tiene movimientos
+            const movimientosResponse = await movimientosAcopioService.getByProduct(registro.id);
+            const tieneMovimientos = movimientosResponse.success && movimientosResponse.data && movimientosResponse.data.length > 0;
+
+            // Verificar si tiene pedidos
+            const pedidosResponse = await pedidosAcopioService.verificarProductoEnPedidos(registro.id);
+            const tienePedidos = pedidosResponse.success && pedidosResponse.data && pedidosResponse.data.tienePedidos;
+
+            if (tieneMovimientos) {
+                mostrarNotificacion('error', 'No se puede eliminar el producto porque tiene movimientos registrados');
+                setLoading(false);
+                return;
+            }
+
+            if (tienePedidos) {
+                mostrarNotificacion('error', 'No se puede eliminar el producto porque está incluido en pedidos');
+                setLoading(false);
+                return;
+            }
+
+            // Si no tiene movimientos ni pedidos, proceder con la eliminación
+            const response = await productsAcopioService.delete(registro.id);
+            if (response.success) {
+                onProductDeleted(registro.id);
+                setIsDeleteOpen(false);
+                setIsOpen(false);
+                mostrarNotificacion('success', 'Producto eliminado correctamente');
+            } else {
+                mostrarNotificacion('error', response.message || 'No se puede eliminar el producto');
+            }
+        } catch (error) {
+            console.error('Error al eliminar producto:', error);
+            // Mostrar el mensaje de error del servidor (incluyendo permisos)
+            mostrarNotificacion('error', error.message || 'Error al eliminar el producto');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -167,14 +190,14 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
 
                 <div className={styles.buttons}>
                     <Boton
-                        className='btn-red'
-                        label='Eliminar Producto'
-                        onClick={() => setIsDeleteOpen(true)}
-                    />
-                    <Boton
                         className='btn-default'
                         label='Editar Producto'
                         onClick={() => setIsEditarOpen(true)}
+                    />
+                    <Boton
+                        className='btn-red'
+                        label='Eliminar Producto'
+                        onClick={() => setIsDeleteOpen(true)}
                     />
                 </div>
             </div>
@@ -190,56 +213,17 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     <p className={styles.subTitle}>¿Eliminar el producto "{registro?.name}"? Esta acción es irreversible y puede afectar registros relacionados.</p>
                     <div className={styles.buttons}>
                         <Boton
-                            className='btn-red'
-                            label='Si, eliminar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={async () => {
-                                setLoading(true);
-                                try {
-                                    // Verificar si tiene movimientos
-                                    const movimientosResponse = await movimientosAcopioService.getByProduct(registro.id);
-                                    const tieneMovimientos = movimientosResponse.success && movimientosResponse.data && movimientosResponse.data.length > 0;
-
-                                    // Verificar si tiene pedidos
-                                    const pedidosResponse = await pedidosAcopioService.verificarProductoEnPedidos(registro.id);
-                                    const tienePedidos = pedidosResponse.success && pedidosResponse.data && pedidosResponse.data.tienePedidos;
-
-                                    if (tieneMovimientos) {
-                                        mostrarNotificacion('error', 'No se puede eliminar el producto porque tiene movimientos registrados');
-                                        setLoading(false);
-                                        return;
-                                    }
-
-                                    if (tienePedidos) {
-                                        mostrarNotificacion('error', 'No se puede eliminar el producto porque está incluido en pedidos');
-                                        setLoading(false);
-                                        return;
-                                    }
-
-                                    // Si no tiene movimientos ni pedidos, proceder con la eliminación
-                                    const response = await productsAcopioService.delete(registro.id);
-                                    if (response.success) {
-                                        onProductDeleted(registro.id);
-                                        setIsDeleteOpen(false);
-                                        setIsOpen(false);
-                                        mostrarNotificacion('success', 'Producto eliminado correctamente');
-                                    } else {
-                                        mostrarNotificacion('error', response.message || 'No se puede eliminar el producto');
-                                    }
-                                } catch (error) {
-                                    console.error('Error al eliminar producto:', error);
-                                    mostrarNotificacion('error', 'Error al eliminar el producto');
-                                } finally {
-                                    setLoading(false);
-                                }
-                            }}
-                            loading={loading}
-                        />
-                        <Boton
                             className='btn-default'
                             label='Cancelar'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsDeleteOpen(false)}
+                        />
+                        <Boton
+                            className='btn-red'
+                            label='Si, eliminar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleDelete}
+                            loading={loading}
                         />
                     </div>
 
@@ -273,12 +257,10 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                     <p className={styles.subTitle}>INGREDIENTES</p>
                                     <div className={styles.content}>
                                         {registro.recetas_acopio[0].recetas_acopio_detalle.map((detalle, index) => (
-                                            <div key={detalle.id || index}>
-                                                <Dato
-                                                    label={detalle.products_acopio?.name || 'Producto desconocido'}
-                                                    value={`${detalle.cantidad} ${detalle.products_acopio?.type_measure?.code || ''}`}
-                                                />
-                                            </div>
+                                            <Dato
+                                                label={detalle.products_acopio?.name || 'Producto desconocido'}
+                                                value={`${detalle.cantidad} ${detalle.products_acopio?.type_measure?.code || ''}`}
+                                            />
                                         ))}
                                     </div>
                                 </>
@@ -291,28 +273,21 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
             {/* Modal de movimientos */}
             <ViewModal isOpen={isMovimientosOpen} setIsOpen={setIsMovimientosOpen}>
                 <HeaderModal
-                    title="Movimientos del Producto"
+                    title="Movimientos"
                     onClose={() => setIsMovimientosOpen(false)}
                 />
                 <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>HISTORIAL DE MOVIMIENTOS</p>
                     {loadingMovimientosList ? (
                         <div className={styles.noData}>
                             <p>Cargando movimientos...</p>
                         </div>
                     ) : movimientos.length > 0 ? (
                         <>
-                            <p className={styles.subTitle}>HISTORIAL DE MOVIMIENTOS</p>
+
                             {groupedMovements.map(([dateGroup, groupMovements]) => (
-                                <div key={dateGroup} style={{ width: '100%' }}>
-                                    <p className={styles.subTitle} style={{
-                                        fontSize: '14px',
-                                        color: '#666',
-                                        marginTop: '10px',
-                                        marginBottom: '10px',
-                                        fontWeight: '600',
-                                    }}>
-                                        {dateGroup}
-                                    </p>
+                                <>
+                                    <p className={styles.subTitle}>{dateGroup}</p>
                                     {groupMovements.map((movimiento, index) => (
                                         <ItemView
                                             key={movimiento.id || index}
@@ -331,7 +306,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                             arrow={false}
                                         />
                                     ))}
-                                </div>
+                                </>
                             ))}
                         </>
                     ) : (
@@ -347,6 +322,20 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 type={notification.type}
                 text={notification.text}
             />
+
+            {/* Carga de movimientos - solo cuando está abierto y hay registro */}
+            {isOpen && registro?.id && (
+                <FetchData
+                    service={movimientosAcopioService}
+                    serviceName="movimientosAcopioService"
+                    method="getByProduct"
+                    methodParams={[registro.id]}
+                    isOpen={isOpen}
+                    onDataLoaded={handleMovimientosLoaded}
+                    onLoadingStart={() => setLoadingMovimientosList(true)}
+                    onLoadingEnd={() => setLoadingMovimientosList(false)}
+                />
+            )}
         </View>
     );
 }

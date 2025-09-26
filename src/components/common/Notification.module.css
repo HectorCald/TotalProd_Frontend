@@ -18,7 +18,6 @@
     border-radius: 10px;
     border: 1px solid;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(8px);
     animation: slideDown 0.3s ease-out;
     max-width: 90%;
     min-width: 200px;
@@ -50,6 +49,11 @@
     height: 14px;
     color: white !important;
 }
+
+.icon{
+    color: white !important;
+}       
+
 
 .text {
     color: var(--white-color);

@@ -7,9 +7,9 @@ import ViewModal from '../../ui/ViewModal';
 import Dato from '../../common/Dato';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import MensajeError from '../../common/MensajeError';
 import Notification from '../../common/Notification';
 import personalService from '../../../services/personalService';
+
 
 function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated, sucursales = [] }) {
 
@@ -17,8 +17,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
 
-    // Estados para los mensajes de error y éxito
-    const [errorMessage, setErrorMessage] = useState('');
+    // Estado para la notificación
     const [notification, setNotification] = useState({
         isVisible: false,
         type: 'success',
@@ -28,8 +27,6 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
     // Estados para la carga
     const [loading, setLoading] = useState(false);
 
-    // Estados para el mapa
-    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
     // Estados para módulos y permisos
     const [isModulesOpen, setIsModulesOpen] = useState(false);
@@ -39,7 +36,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
     // Función para eliminar el personal
     const handleEliminar = async (id) => {
         if (!id) {
-            setErrorMessage('ID del personal no válido');
+            mostrarNotificacion('error', 'ID del personal no válido');
             return;
         }
 
@@ -53,28 +50,16 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                     onProveedorDeleted(id);
                     setIsDeleteOpen(false);
                     setIsOpen(false);
+                    mostrarNotificacion('success', 'Personal eliminado correctamente');
                 }
             } else {
-                setErrorMessage(response.message || 'Error al eliminar el personal');
-                setTimeout(() => {
-                    setErrorMessage('');
-                }, 3000);
+                mostrarNotificacion('error', response.message || 'Error al eliminar el personal');
             }
         } catch (error) {
             console.error('Error al eliminar personal:', error);
-            setErrorMessage('Error de conexión con el servidor');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+            mostrarNotificacion('error', 'Error de conexión con el servidor');
         } finally {
             setLoading(false);
-        }
-    }
-    const handleOpenMap = () => {
-        if (usuario.location) {
-            setIsMapModalOpen(true);
-        } else {
-            setErrorMessage('No hay ubicación para mostrar');
         }
     }
 
@@ -108,12 +93,6 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
         }
     };
 
-    // Efecto para limpiar mensajes al abrir/cerrar
-    useEffect(() => {
-        if (isOpen) {
-            setErrorMessage('');
-        }
-    }, [isOpen]);
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -189,7 +168,6 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>¿Eliminar al personal {usuario?.first_name} {usuario?.last_name}? Esta acción es irreversible y puede afectar registros relacionados.</p>
-                    <MensajeError mensaje={errorMessage} />
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-red'

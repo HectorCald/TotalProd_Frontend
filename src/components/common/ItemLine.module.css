@@ -10,10 +10,12 @@
 .icon {
     font-size: 18px !important;
     width: 20px;
+    color: var(--primary-color) !important;
 }
 .title {
     font-size: 15px;
     font-weight: 400;
+    color: var(--white-color);
 }
 .arrow {
     margin-left: auto;

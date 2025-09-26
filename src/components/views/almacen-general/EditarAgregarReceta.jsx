@@ -301,6 +301,7 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
         />
       </div>
     </ViewModal>
+    
   );
 }
 

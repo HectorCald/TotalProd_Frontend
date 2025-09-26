@@ -1,20 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import HeaderModal from '../../common/HeaderModal';
 import View from '../../ui/View';
 import ViewModal from '../../ui/ViewModal';
 import Dato from '../../common/Dato';
-import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import MensajeError from '../../common/MensajeError';
+import Notification from '../../common/Notification';
+import FetchData from '../../mixed/FetchData';
 import proveedorService from '../../../services/proveedorService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import ItemView from '../../common/ItemView';
 import ItemLine from '../../common/ItemLine';
 import MapaModal from '../clientes/MapaModal';
-import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
 
 function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated }) {
@@ -24,9 +23,6 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
-
-    // Estados para los mensajes de error y éxito
-    const [errorMessage, setErrorMessage] = useState('');
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
@@ -57,10 +53,10 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
         }, 3000);
     };
 
-            // Función para eliminar el proveedor
+    // Función para eliminar el proveedor
     const handleEliminar = async (id) => {
         if (!id) {
-            setErrorMessage('ID del proveedor no válido');
+            mostrarNotificacion('error', 'ID del proveedor no válido');
             return;
         }
 
@@ -74,19 +70,14 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                     onProveedorDeleted(id);
                     setIsDeleteOpen(false);
                     setIsOpen(false);
+                    mostrarNotificacion('success', 'Proveedor eliminado correctamente');
                 }
             } else {
-                setErrorMessage(response.message || 'Error al eliminar el proveedor');
-                setTimeout(() => {
-                    setErrorMessage('');
-                }, 3000);
+                mostrarNotificacion('error', response.message || 'Error al eliminar el proveedor');
             }
         } catch (error) {
             console.error('Error al eliminar proveedor:', error);
-            setErrorMessage('Error de conexión con el servidor');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+            mostrarNotificacion('error', 'Error de conexión con el servidor');
         } finally {
             setLoading(false);
         }
@@ -99,38 +90,16 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
         }
     }
 
-    // Cargar los movimientos del proveedor
-    useEffect(() => {
-        const loadMovimientos = async () => {
-            if (usuario?.id && isOpen) {
-                setLoadingMovimientosList(true);
-                try {
-                    const response = await movimientosAcopioService.getByProveedor(usuario.id);
-                    if (response.success) {
-                        // Limitar a los últimos 10 movimientos
-                        const limitedMovements = (response.data || []).slice(0, 10);
-                        setMovimientos(limitedMovements);
-                    } else {
-                        setMovimientos([]);
-                    }
-                } catch (error) {
-                    console.error('Error cargando movimientos:', error);
-                    setMovimientos([]);
-                } finally {
-                    setLoadingMovimientosList(false);
-                }
-            }
-        };
+    // Callbacks para FetchData
+    const handleMovimientosLoaded = useCallback((data) => {
+        // Limitar a los últimos 10 movimientos
+        const limitedMovements = (data || []).slice(0, 10);
+        setMovimientos(limitedMovements);
+    }, []);
 
-        loadMovimientos();
-    }, [usuario?.id, isOpen]);
-
-    // Efecto para limpiar mensajes al abrir/cerrar
-    useEffect(() => {
-        if (isOpen) {
-            setErrorMessage('');
-        }
-    }, [isOpen]);
+    const handleLoading = useCallback((isLoading) => {
+        setLoadingMovimientosList(isLoading);
+    }, []);
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -161,14 +130,14 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
 
                 <div className={styles.buttons}>
                     <Boton
-                        className='btn-red'
-                        label='Eliminar Proveedor'
-                        onClick={() => setIsDeleteOpen(true)}
-                    />
-                    <Boton
                         className='btn-default'
                         label='Editar Proveedor'
                         onClick={() => setIsEditOpen(true)}
+                    />
+                    <Boton
+                        className='btn-red'
+                        label='Eliminar Proveedor'
+                        onClick={() => setIsDeleteOpen(true)}
                     />
                 </div>
             </div>
@@ -190,20 +159,19 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>¿Eliminar al proveedor {usuario?.name}? Esta acción es irreversible y puede afectar registros relacionados.</p>
-                    <MensajeError mensaje={errorMessage} />
                     <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsDeleteOpen(false)}
+                        />
                         <Boton
                             className='btn-red'
                             label='Si, eliminar'
                             style={{ marginTop: 'auto' }}
                             onClick={() => handleEliminar(usuario?.id)}
                             loading={loading}
-                        />
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsDeleteOpen(false)}
                         />
                     </div>
                 </div>
@@ -256,6 +224,20 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                     )}
                 </div>
             </ViewModal>
+
+            {/* FetchData para movimientos */}
+            {isOpen && usuario?.id && (
+                <FetchData
+                    service={movimientosAcopioService}
+                    serviceName="movimientosAcopioService"
+                    method="getByProveedor"
+                    methodParams={[usuario.id]}
+                    isOpen={isOpen}
+                    onDataLoaded={handleMovimientosLoaded}
+                    onLoadingStart={() => handleLoading(true)}
+                    onLoadingEnd={() => handleLoading(false)}
+                />
+            )}
 
             {/* Modal de Notificación*/}
             <Notification

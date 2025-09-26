@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styles from './View.module.css';
 import { useModalStack } from '../../context/ModalStackContext';
+import { useLayout } from '../../context/LayoutContext';
 
-const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
+const View = ({ isOpen, setIsOpen, children, title, onBack, style, isMainView = false }) => {
     const { registerModal, unregisterModal, isLastModal, getOpenModalsCount } = useModalStack();
+    const { isLargeScreen, sidebarCollapsed } = useLayout();
     const modalIdRef = useRef(null);
     const [isVisible, setIsVisible] = useState(false);
 
@@ -11,19 +13,25 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
         setIsOpen(false);
     };
 
-    // Manejar animación de entrada
+    // Manejar animación de entrada (solo en pantallas pequeñas)
     useEffect(() => {
         if (isOpen) {
-            setIsVisible(false); // Resetear estado inicial
-            // Pequeño delay para que se vea la animación de entrada
-            const timer = setTimeout(() => {
+            if (isLargeScreen) {
+                // En pantallas grandes, aparecer de golpe sin animación
                 setIsVisible(true);
-            }, 10);
-            return () => clearTimeout(timer);
+            } else {
+                // En pantallas pequeñas, mantener la animación
+                setIsVisible(false); // Resetear estado inicial
+                // Pequeño delay para que se vea la animación de entrada
+                const timer = setTimeout(() => {
+                    setIsVisible(true);
+                }, 10);
+                return () => clearTimeout(timer);
+            }
         } else {
             setIsVisible(false); // Limpiar estado al cerrar
         }
-    }, [isOpen]);
+    }, [isOpen, isLargeScreen]);
 
     // Registrar el modal cuando se abre
     useEffect(() => {
@@ -37,11 +45,37 @@ const View = ({ isOpen, setIsOpen, children, title, onBack }) => {
         }
     }, [isOpen, registerModal, unregisterModal]);
 
+    // Determinar las clases CSS basadas en el estado global
+    const getViewClasses = () => {
+        let classes = [styles.viewContainer];
+        
+        // Solo aplicar animación en pantallas pequeñas
+        if (isVisible && !isLargeScreen) {
+            classes.push(styles.viewContainerVisible);
+        } else if (isLargeScreen) {
+            // En pantallas grandes, siempre visible sin animación
+            classes.push(styles.viewContainerVisible);
+        }
+        
+        // Solo aplicar padding de sidebar a las views principales (no anidadas)
+        // En pantallas grandes, solo las views principales deben tener el padding de la sidebar
+        if (isLargeScreen && isMainView) {
+            if (sidebarCollapsed) {
+                classes.push(styles.viewContainerSidebarCollapsed);
+            } else {
+                classes.push(styles.viewContainerSidebarExpanded);
+            }
+        }
+        
+        return classes.join(' ');
+    };
+
     return (
         <>
             {isOpen && (
                 <div 
-                    className={`${styles.viewContainer} ${isVisible ? styles.viewContainerVisible : ''}`}
+                    className={getViewClasses()}
+                    style={style}
                 >
                     {children}
                 </div>

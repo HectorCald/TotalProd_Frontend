@@ -11,11 +11,15 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
     const [type, setType] = useState('');
 
     const handleTypeAlmacen = (tipo) => {
+        // Cerrar el modal del medio
+        setIsOpen(false);
+        // Abrir directamente la vista específica
         setIsAlmcenOpen(true);
         setType(tipo);
     }
 
     return (
+        <>
         <ViewModal ViewModal isOpen={isOpen} setIsOpen={setIsOpen} >
             <HeaderModal
                 title="Almacén General"
@@ -60,9 +64,11 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
                     onClick={()=> handleTypeAlmacen('almacen')}
                 />
             </div>
-            {/* Almcen general */}
-            <AlmacenGeneral isOpen={isAlmacenOpen} setIsOpen={setIsAlmcenOpen} tipo={type} />
+            
         </ViewModal >
+        {/* Almcen general */}
+        <AlmacenGeneral isOpen={isAlmacenOpen} setIsOpen={setIsAlmcenOpen} tipo={type} />
+        </>
     );
 }
 export default AlmacenMedioGeneral;

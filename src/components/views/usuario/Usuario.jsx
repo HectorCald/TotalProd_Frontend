@@ -138,6 +138,12 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                     <p className={styles.subTitle}>¿Estas seguro de que deseas cerrar sesión?, esta accion eliminara toda la información del usuario en el dispositivo.</p>
                     <div className={styles.buttons}>
                         <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsLogoutOpen(false)}
+                        />
+                        <Boton
                             className='btn-red'
                             label='Si, Cerrar sesión'
                             style={{ marginTop: 'auto' }}
@@ -152,12 +158,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                                 // Redireccionar inmediatamente sin delay
                                 window.location.href = '/login';
                             }}
-                        />
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsLogoutOpen(false)}
                         />
                     </div>
                 </div>

@@ -5,15 +5,33 @@ import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import sucursalesService from '../../../services/sucursalesService';
-import MensajeError from '../../common/MensajeError';
+import Notification from '../../common/Notification';
 
 function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalCreated, onSucursalUpdated }) {
   const [dataMov, setDataMov] = useState({
     name: ''
   });
 
-  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Estado para la notificación
+  const [notification, setNotification] = useState({
+    isVisible: false,
+    type: 'error',
+    text: ''
+  });
+  const mostrarNotificacion = (tipo, texto) => {
+    setNotification({
+      isVisible: true,
+      type: tipo,
+      text: texto
+    });
+
+    // Auto-ocultar después de 3 segundos
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, isVisible: false }));
+    }, 3000);
+  };
 
   // Efecto para cargar los datos de la sucursal
   useEffect(() => {
@@ -26,7 +44,6 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
         name: ''
       });
     }
-    setErrorMessage('');
   }, [isOpen, data, tipo]);
 
   // Función para actualizar los datos del formulario
@@ -37,8 +54,7 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
   // Función para enviar los datos
   const handleSubmit = async () => {
     if (!dataMov.name.trim()) {
-      setErrorMessage('El nombre es obligatorio');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'El nombre es obligatorio');
       return;
     }
 
@@ -63,19 +79,15 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
         }
         setIsOpen(false);
       } else if (response.code === 'MODULE_NOT_INCLUDED') {
-        setErrorMessage(`Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`);
-        setTimeout(() => setErrorMessage(''), 5000);
+        mostrarNotificacion('error', `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`);
       } else if (response.code === 'NO_PLAN') {
-        setErrorMessage('Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.');
-        setTimeout(() => setErrorMessage(''), 5000);
+        mostrarNotificacion('error', 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.');
       } else {
-        setErrorMessage(response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} la sucursal`);
-        setTimeout(() => setErrorMessage(''), 3000);
+        mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} la sucursal`);
       }
     } catch (error) {
       console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} sucursal:`, error);
-      setErrorMessage('Error de conexión con el servidor');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'Error de conexión con el servidor');
     } finally {
       setLoading(false);
     }
@@ -88,7 +100,6 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
         onClose={() => setIsOpen(false)}
       />
       <div className={styles.modalContent}>
-        <MensajeError mensaje={errorMessage} />
         <p className={styles.subTitle}>INFORMACIÓN DE LA SUCURSAL</p>
 
         <InputNormal
@@ -108,6 +119,12 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
           disabled={!dataMov.name.trim()}
         />
       </div>
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        text={notification.text}
+      />
     </ViewModal>
   );
 }

@@ -211,8 +211,6 @@ const Balance = () => {
           salidas: { total: nuevoTotalEgresos }
         };
       });
-      
-      console.log('Balance actualizado con nuevo gasto:', gastoData.valor);
     }
   };
 
@@ -227,7 +225,7 @@ const Balance = () => {
 
   return (
     <Screen title="Balance">
-      <div className={styles.container}>
+      <div className={styles.container} style={{ maxWidth: '500px' }}>
         <div className={styles.headerContainer}>
           <p className={styles.subTitle}>SELECCIONAR</p>
           <RefreshIndicator

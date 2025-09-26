@@ -7,9 +7,9 @@ import InputNormal from '../../common/InputNormal';
 import Dato from '../../common/Dato';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import gastosService from '../../../services/gastosService';
-import MensajeError from '../../common/MensajeError';
+import Notification from '../../common/Notification';
 import Switch from '../../common/Switch';
-import Select from '../../common/Select';
+import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import Proveedores from '../proveedores/Proveedores';
 import Clientes from '../clientes/Clientes';
 
@@ -23,8 +23,26 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
     metodo_pago: ''
   });
 
-  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Estados para la notificación
+  const [notification, setNotification] = useState({
+    isVisible: false,
+    type: 'error',
+    text: ''
+  });
+  const mostrarNotificacion = (tipo, texto) => {
+    setNotification({
+      isVisible: true,
+      type: tipo,
+      text: texto
+    });
+
+    // Auto-ocultar después de 3 segundos
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, isVisible: false }));
+    }, 3000);
+  };
   const [isProveedoresSeleccionOpen, setIsProveedoresSeleccionOpen] = useState(false);
   const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
   const [proveedorSeleccionadoData, setProveedorSeleccionadoData] = useState(null);
@@ -40,14 +58,6 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
 
   // Estado para el Switch de registrar gasto
   const [registrarGasto, setRegistrarGasto] = useState(false);
-
-  // Opciones de métodos de pago (sin crédito)
-  const metodosPago = [
-    { value: 'qr', label: 'QR', icon: 'qr-scan' },
-    { value: 'transferencia', label: 'Transferencia', icon: 'transfer' },
-    { value: 'tarjeta', label: 'Tarjeta', icon: 'credit-card' },
-    { value: 'efectivo', label: 'Efectivo', icon: 'money' }
-  ];
 
 
 
@@ -71,7 +81,6 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         costo: '',
         metodo_pago: ''
       });
-      setErrorMessage('');
       // Resetear el switch de registrar gasto siempre a false
       setRegistrarGasto(false);
       // No resetear el switch de materia prima, mantener el valor del localStorage
@@ -101,22 +110,19 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   // Función para enviar los datos
   const handleSubmit = async () => {
     if (!dataMov.quantity || dataMov.quantity <= 0) {
-      setErrorMessage('La cantidad es obligatoria y debe ser mayor a 0');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'La cantidad es obligatoria y debe ser mayor a 0');
       return;
     }
 
     // Validaciones específicas para entradas con registro de gasto
     if (tipo === 'entrada' && registrarGasto) {
       if (!dataMov.costo || dataMov.costo <= 0) {
-        setErrorMessage('El costo es obligatorio cuando se registra un gasto');
-        setTimeout(() => setErrorMessage(''), 3000);
+        mostrarNotificacion('error', 'El costo es obligatorio cuando se registra un gasto');
         return;
       }
-      
+
       if (!dataMov.metodo_pago || dataMov.metodo_pago.trim() === '') {
-        setErrorMessage('El método de pago es obligatorio cuando se registra un gasto');
-        setTimeout(() => setErrorMessage(''), 3000);
+        mostrarNotificacion('error', 'El método de pago es obligatorio cuando se registra un gasto');
         return;
       }
     }
@@ -140,7 +146,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
       };
 
       let gastoId = null;
-      
+
       // Si es entrada con registro de gasto activado, crear gasto simultáneamente
       if (tipo === 'entrada' && registrarGasto) {
         const gastoData = {
@@ -152,14 +158,13 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         };
 
         const gastoResponse = await gastosService.create(gastoData);
-        
+
         if (gastoResponse.success) {
           gastoId = gastoResponse.data.id;
           movimientoData.gasto_id = gastoId;
           console.log('Gasto creado simultáneamente:', gastoResponse.data);
         } else {
-          setErrorMessage(`Error al crear gasto: ${gastoResponse.message}`);
-          setTimeout(() => setErrorMessage(''), 5000);
+          mostrarNotificacion('error', `Error al crear gasto: ${gastoResponse.message}`);
           return;
         }
       }
@@ -183,147 +188,138 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
             console.error('Error al eliminar gasto:', deleteError);
           }
         }
-        
-        setErrorMessage(response.message || `Error al registrar ${tipo}`);
-        setTimeout(() => setErrorMessage(''), 5000);
+
+        mostrarNotificacion('error', response.message || `Error al registrar ${tipo}`);
       }
     } catch (error) {
       console.error(`Error al registrar ${tipo}:`, error);
-      setErrorMessage(error.message || 'Error de conexión con el servidor');
-      setTimeout(() => setErrorMessage(''), 5000);
+      mostrarNotificacion('error', error.message || 'Error de conexión con el servidor');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
+    <>
+    <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
       <HeaderModal
         title={`${tipo === 'entrada' ? 'Entrada' : 'Salida'} - ${producto?.name}`}
         onClose={() => setIsOpen(false)}
       />
-      <div className={styles.modalContent}>
-        <MensajeError mensaje={errorMessage} />
+      
+        <div className={styles.modalContent}>
 
-        <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
-        <div className={styles.content}>
-          <Dato
-            label="Cantidad"
-            value={`${parseFloat(producto?.quantity || 0).toFixed(2)} ${producto?.type_measure?.code || ''}`}
-          />
-          <Dato
-            label="Tipo de medida"
-            value={producto?.type_measure?.name || 'No especificado'}
-          />
-        </div>
-
-        <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
-
-        <InputNormal
-          tipo="number"
-          value={dataMov.quantity}
-          placeholder='Cantidad (obligatorio)'
-          onChange={(e) => handleChange('quantity', e.target.value)}
-          icon='calculator'
-        />
-
-        <InputNormal
-          tipo="text"
-          value={dataMov.observations}
-          placeholder='Observaciones (opcional)'
-          onChange={(e) => handleChange('observations', e.target.value)}
-          icon='comment'
-        />
-
-        {/* Switch para registrar gasto solo para entradas */}
-        {tipo === 'entrada' && (
-          <div className={styles.content} style={{ padding: '10px 15px' }}>
-            <Switch
-              title="Registrar gasto"
-              subtitle="Crear un gasto automáticamente con este movimiento"
-              checked={registrarGasto}
-              onChange={setRegistrarGasto}
-              icon="money"
+          <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
+          <div className={styles.content}>
+            <Dato
+              label="Cantidad"
+              value={`${parseFloat(producto?.quantity || 0).toFixed(2)} ${producto?.type_measure?.code || ''}`}
+            />
+            <Dato
+              label="Tipo de medida"
+              value={producto?.type_measure?.name || 'No especificado'}
             />
           </div>
-        )}
 
-        {/* Campos de gasto */}
-        {tipo === 'entrada' && registrarGasto && (
-          <>
-            <InputNormal
-              tipo="number"
-              value={dataMov.costo}
-              placeholder='Costo (obligatorio)'
-              onChange={(e) => handleChange('costo', e.target.value)}
-              icon='money'
-              step="0.01"
-              min="0"
-            />
+          <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
 
+          <InputNormal
+            tipo="number"
+            value={dataMov.quantity}
+            placeholder='Cantidad (obligatorio)'
+            onChange={(e) => handleChange('quantity', e.target.value)}
+            icon='calculator'
+          />
+
+          <InputNormal
+            tipo="text"
+            value={dataMov.observations}
+            placeholder='Observaciones (opcional)'
+            onChange={(e) => handleChange('observations', e.target.value)}
+            icon='comment'
+          />
+
+          {/* Switch para registrar gasto solo para entradas */}
+          {tipo === 'entrada' && (
             <div className={styles.content} style={{ padding: '10px 15px' }}>
-              <Select
-                value={dataMov.metodo_pago}
-                onChange={(value) => handleChange('metodo_pago', value)}
-                options={metodosPago}
-                placeholder='Método de pago (obligatorio)'
-                icon='credit-card'
+              <Switch
+                title="Registrar gasto"
+                subtitle="Crear un gasto automáticamente con este movimiento"
+                checked={registrarGasto}
+                onChange={setRegistrarGasto}
+                icon="money"
               />
             </div>
+          )}
+
+          {/* Campos de gasto */}
+          {tipo === 'entrada' && registrarGasto && (
+            <>
+              <InputNormal
+                tipo="number"
+                value={dataMov.costo}
+                placeholder='Costo (obligatorio)'
+                onChange={(e) => handleChange('costo', e.target.value)}
+                icon='money'
+                step="0.01"
+                min="0"
+              />
+
+              <SelectorMetodoPago
+                value={dataMov.metodo_pago}
+                onChange={(value) => handleChange('metodo_pago', value)}
+              />
 
               <Boton
                 className='btn-gray'
-                label={proveedorSeleccionadoData ? proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
+                label={proveedorSeleccionadoData ? 'Proveedor: '+proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
                 onClick={() => setIsProveedoresSeleccionOpen(true)}
-                style={{ width: '100%', justifyContent: 'flex-start' }}
               />
 
-          </>
-        )}
+            </>
+          )}
 
-        {/* Selector de cliente para salidas */}
-        {tipo === 'salida' && (
-          <div className={styles.content} style={{ padding: '5px 15px' }}>
-            <Boton
-              className='btn-transparent'
-              label={clienteSeleccionadoData ? clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
-              onClick={() => setIsClientesSeleccionOpen(true)}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
-            />
-          </div>
-        )}
-        {/* Switch para restar materia prima (solo para entradas y si tiene receta) */}
-        {tipo === 'entrada' && tieneReceta && (
-          <div>
-            <Switch
-              title="Restar materia prima"
-              subtitle="Restar automáticamente los ingredientes de la receta del stock"
-              checked={restarMateriaPrima}
-              onChange={(value) => {
-                setRestarMateriaPrima(value);
-                localStorage.setItem('restarMateriaPrima', JSON.stringify(value));
-              }}
-              icon="minus-circle"
-            />
-          </div>
-        )}
+          {/* Selector de cliente para salidas */}
+          {tipo === 'salida' && (
+            <div className={styles.content} style={{ padding: '5px 15px' }}>
+              <Boton
+                className='btn-gray'
+                label={clienteSeleccionadoData ? 'Cliente: '+clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+                onClick={() => setIsClientesSeleccionOpen(true)}
+              />
+            </div>
+          )}
+          {/* Switch para restar materia prima (solo para entradas y si tiene receta) */}
+          {tipo === 'entrada' && tieneReceta && (
+            <div className={styles.content} style={{ padding: '10px 15px' }}>
+              <Switch
+                title="Restar materia prima"
+                subtitle="Restar automáticamente los ingredientes de la receta del stock"
+                checked={restarMateriaPrima}
+                onChange={(value) => {
+                  setRestarMateriaPrima(value);
+                  localStorage.setItem('restarMateriaPrima', JSON.stringify(value));
+                }}
+                icon="minus-circle"
+              />
+            </div>
+          )}
 
-        <Boton
-          className='btn-original'
-          label={`Registrar ${tipo === 'entrada' ? 'entrada' : 'salida'}`}
-          style={{ marginTop: 'auto' }}
-          onClick={handleSubmit}
-          loading={loading}
-          disabled={
-            !dataMov.quantity || 
-            dataMov.quantity <= 0 ||
-            (tipo === 'entrada' && registrarGasto && (!dataMov.costo || dataMov.costo <= 0 || !dataMov.metodo_pago || dataMov.metodo_pago.trim() === ''))
-          }
-        />
-      </div>
+          <Boton
+            className='btn-original'
+            label={`Registrar ${tipo === 'entrada' ? 'entrada' : 'salida'}`}
+            style={{ marginTop: 'auto' }}
+            onClick={handleSubmit}
+            loading={loading}
+            disabled={
+              !dataMov.quantity ||
+              dataMov.quantity <= 0 ||
+              (tipo === 'entrada' && registrarGasto && (!dataMov.costo || dataMov.costo <= 0 || !dataMov.metodo_pago || dataMov.metodo_pago.trim() === ''))
+            }
+          />
+        </div>
 
-
-
+        </ViewModal>
       {/* Modal de selección de proveedores */}
       <Proveedores
         isOpen={isProveedoresSeleccionOpen}
@@ -339,7 +335,13 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         modoSeleccion={true}
         onClienteSeleccionado={handleClienteSeleccionado}
       />
-    </ViewModal>
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        text={notification.text}
+      />
+    </>
   );
 }
 

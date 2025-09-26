@@ -286,11 +286,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         })) || [];
 
         // Guardar los productos del pedido en canastaSalidas
-        console.log('productosParaSalidas', productosParaSalidas);
         localStorage.setItem('canastaSalidas', JSON.stringify(productosParaSalidas));
         localStorage.setItem('pedidoIdEntregando', pedido.id);
         localStorage.setItem('precioIdEntregando', pedido.precio_id || '');
-        console.log('canastaSalidas guardada:', localStorage.getItem('canastaSalidas'));
 
         // Abrir AlmacenGeneral en modo salida
         setModoAlmacen('entregar');

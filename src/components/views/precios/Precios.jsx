@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -7,14 +7,18 @@ import ItemView from '../../common/ItemView';
 import VerPrecio from './VerPrecio';
 import Boton from '../../common/Boton';
 import EditarAgregarPrecio from './EditarAgregarPrecio';
+import FetchData from '../../mixed/FetchData';
 import pricesTypesService from '../../../services/pricesTypesService';
-import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
 
 function Precios({ isOpen, setIsOpen }) {
+    const { isLargeScreen } = useLayout();
+
     // Estados para los modales
     const [isOpenVerPrecio, setIsOpenVerPrecio] = useState(false);
     const [infoPrecio, setInfoPrecio] = useState(null);
@@ -23,50 +27,23 @@ function Precios({ isOpen, setIsOpen }) {
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    
+
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
 
     // Estados para precios
     const [precios, setPrecios] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Función para cargar precios
-    const cargarPrecios = async () => {
-        console.log('cargando precios');
-        setIsLoading(true);
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        setError(null);
-        
-        try {
-            const response = await pricesTypesService.getAll();
-            if (response.success) {
-                setPrecios(response.data);
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            setIsLoading(false);
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    };
+    // Callbacks para FetchData
+    const handlePreciosLoaded = useCallback((data) => {
+        setPrecios(data || []);
+    }, []);
 
-    // Cargar precios cuando se abre el modal
-    useEffect(() => {
-        if (isOpen) {
-            cargarPrecios();
-        }
-    }, [isOpen]);
+    const handleLoading = useCallback((isLoading) => {
+        setShowRefreshIndicator(isLoading);
+        setIsRefreshing(isLoading);
+    }, []);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -112,7 +89,25 @@ function Precios({ isOpen, setIsOpen }) {
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        await cargarPrecios();
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+
+        try {
+            const response = await pricesTypesService.getAll();
+            if (response.success) {
+                setPrecios(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar precios:', error);
+        } finally {
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
     };
 
     // Efecto para resetear búsqueda cuando se abre
@@ -128,7 +123,7 @@ function Precios({ isOpen, setIsOpen }) {
             const errorMessage = error.message || 'No tienes acceso a este módulo';
             const currentPlan = error.currentPlan || 'Plan actual';
             const requiredModule = error.requiredModule || 'Tipos de Precios';
-            
+
             setModalConfig({
                 isOpen: true,
                 type: 'info',
@@ -140,7 +135,7 @@ function Precios({ isOpen, setIsOpen }) {
     }, [error, isOpen]);
 
     // Filtrar precios localmente basado en la búsqueda
-    const preciosFiltrados = precios.filter(precio => 
+    const preciosFiltrados = precios.filter(precio =>
         precio.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (precio.description && precio.description.toLowerCase().includes(searchQuery.toLowerCase()))
     );
@@ -149,7 +144,7 @@ function Precios({ isOpen, setIsOpen }) {
     const handlePrecioCreated = (newPrecio) => {
         // Actualizar el estado local con el precio que devuelve el servidor
         setPrecios(prevPrecios => [newPrecio, ...prevPrecios]);
-        
+
         // Cerrar el modal
         setIsAgregarOpen(false);
         mostrarNotificacion('success', 'Tipo de precio agregado correctamente');
@@ -159,7 +154,7 @@ function Precios({ isOpen, setIsOpen }) {
     const handlePrecioDeleted = (deletedId) => {
         // Actualizar el estado local removiendo el precio eliminado
         setPrecios(prevPrecios => prevPrecios.filter(precio => precio.id !== deletedId));
-        
+
         // Cerrar el modal de ver precio
         setIsOpenVerPrecio(false);
         mostrarNotificacion('success', 'Tipo de precio eliminado correctamente');
@@ -168,17 +163,30 @@ function Precios({ isOpen, setIsOpen }) {
     // Función para manejar cuando se actualiza un precio
     const handlePrecioUpdated = (updatedPrecio) => {
         // Actualizar el estado local con el precio actualizado que devuelve el servidor
-        setPrecios(prevPrecios => prevPrecios.map(precio => 
+        setPrecios(prevPrecios => prevPrecios.map(precio =>
             precio.id === updatedPrecio.id ? updatedPrecio : precio
         ));
-        
+
         // Cerrar el modal de ver precio
         setIsOpenVerPrecio(false);
         mostrarNotificacion('success', 'Tipo de precio actualizado correctamente');
     };
 
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'name', label: 'Tipo de Precio', icon: 'dollar' },
+        { key: 'description', label: 'Descripción', icon: 'comment' }
+    ];
+
+    // Datos para la tabla
+    const tableData = preciosFiltrados.map(precio => ({
+        id: precio.id,
+        name: precio.name || 'Sin nombre',
+        description: precio.description || 'Sin descripción'
+    }));
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
@@ -203,22 +211,39 @@ function Precios({ isOpen, setIsOpen }) {
                         }}
                     />
                 </div>
-                <div className={styles.content}>
-                    {preciosFiltrados.length > 0 ? (
-                        preciosFiltrados.map((precio, index) => (
-                            <ItemView
-                                key={precio.id || index}
-                                title={precio.name || 'Sin nombre'}
-                                description={precio.description || 'Sin descripción'}
-                                icon="dollar"
-                                arrow={true}
-                                onClick={() => handlePrecio(precio)}
-                            />
-                        ))
+                <div className={styles.content}
+                    style={{
+                        maxHeight: 'calc(100% - 185px)',
+                    }}>
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(precio) => {
+                                // Buscar el precio original sin formatear
+                                const precioOriginal = preciosFiltrados.find(p => p.id === precio.id);
+                                handlePrecio(precioOriginal);
+                            }}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron tipos de precio' : 'No hay tipos de precio registrados'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        preciosFiltrados.length > 0 ? (
+                            preciosFiltrados.map((precio, index) => (
+                                <ItemView
+                                    key={precio.id || index}
+                                    title={precio.name || 'Sin nombre'}
+                                    description={precio.description || 'Sin descripción'}
+                                    icon="dollar"
+                                    arrow={true}
+                                    onClick={() => handlePrecio(precio)}
+                                />
+                            ))
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery ? 'No se encontraron tipos de precio' : 'No hay tipos de precio registrados'}</p>
+                            </div>
+                        )
                     )}
                 </div>
             </div>
@@ -232,18 +257,18 @@ function Precios({ isOpen, setIsOpen }) {
             </div>
 
             {/* Modal de ver precio*/}
-            <VerPrecio 
-                isOpen={isOpenVerPrecio} 
-                setIsOpen={setIsOpenVerPrecio} 
+            <VerPrecio
+                isOpen={isOpenVerPrecio}
+                setIsOpen={setIsOpenVerPrecio}
                 precio={infoPrecio}
                 onPrecioDeleted={handlePrecioDeleted}
                 onPrecioUpdated={handlePrecioUpdated}
             />
 
             {/* Modal de agregar precio*/}
-            <EditarAgregarPrecio 
-                isOpen={isAgregarOpen} 
-                setIsOpen={setIsAgregarOpen} 
+            <EditarAgregarPrecio
+                isOpen={isAgregarOpen}
+                setIsOpen={setIsAgregarOpen}
                 tipo='agregar'
                 onPrecioCreated={handlePrecioCreated}
             />
@@ -259,6 +284,18 @@ function Precios({ isOpen, setIsOpen }) {
                 buttonText="Aceptar"
                 onButtonClick={() => setIsOpen(false)}
             />
+            {/* FetchData para precios */}
+            {isOpen && (
+                <FetchData
+                    service={pricesTypesService}
+                    serviceName="pricesTypesService"
+                    isOpen={isOpen}
+                    onDataLoaded={handlePreciosLoaded}
+                    onLoadingStart={() => handleLoading(true)}
+                    onLoadingEnd={() => handleLoading(false)}
+                />
+            )}
+
             <Notification
                 isVisible={notification.isVisible}
                 type={notification.type}

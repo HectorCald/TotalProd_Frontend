@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { useEmployee } from '../context/EmployeeContext';
+import { useLayout } from '../context/LayoutContext';
 import Nav from '../components/ui/Nav';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
+import BarraLateralEmpleado from '../components/ui/BarraLateralEmpleado';
+import InicioEmpleadoPC from '../components/screens/InicioEmpleadoPC';
+import InicioEmpleado from '../components/screens/InicioEmpleado';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { getAvailableModules, getAvailableMainModules } from '../constants/modules';
-import AlmacenGeneral from '../components/views/almacen-general/AlmacenGeneral';
 import '../styles/Home.css';
 import styles from '../styles/view.module.css';
 import ItemView from '../components/common/ItemView';
-import AlmacenAcopio from '../components/views/almacen-acopio/AlmacenAcopio';
 import ViewModal from '../components/ui/ViewModal';
 import HeaderModal from '../components/common/HeaderModal';
+import AlmacenGeneral from '../components/views/almacen-general/AlmacenGeneral';
+import AlmacenAcopio from '../components/views/almacen-acopio/AlmacenAcopio';
 import PanelMovimientos from '../components/views/movimientos/PanelMovimientos';
 import Pedidos from '../components/views/pedidos/PanelPedidos';
 import Clientes from '../components/views/clientes/Clientes';
@@ -19,7 +23,10 @@ import Precios from '../components/views/precios/Precios';
 import Gastos from '../components/views/gastos/PanelGastos';
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, refreshEmployeeData } = useEmployee();
+    const { isLargeScreen } = useLayout();
     const [activeScreen, setActiveScreen] = useState('inicio');
+    const [activeView, setActiveView] = useState(null);
+    const [activeRoute, setActiveRoute] = useState('/dashboard/default');
     const [showModuleOptions, setShowModuleOptions] = useState(false);
     const [selectedModule, setSelectedModule] = useState(null);
     const [currentSubModule, setCurrentSubModule] = useState(null);
@@ -31,6 +38,30 @@ const HomeEmpleado = () => {
 
     const handleScreenChange = (screenId) => {
         setActiveScreen(screenId);
+        setActiveRoute('/dashboard/default');
+    };
+
+    const handleViewOpen = (viewName) => {
+        setActiveView(viewName);
+        setActiveRoute(null);
+    };
+
+    const handleViewClose = () => {
+        setActiveView(null);
+    };
+
+    const handleMenuClick = (menuItem) => {
+        if (menuItem.route) {
+            setActiveRoute(menuItem.route);
+        }
+    };
+
+    const handleViewOpenFromMenu = (viewName, props = {}) => {
+        setActiveView(viewName);
+    };
+
+    const handleNavigateFromMenu = (route) => {
+        setActiveRoute(route);
     };
 
     // Obtener módulos principales disponibles
@@ -44,9 +75,6 @@ const HomeEmpleado = () => {
 
     // Manejar click en submodule
     const handleSubModuleClick = (submodule) => {
-        console.log('🔍 HomeEmpleado - Click en submódulo:', submodule);
-        console.log('🔍 HomeEmpleado - Employee sucursal_id:', employee?.sucursal_id);
-        console.log('🔍 HomeEmpleado - Sucursal seleccionada:', sucursalSeleccionada);
         if (submodule.component) {
             setCurrentSubModule(submodule);
             setIsSubModuleOpen(true);
@@ -85,43 +113,77 @@ const HomeEmpleado = () => {
         }
     };
 
+    // Función para renderizar las pantallas
+    const renderScreen = () => {
+        const currentScreen = activeRoute === '/dashboard/default' ? 'inicio' : 'inicio';
+        switch (currentScreen) {
+            case 'inicio':
+                return isLargeScreen ? <InicioEmpleadoPC onViewOpen={handleViewOpen} /> : <InicioEmpleado employee={employee} onMainModuleClick={handleMainModuleClick} onViewOpen={handleViewOpen} />;
+            default:
+                return isLargeScreen ? <InicioEmpleadoPC onViewOpen={handleViewOpen} /> : <InicioEmpleado employee={employee} onMainModuleClick={handleMainModuleClick} onViewOpen={handleViewOpen} />;
+        }
+    };
+
     return (
         <div className="home-page">
             <Nav />
-            <BarraNavegacion 
-                activeScreen={activeScreen} 
-                onScreenChange={handleScreenChange}
-                isEmployee={true}
-                employee={employee}
-                onMainModuleClick={handleMainModuleClick}
-            />
-
-            {/* Modal de opciones de módulo */}
-            {showModuleOptions && selectedModule && (
-                <ViewModal isOpen={showModuleOptions} setIsOpen={setShowModuleOptions}>
-                    <HeaderModal
-                        title={selectedModule.name}
-                        onClose={() => {
-                            setShowModuleOptions(false);
-                            setCurrentSubModule(null);
-                            setIsSubModuleOpen(false);
-                        }}
+            
+            {/* Layout para pantallas grandes */}
+            {isLargeScreen ? (
+                <div className="main-layout">
+                    <BarraLateralEmpleado 
+                        onMenuClick={handleMenuClick}
+                        activeRoute={activeRoute}
+                        onViewOpen={handleViewOpenFromMenu}
+                        onNavigate={handleNavigateFromMenu}
+                        onScreenChange={handleScreenChange}
+                        activeScreen={activeRoute === '/dashboard/default' ? 'inicio' : 'inicio'}
+                        onViewClose={handleViewClose}
+                        employee={employee}
                     />
-                    <div className={styles.modalContent}>
-                        {selectedModule.submodules.map((submodule, index) => (
-                            <ItemView
-                                key={index}
-                                title={submodule.name}
-                                description={submodule.description}
-                                icon={submodule.icon}
-                                arrow={true}
-                                onClick={() => handleSubModuleClick(submodule)}
-                            />
-                        ))}
+                    <div className="main-content">
+                        {renderScreen()}
                     </div>
-                    {/* Renderizar componentes dentro del modal como en AlmacenMedioGeneral.jsx */}
-                    {renderSubModuleComponent()}
-                </ViewModal>
+                </div>
+            ) : (
+                <>
+                    {/* BarraNavegacion para pantallas pequeñas */}
+                    <BarraNavegacion 
+                        activeScreen={activeScreen} 
+                        onScreenChange={handleScreenChange}
+                        isEmployee={true}
+                        employee={employee}
+                        onMainModuleClick={handleMainModuleClick}
+                    />
+
+                    {/* Modal de opciones de módulo */}
+                    {showModuleOptions && selectedModule && (
+                        <ViewModal isOpen={showModuleOptions} setIsOpen={setShowModuleOptions}>
+                            <HeaderModal
+                                title={selectedModule.name}
+                                onClose={() => {
+                                    setShowModuleOptions(false);
+                                    setCurrentSubModule(null);
+                                    setIsSubModuleOpen(false);
+                                }}
+                            />
+                            <div className={styles.modalContent}>
+                                {selectedModule.submodules.map((submodule, index) => (
+                                    <ItemView
+                                        key={index}
+                                        title={submodule.name}
+                                        description={submodule.description}
+                                        icon={submodule.icon}
+                                        arrow={true}
+                                        onClick={() => handleSubModuleClick(submodule)}
+                                    />
+                                ))}
+                            </div>
+                            {/* Renderizar componentes dentro del modal como en AlmacenMedioGeneral.jsx */}
+                            {renderSubModuleComponent()}
+                        </ViewModal>
+                    )}
+                </>
             )}
         </div>
     );

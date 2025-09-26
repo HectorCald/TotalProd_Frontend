@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 import '../styles/Home.css';
 import Nav from '../components/ui/Nav';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
+import BarraLateral from '../components/ui/BarraLateral';
+import { useLayout } from '../context/LayoutContext';
+import Inicio from '../components/screens/Inicio';
+import InicioPC from '../components/screens/InicioPC';
+import Destacados from '../components/screens/Destacados';
+import Balance from '../components/screens/Balance';
+import Reportes from '../components/screens/Reportes';
+import Explorar from '../components/screens/Explorar';
 
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
 import AlmacenMedioGeneral from '../components/views/almacen-general/AlmacenMedioGeneral';
@@ -13,11 +21,15 @@ import Proveedores from '../components/views/proveedores/Proveedores';
 import Pagos from '../components/views/pagos/Pagos';
 
 const Home = () => {
+  const { isLargeScreen } = useLayout();
   const [activeView, setActiveView] = useState(null);
-  const [activeScreen, setActiveScreen] = useState('inicio');
+  const [activeRoute, setActiveRoute] = useState('/dashboard/default');
 
   const handleViewOpen = (viewName) => {
+    console.log('handleViewOpen llamado con:', viewName);
     setActiveView(viewName);
+    // Limpiar la ruta activa cuando se abre una vista desde InicioPC
+    setActiveRoute(null);
   };
 
   const handleViewClose = () => {
@@ -25,55 +37,170 @@ const Home = () => {
   };
 
   const handleScreenChange = (screenId) => {
-    setActiveScreen(screenId);
+    console.log('Cambiando pantalla a:', screenId);
+    // Mapear screenId a route
+    const routeMap = {
+      'inicio': '/dashboard/default',
+      'destacados': '/dashboard/destacados', 
+      'balance': '/dashboard/balance',
+      'reportes': '/dashboard/reportes',
+      'explorar': '/dashboard/explorar'
+    };
+    const route = routeMap[screenId] || '/dashboard/default';
+    setActiveRoute(route);
   };
+
+  const handleMenuClick = (menuItem) => {
+    if (menuItem.route) {
+      setActiveRoute(menuItem.route);
+      console.log('Navegando a:', menuItem.route);
+      // Aquí puedes agregar la lógica de navegación real
+    }
+  };
+
+  const handleViewOpenFromMenu = (viewName, props = {}) => {
+    console.log('Abriendo vista:', viewName, 'con props:', props);
+    setActiveView(viewName);
+  };
+
+  const handleNavigateFromMenu = (route) => {
+    console.log('Navegando a:', route);
+    setActiveRoute(route);
+    // Aquí puedes agregar la lógica de navegación real
+  };
+
+  // Función para renderizar las pantallas (igual que en BarraNavegacion)
+  const renderScreen = () => {
+    const currentScreen = activeRoute === '/dashboard/default' ? 'inicio' : 
+                         activeRoute === '/dashboard/destacados' ? 'destacados' :
+                         activeRoute === '/dashboard/balance' ? 'balance' :
+                         activeRoute === '/dashboard/reportes' ? 'reportes' :
+                         activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio';
+    switch (currentScreen) {
+      case 'inicio':
+        return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} />;
+      case 'destacados':
+        return <Destacados />;
+      case 'balance':
+        return <Balance />;
+      case 'reportes':
+        return <Reportes />;
+      case 'explorar':
+        return <Explorar />;
+      default:
+        return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} />;
+    }
+  };
+
 
 
   return (
     <div className="home-page">
       <Nav />
-      <BarraNavegacion 
-        activeScreen={activeScreen} 
-        onScreenChange={handleScreenChange}
-        onViewOpen={handleViewOpen}
-        isEmployee={false}
-      />
+      
+      {/* Layout para pantallas grandes */}
+      {isLargeScreen ? (
+        <div className="main-layout">
+          <BarraLateral 
+            onMenuClick={handleMenuClick}
+            activeRoute={activeRoute}
+            onViewOpen={handleViewOpenFromMenu}
+            onNavigate={handleNavigateFromMenu}
+            onScreenChange={handleScreenChange}
+            activeScreen={activeRoute === '/dashboard/default' ? 'inicio' : 
+                         activeRoute === '/dashboard/destacados' ? 'destacados' :
+                         activeRoute === '/dashboard/balance' ? 'balance' :
+                         activeRoute === '/dashboard/reportes' ? 'reportes' :
+                         activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio'}
+            onViewClose={handleViewClose}
+          />
+          <div className="main-content">
+            {renderScreen()}
+          </div>
+          
+          {/* Vistas modales para pantallas grandes */}
+          <AlmacenMedio
+            isOpen={activeView === 'almacenMedio'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <AlmacenMedioGeneral
+            isOpen={activeView === 'almacenMedioGeneral'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <MovimientosMedio
+            isOpen={activeView === 'movimientos'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <PedidosMedio
+            isOpen={activeView === 'pedidos'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <Personal
+            isOpen={activeView === 'personal'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <Clientes
+            isOpen={activeView === 'clientes'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <Proveedores
+            isOpen={activeView === 'proveedores'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <Pagos
+            isOpen={activeView === 'pagos'}
+            setIsOpen={() => handleViewClose()}
+          />
+        </div>
+      ) : (
+        <>
+          {/* BarraNavegacion para pantallas pequeñas */}
+          <BarraNavegacion 
+            activeScreen={activeRoute === '/dashboard/default' ? 'inicio' : 
+                         activeRoute === '/dashboard/destacados' ? 'destacados' :
+                         activeRoute === '/dashboard/balance' ? 'balance' :
+                         activeRoute === '/dashboard/reportes' ? 'reportes' :
+                         activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio'} 
+            onScreenChange={handleScreenChange}
+            onViewOpen={handleViewOpen}
+            isEmployee={false}
+          />
 
-      {/* Vistas modales */}
-
-      <Personal
-        isOpen={activeView === 'personal'}
-        setIsOpen={() => handleViewClose()}
-      />
-
-      <Clientes
-        isOpen={activeView === 'clientes'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <Proveedores
-        isOpen={activeView === 'proveedores'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <Pagos
-        isOpen={activeView === 'pagos'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <AlmacenMedio
-        isOpen={activeView === 'almacenMedio'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <AlmacenMedioGeneral
-        isOpen={activeView === 'almacenMedioGeneral'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <MovimientosMedio
-        isOpen={activeView === 'movimientos'}
-        setIsOpen={() => handleViewClose()}
-      />
-      <PedidosMedio
-        isOpen={activeView === 'pedidos'}
-        setIsOpen={() => handleViewClose()}
-      />
+          {/* Vistas modales - Solo para pantallas pequeñas */}
+          <Personal
+            isOpen={activeView === 'personal'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <Clientes
+            isOpen={activeView === 'clientes'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <Proveedores
+            isOpen={activeView === 'proveedores'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <Pagos
+            isOpen={activeView === 'pagos'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <AlmacenMedio
+            isOpen={activeView === 'almacenMedio'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <AlmacenMedioGeneral
+            isOpen={activeView === 'almacenMedioGeneral'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <MovimientosMedio
+            isOpen={activeView === 'movimientos'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <PedidosMedio
+            isOpen={activeView === 'pedidos'}
+            setIsOpen={() => handleViewClose()}
+          />
+        </>
+      )}
     </div>
   );
 };

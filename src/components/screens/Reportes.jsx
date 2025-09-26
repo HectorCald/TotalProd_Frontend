@@ -41,7 +41,7 @@ const Reportes = () => {
     setShowRefreshIndicator(true);
     setIsRefreshing(true);
     setError(null);
-    
+
     try {
       const response = await sucursalesService.getByEmpresaId();
       if (response.success) {
@@ -88,7 +88,7 @@ const Reportes = () => {
   const getFechasPeriodo = (periodo) => {
     const hoy = new Date();
     const fechaInicio = new Date();
-    
+
     switch (periodo) {
       case 'hoy':
         fechaInicio.setHours(0, 0, 0, 0);
@@ -111,7 +111,7 @@ const Reportes = () => {
       default:
         fechaInicio.setHours(0, 0, 0, 0);
     }
-    
+
     return {
       fechaInicio: fechaInicio.toISOString(),
       fechaFin: hoy.toISOString(),
@@ -166,7 +166,7 @@ const Reportes = () => {
   // Función para generar reporte de ventas (solo salidas de almacén)
   const generarReporteVentas = async (movimientos, fechasPeriodo) => {
     const salidas = movimientos.filter(m => m.type === 'salida');
-    
+
     // Agrupar productos
     const productosAgrupados = {};
     salidas.forEach(movimiento => {
@@ -446,27 +446,27 @@ const Reportes = () => {
         case 'ventas':
           // Para ventas, obtener todos los movimientos y filtrar por fecha en el frontend
           const movimientosVentas = await movimientosAlmacenService.getAllSinLimite('salida', 'fecha_desc', sucursalSeleccionada);
-          
+
           if (movimientosVentas.success && movimientosVentas.data) {
             // Filtrar por fecha en el frontend
             const movimientosFiltradosVentas = movimientosVentas.data.filter(movimiento => {
               const fechaMovimiento = new Date(movimiento.fecha);
               const fechaInicioObj = new Date(fechaInicio);
               const fechaFinObj = new Date(fechaFin);
-              
+
               // Normalizar fechas a medianoche para comparación de días
               const fechaMovimientoNormalizada = new Date(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
               const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
               const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
-              
+
               return fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
             });
-            
+
             if (movimientosFiltradosVentas.length === 0) {
               mostrarNotificacion('warning', 'No hay ventas en el período seleccionado');
               return;
             }
-            
+
             reporteData = await generarReporteVentas(movimientosFiltradosVentas, fechasPeriodo);
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de ventas');
@@ -477,7 +477,7 @@ const Reportes = () => {
         case 'almacen_general':
           // Para almacén general, obtener todos los movimientos y filtrar por fecha en el frontend
           const movimientosAlmacen = await movimientosAlmacenService.getAllSinLimite(null, 'fecha_desc', sucursalSeleccionada);
-          
+
           if (movimientosAlmacen.success && movimientosAlmacen.data) {
             // Filtrar por fecha en el frontend
             const movimientosFiltradosAlmacen = movimientosAlmacen.data.filter(movimiento => {
@@ -486,12 +486,12 @@ const Reportes = () => {
               const fechaFinObj = new Date(fechaFin);
               return fechaMovimiento >= fechaInicioObj && fechaMovimiento <= fechaFinObj;
             });
-            
+
             if (movimientosFiltradosAlmacen.length === 0) {
               mostrarNotificacion('warning', 'No hay movimientos de almacén en el período seleccionado');
               return;
             }
-            
+
             reporteData = await generarReporteAlmacen(movimientosFiltradosAlmacen, fechasPeriodo);
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de almacén');
@@ -501,41 +501,33 @@ const Reportes = () => {
 
         case 'materia_Prima':
           // Para materia prima, obtener todos los movimientos y filtrar por fecha en el frontend
-          console.log('🌾 Obteniendo movimientos de acopio...');
           const movimientosAcopio = await movimientosAcopioService.getAllSinLimite('entrada', 'fecha_desc', sucursalSeleccionada);
-          console.log('🌾 Respuesta del servicio:', movimientosAcopio);
-          
+
           if (movimientosAcopio.success && movimientosAcopio.data) {
-            console.log('🌾 Movimientos obtenidos:', movimientosAcopio.data.length);
-            console.log('🌾 Fecha inicio:', fechaInicio);
-            console.log('🌾 Fecha fin:', fechaFin);
-            
+
             // Filtrar por fecha en el frontend
             const movimientosFiltrados = movimientosAcopio.data.filter(movimiento => {
               const fechaMovimiento = new Date(movimiento.date);
               const fechaInicioObj = new Date(fechaInicio);
               const fechaFinObj = new Date(fechaFin);
-              
+
               // Normalizar fechas a medianoche para comparación de días
               const fechaMovimientoNormalizada = new Date(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
               const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
               const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
-              
+
               const enRango = fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
-              console.log(`🌾 Movimiento ${movimiento.id}: ${fechaMovimiento} (${fechaMovimientoNormalizada}) en rango: ${enRango} (${fechaInicioNormalizada} - ${fechaFinNormalizada})`);
               return enRango;
             });
-            
-            console.log('🌾 Movimientos filtrados:', movimientosFiltrados.length);
-            
+
+
             if (movimientosFiltrados.length === 0) {
               mostrarNotificacion('warning', 'No hay movimientos de materia prima en el período seleccionado');
               return;
             }
-            
+
             reporteData = await generarReporteMateriaPrima(movimientosFiltrados, fechasPeriodo);
           } else {
-            console.log('🌾 Error obteniendo movimientos:', movimientosAcopio);
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de materia prima');
             return;
           }
@@ -544,7 +536,7 @@ const Reportes = () => {
         case 'pedidos':
           // Para pedidos, obtener todos los pedidos y filtrar por fecha en el frontend
           const pedidos = await pedidosAlmacenService.getAllSinLimite(sucursalSeleccionada);
-          
+
           if (pedidos.success && pedidos.data) {
             // Filtrar por fecha en el frontend
             const pedidosFiltrados = pedidos.data.filter(pedido => {
@@ -553,12 +545,12 @@ const Reportes = () => {
               const fechaFinObj = new Date(fechaFin);
               return fechaPedido >= fechaInicioObj && fechaPedido <= fechaFinObj;
             });
-            
+
             if (pedidosFiltrados.length === 0) {
               mostrarNotificacion('warning', 'No hay pedidos en el período seleccionado');
               return;
             }
-            
+
             reporteData = await generarReportePedidos(pedidosFiltrados, fechasPeriodo);
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los pedidos');
@@ -570,7 +562,6 @@ const Reportes = () => {
           throw new Error('Área no válida');
       }
 
-      console.log('📊 Datos del reporte generado:', reporteData);
       setDatosReporte(reporteData);
       setIsDescargaOpen(true);
       mostrarNotificacion('success', 'Reporte generado correctamente');
@@ -584,7 +575,7 @@ const Reportes = () => {
 
   return (
     <Screen title="Reportes">
-      <div className={styles.container}>
+      <div className={styles.container} style={{ maxWidth: '500px' }}>
         <div className={styles.headerContainer}>
           <p className={styles.subTitle}>SELECCIONAR</p>
           <RefreshIndicator
@@ -592,7 +583,6 @@ const Reportes = () => {
             isLoading={isRefreshing || isLoading}
           />
         </div>
-
         <div className={styles.content}>
           <Select
             placeholder="Período de tiempo"

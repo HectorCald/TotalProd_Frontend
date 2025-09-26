@@ -273,6 +273,7 @@ const Login = () => {
     // Render
     return (
         <div className={styles.loginContainer}>
+            <div className={styles.loginContainer_content}>
             <LogoAnimation />
             <p className={styles.login_subtitle} >Bienvenido Inicia Sesión para continuar</p>
             <Boton
@@ -419,6 +420,7 @@ const Login = () => {
                 isVisible={notification.isVisible}
                 onClose={() => setNotification(prev => ({ ...prev, isVisible: false }))}
             />
+            </div>
         </div >
     );
 };

@@ -15,9 +15,13 @@ import movimientosAcopioService from '../../../services/movimientosAcopioService
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
 
 
 function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
+    const { isLargeScreen } = useLayout();
+    
     // Estados para los modales
     const [isOpenVerMovimiento, setIsOpenVerMovimiento] = useState(false);
     const [infoMovimiento, setInfoMovimiento] = useState(null);
@@ -104,6 +108,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
 
     // Cargar movimientos cuando se abre el modal
     useEffect(() => {
@@ -284,8 +289,39 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         },
     ];
 
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'producto', label: 'Producto', icon: 'package' },
+        { key: 'tipo', label: 'Tipo', icon: 'transfer' },
+        { key: 'cantidad', label: 'Cantidad', icon: 'bar-chart-alt-2' },
+        { key: 'fecha', label: 'Fecha', icon: 'calendar' },
+        { key: 'estado', label: 'Estado', icon: 'check-circle' }
+    ];
+
+    // Datos para la tabla
+    const tableData = allMovimientos.map(movimiento => ({
+        id: movimiento.id,
+        producto: tipoMovimiento === 'acopio' 
+            ? movimiento.product?.name || 'Sin producto'
+            : movimiento.productos && movimiento.productos.length > 0
+                ? movimiento.productos.length === 1
+                    ? movimiento.productos[0]?.producto?.name || 'Sin producto'
+                    : `${movimiento.productos.length} productos`
+                : 'Sin productos',
+        tipo: movimiento.type === 'entrada' ? 'Entrada' : 'Salida',
+        cantidad: tipoMovimiento === 'acopio' 
+            ? `${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
+            : movimiento.productos && movimiento.productos.length > 0
+                ? movimiento.productos.length === 1
+                    ? `${movimiento.productos[0]?.cantidad || '0'} ud`
+                    : `${movimiento.productos.length} productos`
+                : '0 ud',
+        fecha: new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString(),
+        estado: movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'
+    }));
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
@@ -324,32 +360,46 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         minHeight: 'calc(100vh - 250px)',
                     }}
                 >
-                    {allMovimientos.length > 0 ? (
-                        allMovimientos.map((movimiento, index) => {
-                            return (
-                                <ItemView
-                                    key={movimiento.id || index}
-                                    title={tipoMovimiento === 'acopio' 
-                                        ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
-                                        : movimiento.productos && movimiento.productos.length > 0
-                                            ? movimiento.productos.length === 1
-                                                ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'} - ${movimiento.productos[0]?.cantidad || '0'} ud`
-                                                : `${movimiento.productos.length} productos`
-                                            : 'Sin productos'
-                                    }
-                                    description={`${movimiento.observations || 'Sin observaciones'} • ${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
-                                    icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
-                                    onClick={() => handleRegistro(movimiento)}
-                                    arrow={false}
-                                    flot2={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
-                                    flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
-                                />
-                            );
-                        })
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(movimiento) => {
+                                // Buscar el movimiento original sin formatear
+                                const movimientoOriginal = allMovimientos.find(m => m.id === movimiento.id);
+                                handleRegistro(movimientoOriginal);
+                            }}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron movimientos' : 'No hay movimientos registrados'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        allMovimientos.length > 0 ? (
+                            allMovimientos.map((movimiento, index) => {
+                                return (
+                                    <ItemView
+                                        key={movimiento.id || index}
+                                        title={tipoMovimiento === 'acopio' 
+                                            ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
+                                            : movimiento.productos && movimiento.productos.length > 0
+                                                ? movimiento.productos.length === 1
+                                                    ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'} - ${movimiento.productos[0]?.cantidad || '0'} ud`
+                                                    : `${movimiento.productos.length} productos`
+                                                : 'Sin productos'
+                                        }
+                                        description={`${movimiento.observations || 'Sin observaciones'} • ${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
+                                        icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                                        onClick={() => handleRegistro(movimiento)}
+                                        arrow={false}
+                                        flot2={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
+                                        flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
+                                    />
+                                );
+                            })
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery ? 'No se encontraron movimientos' : 'No hay movimientos registrados'}</p>
+                            </div>
+                        )
                     )}
 
                     {/* Indicador de carga para más elementos */}

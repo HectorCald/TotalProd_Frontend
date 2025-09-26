@@ -1,0 +1,22 @@
+/* Estilos para el componente Inicio */
+
+/* Contenido móvil - visible por defecto */
+.inicio-mobile {
+  display: block;
+}
+
+/* Contenido desktop - oculto por defecto */
+.inicio-desktop {
+  display: none;
+}
+
+/* Mostrar solo contenido desktop en pantallas grandes */
+@media (min-width: 1024px) {
+  .inicio-mobile {
+    display: none;
+  }
+  
+  .inicio-desktop {
+    display: block;
+  }
+}

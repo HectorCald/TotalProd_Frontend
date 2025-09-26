@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -6,9 +6,6 @@ import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerProducto from './VerProducto';
 import Filtros from '../../common/Filtros';
-import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import ItemLine from '../../common/ItemLine';
 import Boton from '../../common/Boton';
 import EditarAgregar from '../almacen-acopio/EditarAgregar';
 import CategoriasAcopio from './CategoriasAcopio';
@@ -17,11 +14,16 @@ import CanastaPedidos from './CanastaPedidos';
 import productsAcopioService from '../../../services/productsAcopioService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
-import categoryAcopioService from '../../../services/categoryAcopioService';
-import typeMeasureService from '../../../services/typeMeasureService';
 import Notification from '../../common/Notification';
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
+import FiltroCategoriasAcopio from '../../mixed/FiltroCategoriasAcopio';
+import FiltroTipoMedida from '../../mixed/FiltroTipoMedida';
+import FiltroOrdenamientoAcopio from '../../mixed/FiltroOrdenamientoAcopio';
+import FetchData from '../../mixed/FetchData';
 
 function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
+    const { isLargeScreen } = useLayout();
 
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
@@ -35,9 +37,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     // Estados para los datos
     const [categorias, setCategorias] = useState([]);
-    const [loadingCategorias, setLoadingCategorias] = useState(false);
     const [tiposMedida, setTiposMedida] = useState([]);
-    const [loadingTiposMedida, setLoadingTiposMedida] = useState(false);
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -49,44 +49,43 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     // Estados para productos
     const [productos, setProductos] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Función para cargar productos
-    const cargarProductos = async () => {
-        console.log('cargando productos almacen acopio');
-        setIsLoading(true);
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        setError(null);
-        
-        try {
-            const response = await productsAcopioService.getAll();
-            if (response.success) {
-                setProductos(response.data);
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            setIsLoading(false);
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    };
+    // Función simple para manejar el indicador de carga
+    const handleLoading = useCallback((isLoading) => {
+        setShowRefreshIndicator(isLoading);
+        setIsRefreshing(isLoading);
+    }, []);
 
-    // Cargar productos cuando se abre el modal
-    useEffect(() => {
-        if (isOpen) {
-            cargarProductos();
-        }
-    }, [isOpen]);
+
+
+    // Función para manejar cuando se cargan los productos
+    const handleProductosLoaded = useCallback((data) => {
+        setProductos(data);
+    }, []);
+
+    // Mapear Información de productos
+    const productosMapeados = productos.map(producto => ({
+        // Información básica
+        id: producto.id,
+        name: producto.name || '',
+        description: producto.description || '',
+        quantity: producto.quantity || 0,
+        created_at: producto.created_at,
+        empresa_id: producto.empresa_id,
+        
+        // Información de categoría
+        category_id: producto.category_id || '',
+        category_name: producto.category?.name || 'Sin categoría',
+        category: producto.category || null,
+        
+        // Información de tipo de medida
+        type_measure_id: producto.type_measure_id || '',
+        type_measure: producto.type_measure || null,
+        
+        // Información de recetas
+        recetas_acopio: producto.recetas_acopio || []
+    }));
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -137,68 +136,39 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
-    // Función para cargar las categorías
-    const fetchCategorias = async () => {
-        try {
-            setLoadingCategorias(true);
-            const response = await categoryAcopioService.getAll();
-            if (response.success && response.data) {
-                const mappedCategorias = response.data.map(cat => ({
-                    value: cat.id,
-                    label: cat.name,
-                    id: cat.id,
-                    name: cat.name
-                }));
-                setCategorias(mappedCategorias);
-            }
-        } catch (error) {
-            console.error('Error cargando categorías:', error);
-        } finally {
-            setLoadingCategorias(false);
-        }
-    };
-
-    // Función para cargar los tipos de medida
-    const fetchTiposMedida = async () => {
-        try {
-            setLoadingTiposMedida(true);
-            const response = await typeMeasureService.getAll();
-            if (response.success && response.data) {
-                const mappedTiposMedida = response.data.map(tipo => ({
-                    value: tipo.id,
-                    label: tipo.name,
-                    id: tipo.id,
-                    name: tipo.name,
-                    code: tipo.code
-                }));
-                setTiposMedida(mappedTiposMedida);
-            }
-        } catch (error) {
-            console.error('Error cargando tipos de medida:', error);
-        } finally {
-            setLoadingTiposMedida(false);
-        }
-    };
-
-
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        await cargarProductos();
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+
+        try {
+            const response = await productsAcopioService.getAll();
+            if (response.success) {
+                setProductos(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar productos:', error);
+        } finally {
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
     };
 
     // Funciones de filtrado locales
     const handleCategoriaFilter = (categoriaId) => {
-        console.log('🔍 Filtro de categoría seleccionado:', categoriaId);
         setCategoriaFiltro(categoriaId);
     };
 
     const handleTipoMedidaFilter = (tipoMedidaId) => {
-        console.log('🔍 Filtro de tipo de medida seleccionado:', tipoMedidaId);
         setTipoMedidaFiltro(tipoMedidaId);
     };
 
     const handleOrdenamiento = (orden) => {
-        console.log('🔍 Ordenamiento seleccionado:', orden);
         setOrdenamiento(orden);
     };
 
@@ -216,7 +186,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     }, [isOpen]);
 
     // Filtrar y ordenar productos localmente
-    const productosFiltrados = productos.filter(producto => {
+    const productosFiltrados = productosMapeados.filter(producto => {
         // Filtro de búsqueda
         const matchesSearch = !searchQuery || 
             producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -261,13 +231,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
-    // Efecto para cargar categorías y tipos de medida cuando se abre
-    useEffect(() => {
-        if (isOpen) {
-            fetchCategorias();
-            fetchTiposMedida();
-        }
-    }, [isOpen]);
 
     // Efecto para manejar errores de SWR
     useEffect(() => {
@@ -408,8 +371,36 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         },
     ];
 
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'name', label: 'Producto', icon: 'package' },
+        { key: 'description', label: 'Descripción', icon: 'comment' },
+        { key: 'quantity', label: 'Cantidad', icon: 'bar-chart-alt-2' },
+        { key: 'category_name', label: 'Categoría', icon: 'tag' },
+        { key: 'type_measure_name', label: 'Medida', icon: 'ruler' }
+    ];
+
+    // Datos para la tabla
+    const tableData = productosFiltrados.map(producto => ({
+        id: producto.id,
+        name: producto.name,
+        description: producto.description || '--',
+        quantity: `${parseFloat(producto.quantity || 0).toFixed(2)} ${producto.type_measure?.code || ''}`,
+        category_name: producto.category_name || '--',
+        type_measure_name: producto.type_measure?.name || '--'
+    }));
+
+    // Función para obtener el badge
+    const getBadge = (producto) => {
+        if (tipo === 'pedido') {
+            const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
+            return cantidadEnCanasta > 0 ? cantidadEnCanasta : null;
+        }
+        return null;
+    };
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
@@ -444,30 +435,45 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                             : 'calc(100vh - 310px)'
                     }}
                 >
-                    {productosFiltrados.length > 0 ? (
-                        productosFiltrados.map((producto, index) => {
-                            const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
-                            return (
-                                <ItemView
-                                    key={producto.id || index}
-                                    title={producto.name || 'Sin nombre'}
-                                    description={producto.description || 'Sin descripción'}
-                                    icon="box"
-                                    onClick={() => handleRegistro(producto, tipo)}
-                                    entrada={tipo === 'pesaje' ? true : false}
-                                    entradaData={[
-                                        { name: "Prima", value: 0 },
-                                        { name: "Bruta", value: 0 },
-                                    ]}
-                                    badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
-                                    flot1={parseFloat(producto.quantity || 0).toFixed(2) + ' ' + producto.type_measure.code}
-                                />
-                            );
-                        })
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(producto) => {
+                                // Buscar el producto original sin formatear
+                                const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
+                                handleRegistro(productoOriginal, tipo);
+                            }}
+                            getBadge={getBadge}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        productosFiltrados.length > 0 ? (
+                            productosFiltrados.map((producto, index) => {
+                                const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
+                                return (
+                                    <ItemView
+                                        key={producto.id || index}
+                                        title={producto.name || 'Sin nombre'}
+                                        description={producto.description || 'Sin descripción'}
+                                        icon="box"
+                                        onClick={() => handleRegistro(producto, tipo)}
+                                        entrada={tipo === 'pesaje' ? true : false}
+                                        entradaData={[
+                                            { name: "Prima", value: 0 },
+                                            { name: "Bruta", value: 0 },
+                                        ]}
+                                        badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
+                                        flot1={parseFloat(producto.quantity || 0).toFixed(2) + ' ' + producto.type_measure.code}
+                                    />
+                                );
+                            })
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
+                            </div>
+                        )
                     )}
                 </div>
             </div>
@@ -533,137 +539,25 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 onMovimientoCreated={handleMovimientoCreated}
             />
 
-            {/* Modal de tipos de medida*/}
-            <ViewModal isOpen={isOpenTipoMedida} setIsOpen={setOpenTipoMedida}>
-                <HeaderModal
-                    title="Tipos de Medida"
-                    onClose={() => setOpenTipoMedida(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a ese tipo de medida.</p>
+            {/* Filtro de tipos de medida */}
+            <FiltroTipoMedida
+                isOpen={isOpenTipoMedida}
+                setIsOpen={setOpenTipoMedida}
+                onTipoMedidaSeleccionado={handleTipoMedidaFilter}
+            />
 
-                    {/* Opción para mostrar todos */}
-                    <ItemLine
-                        title='Todas las medidas'
-                        icon='ruler'
-                        onClick={() => {
-                            handleTipoMedidaFilter(null);
-                            setOpenTipoMedida(false);
-                        }}
-                    />
-
-                    {/* Tipos de medida dinámicos */}
-                    {loadingTiposMedida ? (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando tipos de medida...</p>
-                        </div>
-                    ) : (
-                        tiposMedida.map((tipoMedida) => (
-                            <ItemLine
-                                key={tipoMedida.id}
-                                title={tipoMedida.name}
-                                icon='ruler'
-                                onClick={() => {
-                                    handleTipoMedidaFilter(tipoMedida.id);
-                                    setOpenTipoMedida(false);
-                                }}
-                            />
-                        ))
-                    )}
-                </div>
-            </ViewModal>
-
-            {/* Modal mostrar categorias*/}
-            <ViewModal isOpen={isOpenCategoria} setIsOpen={setOpenCategoria}>
-                <HeaderModal
-                    title="Categorias"
-                    onClose={() => setOpenCategoria(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a esa categoria.</p>
-
-                    {/* Opción para mostrar todos */}
-                    <ItemLine
-                        title='Todas las categorías'
-                        icon='tag'
-                        onClick={() => {
-                            handleCategoriaFilter(null);
-                            setOpenCategoria(false);
-                        }}
-                    />
-
-                    {/* Opción para productos sin categoría */}
-                    <ItemLine
-                        title='Sin categoría'
-                        icon='tag'
-                        onClick={() => {
-                            handleCategoriaFilter('');
-                            setOpenCategoria(false);
-                        }}
-                    />
-
-                    {/* Categorías dinámicas */}
-                    {loadingCategorias ? (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando categorías...</p>
-                        </div>
-                    ) : (
-                        categorias.map((categoria) => (
-                            <ItemLine
-                                key={categoria.id}
-                                title={categoria.name}
-                                icon='tag'
-                                onClick={() => {
-                                    handleCategoriaFilter(categoria.id);
-                                    setOpenCategoria(false);
-                                }}
-                            />
-                        ))
-                    )}
-                </div>
-            </ViewModal>
-            {/* Modal de ordenamiento*/}
-            <ViewModal isOpen={isOpenOrden} setIsOpen={setOpenOrden}>
-                <HeaderModal
-                    title="Ordenamiento"
-                    onClose={() => setOpenOrden(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para ordenar los productos</p>
-                    <ItemLine
-                        title='Nombre A-Z'
-                        icon='sort-a-z'
-                        onClick={() => {
-                            handleOrdenamiento('nombre_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Nombre Z-A'
-                        icon='sort-z-a'
-                        onClick={() => {
-                            handleOrdenamiento('nombre_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Cantidad Menor-Mayor'
-                        icon='up-arrow-alt'
-                        onClick={() => {
-                            handleOrdenamiento('cantidad_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Cantidad Mayor-Menor'
-                        icon='down-arrow-alt'
-                        onClick={() => {
-                            handleOrdenamiento('cantidad_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                </div>
-            </ViewModal>
+            {/* Filtro de categorías */}
+            <FiltroCategoriasAcopio
+                isOpen={isOpenCategoria}
+                setIsOpen={setOpenCategoria}
+                onCategoriaSeleccionada={handleCategoriaFilter}
+            />
+            {/* Filtro de ordenamiento */}
+            <FiltroOrdenamientoAcopio
+                isOpen={isOpenOrden}
+                setIsOpen={setOpenOrden}
+                onOrdenamientoSeleccionado={handleOrdenamiento}
+            />
             {/* View de canasta de pedidos */}
             <CanastaPedidos
                 isOpen={isCanastaOpen}
@@ -672,6 +566,18 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 setProductosCanasta={setProductosCanasta}
                 onPedidoCreado={handlePedidoCreado}
             />
+
+            {/* Carga de datos - solo cuando está abierto */}
+            {isOpen && (
+                <FetchData
+                    service={productsAcopioService}
+                    serviceName="productsAcopioService"
+                    isOpen={isOpen}
+                    onDataLoaded={handleProductosLoaded}
+                    onLoadingStart={() => handleLoading(true)}
+                    onLoadingEnd={() => handleLoading(false)}
+                />
+            )}
         </View>
 
     );

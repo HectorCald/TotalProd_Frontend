@@ -199,6 +199,64 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
         }, 3000);
     };
 
+    // Handle para anular movimiento
+    const handleAnular = async () => {
+        setLoading(true);
+        try {
+            let response;
+            if (tipoMovimiento === 'acopio') {
+                response = await movimientosAcopioService.anular(movimiento.id);
+            } else {
+                response = await movimientosAlmacenService.anular(movimiento.id);
+            }
+
+            if (response.success) {
+                setIsAnularOpen(false);
+                setIsOpen(false);
+
+                if (onMovimientoAnulado) {
+                    onMovimientoAnulado(movimiento.id);
+                }
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al anular el movimiento');
+            }
+        } catch (error) {
+            console.error('Error anulando movimiento:', error);
+            mostrarNotificacion('error', 'Error al anular el movimiento');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle para eliminar movimiento
+    const handleEliminar = async () => {
+        setLoading(true);
+        try {
+            let response;
+            if (tipoMovimiento === 'acopio') {
+                response = await movimientosAcopioService.eliminar(movimiento.id);
+            } else {
+                response = await movimientosAlmacenService.eliminar(movimiento.id);
+            }
+
+            if (response.success) {
+                setIsEliminarOpen(false);
+                setIsOpen(false);
+
+                if (onMovimientoEliminado) {
+                    onMovimientoEliminado(movimiento.id);
+                }
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al eliminar el movimiento');
+            }
+        } catch (error) {
+            console.error('Error eliminando movimiento:', error);
+            mostrarNotificacion('error', 'Error al eliminar el movimiento');
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -392,44 +450,19 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                     </p>
                     <div className={styles.buttons}>
                         <Boton
-                            className='btn-red'
-                            label='Sí, anular'
-                            style={{ marginTop: 'auto' }}
-                            onClick={async () => {
-                                setLoading(true);
-                                try {
-                                    let response;
-                                    if (tipoMovimiento === 'acopio') {
-                                        response = await movimientosAcopioService.anular(movimiento.id);
-                                    } else {
-                                        response = await movimientosAlmacenService.anular(movimiento.id);
-                                    }
-
-                                    if (response.success) {
-                                        setIsAnularOpen(false);
-                                        setIsOpen(false);
-
-                                        if (onMovimientoAnulado) {
-                                            onMovimientoAnulado(movimiento.id);
-                                        }
-                                    } else {
-                                        mostrarNotificacion('error', response.message || 'Error al anular el movimiento');
-                                    }
-                                } catch (error) {
-                                    console.error('Error anulando movimiento:', error);
-                                    mostrarNotificacion('error', 'Error al anular el movimiento');
-                                } finally {
-                                    setLoading(false);
-                                }
-                            }}
-                            loading={loading}
-                        />
-                        <Boton
                             className='btn-default'
                             label='Cancelar'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsAnularOpen(false)}
                         />
+                        <Boton
+                            className='btn-red'
+                            label='Sí, anular'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleAnular}
+                            loading={loading}
+                        />
+
                     </div>
                 </div>
             </ViewModal>
@@ -446,44 +479,19 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, tipoMovimiento, onMovimi
                     </p>
                     <div className={styles.buttons}>
                         <Boton
-                            className='btn-red'
-                            label='Sí, eliminar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={async () => {
-                                setLoading(true);
-                                try {
-                                    let response;
-                                    if (tipoMovimiento === 'acopio') {
-                                        response = await movimientosAcopioService.eliminar(movimiento.id);
-                                    } else {
-                                        response = await movimientosAlmacenService.eliminar(movimiento.id);
-                                    }
-
-                                    if (response.success) {
-                                        setIsEliminarOpen(false);
-                                        setIsOpen(false);
-
-                                        if (onMovimientoEliminado) {
-                                            onMovimientoEliminado(movimiento.id);
-                                        }
-                                    } else {
-                                        mostrarNotificacion('error', response.message || 'Error al eliminar el movimiento');
-                                    }
-                                } catch (error) {
-                                    console.error('Error eliminando movimiento:', error);
-                                    mostrarNotificacion('error', 'Error al eliminar el movimiento');
-                                } finally {
-                                    setLoading(false);
-                                }
-                            }}
-                            loading={loading}
-                        />
-                        <Boton
                             className='btn-default'
                             label='Cancelar'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(false)}
                         />
+                        <Boton
+                            className='btn-red'
+                            label='Sí, eliminar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleEliminar}
+                            loading={loading}
+                        />
+
                     </div>
                 </div>
             </ViewModal>

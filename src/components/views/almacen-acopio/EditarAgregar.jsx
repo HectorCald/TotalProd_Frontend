@@ -13,14 +13,14 @@ import Notification from '../../common/Notification';
 import CategoriasAcopio from './CategoriasAcopio';
 
 function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, typeMeasures = [] }) {
-  
+
   const [dataMov, setDataMov] = useState({
     name: '',
     description: '',
     quantity: '',
     type_measure_id: '',
     category_id: ''
-  }); 
+  });
 
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -159,7 +159,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       return;
     }
 
-    if (!dataMov.quantity || dataMov.quantity <= 0) {
+    if (!dataMov.quantity || parseFloat(dataMov.quantity) <= 0) {
       setErrorMessage('La cantidad es obligatoria y debe ser mayor a 0');
       setTimeout(() => setErrorMessage(''), 3000);
       return;
@@ -177,7 +177,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       const productData = {
         name: dataMov.name,
         description: dataMov.description,
-        quantity: dataMov.quantity,
+        quantity: parseFloat(dataMov.quantity) || 0,
         type_measure_id: dataMov.type_measure_id,
         category_id: dataMov.category_id,
         receta: hasReceta ? recetaGuardada : null // Incluir receta solo si está marcado el switch
@@ -217,110 +217,122 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
   };
 
   return (
-    <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
-      <HeaderModal
-        title={tipo === 'editar' ? 'Editar producto' : 'Nuevo producto'}
-        onClose={() => setIsOpen(false)}
-      />
-      <div className={styles.modalContent}>
-        <MensajeError mensaje={errorMessage} />
-        <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
-
-        <InputNormal
-          tipo="text"
-          value={dataMov.name}
-          placeholder='Nombre del Producto'
-          onChange={(e) => handleChange('name', e.target.value)}
-          icon='box'
+    <>
+      <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
+        <HeaderModal
+          title={tipo === 'editar' ? 'Editar producto' : 'Nuevo producto'}
+          onClose={() => setIsOpen(false)}
         />
+        <div className={styles.modalContent}>
+          <MensajeError mensaje={errorMessage} />
+          <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
 
-        <InputNormal
-          tipo="text"
-          value={dataMov.description}
-          placeholder='Descripción'
-          onChange={(e) => handleChange('description', e.target.value)}
-          icon='text'
-        />
-
-        <InputNormal
-          tipo="number"
-          value={dataMov.quantity}
-          placeholder='Cantidad'
-          onChange={(e) => handleChange('quantity', e.target.value)}
-          icon='calculator'
-        />
-        <div className={styles.content} style={{ padding: '10px 15px' }}>
-          <Select
-            value={dataMov.type_measure_id}
-            onChange={(value) => handleChange('type_measure_id', value)}
-            options={typeMeasures}
-            placeholder={hasMovements ? 'Tipo de medida (no editable - tiene movimientos)' : 'Tipo de medida'}
-            disabled={tipo === 'editar' && hasMovements}
-            icon='ruler'
+          <InputNormal
+            tipo="text"
+            value={dataMov.name}
+            placeholder='Nombre del Producto'
+            onChange={(e) => handleChange('name', e.target.value)}
+            icon='box'
           />
-          {tipo === 'editar' && hasMovements && (
-            <div style={{
-              color: '#dc3545',
-              fontSize: '12px',
-              textAlign: 'center',
-              marginTop: '5px'
-            }}>
-              No se puede cambiar la unidad de medida porque el producto tiene movimientos registrados
-            </div>
-          )}
-        </div>
+
+          <InputNormal
+            tipo="text"
+            value={dataMov.description}
+            placeholder='Descripción'
+            onChange={(e) => handleChange('description', e.target.value)}
+            icon='text'
+          />
+
+          <InputNormal
+            tipo="number"
+            value={dataMov.quantity}
+            placeholder='Cantidad'
+            onChange={(e) => handleChange('quantity', e.target.value)}
+            icon='calculator'
+          />
+          <div className={styles.content} style={{ padding: '10px 15px' }}>
+            <Select
+              value={dataMov.type_measure_id}
+              onChange={(value) => handleChange('type_measure_id', value)}
+              options={typeMeasures}
+              placeholder={hasMovements ? 'Tipo de medida (no editable - tiene movimientos)' : 'Tipo de medida'}
+              disabled={tipo === 'editar' && hasMovements}
+              icon='ruler'
+            />
+            {tipo === 'editar' && hasMovements && (
+              <div style={{
+                color: '#dc3545',
+                fontSize: '12px',
+                textAlign: 'center',
+                marginTop: '5px'
+              }}>
+                No se puede cambiar la unidad de medida porque el producto tiene movimientos registrados
+              </div>
+            )}
+          </div>
 
           <Boton
-            className='btn-default'
-            label={categoriaSeleccionada ? categoriaSeleccionada.name : 'Seleccionar Categoría (opcional)'}
+            className='btn-gray'
+            label={categoriaSeleccionada ? 'Categoría: ' + categoriaSeleccionada.name : 'Seleccionar Categoría (opcional)'}
             onClick={() => setIsCategoriasSeleccionOpen(true)}
             style={{ width: '100%', justifyContent: 'flex-start' }}
           />
 
 
-        {/* Switch para receta */}
-        <div className={styles.content} style={{ padding: '10px 15px' }}>
-          <Switch
-            title="¿Tiene receta?"
-            subtitle="Marca si esta materia prima se produce apartir de otra materia prima"
-            checked={hasReceta}
-            onChange={handleRecetaSwitch}
-            icon="receipt"
+          {/* Switch para receta */}
+          <div className={styles.content} style={{ padding: '10px 15px' }}>
+            <Switch
+              title="¿Tiene receta?"
+              subtitle="Marca si esta materia prima se produce apartir de otra materia prima"
+              checked={hasReceta}
+              onChange={handleRecetaSwitch}
+              icon="receipt"
+            />
+          </div>
+
+          {/* Botón de receta (solo si está marcado el switch) */}
+          {hasReceta && (
+            <div className={styles.content} style={{ padding: '10px 15px' }}>
+              <Boton
+                className='btn-default'
+                label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
+                style={{ marginTop: 'auto' }}
+                onClick={() => setIsRecetaOpen(true)}
+              />
+              {recetaGuardada && recetaGuardada.productos && recetaGuardada.productos.length > 0 ? (
+                <div style={{ fontSize: '12px', color: '#28a745', fontWeight: '500', marginTop: '5px' }}>
+                  ✓ Receta guardada con {recetaGuardada.productos.length} productos
+                </div>
+              ) : (
+                <div style={{ fontSize: '12px', color: '#dc3545', fontWeight: '500', marginTop: '5px' }}>
+                  ⚠ Debe crear una receta con al menos un producto
+                </div>
+              )}
+            </div>
+          )}
+
+          <Boton
+            className='btn-original'
+            label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar producto'}
+            style={{ marginTop: 'auto' }}
+            onClick={handleSubmit}
+            loading={loading}
+            disabled={!dataMov.name.trim() || !dataMov.quantity || parseFloat(dataMov.quantity) <= 0 || !dataMov.type_measure_id || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
           />
         </div>
-
-        {/* Botón de receta (solo si está marcado el switch) */}
-        {hasReceta && (
-          <div className={styles.content} style={{ padding: '10px 15px' }}>
-            <Boton
-              className='btn-default'
-              label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
-              style={{ marginTop: 'auto' }}
-              onClick={() => setIsRecetaOpen(true)}
-            />
-            {recetaGuardada && recetaGuardada.productos && recetaGuardada.productos.length > 0 ? (
-              <div style={{ fontSize: '12px', color: '#28a745', fontWeight: '500', marginTop: '5px' }}>
-                ✓ Receta guardada con {recetaGuardada.productos.length} productos
-              </div>
-            ) : (
-              <div style={{ fontSize: '12px', color: '#dc3545', fontWeight: '500', marginTop: '5px' }}>
-                ⚠ Debe crear una receta con al menos un producto
-              </div>
-            )}
-          </div>
-        )}
-
-        <Boton
-          className='btn-original'
-          label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar producto'}
-          style={{ marginTop: 'auto' }}
-          onClick={handleSubmit}
-          loading={loading}
-          disabled={!dataMov.name.trim() || !dataMov.quantity || dataMov.quantity <= 0 || !dataMov.type_measure_id || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
+        <Notification
+          isVisible={notification.isVisible}
+          type={notification.type}
+          text={notification.text}
         />
-      </div>
-
-
+      </ViewModal>
+      {/* Modal de selección de categorías */}
+      <CategoriasAcopio
+        isOpen={isCategoriasSeleccionOpen}
+        setIsOpen={setIsCategoriasSeleccionOpen}
+        modoSeleccion={true}
+        onCategoriaSeleccionada={handleCategoriaSeleccionada}
+      />
       {/* Modal de receta */}
       <EditarAgregarReceta
         isOpen={isRecetaOpen}
@@ -331,21 +343,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         onRecetaUpdated={handleRecetaUpdated}
         tipoProducto="acopio"
       />
-
-      {/* Modal de selección de categorías */}
-      <CategoriasAcopio
-        isOpen={isCategoriasSeleccionOpen}
-        setIsOpen={setIsCategoriasSeleccionOpen}
-        modoSeleccion={true}
-        onCategoriaSeleccionada={handleCategoriaSeleccionada}
-      />
-
-      <Notification
-        isVisible={notification.isVisible}
-        type={notification.type}
-        text={notification.text}
-      />
-    </ViewModal>
+    </>
   );
 }
 

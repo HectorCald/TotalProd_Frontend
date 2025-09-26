@@ -10,11 +10,15 @@ function PedidosMedio({ isOpen, setIsOpen }) {
     const [tipoPedido, setTipoPedido] = useState('');
 
     const handleTipoPedido = (tipo) => {
+        // Cerrar el modal del medio
+        setIsOpen(false);
+        // Abrir directamente la vista específica
         setIsPedidosOpen(true);
         setTipoPedido(tipo);
     }
 
     return (
+        <>
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} >
             <HeaderModal
                 title="Pedidos"
@@ -38,12 +42,11 @@ function PedidosMedio({ isOpen, setIsOpen }) {
                 />
                 */}
             </div>
-            <PanelPedidos 
-                isOpen={isPedidosOpen} 
-                setIsOpen={setIsPedidosOpen} 
-                tipoPedido={tipoPedido} 
-            />
+            
         </ViewModal>
+        {/* Pedidos */}
+        <PanelPedidos isOpen={isPedidosOpen} setIsOpen={setIsPedidosOpen} tipoPedido={tipoPedido} />
+        </>
     );
 }
 

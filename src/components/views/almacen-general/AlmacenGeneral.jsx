@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -6,9 +6,6 @@ import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerProducto from './VerProducto';
 import Filtros from '../../common/Filtros';
-import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import ItemLine from '../../common/ItemLine';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import CanastaPedidos from './CanastaPedidos';
@@ -16,17 +13,21 @@ import CanastaMovimientos from './CanastaMovimientos';
 import CategoriasAlmacen from './CategoriasAlmacen';
 import Notification from '../../common/Notification';
 import productsAlmacenService from '../../../services/productsAlmacenService';
-import categoryAlmacenService from '../../../services/categoryAlmacenService';
+import FiltroCategorias from '../../mixed/FiltroCategorias';
+import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
+import FetchData from '../../mixed/FetchData';
 import pricesTypesService from '../../../services/pricesTypesService';
 import sucursalesService from '../../../services/sucursalesService';
-import { useSucursales } from '../../../hooks/useData';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import { useUser } from '../../../context/UserContext';
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
 
 
 function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
+    const { isLargeScreen } = useLayout();
 
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
@@ -60,139 +61,10 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Estados para datos
     const [productos, setProductos] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
-    
-    const [categoriasData, setCategoriasData] = useState([]);
-    const [loadingCategorias, setLoadingCategorias] = useState(false);
-    
-    const [preciosData, setPreciosData] = useState([]);
-    const [loadingPrecios, setLoadingPrecios] = useState(false);
-    
+    const [preciosData, setPreciosData] = useState([])
     const [sucursalesData, setSucursalesData] = useState([]);
-    const [loadingSucursales, setLoadingSucursales] = useState(false);
 
-    // Mapear datos al formato esperado por los componentes
-    const categorias = categoriasData.map(cat => ({
-        value: cat.id,
-        label: cat.name,
-        id: cat.id,
-        name: cat.name
-    }));
 
-    const preciosTipos = preciosData.map(precio => ({
-        value: precio.id,
-        label: precio.name,
-        id: precio.id,
-        name: precio.name,
-        default_value: precio.default_value
-    }));
-
-    const sucursales = sucursalesData
-        .filter(sucursal => sucursal.id !== sucursalActual?.id)
-        .map(sucursal => ({
-            value: sucursal.id,
-            label: sucursal.name,
-            id: sucursal.id,
-            name: sucursal.name
-        }));
-
-    // Función para cargar productos
-    const cargarProductos = async () => {
-        console.log('cargando productos almacen general');
-        setIsLoading(true);
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        setError(null);
-        
-        try {
-            const response = await productsAlmacenService.getAll();
-            if (response.success) {
-                setProductos(response.data);
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            setIsLoading(false);
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    };
-
-    // Función para cargar categorías
-    const cargarCategorias = async () => {
-        setLoadingCategorias(true);
-        try {
-            const response = await categoryAlmacenService.getAll();
-            if (response.success) {
-                setCategoriasData(response.data);
-            }
-        } catch (error) {
-            console.error('Error cargando categorías:', error);
-        } finally {
-            setLoadingCategorias(false);
-        }
-    };
-
-    // Función para cargar precios
-    const cargarPrecios = async () => {
-        setLoadingPrecios(true);
-        try {
-            const response = await pricesTypesService.getAll();
-            if (response.success) {
-                setPreciosData(response.data);
-            }
-        } catch (error) {
-            console.error('Error cargando precios:', error);
-        } finally {
-            setLoadingPrecios(false);
-        }
-    };
-
-    // Función para cargar sucursales
-    const cargarSucursales = async () => {
-        setLoadingSucursales(true);
-        try {
-            const response = await sucursalesService.getByEmpresaId();
-            if (response.success) {
-                setSucursalesData(response.data);
-            }
-        } catch (error) {
-            console.error('Error cargando sucursales:', error);
-        } finally {
-            setLoadingSucursales(false);
-        }
-    };
-
-    // Cargar datos cuando se abre el modal con delay para mejor rendimiento
-    useEffect(() => {
-        if (isOpen) {
-            // Delay pequeño para que la animación termine primero
-            const timer = setTimeout(() => {
-                cargarProductos();
-                cargarCategorias();
-                cargarPrecios();
-                cargarSucursales();
-            }, 100);
-            
-            return () => clearTimeout(timer);
-        }
-    }, [isOpen]);
-
-    // Limpiar indicador cuando se cierra el modal
-    useEffect(() => {
-        if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
-        }
-    }, [isOpen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -214,6 +86,100 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     };
 
 
+    // Función simple para manejar el indicador de carga
+    const handleLoading = useCallback((isLoading) => {
+        setShowRefreshIndicator(isLoading);
+        setIsRefreshing(isLoading);
+    }, []);
+    // Función para manejar refresh con indicador
+    const handleRefresh = async () => {
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+
+        try {
+            const response = await productsAlmacenService.getAll();
+            if (response.success) {
+                setProductos(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar productos:', error);
+        } finally {
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
+    };
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
+
+
+    // Mapear Información
+    const productosMapeados = productos.map(producto => ({
+        // Información básica
+        id: producto.id,
+        name: producto.name || '',
+        codigo_barras: producto.codigo_barras || '',
+        description: producto.description || '',
+        stock: producto.stock || 0,
+        created_at: producto.created_at,
+        empresa_id: producto.empresa_id,
+        
+        // Información de categoría
+        category_id: producto.category_id || '',
+        category_name: producto.category_name || 'Sin categoría',
+        category_almacen: producto.category_almacen || null,
+        
+        // Información de precios
+        price_product: producto.price_product || [],
+        
+        // Información de recetas
+        recetas: producto.recetas || [],
+        
+        // Información de sucursales
+        productos_sucursal: producto.productos_sucursal || []
+    }));
+    const preciosTipos = preciosData.map(precio => ({
+        value: precio.id,
+        label: precio.name,
+        id: precio.id,
+        name: precio.name,
+        default_value: precio.default_value
+    }));
+    const sucursales = sucursalesData
+        .filter(sucursal => sucursal.id !== sucursalActual?.id)
+        .map(sucursal => ({
+            value: sucursal.id,
+            label: sucursal.name,
+            id: sucursal.id,
+            name: sucursal.name
+        }));
+
+
+
+    // Función para manejar cuando se cargan los productos
+    const handleProductosLoaded = useCallback((data) => {
+        setProductos(data);
+    }, []);
+    // Función para manejar cuando se cargan los precios
+    const handlePreciosLoaded = useCallback((data) => {
+        setPreciosData(data);
+    }, []);
+    // Función para manejar cuando se cargan las sucursales
+    const handleSucursalesLoaded = useCallback((data) => {
+        setSucursalesData(data);
+    }, []);
+
+
+
     // Función para manejar el click en un producto
     const handleRegistro = (producto, tipo) => {
         setInfoPersona(producto);
@@ -229,24 +195,14 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     };
 
 
-
-
-    // Función para manejar refresh con indicador
-    const handleRefresh = async () => {
-        await cargarProductos();
-        await cargarCategorias();
-        await cargarPrecios();
-        await cargarSucursales();
-    };
-
     // Funciones de filtrado locales
     const handleCategoriaFilter = (categoriaId) => {
         setCategoriaFiltro(categoriaId);
     };
-
     const handleOrdenamiento = (orden) => {
         setOrdenamiento(orden);
     };
+
 
     // Efecto para resetear búsqueda y filtros cuando se abre
     useEffect(() => {
@@ -254,12 +210,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             setSearchQuery('');
             setCategoriaFiltro(null);
             setOrdenamiento('nombre_asc');
-            
+
             // Cargar canastas desde localStorage
             cargarCanastasDesdeLocalStorage();
         }
     }, [isOpen]);
-
     // Efecto separado para limpiar variables cuando se cierra el modal
     useEffect(() => {
         if (!isOpen) {
@@ -274,6 +229,85 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             }
         }
     }, [isOpen, tipo]);
+    // Filtrar y ordenar productos localmente
+    const productosFiltrados = productosMapeados.filter(producto => {
+        // Filtro de búsqueda
+        const matchesSearch = !searchQuery ||
+            producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        // Filtro de categoría
+        const matchesCategoria = categoriaFiltro === null ||
+            (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
+
+        return matchesSearch && matchesCategoria;
+    }).sort((a, b) => {
+        // Ordenamiento
+        switch (ordenamiento) {
+            case 'nombre_asc':
+                return a.name.localeCompare(b.name);
+            case 'nombre_desc':
+                return b.name.localeCompare(a.name);
+            case 'stock_asc':
+                return (a.stock || 0) - (b.stock || 0);
+            case 'stock_desc':
+                return (b.stock || 0) - (a.stock || 0);
+            default:
+                return a.name.localeCompare(b.name);
+        }
+    });
+
+
+    // Función para manejar cuando se crea un nuevo producto
+    const handleProductCreated = (newProduct) => {
+        // Actualizar el estado local con el producto que devuelve el servidor
+        setProductos(prevProductos => [newProduct, ...prevProductos]);
+
+        // Cerrar el modal
+        setIsAgregarOpen(false);
+        mostrarNotificacion('success', 'Producto agregado correctamente');
+    };
+    // Función para manejar cuando se elimina un producto
+    const handleProductDeleted = (deletedId) => {
+        // Actualizar el estado local removiendo el producto eliminado
+        setProductos(prevProductos => prevProductos.filter(producto => producto.id !== deletedId));
+
+        // Cerrar el modal de ver producto
+        setIsOpenVerProducto(false);
+        mostrarNotificacion('success', 'Producto eliminado correctamente');
+    };
+    // Función para manejar cuando se actualiza un producto
+    const handleProductUpdated = (updatedProduct) => {
+        // Actualizar el estado local con el producto actualizado que devuelve el servidor
+        setProductos(prevProductos => prevProductos.map(producto =>
+            producto.id === updatedProduct.id ? updatedProduct : producto
+        ));
+
+        // Actualizar también el producto que se está viendo
+        setInfoPersona(updatedProduct);
+        // Cerrar el modal de ver producto
+        setIsOpenVerProducto(false);
+        mostrarNotificacion('success', 'Producto actualizado correctamente');
+    };
+    // Función para manejar cuando se actualizan múltiples productos (después de movimientos)
+    const handleProductosUpdated = (productosActualizados) => {
+        // Actualizar solo el stock de los productos que cambiaron
+        setProductos(prevProductos =>
+            prevProductos.map(producto => {
+                const productoActualizado = productosActualizados.find(p => p.id === producto.id);
+                if (productoActualizado) {
+                    // Solo actualizar el stock, mantener todos los demás datos del producto
+                    return {
+                        ...producto,
+                        stock: productoActualizado.stock
+                    };
+                }
+                return producto;
+            })
+        );
+    };
+
 
     // Función para cargar canastas desde localStorage
     const cargarCanastasDesdeLocalStorage = () => {
@@ -282,11 +316,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             const canastaPedidos = localStorage.getItem('canastaPedidos');
             if (canastaPedidos) {
                 const productosPedidos = JSON.parse(canastaPedidos);
-                
+
                 // Si es edición de pedido, actualizar el stock de los productos con los datos actuales
                 if (localStorage.getItem('pedidoIdEditando')) {
                     const productosConStockActualizado = productosPedidos.map(productoCanasta => {
-                        const productoActual = productos.find(p => p.id === productoCanasta.id);
+                        const productoActual = productosMapeados.find(p => p.id === productoCanasta.id);
                         return {
                             ...productoCanasta,
                             stock: productoActual?.stock || 0
@@ -309,11 +343,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             const canastaSalidas = localStorage.getItem('canastaSalidas');
             if (canastaSalidas) {
                 const productosSalidas = JSON.parse(canastaSalidas);
-                
+
                 // Si es una entrega, actualizar el stock de los productos con los datos actuales
                 if (localStorage.getItem('pedidoIdEntregando')) {
                     const productosConStockActualizado = productosSalidas.map(productoCanasta => {
-                        const productoActual = productos.find(p => p.id === productoCanasta.id);
+                        const productoActual = productosMapeados.find(p => p.id === productoCanasta.id);
                         return {
                             ...productoCanasta,
                             stock: productoActual?.stock || 0
@@ -328,81 +362,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             console.error('Error al cargar canastas desde localStorage:', error);
         }
     };
-    // Filtrar y ordenar productos localmente
-    const productosFiltrados = productos.filter(producto => {
-        // Filtro de búsqueda
-        const matchesSearch = !searchQuery || 
-            producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(searchQuery.toLowerCase()));
 
-        // Filtro de categoría
-        const matchesCategoria = categoriaFiltro === null || 
-            (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
-
-        return matchesSearch && matchesCategoria;
-    }).sort((a, b) => {
-        // Ordenamiento
-        switch (ordenamiento) {
-            case 'nombre_asc':
-                return a.name.localeCompare(b.name);
-            case 'nombre_desc':
-                return b.name.localeCompare(a.name);
-            case 'stock_asc':
-                return (a.stock || 0) - (b.stock || 0);
-            case 'stock_desc':
-                return (b.stock || 0) - (a.stock || 0);
-            default:
-                return a.name.localeCompare(b.name);
-        }
-    });
-
-
-
-
-    // Función para manejar cuando se crea un nuevo producto
-    const handleProductCreated = (newProduct) => {
-        // Actualizar el estado local con el producto que devuelve el servidor
-        setProductos(prevProductos => [newProduct, ...prevProductos]);
-        
-        // Cerrar el modal
-        setIsAgregarOpen(false);
-        mostrarNotificacion('success', 'Producto agregado correctamente');
-    };
-    // Función para manejar cuando se elimina un producto
-    const handleProductDeleted = (deletedId) => {
-        // Actualizar el estado local removiendo el producto eliminado
-        setProductos(prevProductos => prevProductos.filter(producto => producto.id !== deletedId));
-        
-        // Cerrar el modal de ver producto
-        setIsOpenVerProducto(false);
-        mostrarNotificacion('success', 'Producto eliminado correctamente');
-    };
-    // Función para manejar cuando se actualiza un producto
-    const handleProductUpdated = (updatedProduct) => {
-        // Actualizar el estado local con el producto actualizado que devuelve el servidor
-        setProductos(prevProductos => prevProductos.map(producto => 
-            producto.id === updatedProduct.id ? updatedProduct : producto
-        ));
-        
-        // Actualizar también el producto que se está viendo
-        setInfoPersona(updatedProduct);
-        // Cerrar el modal de ver producto
-        setIsOpenVerProducto(false);
-        mostrarNotificacion('success', 'Producto actualizado correctamente');
-    };
-    // Función para manejar cuando se actualizan múltiples productos (después de movimientos)
-    const handleProductosUpdated = (productosActualizados) => {
-        // Actualizar solo el stock de los productos que cambiaron, sin hacer nueva petición
-        setProductos(prevProductos => 
-            prevProductos.map(producto => {
-                const productoActualizado = productosActualizados.find(p => p.id === producto.id);
-                return productoActualizado ? productoActualizado : producto;
-            })
-        );
-    };
-
-
+    
     // Función para manejar la canasta de pedidos
     const handleAgregarACanasta = (producto) => {
         const productoExistente = productosCanasta.find(p => p.id === producto.id);
@@ -485,9 +446,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const getCategoriaNombre = () => {
         if (categoriaFiltro === null) return 'Categorías';
         if (categoriaFiltro === '') return 'Sin categoría';
-        if (!categoriaFiltro) return 'Categorías';
-        const categoria = categorias.find(c => c.id === categoriaFiltro);
-        return categoria ? categoria.name : 'Categorías';
+        return 'Categorías';
     };
     // Función para obtener el nombre del ordenamiento
     const getOrdenamientoNombre = () => {
@@ -513,8 +472,39 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         },
     ];
 
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'name', label: 'Producto', icon: 'package' },
+        { key: 'codigo_barras', label: 'Código de Barras', icon: 'barcode' },
+        { key: 'description', label: 'Descripción', icon: 'comment' },
+        { key: 'stock', label: 'Stock', icon: 'bar-chart-alt-2' },
+        { key: 'category_name', label: 'Categoría', icon: 'tag' }
+    ];
+
+    // Datos para la tabla
+    const tableData = productosFiltrados.map(producto => ({
+        id: producto.id,
+        name: producto.name,
+        codigo_barras: producto.codigo_barras,
+        description: producto.description,
+        stock: `${producto.stock} Ud.`,
+        category_name: producto.category_name,
+    }));
+
+    // Función para obtener el badge
+    const getBadge = (producto) => {
+        if (tipo === 'entrada' || tipo === 'salida') {
+            const cantidadEnCanastaMovimientos = getCantidadEnCanastaMovimientos(producto.id, tipo);
+            return cantidadEnCanastaMovimientos > 0 ? cantidadEnCanastaMovimientos : null;
+        } else if (tipo === 'pedido') {
+            const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
+            return cantidadEnCanasta > 0 ? cantidadEnCanasta : null;
+        }
+        return null;
+    };
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!pedidoIdEditando && !localStorage.getItem('pedidoIdEntregando')}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
@@ -542,39 +532,53 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 </div>
                 <Filtros options={opciones} />
                 <div className={styles.content}>
-                    {productosFiltrados.length > 0 ? (
-                        productosFiltrados.map((producto, index) => {
-                            const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
-                            const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida')
-                                ? getCantidadEnCanastaMovimientos(producto.id, tipo)
-                                : 0;
-                            return (
-                                <ItemView
-                                    key={producto.id || index}
-                                    title={producto.name || 'Sin nombre'}
-                                    description={producto.description || 'Sin descripción'}
-                                    icon="box"
-                                    onClick={() => handleRegistro(producto, tipo)}
-                                    entrada={tipo === 'pesaje' ? true : false}
-                                    entradaData={[
-                                        { name: "Prima", value: 0 },
-                                        { name: "Bruta", value: 0 },
-                                    ]}
-                                    badge={
-                                        (tipo === 'pedido' && cantidadEnCanasta > 0) ||
-                                            ((tipo === 'entrada' || tipo === 'salida') && cantidadEnCanastaMovimientos > 0)
-                                            ? (tipo === 'pedido' ? cantidadEnCanasta : cantidadEnCanastaMovimientos)
-                                            : null
-                                    }
-                                    flot1={producto.stock + ' Ud.'}
-                                />
-
-                            );
-                        })
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(producto) => {
+                                // Buscar el producto original sin formatear
+                                const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
+                                handleRegistro(productoOriginal, tipo);
+                            }}
+                            getBadge={getBadge}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery || categoriaFiltro !== null ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        productosFiltrados.length > 0 ? (
+                            productosFiltrados.map((producto, index) => {
+                                const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
+                                const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida')
+                                    ? getCantidadEnCanastaMovimientos(producto.id, tipo)
+                                    : 0;
+                                return (
+                                    <ItemView
+                                        key={producto.id || index}
+                                        title={producto.name || 'Sin nombre'}
+                                        description={producto.description || 'Sin descripción'}
+                                        icon="box"
+                                        onClick={() => handleRegistro(producto, tipo)}
+                                        entrada={tipo === 'pesaje' ? true : false}
+                                        entradaData={[
+                                            { name: "Prima", value: 0 },
+                                            { name: "Bruta", value: 0 },
+                                        ]}
+                                        badge={
+                                            (tipo === 'pedido' && cantidadEnCanasta > 0) ||
+                                                ((tipo === 'entrada' || tipo === 'salida') && cantidadEnCanastaMovimientos > 0)
+                                                ? (tipo === 'pedido' ? cantidadEnCanasta : cantidadEnCanastaMovimientos)
+                                                : null
+                                        }
+                                        flot1={producto.stock + ' Ud.'}
+                                    />
+                                );
+                            })
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery || categoriaFiltro !== null ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
+                            </div>
+                        )
                     )}
                 </div>
             </div>
@@ -626,7 +630,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 onProductDeleted={handleProductDeleted}
                 onProductUpdated={handleProductUpdated}
                 preciosTipos={preciosTipos}
-                loadingPrecios={loadingPrecios}
+                loadingPrecios={false}
             />
 
             {/* Modal de editar*/}
@@ -636,7 +640,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 tipo='agregar'
                 onProductCreated={handleProductCreated}
                 preciosTipos={preciosTipos}
-                loadingPrecios={loadingPrecios}
+                loadingPrecios={false}
             />
 
             <Notification
@@ -645,98 +649,49 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 text={notification.text}
             />
 
+            {/* Carga de datos - solo cuando está abierto */}
+            {isOpen && (
+                <>
+                    <FetchData
+                        service={productsAlmacenService}
+                        serviceName="productsAlmacenService"
+                        isOpen={isOpen}
+                        onDataLoaded={handleProductosLoaded}
+                        onLoadingStart={() => handleLoading(true)}
+                        onLoadingEnd={() => handleLoading(false)}
+                    />
+                    <FetchData
+                        service={pricesTypesService}
+                        serviceName="pricesTypesService"
+                        isOpen={isOpen}
+                        onDataLoaded={handlePreciosLoaded}
+                        onLoadingStart={() => handleLoading(true)}
+                        onLoadingEnd={() => handleLoading(false)}
+                    />
+                    <FetchData
+                        service={sucursalesService}
+                        serviceName="sucursalesService"
+                        method="getByEmpresaId"
+                        isOpen={isOpen}
+                        onDataLoaded={handleSucursalesLoaded}
+                        onLoadingStart={() => handleLoading(true)}
+                        onLoadingEnd={() => handleLoading(false)}
+                    />
+                </>
+            )}
 
-            {/* Modal categorias*/}
-            <ViewModal isOpen={isOpenCategoria} setIsOpen={setOpenCategoria}>
-                <HeaderModal
-                    title="Categorias"
-                    onClose={() => setOpenCategoria(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para filtrar todos los productos que correspondan a esa categoria.</p>
-
-                    {/* Opción para mostrar todos */}
-                    <ItemLine
-                        title='Todas las categorías'
-                        icon='tag'
-                        onClick={() => {
-                            handleCategoriaFilter(null);
-                            setOpenCategoria(false);
-                        }}
-                    />
-
-                    {/* Opción para productos sin categoría */}
-                    <ItemLine
-                        title='Sin categoría'
-                        icon='tag'
-                        onClick={() => {
-                            handleCategoriaFilter('');
-                            setOpenCategoria(false);
-                        }}
-                    />
-
-                    {/* Categorías dinámicas */}
-                    {loadingCategorias ? (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando categorías...</p>
-                        </div>
-                    ) : (
-                        categorias.map((categoria) => (
-                            <ItemLine
-                                key={categoria.id}
-                                title={categoria.name}
-                                icon='tag'
-                                onClick={() => {
-                                    handleCategoriaFilter(categoria.id);
-                                    setOpenCategoria(false);
-                                }}
-                            />
-                        ))
-                    )}
-                </div>
-            </ViewModal>
-            {/* Modal de ordenamiento*/}
-            <ViewModal isOpen={isOpenOrden} setIsOpen={setOpenOrden}>
-                <HeaderModal
-                    title="Ordenamiento"
-                    onClose={() => setOpenOrden(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para ordenar los productos</p>
-                    <ItemLine
-                        title='Nombre A-Z'
-                        icon='sort-a-z'
-                        onClick={() => {
-                            handleOrdenamiento('nombre_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Nombre Z-A'
-                        icon='sort-z-a'
-                        onClick={() => {
-                            handleOrdenamiento('nombre_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Stock Menor-Mayor'
-                        icon='up-arrow-alt'
-                        onClick={() => {
-                            handleOrdenamiento('stock_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Stock Mayor-Menor'
-                        icon='down-arrow-alt'
-                        onClick={() => {
-                            handleOrdenamiento('stock_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                </div>
-            </ViewModal>
+            {/* Filtro de categorías */}
+            <FiltroCategorias
+                isOpen={isOpenCategoria}
+                setIsOpen={setOpenCategoria}
+                onCategoriaSeleccionada={handleCategoriaFilter}
+            />
+            {/* Filtro de ordenamiento */}
+            <FiltroOrdenamiento
+                isOpen={isOpenOrden}
+                setIsOpen={setOpenOrden}
+                onOrdenamientoSeleccionado={handleOrdenamiento}
+            />
             {/* View de canasta de pedidos */}
             <CanastaPedidos
                 isOpen={isCanastaOpen}
@@ -747,20 +702,21 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 onPedidoActualizado={onPedidoActualizado}
                 preciosTipos={preciosTipos}
                 sucursales={sucursales}
-                loadingPrecios={loadingPrecios}
-                loadingSucursales={loadingSucursales}
+                loadingPrecios={false}
+                loadingSucursales={false}
+                productosActualizados={productos}
                 onCerrarCanasta={() => {
                     setIsCanastaOpen(false);
                     // Limpiar pedidoIdEditando y precioIdEditando del localStorage cuando se confirma la edición
                     localStorage.removeItem('pedidoIdEditando');
                     localStorage.removeItem('precioIdEditando');
-                    
+
                     // Si estamos editando un pedido, limpiar la canasta
                     if (pedidoIdEditando) {
                         setProductosCanasta([]);
                         localStorage.removeItem('canastaPedidos');
                     }
-                    
+
                     mostrarNotificacion('success', pedidoIdEditando ? 'Pedido actualizado correctamente' : 'Pedido confirmado correctamente');
                 }}
             />
@@ -775,7 +731,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     tipoMovimiento={tipo}
                     onProductosUpdated={handleProductosUpdated}
                     preciosTipos={preciosTipos}
-                    loadingPrecios={loadingPrecios}
+                    loadingPrecios={false}
+                    productosActualizados={productos}
                     onCerrarCanasta={() => {
                         setIsCanastaMovimientosOpen(false);
                         mostrarNotificacion('success', 'Entradas confirmadas correctamente');
@@ -792,7 +749,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     esEntrega={!!localStorage.getItem('pedidoIdEntregando')}
                     onProductosUpdated={handleProductosUpdated}
                     preciosTipos={preciosTipos}
-                    loadingPrecios={loadingPrecios}
+                    loadingPrecios={false}
+                    productosActualizados={productos}
                     onCerrarCanasta={(productosActualizados, precioId, movimientoId) => {
                         // Si es una entrega, NO cerrar la canasta aquí, solo llamar a la función de entrega
                         if (onEntregaConfirmada && localStorage.getItem('pedidoIdEntregando')) {

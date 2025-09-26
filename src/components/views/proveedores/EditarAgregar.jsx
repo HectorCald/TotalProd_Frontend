@@ -4,7 +4,7 @@ import HeaderModal from '../../common/HeaderModal';
 import ViewModal from '../../ui/ViewModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
-import MensajeError from '../../common/MensajeError';
+import Notification from '../../common/Notification';
 import MapaModal from '../clientes/MapaModal';
 import proveedorService from '../../../services/proveedorService';
 import { useUser } from '../../../context/UserContext';
@@ -21,8 +21,24 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
         coordenadas: null
     });
 
-    // Estados para los mensajes de error y éxito
-    const [errorMessage, setErrorMessage] = useState('');
+    // Estados para la notificación
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'error',
+        text: ''
+    });
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
 
     // Estados para el mapa
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
@@ -61,17 +77,13 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
                 coordenadas: null
             });
         }
-        setErrorMessage('');
     }, [isOpen, usuario, tipo]);
 
 
     // Función para enviar los datos del proveedor
     const handleSubmit = async () => {
         if (!dataEdit.name.trim()) {
-            setErrorMessage('El nombre es obligatorio');
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
+            mostrarNotificacion('error', 'El nombre es obligatorio');
             return;
         }
 
@@ -101,17 +113,11 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
                 }
                 setIsOpen(false);
             } else {
-                setErrorMessage(response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el proveedor`);
-                setTimeout(() => {
-                    setErrorMessage('')
-                }, 3000);
+                mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el proveedor`);
             }
         } catch (error) {
             console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} proveedor:`, error);
-            setErrorMessage('Error de conexión con el servidor');
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
+            mostrarNotificacion('error', 'Error de conexión con el servidor');
         } finally {
             setLoading(false);
         }
@@ -167,10 +173,10 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
     const isMapReadOnly = tipo === 'ver';
 
     return (
+        <>
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderModal title={tipo === 'agregar' ? 'Nuevo proveedor' : tipo === 'editar' ? 'Editar proveedor' : 'Ver proveedor'} onClose={() => setIsOpen(false)} />
             <div className={styles.modalContent}>
-                <MensajeError mensaje={errorMessage} />
                 <p className={styles.subTitle}>INFORMACION PERSONAL</p>
                 <InputNormal
                     tipo="text"
@@ -218,8 +224,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
                     />
                 )}
             </div>
-
-            <MapaModal
+        </ViewModal>
+        <MapaModal
                 isOpen={isMapModalOpen}
                 setIsOpen={setIsMapModalOpen}
                 onLocationSelect={handleLocationSelect}
@@ -228,8 +234,12 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
                 title={getMapTitle()}
             />
 
-
-        </ViewModal>
+        <Notification
+            isVisible={notification.isVisible}
+            type={notification.type}
+            text={notification.text}
+        />
+        </>
     );
 }
 export default EditarAgregar;

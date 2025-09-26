@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import styles from './BarraNavegacion.module.css';
 import { BoxIcon } from 'boxicons-react';
 import Inicio from '../screens/Inicio';
@@ -6,8 +7,15 @@ import Destacados from '../screens/Destacados';
 import Balance from '../screens/Balance';
 import Reportes from '../screens/Reportes';
 import Explorar from '../screens/Explorar';
+import Notification from '../common/Notification';
 
 function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee, employee, onMainModuleClick }) {
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'warning',
+        text: ''
+    });
+
     const allNavigationItems = [
         { id: 'inicio', icon: 'home', title: 'Inicio' },
         { id: 'destacados', icon: 'star', title: 'Destacados' },
@@ -22,6 +30,21 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
         : allNavigationItems;
 
     const handleNavigation = (screenId) => {
+        // Si es empleado y intenta acceder a algo que no sea "inicio", mostrar notificación
+        if (isEmployee && screenId !== 'inicio') {
+            setNotification({
+                isVisible: true,
+                type: 'warning',
+                text: 'No tienes permisos para acceder a esta sección'
+            });
+            
+            // Auto-ocultar después de 3 segundos
+            setTimeout(() => {
+                setNotification(prev => ({ ...prev, isVisible: false }));
+            }, 3000);
+            return;
+        }
+        
         onScreenChange(screenId);
     };
 
@@ -76,6 +99,12 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
                 ))}
             </div>
             {renderScreen()}
+            
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
         </>
     );
 }

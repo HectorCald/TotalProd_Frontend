@@ -16,7 +16,7 @@
 .navContent {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between;
     width: 100%;
     padding: 0 10px 0 10px;
     gap: 10px;
@@ -69,7 +69,6 @@
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
-    z-index: 1000;
 }
 
 .iconOne {
@@ -80,4 +79,47 @@
     background: none;
     cursor: pointer;
     margin-right: 5px;
+}
+
+
+
+
+
+.subTitle {
+    font-size: 13px;
+    font-weight: 400;
+    color: gray;
+    line-height: 1.2;
+}
+.modalContent {
+    padding: 20px;
+    padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; 
+    height: 100%;
+    max-height: 83vh;
+    overflow-y: auto;
+}
+.buttons {
+    display: flex;
+    gap: 7px;
+    width: 100%;
+    margin-top: auto;
+}
+
+.selectContainer {
+    width: 100%;
+}
+.selectContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 250px;
+    background-color: var(--tertiary-color);
+    border-radius: 8px;
+    padding: 0 15px;
+    gap: 10px;
+    max-width: 350px;
 }

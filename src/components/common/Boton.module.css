@@ -63,7 +63,7 @@
 }
 .btn-gray{
   background-color: var(--tertiary-color);
-  color: white;
+  color: var(--white-color);
 }
 .btn-transparent{
   background-color: transparent;

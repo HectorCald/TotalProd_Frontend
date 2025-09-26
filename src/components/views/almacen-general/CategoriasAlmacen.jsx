@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -11,8 +11,12 @@ import Notification from '../../common/Notification';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
+import FetchData from '../../mixed/FetchData';
     
 function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategoriaSeleccionada }) {
+    const { isLargeScreen } = useLayout();
     // Estados para los modales
     const [isOpenVerCategoria, setIsOpenVerCategoria] = useState(false);
     const [infoCategoria, setInfoCategoria] = useState(null);
@@ -27,43 +31,17 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
 
     // Estados para categorías
     const [categorias, setCategorias] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
 
-    // Función para cargar categorías
-    const cargarCategorias = async () => {
-        setIsLoading(true);
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        setError(null);
-        
-        try {
-            const response = await categoryAlmacenService.getAll();
-            if (response.success) {
-                setCategorias(response.data);
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            setIsLoading(false);
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    };
+    // Función para manejar cuando se cargan las categorías
+    const handleCategoriasLoaded = useCallback((data) => {
+        setCategorias(data);
+    }, []);
 
-    // Cargar categorías cuando se abre el modal
-    useEffect(() => {
-        if (isOpen) {
-            cargarCategorias();
-        }
-    }, [isOpen]);
+    // Función simple para manejar el indicador de carga
+    const handleLoading = useCallback((isLoading) => {
+        setShowRefreshIndicator(isLoading);
+        setIsRefreshing(isLoading);
+    }, []);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -110,7 +88,25 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        await cargarCategorias();
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+
+        try {
+            const response = await categoryAlmacenService.getAll();
+            if (response.success) {
+                setCategorias(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar categorías:', error);
+        } finally {
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
     };
 
     // Efecto para resetear búsqueda cuando se abre
@@ -124,6 +120,17 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     const categoriasFiltradas = categorias.filter(categoria => 
         categoria.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'name', label: 'Categoría', icon: 'category' }
+    ];
+
+    // Datos para la tabla
+    const tableData = categoriasFiltradas.map(categoria => ({
+        id: categoria.id,
+        name: categoria.name || 'Sin nombre'
+    }));
 
 
     // Función para manejar cuando se crea una nueva categoría
@@ -186,20 +193,34 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                     />
                 </div>
                 <div className={styles.content}>
-                    {categoriasFiltradas.length > 0 ? (
-                        categoriasFiltradas.map((categoria, index) => (
-                            <ItemView
-                                key={categoria.id || index}
-                                title={categoria.name || 'Sin nombre'}
-                                icon="category"
-                                arrow={true}
-                                onClick={() => handleCategoria(categoria)}
-                            />
-                        ))
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(categoria) => {
+                                // Buscar la categoría original sin formatear
+                                const categoriaOriginal = categoriasFiltradas.find(c => c.id === categoria.id);
+                                handleCategoria(categoriaOriginal);
+                            }}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron categorías' : 'No hay categorías registradas'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        categoriasFiltradas.length > 0 ? (
+                            categoriasFiltradas.map((categoria, index) => (
+                                <ItemView
+                                    key={categoria.id || index}
+                                    title={categoria.name || 'Sin nombre'}
+                                    icon="category"
+                                    arrow={true}
+                                    onClick={() => handleCategoria(categoria)}
+                                />
+                            ))
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery ? 'No se encontraron categorías' : 'No hay categorías registradas'}</p>
+                            </div>
+                        )
                     )}
                 </div>
             </div>
@@ -235,6 +256,18 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                 type={notification.type}
                 text={notification.text}
             />
+
+            {/* Carga de datos - solo cuando está abierto */}
+            {isOpen && (
+                <FetchData
+                    service={categoryAlmacenService}
+                    serviceName="categoryAlmacenService"
+                    isOpen={isOpen}
+                    onDataLoaded={handleCategoriasLoaded}
+                    onLoadingStart={() => handleLoading(true)}
+                    onLoadingEnd={() => handleLoading(false)}
+                />
+            )}
         </View>
     );
 }

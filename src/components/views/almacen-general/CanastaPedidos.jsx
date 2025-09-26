@@ -11,10 +11,10 @@ import { BoxIcon } from 'boxicons-react';
 import ItemLine from '../../common/ItemLine';
 import { motion } from 'framer-motion';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
-import MensajeError from '../../common/MensajeError';
+import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
 
-function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], sucursales = [], loadingPrecios = false, loadingSucursales = false }) {
+function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], sucursales = [], loadingPrecios = false, loadingSucursales = false, productosActualizados = [] }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
@@ -23,7 +23,25 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     const [animarCantidad, setAnimarCantidad] = useState({});
     const [precioSeleccionado, setPrecioSeleccionado] = useState('');
     const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
-    const [errorMessage, setErrorMessage] = useState('');
+    // Estado para notificaciones
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'error',
+        text: ''
+    });
+
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
 
     // Inicializar precio seleccionado cuando se abren los precios (solo si no hay uno seleccionado)
     useEffect(() => {
@@ -97,6 +115,35 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }
     }, [isOpen, pedidoId]);
 
+    // Sincronizar stock del carrito con productos actualizados
+    useEffect(() => {
+        if (productosActualizados.length > 0 && productosCanasta.length > 0) {
+            setProductosCanasta(prevCanasta => {
+                return prevCanasta.map(productoCarrito => {
+                    const productoActualizado = productosActualizados.find(p => p.id === productoCarrito.id);
+                    if (productoActualizado) {
+                        // Si el stock cambió, actualizar el stock en el carrito
+                        if (productoActualizado.stock !== productoCarrito.stock) {
+                            // Si la cantidad en el carrito excede el nuevo stock, ajustar
+                            if (productoCarrito.cantidad > productoActualizado.stock) {
+                                mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoActualizado.stock}`);
+                                return {
+                                    ...productoCarrito,
+                                    stock: productoActualizado.stock,
+                                    cantidad: productoActualizado.stock
+                                };
+                            }
+                            return {
+                                ...productoCarrito,
+                                stock: productoActualizado.stock
+                            };
+                        }
+                    }
+                    return productoCarrito;
+                });
+            });
+        }
+    }, [productosActualizados]);
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
@@ -176,20 +223,14 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             // Validar sucursal seleccionada solo si no estamos editando
             if (!pedidoId) {
                 if (!sucursalSeleccionada) {
-                    setErrorMessage('La sucursal es obligatoria');
-                    setTimeout(() => {
-                        setErrorMessage('');
-                    }, 3000);
+                    mostrarNotificacion('error', 'La sucursal es obligatoria');
                     setLoadingConfirmar(false);
                     return;
                 }
 
                 // Validar que no se seleccione la sucursal actual
                 if (sucursalSeleccionada === sucursalActual?.id) {
-                    setErrorMessage('No puedes seleccionar tu sucursal actual como destino');
-                    setTimeout(() => {
-                        setErrorMessage('');
-                    }, 3000);
+                    mostrarNotificacion('error', 'No puedes seleccionar tu sucursal actual como destino');
                     setLoadingConfirmar(false);
                     return;
                 }
@@ -244,19 +285,15 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 }
             } else {
                 console.error('Error al procesar pedido:', response.message);
-                // Aquí podrías mostrar una notificación de error
+                mostrarNotificacion('error', response.message || 'Error al procesar el pedido');
             }
 
         } catch (error) {
             console.error('Error al confirmar pedido:', error);
-            // Aquí podrías mostrar una notificación de error
+            mostrarNotificacion('error', error.message || 'Error al confirmar el pedido');
         } finally {
             setLoadingConfirmar(false);
         }
-    };
-
-    const getTotalProductos = () => {
-        return productosCanasta.reduce((total, producto) => total + producto.cantidad, 0);
     };
 
     const getTotalValor = () => {
@@ -280,7 +317,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         </button>
                     </div>
                 </h1>
-                <p className={styles.subTitle}>({getTotalProductos()} productos)</p>
 
                 {/* Selector de precio general */}
                 {productosCanasta.length > 0 && (
@@ -420,14 +456,14 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     <p className={styles.subTitle}>¿Estás seguro que deseas limpiar toda la canasta? Esta acción no se puede deshacer.</p>
                     <div className={styles.buttons}>
                         <Boton
-                            className='btn-red'
-                            label='Si, limpiar'
-                            onClick={handleLimpiarCanasta}
-                        />
-                        <Boton
                             className='btn-default'
                             label='Cancelar'
                             onClick={() => setIsLimpiarModalOpen(false)}
+                        />
+                         <Boton
+                            className='btn-red'
+                            label='Si, limpiar'
+                            onClick={handleLimpiarCanasta}
                         />
                     </div>
                 </div>
@@ -440,7 +476,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     onClose={() => setIsConfirmarModalOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <MensajeError mensaje={errorMessage} />
                     <p className={styles.subTitle}>Productos a pedir:</p>
                     <div className={styles.content}>
                         {productosCanasta.map((producto, index) => (
@@ -494,6 +529,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 </div>
             </ViewModal>
 
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
         </View>
     );
 }

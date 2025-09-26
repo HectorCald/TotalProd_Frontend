@@ -1,6 +1,6 @@
 .barraNavegacion {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
     width: 100%;
     height: 75px;

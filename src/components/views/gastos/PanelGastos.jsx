@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
@@ -8,16 +8,20 @@ import ItemView from '../../common/ItemView';
 import VerGasto from './VerGasto';
 import EditarAgregarGasto from './EditarAgregarGasto';
 import Filtros from '../../common/Filtros';
-import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import ItemLine from '../../common/ItemLine';
 import Notification from '../../common/Notification';
 import gastosService from '../../../services/gastosService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import Boton from '../../common/Boton';
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
+import FetchData from '../../mixed/FetchData';
+import FiltroMetodoPago from '../../mixed/FiltroMetodoPago';
+import FiltroOrdenamientoGastos from '../../mixed/FiltroOrdenamientoGastos';
 
 function PanelGastos({ isOpen, setIsOpen }) {
+    const { isLargeScreen } = useLayout();
+    
     // Estados para los modales
     const [isOpenVerGasto, setIsOpenVerGasto] = useState(false);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
@@ -48,36 +52,16 @@ function PanelGastos({ isOpen, setIsOpen }) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Opciones de métodos de pago
-    const metodosPago = [
-        { value: null, label: 'Todos los métodos' },
-        { value: 'qr', label: 'QR' },
-        { value: 'transferencia', label: 'Transferencia' },
-        { value: 'tarjeta', label: 'Tarjeta' },
-        { value: 'efectivo', label: 'Efectivo' }
-    ];
+    // Callback para manejar los gastos cargados
+    const handleGastosLoaded = useCallback((data) => {
+        setGastos(data);
+    }, []);
 
-    // Función para cargar gastos
-    const cargarGastos = async (page = 1, search = '', metodoPago = null, proveedor = null, orden = 'fecha_desc') => {
-        console.log('cargando gastos');
-        setIsLoading(true);
-        setError(null);
-        
-        try {
-            const response = await gastosService.getAll(page, 10, search, metodoPago, proveedor, orden);
-                
-            if (response.success) {
-                setGastos(response.data);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // Callback para manejar el estado de carga
+    const handleLoading = useCallback((isLoading) => {
+        setShowRefreshIndicator(isLoading);
+        setIsRefreshing(isLoading);
+    }, []);
 
     // Acumular datos de todas las páginas cuando llegan nuevos gastos
     useEffect(() => {
@@ -113,23 +97,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
 
-    // Cargar gastos cuando se abre el modal
-    useEffect(() => {
-        if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-            // Cargar primera página
-            cargarGastos(1, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento);
-        }
-    }, [isOpen]);
-
-    // Cargar gastos cuando cambian los parámetros
-    useEffect(() => {
-        if (isOpen) {
-            cargarGastos(currentPage, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento);
-        }
-    }, [currentPage, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -175,7 +142,11 @@ function PanelGastos({ isOpen, setIsOpen }) {
         setIsRefreshing(true);
         
         try {
-            await cargarGastos(currentPage, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento);
+            const response = await gastosService.getAll(currentPage, 10, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento);
+            if (response.success) {
+                setGastos(response.data);
+                setHasMorePages(response.pagination?.hasNextPage || false);
+            }
             
             // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
@@ -185,6 +156,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 }, 1000);
             }, 500);
         } catch (error) {
+            console.error('Error al refrescar gastos:', error);
             setIsRefreshing(false);
             setShowRefreshIndicator(false);
         }
@@ -199,16 +171,16 @@ function PanelGastos({ isOpen, setIsOpen }) {
     };
 
     // Función para manejar ordenamiento
-    const handleOrdenamiento = (orden) => {
+    const handleOrdenamiento = useCallback((orden) => {
         setOrdenamiento(orden);
         setCurrentPage(1);
-    };
+    }, []);
 
     // Función para manejar filtro de método de pago
-    const handleFiltroMetodoPago = (metodo) => {
+    const handleFiltroMetodoPago = useCallback((metodo) => {
         setFiltroMetodoPago(metodo);
         setCurrentPage(1);
-    };
+    }, []);
 
     // Función para manejar filtro de proveedor
     const handleFiltroProveedor = (proveedor) => {
@@ -274,6 +246,14 @@ function PanelGastos({ isOpen, setIsOpen }) {
     // Función para obtener el nombre del método de pago
     const getMetodoPagoNombre = () => {
         if (filtroMetodoPago === null) return 'Todos los métodos';
+        
+        const metodosPago = [
+            { value: 'qr', label: 'QR' },
+            { value: 'transferencia', label: 'Transferencia' },
+            { value: 'tarjeta', label: 'Tarjeta' },
+            { value: 'efectivo', label: 'Efectivo' }
+        ];
+        
         const metodo = metodosPago.find(m => m.value === filtroMetodoPago);
         return metodo ? metodo.label : 'Todos los métodos';
     };
@@ -304,8 +284,27 @@ function PanelGastos({ isOpen, setIsOpen }) {
         },
     ];
 
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'concepto', label: 'Concepto', icon: 'money' },
+        { key: 'fecha', label: 'Fecha', icon: 'calendar' },
+        { key: 'metodo_pago', label: 'Método de Pago', icon: 'credit-card' },
+        { key: 'proveedor', label: 'Proveedor', icon: 'user' },
+        { key: 'valor', label: 'Valor', icon: 'dollar' }
+    ];
+
+    // Datos para la tabla
+    const tableData = allGastos.map(gasto => ({
+        id: gasto.id,
+        concepto: gasto.concepto || 'Sin concepto',
+        fecha: new Date(gasto.fecha_gasto).toLocaleDateString(),
+        metodo_pago: gasto.metodo_pago || 'Sin método de pago',
+        proveedor: gasto.proveedor?.name || '--',
+        valor: `Bs. ${(gasto.valor || 0).toFixed(2)}`
+    }));
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
@@ -335,29 +334,42 @@ function PanelGastos({ isOpen, setIsOpen }) {
                     className={styles.content}
                     onScroll={handleScroll}
                     style={{
-                        minHeight: 'calc(100vh - 250px)',
+                        maxHeight: 'calc(100% - 230px)',
                     }}
                 >
-                    {allGastos.length > 0 ? (
-                        allGastos.map((gasto, index) => {
-                            return (
-                                <ItemView
-                                    key={gasto.id || index}
-                                    title={gasto.concepto || 'Sin concepto'}
-                                    description={`${new Date(gasto.fecha_gasto).toLocaleDateString()} • ${gasto.metodo_pago || 'Sin método de pago'}${gasto.proveedor?.name ? ` • ${gasto.proveedor.name}` : ''}`}
-                                    icon='money'
-                                    onClick={() => handleGasto(gasto)}
-                                    arrow={false}
-                                    flot3={`Bs. ${(gasto.valor || 0).toFixed(2)}`}
-                                />
-                            );
-                        })
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(gasto) => {
+                                // Buscar el gasto original sin formatear
+                                const gastoOriginal = allGastos.find(g => g.id === gasto.id);
+                                handleGasto(gastoOriginal);
+                            }}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron gastos' : 'No hay gastos registrados'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        allGastos.length > 0 ? (
+                            allGastos.map((gasto, index) => {
+                                return (
+                                    <ItemView
+                                        key={gasto.id || index}
+                                        title={gasto.concepto || 'Sin concepto'}
+                                        description={`${new Date(gasto.fecha_gasto).toLocaleDateString()} • ${gasto.metodo_pago || 'Sin método de pago'}${gasto.proveedor?.name ? ` • ${gasto.proveedor.name}` : ''}`}
+                                        icon='money'
+                                        onClick={() => handleGasto(gasto)}
+                                        arrow={false}
+                                        flot3={`Bs. ${(gasto.valor || 0).toFixed(2)}`}
+                                    />
+                                );
+                            })
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery ? 'No se encontraron gastos' : 'No hay gastos registrados'}</p>
+                            </div>
+                        )
                     )}
-
                     {/* Indicador de carga para más elementos */}
                     {isLoading && (
                         <div className={styles.loadingMore}>
@@ -396,86 +408,32 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 text={notification.text}
             />
 
-            {/* Modal de filtro de método de pago*/}
-            <ViewModal isOpen={isOpenMetodoPago} setIsOpen={setOpenMetodoPago}>
-                <HeaderModal
-                    title="Método de Pago"
-                    onClose={() => setOpenMetodoPago(false)}
+            {/* FetchData para gastos */}
+            {isOpen && (
+                <FetchData
+                    service={gastosService}
+                    serviceName="gastosService"
+                    method="getAll"
+                    methodParams={[currentPage, 10, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]}
+                    isOpen={isOpen}
+                    onDataLoaded={handleGastosLoaded}
+                    onLoadingStart={() => handleLoading(true)}
+                    onLoadingEnd={() => handleLoading(false)}
                 />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona el método de pago a mostrar</p>
-                    {metodosPago.map((metodo) => (
-                        <ItemLine
-                            key={metodo.value || 'todos'}
-                            title={metodo.label}
-                            icon='credit-card'
-                            onClick={() => {
-                                handleFiltroMetodoPago(metodo.value);
-                                setOpenMetodoPago(false);
-                            }}
-                        />
-                    ))}
-                </div>
-            </ViewModal>
+            )}
 
-            {/* Modal de ordenamiento*/}
-            <ViewModal isOpen={isOpenOrden} setIsOpen={setOpenOrden}>
-                <HeaderModal
-                    title="Ordenamiento"
-                    onClose={() => setOpenOrden(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para ordenar los gastos</p>
-                    <ItemLine
-                        title='Más recientes'
-                        icon='time'
-                        onClick={() => {
-                            handleOrdenamiento('fecha_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Más antiguos'
-                        icon='time-five'
-                        onClick={() => {
-                            handleOrdenamiento('fecha_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Mayor valor'
-                        icon='trending-up'
-                        onClick={() => {
-                            handleOrdenamiento('valor_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Menor valor'
-                        icon='trending-down'
-                        onClick={() => {
-                            handleOrdenamiento('valor_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Concepto A-Z'
-                        icon='sort-a-z'
-                        onClick={() => {
-                            handleOrdenamiento('concepto_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Concepto Z-A'
-                        icon='sort-z-a'
-                        onClick={() => {
-                            handleOrdenamiento('concepto_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                </div>
-            </ViewModal>
+            {/* Componentes de filtros */}
+            <FiltroMetodoPago
+                isOpen={isOpenMetodoPago}
+                setIsOpen={setOpenMetodoPago}
+                onMetodoSeleccionado={handleFiltroMetodoPago}
+            />
+
+            <FiltroOrdenamientoGastos
+                isOpen={isOpenOrden}
+                setIsOpen={setOpenOrden}
+                onOrdenamientoSeleccionado={handleOrdenamiento}
+            />
         </View>
     );
 }

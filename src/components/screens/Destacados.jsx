@@ -27,7 +27,7 @@ const Destacados = () => {
     }
   };
 
-  // Función para obtener movimientos por IDs masivamente
+  // Función para obtener movimientos por IDs masivamente (solo para movimientos verificados)
   const fetchMovimientosByIds = async (ids, tipo) => {
     if (!ids || ids.length === 0) return [];
 
@@ -54,6 +54,21 @@ const Destacados = () => {
     }
   };
 
+  // Función para verificar si un movimiento pertenece a la sucursal actual
+  const verificarMovimientoPerteneceSucursal = async (id, tipo) => {
+    try {
+      if (tipo === 'acopio') {
+        const response = await movimientosAcopioService.getById(id);
+        return response && response.success;
+      } else {
+        const response = await movimientosAlmacenService.getById(id);
+        return response && response.success;
+      }
+    } catch (error) {
+      return false;
+    }
+  };
+
   // Función para cargar todos los movimientos destacados
   const loadDestacados = async () => {
     const destacados = loadDestacadosFromStorage();
@@ -68,12 +83,27 @@ const Destacados = () => {
     setIsRefreshing(true);
 
     try {
+      // Primero verificar qué movimientos pertenecen a la sucursal actual
+      const verificaciones = await Promise.all(
+        destacados.map(async (destacado) => {
+          const pertenece = await verificarMovimientoPerteneceSucursal(destacado.id, destacado.tipo);
+          return { ...destacado, pertenece };
+        })
+      );
 
-      // Agrupar por tipo
-      const acopioIds = destacados.filter(d => d.tipo === 'acopio').map(d => d.id);
-      const almacenIds = destacados.filter(d => d.tipo === 'almacen').map(d => d.id);
+      // Filtrar solo los que pertenecen a la sucursal actual
+      const destacadosAccesibles = verificaciones.filter(d => d.pertenece);
+      
+      if (destacadosAccesibles.length === 0) {
+        setMovimientosDestacados([]);
+        return;
+      }
 
-      // Hacer peticiones masivas
+      // Agrupar por tipo solo los accesibles
+      const acopioIds = destacadosAccesibles.filter(d => d.tipo === 'acopio').map(d => d.id);
+      const almacenIds = destacadosAccesibles.filter(d => d.tipo === 'almacen').map(d => d.id);
+
+      // Hacer peticiones masivas solo para los accesibles
       const [movimientosAcopio, movimientosAlmacen] = await Promise.all([
         fetchMovimientosByIds(acopioIds, 'acopio'),
         fetchMovimientosByIds(almacenIds, 'almacen')

@@ -9,6 +9,7 @@
 
 .icon {
     font-size: 20px !important;
+    color: var(--primary-color) !important;
 }
 
 .text {
@@ -20,7 +21,7 @@
 .title {
     font-size: 14px;
     font-weight: 500;
-    color: var(--text-color);
+    color: var(--white-color);
 }
 
 .subTitle {

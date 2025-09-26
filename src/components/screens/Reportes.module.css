@@ -24,12 +24,20 @@
   line-height: 1.2;
   margin: 0;
 }
-.content {
+.contentContainer {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-start;
   justify-content: flex-start;
   width: 100%;
+  gap: 10px;
+}
+.content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 500px;
   background-color: var(--tertiary-color);
   border-radius: 8px;
   padding: 10px 20px;

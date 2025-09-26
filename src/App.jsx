@@ -8,6 +8,7 @@ import Loading from './components/common/LoadingSpinner';
 import { UserProvider, useUser } from './context/UserContext';
 import { EmployeeProvider, useEmployee } from './context/EmployeeContext';
 import { ModalStackProvider } from './context/ModalStackContext';
+import { LayoutProvider } from './context/LayoutContext';
 import SeleccionarSucursal from './components/views/sucursales/SeleccionarSucursal';
 
 
@@ -65,7 +66,9 @@ function App() {
     <UserProvider>
       <EmployeeProvider>
         <ModalStackProvider>
-          <AppContent token={token} tokenType={tokenType} />
+          <LayoutProvider>
+            <AppContent token={token} tokenType={tokenType} />
+          </LayoutProvider>
         </ModalStackProvider>
       </EmployeeProvider>
     </UserProvider>

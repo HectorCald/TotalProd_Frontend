@@ -7,7 +7,6 @@ import InputNormal from '../../common/InputNormal';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import EditarAgregarReceta from './EditarAgregarReceta';
 import Switch from '../../common/Switch';
-import MensajeError from '../../common/MensajeError';
 import Notification from '../../common/Notification';
 import CategoriasAlmacen from './CategoriasAlmacen';
 
@@ -22,7 +21,6 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
     prices: {} // Objeto para almacenar los precios por tipo
   });
 
-  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRecetaOpen, setIsRecetaOpen] = useState(false);
   const [hasReceta, setHasReceta] = useState(false);
@@ -92,8 +90,19 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       });
 
       // Establecer la categoría seleccionada si existe
-      if (data.category_id && data.category_almacen) {
-        setCategoriaSeleccionada(data.category_almacen);
+      if (data.category_id) {
+        if (data.category_almacen) {
+          // Si tenemos el objeto completo de la categoría
+          setCategoriaSeleccionada(data.category_almacen);
+        } else if (data.category_name) {
+          // Si solo tenemos el nombre, crear un objeto temporal
+          setCategoriaSeleccionada({
+            id: data.category_id,
+            name: data.category_name
+          });
+        } else {
+          setCategoriaSeleccionada(null);
+        }
       } else {
         setCategoriaSeleccionada(null);
       }
@@ -113,8 +122,14 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       setRecetaGuardada(null);
       setCategoriaSeleccionada(null);
     }
-    setErrorMessage('');
+    setNotification({
+      isVisible: false,
+      type: 'error',
+      text: ''
+    });
   }, [isOpen, data, tipo]);
+
+
 
   // Efecto para verificar movimientos cuando se está editando
   useEffect(() => {
@@ -137,11 +152,12 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
 
     checkMovements();
   }, [data?.id, tipo, isOpen]);
-
   // Función para actualizar los datos del formulario
   const handleChange = (field, value) => {
     setDataMov({ ...dataMov, [field]: value });
   };
+
+
 
   // Función para actualizar los precios
   const handlePriceChange = (priceTypeId, value) => {
@@ -153,7 +169,6 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       }
     }));
   };
-
   // Función para manejar el switch de receta
   const handleRecetaSwitch = (checked) => {
     setHasReceta(checked);
@@ -161,31 +176,47 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       setRecetaGuardada(null);
     }
   };
+  // Función para manejar cuando se selecciona una categoría
+  const handleCategoriaSeleccionada = (categoria) => {
+    setCategoriaSeleccionada(categoria);
+    setDataMov(prev => ({ ...prev, category_id: categoria.id }));
+    setIsCategoriasSeleccionOpen(false);
+  };
+
+
+
+  // Función para manejar cuando se crea una receta
+  const handleRecetaCreated = (recetaData) => {
+    setRecetaGuardada(recetaData);
+    setIsRecetaOpen(false);
+  };
+  // Función para manejar cuando se actualiza una receta
+  const handleRecetaUpdated = (recetaData) => {
+    setRecetaGuardada(recetaData);
+    setIsRecetaOpen(false);
+  };
+
 
   // Función para enviar los datos
   const handleSubmit = async () => {
     if (!dataMov.name.trim()) {
-      setErrorMessage('El nombre es obligatorio');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'El nombre es obligatorio');
       return;
     }
 
     if (!dataMov.stock || dataMov.stock.toString().trim() === '') {
-      setErrorMessage('El stock es obligatorio');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'El stock es obligatorio');
       return;
     }
 
     if (isNaN(dataMov.stock) || parseInt(dataMov.stock) < 0) {
-      setErrorMessage('El stock debe ser un número válido mayor o igual a 0');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'El stock debe ser un número válido mayor o igual a 0');
       return;
     }
 
     // Validar receta solo si está marcado el switch
     if (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0)) {
-      setErrorMessage('Debe crear una receta con al menos un producto');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'Debe crear una receta con al menos un producto');
       return;
     }
 
@@ -229,140 +260,133 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
     }
   };
 
-
-  // Función para manejar cuando se selecciona una categoría
-  const handleCategoriaSeleccionada = (categoria) => {
-    setCategoriaSeleccionada(categoria);
-    setDataMov(prev => ({ ...prev, category_id: categoria.id }));
-    setIsCategoriasSeleccionOpen(false);
-  };
-
-  // Función para manejar cuando se crea una receta
-  const handleRecetaCreated = (recetaData) => {
-    console.log('Receta creada:', recetaData);
-    setRecetaGuardada(recetaData);
-    setIsRecetaOpen(false);
-  };
-
-  // Función para manejar cuando se actualiza una receta
-  const handleRecetaUpdated = (recetaData) => {
-    console.log('Receta actualizada:', recetaData);
-    setRecetaGuardada(recetaData);
-    setIsRecetaOpen(false);
-  };
-
   return (
-    <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
-      <HeaderModal
-        title={tipo === 'editar' ? 'Editar producto' : 'Nuevo producto'}
-        onClose={() => setIsOpen(false)}
-      />
-      <div className={styles.modalContent}>
-        <MensajeError mensaje={errorMessage} />
-        <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
-
-        <InputNormal
-          tipo="text"
-          value={dataMov.name}
-          placeholder='Nombre del Producto'
-          onChange={(e) => handleChange('name', e.target.value)}
-          icon='box'
+    <>
+      <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
+        <HeaderModal
+          title={tipo === 'editar' ? 'Editar producto' : 'Nuevo producto'}
+          onClose={() => setIsOpen(false)}
         />
+        <div className={styles.modalContent}>
+          <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
 
-        <InputNormal
-          tipo="text"
-          value={dataMov.description}
-          placeholder='Descripción'
-          onChange={(e) => handleChange('description', e.target.value)}
-          icon='text'
-        />
-
-        <InputNormal
-          tipo="number"
-          value={dataMov.stock}
-          placeholder='Stock'
-          onChange={(e) => handleChange('stock', e.target.value)}
-          icon='calculator'
-        />
-
-        <InputNormal
-          tipo="text"
-          value={dataMov.codigo_barras}
-          placeholder='Código de barras'
-          onChange={(e) => handleChange('codigo_barras', e.target.value)}
-          icon='barcode'
-        />
-
-        <Boton
-          className='btn-default'
-          label={categoriaSeleccionada ? categoriaSeleccionada.name : 'Seleccionar Categoría (opcional)'}
-          onClick={() => setIsCategoriasSeleccionOpen(true)}
-          style={{ width: '100%', justifyContent: 'flex-start' }}
-        />
-
-        {/* Sección de Precios */}
-        <p className={styles.subTitle}>PRECIOS</p>
-        {loadingPrecios ? (
-          <div className={styles.noData}>
-            <p>Cargando precios...</p>
-          </div>
-        ) : (
-          preciosTipos.map(priceType => (
-            <InputNormal
-              key={priceType.id}
-              tipo="number"
-              value={dataMov.prices[priceType.id] || ''}
-              placeholder={`Precio ${priceType.name}`}
-              onChange={(e) => handlePriceChange(priceType.id, e.target.value)}
-              icon='dollar'
-              step="0.01"
-              min="0"
-            />
-          ))
-        )}
-        {/* Switch para receta */}
-        <div className={styles.content} style={{ padding: '10px 15px' }}>
-          <Switch
-            title="¿Tiene receta?"
-            subtitle="Marca si este producto se produce a partir de materias primas de acopio"
-            checked={hasReceta}
-            onChange={handleRecetaSwitch}
-            icon="receipt"
+          <InputNormal
+            tipo="text"
+            value={dataMov.name}
+            placeholder='Nombre del Producto'
+            onChange={(e) => handleChange('name', e.target.value)}
+            icon='box'
           />
+
+          <InputNormal
+            tipo="text"
+            value={dataMov.description}
+            placeholder='Descripción'
+            onChange={(e) => handleChange('description', e.target.value)}
+            icon='text'
+          />
+
+          <InputNormal
+            tipo="number"
+            value={dataMov.stock}
+            placeholder='Stock'
+            onChange={(e) => handleChange('stock', e.target.value)}
+            icon='calculator'
+          />
+
+          <InputNormal
+            tipo="text"
+            value={dataMov.codigo_barras}
+            placeholder='Código de barras'
+            onChange={(e) => handleChange('codigo_barras', e.target.value)}
+            icon='barcode'
+          />
+
+          <Boton
+            className='btn-gray'
+            label={categoriaSeleccionada ? 'Categoría: ' + categoriaSeleccionada.name : 'Seleccionar Categoría (opcional)'}
+            onClick={() => setIsCategoriasSeleccionOpen(true)}
+            style={{ width: '100%', justifyContent: 'flex-start' }}
+          />
+
+          {/* Sección de Precios */}
+          <p className={styles.subTitle}>PRECIOS</p>
+          {loadingPrecios ? (
+            <div className={styles.noData}>
+              <p>Cargando precios...</p>
+            </div>
+          ) : (
+            preciosTipos.map(priceType => (
+              <InputNormal
+                key={priceType.id}
+                tipo="number"
+                value={dataMov.prices[priceType.id] || ''}
+                placeholder={`Precio ${priceType.name}`}
+                onChange={(e) => handlePriceChange(priceType.id, e.target.value)}
+                icon='dollar'
+                step="0.01"
+                min="0"
+              />
+            ))
+          )}
+          {/* Switch para receta */}
+          <div className={styles.content} style={{ padding: '10px 15px' }}>
+            <Switch
+              title="¿Tiene receta?"
+              subtitle="Marca si este producto se produce a partir de materias primas de acopio"
+              checked={hasReceta}
+              onChange={handleRecetaSwitch}
+              icon="receipt"
+            />
+          </div>
+
+          {/* Botón de receta (solo si está marcado el switch) */}
+          {hasReceta && (
+            <div className={styles.content} style={{ padding: '10px 15px' }}>
+              <Boton
+                className='btn-default'
+                label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
+                style={{ marginTop: 'auto' }}
+                onClick={() => setIsRecetaOpen(true)}
+              />
+              {recetaGuardada && recetaGuardada.productos && recetaGuardada.productos.length > 0 ? (
+                <div style={{ fontSize: '12px', color: '#28a745', fontWeight: '500', marginTop: '5px' }}>
+                  ✓ Receta guardada con {recetaGuardada.productos.length} productos
+                </div>
+              ) : (
+                <div style={{ fontSize: '12px', color: '#dc3545', fontWeight: '500', marginTop: '5px' }}>
+                  ⚠ Debe crear una receta con al menos un producto
+                </div>
+              )}
+            </div>
+          )}
+
+          <Boton
+            className='btn-original'
+            label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar producto'}
+            style={{ marginTop: 'auto' }}
+            onClick={handleSubmit}
+            loading={loading}
+            disabled={!dataMov.name.trim() || !dataMov.stock || dataMov.stock.toString().trim() === '' || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
+          />
+
         </div>
 
-        {/* Botón de receta (solo si está marcado el switch) */}
-        {hasReceta && (
-          <div className={styles.content} style={{ padding: '10px 15px' }}>
-            <Boton
-              className='btn-default'
-              label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
-              style={{ marginTop: 'auto' }}
-              onClick={() => setIsRecetaOpen(true)}
-            />
-            {recetaGuardada && recetaGuardada.productos && recetaGuardada.productos.length > 0 ? (
-              <div style={{ fontSize: '12px', color: '#28a745', fontWeight: '500', marginTop: '5px' }}>
-                ✓ Receta guardada con {recetaGuardada.productos.length} productos
-              </div>
-            ) : (
-              <div style={{ fontSize: '12px', color: '#dc3545', fontWeight: '500', marginTop: '5px' }}>
-                ⚠ Debe crear una receta con al menos un producto
-              </div>
-            )}
-          </div>
-        )}
-
-        <Boton
-          className='btn-original'
-          label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar producto'}
-          style={{ marginTop: 'auto' }}
-          onClick={handleSubmit}
-          loading={loading}
-          disabled={!dataMov.name.trim() || !dataMov.stock || dataMov.stock.toString().trim() === '' || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
+        <Notification
+          isVisible={notification.isVisible}
+          type={notification.type}
+          text={notification.text}
         />
+      </ViewModal>
 
-      </div>
 
+      {/* Modal de selección de categorías */}
+      <CategoriasAlmacen
+        isOpen={isCategoriasSeleccionOpen}
+        setIsOpen={setIsCategoriasSeleccionOpen}
+        modoSeleccion={true}
+        onCategoriaSeleccionada={handleCategoriaSeleccionada}
+      />
       {/* Modal de receta */}
       <EditarAgregarReceta
         isOpen={isRecetaOpen}
@@ -372,21 +396,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         onRecetaCreated={handleRecetaCreated}
         onRecetaUpdated={handleRecetaUpdated}
       />
-
-      {/* Modal de selección de categorías */}
-      <CategoriasAlmacen
-        isOpen={isCategoriasSeleccionOpen}
-        setIsOpen={setIsCategoriasSeleccionOpen}
-        modoSeleccion={true}
-        onCategoriaSeleccionada={handleCategoriaSeleccionada}
-      />
-
-      <Notification
-        isVisible={notification.isVisible}
-        type={notification.type}
-        text={notification.text}
-      />
-      </ViewModal>
+    </>
   );
 }
 

@@ -10,7 +10,7 @@
 .headerModalTitle {
     font-size: 20px;
     font-weight: 600;
-    color: var(--text-color);
+    color: var(--white-color);
 }
 
 .headerModalButton {

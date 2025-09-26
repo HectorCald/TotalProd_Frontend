@@ -15,11 +15,11 @@
 
 .filter {
     padding: 8px 13px;
-    border-radius: 20px;
+    border-radius: 10px;
     background-color: var(--tertiary-color);
     border: none;
-    color: white;
-    font-size: 14px;
+    color: var(--white-color);
+    font-size: 13px;
     font-weight: 400;
     cursor: pointer;
     white-space: nowrap;

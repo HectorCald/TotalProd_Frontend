@@ -11,11 +11,15 @@ function MovimientosMedio({ isOpen, setIsOpen }) {
     const [tipoMovimiento, setTipoMovimiento] = useState('');
 
     const handleTipoMovimiento = (tipo) => {
+        // Cerrar el modal del medio
+        setIsOpen(false);
+        // Abrir directamente la vista específica
         setIsMovimientosOpen(true);
         setTipoMovimiento(tipo);
     }
 
     return (
+        <>  
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} >
             <HeaderModal
                 title="Movimientos"
@@ -37,12 +41,10 @@ function MovimientosMedio({ isOpen, setIsOpen }) {
                     onClick={() => handleTipoMovimiento('acopio')}
                 />
             </div>
-            <PanelMovimientos 
-                isOpen={isMovimientosOpen} 
-                setIsOpen={setIsMovimientosOpen} 
-                tipoMovimiento={tipoMovimiento} 
-            />
         </ViewModal>
+        {/* Movimientos */}
+        <PanelMovimientos isOpen={isMovimientosOpen} setIsOpen={setIsMovimientosOpen} tipoMovimiento={tipoMovimiento} />
+        </>
     );
 }
 export default MovimientosMedio;

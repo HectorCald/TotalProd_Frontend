@@ -4,9 +4,9 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
-import Select from '../../common/Select';
 import Proveedores from '../proveedores/Proveedores';
-import MensajeError from '../../common/MensajeError';
+import Notification from '../../common/Notification';
+import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import gastosService from '../../../services/gastosService';
 
 function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, tipo = 'agregar', onGastoUpdated }) {
@@ -18,23 +18,29 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
     metodo_pago: ''
   });
 
-  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [isProveedoresSeleccionOpen, setIsProveedoresSeleccionOpen] = useState(false);
   const [proveedorSeleccionadoData, setProveedorSeleccionadoData] = useState(null);
 
-  // Función para mostrar notificaciones
+  // Estado para la notificación
+  const [notification, setNotification] = useState({
+    isVisible: false,
+    type: 'error',
+    text: ''
+  });
   const mostrarNotificacion = (tipo, texto) => {
-    console.log(`${tipo.toUpperCase()}: ${texto}`);
+    setNotification({
+      isVisible: true,
+      type: tipo,
+      text: texto
+    });
+
+    // Auto-ocultar después de 3 segundos
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, isVisible: false }));
+    }, 3000);
   };
 
-  // Opciones de métodos de pago
-  const metodosPago = [
-    { value: 'qr', label: 'QR', icon: 'qr' },
-    { value: 'transferencia', label: 'Transferencia', icon: 'transfer' },
-    { value: 'tarjeta', label: 'Tarjeta', icon: 'credit-card' },
-    { value: 'efectivo', label: 'Efectivo', icon: 'money' }
-  ];
 
   // Efecto para resetear el formulario y establecer fecha actual
   useEffect(() => {
@@ -65,7 +71,6 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
         });
         setProveedorSeleccionadoData(null);
       }
-      setErrorMessage('');
     }
   }, [isOpen, gasto, tipo]);
 
@@ -85,26 +90,22 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
   const handleSubmit = async () => {
     // Validaciones
     if (!dataGasto.fecha) {
-      setErrorMessage('La fecha es obligatoria');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'La fecha es obligatoria');
       return;
     }
 
     if (!dataGasto.valor || dataGasto.valor <= 0) {
-      setErrorMessage('El valor es obligatorio y debe ser mayor a 0');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'El valor es obligatorio y debe ser mayor a 0');
       return;
     }
 
     if (!dataGasto.concepto.trim()) {
-      setErrorMessage('El concepto es obligatorio');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'El concepto es obligatorio');
       return;
     }
 
     if (!dataGasto.metodo_pago) {
-      setErrorMessage('El método de pago es obligatorio');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'El método de pago es obligatorio');
       return;
     }
 
@@ -140,28 +141,25 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
         }
       } else {
         const mensajeError = tipo === 'editar' ? 'Error al actualizar el gasto' : 'Error al crear el gasto';
-        setErrorMessage(response.message || mensajeError);
-        setTimeout(() => setErrorMessage(''), 5000);
+        mostrarNotificacion('error', response.message || mensajeError);
       }
 
     } catch (error) {
       console.error('Error al registrar gasto:', error);
-      setErrorMessage(error.message || 'Error de conexión con el servidor');
-      setTimeout(() => setErrorMessage(''), 5000);
+      mostrarNotificacion('error', error.message || 'Error de conexión con el servidor');
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    <>
     <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
       <HeaderModal
         title={tipo === 'editar' ? 'Editar Gasto' : 'Nuevo Gasto'}
         onClose={() => setIsOpen(false)}
       />
       <div className={styles.modalContent}>
-        <MensajeError mensaje={errorMessage} />
-
         <p className={styles.subTitle}>INFORMACIÓN DEL GASTO</p>
 
         {/* Campo de fecha */}
@@ -194,21 +192,16 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
         />
 
         {/* Selector de método de pago */}
-        <div className={styles.content} style={{ padding: '5px 15px' }}>
-          <Select
-            value={dataGasto.metodo_pago}
-            onChange={handleChange.bind(null, 'metodo_pago')}
-            options={metodosPago}
-            placeholder='Método de pago'
-            icon='credit-card'
-          />
-        </div>
+        <SelectorMetodoPago
+          value={dataGasto.metodo_pago}
+          onChange={handleChange.bind(null, 'metodo_pago')}
+        />
 
         {/* Selector de proveedor */}
         <div className={styles.content} style={{ padding: '5px 15px' }}>
           <Boton
             className='btn-transparent'
-            label={proveedorSeleccionadoData ? proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
+            label={proveedorSeleccionadoData ? 'Proveedor: ' + proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
             onClick={() => setIsProveedoresSeleccionOpen(true)}
             style={{ width: '100%', justifyContent: 'flex-start' }}
           />
@@ -224,15 +217,21 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
           disabled={!dataGasto.fecha || !dataGasto.valor || !dataGasto.concepto || !dataGasto.metodo_pago}
         />
       </div>
-
-      {/* Modal de selección de proveedores */}
-      <Proveedores
+    </ViewModal>
+    {/* Modal de selección de proveedores */}
+    <Proveedores
         isOpen={isProveedoresSeleccionOpen}
         setIsOpen={setIsProveedoresSeleccionOpen}
         modoSeleccion={true}
         onProveedorSeleccionado={handleProveedorSeleccionado}
       />
-    </ViewModal>
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        text={notification.text}
+      />
+    </>
   );
 }
 

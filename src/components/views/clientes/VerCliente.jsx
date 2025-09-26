@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import HeaderModal from '../../common/HeaderModal';
@@ -7,13 +7,13 @@ import ViewModal from '../../ui/ViewModal';
 import Dato from '../../common/Dato';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import MensajeError from '../../common/MensajeError';
+import Notification from '../../common/Notification';
+import FetchData from '../../mixed/FetchData';
 import clientService from '../../../services/clientService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import ItemLine from '../../common/ItemLine';
 import ItemView from '../../common/ItemView';
 import MapaModal from './MapaModal';
-import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
 
 function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdated }) {
@@ -23,9 +23,6 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
-
-    // Estados para los mensajes de error y éxito
-    const [errorMessage, setErrorMessage] = useState('');
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
@@ -59,7 +56,7 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
     // Función para eliminar el cliente
     const handleEliminar = async (id) => {
         if (!id) {
-            setErrorMessage('ID del cliente no válido');
+            mostrarNotificacion('error', 'ID del cliente no válido');
             return;
         }
 
@@ -73,19 +70,14 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                     onClientDeleted(id);
                     setIsDeleteOpen(false);
                     setIsOpen(false);
+                    mostrarNotificacion('success', 'Cliente eliminado correctamente');
                 }
             } else {
-                setErrorMessage(response.message || 'Error al eliminar el cliente');
-                setTimeout(() => {
-                    setErrorMessage('');
-                }, 3000);
+                mostrarNotificacion('error', response.message || 'Error al eliminar el cliente');
             }
         } catch (error) {
             console.error('Error al eliminar cliente:', error);
-            setErrorMessage('Error de conexión con el servidor');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+            mostrarNotificacion('error', 'Error de conexión con el servidor');
         } finally {
             setLoading(false);
         }
@@ -98,38 +90,17 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
         }
     }
 
-    // Cargar los movimientos del cliente
-    useEffect(() => {
-        const loadMovimientos = async () => {
-            if (usuario?.id && isOpen) {
-                setLoadingMovimientosList(true);
-                try {
-                    const response = await movimientosAcopioService.getByCliente(usuario.id);
-                    if (response.success) {
-                        // Limitar a los últimos 10 movimientos
-                        const limitedMovements = (response.data || []).slice(0, 10);
-                        setMovimientos(limitedMovements);
-                    } else {
-                        setMovimientos([]);
-                    }
-                } catch (error) {
-                    console.error('Error cargando movimientos:', error);
-                    setMovimientos([]);
-                } finally {
-                    setLoadingMovimientosList(false);
-                }
-            }
-        };
+    // Callbacks para FetchData
+    const handleMovimientosLoaded = useCallback((data) => {
+        // Limitar a los últimos 10 movimientos
+        const limitedMovements = (data || []).slice(0, 10);
+        setMovimientos(limitedMovements);
+    }, []);
 
-        loadMovimientos();
-    }, [usuario?.id, isOpen]);
+    const handleLoading = useCallback((isLoading) => {
+        setLoadingMovimientosList(isLoading);
+    }, []);
 
-    // Efecto para limpiar mensajes al abrir/cerrar
-    useEffect(() => {
-        if (isOpen) {
-            setErrorMessage('');
-        }
-    }, [isOpen]);
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -159,16 +130,17 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 />
 
                 <div className={styles.buttons}>
+                <Boton
+                        className='btn-default'
+                        label='Editar Cliente'
+                        onClick={() => setIsEditOpen(true)}
+                    />
                     <Boton
                         className='btn-red'
                         label='Eliminar Cliente'
                         onClick={() => setIsDeleteOpen(true)}
                     />
-                    <Boton
-                        className='btn-default'
-                        label='Editar Cliente'
-                        onClick={() => setIsEditOpen(true)}
-                    />
+                    
                 </div>
             </div>
 
@@ -189,20 +161,19 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>¿Eliminar al cliente {usuario?.name}? Esta acción es irreversible y puede afectar registros relacionados.</p>
-                    <MensajeError mensaje={errorMessage} />
                     <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsDeleteOpen(false)}
+                        />
                         <Boton
                             className='btn-red'
                             label='Si, eliminar'
                             style={{ marginTop: 'auto' }}
                             onClick={() => handleEliminar(usuario?.id)}
                             loading={loading}
-                        />
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsDeleteOpen(false)}
                         />
                     </div>
                 </div>
@@ -255,6 +226,20 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                     )}
                 </div>
             </ViewModal>
+
+            {/* FetchData para movimientos */}
+            {isOpen && usuario?.id && (
+                <FetchData
+                    service={movimientosAcopioService}
+                    serviceName="movimientosAcopioService"
+                    method="getByCliente"
+                    methodParams={[usuario.id]}
+                    isOpen={isOpen}
+                    onDataLoaded={handleMovimientosLoaded}
+                    onLoadingStart={() => handleLoading(true)}
+                    onLoadingEnd={() => handleLoading(false)}
+                />
+            )}
 
             {/* Modal de Notificación*/}
             <Notification

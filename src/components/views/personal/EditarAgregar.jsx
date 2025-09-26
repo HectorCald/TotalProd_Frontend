@@ -4,7 +4,6 @@ import HeaderModal from '../../common/HeaderModal';
 import ViewModal from '../../ui/ViewModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
-import MensajeError from '../../common/MensajeError';
 import Carousel from '../../common/Carousel';
 import MultiSelect from '../../common/MultiSelect';
 import personalService from '../../../services/personalService';
@@ -29,8 +28,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
         editar: false,
         anular: false
     });
-    // Estados para los mensajes de error y éxito
-    const [errorMessage, setErrorMessage] = useState('');
+    // Estado para la notificación
     const [notification, setNotification] = useState({
         isVisible: false,
         type: 'success',
@@ -166,7 +164,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                 anular: false
             });
         }
-        setErrorMessage('');
     }, [isOpen, usuario, tipo]);
 
     // Efecto para cargar módulos cuando se abre el modal
@@ -184,28 +181,19 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
 
         // Validar campos obligatorios
         if (!dataEdit.first_name.trim()) {
-            setErrorMessage('El nombre es obligatorio');
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
+            mostrarNotificacion('error', 'El nombre es obligatorio');
             setLoading(false);
             return;
         }
 
         if (!dataEdit.last_name.trim()) {
-            setErrorMessage('El apellido es obligatorio');
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
+            mostrarNotificacion('error', 'El apellido es obligatorio');
             setLoading(false);
             return;
         }
 
         if (!sucursalId) {
-            setErrorMessage('La sucursal es obligatoria');
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
+            mostrarNotificacion('error', 'La sucursal es obligatoria');
             setLoading(false);
             return;
         }
@@ -218,20 +206,14 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
 
         // Validar longitud del código
         if (codigoFinal.length !== 8) {
-            setErrorMessage('El código debe tener exactamente 8 caracteres');
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
+            mostrarNotificacion('error', 'El código debe tener exactamente 8 caracteres');
             setLoading(false);
             return;
         }
 
         // Validar que se seleccione al menos un submódulo
         if (selectedModules.length === 0) {
-            setErrorMessage('Debe seleccionar al menos un submódulo');
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
+            mostrarNotificacion('error', 'Debe seleccionar al menos un submódulo');
             setLoading(false);
             return;
         }
@@ -241,19 +223,13 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             const codigoCheck = await personalService.checkCodigo(codigoFinal, tipo === 'editar' ? usuario?.id : null);
 
             if (codigoCheck.success && codigoCheck.data.exists) {
-                setErrorMessage('El código ya existe en esta empresa');
-                setTimeout(() => {
-                    setErrorMessage('')
-                }, 3000);
+                mostrarNotificacion('error', 'El código ya existe en esta empresa');
                 setLoading(false);
                 return;
             }
         } catch (error) {
             console.error('Error al verificar código:', error);
-            setErrorMessage('Error al verificar el código');
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
+            mostrarNotificacion('error', 'Error al verificar el código');
             setLoading(false);
             return;
         }
@@ -287,17 +263,11 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                 // Cerrar modal inmediatamente
                 setIsOpen(false);
             } else {
-                setErrorMessage(response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el personal`);
-                setTimeout(() => {
-                    setErrorMessage('')
-                }, 3000);
+                mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el personal`);
             }
         } catch (error) {
             console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} personal:`, error);
-            setErrorMessage('Error de conexión con el servidor');
-            setTimeout(() => {
-                setErrorMessage('')
-            }, 3000);
+            mostrarNotificacion('error', 'Error de conexión con el servidor');
         } finally {
             setLoading(false);
         }
@@ -311,10 +281,10 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
     }
 
     return (
+        <>
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderModal title={tipo === 'agregar' ? 'Nuevo personal' : tipo === 'editar' ? 'Editar personal' : 'Ver personal'} onClose={() => setIsOpen(false)} />
             <div className={styles.modalContent}>
-                <MensajeError mensaje={errorMessage} />
                 <p className={styles.subTitle}>INFORMACION PERSONAL</p>
                 <InputNormal
                     tipo="text"
@@ -398,8 +368,15 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                 )}
             </div>
 
-            {/* Modal de Configuración */}
-            <ViewModal isOpen={isConfiguracionOpen} setIsOpen={setIsConfiguracionOpen}>
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
+
+        </ViewModal>
+        {/* Modal de Configuración */}
+        <ViewModal isOpen={isConfiguracionOpen} setIsOpen={setIsConfiguracionOpen}>
                 <HeaderModal
                     title="Configuración"
                     onClose={() => setIsConfiguracionOpen(false)}
@@ -482,14 +459,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                     />
                 </div>
             </ViewModal>
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
-
-        </ViewModal>
+        </>
     );
 }
 export default EditarAgregar;

@@ -3,18 +3,42 @@
     top: 0;
     right: 0;
     width: 100%;
-    max-width: 500px;
-    height: 100vh;
+    height: 100%;
     background-color: var(--secondary-color);
-    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
     cursor: grab;
     overflow: hidden;
-    z-index: 9999999;
+    z-index: 999;
     transform: translateX(100%);
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, width 0.3s ease;
 }
+
+/* En pantallas grandes, sin animación */
+@media (min-width: 1024px) {
+    .viewContainer {
+        transform: translateX(0);
+        transition: width 0.3s ease; /* Solo transición de ancho, no de posición */
+    }
+}
+
 
 .viewContainerVisible {
     transform: translateX(0);
 }
 
+/* Cuando la barra lateral está expandida (ancho normal) */
+.viewContainerSidebarExpanded {
+    width: calc(100% - 280px); /* 280px es el ancho de la barra lateral expandida */
+}
+
+/* Cuando la barra lateral está colapsada (ancho reducido) */
+.viewContainerSidebarCollapsed {
+    width: calc(100% - 70px); /* 70px es el ancho de la barra lateral colapsada */
+}
+
+/* Para pantallas pequeñas, mantener el ancho completo */
+@media (max-width: 1023px) {
+    .viewContainerSidebarExpanded,
+    .viewContainerSidebarCollapsed {
+        width: 100%;
+    }
+}

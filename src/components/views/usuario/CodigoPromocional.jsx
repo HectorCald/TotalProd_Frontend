@@ -131,7 +131,7 @@ function CodigoPromocional({ isOpen, setIsOpen }) {
         }
     }
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen}isMainView={true}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>Codigo Promocional</h1>

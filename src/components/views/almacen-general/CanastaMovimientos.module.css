@@ -18,6 +18,7 @@
     display: flex;
     justify-content: space-between;
     width: 100%;
+    color: var(--white-color);
 }
 .subTitle {
     font-size: 13px;
@@ -182,7 +183,7 @@
 }
 
 .btnCantidad {
-    background: var(--quaternary-color);
+    background: gray;
     border: none;
     color: white;
     min-width: 32px;
@@ -398,7 +399,6 @@
 
 .buttons {
     display: flex;
-    flex-direction: column;
     gap: 7px;
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -7,15 +7,20 @@ import ItemView from '../../common/ItemView';
 import VerPersona from './VerPersona';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
+import FetchData from '../../mixed/FetchData';
 import personalService from '../../../services/personalService';
 import sucursalesService from '../../../services/sucursalesService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
 
 
 function Personal({ isOpen, setIsOpen }) {
+    const { isLargeScreen } = useLayout();
+    
     const [isOpenVerPersona, setIsOpenVerPersona] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
@@ -29,69 +34,24 @@ function Personal({ isOpen, setIsOpen }) {
 
     // Estados para personal
     const [personal, setPersonal] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
     // Estados para sucursales
     const [sucursales, setSucursales] = useState([]);
-    const [sucursalesLoading, setSucursalesLoading] = useState(false);
-    const [sucursalesError, setSucursalesError] = useState(null);
 
-    // Función para cargar personal
-    const cargarPersonal = async () => {
-        console.log('cargando personal');
-        setIsLoading(true);
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        setError(null);
-        
-        try {
-            const response = await personalService.getAll();
-            if (response.success) {
-                setPersonal(response.data);
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            setIsLoading(false);
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    };
+    // Callbacks para FetchData
+    const handlePersonalLoaded = useCallback((data) => {
+        setPersonal(data || []);
+    }, []);
 
-    // Función para cargar sucursales
-    const cargarSucursales = async () => {
-        setSucursalesLoading(true);
-        setSucursalesError(null);
-        
-        try {
-            const response = await sucursalesService.getByEmpresaId();
-            if (response.success) {
-                setSucursales(response.data);
-            } else {
-                setSucursalesError(response);
-            }
-        } catch (error) {
-            setSucursalesError(error);
-        } finally {
-            setSucursalesLoading(false);
-        }
-    };
+    const handleSucursalesLoaded = useCallback((data) => {
+        setSucursales(data || []);
+    }, []);
 
-    // Cargar datos cuando se abre el modal
-    useEffect(() => {
-        if (isOpen) {
-            cargarPersonal();
-            cargarSucursales();
-        }
-    }, [isOpen]);
+    const handleLoading = useCallback((isLoading) => {
+        setShowRefreshIndicator(isLoading);
+        setIsRefreshing(isLoading);
+    }, []);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -141,8 +101,32 @@ function Personal({ isOpen, setIsOpen }) {
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        await cargarPersonal();
-        await cargarSucursales();
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+
+        try {
+            // Cargar personal
+            const personalResponse = await personalService.getAll();
+            if (personalResponse.success) {
+                setPersonal(personalResponse.data);
+            }
+
+            // Cargar sucursales
+            const sucursalesResponse = await sucursalesService.getByEmpresaId();
+            if (sucursalesResponse.success) {
+                setSucursales(sucursalesResponse.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar datos:', error);
+        } finally {
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
     };
 
     // Efecto para resetear búsqueda cuando se abre
@@ -204,8 +188,27 @@ function Personal({ isOpen, setIsOpen }) {
         mostrarNotificacion('success', 'Personal actualizado correctamente');
     };
 
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'nombre', label: 'Nombre', icon: 'user' },
+        { key: 'codigo', label: 'Código', icon: 'id-card' },
+        { key: 'estado', label: 'Estado', icon: 'check-circle' },
+        { key: 'sucursal', label: 'Sucursal', icon: 'store' },
+        { key: 'modulos', label: 'Modulos', icon: 'check-circle' }
+    ];
+
+    // Datos para la tabla
+    const tableData = personalFiltrado.map(persona => ({
+        id: persona.id,
+        nombre: `${persona.first_name} ${persona.last_name}`,
+        codigo: persona.codigo || '--',
+        estado: persona.is_active ? 'Activo' : 'Inactivo',
+        sucursal: persona.sucursal?.name || 'Sin sucursal',
+        modulos: persona.modules?.length+' Submódulos'
+    }));
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
@@ -230,22 +233,38 @@ function Personal({ isOpen, setIsOpen }) {
                         }}
                     />
                 </div>
-                <div className={styles.content}>
-                    {personalFiltrado.length > 0 ? (
-                        personalFiltrado.map((persona, index) => (
-                            <ItemView
-                                key={persona.id || index}
-                                title={`${persona.first_name} ${persona.last_name}`}
-                                description={`Código: ${persona.codigo}`}
-                                arrow={true}
-                                onClick={() => handlePersonal(persona)}
-                                float2={persona.is_active ? 'Activo' : 'Inactivo'}
-                            />
-                        ))
+                <div className={styles.content} style={{
+                        maxHeight: 'calc(100% - 185px)',
+                    }}>
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(persona) => {
+                                // Buscar la persona original sin formatear
+                                const personaOriginal = personalFiltrado.find(p => p.id === persona.id);
+                                handlePersonal(personaOriginal);
+                            }}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontró personal' : 'No hay personal registrado'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        personalFiltrado.length > 0 ? (
+                            personalFiltrado.map((persona, index) => (
+                                <ItemView
+                                    key={persona.id || index}
+                                    title={`${persona.first_name} ${persona.last_name}`}
+                                    description={`Código: ${persona.codigo}`}
+                                    arrow={true}
+                                    onClick={() => handlePersonal(persona)}
+                                    float2={persona.is_active ? 'Activo' : 'Inactivo'}
+                                />
+                            ))
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery ? 'No se encontró personal' : 'No hay personal registrado'}</p>
+                            </div>
+                        )
                     )}
                 </div>
                 <div className={styles.buttonFooter}>
@@ -285,6 +304,29 @@ function Personal({ isOpen, setIsOpen }) {
                 buttonText="Aceptar"
                 onButtonClick={(setIsOpen)}
             />
+            {/* FetchData para personal */}
+            {isOpen && (
+                <FetchData
+                    service={personalService}
+                    serviceName="personalService"
+                    isOpen={isOpen}
+                    onDataLoaded={handlePersonalLoaded}
+                    onLoadingStart={() => handleLoading(true)}
+                    onLoadingEnd={() => handleLoading(false)}
+                />
+            )}
+
+            {/* FetchData para sucursales */}
+            {isOpen && (
+                <FetchData
+                    service={sucursalesService}
+                    serviceName="sucursalesService"
+                    method="getByEmpresaId"
+                    isOpen={isOpen}
+                    onDataLoaded={handleSucursalesLoaded}
+                />
+            )}
+
             <Notification
                 isVisible={notification.isVisible}
                 type={notification.type}

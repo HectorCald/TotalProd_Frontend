@@ -15,8 +15,12 @@ import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
 
 function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
+    const { isLargeScreen } = useLayout();
+    
     // Estados para los modal de ver pedido
     const [isOpenVerPedido, setIsOpenVerPedido] = useState(false);
     const [infoPedido, setInfoPedido] = useState(null);
@@ -106,6 +110,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             }, 500);
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
+
 
     // Cargar pedidos cuando se abre el modal
     useEffect(() => {
@@ -265,8 +270,33 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         },
     ];
 
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'sucursal', label: 'Sucursal', icon: 'store' },
+        { key: 'usuario', label: 'Usuario', icon: 'user' },
+        { key: 'fecha', label: 'Fecha', icon: 'calendar' },
+        { key: 'estado', label: 'Estado', icon: 'check-circle' },
+        { key: 'tipo_precio', label: 'Tipo de Precio', icon: 'dollar-sign' }
+    ];
+
+    // Datos para la tabla
+    const tableData = allPedidos.map(pedido => ({
+        id: pedido.id,
+        sucursal: pedido.sucursal?.name || 'Sucursal desconocida',
+        usuario: pedido.user?.name || 'Usuario desconocido',
+        fecha: new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        }),
+        tipo_precio: pedido.precio?.name || 'Precio desconocido',
+        estado: pedido.estado
+    }));
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
@@ -308,29 +338,43 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         minHeight: 'calc(100vh - 250px)',
                     }}
                 >
-                    {allPedidos.length > 0 ? (
-                        allPedidos.map((pedido, index) => {
-                            return (
-                                <ItemView
-                                    key={pedido.id || index}
-                                    title={pedido.sucursal?.name || 'Sucursal desconocida'}
-                                    description={new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-                                        year: 'numeric',
-                                        month: '2-digit',
-                                        day: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    })}
-                                    icon="file"
-                                    onClick={() => handleVerPedido(pedido)}
-                                    flot1={pedido.estado}
-                                />
-                            );
-                        })
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(pedido) => {
+                                // Buscar el pedido original sin formatear
+                                const pedidoOriginal = allPedidos.find(p => p.id === pedido.id);
+                                handleVerPedido(pedidoOriginal);
+                            }}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron pedidos' : 'No hay pedidos registrados'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        allPedidos.length > 0 ? (
+                            allPedidos.map((pedido, index) => {
+                                return (
+                                    <ItemView
+                                        key={pedido.id || index}
+                                        title={pedido.sucursal?.name || 'Sucursal desconocida'}
+                                        description={new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                        icon="file"
+                                        onClick={() => handleVerPedido(pedido)}
+                                        flot1={pedido.estado}
+                                    />
+                                );
+                            })
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery ? 'No se encontraron pedidos' : 'No hay pedidos registrados'}</p>
+                            </div>
+                        )
                     )}
 
                     {/* Indicador de carga para más elementos */}

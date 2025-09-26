@@ -3,7 +3,6 @@ import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import Dato from '../../common/Dato';
-import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import EditarAgregarSucursal from './EditarAgregarSucursal';
 import ViewModal from '../../ui/ViewModal';
@@ -83,14 +82,14 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
 
                 <div className={styles.buttons}>
                     <Boton
-                        className='btn-red'
-                        label='Eliminar Sucursal'
-                        onClick={() => setIsEliminarOpen(true)}
-                    />
-                    <Boton
                         className='btn-default'
                         label='Editar Sucursal'
                         onClick={() => setIsEditarOpen(true)}
+                    />
+                    <Boton
+                        className='btn-red'
+                        label='Eliminar Sucursal'
+                        onClick={() => setIsEliminarOpen(true)}
                     />
                 </div>
             </div>
@@ -116,17 +115,17 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
                     </p>
                     <div className={styles.buttons}>
                         <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsEliminarOpen(false)}
+                        />
+                        <Boton
                             className='btn-red'
                             label='Sí, eliminar'
                             style={{ marginTop: 'auto' }}
                             onClick={handleEliminar}
                             loading={loading}
-                        />
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsEliminarOpen(false)}
                         />
                     </div>
                 </div>

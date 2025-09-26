@@ -76,7 +76,7 @@ function EditarAgregarCategoria({ isOpen, setIsOpen, data = '', tipo, onCategori
   };
 
   return (
-    <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
+    <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
       <HeaderModal
         title={tipo === 'editar' ? 'Editar categoría' : 'Nueva categoría'}
         onClose={() => setIsOpen(false)}

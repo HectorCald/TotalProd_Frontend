@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -7,14 +7,17 @@ import ItemView from '../../common/ItemView';
 import VerProveedor from './VerProveedor';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
+import FetchData from '../../mixed/FetchData';
 import proveedorService from '../../../services/proveedorService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
-
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 
 function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSeleccionado }) {
+    const { isLargeScreen } = useLayout();
     
     const [isOpenVerProveedor, setIsOpenVerProveedor] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
@@ -29,45 +32,17 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
 
     // Estados para proveedores
     const [proveedores, setProveedores] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Función para cargar proveedores
-    const cargarProveedores = async () => {
-        console.log('cargando proveedores');
-        setIsLoading(true);
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        setError(null);
-        
-        try {
-            const response = await proveedorService.getAll();
-            if (response.success) {
-                setProveedores(response.data);
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            setIsLoading(false);
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    };
+    // Callbacks para FetchData
+    const handleProveedoresLoaded = useCallback((data) => {
+        setProveedores(data || []);
+    }, []);
 
-    // Cargar proveedores cuando se abre el modal
-    useEffect(() => {
-        if (isOpen) {
-            cargarProveedores();
-        }
-    }, [isOpen]);
-
+    const handleLoading = useCallback((isLoading) => {
+        setShowRefreshIndicator(isLoading);
+        setIsRefreshing(isLoading);
+    }, []);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -126,7 +101,25 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
-        await cargarProveedores();
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+
+        try {
+            const response = await proveedorService.getAll();
+            if (response.success) {
+                setProveedores(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar proveedores:', error);
+        } finally {
+            // Mostrar "Actualizado" por 1 segundo
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setTimeout(() => {
+                    setShowRefreshIndicator(false);
+                }, 1000);
+            }, 500);
+        }
     };
 
 
@@ -195,9 +188,23 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
         mostrarNotificacion('success', 'Proveedor actualizado correctamente')
     };
 
-    
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'name', label: 'Proveedor', icon: 'user' },
+        { key: 'description', label: 'Descripción', icon: 'comment' },
+        { key: 'telefono', label: 'Teléfono', icon: 'phone' }
+    ];
+
+    // Datos para la tabla
+    const tableData = proveedoresFiltrados.map(proveedor => ({
+        id: proveedor.id,
+        name: proveedor.name || 'Sin nombre',
+        description: proveedor.description || '--',
+        telefono: proveedor.phone || '--'
+    }));
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!modoSeleccion}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
@@ -222,21 +229,37 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                         }}
                     />
                 </div>
-                <div className={styles.content}>
-                    {proveedoresFiltrados.length > 0 ? (
-                        proveedoresFiltrados.map((proveedor, index) => (
-                            <ItemView
-                                key={proveedor.id || index}
-                                title={proveedor.name || 'Sin nombre'}
-                                description={proveedor.description || 'Sin descripción'}
-                                arrow={true}
-                                onClick={() => handleProveedor(proveedor)}
-                            />
-                        ))
+                <div className={styles.content} style={{
+                        maxHeight: 'calc(100% - 185px)',
+                    }}>
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(proveedor) => {
+                                // Buscar el proveedor original sin formatear
+                                const proveedorOriginal = proveedoresFiltrados.find(p => p.id === proveedor.id);
+                                handleProveedor(proveedorOriginal);
+                            }}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron proveedores' : 'No hay proveedores registrados'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        proveedoresFiltrados.length > 0 ? (
+                            proveedoresFiltrados.map((proveedor, index) => (
+                                <ItemView
+                                    key={proveedor.id || index}
+                                    title={proveedor.name || 'Sin nombre'}
+                                    description={proveedor.description || 'Sin descripción'}
+                                    arrow={true}
+                                    onClick={() => handleProveedor(proveedor)}
+                                />
+                            ))
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery ? 'No se encontraron proveedores' : 'No hay proveedores registrados'}</p>
+                            </div>
+                        )
                     )}
                 </div>
                 <div className={styles.buttonFooter}>
@@ -276,6 +299,18 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                 buttonText="Aceptar"
                 onButtonClick={(setIsOpen)}
             />
+            {/* FetchData para proveedores */}
+            {isOpen && (
+                <FetchData
+                    service={proveedorService}
+                    serviceName="proveedorService"
+                    isOpen={isOpen}
+                    onDataLoaded={handleProveedoresLoaded}
+                    onLoadingStart={() => handleLoading(true)}
+                    onLoadingEnd={() => handleLoading(false)}
+                />
+            )}
+
             <Notification
                 isVisible={notification.isVisible}
                 type={notification.type}

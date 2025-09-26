@@ -11,11 +11,15 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
     const [type, setType] = useState('');
 
     const handleTypeAlmacen = (tipo) => {
+        // Cerrar el modal del medio
+        setIsOpen(false);
+        // Abrir directamente la vista específica
         setIsAlmcenOpen(true);
         setType(tipo);
     }
 
     return (
+        <>  {/* Almcen acopio */}
         <ViewModal ViewModal isOpen={isOpen} setIsOpen={setIsOpen} >
             <HeaderModal
                 title="Materia Prima"
@@ -53,9 +57,11 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
                     onClick={()=> handleTypeAlmacen('almacen')}
                 />
             </div>
-            {/* Almcen acopio */}
-            <AlmacenAcopio isOpen={isAlmacenOpen} setIsOpen={setIsAlmcenOpen} tipo={type} />
+            
         </ViewModal >
+        {/* Almcen acopio */}
+        <AlmacenAcopio isOpen={isAlmacenOpen} setIsOpen={setIsAlmcenOpen} tipo={type} />
+        </>
     );
 }
 export default AlmacenMedio;

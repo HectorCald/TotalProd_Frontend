@@ -28,7 +28,7 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
             'Responsable': gasto?.user?.name || gasto?.personal?.name || 'Usuario desconocido',
             'Fecha': new Date(gasto?.fecha_gasto).toLocaleString(),
             'Concepto': gasto?.concepto || 'Sin concepto',
-            'Valor': `Bs. ${(gasto?.valor || 0).toFixed(2)}`,
+            'Valor': `Bs. ${(parseFloat(gasto?.valor) || 0).toFixed(2)}`,
             'Método de Pago': gasto?.metodo_pago || 'No especificado',
             'Sucursal': gasto?.sucursal?.name || 'Sucursal no encontrada'
         };
@@ -47,7 +47,7 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
         type: 'success',
         text: ''
     });
-    
+
     const mostrarNotificacion = (tipo, texto) => {
         setNotification({
             isVisible: true,
@@ -97,7 +97,7 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
                 <ItemView
                     title={gasto?.concepto || 'Sin concepto'}
                     description={`Fecha: ${new Date(gasto?.fecha_gasto).toLocaleDateString()}`}
-                    description2={`Valor: Bs. ${(gasto?.valor || 0).toFixed(2)}`}
+                    description2={`Valor: Bs. ${(parseFloat(gasto?.valor) || 0).toFixed(2)}`}
                     transparent={false}
                     circulo={false}
                     flot6="Gasto"
@@ -106,7 +106,7 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
                 <div className={styles.content}>
                     <Dato
                         label="Valor"
-                        value={`Bs. ${(gasto?.valor || 0).toFixed(2)}`}
+                        value={`Bs. ${(parseFloat(gasto?.valor) || 0).toFixed(2)}`}
                         vertical={false}
                         especial='red'
                     />
@@ -138,15 +138,15 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
 
                 <div className={styles.buttons}>
                     <Boton
-                        className='btn-gray'
-                        label='Editar Gasto'
-                        onClick={() => setIsEditarOpen(true)}
-                    />
-                    <Boton
                         className='btn-red'
                         label='Eliminar Gasto'
                         style={{ marginTop: 'auto' }}
                         onClick={() => setIsEliminarOpen(true)}
+                    />
+                    <Boton
+                        className='btn-default'
+                        label='Editar Gasto'
+                        onClick={() => setIsEditarOpen(true)}
                     />
                 </div>
             </div>

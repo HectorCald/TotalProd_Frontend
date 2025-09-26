@@ -11,8 +11,11 @@ import Notification from '../../common/Notification';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import { useLayout } from '../../../context/LayoutContext';
+import Table from '../../common/Table';
 
 function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategoriaSeleccionada }) {
+    const { isLargeScreen } = useLayout();
     // Estados para los modales
     const [isOpenVerCategoria, setIsOpenVerCategoria] = useState(false);
     const [infoCategoria, setInfoCategoria] = useState(null);
@@ -125,6 +128,17 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
         categoria.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Headers para la tabla
+    const tableHeaders = [
+        { key: 'name', label: 'Categoría', icon: 'category' }
+    ];
+
+    // Datos para la tabla
+    const tableData = categoriasFiltradas.map(categoria => ({
+        id: categoria.id,
+        name: categoria.name || 'Sin nombre'
+    }));
+
 
     // Función para manejar cuando se crea una nueva categoría
     const handleCategoriaCreated = (newCategoria) => {
@@ -186,20 +200,34 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                     />
                 </div>
                 <div className={styles.content}>
-                    {categoriasFiltradas.length > 0 ? (
-                        categoriasFiltradas.map((categoria, index) => (
-                            <ItemView
-                                key={categoria.id || index}
-                                title={categoria.name || 'Sin nombre'}
-                                icon="category"
-                                arrow={true}
-                                onClick={() => handleCategoria(categoria)}
-                            />
-                        ))
+                    {isLargeScreen ? (
+                        // Vista de tabla para pantallas grandes
+                        <Table
+                            headers={tableHeaders}
+                            data={tableData}
+                            onRowClick={(categoria) => {
+                                // Buscar la categoría original sin formatear
+                                const categoriaOriginal = categoriasFiltradas.find(c => c.id === categoria.id);
+                                handleCategoria(categoriaOriginal);
+                            }}
+                        />
                     ) : (
-                        <div className={styles.noData}>
-                            <p>{searchQuery ? 'No se encontraron categorías' : 'No hay categorías registradas'}</p>
-                        </div>
+                        // Vista de cards para pantallas pequeñas
+                        categoriasFiltradas.length > 0 ? (
+                            categoriasFiltradas.map((categoria, index) => (
+                                <ItemView
+                                    key={categoria.id || index}
+                                    title={categoria.name || 'Sin nombre'}
+                                    icon="category"
+                                    arrow={true}
+                                    onClick={() => handleCategoria(categoria)}
+                                />
+                            ))
+                        ) : (
+                            <div className={styles.noData}>
+                                <p>{searchQuery ? 'No se encontraron categorías' : 'No hay categorías registradas'}</p>
+                            </div>
+                        )
                     )}
                 </div>
             </div>

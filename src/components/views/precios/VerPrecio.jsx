@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import Dato from '../../common/Dato';
-import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import EditarAgregarPrecio from './EditarAgregarPrecio';
 import ViewModal from '../../ui/ViewModal';
@@ -12,6 +11,7 @@ import ItemView from '../../common/ItemView';
 import pricesTypesService from '../../../services/pricesTypesService';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import Notification from '../../common/Notification';
+import FetchData from '../../mixed/FetchData';
 
 function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated }) {
     const [isEditarOpen, setIsEditarOpen] = useState(false);
@@ -21,26 +21,21 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
     const [products, setProducts] = useState([]);
     const [loadingProducts, setLoadingProducts] = useState(false);
 
-    // Función para obtener los productos con este tipo de precio
-    const fetchProductsByPriceType = async () => {
-        if (!precio?.id) return;
-        
-        setLoadingProducts(true);
-        try {
-            const response = await productsAlmacenService.getAll();
-            if (response.success && response.data) {
-                // Filtrar productos que tienen este tipo de precio
-                const productosFiltrados = response.data.filter(producto => 
-                    producto.price_product && producto.price_product.some(pp => pp.prices_types && pp.prices_types.id === precio.id)
-                );
-                setProducts(productosFiltrados);
-            }
-        } catch (error) {
-            console.error('Error obteniendo productos del tipo de precio:', error);
-        } finally {
-            setLoadingProducts(false);
+    // Callback para manejar los productos cargados
+    const handleProductosLoaded = useCallback((data) => {
+        if (data && precio?.id) {
+            // Filtrar productos que tienen este tipo de precio
+            const productosFiltrados = data.filter(producto =>
+                producto.price_product && producto.price_product.some(pp => pp.prices_types && pp.prices_types.id === precio.id)
+            );
+            setProducts(productosFiltrados);
         }
-    };
+    }, [precio?.id]);
+
+    // Callback para manejar el estado de carga
+    const handleLoading = useCallback((isLoading) => {
+        setLoadingProducts(isLoading);
+    }, []);
 
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -111,22 +106,18 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                 <Boton
                     className='btn-gray'
                     label='Ver Productos'
-                    onClick={() => {
-                        setIsProductosOpen(true);
-                        fetchProductsByPriceType();
-                    }}
+                    onClick={() => setIsProductosOpen(true)}
                 />
-
                 <div className={styles.buttons}>
-                    <Boton
-                        className='btn-red'
-                        label='Eliminar Tipo de Precio'
-                        onClick={() => setIsEliminarOpen(true)}
-                    />
                     <Boton
                         className='btn-default'
                         label='Editar Tipo de Precio'
                         onClick={() => setIsEditarOpen(true)}
+                    />
+                    <Boton
+                        className='btn-red'
+                        label='Eliminar Tipo de Precio'
+                        onClick={() => setIsEliminarOpen(true)}
                     />
                 </div>
             </div>
@@ -152,18 +143,19 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                     </p>
                     <div className={styles.buttons}>
                         <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsEliminarOpen(false)}
+                        />
+                        <Boton
                             className='btn-red'
                             label='Sí, eliminar'
                             style={{ marginTop: 'auto' }}
                             onClick={handleEliminar}
                             loading={loading}
                         />
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsEliminarOpen(false)}
-                        />
+
                     </div>
                 </div>
             </ViewModal>
@@ -184,10 +176,10 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                             <p className={styles.subTitle}>PRODUCTOS CON ESTE TIPO DE PRECIO</p>
                             {products.map((product, index) => {
                                 // Encontrar el precio específico para este tipo de precio
-                                const precioProducto = product.price_product?.find(pp => 
+                                const precioProducto = product.price_product?.find(pp =>
                                     pp.prices_types && pp.prices_types.id === precio.id
                                 );
-                                
+
                                 return (
                                     <ItemView
                                         key={product.id || index}
@@ -207,6 +199,18 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                     )}
                 </div>
             </ViewModal>
+
+            {/* FetchData para productos */}
+            {isProductosOpen && (
+                <FetchData
+                    service={productsAlmacenService}
+                    serviceName="productsAlmacenService"
+                    isOpen={isProductosOpen}
+                    onDataLoaded={handleProductosLoaded}
+                    onLoadingStart={() => handleLoading(true)}
+                    onLoadingEnd={() => handleLoading(false)}
+                />
+            )}
 
             <Notification
                 isVisible={notification.isVisible}

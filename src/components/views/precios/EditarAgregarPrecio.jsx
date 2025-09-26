@@ -5,7 +5,7 @@ import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import pricesTypesService from '../../../services/pricesTypesService';
-import MensajeError from '../../common/MensajeError';
+import Notification from '../../common/Notification';
 
 function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreated, onPrecioUpdated }) {
   const [dataMov, setDataMov] = useState({
@@ -13,8 +13,26 @@ function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreat
     description: ''
   });
 
-  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Estado para la notificación
+  const [notification, setNotification] = useState({
+    isVisible: false,
+    type: 'error',
+    text: ''
+  });
+  const mostrarNotificacion = (tipo, texto) => {
+    setNotification({
+      isVisible: true,
+      type: tipo,
+      text: texto
+    });
+
+    // Auto-ocultar después de 3 segundos
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, isVisible: false }));
+    }, 3000);
+  };
 
   // Efecto para cargar los datos del precio
   useEffect(() => {
@@ -29,7 +47,6 @@ function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreat
         description: ''
       });
     }
-    setErrorMessage('');
   }, [isOpen, data, tipo]);
 
   // Función para actualizar los datos del formulario
@@ -40,8 +57,7 @@ function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreat
   // Función para enviar los datos
   const handleSubmit = async () => {
     if (!dataMov.name.trim()) {
-      setErrorMessage('El nombre es obligatorio');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'El nombre es obligatorio');
       return;
     }
 
@@ -67,13 +83,11 @@ function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreat
         }
         setIsOpen(false);
       } else {
-        setErrorMessage(response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el tipo de precio`);
-        setTimeout(() => setErrorMessage(''), 3000);
+        mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el tipo de precio`);
       }
     } catch (error) {
       console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} tipo de precio:`, error);
-      setErrorMessage('Error de conexión con el servidor');
-      setTimeout(() => setErrorMessage(''), 3000);
+      mostrarNotificacion('error', 'Error de conexión con el servidor');
     } finally {
       setLoading(false);
     }
@@ -86,7 +100,6 @@ function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreat
         onClose={() => setIsOpen(false)}
       />
       <div className={styles.modalContent}>
-        <MensajeError mensaje={errorMessage} />
         <p className={styles.subTitle}>INFORMACIÓN DEL TIPO DE PRECIO</p>
 
         <InputNormal
@@ -114,6 +127,12 @@ function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreat
           disabled={!dataMov.name.trim()}
         />
       </div>
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        text={notification.text}
+      />
     </ViewModal>
   );
 }

@@ -1,0 +1,210 @@
+/* Contenedor principal de la tabla */
+.tableContainer {
+  width: 100%;
+  background: none;
+  border-radius: 15px 15px 0 0;
+  overflow: hidden;
+}
+
+/* Wrapper para scroll horizontal si es necesario */
+.tableWrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+/* Estilos de la tabla */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: none;
+}
+
+/* Headers de la tabla */
+.header {
+  background: var(--tertiary-color);
+  color: var(--white-color);
+  padding: 16px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.headerText {
+  display: flex;
+  align-items: center;
+}
+
+
+/* Filas de la tabla */
+.row {
+  position: relative;
+  border-bottom: 1px solid var(--quaternary-color);
+  transition: background-color 0.2s ease;
+  background: none;
+  color: var(--white-color);
+}
+
+.row:hover {
+  background: var(--quaternary-color);
+}
+
+/* Filas clickeables */
+.clickableRow {
+  cursor: pointer;
+}
+
+.clickableRow:hover {
+  background: var(--quaternary-color);
+}
+
+/* Celdas */
+.cell {
+  padding: 16px 18px;
+  font-size: 13px;
+  color: var(--senary-color);
+  vertical-align: middle;
+  font-weight: 400;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Celda con icono */
+.cellWithIcon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+
+
+/* Contenedor de badges */
+.badgeContainer {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Badges */
+.badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  min-width: 20px;
+}
+
+.badge.default {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--white-color);
+}
+
+.badge.success {
+  background: rgba(40, 180, 152, 0.2);
+  color: #28b498;
+}
+
+.badge.warning {
+  background: rgba(243, 156, 18, 0.2);
+  color: #f39c12;
+}
+
+.badge.error {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+.badge.info {
+  background: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+}
+
+/* Estado vacío */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.emptyState p {
+  margin-top: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Badge */
+.badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: var(--success-color);
+  color: white;
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  border: 2px solid white;
+  animation: badgeBounce 0.6s ease-out;
+  line-height: 1;
+  z-index: 10;
+}
+
+@keyframes badgeBounce {
+  0% {
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+
+/* Animaciones */
+.row {
+  animation: fadeInRow 0.3s ease forwards;
+}
+
+@keyframes fadeInRow {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered animation para las filas */
+.row:nth-child(1) { animation-delay: 0.05s; }
+.row:nth-child(2) { animation-delay: 0.1s; }
+.row:nth-child(3) { animation-delay: 0.15s; }
+.row:nth-child(4) { animation-delay: 0.2s; }
+.row:nth-child(5) { animation-delay: 0.25s; }
+.row:nth-child(6) { animation-delay: 0.3s; }
+.row:nth-child(7) { animation-delay: 0.35s; }
+.row:nth-child(8) { animation-delay: 0.4s; }

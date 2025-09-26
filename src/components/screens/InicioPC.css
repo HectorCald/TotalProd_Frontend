@@ -1,0 +1,235 @@
+/* Estilos para el componente InicioPC */
+.inicio-pc-container {
+  width: 100%;
+}
+
+.atajoAnuncioOtros {
+  display: flex;
+}
+
+/* Grid de Estadísticas */
+.estadisticas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Cards de Estadísticas */
+.stat-card {
+  background: var(--tertiary-color);
+  border-radius: 12px;
+  padding: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Header de las cards */
+.stat-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-icon {
+  background: var(--primary-color);
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--white-color);
+  margin: 0 0 8px 0;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--white-color);
+  margin: 0 0 5px 0;
+  line-height: 1.2;
+}
+
+.stat-change {
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.stat-change.positive {
+  color: #28b498;
+}
+
+.stat-change.negative {
+  color: #e74c3c;
+}
+
+.stat-change.neutral {
+  color: #f39c12;
+}
+
+/* Gráficos */
+.stat-chart {
+  height: 120px;
+  margin-top: 10px;
+}
+
+/* Detalles de las cards */
+.stat-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.detail-item span:first-child {
+  color: var(--white-color);
+  font-weight: 500;
+}
+
+.detail-item span:last-child {
+  color: var(--white-color);
+  font-weight: 600;
+}
+
+.detail-item .urgent {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.detail-item .premium {
+  color: #f39c12;
+  background: rgba(243, 156, 18, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.detail-item .pending {
+  color: #e67e22;
+  background: rgba(230, 126, 34, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+/* Colores específicos para cada card */
+.ventas-card .stat-icon {
+  background: linear-gradient(135deg, #28b498, #20a085);
+}
+
+.pedidos-card .stat-icon {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.inventario-card .stat-icon {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+}
+
+.movimientos-card .stat-icon {
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
+}
+
+.clientes-card .stat-icon {
+  background: linear-gradient(135deg, #43e97b, #38f9d7);
+}
+
+.proveedores-card .stat-icon {
+  background: linear-gradient(135deg, #fa709a, #fee140);
+}
+
+
+
+/* Estilos personalizados para tooltips de gráficos */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.recharts-tooltip-content {
+  background: rgba(0, 0, 0, 0.9) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: white !important;
+  min-width: auto !important;
+  max-width: 150px !important;
+}
+
+.recharts-tooltip-label {
+  color: #28b498 !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  margin-bottom: 4px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.recharts-tooltip-item {
+  color: white !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  margin: 2px 0 !important;
+}
+
+.recharts-tooltip-item-name {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 11px !important;
+}
+
+.recharts-tooltip-item-value {
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+}
+
+.recharts-tooltip-item-separator {
+  color: rgba(255, 255, 255, 0.5) !important;
+  margin: 0 4px !important;
+}
+
+/* Animaciones */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-card {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+.stat-card:nth-child(4) { animation-delay: 0.4s; }
+.stat-card:nth-child(5) { animation-delay: 0.5s; }
+.stat-card:nth-child(6) { animation-delay: 0.6s; }

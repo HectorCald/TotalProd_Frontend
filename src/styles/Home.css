@@ -6,11 +6,33 @@
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  max-width: 500px;
   position: relative;
   padding-top: 50px;
   padding-inline: 15px;
   overflow: hidden;
+}
+
+/* Contenedor principal para pantallas grandes */
+@media (min-width: 1024px) {
+  .home-page {
+    padding: 0;
+    padding-top: 50px;
+    width: 100%;
+  }
+  
+  .main-layout {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: calc(100vh - 50px);
+  }
+  
+  .main-content {
+    width: 100%;
+    padding: 20px;
+    overflow-y: auto;
+    background: var(--secondary-color);
+  }
 }
 .subTitle{
   font-size: 15px;

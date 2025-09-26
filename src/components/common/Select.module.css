@@ -22,15 +22,17 @@
 .selectedText {
   flex: 1;
   font-size: 14px;
+  color: var(--white-color);
 }
 
 .icon {
   font-size: 17px !important;
-  color: var(--primary-color);
+  color: var(--primary-color) !important;
 }
 
 .arrow {
   font-size: 20px;
+  color: var(--primary-color) !important;
 }
 
 .optionsContainer {
@@ -38,13 +40,13 @@
   top: calc(100% + 2px);
   left: 0;
   right: 0;
-  background-color: var(--tertiary-color);
+  background-color: var(--quaternary-color);
   border-radius: 8px;
   z-index: 1000;
-  max-height: 240px;
+  max-height: 300px;
   overflow-y: auto;
   padding: 5px;
-  border: 1px solid gray;
+  box-shadow: 0 0 15px 0 rgba(0, 0, 0, 0.2);
 }
 
 .optionsContainer.openUpward {
@@ -61,6 +63,7 @@
   cursor: pointer;
   transition: background-color 0.2s;
   font-weight: 400;
+  color: var(--white-color);
 }
 
 .optionIcon {

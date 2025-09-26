@@ -16,21 +16,21 @@ function Notification({
             case 'success':
                 return {
                     icon: 'check',
-                    bgColor: 'rgba(34, 197, 94, 0.1)', // Verde suave
+                    bgColor: 'var(--tertiary-color)',
                     iconBgColor: 'var(--success-color)',
                     textColor: 'var(--white-color)'
                 };
             case 'error':
                 return {
                     icon: 'x',
-                    bgColor: 'rgba(239, 68, 68, 0.1)', // Rojo suave
+                    bgColor: 'var(--tertiary-color)',
                     iconBgColor: 'var(--error-color)',
                     textColor: 'var(--white-color)'
                 };
             case 'warning':
                 return {
                     icon: 'error-circle',
-                    bgColor: 'rgba(245, 158, 11, 0.1)', // Amarillo suave
+                    bgColor: 'var(--tertiary-color)',
                     iconBgColor: 'var(--warning-color)',
                     textColor: 'var(--white-color)'
                 };
@@ -38,7 +38,7 @@ function Notification({
             default:
                 return {
                     icon: 'info-circle',
-                    bgColor: 'rgba(59, 130, 246, 0.1)', // Azul suave
+                    bgColor: 'var(--tertiary-color)',
                     iconBgColor: 'var(--info-color)',
                     textColor: 'var(--white-color)'
                 };
@@ -60,7 +60,7 @@ function Notification({
                     className={styles.iconContainer}
                     style={{ backgroundColor: typeConfig.iconBgColor }}
                 >
-                    <BoxIcon name={typeConfig.icon} size="sm" />
+                    <BoxIcon name={typeConfig.icon} size="sm" className={styles.icon} />
                 </div>
                 <span 
                     className={styles.text}
