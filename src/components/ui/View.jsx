@@ -3,7 +3,7 @@ import styles from './View.module.css';
 import { useModalStack } from '../../context/ModalStackContext';
 import { useLayout } from '../../context/LayoutContext';
 
-const View = ({ isOpen, setIsOpen, children, title, onBack, style, isMainView = false }) => {
+const View = ({ isOpen, setIsOpen, children, title, onBack, style, isMainView = false, isCart = false }) => {
     const { registerModal, unregisterModal, isLastModal, getOpenModalsCount } = useModalStack();
     const { isLargeScreen, sidebarCollapsed } = useLayout();
     const modalIdRef = useRef(null);
@@ -57,9 +57,12 @@ const View = ({ isOpen, setIsOpen, children, title, onBack, style, isMainView = 
             classes.push(styles.viewContainerVisible);
         }
         
-        // Solo aplicar padding de sidebar a las views principales (no anidadas)
-        // En pantallas grandes, solo las views principales deben tener el padding de la sidebar
-        if (isLargeScreen && isMainView) {
+        // Aplicar clases específicas para el modo carrito
+        if (isCart && isLargeScreen) {
+            classes.push(styles.viewContainerCart);
+        } else if (isLargeScreen && isMainView) {
+            // Solo aplicar padding de sidebar a las views principales (no anidadas)
+            // En pantallas grandes, solo las views principales deben tener el padding de la sidebar
             if (sidebarCollapsed) {
                 classes.push(styles.viewContainerSidebarCollapsed);
             } else {

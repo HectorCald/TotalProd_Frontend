@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerProducto from './VerProducto';
 import Filtros from '../../common/Filtros';
@@ -29,6 +28,9 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const { sucursalSeleccionada: sucursalActual } = useUser();
     const { isLargeScreen } = useLayout();
 
+    // Determinar si es modo carrito (para panel lateral)
+    const isCartMode = tipo === 'pedido' || tipo === 'entrada' || tipo === 'salida';
+
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
@@ -36,6 +38,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Estados para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
@@ -130,6 +133,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         codigo_barras: producto.codigo_barras || '',
         description: producto.description || '',
         stock: producto.stock || 0,
+        grup: producto.grup || 0,
         created_at: producto.created_at,
         empresa_id: producto.empresa_id,
         
@@ -215,6 +219,19 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             cargarCanastasDesdeLocalStorage();
         }
     }, [isOpen]);
+
+    // Funciones para el buscador expandible
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = (isExpanded) => {
+        setIsSearchExpanded(isExpanded);
+    };
     // Efecto separado para limpiar variables cuando se cierra el modal
     useEffect(() => {
         if (!isOpen) {
@@ -368,6 +385,26 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const handleAgregarACanasta = (producto) => {
         const productoExistente = productosCanasta.find(p => p.id === producto.id);
 
+        // Obtener el precio correcto según el tipo seleccionado
+        let precioProducto = 0;
+        let precioActual = null;
+        
+        // Intentar obtener el precio seleccionado de la canasta de pedidos
+        if (window.getPrecioSeleccionadoCanastaPedidos) {
+            precioActual = window.getPrecioSeleccionadoCanastaPedidos();
+        }
+        
+        if (precioActual && producto.price_product && producto.price_product.length > 0) {
+            // Buscar el precio del tipo seleccionado
+            const precioTipo = producto.price_product.find(pp => pp.prices_types?.id === precioActual);
+            precioProducto = precioTipo ? precioTipo.valor : (producto.price_product[0]?.valor || 0);
+        } else {
+            // Si no hay precio seleccionado, usar el primer precio
+            precioProducto = producto.price_product && producto.price_product.length > 0
+                ? producto.price_product[0].valor
+                : 0;
+        }
+
         if (productoExistente) {
             // Si ya existe, aumentar la cantidad
             setProductosCanasta(prev => prev.map(p =>
@@ -376,10 +413,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     : p
             ));
         } else {
-            // Si no existe, agregarlo nuevo
+            // Si no existe, agregarlo nuevo con el precio correcto
             setProductosCanasta(prev => [...prev, {
                 ...producto,
                 cantidad: 1,
+                precio: precioProducto,
                 medidaPedido: 'kg',
                 observacionesPedido: ''
             }]);
@@ -391,7 +429,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     };
 
     // Función para manejar la canasta de movimientos (entradas y salidas separadas)
-    const handleAgregarACanastaMovimientos = (producto, tipoMovimiento) => {
+    const handleAgregarACanastaMovimientos = (producto, tipoMovimiento, precioSeleccionado = null) => {
         // Para salidas, validar que el producto tenga stock
         if (tipoMovimiento === 'salida' && (!producto.stock || producto.stock <= 0)) {
             mostrarNotificacion('error', 'No se puede agregar el producto porque no tiene stock disponible');
@@ -406,15 +444,42 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
         const productoExistente = canastaActual.find(p => p.id === producto.id);
 
-        // Obtener el primer precio del producto si existe
-        const primerPrecio = producto.price_product && producto.price_product.length > 0
-            ? producto.price_product[0].valor
-            : 0;
+        // Obtener el precio correcto según el tipo seleccionado
+        let precioProducto = 0;
+        
+        // Si no se pasa precioSeleccionado como parámetro, intentar obtenerlo de la canasta
+        let precioActual = precioSeleccionado;
+        if (!precioActual && tipoMovimiento === 'entrada' && window.getPrecioSeleccionadoCanastaMovimientos) {
+            precioActual = window.getPrecioSeleccionadoCanastaMovimientos();
+        } else if (!precioActual && tipoMovimiento === 'salida' && window.getPrecioSeleccionadoCanastaMovimientos) {
+            precioActual = window.getPrecioSeleccionadoCanastaMovimientos();
+        }
+        
+        if (precioActual && producto.price_product && producto.price_product.length > 0) {
+            // Buscar el precio del tipo seleccionado
+            const precioTipo = producto.price_product.find(pp => pp.prices_types?.id === precioActual);
+            precioProducto = precioTipo ? precioTipo.valor : (producto.price_product[0]?.valor || 0);
+        } else {
+            // Si no hay precio seleccionado, usar el primer precio
+            precioProducto = producto.price_product && producto.price_product.length > 0
+                ? producto.price_product[0].valor
+                : 0;
+        }
 
         if (productoExistente) {
             // Para salidas, validar que no exceda el stock disponible
-            if (tipoMovimiento === 'salida' && productoExistente.cantidad >= producto.stock) {
-                mostrarNotificacion('error', `No se puede agregar más cantidad. Stock disponible: ${producto.stock}`);
+            let stockParaValidar = producto.stock; // Stock original en unidades
+            
+            // Si está en modo agrupado y el producto tiene grupo, convertir a grupos
+            if (window.getModoAgrupacionCanastaMovimientos) {
+                const modoAgrupacion = window.getModoAgrupacionCanastaMovimientos();
+                if (modoAgrupacion === 'agrupado' && producto.grup) {
+                    stockParaValidar = Math.floor(producto.stock / producto.grup); // Stock en grupos
+                }
+            }
+            
+            if (tipoMovimiento === 'salida' && productoExistente.cantidad >= stockParaValidar) {
+                mostrarNotificacion('error', `No se puede agregar más cantidad. Stock disponible: ${stockParaValidar}`);
                 return;
             }
 
@@ -425,11 +490,31 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     : p
             ));
         } else {
-            // Si no existe, agregarlo nuevo con el precio del producto
+            // Si no existe, agregarlo nuevo con el precio correcto
+            // Obtener el modo de agrupación desde la canasta
+            let cantidadInicial = 1;
+            let precioFinal = precioProducto;
+            let stockMostrado = producto.stock;
+            
+            // Intentar obtener el modo de agrupación desde la función global
+            if (window.getModoAgrupacionCanastaMovimientos) {
+                const modoAgrupacion = window.getModoAgrupacionCanastaMovimientos();
+                
+                if (modoAgrupacion === 'agrupado' && producto.grup) {
+                    cantidadInicial = 1; // 1 grupo
+                    precioFinal = precioProducto * producto.grup; // Precio por grupo
+                    
+                    // Convertir el stock a grupos para la visualización
+                    stockMostrado = Math.floor(producto.stock / producto.grup);
+                }
+            }
+            
             setCanastaActual(prev => [...prev, {
                 ...producto,
-                cantidad: 1,
-                precio: primerPrecio
+                cantidad: cantidadInicial,
+                precio: precioFinal,
+                stock: stockMostrado,
+                stockOriginal: producto.stock // Guardar el stock original en unidades
             }]);
         }
 
@@ -475,9 +560,9 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     // Headers para la tabla
     const tableHeaders = [
         { key: 'name', label: 'Producto', icon: 'package' },
-        { key: 'codigo_barras', label: 'Código de Barras', icon: 'barcode' },
-        { key: 'description', label: 'Descripción', icon: 'comment' },
+        { key: 'codigo_barras', label: 'C. Barras', icon: 'barcode' },
         { key: 'stock', label: 'Stock', icon: 'bar-chart-alt-2' },
+        { key: 'stock_grup', label: 'Grup', icon: 'package' },
         { key: 'category_name', label: 'Categoría', icon: 'tag' }
     ];
 
@@ -486,8 +571,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         id: producto.id,
         name: producto.name,
         codigo_barras: producto.codigo_barras,
-        description: producto.description,
         stock: `${producto.stock} Ud.`,
+        stock_grup: producto.grup ? Math.floor(producto.stock / producto.grup)+' Ud.' : '--',
         category_name: producto.category_name,
     }));
 
@@ -504,12 +589,22 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     };
 
     return (
+        <>
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!pedidoIdEditando && !localStorage.getItem('pedidoIdEntregando')}>
-            <HeaderView onBack={() => setIsOpen(false)} />
-            <div className={styles.container}>
+            <HeaderView 
+                onBack={() => setIsOpen(false)}
+                showSearch={true}
+                searchPlaceholder="Buscar producto"
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchExpanded={isSearchExpanded}
+                onSearchToggle={handleSearchToggle}
+            />
+            <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
                 <div className={styles.titleContainer}>
                     <h1 className={styles.title}>
-                        Almacen
+                        {tipo === 'almacen' ? 'Almacén' : tipo === 'entrada' ? 'Entradas' : tipo === 'pedido' ? 'Realizar Pedidos' : 'Salidas o Ventas'}
                         <button className={styles.refreshButton} onClick={handleRefresh}>
                             <BoxIcon name='refresh' />
                         </button>
@@ -519,19 +614,14 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         isLoading={isRefreshing}
                     />
                 </div>
-                <p className={styles.subTitle}>Administra tu almacen de productos</p>
-                <div className={styles.searchContainer}>
-                    <InputSearch
-                        placeholder='Buscar producto'
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                        }}
-                    />
-                </div>
                 <Filtros options={opciones} />
-                <div className={styles.content}>
+                <div className={styles.content}
+                    style={{
+                        maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido') && isLargeScreen
+                            ? '100%'
+                            : ''
+                    }}
+                >
                     {isLargeScreen ? (
                         // Vista de tabla para pantallas grandes
                         <Table
@@ -595,7 +685,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         onClick={() => { setIsAgregarOpen(true); }}
                     />
                 </div> : ''}
-            {tipo === 'pedido' ?
+            {tipo === 'pedido' && !(isCartMode && isLargeScreen) ?
                 <div className={styles.buttonFooter}>
                     <Boton
                         className='btn-original'
@@ -604,7 +694,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         disabled={productosCanasta.length === 0}
                     />
                 </div> : ''}
-            {tipo === 'entrada' ?
+            {tipo === 'entrada' && !(isCartMode && isLargeScreen) ?
                 <div className={styles.buttonFooter}>
                     <Boton
                         className='btn-original'
@@ -613,7 +703,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         disabled={productosCanastaEntradas.length === 0}
                     />
                 </div> : ''}
-            {tipo === 'salida' ?
+            {tipo === 'salida' && !(isCartMode && isLargeScreen) ?
                 <div className={styles.buttonFooter}>
                     <Boton
                         className='btn-original'
@@ -679,22 +769,9 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     />
                 </>
             )}
-
-            {/* Filtro de categorías */}
-            <FiltroCategorias
-                isOpen={isOpenCategoria}
-                setIsOpen={setOpenCategoria}
-                onCategoriaSeleccionada={handleCategoriaFilter}
-            />
-            {/* Filtro de ordenamiento */}
-            <FiltroOrdenamiento
-                isOpen={isOpenOrden}
-                setIsOpen={setOpenOrden}
-                onOrdenamientoSeleccionado={handleOrdenamiento}
-            />
             {/* View de canasta de pedidos */}
             <CanastaPedidos
-                isOpen={isCanastaOpen}
+                isOpen={isCartMode && isLargeScreen ? true : isCanastaOpen}
                 setIsOpen={setIsCanastaOpen}
                 productosCanasta={productosCanasta}
                 setProductosCanasta={setProductosCanasta}
@@ -705,6 +782,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 loadingPrecios={false}
                 loadingSucursales={false}
                 productosActualizados={productos}
+                isCartMode={isCartMode && isLargeScreen}
                 onCerrarCanasta={() => {
                     setIsCanastaOpen(false);
                     // Limpiar pedidoIdEditando y precioIdEditando del localStorage cuando se confirma la edición
@@ -724,7 +802,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             {/* View de canasta de movimientos */}
             {tipo === 'entrada' && (
                 <CanastaMovimientos
-                    isOpen={isCanastaMovimientosOpen}
+                    isOpen={isCartMode && isLargeScreen ? true : isCanastaMovimientosOpen}
                     setIsOpen={setIsCanastaMovimientosOpen}
                     productosCanasta={productosCanastaEntradas}
                     setProductosCanasta={setProductosCanastaEntradas}
@@ -733,6 +811,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     preciosTipos={preciosTipos}
                     loadingPrecios={false}
                     productosActualizados={productos}
+                    isCartMode={isCartMode && isLargeScreen}
                     onCerrarCanasta={() => {
                         setIsCanastaMovimientosOpen(false);
                         mostrarNotificacion('success', 'Entradas confirmadas correctamente');
@@ -741,7 +820,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             )}
             {tipo === 'salida' && (
                 <CanastaMovimientos
-                    isOpen={isCanastaMovimientosOpen}
+                    isOpen={isCartMode && isLargeScreen ? true : isCanastaMovimientosOpen}
                     setIsOpen={setIsCanastaMovimientosOpen}
                     productosCanasta={productosCanastaSalidas}
                     setProductosCanasta={setProductosCanastaSalidas}
@@ -751,6 +830,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     preciosTipos={preciosTipos}
                     loadingPrecios={false}
                     productosActualizados={productos}
+                    isCartMode={isCartMode && isLargeScreen}
                     onCerrarCanasta={(productosActualizados, precioId, movimientoId) => {
                         // Si es una entrega, NO cerrar la canasta aquí, solo llamar a la función de entrega
                         if (onEntregaConfirmada && localStorage.getItem('pedidoIdEntregando')) {
@@ -770,6 +850,19 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 setIsOpen={setIsCategoriasAlmacenOpen}
             />
         </View>
+        {/* Filtro de categorías */}
+        <FiltroCategorias
+                isOpen={isOpenCategoria}
+                setIsOpen={setOpenCategoria}
+                onCategoriaSeleccionada={handleCategoriaFilter}
+            />
+            {/* Filtro de ordenamiento */}
+            <FiltroOrdenamiento
+                isOpen={isOpenOrden}
+                setIsOpen={setOpenOrden}
+                onOrdenamientoSeleccionado={handleOrdenamiento}
+            />
+        </>
     );
 }
 export default AlmacenGeneral;

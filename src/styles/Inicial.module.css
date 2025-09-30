@@ -4,7 +4,7 @@
     align-items: flex-start;
     justify-content: flex-start;
     width: 100%;
-    height: calc(100vh - 50px);
+    height: calc(100% - 50px);
     padding: 15px;
     padding-top: 0;
     box-sizing: border-box;
@@ -19,18 +19,6 @@
     align-items: center;
     width: 100%;
     color: var(--white-color);
-}
-.refreshButton {
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: var(--primary-color);
-}
-.buttonTitle {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    width: 150px;
 }
 .subTitle {
     font-size: 15px;
@@ -53,7 +41,7 @@
     width: 100%;
     background-color: none;
     overflow-y: auto !important;
-    max-height: calc(100vh - 325px);
+    max-height: calc(100% - 230px);
     height: 100%;
 }
 
@@ -175,8 +163,8 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
 }
 
 .refreshButton:hover {
@@ -186,4 +174,16 @@
 
 .refreshButton:active {
     transform: scale(0.95);
+}
+
+/* Estilos para el layout con panel lateral */
+.containerWithCart {
+    width: calc(100% - 450px) !important;
+}
+
+/* En pantallas pequeñas, no aplicar el ajuste */
+@media (max-width: 1023px) {
+    .containerWithCart {
+        width: 100% !important;
+    }
 }

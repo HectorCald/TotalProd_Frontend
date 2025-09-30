@@ -1,0 +1,127 @@
+.searchButton {
+    background: none;
+    border: none;
+    padding: 7px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    z-index: 1001;
+    position: relative;
+    color: var(--primary-color) !important;
+    gap: 6px;
+}
+
+.searchButton:hover {
+    background-color: var(--quaternary-color);
+}
+
+.searchIcon {
+    font-size: 20px;
+    color: var(--white-color);
+    transition: color 0.2s ease;
+}
+
+.searchText {
+    font-size: 14px;
+    color: var(--white-color);
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+/* Ocultar texto en móvil */
+@media (max-width: 768px) {
+    .searchText {
+        display: none;
+    }
+}
+
+.inputContainer {
+    position: absolute;
+    top: 5px;
+    right: 0;
+    background: var(--tertiary-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    height: 40px;
+    animation: expandSearch 0.3s ease-out;
+}
+
+@keyframes expandSearch {
+    from {
+        width: 0;
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* En PC: animación específica */
+@media (min-width: 769px) {
+    @keyframes expandSearch {
+        from {
+            width: 0;
+            opacity: 0;
+        }
+        to {
+            width: 350px;
+            opacity: 1;
+        }
+    }
+}
+
+/* En móvil: 100% del ancho */
+@media (max-width: 768px) {
+    .inputContainer {
+        width: 100%;
+        left: 0;
+        right: 0;
+        border-radius: 0;
+        padding: 0 16px;
+        position: fixed;
+        top: 0;
+        height: 50px;
+    }
+    
+    @keyframes expandSearch {
+        from {
+            width: 0;
+            opacity: 0;
+        }
+        to {
+            width: 100vw;
+            opacity: 1;
+        }
+    }
+}
+
+/* En PC: 350px de ancho */
+@media (min-width: 769px) {
+    .inputContainer {
+        width: 350px;
+        right: 0;
+        left: auto;
+        padding: 0 8px;
+    }
+}
+
+.searchInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 12px 8px;
+    font-size: 16px;
+    background: transparent;
+    color: var(--white-color);
+}
+
+.searchInput::placeholder {
+    color: var(--quinary-color);
+}

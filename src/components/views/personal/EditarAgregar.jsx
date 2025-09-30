@@ -218,21 +218,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             return;
         }
 
-        // Verificar que el código no existe en la base de datos
-        try {
-            const codigoCheck = await personalService.checkCodigo(codigoFinal, tipo === 'editar' ? usuario?.id : null);
-
-            if (codigoCheck.success && codigoCheck.data.exists) {
-                mostrarNotificacion('error', 'El código ya existe en esta empresa');
-                setLoading(false);
-                return;
-            }
-        } catch (error) {
-            console.error('Error al verificar código:', error);
-            mostrarNotificacion('error', 'Error al verificar el código');
-            setLoading(false);
-            return;
-        }
 
         // Preparar datos para enviar
         const datosParaEnviar = {

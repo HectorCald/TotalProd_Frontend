@@ -60,6 +60,13 @@ export const MODULES = {
             component: 'AlmacenAcopio',
             props: { tipo: 'salida' }
         },
+        realizar_pedidos: {
+            name: 'Nuevo Pedido',
+            description: 'Realizar pedidos de materia prima',
+            icon: 'cart',
+            component: 'AlmacenAcopio',
+            props: { tipo: 'pedido' }
+        },
         gestionar: {
             name: 'Gestionar',
             description: 'Gestionar almacen de productos',
@@ -95,9 +102,16 @@ export const MODULES = {
         pedidos_almacen: {
             name: 'Almacen',
             description: 'Administra tus pedidos de productos.',
-            icon: 'file',
+            icon: 'package',
             component: 'Pedidos',
             props: { tipo: 'almacen' }
+        },
+        pedidos_acopio: {
+            name: 'Materia Prima',
+            description: 'Administra tus pedidos de materia prima.',
+            icon: 'leaf',
+            component: 'Pedidos',
+            props: { tipo: 'acopio' }
         },
     },
     Precios: {  
@@ -224,7 +238,7 @@ export const getAvailableModules = (employeeModules) => {
                     description: submodule.description,
                     component: submodule.component,
                     props: submodule.props,
-                    icon: submodule.imagen
+                    icon: submodule.icon
                 };
             }
         }
@@ -250,7 +264,7 @@ export const getAvailableModules = (employeeModules) => {
                     description: submodule.description,
                     component: submodule.component,
                     props: submodule.props,
-                    icon: submodule.imagen
+                    icon: submodule.icon
                 };
             }
         }

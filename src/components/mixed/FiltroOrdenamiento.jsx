@@ -4,16 +4,35 @@ import ViewModal from '../ui/ViewModal';
 import HeaderModal from '../common/HeaderModal';
 import ItemLine from '../common/ItemLine';
 
-function FiltroOrdenamiento({ isOpen, setIsOpen, onOrdenamientoSeleccionado }) {
-    const opcionesOrdenamiento = [
-        { id: 'nombre_asc', title: 'Nombre A-Z', icon: 'sort-a-z' },
-        { id: 'nombre_desc', title: 'Nombre Z-A', icon: 'sort-z-a' },
-        { id: 'stock_asc', title: 'Stock Menor-Mayor', icon: 'up-arrow-alt' },
-        { id: 'stock_desc', title: 'Stock Mayor-Menor', icon: 'down-arrow-alt' }
+function FiltroOrdenamiento({ isOpen, setIsOpen, onOrdenamientoSeleccionado, opciones = [] }) {
+    // Opciones por defecto si no se proporcionan
+    const opcionesDefault = [
+        {
+            value: 'fecha_desc',
+            label: 'Más recientes',
+            icon: 'time'
+        },
+        {
+            value: 'fecha_asc',
+            label: 'Más antiguos',
+            icon: 'time-five'
+        },
+        {
+            value: 'tipo_asc',
+            label: 'Tipo A-Z',
+            icon: 'sort-a-z'
+        },
+        {
+            value: 'tipo_desc',
+            label: 'Tipo Z-A',
+            icon: 'sort-z-a'
+        }
     ];
 
-    const handleOrdenamientoSelect = (ordenamientoId) => {
-        onOrdenamientoSeleccionado(ordenamientoId);
+    const opcionesFinales = opciones.length > 0 ? opciones : opcionesDefault;
+
+    const handleOrdenamientoSelect = (valor) => {
+        onOrdenamientoSeleccionado(valor);
         setIsOpen(false);
     };
 
@@ -24,13 +43,14 @@ function FiltroOrdenamiento({ isOpen, setIsOpen, onOrdenamientoSeleccionado }) {
                 onClose={() => setIsOpen(false)}
             />
             <div className={styles.modalContent}>
-                <p className={styles.subTitle}>Selecciona una opción para ordenar los productos</p>
-                {opcionesOrdenamiento.map((opcion) => (
+                <p className={styles.subTitle}>Selecciona una opción para ordenar los elementos</p>
+                
+                {opcionesFinales.map((opcion) => (
                     <ItemLine
-                        key={opcion.id}
-                        title={opcion.title}
+                        key={opcion.value}
+                        title={opcion.label}
                         icon={opcion.icon}
-                        onClick={() => handleOrdenamientoSelect(opcion.id)}
+                        onClick={() => handleOrdenamientoSelect(opcion.value)}
                     />
                 ))}
             </div>

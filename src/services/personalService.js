@@ -206,57 +206,6 @@ const personalService = {
         }
     },
 
-    // Verificar si un código existe
-    async checkCodigo(codigo, excludeId = null) {
-        try {
-            const empresaId = getEmpresaId();
-
-            if (!empresaId) {
-                return {
-                    success: false,
-                    message: 'No hay empresa seleccionada'
-                };
-            }
-
-            if (!codigo) {
-                return {
-                    success: false,
-                    message: 'Código es requerido'
-                };
-            }
-
-            const params = new URLSearchParams({
-                codigo: codigo,
-                empresa_id: empresaId
-            });
-
-            if (excludeId) {
-                params.append('exclude_id', excludeId);
-            }
-
-            const response = await fetch(`${API_BASE_URL}/personal/check/codigo?${params}`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.checkCodigo:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
-        }
-    },
 
     // Validar código de empleado
     async validateEmployeeCode(codigo) {

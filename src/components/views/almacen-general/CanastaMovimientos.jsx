@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './CanastaMovimientos.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
 import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
-import ItemLine from '../../common/ItemLine';
 import { motion } from 'framer-motion';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import Switch from '../../common/Switch';
@@ -17,13 +15,14 @@ import Clientes from '../clientes/Clientes';
 import Notification from '../../common/Notification';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 
-function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [] }) {
+function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
-    const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false);
+    // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [animarCantidad, setAnimarCantidad] = useState({});
     const [precioSeleccionado, setPrecioSeleccionado] = useState('');
+    const [modoAgrupacion, setModoAgrupacion] = useState('agrupado'); // 'agrupado' o 'no_agrupado'
 
     // Estados para proveedores y clientes
     const [proveedorSeleccionado, setProveedorSeleccionado] = useState('');
@@ -57,6 +56,25 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         return saved !== null ? JSON.parse(saved) : true;
     });
 
+    // Referencias para el auto-focus en inputs de cantidad
+    const cantidadInputRefs = useRef({});
+
+    // Auto-focus en input de cantidad cuando se agrega un producto nuevo (solo en pantallas grandes)
+    useEffect(() => {
+        if (isCartMode && productosCanasta.length > 0) {
+            // Encontrar el último producto agregado (el más reciente)
+            const ultimoProducto = productosCanasta[productosCanasta.length - 1];
+            const inputRef = cantidadInputRefs.current[ultimoProducto.id];
+            
+            if (inputRef) {
+                // Pequeño delay para asegurar que el DOM se haya actualizado
+                setTimeout(() => {
+                    inputRef.focus();
+                    inputRef.select(); // Seleccionar todo el texto para facilitar la edición
+                }, 100);
+            }
+        }
+    }, [productosCanasta.length, isCartMode]);
 
     // Inicializar precio seleccionado cuando se abren los precios (solo si no hay uno seleccionado)
     useEffect(() => {
@@ -112,35 +130,43 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
     }, [isOpen, tipoMovimiento, esEntrega]);
 
-    // Sincronizar stock del carrito con productos actualizados
+    // Sincronizar stock y precios del carrito con productos actualizados
     useEffect(() => {
         if (productosActualizados.length > 0 && productosCanasta.length > 0) {
             setProductosCanasta(prevCanasta => {
                 return prevCanasta.map(productoCarrito => {
                     const productoActualizado = productosActualizados.find(p => p.id === productoCarrito.id);
                     if (productoActualizado) {
+                        let productoModificado = { ...productoCarrito };
+                        
                         // Si el stock cambió, actualizar el stock en el carrito
                         if (productoActualizado.stock !== productoCarrito.stock) {
                             // Si es una salida y la cantidad en el carrito excede el nuevo stock, ajustar
                             if (tipoMovimiento === 'salida' && productoCarrito.cantidad > productoActualizado.stock) {
                                 mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoActualizado.stock}`);
-                                return {
-                                    ...productoCarrito,
-                                    stock: productoActualizado.stock,
-                                    cantidad: productoActualizado.stock
-                                };
+                                productoModificado.stock = productoActualizado.stock;
+                                productoModificado.cantidad = productoActualizado.stock;
+                            } else {
+                                productoModificado.stock = productoActualizado.stock;
                             }
-                            return {
-                                ...productoCarrito,
-                                stock: productoActualizado.stock
-                            };
                         }
+
+                        // Si los precios cambiaron, actualizar el precio en el carrito según el tipo seleccionado
+                        if (productoActualizado.price_product && precioSeleccionado) {
+                            const precioTipo = productoActualizado.price_product.find(pp => pp.prices_types?.id === precioSeleccionado);
+                            if (precioTipo && precioTipo.valor !== productoCarrito.precio) {
+                                productoModificado.precio = precioTipo.valor;
+                                productoModificado.price_product = productoActualizado.price_product; // Actualizar también la estructura de precios
+                            }
+                        }
+
+                        return productoModificado;
                     }
                     return productoCarrito;
                 });
             });
         }
-    }, [productosActualizados, tipoMovimiento]);
+    }, [productosActualizados, tipoMovimiento, precioSeleccionado]);
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
@@ -153,8 +179,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         if (!productoActual) return;
 
         // Validar que no exceda el stock disponible SOLO para salidas
-        if (tipoMovimiento === 'salida' && nuevaCantidad > productoActual.stock) {
-            console.warn(`No se puede exceder el stock disponible: ${productoActual.stock}`);
+        const stockParaValidar = getStockParaValidacion(productoActual);
+        if (tipoMovimiento === 'salida' && nuevaCantidad > stockParaValidar) {
+            console.warn(`No se puede exceder el stock disponible: ${stockParaValidar}`);
             mostrarNotificacion('error', 'No se puede exceder el stock disponible');
             return; // No actualizar si excede el stock (solo para salidas)
         }
@@ -218,6 +245,44 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }));
     };
 
+    const handleCambiarModoAgrupacion = (nuevoModo) => {
+        setModoAgrupacion(nuevoModo);
+        
+        // Actualizar productos según el nuevo modo
+        setProductosCanasta(prev => prev.map(producto => {
+            // Usar stockOriginal si existe, sino usar stock
+            const stockOriginalEnUnidades = producto.stockOriginal || producto.stock;
+            
+            if (nuevoModo === 'agrupado' && producto.grup) {
+                // Cambiar a modo agrupado
+                const stockEnGrupos = Math.floor(stockOriginalEnUnidades / producto.grup);
+                const precioPorGrupo = (producto.precio || 0) * producto.grup;
+                const cantidadEnGrupos = Math.floor(producto.cantidad / producto.grup);
+                
+                return {
+                    ...producto,
+                    cantidad: cantidadEnGrupos || 1, // Mínimo 1 grupo
+                    precio: precioPorGrupo,
+                    stock: stockEnGrupos,
+                    stockOriginal: stockOriginalEnUnidades // Mantener el stock original
+                };
+            } else {
+                // Cambiar a modo no agrupado
+                const precioUnitario = producto.grup ? (producto.precio || 0) / producto.grup : (producto.precio || 0);
+                const cantidadEnUnidades = producto.cantidad * (producto.grup || 1);
+                
+                return {
+                    ...producto,
+                    cantidad: cantidadEnUnidades,
+                    precio: precioUnitario,
+                    stock: stockOriginalEnUnidades, // Stock original en unidades
+                    stockOriginal: stockOriginalEnUnidades // Mantener el stock original
+                };
+            }
+        }));
+    };
+
+
     // Función para manejar cuando se selecciona un proveedor
     const handleProveedorSeleccionado = (proveedor) => {
         setProveedorSeleccionadoData(proveedor);
@@ -270,11 +335,24 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 cliente_id: tipoMovimiento === 'salida' ? (clienteSeleccionado || null) : null,
                 proveedor_id: tipoMovimiento === 'entrada' ? (proveedorSeleccionado || null) : null,
                 restar_ingredientes: tipoMovimiento === 'entrada' && restarIngredientes && tieneProductosConRecetas(),
-                productos: productosCanasta.map(producto => ({
-                    id: producto.id,
-                    cantidad: producto.cantidad,
-                    precio: producto.precio || 0
-                }))
+                productos: productosCanasta.map(producto => {
+                    // Convertir cantidad a unidades individuales según el modo
+                    let cantidadEnUnidades = producto.cantidad;
+                    let precioPorUnidad = producto.precio || 0;
+                    
+                    if (modoAgrupacion === 'agrupado' && producto.grup) {
+                        // Si está en modo agrupado, convertir grupos a unidades
+                        cantidadEnUnidades = producto.cantidad * producto.grup;
+                        // El precio ya está por grupo, convertir a precio unitario
+                        precioPorUnidad = producto.precio / producto.grup;
+                    }
+                    
+                    return {
+                        id: producto.id,
+                        cantidad: cantidadEnUnidades,
+                        precio: precioPorUnidad
+                    };
+                })
             };
 
             // Enviar al backend
@@ -307,9 +385,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     // Limpiar localStorage
                     const localStorageKey = tipoMovimiento === 'entrada' ? 'canastaEntradas' : 'canastaSalidas';
                     localStorage.removeItem(localStorageKey);
-
-                    // Cerrar modal de confirmación
-                    setIsConfirmarModalOpen(false);
 
                     // Cerrar canasta y mostrar notificación
                     setIsOpen(false);
@@ -345,10 +420,38 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         );
     };
 
+    // Función para obtener el precio actual seleccionado
+    const getPrecioActualSeleccionado = () => {
+        return precioSeleccionado;
+    };
+
+    // Función para obtener el modo de agrupación actual
+    const getModoAgrupacionActual = () => {
+        return modoAgrupacion;
+    };
+
+    // Función helper para obtener el stock correcto para validación
+    const getStockParaValidacion = (producto) => {
+        if (modoAgrupacion === 'agrupado' && producto.grup) {
+            return producto.stock; // Stock ya convertido a grupos
+        } else {
+            return producto.stockOriginal || producto.stock; // Stock original en unidades
+        }
+    };
+
+    // Exponer las funciones para que AlmacenGeneral pueda acceder al precio seleccionado y modo de agrupación
+    useEffect(() => {
+        if (isCartMode) {
+            // Guardar las referencias a las funciones en el window para acceso global
+            window.getPrecioSeleccionadoCanastaMovimientos = getPrecioActualSeleccionado;
+            window.getModoAgrupacionCanastaMovimientos = getModoAgrupacionActual;
+        }
+    }, [isCartMode, precioSeleccionado, modoAgrupacion]);
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={() => setIsOpen(false)} />
-            <div className={styles.container}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
+            {!isCartMode && <HeaderView onBack={() => setIsOpen(false)} />}
+            <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
                 <h1 className={styles.title}>Canasta de {tipoMovimiento === 'entrada' ? 'Entradas' : 'Salidas'}
                     <div className={styles.iconButton}>
                         <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
@@ -357,8 +460,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     </div>
                 </h1>
 
-                {/* Selector de precio general */}
+                {/* Selectores de precio y agrupación */}
                 {productosCanasta.length > 0 && (
+                    <div className={styles.controlesGenerales}>
                     <div className={styles.precioGeneral}>
                         <Select
                             value={precioSeleccionado}
@@ -368,7 +472,21 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             disabled={loadingPrecios}
                             icon='dollar'
                         />
+                        </div>
+                        <div className={styles.grupoGeneral}>
+                        <Select
+                            value={modoAgrupacion}
+                            onChange={handleCambiarModoAgrupacion}
+                            options={[
+                                { value: 'agrupado', label: 'Agrupado' },
+                                { value: 'no_agrupado', label: 'No agrupado' }
+                            ]}
+                            placeholder="Modo de agrupación"
+                                icon='package'
+                            />
+                        </div>
                     </div>
+                  
                 )}
 
                 {productosCanasta.length > 0 ? (
@@ -386,7 +504,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                             <div>
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
-                                                    Stock: {producto.stock || 0} {producto.type_measure?.code || ''}
+                                                    Stock: {modoAgrupacion === 'agrupado' && producto.grup 
+                                                        ? `${producto.stock || 0} grupos (${(producto.stock || 0) * (producto.grup || 1)} unidades)`
+                                                        : `${producto.stock || 0} unidades`
+                                                    }
                                                 </p>
                                             </div>
                                         </div>
@@ -426,10 +547,15 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                                 className={styles.cantidad}
                                             >
                                                 <input
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            cantidadInputRefs.current[producto.id] = el;
+                                                        }
+                                                    }}
                                                     type="number"
                                                     value={producto.cantidad}
                                                     min="1"
-                                                    max={tipoMovimiento === 'salida' ? producto.stock : undefined}
+                                                    max={tipoMovimiento === 'salida' ? getStockParaValidacion(producto) : undefined}
                                                     onChange={(e) => {
                                                         const nuevaCantidad = parseInt(e.target.value) || 1;
                                                         handleActualizarCantidad(producto.id, nuevaCantidad, false);
@@ -438,9 +564,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                                         const nuevaCantidad = parseInt(e.target.value) || 1;
                                                         if (nuevaCantidad < 1) {
                                                             handleActualizarCantidad(producto.id, 1, false);
-                                                        } else if (tipoMovimiento === 'salida' && nuevaCantidad > producto.stock) {
+                                                        } else if (tipoMovimiento === 'salida' && nuevaCantidad > getStockParaValidacion(producto)) {
                                                             // Si excede el stock, ajustar al stock máximo (solo para salidas)
-                                                            handleActualizarCantidad(producto.id, producto.stock, false);
+                                                            const stockMaximo = getStockParaValidacion(producto);
+                                                            handleActualizarCantidad(producto.id, stockMaximo, false);
                                                         }
                                                     }}
                                                 />
@@ -448,7 +575,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                             <button
                                                 className={styles.btnCantidad}
                                                 onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}
-                                                disabled={tipoMovimiento === 'salida' && producto.cantidad >= producto.stock}
+                                                disabled={tipoMovimiento === 'salida' && producto.cantidad >= getStockParaValidacion(producto)}
                                             >
                                                 <BoxIcon name='plus' className={styles.iconPlus} />
                                             </button>
@@ -463,6 +590,58 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                     </div>
                                 </div>
                             ))}
+                             {/* Controles específicos por tipo de movimiento */}
+                        {tipoMovimiento === 'entrada' && (
+                            <>
+                                {/* Selector de proveedor para entradas */}
+                                <div className={styles.content} style={{ padding: '5px 15px', marginTop: 'auto' }}>
+                                    <Boton
+                                        className='btn-transparent'
+                                        label={proveedorSeleccionadoData ? 'Proveedor: ' + proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
+                                        onClick={() => setIsProveedoresSeleccionOpen(true)}
+                                        style={{ width: '100%', justifyContent: 'flex-start' }}
+                                    />
+                                </div>
+
+                                {/* Switch para restar ingredientes (solo si hay productos con recetas) */}
+                                {tieneProductosConRecetas() && (
+                                    <div className={styles.content} style={{ padding: '10px 15px' }}>
+                                        <Switch
+                                            title="Restar ingredientes"
+                                            subtitle="Restar automáticamente los ingredientes de las recetas del stock"
+                                            checked={restarIngredientes}
+                                            onChange={(value) => {
+                                                setRestarIngredientes(value);
+                                                localStorage.setItem('restarIngredientes', JSON.stringify(value));
+                                            }}
+                                            icon="minus-circle"
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {tipoMovimiento === 'salida' && (
+                            <>
+                                {/* Selector de cliente para salidas (oculto en entregas) */}
+                                {!esEntrega && (
+                                    <div className={styles.content} style={{ padding: '5px 15px', marginTop: 'auto' }}>
+                                        <Boton
+                                            className='btn-transparent'
+                                            label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+                                            onClick={() => setIsClientesSeleccionOpen(true)}
+                                            style={{ width: '100%', justifyContent: 'flex-start' }}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Selector de método de pago para salidas */}
+                                <SelectorMetodoPago
+                                    value={metodoPagoSeleccionado}
+                                    onChange={setMetodoPagoSeleccionado}
+                                />
+                            </>
+                        )}
                         </div>
 
                         {/* Total general */}
@@ -476,8 +655,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         <div className={styles.buttons}>
                             <Boton
                                 className='btn-original'
-                                label={`Resumen de ${tipoMovimiento === 'entrada' ? 'Entrada' : 'Salida'}`}
-                                onClick={() => setIsConfirmarModalOpen(true)}
+                                label={esEntrega ? 'Entregar Pedido' : `Confirmar ${tipoMovimiento === 'entrada' ? 'Entrada' : 'Salida'}`}
+                                onClick={handleConfirmarMovimientos}
+                                loading={loadingConfirmar}
                             />
                         </div>
                     </>
@@ -513,100 +693,15 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 </div>
             </ViewModal>
 
-            {/* Modal de confirmar movimientos */}
-            <ViewModal isOpen={isConfirmarModalOpen} setIsOpen={setIsConfirmarModalOpen}>
-                <HeaderModal
-                    title={`Resumen de ${tipoMovimiento === 'entrada' ? 'Entrada' : 'Salida'}`}
-                    onClose={() => setIsConfirmarModalOpen(false)}
+            {/* Input de observaciones (oculto) */}
+            {/* <div className={styles.observacionesGenerales}>
+                <InputNormal
+                    tipo="text"
+                    value={observacionesGenerales}
+                    placeholder="Observaciones generales"
+                    onChange={(e) => setObservacionesGenerales(e.target.value)}
                 />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Productos a {tipoMovimiento === 'entrada' ? 'ingresar' : 'retirar'}:</p>
-                    <div className={styles.content}>
-                        {productosCanasta.map((producto, index) => (
-                            <ItemLine
-                                key={`resumen-${producto.id}-${index}`}
-                                icon='box'
-                                title={`${producto.name} (${producto.cantidad} ${producto.type_measure?.code || 'u'}) - Bs. ${((producto.precio || 0) * producto.cantidad).toFixed(2)}`}
-                                onClick={() => handleEliminarProducto(producto.id)}
-                            />
-                        ))}
-                    </div>
-
-                    <div className={styles.totalResumen}>
-                        <div className={styles.totalResumenContent}>
-                            <span className={styles.totalResumenLabel}>Total:</span>
-                            <span className={styles.totalResumenValue}>Bs. {getTotalValor().toFixed(2)}</span>
-                        </div>
-                    </div>
-
-                    {/* Selector de proveedor para entradas */}
-                    {tipoMovimiento === 'entrada' && (
-                        <div className={styles.content} style={{ padding: '5px 15px' }}>
-                            <Boton
-                                className='btn-transparent'
-                                label={proveedorSeleccionadoData ? 'Proveedor: ' + proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
-                                onClick={() => setIsProveedoresSeleccionOpen(true)}
-                                style={{ width: '100%', justifyContent: 'flex-start' }}
-                            />
-                        </div>
-                    )}
-
-                    {/* Selector de cliente para salidas (oculto en entregas) */}
-                    {tipoMovimiento === 'salida' && !esEntrega && (
-                        <div className={styles.content} style={{ padding: '5px 15px' }}>
-                            <Boton
-                                className='btn-transparent'
-                                label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
-                                onClick={() => setIsClientesSeleccionOpen(true)}
-                                style={{ width: '100%', justifyContent: 'flex-start' }}
-                            />
-                        </div>
-                    )}
-
-
-                    {/* Selector de método de pago para salidas */}
-                    {tipoMovimiento === 'salida' && (
-                        <SelectorMetodoPago
-                            value={metodoPagoSeleccionado}
-                            onChange={setMetodoPagoSeleccionado}
-                        />
-                    )}
-
-                    {/* Switch para restar ingredientes (solo para entradas y si hay productos con recetas) */}
-                    {tipoMovimiento === 'entrada' && tieneProductosConRecetas() && (
-                        <div className={styles.content} style={{ padding: '10px 15px' }}>
-                            <Switch
-                                title="Restar ingredientes"
-                                subtitle="Restar automáticamente los ingredientes de las recetas del stock"
-                                checked={restarIngredientes}
-                                onChange={(value) => {
-                                    setRestarIngredientes(value);
-                                    localStorage.setItem('restarIngredientes', JSON.stringify(value));
-                                }}
-                                icon="minus-circle"
-                            />
-                        </div>
-                    )}
-
-                    <div className={styles.observacionesGenerales}>
-                        <InputNormal
-                            tipo="text"
-                            value={observacionesGenerales}
-                            placeholder="Observaciones generales"
-                            onChange={(e) => setObservacionesGenerales(e.target.value)}
-                        />
-                    </div>
-
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-original'
-                            label={esEntrega ? 'Entregar Pedido' : `Confirmar ${tipoMovimiento === 'Entrada' ? 'Entradas' : 'Salida'}`}
-                            onClick={handleConfirmarMovimientos}
-                            loading={loadingConfirmar}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
+            </div> */}
 
             {/* View de selección de proveedores */}
             <Proveedores

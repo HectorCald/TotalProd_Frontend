@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerCliente from './VerCliente';
 import Boton from '../../common/Boton';
@@ -31,6 +30,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para clientes
     const [clientes, setClientes] = useState([]);
@@ -154,6 +154,19 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         }
     }, [isOpen]);
 
+    // Funciones para el buscador expandible
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = (isExpanded) => {
+        setIsSearchExpanded(isExpanded);
+    };
+
     // Filtrar clientes localmente basado en la búsqueda
     const clientesFiltrados = clientes.filter(cliente => 
         cliente.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -216,7 +229,16 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
             setIsOpen={setIsOpen}
             isMainView={!modoSeleccion}
         >
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView 
+                onBack={() => setIsOpen(false)}
+                showSearch={true}
+                searchPlaceholder="Buscar por nombre o teléfono..."
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchExpanded={isSearchExpanded}
+                onSearchToggle={handleSearchToggle}
+            />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
                     <h1 className={styles.title}>
@@ -228,16 +250,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                     <RefreshIndicator
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}
-                    />
-                </div>
-                <div className={styles.searchContainer}>
-                    <InputSearch
-                        placeholder='Buscar por nombre o teléfono...'
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                        }}
                     />
                 </div>
                 <div className={styles.content} style={{

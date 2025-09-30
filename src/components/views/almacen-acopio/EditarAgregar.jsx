@@ -53,6 +53,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
   };
 
 
+
   // Efecto para cargar los datos del producto
   useEffect(() => {
     if (data && tipo === 'editar') {
@@ -254,7 +255,13 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
             <Select
               value={dataMov.type_measure_id}
               onChange={(value) => handleChange('type_measure_id', value)}
-              options={typeMeasures}
+              options={typeMeasures?.map((item, index) => ({
+                value: item.id || item.value || `unique_${index}`,
+                label: item.name || item.label || item.code || 'Sin nombre'
+              })).filter((item, index, self) => 
+                // Eliminar duplicados basándose en el value
+                index === self.findIndex(t => t.value === item.value)
+              ) || []}
               placeholder={hasMovements ? 'Tipo de medida (no editable - tiene movimientos)' : 'Tipo de medida'}
               disabled={tipo === 'editar' && hasMovements}
               icon='ruler'
@@ -325,14 +332,15 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
           type={notification.type}
           text={notification.text}
         />
-      </ViewModal>
-      {/* Modal de selección de categorías */}
+        {/* Modal de selección de categorías */}
       <CategoriasAcopio
         isOpen={isCategoriasSeleccionOpen}
         setIsOpen={setIsCategoriasSeleccionOpen}
         modoSeleccion={true}
         onCategoriaSeleccionada={handleCategoriaSeleccionada}
       />
+      </ViewModal>
+      
       {/* Modal de receta */}
       <EditarAgregarReceta
         isOpen={isRecetaOpen}

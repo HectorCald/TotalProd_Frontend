@@ -169,11 +169,19 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     />
                     <Dato
                         label="Stock"
-                        value={`${registro.stock || 0} unidades`}
+                        value={
+                            registro.grup 
+                                ? `${registro.stock || 0} unidades (${Math.floor((registro.stock || 0) / registro.grup)} grupos + ${(registro.stock || 0) % registro.grup} unidades)`
+                                : `${registro.stock || 0} unidades`
+                        }
                     />
                     <Dato
                         label="Código de barras"
                         value={registro.codigo_barras || '--'}
+                    />
+                    <Dato
+                        label="Grupo"
+                        value={registro.grup ? `${registro.grup} unidades` : 'No agrupado'}
                     />
                     <Dato
                         label="Categoría"

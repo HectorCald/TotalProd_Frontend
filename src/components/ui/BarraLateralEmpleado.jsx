@@ -178,13 +178,13 @@ const BarraLateralEmpleado = ({
 
   const handleMenuClick = (item) => {
     if (item.hasSubmenu) {
-      // Toggle submenu
-      const newExpandedMenus = new Set(expandedMenus);
-      if (newExpandedMenus.has(item.id)) {
-        newExpandedMenus.delete(item.id);
-      } else {
+      // Solo permitir un submenu desplegado a la vez
+      const newExpandedMenus = new Set();
+      if (!expandedMenus.has(item.id)) {
+        // Si el submenu no estaba abierto, abrirlo y cerrar los demás
         newExpandedMenus.add(item.id);
       }
+      // Si ya estaba abierto, se cierra (newExpandedMenus queda vacío)
       setExpandedMenus(newExpandedMenus);
     } else {
       // Marcar como el último elemento clickeado
@@ -371,9 +371,16 @@ const BarraLateralEmpleado = ({
       />
 
       <PanelPedidos
-        isOpen={activeView === 'pedidos'}
+        isOpen={activeView === 'pedidos' && viewProps.tipo !== 'acopio'}
         setIsOpen={handleCloseView}
         tipoPedido={viewProps.tipo || 'almacen'}
+        {...viewProps}
+      />
+
+      <AlmacenAcopio
+        isOpen={activeView === 'pedidos' && viewProps.tipo === 'acopio'}
+        setIsOpen={handleCloseView}
+        tipo={viewProps.tipo || 'almacen'}
         {...viewProps}
       />
 

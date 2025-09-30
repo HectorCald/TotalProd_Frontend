@@ -12,7 +12,6 @@ import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import { useUser } from '../../../context/UserContext';
-import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 
@@ -40,13 +39,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
         try {
             setLoading(true);
-
-            let response;
-            if (tipoPedido === 'acopio') {
-                response = await pedidosAcopioService.eliminar(pedido.id);
-            } else {
-                response = await pedidosAlmacenService.eliminar(pedido.id);
-            }
+            const response = await pedidosAlmacenService.eliminar(pedido.id);
 
             if (response.success) {
                 mostrarNotificacion('success', 'Pedido eliminado correctamente');
@@ -68,8 +61,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     };
     // Función para editar pedido
     const handleEditarPedido = () => {
-        if (!pedido || tipoPedido === 'acopio') {
-            mostrarNotificacion('error', 'Solo se pueden editar pedidos de almacén');
+        if (!pedido) {
+            mostrarNotificacion('error', 'No hay pedido para editar');
             return;
         }
 
@@ -142,7 +135,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 // Cerrar modales
                 setIsAlmacenOpen(false);
                 setIsOpen(false);
-                
+
                 // Limpiar loading DESPUÉS de cerrar todo
                 setLoading(false);
             } else {
@@ -222,7 +215,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
             // Crear el movimiento de entrada usando el MVC de movimientos
             const movimientoData = {
-                tipo: 'entrada',
+                type: 'entrada',
                 observaciones: `Ingreso automático del pedido #${pedido.id.slice(-8)}`,
                 productos: productosParaIngreso,
                 precio_id: pedido.precio_id
@@ -315,7 +308,6 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
 
     // Función para preparar datos de descarga
-    // eslint-disable-next-line no-unused-vars
     const prepararDatosDescarga = () => {
         if (!pedido) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
 
@@ -328,80 +320,51 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             'Sucursal': nombreSucursal,
             'Número de Pedido': `#${pedido.id.slice(-8)}`,
             'Fecha': new Date(pedido.fecha || pedido.created_at).toLocaleString(),
-            'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'En Proceso' ? 'En Proceso' : pedido.estado === 'Enviado' ? 'Enviado' : 'Pendiente'
+            'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'
         };
 
-        // Para pedidos de acopio
-        if (tipoPedido === 'acopio') {
-            // Tabla para acopio (un solo producto)
-            const tablaHeaders = ['Producto', 'Cantidad', 'Unidad de Medida'];
-            const tablaValores = [[
-                pedido?.producto_acopio?.name || 'Sin producto',
-                pedido?.cantidad || '0',
-                pedido?.tipo_medida || ''
-            ]];
-
-            return { informacionSuperior, tablaHeaders, tablaValores };
-        }
-
         // Para pedidos de almacén
-        if (tipoPedido === 'almacen') {
-            if (pedido?.precio?.name) {
-                informacionSuperior['Tipo de Precio'] = pedido.precio.name;
-            }
-
-            // Calcular total
-            const total = (pedido?.pedido_almacen_detalle || []).reduce((sum, detalle) => {
-                const precio = detalle.precio || 0;
-                const cantidad = detalle.cantidad || 0;
-                return sum + (precio * cantidad);
-            }, 0);
-            informacionSuperior['Total'] = `Bs. ${total.toFixed(2)}`;
-
-            // Tabla para almacén (múltiples productos)
-            const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-            const tablaValores = (pedido?.pedido_almacen_detalle || []).map(detalle => [
-                detalle?.producto_almacen?.name || 'Sin producto',
-                detalle?.cantidad || '0',
-                `Bs. ${(detalle?.precio || 0).toFixed(2)}`,
-                `Bs. ${((detalle?.precio || 0) * (detalle?.cantidad || 0)).toFixed(2)}`
-            ]);
-
-            return { informacionSuperior, tablaHeaders, tablaValores };
+        if (pedido?.precio?.name) {
+            informacionSuperior['Tipo de Precio'] = pedido.precio.name;
         }
 
-        return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
+        // Calcular total
+        const total = (pedido?.pedido_almacen_detalle || []).reduce((sum, detalle) => {
+            const precio = detalle.precio || 0;
+            const cantidad = detalle.cantidad || 0;
+            return sum + (precio * cantidad);
+        }, 0);
+        informacionSuperior['Total'] = `Bs. ${total.toFixed(2)}`;
+
+        // Tabla para almacén (múltiples productos)
+        const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+        const tablaValores = (pedido?.pedido_almacen_detalle || []).map(detalle => [
+            detalle?.producto_almacen?.name || 'Sin producto',
+            detalle?.cantidad || '0',
+            `Bs. ${(detalle?.precio || 0).toFixed(2)}`,
+            `Bs. ${((detalle?.precio || 0) * (detalle?.cantidad || 0)).toFixed(2)}`
+        ]);
+
+        return { informacionSuperior, tablaHeaders, tablaValores };
     };
 
     // Función para obtener los detalles del pedido
     const getDetallesPedido = () => {
         if (!pedido) return [];
 
-        if (tipoPedido === 'acopio') {
-            // Para acopio, el pedido es un solo producto
-            return [{
-                id: pedido.id,
-                nombre: pedido.producto_acopio?.name || 'Producto no encontrado',
-                cantidad: pedido.cantidad || 0,
-                medida: pedido.tipo_medida || 'kg',
-                precio: 0, // No hay precio en la nueva estructura
-                subtotal: 0
-            }];
-        } else {
-            // Para almacén, usar la estructura de detalles
-            const detalles = pedido.pedido_almacen_detalle || [];
-            return detalles.map(detalle => {
-                const producto = detalle.producto_almacen || {};
-                return {
-                    id: detalle.id,
-                    nombre: producto.name || 'Producto no encontrado',
-                    cantidad: detalle.cantidad || 0,
-                    medida: detalle.medida || producto.type_measure?.code || 'u',
-                    precio: detalle.precio || 0,
-                    subtotal: (detalle.precio || 0) * (detalle.cantidad || 0)
-                };
-            });
-        }
+        // Para almacén, usar la estructura de detalles
+        const detalles = pedido.pedido_almacen_detalle || [];
+        return detalles.map(detalle => {
+            const producto = detalle.producto_almacen || {};
+            return {
+                id: detalle.id,
+                nombre: producto.name || 'Producto no encontrado',
+                cantidad: detalle.cantidad || 0,
+                medida: detalle.medida || producto.type_measure?.code || 'u',
+                precio: detalle.precio || 0,
+                subtotal: (detalle.precio || 0) * (detalle.cantidad || 0)
+            };
+        });
     };
 
     if (!pedido) return null;
@@ -411,24 +374,25 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
     const puedeEditarPedido = () => {
         if (!pedido || !sucursalActual) return false;
-        return pedido.sucu_id === sucursalActual.id && pedido.estado !== 'Enviado' && pedido.estado !== 'Completado';
+        return pedido.sucu_id === sucursalActual.id && pedido.estado !== 'Entregado' && pedido.estado !== 'Completado';
     };
     const puedeEntregarPedido = () => {
         if (!pedido || !sucursalActual) return false;
-        return pedido.pedido_sucursal_id === sucursalActual.id && pedido.estado !== 'Enviado';
+        return pedido.pedido_sucursal_id === sucursalActual.id && pedido.estado !== 'Entregado' && pedido.estado !== 'Completado';
     };
     const puedeCancelarEntrega = () => {
         if (!pedido || !sucursalActual) return false;
-        return pedido.pedido_sucursal_id === sucursalActual.id && pedido.estado === 'Enviado';
+        return pedido.pedido_sucursal_id === sucursalActual.id && pedido.estado === 'Entregado';
     };
     const puedeIngresarPedido = () => {
         if (!pedido || !sucursalActual) return false;
-        return pedido.sucu_id === sucursalActual.id && pedido.estado === 'Enviado';
+        return pedido.sucu_id === sucursalActual.id && pedido.estado === 'Entregado';
     };
     const puedeEliminarPedido = () => {
         if (!pedido || !sucursalActual) return false;
-        return pedido.sucu_id === sucursalActual.id && pedido.estado !== 'Completado' && pedido.estado !== 'Enviado';
+        return pedido.sucu_id === sucursalActual.id && pedido.estado !== 'Completado' && pedido.estado !== 'Entregado';
     };
+
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -462,43 +426,30 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         hour: '2-digit',
                         minute: '2-digit'
                     })}`}
-                    description2={tipoPedido !== 'acopio' ? `Tipo de precio: ${pedido.precio?.name || 'Precio desconocido'}` : ''}
-                    flot6={pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'En Proceso' ? 'En Proceso' : pedido.estado === 'Enviado' ? 'Enviado' : 'Pendiente'}
+                    description2={`Tipo de precio: ${pedido.precio?.name || 'Precio desconocido'}`}
+                    flot6={pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'}
                     circulo={false}
                     transparent={false}
                 />
-                {/* Botón para ver productos (solo para almacén) */}
-                {tipoPedido !== 'acopio' && detalles.length > 0 && (
-
+                {/* Botón para ver productos */}
+                {detalles.length > 0 && (
                     <Boton
                         className='btn-gray'
                         label={`Productos (${detalles.length})`}
                         onClick={() => setIsProductosOpen(true)}
                     />
-
                 )}
 
-                {tipoPedido === 'acopio' ? (
-
-                    <ItemView
-                        title={pedido.producto_acopio?.name || 'Producto no encontrado'}
-                        description={`Cantidad: ${pedido.cantidad} ${pedido.tipo_medida}`}
-                        icon='package'
-                        transparent={false}
-                    />
-
-                ) : (
-                    <Dato
-                        label="Total"
-                        value={`Bs. ${(pedido.pedido_almacen_detalle || []).reduce((total, detalle) => {
-                            const precio = detalle.precio || 0;
-                            const cantidad = detalle.cantidad || 0;
-                            return total + (precio * cantidad);
-                        }, 0).toFixed(2)}`}
-                        especial='green'
-                        vertical={false}
-                    />
-                )}
+                <Dato
+                    label="Total"
+                    value={`Bs. ${(pedido.pedido_almacen_detalle || []).reduce((total, detalle) => {
+                        const precio = detalle.precio || 0;
+                        const cantidad = detalle.cantidad || 0;
+                        return total + (precio * cantidad);
+                    }, 0).toFixed(2)}`}
+                    especial='green'
+                    vertical={false}
+                />
 
 
                 <div className={styles.buttons}>
@@ -556,18 +507,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                                 <ItemView
                                     key={producto.id || index}
                                     title={producto.nombre}
-                                    description={tipoPedido === 'acopio'
-                                        ? `${producto.cantidad} ${producto.medida}`
-                                        : `Bs. ${producto.precio.toFixed(2)}`
-                                    }
-                                    description2={tipoPedido === 'acopio'
-                                        ? ''
-                                        : `Subtotal: Bs. ${producto.subtotal.toFixed(2)}`
-                                    }
-                                    flot2={tipoPedido === 'acopio'
-                                        ? ''
-                                        : `${producto.cantidad} Und.`
-                                    }
+                                    description={`Bs. ${producto.precio.toFixed(2)}`}
+                                    description2={`Subtotal: Bs. ${producto.subtotal.toFixed(2)}`}
+                                    flot2={`${producto.cantidad} Und.`}
                                     icon='package'
                                 />
                             ))}
@@ -582,7 +524,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Pedido"
                 subtitulo="Selecciona el formato que prefieras para descargar este pedido."
-                nombreArchivo={`Pedido_${tipoPedido === 'acopio' ? 'Acopio' : 'Almacen'}_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`}
+                nombreArchivo={`Pedido_Almacen_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`}
                 {...prepararDatosDescarga()}
             />
 
@@ -630,7 +572,6 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 onEntregaConfirmada={modoAlmacen === 'entregar' ? handleEntregaConfirmada : null}
                 pedidoIdEditando={modoAlmacen === 'pedido' ? pedido?.id : null}
             />
-
         </View>
     );
 }

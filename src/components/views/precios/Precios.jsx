@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerPrecio from './VerPrecio';
 import Boton from '../../common/Boton';
@@ -30,6 +29,7 @@ function Precios({ isOpen, setIsOpen }) {
 
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para precios
     const [precios, setPrecios] = useState([]);
@@ -117,6 +117,19 @@ function Precios({ isOpen, setIsOpen }) {
         }
     }, [isOpen]);
 
+    // Funciones para el buscador expandible
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = (isExpanded) => {
+        setIsSearchExpanded(isExpanded);
+    };
+
     // Manejar error 403 con useEffect para evitar bucle infinito
     useEffect(() => {
         if (error && error.status === 403 && isOpen) {
@@ -187,7 +200,16 @@ function Precios({ isOpen, setIsOpen }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView 
+                onBack={() => setIsOpen(false)}
+                showSearch={true}
+                searchPlaceholder="Buscar tipo de precio"
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchExpanded={isSearchExpanded}
+                onSearchToggle={handleSearchToggle}
+            />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
                     <h1 className={styles.title}>
@@ -199,16 +221,6 @@ function Precios({ isOpen, setIsOpen }) {
                     <RefreshIndicator
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}
-                    />
-                </div>
-                <div className={styles.searchContainer}>
-                    <InputSearch
-                        placeholder='Buscar tipo de precio'
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                        }}
                     />
                 </div>
                 <div className={styles.content}

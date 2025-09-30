@@ -8,14 +8,13 @@ import Dato from '../../common/Dato';
 import { BoxIcon } from 'boxicons-react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import Boton from '../../common/Boton';
-import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
+import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
 
-function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
+function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
     const [loading, setLoading] = useState(false);
-    const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
@@ -40,7 +39,16 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         }, 3000);
     };
 
-    // Función para manejar el destacado
+    // Función para cargar estado de destacado desde localStorage para movimientos de acopio
+    useEffect(() => {
+        if (movimiento?.id) {
+            const movimientosDestacados = JSON.parse(localStorage.getItem('MovimientosDestacados') || '[]');
+            const esDestacado = movimientosDestacados.some(m =>
+                m.id === movimiento.id && m.tipo === 'acopio'
+            );
+            setIsDestacado(esDestacado);
+        }
+    }, [movimiento?.id]);
     const handleDestacar = () => {
         if (!movimiento?.id) return;
 
@@ -49,7 +57,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         if (isDestacado) {
             // Quitar de destacados
             movimientosDestacados = movimientosDestacados.filter(m =>
-                !(m.id === movimiento.id && m.tipo === 'almacen')
+                !(m.id === movimiento.id && m.tipo === 'acopio')
             );
             setIsDestacado(false);
         } else {
@@ -62,24 +70,15 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             // Agregar a destacados
             movimientosDestacados.push({
                 id: movimiento.id,
-                tipo: 'almacen'
+                tipo: 'acopio'
             });
             setIsDestacado(true);
         }
 
         localStorage.setItem('MovimientosDestacados', JSON.stringify(movimientosDestacados));
     };
-    useEffect(() => {
-        if (movimiento?.id) {
-            const movimientosDestacados = JSON.parse(localStorage.getItem('MovimientosDestacados') || '[]');
-            const esDestacado = movimientosDestacados.some(m =>
-                m.id === movimiento.id && m.tipo === 'almacen'
-            );
-            setIsDestacado(esDestacado);
-        }
-    }, [movimiento?.id]);
 
-    
+
 
     // Función para preparar datos de descarga
     const prepararDatosDescarga = () => {
@@ -92,42 +91,47 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         const informacionSuperior = {
             'Responsable': movimiento?.user?.name || movimiento?.personal?.name || 'Usuario desconocido',
             'Tipo': movimiento?.type === 'entrada' ? 'Entrada' : 'Salida',
-            'Fecha': new Date(movimiento?.fecha).toLocaleString(),
+            'Fecha': new Date(movimiento?.date).toLocaleString(),
             'Estado': movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado',
             'Sucursal': nombreSucursal
         };
 
-        if (movimiento?.precio?.name) {
-            informacionSuperior['Tipo de Precio'] = movimiento.precio.name;
+        if (movimiento?.type === 'entrada' && movimiento?.proveedor?.name) {
+            informacionSuperior['Proveedor'] = movimiento.proveedor.name;
+        }
+        if (movimiento?.type === 'salida' && movimiento?.cliente?.name) {
+            informacionSuperior['Cliente'] = movimiento.cliente.name;
         }
         if (movimiento?.metodo_pago) {
             informacionSuperior['Método de Pago'] = movimiento.metodo_pago;
         }
-        if (movimiento?.productos && movimiento.productos.length > 0) {
-            const total = movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
-            informacionSuperior['Total'] = `Bs. ${total.toFixed(2)}`;
+        if (movimiento?.costo) {
+            informacionSuperior['Costo'] = `Bs. ${parseFloat(movimiento.costo).toFixed(2)}`;
+        }
+        if (movimiento?.restar_ingredientes !== undefined) {
+            informacionSuperior['Restar Ingredientes'] = movimiento.restar_ingredientes ? 'Sí' : 'No';
         }
         if (movimiento?.observaciones) {
             informacionSuperior['Observaciones'] = movimiento.observaciones;
         }
 
-        // Tabla para almacén (múltiples productos)
-        const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-        const tablaValores = (movimiento?.productos || []).map(producto => [
-            producto?.producto?.name || 'Sin producto',
-            producto?.cantidad || '0',
-            `Bs. ${(parseFloat(producto?.precio_unitario) || 0).toFixed(2)}`,
-            `Bs. ${(parseFloat(producto?.subtotal) || 0).toFixed(2)}`
-        ]);
+        // Tabla para acopio (un solo producto)
+        const tablaHeaders = ['Producto', 'Cantidad', 'Unidad de Medida'];
+        const tablaValores = [[
+            movimiento?.product?.name || 'Sin producto',
+            movimiento?.quantity || '0',
+            movimiento?.product?.type_measure?.code || ''
+        ]];
 
         return { informacionSuperior, tablaHeaders, tablaValores };
     };
+
 
     // Handle para anular movimiento
     const handleAnular = async () => {
         setLoading(true);
         try {
-            const response = await movimientosAlmacenService.anular(movimiento.id);
+            const response = await movimientosAcopioService.anular(movimiento.id);
 
             if (response.success) {
                 setIsAnularOpen(false);
@@ -151,7 +155,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     const handleEliminar = async () => {
         setLoading(true);
         try {
-            const response = await movimientosAlmacenService.eliminar(movimiento.id);
+            const response = await movimientosAcopioService.eliminar(movimiento.id);
 
             if (response.success) {
                 setIsEliminarOpen(false);
@@ -170,7 +174,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             setLoading(false);
         }
     };
-
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -213,8 +216,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
                 <ItemView
                     title={movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}
-                    description={`Fecha y hora: ${new Date(movimiento?.fecha).toLocaleString()}`}
-                    description2={`Tipo de precio: ${movimiento?.precio?.name || 'Precio desconocido'}`}
+                    description={`Fecha y hora: ${new Date(movimiento?.date).toLocaleString()}`}
                     transparent={false}
                     circulo={false}
                     flot6={movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'}
@@ -224,33 +226,41 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
                     transparent={false}
                 />
+                <p className={styles.subTitle}>PRODUCTO</p>
+                <ItemView
+                    title={movimiento?.product?.name || 'Sin producto'}
+                    description={`${movimiento?.quantity || '0'} ${movimiento?.product?.type_measure?.code || ''}`}
+                    transparent={false}
+                    icon='package'
+                />
+
+                {/* Mostrar costo solo para movimientos de entrada */}
+                {movimiento?.type === 'entrada' && (
+                    <div className={styles.content}>
+                        <Dato
+                            label="Costo"
+                            value={`Bs. ${(movimiento?.costo || 0).toFixed(2)}`}
+                            vertical={false}
+                        />
+                    </div>
+                )}
+
+                {/* Mostrar restar_ingredientes para movimientos de entrada */}
+                {movimiento?.type === 'entrada' && (
+                    <div className={styles.content}>
+                        <Dato
+                            label="Restar Ingredientes"
+                            value={movimiento?.restar_ingredientes ? 'Sí' : 'No'}
+                            vertical={false}
+                        />
+                    </div>
+                )}
                 {movimiento?.metodo_pago && (
                     <Dato
                         label="Método de pago"
                         value={movimiento.metodo_pago}
                         vertical={false}
                     />
-                )}
-                <p className={styles.subTitle}>DETALLES DE PRODUCTOS Y SUBTOTAL</p>
-                {/* Botón para ver productos - solo para movimientos con múltiples productos */}
-                {movimiento?.productos && movimiento.productos.length > 0 && (
-                    <Boton
-                        className='btn-gray'
-                        label={`Productos (${movimiento.productos.length})`}
-                        onClick={() => setIsProductosOpen(true)}
-                    />
-                )}
-
-                {/* Total calculado para movimientos */}
-                {movimiento?.productos && movimiento.productos.length > 0 && (
-                    <div className={styles.content}>
-                        <Dato
-                            label="Total del Movimiento"
-                            value={`Bs. ${(movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
-                            vertical={false}
-                            especial='green'
-                        />
-                    </div>
                 )}
 
                 {/* Observaciones del movimiento */}
@@ -282,39 +292,13 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 </div>
             </div>
 
-
-
-            {/* Modal de productos */}
-            <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
-                <HeaderModal
-                    title="Productos del Movimiento"
-                    onClose={() => setIsProductosOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    {movimiento?.productos && movimiento.productos.length > 0 && (
-                        <>
-                            <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
-
-                            {movimiento.productos.map((productoMovimiento, index) => (
-                                <ItemView
-                                    title={productoMovimiento.producto?.name || 'Sin nombre'}
-                                    description={`${productoMovimiento.cantidad || 0} ud - ${productoMovimiento.precio_unitario || 0} BOB`}
-                                    flot2={productoMovimiento.subtotal + ' BOB' || 0}
-                                />
-                            ))}
-
-                        </>
-                    )}
-                </div>
-            </ViewModal>
-
             {/* Modal de descarga */}
             <ModalDescarga
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Movimiento"
                 subtitulo="Selecciona el formato que prefieras para descargar este movimiento."
-                nombreArchivo={`Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`}
+                nombreArchivo={`Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.date).toLocaleDateString().replace(/\//g, '-')}`}
                 {...prepararDatosDescarga()}
             />
 
@@ -342,7 +326,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                             onClick={handleAnular}
                             loading={loading}
                         />
-
                     </div>
                 </div>
             </ViewModal>
@@ -371,7 +354,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                             onClick={handleEliminar}
                             loading={loading}
                         />
-
                     </div>
                 </div>
             </ViewModal>
@@ -384,4 +366,5 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         </View>
     );
 }
-export default VerMovimiento;
+
+export default VerMovimientoAcopio;

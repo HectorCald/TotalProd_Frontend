@@ -136,6 +136,24 @@ class productsAcopioService {
 
 
 
+  // Obtener un producto por ID
+  static async getById(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products-acopio/${id}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en getById:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
   // Obtener productos por categoría
   static async getByCategory(categoryId) {
     try {

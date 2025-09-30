@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerProveedor from './VerProveedor';
 import Boton from '../../common/Boton';
@@ -29,6 +28,7 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
     
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para proveedores
     const [proveedores, setProveedores] = useState([]);
@@ -130,6 +130,19 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
         }
     }, [isOpen]);
 
+    // Funciones para el buscador expandible
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = (isExpanded) => {
+        setIsSearchExpanded(isExpanded);
+    };
+
 
     // Filtrar proveedores localmente basado en la búsqueda
     const proveedoresFiltrados = proveedores.filter(proveedor => 
@@ -204,8 +217,18 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
     }));
 
     return (
+        <>
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!modoSeleccion}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView 
+                onBack={() => setIsOpen(false)}
+                showSearch={true}
+                searchPlaceholder="Buscar por nombre o teléfono..."
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchExpanded={isSearchExpanded}
+                onSearchToggle={handleSearchToggle}
+            />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
                     <h1 className={styles.title}>
@@ -217,16 +240,6 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                     <RefreshIndicator
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}
-                    />
-                </div>
-                <div className={styles.searchContainer}>
-                    <InputSearch
-                        placeholder='Buscar por nombre o teléfono...'
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                        }}
                     />
                 </div>
                 <div className={styles.content} style={{
@@ -317,6 +330,7 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                 text={notification.text}
             />
         </View>
+        </>
     );
 }
 export default Proveedores;

@@ -18,6 +18,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
     stock: '',
     codigo_barras: '',
     category_id: '',
+    grup: '',
     prices: {} // Objeto para almacenar los precios por tipo
   });
 
@@ -86,6 +87,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         stock: data.stock || '',
         codigo_barras: data.codigo_barras || '',
         category_id: data.category_id || '',
+        grup: data.grup || '',
         prices: prices
       });
 
@@ -116,6 +118,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         stock: '',
         codigo_barras: '',
         category_id: '',
+        grup: '',
         prices: {}
       });
       setHasReceta(false);
@@ -229,6 +232,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         stock: parseInt(dataMov.stock),
         codigo_barras: dataMov.codigo_barras,
         category_id: dataMov.category_id,
+        grup: dataMov.grup ? parseInt(dataMov.grup) : null,
         prices: dataMov.prices,
         receta: hasReceta ? recetaGuardada : null // Incluir receta solo si está marcado el switch
       };
@@ -300,6 +304,16 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
             placeholder='Código de barras'
             onChange={(e) => handleChange('codigo_barras', e.target.value)}
             icon='barcode'
+          />
+
+          <InputNormal
+            tipo="number"
+            value={dataMov.grup}
+            placeholder='Grupo (ej: 12 para docena)'
+            onChange={(e) => handleChange('grup', e.target.value)}
+            icon='package'
+            step="1"
+            min="1"
           />
 
           <Boton
@@ -377,16 +391,17 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
           type={notification.type}
           text={notification.text}
         />
-      </ViewModal>
-
-
-      {/* Modal de selección de categorías */}
+        {/* Modal de selección de categorías */}
       <CategoriasAlmacen
         isOpen={isCategoriasSeleccionOpen}
         setIsOpen={setIsCategoriasSeleccionOpen}
         modoSeleccion={true}
         onCategoriaSeleccionada={handleCategoriaSeleccionada}
       />
+      </ViewModal>
+
+
+      
       {/* Modal de receta */}
       <EditarAgregarReceta
         isOpen={isRecetaOpen}

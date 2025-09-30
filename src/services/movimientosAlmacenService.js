@@ -80,7 +80,7 @@ class movimientosAlmacenService {
   }
 
   // Obtener todos los movimientos de la sucursal
-  static async getAll(page = 1, limit = 10, tipo = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+  static async getAll(page = 1, limit = 10, tipo = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -97,7 +97,10 @@ class movimientosAlmacenService {
       });
 
       if (tipo) {
-        params.append('type', tipo);
+        params.append('tipo', tipo);
+      }
+      if (estado) {
+        params.append('estado', estado);
       }
       if (ordenamiento) {
         params.append('ordenamiento', ordenamiento);
@@ -239,7 +242,7 @@ class movimientosAlmacenService {
   }
 
   // Obtener todos los movimientos sin límite (para reportes y balance)
-  static async getAllSinLimite(tipo = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+  static async getAllSinLimite(tipo = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -256,7 +259,10 @@ class movimientosAlmacenService {
       });
 
       if (tipo) {
-        params.append('type', tipo);
+        params.append('tipo', tipo);
+      }
+      if (estado) {
+        params.append('estado', estado);
       }
       if (ordenamiento) {
         params.append('ordenamiento', ordenamiento);

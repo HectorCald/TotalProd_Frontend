@@ -4,6 +4,7 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
 import PanelPedidos from './PanelPedidos';
+import AlmacenAcopio from '../almacen-acopio/AlmacenAcopio';
 
 function PedidosMedio({ isOpen, setIsOpen }) {
     const [isPedidosOpen, setIsPedidosOpen] = useState(false);
@@ -15,6 +16,11 @@ function PedidosMedio({ isOpen, setIsOpen }) {
         // Abrir directamente la vista específica
         setIsPedidosOpen(true);
         setTipoPedido(tipo);
+    }
+
+    const handlePedidosClose = () => {
+        setIsPedidosOpen(false);
+        setTipoPedido('');
     }
 
     return (
@@ -32,7 +38,6 @@ function PedidosMedio({ isOpen, setIsOpen }) {
                     arrow={true}
                     onClick={() => handleTipoPedido('almacen')}
                 />
-                {/*
                 <ItemView
                     title='Materia Prima'
                     description='Ver y gestionar los pedidos de materia prima'
@@ -40,12 +45,15 @@ function PedidosMedio({ isOpen, setIsOpen }) {
                     arrow={true}
                     onClick={() => handleTipoPedido('acopio')}
                 />
-                */}
             </div>
             
         </ViewModal>
         {/* Pedidos */}
-        <PanelPedidos isOpen={isPedidosOpen} setIsOpen={setIsPedidosOpen} tipoPedido={tipoPedido} />
+        <PanelPedidos 
+            isOpen={isPedidosOpen && (tipoPedido === 'almacen' || tipoPedido === 'acopio')} 
+            setIsOpen={handlePedidosClose} 
+            tipoPedido={tipoPedido} 
+        />
         </>
     );
 }

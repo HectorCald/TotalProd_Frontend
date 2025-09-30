@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerProducto from './VerProducto';
 import Filtros from '../../common/Filtros';
@@ -12,6 +11,7 @@ import CategoriasAcopio from './CategoriasAcopio';
 import MovimientoAcopio from './MovimientoAcopio';
 import CanastaPedidos from './CanastaPedidos';
 import productsAcopioService from '../../../services/productsAcopioService';
+import typeMeasureService from '../../../services/typeMeasureService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import Notification from '../../common/Notification';
@@ -24,6 +24,9 @@ import FetchData from '../../mixed/FetchData';
 
 function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const { isLargeScreen } = useLayout();
+    
+    // Determinar si es modo carrito (para panel lateral)
+    const isCartMode = tipo === 'pedido';
 
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
@@ -34,6 +37,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     // Estados para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para los datos
     const [categorias, setCategorias] = useState([]);
@@ -63,6 +67,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const handleProductosLoaded = useCallback((data) => {
         setProductos(data);
     }, []);
+
 
     // Mapear Información de productos
     const productosMapeados = productos.map(producto => ({
@@ -184,6 +189,19 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
             cargarCanastasDesdeLocalStorage();
         }
     }, [isOpen]);
+
+    // Funciones para el buscador expandible
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = (isExpanded) => {
+        setIsSearchExpanded(isExpanded);
+    };
 
     // Filtrar y ordenar productos localmente
     const productosFiltrados = productosMapeados.filter(producto => {
@@ -400,12 +418,22 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     };
 
     return (
+        <>
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-            <HeaderView onBack={() => setIsOpen(false)} />
-            <div className={styles.container}>
+            <HeaderView 
+                onBack={() => setIsOpen(false)}
+                showSearch={true}
+                searchPlaceholder="Buscar producto"
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchExpanded={isSearchExpanded}
+                onSearchToggle={handleSearchToggle}
+            />
+            <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
                 <div className={styles.titleContainer}>
                     <h1 className={styles.title}>
-                        Materia Prima
+                        {tipo === 'almacen' ? 'Materia Prima' : tipo === 'entrada' ? 'Entradas' : tipo === 'pedido' ? 'Realizar Pedidos' : 'Salidas o Ventas'}
                         <button className={styles.refreshButton} onClick={handleRefresh}>
                             <BoxIcon name='refresh' />
                         </button>
@@ -415,24 +443,13 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                         isLoading={isRefreshing}
                     />
                 </div>
-                <p className={styles.subTitle}>Administra tu almacen de Materia Prima</p>
-                <div className={styles.searchContainer}>
-                    <InputSearch
-                        placeholder='Buscar producto'
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                        }}
-                    />
-                </div>
                 <Filtros options={opciones} />
                 <div
                     className={styles.content}
                     style={{
-                        height: tipo === 'entrada' || tipo === 'salida'
-                            ? ''
-                            : 'calc(100vh - 310px)'
+                        maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido') && isLargeScreen
+                            ? '100%'
+                            : ''
                     }}
                 >
                     {isLargeScreen ? (
@@ -490,7 +507,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                         onClick={() => { setIsAgregarOpen(true); }}
                     />
                 </div> : ''}
-            {tipo === 'pedido' ?
+            {tipo === 'pedido' && !(isCartMode && isLargeScreen) ?
                 <div className={styles.buttonFooter}>
                     <Boton
                         className='btn-original'
@@ -538,9 +555,38 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 tipo={tipo}
                 onMovimientoCreated={handleMovimientoCreated}
             />
+            {/* View de canasta de pedidos */}
+            <CanastaPedidos
+                isOpen={isCartMode && isLargeScreen ? true : isCanastaOpen}
+                setIsOpen={setIsCanastaOpen}
+                productosCanasta={productosCanasta}
+                setProductosCanasta={setProductosCanasta}
+                onPedidoCreado={handlePedidoCreado}
+                isCartMode={isCartMode && isLargeScreen}
+            />
 
-            {/* Filtro de tipos de medida */}
-            <FiltroTipoMedida
+            {/* Carga de datos - solo cuando está abierto */}
+            {isOpen && (
+                <>
+                    <FetchData
+                        service={productsAcopioService}
+                        serviceName="productsAcopioService"
+                        isOpen={isOpen}
+                        onDataLoaded={handleProductosLoaded}
+                        onLoadingStart={() => handleLoading(true)}
+                        onLoadingEnd={() => handleLoading(false)}
+                    />
+                    <FetchData
+                        service={typeMeasureService}
+                        serviceName="typeMeasureService"
+                        isOpen={isOpen}
+                        onDataLoaded={setTiposMedida}
+                    />
+                </>
+            )}
+        </View>
+        {/* Filtro de tipos de medida */}
+        <FiltroTipoMedida
                 isOpen={isOpenTipoMedida}
                 setIsOpen={setOpenTipoMedida}
                 onTipoMedidaSeleccionado={handleTipoMedidaFilter}
@@ -558,28 +604,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 setIsOpen={setOpenOrden}
                 onOrdenamientoSeleccionado={handleOrdenamiento}
             />
-            {/* View de canasta de pedidos */}
-            <CanastaPedidos
-                isOpen={isCanastaOpen}
-                setIsOpen={setIsCanastaOpen}
-                productosCanasta={productosCanasta}
-                setProductosCanasta={setProductosCanasta}
-                onPedidoCreado={handlePedidoCreado}
-            />
-
-            {/* Carga de datos - solo cuando está abierto */}
-            {isOpen && (
-                <FetchData
-                    service={productsAcopioService}
-                    serviceName="productsAcopioService"
-                    isOpen={isOpen}
-                    onDataLoaded={handleProductosLoaded}
-                    onLoadingStart={() => handleLoading(true)}
-                    onLoadingEnd={() => handleLoading(false)}
-                />
-            )}
-        </View>
-
+        </>
     );
 }
 export default AlmacenAcopio;

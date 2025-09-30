@@ -15,6 +15,19 @@
   -ms-user-select: none;     /* Para IE/Edge antiguos */
   -webkit-tap-highlight-color: transparent;
 }
+/* Scrollbar personalizado para pantallas grandes */
+*::-webkit-scrollbar {
+  width: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--tertiary-color);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--quinary-color);
+  border-radius: 2px;
+}
 
 body, html {
   font-family: 'Poppins', sans-serif;
@@ -34,7 +47,7 @@ code {
   --error-color: #ff4c4c;
   --success-color: rgb(70, 242, 70);
   --warning-color: #FB8713;
-  --info-color: #3482ff;
+  --info-color: #468cfd;
 }
 
 /* Tema claro */

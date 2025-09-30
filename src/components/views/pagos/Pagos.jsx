@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import styles from './Pagos.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerRegistro from './VerRegistro';
 import Filtros from '../../common/Filtros';
@@ -40,12 +39,29 @@ function Pagos({ isOpen, setIsOpen }) {
         fin: 'Seleccione una fecha',
     });
 
-
     const [filtroActivo, setFiltroActivo] = useState('todos');
+    
+    // Estados para el buscador expandible
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     const handleRegistro = (registro) => {
         setIsOpenVerRegistro(true);
         setInfoPersona(registroData[registro]);
     };
+
+    // Funciones para el buscador expandible
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = (isExpanded) => {
+        setIsSearchExpanded(isExpanded);
+    };
+
     const opciones = [
         {
             label: 'Estado',
@@ -65,13 +81,18 @@ function Pagos({ isOpen, setIsOpen }) {
     ];
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView 
+                onBack={() => setIsOpen(false)}
+                showSearch={true}
+                searchPlaceholder="Buscar pago"
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchExpanded={isSearchExpanded}
+                onSearchToggle={handleSearchToggle}
+            />
             <div className={styles.container}>
                 <h1 className={styles.title}>Pagos</h1>
-                <InputSearch
-                    placeholder='Buscar pago'
-                    type="text"
-                />
                 <Filtros options={opciones} />
                 <div className={styles.content} >
                     {

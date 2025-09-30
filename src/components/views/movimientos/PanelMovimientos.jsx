@@ -3,13 +3,10 @@ import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerMovimiento from './VerMovimiento';
+import VerMovimientoAcopio from './VerMovimientoAcopio';
 import Filtros from '../../common/Filtros';
-import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import ItemLine from '../../common/ItemLine';
 import Notification from '../../common/Notification';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
@@ -17,6 +14,9 @@ import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
+import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
+import FiltroTipoMovimiento from '../../mixed/FiltroTipoMovimiento';
+import FiltroEstadoMovimiento from '../../mixed/FiltroEstadoMovimiento';
 
 
 function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
@@ -29,6 +29,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
@@ -42,6 +43,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Estados para filtros
     const [filtroTipo, setFiltroTipo] = useState(null);
+    const [filtroEstado, setFiltroEstado] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
 
     // Estados para movimientos
@@ -52,15 +54,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
 
     // Función para cargar movimientos
-    const cargarMovimientos = async (page = 1, search = '', filtro = null, orden = 'fecha_desc') => {
-        console.log('cargando movimientos');
+    const cargarMovimientos = async (page = 1, search = '', filtro = null, estado = null, orden = 'fecha_desc') => {
         setIsLoading(true);
         setError(null);
         
         try {
             const response = tipoMovimiento === 'acopio' 
-                ? await movimientosAcopioService.getAll(page, 10, filtro, orden)
-                : await movimientosAlmacenService.getAll(page, 10, filtro, orden);
+                ? await movimientosAcopioService.getAll(page, 10, filtro, estado, orden)
+                : await movimientosAlmacenService.getAll(page, 10, filtro, estado, orden);
                 
             if (response.success) {
                 setMovimientos(response.data);
@@ -109,7 +110,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     }, [isLoading, isOpen, showRefreshIndicator]);
 
-
     // Cargar movimientos cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
@@ -117,16 +117,16 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
             // Cargar primera página
-            cargarMovimientos(1, debouncedSearchQuery, filtroTipo, ordenamiento);
+            cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
         }
     }, [isOpen]);
 
     // Cargar movimientos cuando cambian los parámetros
     useEffect(() => {
         if (isOpen) {
-            cargarMovimientos(currentPage, debouncedSearchQuery, filtroTipo, ordenamiento);
+            cargarMovimientos(currentPage, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
         }
-    }, [currentPage, debouncedSearchQuery, filtroTipo, ordenamiento]);
+    }, [currentPage, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -156,15 +156,15 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     };
 
     // Estados para filtros y modales
-    const [isOpenOrden, setOpenOrden] = useState(false);
-    const [isOpenTipo, setOpenTipo] = useState(false);
+    const [isOpenFiltroOrden, setIsOpenFiltroOrden] = useState(false);
+    const [isOpenFiltroTipo, setIsOpenFiltroTipo] = useState(false);
+    const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
 
     // Función para manejar el click en un movimiento
     const handleRegistro = (movimiento) => {
         setInfoMovimiento(movimiento);
         setIsOpenVerMovimiento(true);
     };
-
 
     // Función para manejar refresh con indicador
     const handleRefresh = async () => {
@@ -176,7 +176,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setCurrentPage(1);
         
         try {
-            await cargarMovimientos(1, debouncedSearchQuery, filtroTipo, ordenamiento);
+            await cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
             
             // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
@@ -211,6 +211,25 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setCurrentPage(1);
     };
 
+    // Función para manejar filtro de estado
+    const handleFiltroEstado = (estado) => {
+        setFiltroEstado(estado);
+        setCurrentPage(1);
+    };
+
+    // Funciones para el buscador expandible
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = (isExpanded) => {
+        setIsSearchExpanded(isExpanded);
+    };
+
     // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
@@ -225,7 +244,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setAllMovimientos([]);
             setCurrentPage(1);
         }
-    }, [debouncedSearchQuery, filtroTipo, ordenamiento]);
+    }, [debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento]);
 
     // Efecto para manejar errores de SWR
     useEffect(() => {
@@ -265,6 +284,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         return 'Todos los tipos';
     };
 
+    // Función para obtener el nombre del filtro de estado
+    const getEstadoNombre = () => {
+        if (filtroEstado === null) return 'Todos los estados';
+        if (filtroEstado === 'finalizado') return 'Finalizados';
+        if (filtroEstado === 'anulado') return 'Anulados';
+        return 'Todos los estados';
+    };
+
     // Función para obtener el nombre del ordenamiento
     const getOrdenamientoNombre = () => {
         const ordenamientos = {
@@ -280,12 +307,17 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         {
             label: getTipoNombre(),
             active: filtroTipo !== null,
-            onClick: () => setOpenTipo(true)
+            onClick: () => setIsOpenFiltroTipo(true)
+        },
+        {
+            label: getEstadoNombre(),
+            active: filtroEstado !== null,
+            onClick: () => setIsOpenFiltroEstado(true)
         },
         {
             label: getOrdenamientoNombre(),
             active: ordenamiento !== 'fecha_desc',
-            onClick: () => setOpenOrden(true)
+            onClick: () => setIsOpenFiltroOrden(true)
         },
     ];
 
@@ -320,13 +352,65 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         estado: movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'
     }));
 
+    // Función para obtener el badge de estado
+    const getCellBadge = (item, headerKey) => {
+        if (headerKey === 'estado') {
+            const estado = item.estado;
+            const badgeConfig = {
+                'Finalizado': {
+                    text: 'Finalizado',
+                    className: 'info' // verde
+                },
+                'Anulado': {
+                    text: 'Anulado',
+                    className: 'error' // rojo
+                },
+            };
+            
+            return badgeConfig[estado] || {
+                text: estado,
+                className: 'default'
+            };
+        }
+        
+        if (headerKey === 'tipo') {
+            const tipo = item.tipo;
+            const badgeConfig = {
+                'Entrada': {
+                    text: 'Entrada',
+                    className: 'success' // verde
+                },
+                'Salida': {
+                    text: 'Salida',
+                    className: 'error' // rojo
+                },
+            };
+            
+            return badgeConfig[tipo] || {
+                text: tipo,
+                className: 'default'
+            };
+        }
+        
+        return null;
+    };
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView 
+                onBack={() => setIsOpen(false)}
+                showSearch={true}
+                searchPlaceholder="Buscar movimientos..."
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchExpanded={isSearchExpanded}
+                onSearchToggle={handleSearchToggle}
+            />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
                     <h1 className={styles.title}>
-                        Movimientos
+                        {tipoMovimiento === 'acopio' ? 'Movimientos de Materia Prima' : 'Movimientos de Almacén'}
                         <button className={styles.refreshButton} onClick={handleRefresh}>
                             <BoxIcon name='refresh' />
                         </button>
@@ -336,28 +420,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         isLoading={isRefreshing}
                     />
                 </div>
-                <p className={styles.subTitle}>
-                    {tipoMovimiento === 'acopio' 
-                        ? 'Materia Prima' 
-                        : 'Almacén General'
-                    }
-                </p>
-                <div className={styles.searchContainer}>
-                    <InputSearch
-                        placeholder='Buscar movimiento'
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                        }}
-                    />
-                </div>
                 <Filtros options={opciones} />
                 <div
                     className={styles.content}
-                    onScroll={handleScroll}
+                    onScroll={!isLargeScreen ? handleScroll : undefined}
                     style={{
-                        minHeight: 'calc(100vh - 250px)',
+                        maxHeight: tipoMovimiento === 'acopio' || tipoMovimiento === 'almacen'
+                            ? '100%'
+                            : ''
                     }}
                 >
                     {isLargeScreen ? (
@@ -370,6 +440,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                 const movimientoOriginal = allMovimientos.find(m => m.id === movimiento.id);
                                 handleRegistro(movimientoOriginal);
                             }}
+                            getCellBadge={getCellBadge}
+                            onScroll={handleScroll}
                         />
                     ) : (
                         // Vista de cards para pantallas pequeñas
@@ -390,7 +462,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                         icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
                                         onClick={() => handleRegistro(movimiento)}
                                         arrow={false}
-                                        flot2={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
+                                        flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
                                         flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
                                     />
                                 );
@@ -412,14 +484,23 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             </div>
             
             {/* Modal de ver movimiento*/}
-            <VerMovimiento
-                isOpen={isOpenVerMovimiento}
-                setIsOpen={setIsOpenVerMovimiento}
-                movimiento={infoMovimiento}
-                tipoMovimiento={tipoMovimiento}
-                onMovimientoAnulado={handleMovimientoAnulado}
-                onMovimientoEliminado={handleMovimientoEliminado}
-            />
+            {tipoMovimiento === 'acopio' ? (
+                <VerMovimientoAcopio
+                    isOpen={isOpenVerMovimiento}
+                    setIsOpen={setIsOpenVerMovimiento}
+                    movimiento={infoMovimiento}
+                    onMovimientoAnulado={handleMovimientoAnulado}
+                    onMovimientoEliminado={handleMovimientoEliminado}
+                />
+            ) : (
+                <VerMovimiento
+                    isOpen={isOpenVerMovimiento}
+                    setIsOpen={setIsOpenVerMovimiento}
+                    movimiento={infoMovimiento}
+                    onMovimientoAnulado={handleMovimientoAnulado}
+                    onMovimientoEliminado={handleMovimientoEliminado}
+                />
+            )}
 
             <Notification
                 isVisible={notification.isVisible}
@@ -427,83 +508,26 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 text={notification.text}
             />
 
-            {/* Modal de filtro de tipo*/}
-            <ViewModal isOpen={isOpenTipo} setIsOpen={setOpenTipo}>
-                <HeaderModal
-                    title="Tipo de Movimiento"
-                    onClose={() => setOpenTipo(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona el tipo de movimiento a mostrar</p>
-                    <ItemLine
-                        title='Todos los tipos'
-                        icon='list-ul'
-                        onClick={() => {
-                            handleFiltroTipo(null);
-                            setOpenTipo(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Entradas'
-                        icon='plus-circle'
-                        onClick={() => {
-                            handleFiltroTipo('entrada');
-                            setOpenTipo(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Salidas'
-                        icon='minus-circle'
-                        onClick={() => {
-                            handleFiltroTipo('salida');
-                            setOpenTipo(false);
-                        }}
-                    />
-                </div>
-            </ViewModal>
+            {/* Filtro de tipo de movimiento */}
+            <FiltroTipoMovimiento
+                isOpen={isOpenFiltroTipo}
+                setIsOpen={setIsOpenFiltroTipo}
+                onTipoSeleccionado={handleFiltroTipo}
+            />
 
-            {/* Modal de ordenamiento*/}
-            <ViewModal isOpen={isOpenOrden} setIsOpen={setOpenOrden}>
-                <HeaderModal
-                    title="Ordenamiento"
-                    onClose={() => setOpenOrden(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para ordenar los movimientos</p>
-                    <ItemLine
-                        title='Más recientes'
-                        icon='time'
-                        onClick={() => {
-                            handleOrdenamiento('fecha_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Más antiguos'
-                        icon='time-five'
-                        onClick={() => {
-                            handleOrdenamiento('fecha_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Tipo A-Z'
-                        icon='sort-a-z'
-                        onClick={() => {
-                            handleOrdenamiento('tipo_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Tipo Z-A'
-                        icon='sort-z-a'
-                        onClick={() => {
-                            handleOrdenamiento('tipo_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                </div>
-            </ViewModal>
+            {/* Filtro de estado de movimiento */}
+            <FiltroEstadoMovimiento
+                isOpen={isOpenFiltroEstado}
+                setIsOpen={setIsOpenFiltroEstado}
+                onEstadoSeleccionado={handleFiltroEstado}
+            />
+
+            {/* Filtro de ordenamiento */}
+            <FiltroOrdenamiento
+                isOpen={isOpenFiltroOrden}
+                setIsOpen={setIsOpenFiltroOrden}
+                onOrdenamientoSeleccionado={handleOrdenamiento}
+            />
         </View>
 
     );

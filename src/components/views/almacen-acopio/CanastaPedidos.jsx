@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './CanastaPedidos.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
@@ -8,9 +8,9 @@ import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
-import ItemLine from '../../common/ItemLine';
 import { motion} from 'framer-motion';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
+import Notification from '../../common/Notification';
 
 const medidasPedido = [
     { value: 'kg', label: 'Kilogramo (kg)', icon: 'tag' },
@@ -21,12 +21,52 @@ const medidasPedido = [
     { value: 'cj', label: 'Caja (cj)', icon: 'tag' },
 ];
 
-function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onPedidoCreado }) {
+function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onPedidoCreado, isCartMode = false }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
-    const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false);
+    // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [animarCantidad, setAnimarCantidad] = useState({});
+    
+    // Estado para notificaciones
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'error',
+        text: ''
+    });
+
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
+
+    // Referencias para el auto-focus en inputs de cantidad
+    const cantidadInputRefs = useRef({});
+
+    // Auto-focus en input de cantidad cuando se agrega un producto nuevo (solo en pantallas grandes)
+    useEffect(() => {
+        if (isCartMode && productosCanasta.length > 0) {
+            // Encontrar el último producto agregado (el más reciente)
+            const ultimoProducto = productosCanasta[productosCanasta.length - 1];
+            const inputRef = cantidadInputRefs.current[ultimoProducto.id];
+            
+            if (inputRef) {
+                // Pequeño delay para asegurar que el DOM se haya actualizado
+                setTimeout(() => {
+                    inputRef.focus();
+                    inputRef.select(); // Seleccionar todo el texto para facilitar la edición
+                }, 100);
+            }
+        }
+    }, [productosCanasta.length, isCartMode]);
 
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
@@ -130,9 +170,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 // Limpiar localStorage
                 localStorage.removeItem('canastaPedidosAcopio');
 
-                // Cerrar modal de confirmación
-                setIsConfirmarModalOpen(false);
-
                 // Cerrar la canasta y notificar al padre
                 setIsOpen(false);
                 if (onPedidoCreado) {
@@ -141,34 +178,29 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
             } else {
                 console.error('Error al crear el pedido:', response.message);
-                // Aquí podrías mostrar una notificación de error
+                mostrarNotificacion('error', response.message || 'Error al crear el pedido');
             }
         } catch (error) {
             console.error('Error al confirmar el pedido:', error);
-            // Aquí podrías mostrar una notificación de error
+            mostrarNotificacion('error', error.message || 'Error al confirmar el pedido');
         } finally {
             setLoadingConfirmar(false);
         }
     };
 
-    const getTotalProductos = () => {
-        return productosCanasta.reduce((total, producto) => total + producto.cantidad, 0);
-    };
 
 
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={() => setIsOpen(false)} />
-            <div className={styles.container}>
-                <h1 className={styles.title}>Canasta
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
+            {!isCartMode && <HeaderView onBack={() => setIsOpen(false)} />}
+            <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
+                <h1 className={styles.title}>Canasta de Pedidos
                     <div className={styles.iconButton}>
                         <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
                             <BoxIcon name='trash' className={styles.iconTrash} />
                         </button>
                     </div>
-
                 </h1>
-                <p className={styles.subTitle}>({getTotalProductos()} productos)</p>
 
                 {productosCanasta.length > 0 ? (
                     <>
@@ -187,7 +219,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                 <p className={styles.descripcion}>{producto.description}</p>
                                             </div>
                                         </div>
-
 
                                         <button
                                             className={styles.btnEliminar}
@@ -220,6 +251,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                 className={styles.cantidad}
                                             >
                                                 <input
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            cantidadInputRefs.current[producto.id] = el;
+                                                        }
+                                                    }}
                                                     type="number"
                                                     value={producto.cantidad}
                                                     min="1"
@@ -241,17 +277,18 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                              >
                                                  <BoxIcon name='plus' className={styles.iconPlus} />
                                              </button>
-
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
+
                         <div className={styles.buttons}>
                             <Boton
                                 className='btn-original'
-                                label='Resumen del Pedido'
-                                onClick={() => setIsConfirmarModalOpen(true)}
+                                label='Confirmar Pedido'
+                                onClick={handleConfirmarPedido}
+                                loading={loadingConfirmar}
                             />
                         </div>
                     </>
@@ -287,42 +324,21 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 </div>
             </ViewModal>
 
-            {/* Modal de confirmar pedido */}
-            <ViewModal isOpen={isConfirmarModalOpen} setIsOpen={setIsConfirmarModalOpen}>
-                <HeaderModal
-                    title="Resumen del Pedido"
-                    onClose={() => setIsConfirmarModalOpen(false)}
+            {/* Input de observaciones */}
+            <div className={styles.observacionesGenerales}>
+                <InputNormal
+                    tipo="text"
+                    value={observacionesGenerales}
+                    placeholder="Observaciones generales del pedido"
+                    onChange={(e) => setObservacionesGenerales(e.target.value)}
                 />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Toca para eliminar un producto:</p>
-                    <div className={styles.content}>
-                        {productosCanasta.map((producto, index) => (
-                            <ItemLine
-                                key={`resumen-${producto.id}-${index}`}
-                                icon='box'
-                                title={producto.name + ' (' + producto.cantidad + ' ' + producto.medidaPedido + ')'}
-                                onClick={() => handleEliminarProducto(producto.id)}
-                            />
-                        ))}
-                    </div>
-                    <div className={styles.observacionesGenerales}>
-                        <InputNormal
-                            tipo="text"
-                            value={observacionesGenerales}
-                            placeholder="Observaciones generales del pedido"
-                            onChange={(e) => setObservacionesGenerales(e.target.value)}
-                        />
-                    </div>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-original'
-                            label='Confirmar Pedido'
-                            onClick={handleConfirmarPedido}
-                            loading={loadingConfirmar}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
+            </div>
+
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
         </View>
     );
 }

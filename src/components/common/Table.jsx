@@ -2,7 +2,7 @@ import React from 'react';
 import { BoxIcon } from 'boxicons-react';
 import styles from './Table.module.css';
 
-const Table = ({ headers = [], data = [], onRowClick = null, getBadge = null }) => {
+const Table = ({ headers = [], data = [], onRowClick = null, getBadge = null, getCellBadge = null, onScroll = null }) => {
   if (!data || data.length === 0) {
     return (
       <div className={styles.tableContainer}>
@@ -16,7 +16,8 @@ const Table = ({ headers = [], data = [], onRowClick = null, getBadge = null }) 
 
   return (
     <div className={styles.tableContainer}>
-      <div className={styles.tableWrapper}>
+      {/* Header fijo */}
+      <div className={styles.tableHeaderWrapper}>
         <table className={styles.table}>
           <thead>
             <tr>
@@ -31,6 +32,12 @@ const Table = ({ headers = [], data = [], onRowClick = null, getBadge = null }) 
               ))}
             </tr>
           </thead>
+        </table>
+      </div>
+      
+      {/* Body con scroll */}
+      <div className={styles.tableBodyWrapper} onScroll={onScroll}>
+        <table className={styles.table}>
           <tbody>
             {data.map((item, rowIndex) => {
               const badge = getBadge ? getBadge(item) : null;
@@ -40,19 +47,33 @@ const Table = ({ headers = [], data = [], onRowClick = null, getBadge = null }) 
                   className={`${styles.row} ${onRowClick ? styles.clickableRow : ''}`}
                   onClick={() => onRowClick && onRowClick(item)}
                 >
-                  {headers.map((header, cellIndex) => (
-                    <td key={cellIndex} className={styles.cell}>
-                      {item[header.key] || '--'}
-                    </td>
-                  ))}
-                  {badge && (
-                    <div 
-                      key={`${item.id}-${badge}`} 
-                      className={styles.badge}
-                    >
-                      {badge}
-                    </div>
-                  )}
+                  {headers.map((header, cellIndex) => {
+                    const cellBadge = getCellBadge ? getCellBadge(item, header.key) : null;
+                    const isFirstCell = cellIndex === 0;
+                    return (
+                      <td key={cellIndex} className={styles.cell}>
+                        <div className={isFirstCell ? styles.cellWithBadge : ''}>
+                          {cellBadge ? (
+                            <span 
+                              className={`${styles.cellBadge} ${cellBadge.className ? styles[cellBadge.className] : ''}`}
+                            >
+                              {cellBadge.text}
+                            </span>
+                          ) : (
+                            item[header.key] || '--'
+                          )}
+                          {badge && isFirstCell && (
+                            <div 
+                              key={`${item.id}-${badge}`} 
+                              className={styles.badge}
+                            >
+                              {badge}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}

@@ -302,6 +302,7 @@ function Comentarios({ isOpen, setIsOpen }) {
         <View
             isOpen={isOpen}
             setIsOpen={setIsOpen}
+            isMainView={true}
         >
             <HeaderView onBack={() => setIsOpen(false)} title='Comentarios' />
             <div className={styles.container}>

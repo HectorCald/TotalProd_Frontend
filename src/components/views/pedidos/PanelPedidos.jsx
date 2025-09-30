@@ -3,13 +3,10 @@ import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import InputSearch from '../../common/InputSearch';
 import ItemView from '../../common/ItemView';
 import VerPedido from './VerPedido';
+import VerPedidoAcopio from './VerPedidoAcopio';
 import Filtros from '../../common/Filtros';
-import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import ItemLine from '../../common/ItemLine';
 import Notification from '../../common/Notification';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
@@ -17,6 +14,8 @@ import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
+import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
+import FiltroEstadoPedido from '../../mixed/FiltroEstadoPedido';
 
 function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const { isLargeScreen } = useLayout();
@@ -28,6 +27,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
@@ -41,9 +41,11 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
     // Estados para filtros y modales
-    const [isOpenOrden, setOpenOrden] = useState(false);
+    const [isOpenFiltroOrden, setIsOpenFiltroOrden] = useState(false);
+    const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
 
     // Estados para filtros
+    const [filtroEstado, setFiltroEstado] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
 
     // Estados para pedidos
@@ -54,15 +56,14 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
 
     // Función para cargar pedidos
-    const cargarPedidos = async (page = 1, search = '', orden = 'fecha_desc') => {
-        console.log('cargando pedidos');
+    const cargarPedidos = async (page = 1, search = '', estado = null, orden = 'fecha_desc') => {
         setIsLoading(true);
         setError(null);
         
         try {
             const response = tipoPedido === 'acopio' 
-                ? await pedidosAcopioService.getAll(page, 10, search, orden)
-                : await pedidosAlmacenService.getAll(page, 10, search, orden);
+                ? await pedidosAcopioService.getAll(page, 10, search, estado, orden)
+                : await pedidosAlmacenService.getAll(page, 10, search, estado, orden);
                 
             if (response.success) {
                 setPedidos(response.data);
@@ -119,16 +120,16 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setShowRefreshIndicator(true);
             setIsRefreshing(true);
             // Cargar primera página
-            cargarPedidos(1, debouncedSearchQuery, ordenamiento);
+            cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
     }, [isOpen]);
 
     // Cargar pedidos cuando cambian los parámetros
     useEffect(() => {
         if (isOpen) {
-            cargarPedidos(currentPage, debouncedSearchQuery, ordenamiento);
+            cargarPedidos(currentPage, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
-    }, [currentPage, debouncedSearchQuery, ordenamiento]);
+    }, [currentPage, debouncedSearchQuery, filtroEstado, ordenamiento]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -165,7 +166,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setCurrentPage(1);
         
         try {
-            await cargarPedidos(1, debouncedSearchQuery, ordenamiento);
+            await cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
             
             // Mostrar "Actualizado" por 1 segundo
             setTimeout(() => {
@@ -188,13 +189,13 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     }, [isOpen, tipoPedido]);
 
-    // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda o ordenamiento
+    // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
     useEffect(() => {
         if (isOpen) {
             setAllPedidos([]);
             setCurrentPage(1);
         }
-    }, [debouncedSearchQuery, ordenamiento]);
+    }, [debouncedSearchQuery, filtroEstado, ordenamiento]);
 
     // Efecto para manejar errores de SWR
     useEffect(() => {
@@ -202,6 +203,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             console.error('Error obteniendo pedidos:', error);
         }
     }, [error]);
+
 
 
 
@@ -235,8 +237,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
 
 
-
-
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -245,10 +245,38 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     };
 
+    // Función para manejar filtro de estado
+    const handleFiltroEstado = (estado) => {
+        setFiltroEstado(estado);
+        setCurrentPage(1);
+    };
+
     // Función para manejar ordenamiento
     const handleOrdenamiento = (orden) => {
         setOrdenamiento(orden);
         setCurrentPage(1);
+    };
+
+    // Funciones para el buscador expandible
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = (isExpanded) => {
+        setIsSearchExpanded(isExpanded);
+    };
+
+    // Función para obtener el nombre del filtro de estado
+    const getEstadoNombre = () => {
+        if (filtroEstado === null) return 'Todos los estados';
+        if (filtroEstado === 'Pendiente') return 'Pendientes';
+        if (filtroEstado === 'Entregado') return 'Entregados';
+        if (filtroEstado === 'Completado') return 'Completados';
+        return 'Todos los estados';
     };
 
     // Función para obtener el nombre del ordenamiento
@@ -262,16 +290,54 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         return ordenamientos[ordenamiento] || 'Ordenamiento';
     };
 
+    // Función para obtener el badge de estado
+    const getCellBadge = (item, headerKey) => {
+        if (headerKey === 'estado') {
+            const estado = item.estado;
+            const badgeConfig = {
+                'Pendiente': {
+                    text: 'Pendiente',
+                    className: 'error' // rojo
+                },
+                'Entregado': {
+                    text: 'Entregado',
+                    className: 'warning' // naranja
+                },
+                'Completado': {
+                    text: 'Completado',
+                    className: 'info' // verde
+                },
+            };
+            
+            return badgeConfig[estado] || {
+                text: estado,
+                className: 'default'
+            };
+        }
+        return null;
+    };
+
     const opciones = [
+        {
+            label: getEstadoNombre(),
+            active: filtroEstado !== null,
+            onClick: () => setIsOpenFiltroEstado(true)
+        },
         {
             label: getOrdenamientoNombre(),
             active: ordenamiento !== 'fecha_desc',
-            onClick: () => setOpenOrden(true)
+            onClick: () => setIsOpenFiltroOrden(true)
         },
     ];
 
     // Headers para la tabla
-    const tableHeaders = [
+    const tableHeaders = tipoPedido === 'acopio' ? [
+        { key: 'producto', label: 'Producto', icon: 'package' },
+        { key: 'usuario', label: 'Usuario', icon: 'user' },
+        { key: 'fecha', label: 'Fecha', icon: 'calendar' },
+        { key: 'estado', label: 'Estado', icon: 'check-circle' },
+        { key: 'cantidad', label: 'Cantidad', icon: 'calculator' }
+    ] : [
         { key: 'sucursal', label: 'Sucursal', icon: 'store' },
         { key: 'usuario', label: 'Usuario', icon: 'user' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
@@ -280,28 +346,56 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     ];
 
     // Datos para la tabla
-    const tableData = allPedidos.map(pedido => ({
-        id: pedido.id,
-        sucursal: pedido.sucursal?.name || 'Sucursal desconocida',
-        usuario: pedido.user?.name || 'Usuario desconocido',
-        fecha: new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        }),
-        tipo_precio: pedido.precio?.name || 'Precio desconocido',
-        estado: pedido.estado
-    }));
+    const tableData = allPedidos.map(pedido => {
+        if (tipoPedido === 'acopio') {
+            return {
+                id: pedido.id,
+                producto: pedido.producto_acopio?.name || 'Producto desconocido',
+                usuario: pedido.user?.name || pedido.personal?.name || 'Usuario desconocido',
+                fecha: new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                cantidad: `${pedido.cantidad || 0} ${pedido.tipo_medida || ''}`,
+                estado: pedido.estado
+            };
+        } else {
+            return {
+                id: pedido.id,
+                sucursal: pedido.sucursal?.name || 'Sucursal desconocida',
+                usuario: pedido.user?.name || 'Usuario desconocido',
+                fecha: new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                tipo_precio: pedido.precio?.name || 'Precio desconocido',
+                estado: pedido.estado
+            };
+        }
+    });
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView 
+                onBack={() => setIsOpen(false)}
+                showSearch={true}
+                searchPlaceholder="Buscar pedidos..."
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchExpanded={isSearchExpanded}
+                onSearchToggle={handleSearchToggle}
+            />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
                     <h1 className={styles.title}>
-                        Pedidos
+                        {tipoPedido === 'acopio' ? 'Pedidos de Materia Prima' : 'Pedidos de Almacén'}
                         <button className={styles.refreshButton} onClick={handleRefresh}>
                             <BoxIcon name='refresh' />
                         </button>
@@ -311,31 +405,16 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         isLoading={isRefreshing}
                     />
                 </div>
-                <p className={styles.subTitle}>
-                    {tipoPedido === 'acopio' 
-                        ? 'Materia Prima' 
-                        : 'Almacén General'
-                    }
-                </p>
-                {/* Barra de búsqueda */}
-                <div className={styles.searchContainer}>
-                <InputSearch
-                        placeholder='Buscar pedidos...'
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                        }}
-                    />
-                </div>
                 <Filtros options={opciones} />
 
                 {/* Lista de pedidos */}
                 <div
                     className={styles.content}
-                    onScroll={handleScroll}
+                    onScroll={!isLargeScreen ? handleScroll : undefined}
                     style={{
-                        minHeight: 'calc(100vh - 250px)',
+                        maxHeight: tipoPedido === 'acopio' || tipoPedido === 'almacen'
+                            ? '100%'
+                            : ''
                     }}
                 >
                     {isLargeScreen ? (
@@ -348,6 +427,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                 const pedidoOriginal = allPedidos.find(p => p.id === pedido.id);
                                 handleVerPedido(pedidoOriginal);
                             }}
+                            getCellBadge={getCellBadge}
                         />
                     ) : (
                         // Vista de cards para pantallas pequeñas
@@ -356,17 +436,31 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                 return (
                                     <ItemView
                                         key={pedido.id || index}
-                                        title={pedido.sucursal?.name || 'Sucursal desconocida'}
-                                        description={new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-                                            year: 'numeric',
-                                            month: '2-digit',
-                                            day: '2-digit',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        })}
+                                        title={tipoPedido === 'acopio' 
+                                            ? (pedido.producto_acopio?.name || 'Producto desconocido')
+                                            : (pedido.sucursal?.name || 'Sucursal desconocida')
+                                        }
+                                        description={tipoPedido === 'acopio'
+                                            ? `${pedido.cantidad || 0} ${pedido.tipo_medida || ''} - ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                year: 'numeric',
+                                                month: '2-digit',
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}`
+                                            : new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                year: 'numeric',
+                                                month: '2-digit',
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })
+                                        }
                                         icon="file"
                                         onClick={() => handleVerPedido(pedido)}
-                                        flot1={pedido.estado}
+                                        flot1={pedido.estado === 'Completado' ? 'Completado' :''}
+                                        flot2={pedido.estado === 'Entregado' ? 'Entregado' :''}
+                                        flot3={pedido.estado === 'Pendiente' ? 'Pendiente' :''}
                                     />
                                 );
                             })
@@ -387,57 +481,38 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             </div>
 
             {/* Modal para ver pedido */}
-            <VerPedido
-                isOpen={isOpenVerPedido}
-                setIsOpen={setIsOpenVerPedido}
-                pedido={infoPedido}
-                tipoPedido={tipoPedido}
-                onPedidoEliminado={handlePedidoEliminado}
-                onPedidoActualizado={handlePedidoActualizado}
+            {tipoPedido === 'acopio' ? (
+                <VerPedidoAcopio
+                    isOpen={isOpenVerPedido}
+                    setIsOpen={setIsOpenVerPedido}
+                    pedido={infoPedido}
+                    onPedidoEliminado={handlePedidoEliminado}
+                    onPedidoActualizado={handlePedidoActualizado}
+                />
+            ) : (
+                <VerPedido
+                    isOpen={isOpenVerPedido}
+                    setIsOpen={setIsOpenVerPedido}
+                    pedido={infoPedido}
+                    tipoPedido={tipoPedido}
+                    onPedidoEliminado={handlePedidoEliminado}
+                    onPedidoActualizado={handlePedidoActualizado}
+                />
+            )}
+
+            {/* Filtro de estado de pedido */}
+            <FiltroEstadoPedido
+                isOpen={isOpenFiltroEstado}
+                setIsOpen={setIsOpenFiltroEstado}
+                onEstadoSeleccionado={handleFiltroEstado}
             />
 
-            {/* Modal de ordenamiento*/}
-            <ViewModal isOpen={isOpenOrden} setIsOpen={setOpenOrden}>
-                <HeaderModal
-                    title="Ordenamiento"
-                    onClose={() => setOpenOrden(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Selecciona una opción para ordenar los pedidos</p>
-                    <ItemLine
-                        title='Más recientes'
-                        icon='time'
-                        onClick={() => {
-                            handleOrdenamiento('fecha_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Más antiguos'
-                        icon='time-five'
-                        onClick={() => {
-                            handleOrdenamiento('fecha_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Estado A-Z'
-                        icon='sort-a-z'
-                        onClick={() => {
-                            handleOrdenamiento('estado_asc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                    <ItemLine
-                        title='Estado Z-A'
-                        icon='sort-z-a'
-                        onClick={() => {
-                            handleOrdenamiento('estado_desc');
-                            setOpenOrden(false);
-                        }}
-                    />
-                </div>
-            </ViewModal>
+            {/* Filtro de ordenamiento */}
+            <FiltroOrdenamiento
+                isOpen={isOpenFiltroOrden}
+                setIsOpen={setIsOpenFiltroOrden}
+                onOrdenamientoSeleccionado={handleOrdenamiento}
+            />
 
             {/* Notificación */}
             <Notification

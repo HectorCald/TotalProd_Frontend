@@ -115,6 +115,7 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                 <div className={styles.content}>
                     <Dato label="Celular" value={usuario?.phone || 'N/A'} />
                     <Dato label="Descripción" value={usuario?.description || 'Sin descripción'} />
+                    <Dato label="Total de pedidos" value={usuario?.total_orders || '0'} />
                 </div>
                 <p className={styles.subTitle}>UBICACIÓN</p>
                 <div className={styles.content}>

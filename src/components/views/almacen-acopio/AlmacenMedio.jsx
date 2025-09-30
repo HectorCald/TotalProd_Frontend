@@ -40,7 +40,6 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
                     arrow={true}
                     onClick={()=> handleTypeAlmacen('entrada')}
                 />
-                {/*
                 <ItemView
                     title='Nuevo Pedido'
                     description='Realizar un nuevo pedido de materia prima'
@@ -48,7 +47,6 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
                     arrow={true}
                     onClick={()=> handleTypeAlmacen('pedido')}
                 />
-                */}
                 <ItemView
                     title='Materia Prima'
                     description='Ver y gestionar los productos en el almacén'

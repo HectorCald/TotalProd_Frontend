@@ -51,8 +51,19 @@ const BarraLateral = ({
 
   // Función para abrir vistas
   const handleOpenView = (viewName, props = {}) => {
-    setActiveView(viewName);
-    setViewProps(props);
+    // Si es la misma vista pero con props diferentes, cerrar y volver a abrir
+    if (activeView === viewName && JSON.stringify(viewProps) !== JSON.stringify(props)) {
+      setActiveView(null);
+      setViewProps({});
+      // Usar setTimeout para asegurar que se cierre antes de abrir
+      setTimeout(() => {
+        setActiveView(viewName);
+        setViewProps(props);
+      }, 50);
+    } else {
+      setActiveView(viewName);
+      setViewProps(props);
+    }
   };
 
   // Función para cerrar vistas
@@ -63,13 +74,13 @@ const BarraLateral = ({
 
   const handleMenuClick = (item) => {
     if (item.hasSubmenu) {
-      // Toggle submenu
-      const newExpandedMenus = new Set(expandedMenus);
-      if (newExpandedMenus.has(item.id)) {
-        newExpandedMenus.delete(item.id);
-      } else {
+      // Solo permitir un submenu desplegado a la vez
+      const newExpandedMenus = new Set();
+      if (!expandedMenus.has(item.id)) {
+        // Si el submenu no estaba abierto, abrirlo y cerrar los demás
         newExpandedMenus.add(item.id);
       }
+      // Si ya estaba abierto, se cierra (newExpandedMenus queda vacío)
       setExpandedMenus(newExpandedMenus);
     } else {
       // Marcar como el último elemento clickeado
@@ -268,9 +279,9 @@ const BarraLateral = ({
 
       <PanelPedidos
         isOpen={activeView === 'pedidos'}
-        setIsOpen={handleCloseView}
         tipoPedido={viewProps.tipo || 'almacen'}
         {...viewProps}
+        setIsOpen={handleCloseView}
       />
 
       <Clientes

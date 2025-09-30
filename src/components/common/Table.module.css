@@ -3,13 +3,29 @@
   width: 100%;
   background: none;
   border-radius: 15px 15px 0 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
   overflow: hidden;
 }
 
-/* Wrapper para scroll horizontal si es necesario */
-.tableWrapper {
-  overflow-x: auto;
+/* Wrapper del header (fijo) */
+.tableHeaderWrapper {
   width: 100%;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  border-radius: 15px 15px 0 0;
+}
+
+/* Wrapper del body (con scroll) */
+.tableBodyWrapper {
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  position: relative;
 }
 
 /* Estilos de la tabla */
@@ -17,6 +33,7 @@
   width: 100%;
   border-collapse: collapse;
   background: none;
+  table-layout: fixed;
 }
 
 /* Headers de la tabla */
@@ -27,9 +44,6 @@
   text-align: left;
   font-weight: 600;
   font-size: 14px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .headerContent {
@@ -87,6 +101,44 @@
   gap: 8px;
 }
 
+/* Badge de celda */
+.cellBadge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  min-width: 60px;
+  white-space: nowrap;
+}
+
+/* Clases de estado para cellBadge */
+.cellBadge.default {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--white-color);
+}
+
+.cellBadge.success {
+  background: rgba(22, 163, 74, 0.2);
+  color: #16a34a;
+}
+
+.cellBadge.warning {
+  color: var(--warning-color);
+  background-color: #fb87133a;
+}
+
+.cellBadge.error {
+  color: var(--error-color);
+  background-color: #e74c3c3a;
+}
+
+.cellBadge.info {
+  color: var(--info-color);
+  background-color: #1f74fe3a;
+}
+
 
 
 
@@ -97,15 +149,6 @@
   flex-wrap: wrap;
 }
 
-/* Badges */
-.badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  text-align: center;
-  min-width: 20px;
-}
 
 .badge.default {
   background: rgba(255, 255, 255, 0.2);
@@ -113,18 +156,18 @@
 }
 
 .badge.success {
-  background: rgba(40, 180, 152, 0.2);
-  color: #28b498;
+  background: rgba(22, 163, 74, 0.2);
+  color: #16a34a;
 }
 
 .badge.warning {
-  background: rgba(243, 156, 18, 0.2);
-  color: #f39c12;
+  background: rgba(234, 88, 12, 0.2);
+  color: #ea580c;
 }
 
 .badge.error {
-  background: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
+  background: rgba(220, 38, 38, 0.2);
+  color: #dc2626;
 }
 
 .badge.info {
@@ -168,15 +211,18 @@
   animation: badgeBounce 0.6s ease-out;
   line-height: 1;
   z-index: 10;
+  pointer-events: none;
 }
 
 @keyframes badgeBounce {
   0% {
     transform: scale(0.5);
   }
+
   50% {
     transform: scale(1.1);
   }
+
   100% {
     transform: scale(1);
   }
@@ -193,6 +239,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -200,11 +247,34 @@
 }
 
 /* Staggered animation para las filas */
-.row:nth-child(1) { animation-delay: 0.05s; }
-.row:nth-child(2) { animation-delay: 0.1s; }
-.row:nth-child(3) { animation-delay: 0.15s; }
-.row:nth-child(4) { animation-delay: 0.2s; }
-.row:nth-child(5) { animation-delay: 0.25s; }
-.row:nth-child(6) { animation-delay: 0.3s; }
-.row:nth-child(7) { animation-delay: 0.35s; }
-.row:nth-child(8) { animation-delay: 0.4s; }
+.row:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.row:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.row:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.row:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.row:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+.row:nth-child(6) {
+  animation-delay: 0.3s;
+}
+
+.row:nth-child(7) {
+  animation-delay: 0.35s;
+}
+
+.row:nth-child(8) {
+  animation-delay: 0.4s;
+}

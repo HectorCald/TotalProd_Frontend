@@ -33,6 +33,10 @@ function Sucursales({ isOpen, setIsOpen }) {
     const [sucursales, setSucursales] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    
+    // Estados para el buscador expandible
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Callback para manejar las sucursales cargadas
     const handleSucursalesLoaded = useCallback((data) => {
@@ -118,6 +122,24 @@ function Sucursales({ isOpen, setIsOpen }) {
         }
     }, [error]);
 
+    // Funciones para el buscador expandible
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = (isExpanded) => {
+        setIsSearchExpanded(isExpanded);
+    };
+
+    // Filtrar sucursales localmente basado en la búsqueda
+    const sucursalesFiltradas = sucursales.filter(sucursal => 
+        sucursal.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     // Función para manejar cuando se crea una nueva sucursal
     const handleSucursalCreated = (newSucursal) => {
         // Actualizar el estado local con la sucursal que devuelve el servidor
@@ -157,7 +179,7 @@ function Sucursales({ isOpen, setIsOpen }) {
     ];
 
     // Datos para la tabla
-    const tableData = sucursales.map(sucursal => ({
+    const tableData = sucursalesFiltradas.map(sucursal => ({
         id: sucursal.id,
         name: sucursal.name || 'Sin nombre',
         created_at: sucursal.created_at ? new Date(sucursal.created_at).toLocaleDateString('es-ES') : 'Sin fecha'
@@ -165,7 +187,16 @@ function Sucursales({ isOpen, setIsOpen }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView 
+                onBack={() => setIsOpen(false)}
+                showSearch={true}
+                searchPlaceholder="Buscar sucursal"
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchExpanded={isSearchExpanded}
+                onSearchToggle={handleSearchToggle}
+            />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
                     <h1 className={styles.title}>
@@ -190,14 +221,14 @@ function Sucursales({ isOpen, setIsOpen }) {
                             data={tableData}
                             onRowClick={(sucursal) => {
                                 // Buscar la sucursal original sin formatear
-                                const sucursalOriginal = sucursales.find(s => s.id === sucursal.id);
+                                const sucursalOriginal = sucursalesFiltradas.find(s => s.id === sucursal.id);
                                 handleSucursal(sucursalOriginal);
                             }}
                         />
                     ) : (
                         // Vista de cards para pantallas pequeñas
-                        sucursales.length > 0 ? (
-                            sucursales.map((sucursal, index) => (
+                        sucursalesFiltradas.length > 0 ? (
+                            sucursalesFiltradas.map((sucursal, index) => (
                                 <ItemView
                                     key={sucursal.id || index}
                                     title={sucursal.name || 'Sin nombre'}
@@ -209,7 +240,7 @@ function Sucursales({ isOpen, setIsOpen }) {
                             ))
                         ) : (
                             <div className={styles.noData}>
-                                <p>No hay sucursales registradas</p>
+                                <p>{searchQuery ? 'No se encontraron sucursales' : 'No hay sucursales registradas'}</p>
                             </div>
                         )
                     )}

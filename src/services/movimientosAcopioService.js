@@ -172,7 +172,7 @@ class movimientosAcopioService {
   }
 
   // Obtener todos los movimientos
-  static async getAll(page = 1, limit = 10, tipo = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+  static async getAll(page = 1, limit = 10, tipo = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -190,6 +190,9 @@ class movimientosAcopioService {
 
       if (tipo) {
         params.append('tipo', tipo);
+      }
+      if (estado) {
+        params.append('estado', estado);
       }
       if (ordenamiento) {
         params.append('ordenamiento', ordenamiento);

@@ -1,24 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './CanastaMovimientos.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
 import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
-import ItemLine from '../../common/ItemLine';
 import { motion } from 'framer-motion';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
 
-function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], sucursales = [], loadingPrecios = false, loadingSucursales = false, productosActualizados = [] }) {
+function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], sucursales = [], loadingPrecios = false, loadingSucursales = false, productosActualizados = [], isCartMode = false }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
-    const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false);
+    // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [animarCantidad, setAnimarCantidad] = useState({});
     const [precioSeleccionado, setPrecioSeleccionado] = useState('');
@@ -42,6 +40,26 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 3000);
     };
+
+    // Referencias para el auto-focus en inputs de cantidad
+    const cantidadInputRefs = useRef({});
+
+    // Auto-focus en input de cantidad cuando se agrega un producto nuevo (solo en pantallas grandes)
+    useEffect(() => {
+        if (isCartMode && productosCanasta.length > 0) {
+            // Encontrar el último producto agregado (el más reciente)
+            const ultimoProducto = productosCanasta[productosCanasta.length - 1];
+            const inputRef = cantidadInputRefs.current[ultimoProducto.id];
+            
+            if (inputRef) {
+                // Pequeño delay para asegurar que el DOM se haya actualizado
+                setTimeout(() => {
+                    inputRef.focus();
+                    inputRef.select(); // Seleccionar todo el texto para facilitar la edición
+                }, 100);
+            }
+        }
+    }, [productosCanasta.length, isCartMode]);
 
     // Inicializar precio seleccionado cuando se abren los precios (solo si no hay uno seleccionado)
     useEffect(() => {
@@ -115,35 +133,43 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }
     }, [isOpen, pedidoId]);
 
-    // Sincronizar stock del carrito con productos actualizados
+    // Sincronizar stock y precios del carrito con productos actualizados
     useEffect(() => {
         if (productosActualizados.length > 0 && productosCanasta.length > 0) {
             setProductosCanasta(prevCanasta => {
                 return prevCanasta.map(productoCarrito => {
                     const productoActualizado = productosActualizados.find(p => p.id === productoCarrito.id);
                     if (productoActualizado) {
+                        let productoModificado = { ...productoCarrito };
+                        
                         // Si el stock cambió, actualizar el stock en el carrito
                         if (productoActualizado.stock !== productoCarrito.stock) {
                             // Si la cantidad en el carrito excede el nuevo stock, ajustar
                             if (productoCarrito.cantidad > productoActualizado.stock) {
                                 mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoActualizado.stock}`);
-                                return {
-                                    ...productoCarrito,
-                                    stock: productoActualizado.stock,
-                                    cantidad: productoActualizado.stock
-                                };
+                                productoModificado.stock = productoActualizado.stock;
+                                productoModificado.cantidad = productoActualizado.stock;
+                            } else {
+                                productoModificado.stock = productoActualizado.stock;
                             }
-                            return {
-                                ...productoCarrito,
-                                stock: productoActualizado.stock
-                            };
                         }
+
+                        // Si los precios cambiaron, actualizar el precio en el carrito según el tipo seleccionado
+                        if (productoActualizado.price_product && precioSeleccionado) {
+                            const precioTipo = productoActualizado.price_product.find(pp => pp.prices_types?.id === precioSeleccionado);
+                            if (precioTipo && precioTipo.valor !== productoCarrito.precio) {
+                                productoModificado.precio = precioTipo.valor;
+                                productoModificado.price_product = productoActualizado.price_product; // Actualizar también la estructura de precios
+                            }
+                        }
+
+                        return productoModificado;
                     }
                     return productoCarrito;
                 });
             });
         }
-    }, [productosActualizados]);
+    }, [productosActualizados, precioSeleccionado]);
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
@@ -275,9 +301,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 // Limpiar localStorage
                 localStorage.removeItem('canastaPedidos');
                 
-                // Cerrar modal de confirmación
-                setIsConfirmarModalOpen(false);
-                
                 // Cerrar canasta y mostrar notificación
                 setIsOpen(false);
                 if (onCerrarCanasta) {
@@ -303,13 +326,26 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }, 0);
     };
 
+    // Función para obtener el precio actual seleccionado
+    const getPrecioActualSeleccionado = () => {
+        return precioSeleccionado;
+    };
+
+    // Exponer la función para que AlmacenGeneral pueda acceder al precio seleccionado
+    useEffect(() => {
+        if (isCartMode) {
+            // Guardar la referencia a la función en el window para acceso global
+            window.getPrecioSeleccionadoCanastaPedidos = getPrecioActualSeleccionado;
+        }
+    }, [isCartMode, precioSeleccionado]);
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={() => {
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
+            {!isCartMode && <HeaderView onBack={() => {
                 localStorage.removeItem('precioIdEditando');
                 setIsOpen(false);
-            }} />
-            <div className={styles.container}>
+            }} />}
+            <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
                 <h1 className={styles.title}>Canasta de Pedidos
                     <div className={styles.iconButton}>
                         <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
@@ -387,6 +423,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                 className={styles.cantidad}
                                             >
                                                 <input
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            cantidadInputRefs.current[producto.id] = el;
+                                                        }
+                                                    }}
                                                     type="number"
                                                     value={producto.cantidad}
                                                     min="1"
@@ -419,6 +460,19 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                     </div>
                                 </div>
                             ))}
+                            {/* Selector de sucursal - Solo mostrar si no estamos editando */}
+                        {!pedidoId && (
+                            <div className={styles.content} style={{ padding: '10px 15px' }}>
+                                <Select
+                                    value={sucursalSeleccionada}
+                                    onChange={setSucursalSeleccionada}
+                                    options={sucursales}
+                                    placeholder='Sucursal de destino (obligatorio)'
+                                    disabled={loadingSucursales}
+                                    icon='building'
+                                />
+                            </div>
+                        )}
                         </div>
 
                         {/* Total general */}
@@ -432,8 +486,9 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         <div className={styles.buttons}>
                             <Boton
                                 className='btn-original'
-                                label={pedidoId ? 'Resumen de Actualización' : 'Resumen de Pedido'}
-                                onClick={() => setIsConfirmarModalOpen(true)}
+                                label={pedidoId ? 'Actualizar Pedido' : 'Confirmar Pedido'}
+                                onClick={handleConfirmarPedido}
+                                loading={loadingConfirmar}
                             />
                         </div>
                     </>
@@ -469,65 +524,15 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 </div>
             </ViewModal>
 
-            {/* Modal de confirmar pedido */}
-            <ViewModal isOpen={isConfirmarModalOpen} setIsOpen={setIsConfirmarModalOpen}>
-                <HeaderModal
-                    title={pedidoId ? "Resumen de Actualización" : "Resumen de Pedido"}
-                    onClose={() => setIsConfirmarModalOpen(false)}
+            {/* Input de observaciones (oculto) */}
+            {/* <div className={styles.observacionesGenerales}>
+                <InputNormal
+                    tipo="text"
+                    value={observacionesGenerales}
+                    placeholder="Observaciones del pedido"
+                    onChange={(e) => setObservacionesGenerales(e.target.value)}
                 />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>Productos a pedir:</p>
-                    <div className={styles.content}>
-                        {productosCanasta.map((producto, index) => (
-                            <ItemLine
-                                key={`resumen-${producto.id}-${index}`}
-                                icon='box'
-                                title={`${producto.name} (${producto.cantidad} ${producto.type_measure?.code ||'u'}) - Bs. ${((producto.precio || 0) * producto.cantidad).toFixed(2)}`}
-                                onClick={() => handleEliminarProducto(producto.id)}
-                            />
-                        ))}
-                    </div>
-                    
-                    <div className={styles.totalResumen}>
-                        <div className={styles.totalResumenContent}>
-                            <span className={styles.totalResumenLabel}>Total:</span>
-                            <span className={styles.totalResumenValue}>Bs. {getTotalValor().toFixed(2)}</span>
-                        </div>
-                    </div>
-
-                    {/* Selector de sucursal - Solo mostrar si no estamos editando */}
-                    {!pedidoId && (
-                        <div className={styles.content} style={{ padding: '10px 15px' }}>
-                            <Select
-                                value={sucursalSeleccionada}
-                                onChange={setSucursalSeleccionada}
-                                options={sucursales}
-                                placeholder='Sucursal de destino (obligatorio)'
-                                disabled={loadingSucursales}
-                                icon='building'
-                            />
-                        </div>
-                    )}
-
-                    <div className={styles.observacionesGenerales}>
-                        <InputNormal
-                            tipo="text"
-                            value={observacionesGenerales}
-                            placeholder="Observaciones del pedido"
-                            onChange={(e) => setObservacionesGenerales(e.target.value)}
-                        />
-                    </div>
-                    
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-original'
-                            label={pedidoId ? 'Actualizar Pedido' : 'Confirmar Pedido'}
-                            onClick={handleConfirmarPedido}
-                            loading={loadingConfirmar}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
+            </div> */}
 
             <Notification
                 isVisible={notification.isVisible}

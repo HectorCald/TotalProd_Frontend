@@ -1,12 +1,14 @@
 .headerView {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between;
     width: 100%;
     height: 50px;
     padding: 0 5px;
     gap: 10px;
     background-color: var(--secondary-color);
+    position: relative;
+    z-index: 1;
 }
 
 .headerViewButton {
@@ -15,19 +17,40 @@
     cursor: pointer;
     color: var(--primary-color);
 
-    .icon {
-        font-size: 30px !important;
-        min-width: 35px;
-        min-height: 35px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 400;
-    }
+
+}
+.icon {
+    font-size: 30px !important;
+    min-width: 35px;
+    min-height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 400;
 }
 
 .headerViewTitle {
     font-size: 16px;
     color: var(--white-color);
     font-weight: 500;
+    flex: 1;
+    text-align: center;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.headerRight {
+    display: flex;
+    align-items: center;
+}
+
+.searchWrapper {
+    position: relative;
+    height: 50px;
+    display: flex;
+    align-items: center;
 }

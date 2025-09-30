@@ -84,7 +84,7 @@ class pedidosAcopioService {
     }
   }
 
-  static async getAll(page = 1, limit = 20, searchQuery = null, ordenamiento = 'fecha_desc') {
+  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc') {
     try {
       const empresaId = getEmpresaId();
       if (!empresaId) {
@@ -103,6 +103,10 @@ class pedidosAcopioService {
       
       if (searchQuery && searchQuery.trim() !== '') {
         params.append('search', searchQuery);
+      }
+
+      if (estado && estado.trim() !== '') {
+        params.append('estado', estado);
       }
       
       const response = await fetch(`${API_BASE_URL}/pedidos-acopio?${params}`, {
@@ -131,12 +135,17 @@ class pedidosAcopioService {
     }
   }
 
-  static async updateEstado(pedidoId, nuevoEstado) {
+  static async updateEstado(pedidoId, nuevoEstado, movimientoEntradaId = null) {
     try {
+      const body = { estado: nuevoEstado };
+      if (movimientoEntradaId) {
+        body.movimiento_entrada_id = movimientoEntradaId;
+      }
+      
       const response = await fetch(`${API_BASE_URL}/pedidos-acopio/${pedidoId}/estado`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ estado: nuevoEstado }),
+        body: JSON.stringify(body),
       });
       const data = await response.json();
       return data;
@@ -170,6 +179,35 @@ class pedidosAcopioService {
       return data;
     } catch (error) {
       console.error('Error en pedidosAcopioService.eliminar:', error);
+      return { success: false, message: 'Error de conexión con el servidor' };
+    }
+  }
+
+  static async entregar(pedidoId, entregaData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/pedidos-acopio/${pedidoId}/entregar`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(entregaData),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en pedidosAcopioService.entregar:', error);
+      return { success: false, message: 'Error de conexión con el servidor' };
+    }
+  }
+
+  static async anularEntrega(pedidoId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/pedidos-acopio/${pedidoId}/anular-entrega`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en pedidosAcopioService.anularEntrega:', error);
       return { success: false, message: 'Error de conexión con el servidor' };
     }
   }

@@ -53,6 +53,14 @@ export const MENU_OPTIONS = [
         action: 'toggleSubmenu',
         submenu: [
           {
+            id: 'almacen-salidas',
+            title: 'Salidas',
+            icon: 'minus',
+            action: 'openView',
+            viewName: 'almacenMedioGeneral',
+            props: { tipo: 'salida' }
+          },
+          {
             id: 'almacen-entradas',
             title: 'Entradas',
             icon: 'plus',
@@ -67,14 +75,6 @@ export const MENU_OPTIONS = [
             action: 'openView',
             viewName: 'almacenMedioGeneral',
             props: { tipo: 'pedido' }
-          },
-          {
-            id: 'almacen-salidas',
-            title: 'Salidas',
-            icon: 'minus',
-            action: 'openView',
-            viewName: 'almacenMedioGeneral',
-            props: { tipo: 'salida' }
           },
           {
             id: 'almacen-gestionar',
@@ -108,6 +108,14 @@ export const MENU_OPTIONS = [
             action: 'openView',
             viewName: 'almacenMedio',
             props: { tipo: 'salida' }
+          },
+          {
+            id: 'acopio-pedidos',
+            title: 'Realizar Pedido',
+            icon: 'cart',
+            action: 'openView',
+            viewName: 'almacenMedio',
+            props: { tipo: 'pedido' }
           },
           {
             id: 'acopio-gestionar',
@@ -159,7 +167,6 @@ export const MENU_OPTIONS = [
             viewName: 'pedidos',
             props: { tipo: 'almacen' }
           },
-          /*
           {
             id: 'pedidos-acopio',
             title: 'Materia Prima',
@@ -168,7 +175,6 @@ export const MENU_OPTIONS = [
             viewName: 'pedidos',
             props: { tipo: 'acopio' }
           }
-          */
         ]
       }
     ]
