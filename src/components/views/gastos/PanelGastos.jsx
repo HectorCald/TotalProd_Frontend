@@ -327,15 +327,10 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
+                title='Gastos'
             />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
-                    <h1 className={styles.title}>
-                        Gastos
-                        <button className={styles.refreshButton} onClick={handleRefresh}>
-                            <BoxIcon name='refresh' />
-                        </button>
-                    </h1>
                     <RefreshIndicator
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}

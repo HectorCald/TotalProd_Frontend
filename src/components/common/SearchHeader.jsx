@@ -13,6 +13,7 @@ const SearchHeader = ({
     const [isOpen, setIsOpen] = useState(isExpanded);
     const [inputValue, setInputValue] = useState(value);
     const inputRef = useRef(null);
+    const containerRef = useRef(null);
 
     // Sincronizar con props externas
     useEffect(() => {
@@ -49,10 +50,14 @@ const SearchHeader = ({
         }
     }, [isExpanded]);
 
-    // Cerrar automáticamente cuando se hace click fuera y no hay valor
+    // Cerrar automáticamente cuando se hace click fuera del contenedor y no hay valor
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (isOpen && inputRef.current && !inputRef.current.contains(event.target)) {
+            if (
+                isOpen &&
+                containerRef.current &&
+                !containerRef.current.contains(event.target)
+            ) {
                 // Si no hay valor en el input, cerrar automáticamente
                 if (!inputValue.trim()) {
                     handleToggle();
@@ -88,7 +93,7 @@ const SearchHeader = ({
     };
 
     return (
-        <>
+        <div ref={containerRef}>
             {/* Botón de lupa/X */}
             <button 
                 className={styles.searchButton}
@@ -116,7 +121,7 @@ const SearchHeader = ({
                     />
                 </div>
             )}
-        </>
+        </div>
     );
 };
 

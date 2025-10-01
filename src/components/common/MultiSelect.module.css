@@ -21,7 +21,7 @@
     display: inline-flex;
     align-items: center;
     padding: 8px 12px;
-    border-radius: 7px;
+    border-radius: 15px;
     font-size: 14px;
     border: 1px solid gray;
     background-color: var(--background-color);

@@ -26,12 +26,6 @@
     color: gray;
 }
 
-.searchContainer {
-    position: relative;
-    width: 100%;
-}
-
-
 
 .content{
     display: flex;
@@ -41,7 +35,7 @@
     width: 100%;
     background-color: none;
     overflow-y: auto !important;
-    max-height: calc(100% - 230px);
+    max-height: calc(100% - 150px);
     height: 100%;
 }
 

@@ -77,7 +77,7 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
 
     // Opciones para los selects de medidas
     const medidasPeso = [
-        { value: 'kg', label: 'Kilogramo (kg)', icon: 'tag' },
+        { value: 'kg', label: 'Kilo (kg)', icon: 'tag' },
         { value: 'l', label: 'Litro (L)', icon: 'tag' },
         { value: 'ud', label: 'Unidad (Ud)', icon: 'tag' },
         { value: 'm', label: 'Metro (m)', icon: 'tag' }
@@ -194,29 +194,11 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
         <>
             <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
                 <HeaderModal
-                    title={`Entregar Pedido - ${pedido.producto_acopio?.name || 'Materia Prima'}`}
+                    title='Entregar Pedido'
                     onClose={() => setIsOpen(false)}
                 />
 
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>INFORMACIÓN DEL PEDIDO</p>
-                    <div className={styles.content}>
-                        <Dato
-                            label='Producto y Cantidad Solicitada'
-                            value={pedido.producto_acopio?.name + ' ' + pedido.cantidad + ' ' + pedido.tipo_medida || 'Producto no encontrado'}
-                        />
-
-                    </div>
-
-                    <p className={styles.subTitle}>INFORMACIÓN DEL SOLICITANTE</p>
-
-                    {/* Cantidad entregada con select de medidas */}
-                    <ItemView
-                        title={pedido.user?.name || pedido.personal?.name || 'Usuario desconocido'}
-                        description={pedido.sucursal?.name || 'Sucursal desconocida'}
-                        transparent={false}
-                    />
-
                     <p className={styles.subTitle}>DETALLES DE LA ENTREGA</p>
 
                     {/* Cantidad entregada con select de medidas */}

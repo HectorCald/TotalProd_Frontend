@@ -391,15 +391,10 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
+                title={tipoPedido === 'acopio' ? 'Pedidos de Materia Prima' : 'Pedidos de Almacén'}
             />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
-                    <h1 className={styles.title}>
-                        {tipoPedido === 'acopio' ? 'Pedidos de Materia Prima' : 'Pedidos de Almacén'}
-                        <button className={styles.refreshButton} onClick={handleRefresh}>
-                            <BoxIcon name='refresh' />
-                        </button>
-                    </h1>
                     <RefreshIndicator
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}

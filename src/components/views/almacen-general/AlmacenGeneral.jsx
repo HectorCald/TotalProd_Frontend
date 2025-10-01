@@ -595,6 +595,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 onBack={() => setIsOpen(false)}
                 showSearch={true}
                 searchPlaceholder="Buscar producto"
+                title={tipo === 'almacen' ? 'Almacén' : tipo === 'entrada' ? 'Entradas' : tipo === 'pedido' ? 'Realizar Pedidos' : 'Salidas o Ventas'}
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
                 onSearchClear={handleSearchClear}
@@ -603,12 +604,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             />
             <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
                 <div className={styles.titleContainer}>
-                    <h1 className={styles.title}>
-                        {tipo === 'almacen' ? 'Almacén' : tipo === 'entrada' ? 'Entradas' : tipo === 'pedido' ? 'Realizar Pedidos' : 'Salidas o Ventas'}
-                        <button className={styles.refreshButton} onClick={handleRefresh}>
-                            <BoxIcon name='refresh' />
-                        </button>
-                    </h1>
                     <RefreshIndicator
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}

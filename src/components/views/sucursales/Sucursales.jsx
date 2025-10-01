@@ -196,21 +196,15 @@ function Sucursales({ isOpen, setIsOpen }) {
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
+                title='Sucursales'
             />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
-                    <h1 className={styles.title}>
-                        {sucursalSeleccionada?.empresas?.name || 'Empresa'}
-                        <button className={styles.refreshButton} onClick={handleRefresh}>
-                            <BoxIcon name='refresh' />
-                        </button>
-                    </h1>
                     <RefreshIndicator
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}
                     />
                 </div>
-                <p className={styles.subTitle}>SUCURSALES</p>
                 <div className={styles.content} style={{
                     maxHeight: 'calc(100% - 150px)',
                 }}>

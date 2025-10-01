@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo=true, transparent=true }) => {  
+const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo=true, transparent=true, gris=false, style={} }) => {  
   // Función para generar iniciales del título
   const generateInitials = (title) => {
     if (!title) return '';
@@ -92,16 +92,16 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
   const initialsBackgroundColor = initials ? generateLighterColor(generateColor(initials.charAt(0))) : '';
 
   return (
-    <div className={styles.itemView} onClick={onClick} style={{ backgroundColor: transparent ? 'transparent' : 'var(--tertiary-color)',borderRadius: transparent ? '0' : '10px' }}>
+    <div className={styles.itemView} onClick={onClick} style={{ backgroundColor: transparent ? 'transparent' : 'var(--tertiary-color)', borderRadius: transparent ? '0' : '20px', ...style }}>
       {circulo && (
-      <div className={styles.itemViewIcon} style={{ backgroundColor: icon ? 'rgba(40, 180, 152, 0.3)' : initialsBackgroundColor }}>
+      <div className={styles.itemViewIcon} style={{ backgroundColor: gris ? 'var(--tertiary-color)' : (icon ? 'rgba(40, 180, 152, 0.3)' : initialsBackgroundColor) }}>
         {icon ? (
-          <BoxIcon name={icon} className={styles.icon} />
+          <BoxIcon name={icon} className={`${styles.icon} ${gris ? styles.iconGris : ''}`} />
         ) : (
           <div 
             className={styles.initialsIcon}
             style={{ 
-              color: initialsColor,
+              color: gris ? 'var(--senary-color)' : initialsColor,
             }}
           >
             {initials}

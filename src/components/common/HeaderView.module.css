@@ -16,13 +16,12 @@
     background: none;
     cursor: pointer;
     color: var(--primary-color);
-
-
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .icon {
     font-size: 30px !important;
-    min-width: 35px;
-    min-height: 35px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -30,11 +29,12 @@
 }
 
 .headerViewTitle {
-    font-size: 16px;
+    font-size: 18px;
     color: var(--white-color);
     font-weight: 500;
     flex: 1;
-    text-align: center;
+    text-align: left;
+    width: 100%;
 }
 
 .headerLeft {

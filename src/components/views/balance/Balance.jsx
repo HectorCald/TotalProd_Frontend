@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import Screen from '../ui/Screen';
-import Select from '../common/Select';
-import RefreshIndicator from '../common/RefreshIndicator';
-import Boton from '../common/Boton';
-import AlmacenGeneral from '../views/almacen-general/AlmacenGeneral';
-import EditarAgregarGasto from '../views/gastos/EditarAgregarGasto';
-import VerBalance from '../views/balance/VerBalance';
-import styles from './Reportes.module.css';
-import movimientosAlmacenService from '../../services/movimientosAlmacenService';
-import gastosService from '../../services/gastosService';
+import HeaderView from '../../common/HeaderView';
+import View from '../../ui/View';
+import Select from '../../common/Select';
+import RefreshIndicator from '../../common/RefreshIndicator';
+import Boton from '../../common/Boton';
+import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
+import EditarAgregarGasto from '../gastos/EditarAgregarGasto';
+import VerBalance from './VerBalance';
+import styles from '../../../styles/view.module.css';
+import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
+import gastosService from '../../../services/gastosService';
 
-const Balance = () => {
+const Balance = ({ isOpen, setIsOpen }) => {
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('hoy');
   const [isLoading, setIsLoading] = useState(false);
   const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
@@ -218,20 +219,23 @@ const Balance = () => {
 
   // Cargar datos solo la primera vez
   useEffect(() => {
-    if (!datosCargados) {
+    if (!datosCargados && isOpen) {
       cargarDatosBalance();
     }
-  }, [datosCargados]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [datosCargados, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Screen title="Balance">
+    <View isOpen={isOpen} setIsOpen={setIsOpen}>
+      <HeaderView onBack={() => setIsOpen(false)} title='Balance' />
       <div className={styles.container} style={{ maxWidth: '500px' }}>
-        <div className={styles.headerContainer}>
-          <p className={styles.subTitle}>SELECCIONAR</p>
+        <div className={styles.titleContainer}>
           <RefreshIndicator
             isVisible={showRefreshIndicator}
             isLoading={isRefreshing}
           />
+        </div>
+        <div className={styles.headerContainer}>
+          <p className={styles.subTitle}>SELECCIONAR</p>
         </div>
 
         <div className={styles.content}>
@@ -307,7 +311,7 @@ const Balance = () => {
         gastosData={gastosData}
         movimientosAlmacen={movimientosAlmacenData}
       />
-    </Screen>
+    </View>
   );
 };
 

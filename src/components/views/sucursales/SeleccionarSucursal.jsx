@@ -86,6 +86,7 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
                                 title={sucursal.name}
                                 subtitle={`Empresa: ${sucursal.empresas?.name || 'N/A'}`}
                                 onClick={() => handleSeleccionarSucursal(sucursal)}
+                                transparent={false}
                             />
                         ))}
                     </div>

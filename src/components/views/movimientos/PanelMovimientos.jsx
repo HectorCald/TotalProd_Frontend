@@ -406,15 +406,10 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
+                title={tipoMovimiento === 'acopio' ? 'Movimientos de Materia Prima' : 'Movimientos de Almacén'}
             />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
-                    <h1 className={styles.title}>
-                        {tipoMovimiento === 'acopio' ? 'Movimientos de Materia Prima' : 'Movimientos de Almacén'}
-                        <button className={styles.refreshButton} onClick={handleRefresh}>
-                            <BoxIcon name='refresh' />
-                        </button>
-                    </h1>
                     <RefreshIndicator
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}
@@ -464,6 +459,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                         arrow={false}
                                         flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
                                         flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
+                                        gris={true}
                                     />
                                 );
                             })

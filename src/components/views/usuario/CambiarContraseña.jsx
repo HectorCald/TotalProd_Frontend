@@ -136,9 +136,8 @@ function CambiarContraseña({ isOpen, setIsOpen }) {
     }
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}isMainView={true}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView onBack={() => setIsOpen(false)} title='Cambiar Contraseña' />
             <div className={styles.container}>
-                <h1 className={styles.title}>Cambiar Contraseña</h1>
                 <MensajeError mensaje={errorMessage} />
                 <p className={styles.subTitle}>Ingresa la contraseña actual y la nueva contraseña</p>
                 <InputNormal

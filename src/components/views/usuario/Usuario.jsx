@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemLine from '../../common/ItemLine';
+import ItemView from '../../common/ItemView';
 import PieIcons from '../../common/PieIcons';
 import Version from '../../common/Version';
 
-import VerUsuario from './VerUsuario';
 import CambiarContraseña from './CambiarContraseña';
 import CambiarContraseñaEmpleado from './CambiarContraseñaEmpleado';
 import Apariencia from './Apariencia';
 import CodigoPromocional from './CodigoPromocional';
+import ComponenteFull from '../../common/ComponenteFull';
 
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
@@ -24,19 +25,17 @@ import Comentarios from '../comentarios/Comentarios';
 
 const Usuario = ({ isOpen, setIsOpen }) => {
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
-    const [isOpenVerUsuario, setIsOpenVerUsuario] = useState(false);
     const [isOpenCambiarContraseña, setIsOpenCambiarContraseña] = useState(false);
     const [isOpenApariencia, setIsOpenApariencia] = useState(false);
     const [isOpenPlan, setIsOpenPlan] = useState(false);
     const [isOpenCodigoPromocional, setIsOpenCodigoPromocional] = useState(false);
     const [isOpenComentarios, setIsOpenComentarios] = useState(false);
+    const [ejemploChecked, setEjemploChecked] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(true);
     const handleClose = () => {
         setIsOpen(false);
     };
 
-    const handlePerfil = () => {
-        setIsOpenVerUsuario(true);
-    };
     const handleCambiarContraseña = () => {
         setIsOpenCambiarContraseña(true);
     };
@@ -55,71 +54,135 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const handleLogout = () => {
         setIsLogoutOpen(true);
     };
-    const { user: userInfo, clearUser } = useUser();
-    const { employee: employeeInfo, clearEmployee } = useEmployee();
+    const { user: userInfo, clearUser, sucursalSeleccionada: userSucursal } = useUser();
+    const { employee: employeeInfo, clearEmployee, sucursalSeleccionada: employeeSucursal } = useEmployee();
     const navigate = useNavigate();
 
     // Determinar si es usuario normal o empleado
     const isEmployee = !!employeeInfo;
     const currentUser = isEmployee ? employeeInfo : userInfo;
+    const sucursal = isEmployee ? employeeSucursal : userSucursal;
+
+    // Función para aplicar el tema
+    const applyTheme = (theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    };
+
+    // Función para cambiar tema
+    const handleThemeChange = (isDark) => {
+        setIsDarkMode(isDark);
+        applyTheme(isDark ? 'dark' : 'light');
+    };
+
+    // Cargar tema guardado al iniciar
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            const isDark = savedTheme === 'dark';
+            setIsDarkMode(isDark);
+            applyTheme(isDark ? 'dark' : 'light');
+        } else {
+            // Por defecto oscuro
+            setIsDarkMode(true);
+            applyTheme('dark');
+        }
+    }, []);
 
     // Si no hay usuario ni empleado cargado, no renderizar nada
     if (!currentUser) {
         return null;
     }
 
+    // Obtener nombre completo
+    const nombreCompleto = isEmployee ?
+        `${currentUser.first_name} ${currentUser.last_name}` :
+        `${currentUser.firstName} ${currentUser.lastName}` || 'N/A';
+
+    // Obtener nombre de la empresa
+    const nombreEmpresa = sucursal?.empresas?.name || 'N/A';
+
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={handleClose} />
+        <View isOpen={isOpen} setIsOpen={setIsOpen} >
+            <HeaderView onBack={handleClose} title={isEmployee ? 'Perfil de Empleado' : 'Perfil'} />
             <div className={styles.container}>
-                <h1 className={styles.title}>{isEmployee ? 'Perfil de Empleado' : 'Perfil'}</h1>
-                <p className={styles.subTitle}>{isEmployee ? 'Cuenta de Empleado' : 'Cuenta'}</p>
-                <div className={styles.content}>
-                    <ItemLine
-                        icon='user'
-                        title={isEmployee ? 'Detalles de mi cuenta' : 'Detalles de mi cuenta'}
-                        onClick={handlePerfil}
+
+                {/* Información del usuario usando ItemView */}
+                <div className={styles.content} style={{ padding: '10px', gap: '10px' }}>
+                    <ItemView
+                        title={nombreCompleto}
+                        description={isEmployee ? currentUser.email || currentUser.phone || 'Sin contacto' : currentUser.email || 'Sin email'}
+                        description2={`${nombreEmpresa}${isEmployee && sucursal ? ` • ${sucursal.name}` : ''}`}
+                        circulo={true}
+                        transparent={false}
+                        style={{ padding: '0px', minHeight: 'auto'}}
                     />
-                    <ItemLine
-                        icon='lock-open'
-                        title='Cambiar contraseña'
+                    <Boton
+                        className='btn-default'
+                        label={'Editar perfil'}
+                        style={{ marginTop: 'auto' }}
+                        disabled={false}
+                        loading={false}
+                    />
+                </div>
+
+                <p className={styles.subTitle}>PREFERENCIAS</p>
+                <div className={styles.content}>
+                    <ComponenteFull
+                        title="Modo oscuro"
+                        subtitle={isDarkMode ? "Activado - Tema oscuro" : "Desactivado - Tema claro"}
+                        icon={isDarkMode ? "moon" : "sun"}
+                        type="switch"
+                        checked={isDarkMode}
+                        onChange={handleThemeChange}
+                    />
+                </div>
+                <p className={styles.subTitle}>CUENTA</p>
+                <div className={styles.content}>
+                    <ComponenteFull
+                        title="Cambiar contraseña"
+                        subtitle="Actualiza tu contraseña de acceso"
+                        icon="lock-open"
+                        type="arrow"
                         onClick={handleCambiarContraseña}
                     />
-                    <ItemLine
-                        icon='palette'
-                        title='Apariencia'
-                        onClick={handleApariencia}
-                    />
+
                     {!isEmployee && (
                         <>
-                            <ItemLine
-                                icon='purchase-tag-alt'
-                                title='Codigo promocional'
+                            <ComponenteFull
+                                title="Código promocional"
+                                subtitle="Ingresa un código promocional"
+                                icon="purchase-tag-alt"
+                                type="arrow"
                                 onClick={handleCodigoPromocional}
                             />
-                            <ItemLine
-                                icon='star'
-                                title='Plan'
+
+                            <ComponenteFull
+                                title="Plan"
+                                subtitle="Información de tu plan actual"
+                                icon="star"
+                                type="arrow"
                                 onClick={handlePlan}
                             />
                         </>
                     )}
-                    <ItemLine
-                        icon='comment'
-                        title='Comentarios'
+
+                    <ComponenteFull
+                        title="Comentarios"
+                        subtitle="Envía tus comentarios y sugerencias"
+                        icon="comment"
+                        type="arrow"
                         onClick={handleComentarios}
                     />
+
                     <ItemLine
                         icon='power-off'
                         title='Cerrar sesión'
                         onClick={handleLogout}
                     />
-
                 </div>
-                <PieIcons />
                 <Version />
             </div>
-            <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} />
             {isEmployee ? (
                 <CambiarContraseñaEmpleado isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} />
             ) : (
@@ -154,7 +217,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                                 } else {
                                     clearUser();
                                 }
-                                
+
                                 // Redireccionar inmediatamente sin delay
                                 window.location.href = '/login';
                             }}

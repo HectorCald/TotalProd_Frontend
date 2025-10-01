@@ -74,8 +74,8 @@
     justify-content: flex-start;
     width: 100%;
     background-color: var(--tertiary-color);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 20px;
+    padding: 10px 20px;
     gap: 10px;
 }
 
@@ -120,6 +120,7 @@
 .buttons {
     display: flex;
     flex-direction: column;
+    flex-direction: column-reverse;
     gap: 7px;
     width: 100%;
     margin-top: auto;
@@ -138,6 +139,8 @@
 .noData {
     display: flex;
     justify-content: center;
+    flex-direction: column;
+    gap: 10px;
     align-items: center;
     width: 100%;
     height: 100%;
@@ -145,14 +148,20 @@
     background-color: var(--tertiary-color);
     border-radius: 10px;
 }
-
-.noData p {
-    font-size: 15px;
+.noData p{
+    font-size: 13px;
     font-weight: 500;
     color: gray;
     text-align: center;
     line-height: 1.2;
 }
+.noDataTitle {
+    font-size: 18px !important;
+    color: var(--white-color) !important;
+    font-weight: 600;
+    opacity: 0.3;
+}
+
 
 
 
@@ -279,3 +288,96 @@
     gap: 10px;
     width: 100%;
 }
+
+
+
+
+/* Estilos para Balance - Simple */
+.balanceSimple {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+    background-color: var(--tertiary-color);
+    padding: 15px;
+    border-radius: 20px;
+  }
+  
+  .balanceTotalSimple {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .balanceTotalTexto {
+    font-size: 18px;
+    font-weight: 700;
+    color: #4caf50;
+  }
+  
+  .balanceTotalTexto.negativo {
+    color: #f44336;
+  }
+  
+  .ingresosSalidasContainer {
+    display: flex;
+    width: 100%;
+    border-top: 1px solid var(--quinary-color);
+    padding-top: 10px;
+  }
+  
+  .ingresosSimple,
+  .salidasSimple {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px;
+  }
+  
+  .ingresosSimple {
+    border-right: 1px solid var(--quinary-color);
+  }
+  
+  .iconoIngresos {
+    font-size: 20px;
+    color: #4caf50;
+    font-weight: bold;
+  }
+  
+  .iconoSalidas {
+    font-size: 20px;
+    color: #f44336;
+    font-weight: bold;
+  }
+  
+  .textoIngresos,
+  .textoSalidas {
+    font-size: 12px;
+    color: gray;
+    font-weight: 400;
+  }
+  
+  .valorIngresos {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--white-color);
+  }
+  
+  .valorSalidas {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--white-color);
+  }
+  
+  .verMas {
+    font-size: 12px;
+    font-weight: 400;
+    color: gray;
+    width: 100%;
+    text-align: center;
+    margin-top: 10px;
+    cursor: pointer;
+  }

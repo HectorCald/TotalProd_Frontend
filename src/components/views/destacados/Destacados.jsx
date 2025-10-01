@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import Screen from '../ui/Screen';
-import styles from './Reportes.module.css';
-import ItemView from '../common/ItemView';
-import VerMovimiento from '../views/movimientos/VerMovimiento';
+import HeaderView from '../../common/HeaderView';
+import View from '../../ui/View';
+import styles from '../../../styles/view.module.css';
+import ItemView from '../../common/ItemView';
+import VerMovimiento from '../movimientos/VerMovimiento';
 import { BoxIcon } from 'boxicons-react';
-import RefreshIndicator from '../common/RefreshIndicator';
-import movimientosAcopioService from '../../services/movimientosAcopioService';
-import movimientosAlmacenService from '../../services/movimientosAlmacenService';
+import RefreshIndicator from '../../common/RefreshIndicator';
+import movimientosAcopioService from '../../../services/movimientosAcopioService';
+import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 
-const Destacados = () => {
+const Destacados = ({ isOpen, setIsOpen }) => {
   const [movimientosDestacados, setMovimientosDestacados] = useState([]);
   const [isOpenVerMovimiento, setIsOpenVerMovimiento] = useState(false);
   const [infoMovimiento, setInfoMovimiento] = useState(null);
@@ -142,15 +143,12 @@ const Destacados = () => {
     setIsOpenVerMovimiento(true);
   };
 
-  // Función para manejar refresh
-  // const handleRefresh = async () => {
-  //   await loadDestacados();
-  // };
-
   // Cargar destacados al montar el componente
   useEffect(() => {
-    loadDestacados();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (isOpen) {
+      loadDestacados();
+    }
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Escuchar cambios en localStorage
   useEffect(() => {
@@ -180,8 +178,15 @@ const Destacados = () => {
   }, [movimientosDestacados]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Screen title="Destacados">
+    <View isOpen={isOpen} setIsOpen={setIsOpen}>
+      <HeaderView onBack={() => setIsOpen(false)} title='Destacados' />
       <div className={styles.container}>
+        <div className={styles.titleContainer}>
+          <RefreshIndicator
+            isVisible={showRefreshIndicator}
+            isLoading={isRefreshing}
+          />
+        </div>
         <div className={styles.headerContainer}>
           <p className={styles.subTitle}>
             {movimientosDestacados.length > 0 
@@ -189,10 +194,6 @@ const Destacados = () => {
               : 'SIN MOVIMIENTOS DESTACADOS'
             }
           </p>
-          <RefreshIndicator
-            isVisible={showRefreshIndicator}
-            isLoading={isRefreshing}
-          />
         </div>
 
 
@@ -244,7 +245,7 @@ const Destacados = () => {
           loadDestacados();
         }}
       />
-    </Screen>
+    </View>
   );
 };
 

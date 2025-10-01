@@ -9,6 +9,21 @@ import imageOffline from '../assets/offline.png';
 import imageGastos from '../assets/gastos.png'
 export const EXTRAS = [
     {
+        title: 'Balance',
+        image: imageCajaChica,
+        view: 'balance'
+    },
+    {
+        title: 'Destacados',
+        image: imageDeudas,
+        view: 'destacados'
+    },
+    {
+        title: 'Reportes',
+        image: imageReportIA,
+        view: 'reportes'
+    },
+    {
         title: 'Sucursales',
         image: imageSucursales,
         view: 'sucursales'

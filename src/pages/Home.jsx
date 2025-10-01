@@ -6,9 +6,6 @@ import BarraLateral from '../components/ui/BarraLateral';
 import { useLayout } from '../context/LayoutContext';
 import Inicio from '../components/screens/Inicio';
 import InicioPC from '../components/screens/InicioPC';
-import Destacados from '../components/screens/Destacados';
-import Balance from '../components/screens/Balance';
-import Reportes from '../components/screens/Reportes';
 import Explorar from '../components/screens/Explorar';
 
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
@@ -41,9 +38,6 @@ const Home = () => {
     // Mapear screenId a route
     const routeMap = {
       'inicio': '/dashboard/default',
-      'destacados': '/dashboard/destacados', 
-      'balance': '/dashboard/balance',
-      'reportes': '/dashboard/reportes',
       'explorar': '/dashboard/explorar'
     };
     const route = routeMap[screenId] || '/dashboard/default';
@@ -72,19 +66,10 @@ const Home = () => {
   // Función para renderizar las pantallas (igual que en BarraNavegacion)
   const renderScreen = () => {
     const currentScreen = activeRoute === '/dashboard/default' ? 'inicio' : 
-                         activeRoute === '/dashboard/destacados' ? 'destacados' :
-                         activeRoute === '/dashboard/balance' ? 'balance' :
-                         activeRoute === '/dashboard/reportes' ? 'reportes' :
                          activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio';
     switch (currentScreen) {
       case 'inicio':
         return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} />;
-      case 'destacados':
-        return <Destacados />;
-      case 'balance':
-        return <Balance />;
-      case 'reportes':
-        return <Reportes />;
       case 'explorar':
         return <Explorar />;
       default:
@@ -108,9 +93,6 @@ const Home = () => {
             onNavigate={handleNavigateFromMenu}
             onScreenChange={handleScreenChange}
             activeScreen={activeRoute === '/dashboard/default' ? 'inicio' : 
-                         activeRoute === '/dashboard/destacados' ? 'destacados' :
-                         activeRoute === '/dashboard/balance' ? 'balance' :
-                         activeRoute === '/dashboard/reportes' ? 'reportes' :
                          activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio'}
             onViewClose={handleViewClose}
           />
@@ -157,9 +139,6 @@ const Home = () => {
           {/* BarraNavegacion para pantallas pequeñas */}
           <BarraNavegacion 
             activeScreen={activeRoute === '/dashboard/default' ? 'inicio' : 
-                         activeRoute === '/dashboard/destacados' ? 'destacados' :
-                         activeRoute === '/dashboard/balance' ? 'balance' :
-                         activeRoute === '/dashboard/reportes' ? 'reportes' :
                          activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio'} 
             onScreenChange={handleScreenChange}
             onViewOpen={handleViewOpen}

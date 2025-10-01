@@ -429,15 +429,10 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
+                title={tipo === 'almacen' ? 'Materia Prima' : tipo === 'entrada' ? 'Entradas' : tipo === 'pedido' ? 'Realizar Pedidos' : 'Salidas o Ventas'}
             />
             <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
                 <div className={styles.titleContainer}>
-                    <h1 className={styles.title}>
-                        {tipo === 'almacen' ? 'Materia Prima' : tipo === 'entrada' ? 'Entradas' : tipo === 'pedido' ? 'Realizar Pedidos' : 'Salidas o Ventas'}
-                        <button className={styles.refreshButton} onClick={handleRefresh}>
-                            <BoxIcon name='refresh' />
-                        </button>
-                    </h1>
                     <RefreshIndicator
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}

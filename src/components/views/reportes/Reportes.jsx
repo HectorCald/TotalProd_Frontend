@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import Screen from '../ui/Screen';
-import Select from '../common/Select';
-import RefreshIndicator from '../common/RefreshIndicator';
-import sucursalesService from '../../services/sucursalesService';
-import ModalDescarga from '../ui/ModalDescarga';
-import movimientosAlmacenService from '../../services/movimientosAlmacenService';
-import movimientosAcopioService from '../../services/movimientosAcopioService';
-import pedidosAlmacenService from '../../services/pedidosAlmacenService';
-import Notification from '../common/Notification';
-import styles from './Reportes.module.css';
-import Boton from '../common/Boton';
+import HeaderView from '../../common/HeaderView';
+import View from '../../ui/View';
+import Select from '../../common/Select';
+import RefreshIndicator from '../../common/RefreshIndicator';
+import sucursalesService from '../../../services/sucursalesService';
+import ModalDescarga from '../../ui/ModalDescarga';
+import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
+import movimientosAcopioService from '../../../services/movimientosAcopioService';
+import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
+import Notification from '../../common/Notification';
+import styles from '../../../styles/view.module.css';
+import Boton from '../../common/Boton';
 
-const Reportes = () => {
+const Reportes = ({ isOpen, setIsOpen }) => {
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('');
   const [areaSeleccionada, setAreaSeleccionada] = useState('');
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
@@ -65,10 +66,10 @@ const Reportes = () => {
 
   // Cargar sucursales solo la primera vez
   React.useEffect(() => {
-    if (!sucursalesCargadas) {
+    if (!sucursalesCargadas && isOpen) {
       cargarSucursales();
     }
-  }, [sucursalesCargadas]);
+  }, [sucursalesCargadas, isOpen]);
 
   // Función para mostrar notificaciones
   const mostrarNotificacion = (tipo, texto) => {
@@ -574,14 +575,17 @@ const Reportes = () => {
   };
 
   return (
-    <Screen title="Reportes">
+    <View isOpen={isOpen} setIsOpen={setIsOpen}>
+      <HeaderView onBack={() => setIsOpen(false)} title='Reportes' />
       <div className={styles.container} style={{ maxWidth: '500px' }}>
-        <div className={styles.headerContainer}>
-          <p className={styles.subTitle}>SELECCIONAR</p>
+        <div className={styles.titleContainer}>
           <RefreshIndicator
             isVisible={showRefreshIndicator || isLoading}
             isLoading={isRefreshing || isLoading}
           />
+        </div>
+        <div className={styles.headerContainer}>
+          <p className={styles.subTitle}>SELECCIONAR</p>
         </div>
         <div className={styles.content}>
           <Select
@@ -645,7 +649,7 @@ const Reportes = () => {
         type={notification.type}
         text={notification.text}
       />
-    </Screen>
+    </View>
   );
 };
 

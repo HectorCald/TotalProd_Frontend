@@ -14,30 +14,6 @@ export const MENU_OPTIONS = [
         screenId: 'inicio',
         route: '/dashboard/default'
       },
-      {
-        id: 'destacados',
-        title: 'Destacados',
-        icon: 'star',
-        action: 'setScreen',
-        screenId: 'destacados',
-        route: '/dashboard/destacados'
-      },
-      {
-        id: 'balance',
-        title: 'Balance',
-        icon: 'trending-up',
-        action: 'setScreen',
-        screenId: 'balance',
-        route: '/dashboard/balance'
-      },
-      {
-        id: 'reportes',
-        title: 'Reportes',
-        icon: 'receipt',
-        action: 'setScreen',
-        screenId: 'reportes',
-        route: '/dashboard/reportes'
-      },
     ]
   },
   {

@@ -3,10 +3,8 @@ import styles from './BarraNavegacion.module.css';
 import { BoxIcon } from 'boxicons-react';
 import Inicio from '../screens/Inicio';
 import InicioEmpleado from '../screens/InicioEmpleado';
-import Destacados from '../screens/Destacados';
-import Balance from '../screens/Balance';
-import Reportes from '../screens/Reportes';
 import Explorar from '../screens/Explorar';
+import Usuario from '../views/usuario/Usuario';
 import Notification from '../common/Notification';
 
 function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee, employee, onMainModuleClick }) {
@@ -15,37 +13,20 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
         type: 'warning',
         text: ''
     });
+    const [isUsuarioOpen, setIsUsuarioOpen] = useState(false);
 
-    const allNavigationItems = [
-        { id: 'inicio', icon: 'home', title: 'Inicio' },
-        { id: 'destacados', icon: 'star', title: 'Destacados' },
-        { id: 'balance', icon: 'trending-up', title: 'Balance' },
-        { id: 'reportes', icon: 'receipt', title: 'Reportes' },
-        { id: 'explorar', icon: 'category', title: 'Explorar' }
+    const navigationItems = [
+        { id: 'inicio', icon: 'home', title: '' },
+        { id: 'explorar', icon: 'category', title: '' },
+        { id: 'configuracion', icon: 'cog', title: '' },
     ];
 
-    // Filtrar opciones de navegación para empleados (quitar "Explorar")
-    const navigationItems = isEmployee 
-        ? allNavigationItems.filter(item => item.id !== 'explorar')
-        : allNavigationItems;
-
     const handleNavigation = (screenId) => {
-        // Si es empleado y intenta acceder a algo que no sea "inicio", mostrar notificación
-        if (isEmployee && screenId !== 'inicio') {
-            setNotification({
-                isVisible: true,
-                type: 'warning',
-                text: 'No tienes permisos para acceder a esta sección'
-            });
-            
-            // Auto-ocultar después de 3 segundos
-            setTimeout(() => {
-                setNotification(prev => ({ ...prev, isVisible: false }));
-            }, 3000);
-            return;
+        if (screenId === 'configuracion') {
+            setIsUsuarioOpen(true);
+        } else {
+            onScreenChange(screenId);
         }
-        
-        onScreenChange(screenId);
     };
 
     const renderScreen = () => {
@@ -59,12 +40,6 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
                 ) : (
                     <Inicio onViewOpen={onViewOpen} />
                 );
-            case 'destacados':
-                return <Destacados />;
-            case 'balance':
-                return <Balance />;
-            case 'reportes':
-                return <Reportes />;
             case 'explorar':
                 return <Explorar />;
             default:
@@ -99,6 +74,12 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
                 ))}
             </div>
             {renderScreen()}
+            
+            {/* Modal de Usuario */}
+            <Usuario
+                isOpen={isUsuarioOpen}
+                setIsOpen={setIsUsuarioOpen}
+            />
             
             <Notification
                 isVisible={notification.isVisible}
