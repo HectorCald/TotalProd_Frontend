@@ -199,33 +199,27 @@ class pedidosAlmacenService {
     }
   }
 
-  // Actualizar entrega de pedido (solo precio, productos y cantidades)
+  // DEPRECATED - Actualizar entrega de pedido - YA NO SE USA
   static async updateEntrega(pedidoId, pedidoData) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/pedidos-almacen/${pedidoId}/entrega`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(pedidoData),
-      });
-      
-      const data = await response.json();
-      return data;
+    console.warn('updateEntrega está deprecado. Use los servicios individuales.');
+    return { success: false, message: 'Este método está deprecado' };
+  }
 
-    } catch (error) {
-      console.error('Error en pedidosAlmacenService.updateEntrega:', error);
-      return {
-        success: false,
-        message: 'Error de conexión con el servidor'
-      };
-    }
+  // DEPRECATED - Entregar pedido - YA NO SE USA
+  static async entregar(pedidoId, { sucu_id, precio_id, productos, metodo_pago }) {
+    console.warn('entregar está deprecado. Use los servicios individuales.');
+    return { success: false, message: 'Este método está deprecado' };
   }
 
   // Actualizar estado del pedido
-  static async updateEstado(pedidoId, nuevoEstado, movimientoEntradaId = null) {
+  static async updateEstado(pedidoId, nuevoEstado, movimientoSalidaId = null, deudaId = null) {
     try {
       const body = { estado: nuevoEstado };
-      if (movimientoEntradaId) {
-        body.movimiento_entrada_id = movimientoEntradaId;
+      if (movimientoSalidaId) {
+        body.movimiento_salida_id = movimientoSalidaId;
+      }
+      if (deudaId) {
+        body.deuda_id = deudaId;
       }
       
       const response = await fetch(`${API_BASE_URL}/pedidos-almacen/${pedidoId}/estado`, {

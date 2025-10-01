@@ -210,6 +210,13 @@ export const MENU_OPTIONS = [
         viewName: 'gastos'
       },
       {
+        id: 'deudas',
+        title: 'Deudas',
+        icon: 'receipt',
+        action: 'openView',
+        viewName: 'deudas'
+      },
+      {
         id: 'balance',
         title: 'Balance',
         icon: 'bar-chart-alt',

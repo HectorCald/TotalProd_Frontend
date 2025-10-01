@@ -4,6 +4,7 @@ import { EXTRAS } from '../../constants/extras';
 import Precios from '../views/precios/Precios';
 import Sucursales from '../views/sucursales/Sucursales';
 import PanelGastos from '../views/gastos/PanelGastos';
+import PanelDeudas from '../views/deudas/PanelDeudas';
 import Balance from '../views/balance/Balance';
 import Destacados from '../views/destacados/Destacados';
 import Reportes from '../views/reportes/Reportes';
@@ -13,6 +14,7 @@ const Explorar = () => {
   const [isOpenPrecios, setIsOpenPrecios] = useState(false);
   const [isOpenSucursales, setIsOpenSucursales] = useState(false);
   const [isOpenGastos, setIsOpenGastos] = useState(false);
+  const [isOpenDeudas, setIsOpenDeudas] = useState(false);
   const [isOpenBalance, setIsOpenBalance] = useState(false);
   const [isOpenDestacados, setIsOpenDestacados] = useState(false);
   const [isOpenReportes, setIsOpenReportes] = useState(false);
@@ -42,6 +44,8 @@ const Explorar = () => {
       setIsOpenSucursales(true);
     } else if (viewName === 'gastos') {
       setIsOpenGastos(true);
+    } else if (viewName === 'deudas') {
+      setIsOpenDeudas(true);
     } else if (viewName === 'balance') {
       setIsOpenBalance(true);
     } else if (viewName === 'destacados') {
@@ -72,6 +76,7 @@ const Explorar = () => {
       <Precios isOpen={isOpenPrecios} setIsOpen={setIsOpenPrecios} />
       <Sucursales isOpen={isOpenSucursales} setIsOpen={setIsOpenSucursales} />
       <PanelGastos isOpen={isOpenGastos} setIsOpen={setIsOpenGastos} />
+      <PanelDeudas isOpen={isOpenDeudas} setIsOpen={setIsOpenDeudas} />
       <Balance isOpen={isOpenBalance} setIsOpen={setIsOpenBalance} />
       <Destacados isOpen={isOpenDestacados} setIsOpen={setIsOpenDestacados} />
       <Reportes isOpen={isOpenReportes} setIsOpen={setIsOpenReportes} />

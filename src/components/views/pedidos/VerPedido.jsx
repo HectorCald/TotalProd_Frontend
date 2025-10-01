@@ -14,6 +14,7 @@ import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import { useUser } from '../../../context/UserContext';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
+import deudasService from '../../../services/deudasService';
 
 function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, onPedidoActualizado }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
@@ -91,62 +92,23 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         setModoAlmacen('pedido');
         setIsAlmacenOpen(true);
     };
-    // Función para manejar la entrega de pedido
-    const handleEntregaConfirmada = async (productosActualizados, precioId, movimientoId) => {
-        if (!pedido) return;
-
-        // Validar que hay productos
-        if (!productosActualizados || productosActualizados.length === 0) {
-            mostrarNotificacion('error', 'No hay productos para entregar');
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            // Actualizar el pedido con los nuevos productos y precio
-            const pedidoData = {
-                precio_id: precioId,
+    // Función para manejar la entrega de pedido (ya no se usa, la lógica está en CanastaMovimientos)
+    const handleEntregaConfirmada = async (movimientoId, pedidoActualizadoData) => {
+        // Esta función ya no se usa porque la lógica de entrega está en el backend
+        // Solo actualizar el pedido local si viene de CanastaMovimientos
+        if (onPedidoActualizado) {
+            const pedidoActualizado = {
+                ...pedido,
+                estado: 'Entregado',
                 movimiento_id: movimientoId,
-                productos: productosActualizados.map(producto => ({
-                    id: producto.id,
-                    cantidad: producto.cantidad,
-                    precio: producto.precio || 0
-                }))
+                // Si viene pedidoActualizadoData del update, usar esos datos
+                ...(pedidoActualizadoData && { ...pedidoActualizadoData })
             };
-
-            const response = await pedidosAlmacenService.updateEntrega(pedido.id, pedidoData);
-
-            if (response.success) {
-                mostrarNotificacion('success', 'Pedido entregado correctamente');
-
-                // Actualizar el pedido local con los datos de la respuesta
-                const pedidoActualizado = response.data;
-
-                if (onPedidoActualizado) {
-                    onPedidoActualizado(pedidoActualizado);
-                }
-
-                // Limpiar localStorage de entrega
-                localStorage.removeItem('pedidoIdEntregando');
-                localStorage.removeItem('precioIdEntregando');
-                localStorage.removeItem('canastaSalidas');
-
-                // Cerrar modales
-                setIsAlmacenOpen(false);
-                setIsOpen(false);
-
-                // Limpiar loading DESPUÉS de cerrar todo
-                setLoading(false);
-            } else {
-                setLoading(false);
-                mostrarNotificacion('error', response.message || 'Error al entregar el pedido');
-            }
-        } catch (error) {
-            setLoading(false);
-            console.error('Error al entregar pedido:', error);
-            mostrarNotificacion('error', 'Error al entregar el pedido');
+            onPedidoActualizado(pedidoActualizado);
         }
+        
+        // Cerrar AlmacenGeneral (VerPedido se cerrará desde PanelPedidos después de actualizar)
+        setIsAlmacenOpen(false);
     };
     // Función para cancelar entrega
     const handleCancelarEntrega = async () => {
@@ -155,38 +117,87 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         try {
             setLoading(true);
 
-            // Si hay un movimiento asociado, anularlo primero
-            if (pedido.movimiento_id) {
-                const anularResponse = await movimientosAlmacenService.anular(pedido.movimiento_id);
+            // Guardar los IDs antes de empezar
+            const movimientoId = pedido.movimiento_salida_id;
+            const deudaId = pedido.deuda_id;
 
+            console.log('PASO 1: Anulando movimiento...');
+            // 1) PRIMERO: Anular el movimiento
+            if (movimientoId) {
+                const anularResponse = await movimientosAlmacenService.anular(movimientoId);
                 if (!anularResponse.success) {
                     mostrarNotificacion('error', 'Error al anular el movimiento: ' + anularResponse.message);
                     return;
                 }
+                console.log('✅ Movimiento anulado correctamente');
             }
 
-            // Cambiar estado del pedido a Pendiente
-            const response = await pedidosAlmacenService.updateEstado(pedido.id, 'Pendiente');
+            console.log('PASO 2: Borrando movimiento_salida_id del pedido...');
+            // 2) SEGUNDO: Borrar el movimiento_salida_id del pedido (sin cambiar estado)
+            const limpiarMovimientoResponse = await pedidosAlmacenService.updateEstado(pedido.id, pedido.estado, null, null);
+            if (!limpiarMovimientoResponse.success) {
+                mostrarNotificacion('error', 'Error al limpiar movimiento_salida_id: ' + limpiarMovimientoResponse.message);
+                return;
+            }
+            console.log('✅ movimiento_salida_id borrado del pedido');
 
-            if (response.success) {
-                mostrarNotificacion('success', 'Entrega cancelada correctamente');
+            console.log('PASO 3: Borrando deuda_id del pedido...');
+            // 3) TERCERO: Borrar el deuda_id del pedido (sin cambiar estado)
+            const limpiarDeudaResponse = await pedidosAlmacenService.updateEstado(pedido.id, pedido.estado, null, null);
+            if (!limpiarDeudaResponse.success) {
+                mostrarNotificacion('error', 'Error al limpiar deuda_id: ' + limpiarDeudaResponse.message);
+                return;
+            }
+            console.log('✅ deuda_id borrado del pedido');
 
-                // Actualizar el pedido local
-                const pedidoActualizado = {
-                    ...pedido,
-                    estado: 'Pendiente',
-                    movimiento_id: null
-                };
-
-                if (onPedidoActualizado) {
-                    onPedidoActualizado(pedidoActualizado);
+            console.log('PASO 4: Eliminando deuda...');
+            // 4) CUARTO: Eliminar la deuda
+            if (deudaId) {
+                const eliminarDeudaResponse = await deudasService.delete(deudaId);
+                if (!eliminarDeudaResponse.success) {
+                    mostrarNotificacion('error', 'Error al eliminar la deuda: ' + eliminarDeudaResponse.message);
+                    return;
                 }
-
-                // Cerrar modal y regresar a PanelPedidos
-                setIsOpen(false);
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al cancelar entrega');
+                console.log('✅ Deuda eliminada correctamente');
             }
+
+            console.log('PASO 5: Eliminando movimiento...');
+            // 5) QUINTO: Eliminar el movimiento
+            if (movimientoId) {
+                const eliminarMovimientoResponse = await movimientosAlmacenService.eliminar(movimientoId);
+                if (!eliminarMovimientoResponse.success) {
+                    mostrarNotificacion('error', 'Error al eliminar el movimiento: ' + eliminarMovimientoResponse.message);
+                    return;
+                }
+                console.log('✅ Movimiento eliminado correctamente');
+            }
+
+            console.log('PASO 6: Cambiando estado del pedido a Pendiente...');
+            // 6) SEXTO: Cambiar estado del pedido a Pendiente
+            const cambiarEstadoResponse = await pedidosAlmacenService.updateEstado(pedido.id, 'Pendiente');
+            if (!cambiarEstadoResponse.success) {
+                mostrarNotificacion('error', 'Error al cambiar estado del pedido: ' + cambiarEstadoResponse.message);
+                return;
+            }
+            console.log('✅ Estado del pedido cambiado a Pendiente');
+
+            mostrarNotificacion('success', 'Entrega cancelada correctamente');
+
+            // Actualizar el pedido local y cerrar
+            const pedidoActualizado = {
+                ...pedido,
+                estado: 'Pendiente',
+                movimiento_salida_id: null,
+                deuda_id: null
+            };
+
+            if (onPedidoActualizado) {
+                onPedidoActualizado(pedidoActualizado);
+            }
+
+            // Cerrar modal y regresar a PanelPedidos
+            setIsOpen(false);
+
         } catch (error) {
             console.error('Error al cancelar entrega:', error);
             mostrarNotificacion('error', 'Error al cancelar entrega');
@@ -266,6 +277,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.removeItem('canastaSalidas');
         localStorage.removeItem('pedidoIdEntregando');
         localStorage.removeItem('precioIdEntregando');
+        localStorage.removeItem('pedidoDestinoSucursalId');
+        localStorage.removeItem('pedidoDestinoSucursalName');
 
         // Preparar los productos del pedido para la canasta de salidas
         const productosParaSalidas = pedido.pedido_almacen_detalle?.map(detalle => ({
@@ -282,6 +295,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.setItem('canastaSalidas', JSON.stringify(productosParaSalidas));
         localStorage.setItem('pedidoIdEntregando', pedido.id);
         localStorage.setItem('precioIdEntregando', pedido.precio_id || '');
+        localStorage.setItem('pedidoDestinoSucursalId', pedido.sucursal_id || '');
+        localStorage.setItem('pedidoDestinoSucursalName', pedido.sucursal?.name || '');
 
         // Abrir AlmacenGeneral en modo salida
         setModoAlmacen('entregar');
@@ -374,23 +389,23 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
     const puedeEditarPedido = () => {
         if (!pedido || !sucursalActual) return false;
-        return pedido.sucu_id === sucursalActual.id && pedido.estado !== 'Entregado' && pedido.estado !== 'Completado';
+        return pedido.sucursal_id === sucursalActual.id && pedido.estado !== 'Entregado' && pedido.estado !== 'Completado';
     };
     const puedeEntregarPedido = () => {
         if (!pedido || !sucursalActual) return false;
-        return pedido.pedido_sucursal_id === sucursalActual.id && pedido.estado !== 'Entregado' && pedido.estado !== 'Completado';
+        return pedido.sucursal_destino_id === sucursalActual.id && pedido.estado !== 'Entregado' && pedido.estado !== 'Completado';
     };
     const puedeCancelarEntrega = () => {
         if (!pedido || !sucursalActual) return false;
-        return pedido.pedido_sucursal_id === sucursalActual.id && pedido.estado === 'Entregado';
+        return pedido.sucursal_destino_id === sucursalActual.id && pedido.estado === 'Entregado';
     };
     const puedeIngresarPedido = () => {
         if (!pedido || !sucursalActual) return false;
-        return pedido.sucu_id === sucursalActual.id && pedido.estado === 'Entregado';
+        return pedido.sucursal_id === sucursalActual.id && pedido.estado === 'Entregado';
     };
     const puedeEliminarPedido = () => {
         if (!pedido || !sucursalActual) return false;
-        return pedido.sucu_id === sucursalActual.id && pedido.estado !== 'Completado' && pedido.estado !== 'Entregado';
+        return pedido.sucursal_id === sucursalActual.id && pedido.estado !== 'Completado' && pedido.estado !== 'Entregado';
     };
 
 

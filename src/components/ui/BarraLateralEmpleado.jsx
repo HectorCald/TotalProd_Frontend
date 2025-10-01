@@ -14,6 +14,7 @@ import Clientes from '../views/clientes/Clientes';
 import Proveedores from '../views/proveedores/Proveedores';
 import Precios from '../views/precios/Precios';
 import Gastos from '../views/gastos/PanelGastos';
+import Deudas from '../views/deudas/PanelDeudas';
 
 const BarraLateralEmpleado = ({ 
   onMenuClick, 
@@ -48,7 +49,8 @@ const BarraLateralEmpleado = ({
       'Precios': 'dollar',
       'Clientes': 'user',
       'Proveedores': 'truck',
-      'Gastos': 'receipt'
+      'Gastos': 'receipt',
+      'Deudas': 'receipt'
     };
 
     const viewMap = {
@@ -59,7 +61,8 @@ const BarraLateralEmpleado = ({
       'Precios': 'precios',
       'Clientes': 'clientes',
       'Proveedores': 'proveedores',
-      'Gastos': 'gastos'
+      'Gastos': 'gastos',
+      'Deudas': 'deudas'
     };
 
     const propsMap = {
@@ -70,7 +73,8 @@ const BarraLateralEmpleado = ({
       'Precios': { tipo: 'almacen' },
       'Clientes': { tipo: 'almacen' },
       'Proveedores': { tipo: 'almacen' },
-      'Gastos': { tipo: 'almacen' }
+      'Gastos': { tipo: 'almacen' },
+      'Deudas': { tipo: 'almacen' }
     };
 
     // Si el módulo tiene submodules
@@ -112,7 +116,8 @@ const BarraLateralEmpleado = ({
                   submodule.component === 'Precios' ? 'precios' :
                   submodule.component === 'Clientes' ? 'clientes' :
                   submodule.component === 'Proveedores' ? 'proveedores' :
-                  submodule.component === 'Gastos' ? 'gastos' : 'almacenMedioGeneral',
+                  submodule.component === 'Gastos' ? 'gastos' :
+                  submodule.component === 'Deudas' ? 'deudas' : 'almacenMedioGeneral',
             props: submodule.props || propsMap[module.key] || { tipo: 'almacen' }
           }))
         };
@@ -404,6 +409,12 @@ const BarraLateralEmpleado = ({
 
       <Gastos
         isOpen={activeView === 'gastos'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+
+      <Deudas
+        isOpen={activeView === 'deudas'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

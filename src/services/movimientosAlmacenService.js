@@ -320,6 +320,27 @@ class movimientosAlmacenService {
       };
     }
   }
+
+  // Actualizar un movimiento
+  static async update(movimientoId, updateData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${movimientoId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updateData),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en update:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
 }
 
 export default movimientosAlmacenService;

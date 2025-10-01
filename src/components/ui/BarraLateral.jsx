@@ -15,6 +15,7 @@ import Proveedores from '../views/proveedores/Proveedores';
 import Personal from '../views/personal/Personal';
 import Pagos from '../views/pagos/Pagos';
 import PanelGastos from '../views/gastos/PanelGastos';
+import PanelDeudas from '../views/deudas/PanelDeudas';
 import Sucursales from '../views/sucursales/Sucursales';
 import Precios from '../views/precios/Precios';
 import Balance from '../views/balance/Balance';
@@ -313,6 +314,12 @@ const BarraLateral = ({
 
       <PanelGastos
         isOpen={activeView === 'gastos'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+
+      <PanelDeudas
+        isOpen={activeView === 'deudas'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

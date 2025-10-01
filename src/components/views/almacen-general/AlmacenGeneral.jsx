@@ -826,10 +826,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     loadingPrecios={false}
                     productosActualizados={productos}
                     isCartMode={isCartMode && isLargeScreen}
-                    onCerrarCanasta={(productosActualizados, precioId, movimientoId) => {
-                        // Si es una entrega, NO cerrar la canasta aquí, solo llamar a la función de entrega
+                    onPedidoActualizado={onPedidoActualizado}
+                    onCerrarCanasta={(productosActualizados, precioId, movimientoId, pedidoActualizadoData) => {
+                        // Si es una entrega, llamar a la función de entrega
                         if (onEntregaConfirmada && localStorage.getItem('pedidoIdEntregando')) {
-                            onEntregaConfirmada(productosActualizados, precioId, movimientoId);
+                            onEntregaConfirmada(productosActualizados, precioId, movimientoId, pedidoActualizadoData);
                         } else {
                             // Para movimientos normales, cerrar la canasta y mostrar notificación
                             setIsCanastaMovimientosOpen(false);

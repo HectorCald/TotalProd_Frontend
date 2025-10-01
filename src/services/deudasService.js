@@ -1,0 +1,385 @@
+import API_CONFIG from '../config/api';
+
+const API_BASE_URL = API_CONFIG.getBaseURL();
+
+// Función helper para obtener el token de autorización
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  };
+};
+
+// Función helper para obtener sucu_id
+const getSucuId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.id;
+  }
+  return null;
+};
+
+// Función helper para obtener empresa_id
+const getEmpresaId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.empresas?.id;
+  }
+  return null;
+};
+
+// Función helper para obtener personal_id del token
+const getPersonalId = () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.id;
+    } catch (error) {
+      console.error('Error parsing token:', error);
+    }
+  }
+  return null;
+};
+
+class deudasService {
+    // Obtener todas las deudas con paginación y filtros
+    static async getAll(page = 1, limit = 10, search = '', estado = null, cliente = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+        try {
+            const sucuId = sucuIdParam || getSucuId();
+            if (!sucuId) {
+                return {
+                    success: false,
+                    message: 'No hay sucursal seleccionada'
+                };
+            }
+
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: limit.toString(),
+                ordenamiento: ordenamiento,
+                sucu_id: sucuId
+            });
+
+            if (search) {
+                params.append('search', search);
+            }
+            if (estado) {
+                params.append('estado', estado);
+            }
+            if (cliente) {
+                params.append('cliente_id', cliente);
+            }
+
+            const response = await fetch(`${API_BASE_URL}/deudas?${params}`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener las deudas');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error obteniendo deudas:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al obtener las deudas'
+            };
+        }
+    }
+
+    // Obtener todas las deudas sin límite (para reportes)
+    static async getAllSinLimite(ordenamiento = 'fecha_deuda_desc', sucuIdParam = null) {
+        try {
+            const sucuId = sucuIdParam || getSucuId();
+            if (!sucuId) {
+                return {
+                    success: false,
+                    message: 'No hay sucursal seleccionada'
+                };
+            }
+
+            const params = new URLSearchParams({
+                ordenamiento: ordenamiento,
+                sucu_id: sucuId
+            });
+
+            const response = await fetch(`${API_BASE_URL}/deudas/sin-limite?${params}`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener las deudas');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error obteniendo deudas sin límite:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al obtener las deudas'
+            };
+        }
+    }
+
+    // Obtener una deuda por ID
+    static async getById(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/deudas/${id}`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener la deuda');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error obteniendo deuda por ID:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al obtener la deuda'
+            };
+        }
+    }
+
+    // Crear una nueva deuda
+    static async create(deudaData) {
+        try {
+            const sucuId = getSucuId();
+            if (!sucuId) {
+                return {
+                    success: false,
+                    message: 'No hay sucursal seleccionada'
+                };
+            }
+
+            // Obtener personal_id si es un empleado
+            const personalId = getPersonalId();
+
+            const dataToSend = {
+                ...deudaData,
+                sucu_id: sucuId,
+                personal_id: personalId
+            };
+
+            const response = await fetch(`${API_BASE_URL}/deudas`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(dataToSend),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al crear la deuda');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error creando deuda:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al crear la deuda'
+            };
+        }
+    }
+
+    // Actualizar una deuda
+    static async update(id, updateData) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/deudas/${id}`, {
+                method: 'PUT',
+                headers: {
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al actualizar la deuda');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error actualizando deuda:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al actualizar la deuda'
+            };
+        }
+    }
+
+    // Eliminar una deuda
+    static async delete(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/deudas/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al eliminar la deuda');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error eliminando deuda:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al eliminar la deuda'
+            };
+        }
+    }
+
+    // Eliminar deudas por movimiento_salida_id
+    static async deleteByMovimientoSalidaId(movimientoSalidaId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/deudas/movimiento/${movimientoSalidaId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al eliminar las deudas asociadas al movimiento');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error eliminando deudas por movimiento_salida_id:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al eliminar las deudas asociadas al movimiento'
+            };
+        }
+    }
+
+    // Obtener deudas por rango de fechas
+    static async getByDateRange(fechaInicio, fechaFin, sucuIdParam = null) {
+        try {
+            const sucuId = sucuIdParam || getSucuId();
+            if (!sucuId) {
+                return {
+                    success: false,
+                    message: 'No hay sucursal seleccionada'
+                };
+            }
+
+            const params = new URLSearchParams({
+                fechaInicio: fechaInicio,
+                fechaFin: fechaFin,
+                sucu_id: sucuId
+            });
+
+            const response = await fetch(`${API_BASE_URL}/deudas/por-fechas?${params}`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener las deudas');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error obteniendo deudas por fechas:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al obtener las deudas'
+            };
+        }
+    }
+
+    // Actualizar estado de una deuda
+    static async updateEstado(id, estado, saldoPendiente = null) {
+        try {
+            const updateData = { estado };
+            if (saldoPendiente !== null) {
+                updateData.saldo_pendiente = saldoPendiente;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/deudas/${id}/estado`, {
+                method: 'PUT',
+                headers: {
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al actualizar el estado de la deuda');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error actualizando estado de deuda:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al actualizar el estado de la deuda'
+            };
+        }
+    }
+
+    // Obtener deudas vencidas
+    static async getDeudasVencidas(sucuIdParam = null) {
+        try {
+            const sucuId = sucuIdParam || getSucuId();
+            if (!sucuId) {
+                return {
+                    success: false,
+                    message: 'No hay sucursal seleccionada'
+                };
+            }
+
+            const params = new URLSearchParams({
+                sucu_id: sucuId
+            });
+
+            const response = await fetch(`${API_BASE_URL}/deudas/vencidas?${params}`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener las deudas vencidas');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error obteniendo deudas vencidas:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al obtener las deudas vencidas'
+            };
+        }
+    }
+}
+
+export default deudasService;

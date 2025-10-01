@@ -243,29 +243,29 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         setIsOpen(false);
     };
 
-    const handleConfirmarPedido = async () => {
+    // Función para crear un nuevo pedido
+    const handleCrearPedido = async () => {
         setLoadingConfirmar(true);
         try {
-            // Validar sucursal seleccionada solo si no estamos editando
-            if (!pedidoId) {
-                if (!sucursalSeleccionada) {
-                    mostrarNotificacion('error', 'La sucursal es obligatoria');
-                    setLoadingConfirmar(false);
-                    return;
-                }
+            // Validar sucursal seleccionada
+            if (!sucursalSeleccionada) {
+                mostrarNotificacion('error', 'La sucursal es obligatoria');
+                setLoadingConfirmar(false);
+                return;
+            }
 
-                // Validar que no se seleccione la sucursal actual
-                if (sucursalSeleccionada === sucursalActual?.id) {
-                    mostrarNotificacion('error', 'No puedes seleccionar tu sucursal actual como destino');
-                    setLoadingConfirmar(false);
-                    return;
-                }
+            // Validar que no se seleccione la sucursal actual
+            if (sucursalSeleccionada === sucursalActual?.id) {
+                mostrarNotificacion('error', 'No puedes seleccionar tu sucursal actual como destino');
+                setLoadingConfirmar(false);
+                return;
             }
 
             // Preparar datos para enviar al backend
             const pedidoData = {
                 observaciones: observacionesGenerales || null,
                 precio_id: precioSeleccionado,
+                sucursal_destino_id: sucursalSeleccionada,
                 productos: productosCanasta.map(producto => ({
                     id: producto.id,
                     cantidad: producto.cantidad,
@@ -273,26 +273,10 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 }))
             };
 
-            // Solo incluir pedido_sucursal_id si no estamos editando
-            if (!pedidoId) {
-                pedidoData.pedido_sucursal_id = sucursalSeleccionada;
-            }
-
-            let response;
-            if (pedidoId) {
-                // Actualizar pedido existente
-                response = await pedidosAlmacenService.update(pedidoId, pedidoData);
-            } else {
-                // Crear nuevo pedido
-                response = await pedidosAlmacenService.create(pedidoData);
-            }
+            // Crear nuevo pedido
+            const response = await pedidosAlmacenService.create(pedidoData);
 
             if (response.success) {
-                // Si es una actualización, notificar al componente padre
-                if (pedidoId && onPedidoActualizado) {
-                    onPedidoActualizado(response.data);
-                }
-
                 // Limpiar la canasta
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
@@ -306,14 +290,69 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 if (onCerrarCanasta) {
                     onCerrarCanasta();
                 }
+                
+                mostrarNotificacion('success', 'Pedido creado correctamente');
             } else {
-                console.error('Error al procesar pedido:', response.message);
-                mostrarNotificacion('error', response.message || 'Error al procesar el pedido');
+                console.error('Error al crear pedido:', response.message);
+                mostrarNotificacion('error', response.message || 'Error al crear el pedido');
             }
 
         } catch (error) {
-            console.error('Error al confirmar pedido:', error);
-            mostrarNotificacion('error', error.message || 'Error al confirmar el pedido');
+            console.error('Error al crear pedido:', error);
+            mostrarNotificacion('error', error.message || 'Error al crear el pedido');
+        } finally {
+            setLoadingConfirmar(false);
+        }
+    };
+
+    // Función para actualizar un pedido existente
+    const handleActualizarPedido = async () => {
+        setLoadingConfirmar(true);
+        try {
+            // Preparar datos para enviar al backend
+            const pedidoData = {
+                observaciones: observacionesGenerales || null,
+                precio_id: precioSeleccionado,
+                productos: productosCanasta.map(producto => ({
+                    id: producto.id,
+                    cantidad: producto.cantidad,
+                    precio: producto.precio || 0
+                }))
+            };
+
+            // Actualizar pedido existente
+            const response = await pedidosAlmacenService.update(pedidoId, pedidoData);
+
+            if (response.success) {
+                // Notificar al componente padre sobre la actualización
+                if (onPedidoActualizado) {
+                    onPedidoActualizado(response.data);
+                }
+
+                // Limpiar la canasta
+                setProductosCanasta([]);
+                setObservacionesGenerales('');
+                
+                // Limpiar localStorage
+                localStorage.removeItem('canastaPedidos');
+                localStorage.removeItem('pedidoIdEditando');
+                localStorage.removeItem('precioIdEditando');
+                
+                // Cerrar canasta y mostrar notificación
+                setIsOpen(false);
+                if (onCerrarCanasta) {
+                    onCerrarCanasta();
+                }
+                
+                mostrarNotificacion('success', 'Pedido actualizado correctamente');
+            } else {
+                console.error('Error al actualizar pedido:', response.message);
+                mostrarNotificacion('error', response.message || 'Error al actualizar el pedido');
+            }
+
+        } catch (error) {
+            console.error('Error al actualizar pedido:', error);
+            mostrarNotificacion('error', error.message || 'Error al actualizar el pedido');
         } finally {
             setLoadingConfirmar(false);
         }
@@ -487,7 +526,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                             <Boton
                                 className='btn-original'
                                 label={pedidoId ? 'Actualizar Pedido' : 'Confirmar Pedido'}
-                                onClick={handleConfirmarPedido}
+                                onClick={pedidoId ? handleActualizarPedido : handleCrearPedido}
                                 loading={loadingConfirmar}
                             />
                         </div>

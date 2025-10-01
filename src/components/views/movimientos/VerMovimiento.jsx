@@ -9,6 +9,7 @@ import { BoxIcon } from 'boxicons-react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import Boton from '../../common/Boton';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
+import deudasService from '../../../services/deudasService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
@@ -79,7 +80,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         }
     }, [movimiento?.id]);
 
-    
+
 
     // Función para preparar datos de descarga
     const prepararDatosDescarga = () => {
@@ -127,15 +128,36 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     const handleAnular = async () => {
         setLoading(true);
         try {
+            // 1) Si el movimiento tiene deuda_id, limpiar primero el deuda_id del movimiento
+            if (movimiento?.deuda_id) {
+                const updateResponse = await movimientosAlmacenService.update(movimiento.id, { deuda_id: null });
+                if (!updateResponse.success) {
+                    mostrarNotificacion('error', `Error al limpiar deuda_id del movimiento: ${updateResponse.message}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // 2) Anular el movimiento normalmente
             const response = await movimientosAlmacenService.anular(movimiento.id);
 
             if (response.success) {
+                // 3) Si había una deuda, eliminarla después de anular el movimiento
+                if (movimiento?.deuda_id) {
+                    const deudaResponse = await deudasService.delete(movimiento.deuda_id);
+                    if (!deudaResponse.success) {
+                        console.warn('Error al eliminar la deuda después de anular:', deudaResponse.message);
+                        // No mostrar error al usuario ya que el movimiento ya se anuló correctamente
+                    }
+                }
+
                 setIsAnularOpen(false);
                 setIsOpen(false);
 
                 if (onMovimientoAnulado) {
                     onMovimientoAnulado(movimiento.id);
                 }
+                mostrarNotificacion('success', 'Movimiento anulado correctamente');
             } else {
                 mostrarNotificacion('error', response.message || 'Error al anular el movimiento');
             }
@@ -204,13 +226,12 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         </button>
                     </div>
                 </h1>
-                <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
+                <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
                 <ItemView
                     title={movimiento?.user?.name || movimiento?.personal?.name || 'Usuario desconocido'}
                     description="Responsable del movimiento"
                     transparent={false}
                 />
-                <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
                 <ItemView
                     title={movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}
                     description={`Fecha y hora: ${new Date(movimiento?.fecha).toLocaleString()}`}
@@ -224,14 +245,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
                     transparent={false}
                 />
-                {movimiento?.metodo_pago && (
-                    <Dato
-                        label="Método de pago"
-                        value={movimiento.metodo_pago}
-                        vertical={false}
-                    />
-                )}
-                <p className={styles.subTitle}>DETALLES DE PRODUCTOS Y SUBTOTAL</p>
                 {/* Botón para ver productos - solo para movimientos con múltiples productos */}
                 {movimiento?.productos && movimiento.productos.length > 0 && (
                     <Boton
@@ -240,19 +253,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         onClick={() => setIsProductosOpen(true)}
                     />
                 )}
-
-                {/* Total calculado para movimientos */}
-                {movimiento?.productos && movimiento.productos.length > 0 && (
-                    <div className={styles.content}>
-                        <Dato
-                            label="Total del Movimiento"
-                            value={`Bs. ${(movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
-                            vertical={false}
-                            especial='green'
-                        />
-                    </div>
-                )}
-
                 {/* Observaciones del movimiento */}
                 {movimiento?.observaciones && (
                     <div className={styles.content}>
@@ -262,6 +262,24 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                             vertical={true}
                         />
                     </div>
+                )}
+                {movimiento?.metodo_pago && (
+                    <Dato
+                        label="Método de pago"
+                        value={movimiento.metodo_pago}
+                        vertical={false}
+                    />
+                )}
+                
+
+                {/* Total calculado para movimientos */}
+                {movimiento?.productos && movimiento.productos.length > 0 && (
+                    <Dato
+                        label="Total del Movimiento"
+                        value={`Bs. ${(movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
+                        vertical={false}
+                        especial='green'
+                    />
                 )}
                 <div className={styles.buttons}>
                     {movimiento?.estado === 'anulado' ? (

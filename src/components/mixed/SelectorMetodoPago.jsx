@@ -8,7 +8,8 @@ function SelectorMetodoPago({ value, onChange, disabled = false }) {
         { value: 'qr', label: 'QR', icon: 'qr-scan' },
         { value: 'transferencia', label: 'Transferencia', icon: 'transfer' },
         { value: 'tarjeta', label: 'Tarjeta', icon: 'credit-card' },
-        { value: 'efectivo', label: 'Efectivo', icon: 'money' }
+        { value: 'efectivo', label: 'Efectivo', icon: 'money' },
+        { value: 'credito', label: 'A crédito', icon: 'credit-card-alt' }
     ];
 
     return (

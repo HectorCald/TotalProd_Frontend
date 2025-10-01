@@ -9,13 +9,15 @@ import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
 import { motion } from 'framer-motion';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
+import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import Switch from '../../common/Switch';
 import Proveedores from '../proveedores/Proveedores';
 import Clientes from '../clientes/Clientes';
 import Notification from '../../common/Notification';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
+import deudasService from '../../../services/deudasService';
 
-function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
+function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, tipoMovimiento, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
@@ -168,6 +170,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
     }, [productosActualizados, tipoMovimiento, precioSeleccionado]);
 
+
+
+
+
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
             handleEliminarProducto(productoId);
@@ -283,6 +289,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     };
 
 
+
+
+
+
     // Función para manejar cuando se selecciona un proveedor
     const handleProveedorSeleccionado = (proveedor) => {
         setProveedorSeleccionadoData(proveedor);
@@ -297,6 +307,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         setIsClientesSeleccionOpen(false);
     };
 
+
+
+
+
+
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
         // Limpiar también el localStorage
@@ -306,102 +321,276 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         setIsOpen(false);
     };
 
-    const handleConfirmarMovimientos = async () => {
+    
+
+
+
+
+
+    // Función común para preparar productos
+    const prepararProductos = () => {
+        return productosCanasta.map(producto => {
+            let cantidadEnUnidades = producto.cantidad;
+            let precioPorUnidad = producto.precio || 0;
+            
+            if (modoAgrupacion === 'agrupado' && producto.grup) {
+                cantidadEnUnidades = producto.cantidad * producto.grup;
+                precioPorUnidad = producto.precio / producto.grup;
+            }
+            
+            return {
+                id: producto.id,
+                cantidad: cantidadEnUnidades,
+                precio: precioPorUnidad
+            };
+        });
+    };
+
+    // Función común para validaciones
+    const validarMovimiento = () => {
+        if (tipoMovimiento === 'salida' && !metodoPagoSeleccionado) {
+            mostrarNotificacion('error', 'El método de pago es obligatorio');
+            return false;
+        }
+
+        if (tipoMovimiento === 'salida' && metodoPagoSeleccionado === 'credito' && !esEntrega && !clienteSeleccionado) {
+            mostrarNotificacion('error', 'El cliente es obligatorio para ventas a crédito');
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleConfirmarEntrega = async () => {
         setLoadingConfirmar(true);
         try {
-            // Validar método de pago para salidas
-            if (tipoMovimiento === 'salida' && !metodoPagoSeleccionado) {
-                mostrarNotificacion('error', 'El método de pago es obligatorio');
+            // Validar movimiento
+            if (!validarMovimiento()) {
                 setLoadingConfirmar(false);
                 return;
             }
 
-            // Preparar observaciones (agregar info del pedido si es entrega)
-            let observacionesFinales = observacionesGenerales || '';
-            if (esEntrega && localStorage.getItem('pedidoIdEntregando')) {
-                const pedidoId = localStorage.getItem('pedidoIdEntregando');
-                const infoPedido = `Entrega automática del pedido #${pedidoId.slice(-8)}`;
-                observacionesFinales = observacionesFinales
-                    ? `${infoPedido} - ${observacionesFinales}`
-                    : infoPedido;
+            // Obtener pedidoId
+            const pedidoId = localStorage.getItem('pedidoIdEntregando');
+            if (!pedidoId) {
+                mostrarNotificacion('error', 'No se encontró el ID del pedido');
+                setLoadingConfirmar(false);
+                return;
+            }
+
+            // 1) Actualizar pedido con productos de la canasta
+            const pedidoData = {
+                productos: prepararProductos(),
+                observaciones: observacionesGenerales || null,
+                precio_id: precioSeleccionado
+            };
+            const pedidoActualizado = await pedidosAlmacenService.update(pedidoId, pedidoData);
+
+            // Notificar al componente padre sobre la actualización del pedido (solo productos, precio, observaciones)
+            if (onPedidoActualizado && pedidoActualizado?.data) {
+                onPedidoActualizado(pedidoActualizado.data);
+            }
+
+            // Cerrar la canasta después de notificar al componente padre (igual que CanastaPedidos.jsx)
+            setProductosCanasta([]);
+            setObservacionesGenerales('');
+            setMetodoPagoSeleccionado('');
+            localStorage.removeItem('canastaSalidas');
+            localStorage.removeItem('pedidoIdEntregando');
+            localStorage.removeItem('precioIdEntregando');
+            setIsOpen(false);
+
+            // 2) Crear movimiento de salida
+            const observacionesFinales = observacionesGenerales
+                ? `Entrega del pedido #${pedidoId.slice(-8)} - ${observacionesGenerales}`
+                : `Entrega del pedido #${pedidoId.slice(-8)}`;
+
+            const movimientoData = {
+                type: 'salida',
+                observaciones: observacionesFinales,
+                precio_id: precioSeleccionado,
+                metodo_pago: metodoPagoSeleccionado,
+                cliente_id: null,
+                proveedor_id: null,
+                restar_ingredientes: false,
+                productos: prepararProductos()
+            };
+
+            const response = await movimientosAlmacenService.create(movimientoData);
+
+            if (response.success) {
+                let deudaId = null;
+                
+                // 3) Si es crédito, crear deuda
+                if (metodoPagoSeleccionado === 'credito') {
+                    const totalMovimiento = getTotalValor();
+                    // Para entregas de pedido, el destino_sucursal_id debe ser el sucursal_id del pedido (sucursal origen)
+                    const sucursalOrigenId = localStorage.getItem('pedidoDestinoSucursalId'); // Este es el sucursal_id del pedido
+                    const sucursalOrigenName = localStorage.getItem('pedidoDestinoSucursalName'); // Este es el nombre de la sucursal origen
+                    
+                    const concepto = sucursalOrigenName ? `Pedido - ${sucursalOrigenName}` : 'Pedido';
+
+                    const deudaData = {
+                        fecha_deuda: new Date().toISOString().split('T')[0],
+                        fecha_vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                        monto_total: totalMovimiento,
+                        saldo_pendiente: totalMovimiento,
+                        concepto: concepto,
+                        estado: 'pendiente',
+                        cliente_id: null,
+                        movimiento_salida_id: response.data.id,
+                        destino_sucursal_id: sucursalOrigenId // Sucursal origen del pedido
+                    };
+                    
+                    const deudaResponse = await deudasService.create(deudaData);
+                    if (deudaResponse.success) {
+                        deudaId = deudaResponse.data.id;
+                    }
+                }
+
+                // 4) Actualizar estado del pedido con el ID del movimiento y deuda_id (si existe)
+                await actualizarEstadoPedido(pedidoId, 'Entregado', response.data.id, deudaId);
+
+                // Limpiar localStorage específico de entregas
+                localStorage.removeItem('pedidoDestinoSucursalId');
+                localStorage.removeItem('pedidoDestinoSucursalName');
+
+                // Notificar al componente padre sobre el cambio de estado del pedido
+                if (onPedidoActualizado) {
+                    const pedidoConEstadoActualizado = {
+                        ...pedidoActualizado.data,
+                        estado: 'Entregado',
+                        movimiento_salida_id: response.data.id,
+                        deuda_id: deudaId // Incluir deuda_id en la notificación
+                    };
+                    onPedidoActualizado(pedidoConEstadoActualizado);
+                }
+
+                if (onCerrarCanasta) {
+                    // Solo pasar los datos necesarios, no el pedido actualizado (ya se notificó arriba)
+                    onCerrarCanasta();
+                }
+                mostrarNotificacion('success', 'Pedido entregado correctamente');
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al crear el movimiento');
+            }
+
+        } catch (error) {
+            console.error('Error al confirmar entrega:', error);
+            mostrarNotificacion('error', error.message || 'Error al confirmar la entrega');
+        } finally {
+            setLoadingConfirmar(false);
+        }
+    };
+
+
+
+
+    
+    const handleConfirmarMovimientos = async () => {
+        setLoadingConfirmar(true);
+        try {
+            // Validar movimiento
+            if (!validarMovimiento()) {
+                setLoadingConfirmar(false);
+                return;
             }
 
             // Preparar datos para enviar al backend
             const movimientoData = {
                 type: tipoMovimiento,
-                observaciones: observacionesFinales || null,
+                observaciones: (observacionesGenerales || null),
                 precio_id: precioSeleccionado,
                 metodo_pago: tipoMovimiento === 'salida' ? metodoPagoSeleccionado : null,
                 cliente_id: tipoMovimiento === 'salida' ? (clienteSeleccionado || null) : null,
                 proveedor_id: tipoMovimiento === 'entrada' ? (proveedorSeleccionado || null) : null,
                 restar_ingredientes: tipoMovimiento === 'entrada' && restarIngredientes && tieneProductosConRecetas(),
-                productos: productosCanasta.map(producto => {
-                    // Convertir cantidad a unidades individuales según el modo
-                    let cantidadEnUnidades = producto.cantidad;
-                    let precioPorUnidad = producto.precio || 0;
-                    
-                    if (modoAgrupacion === 'agrupado' && producto.grup) {
-                        // Si está en modo agrupado, convertir grupos a unidades
-                        cantidadEnUnidades = producto.cantidad * producto.grup;
-                        // El precio ya está por grupo, convertir a precio unitario
-                        precioPorUnidad = producto.precio / producto.grup;
-                    }
-                    
-                    return {
-                        id: producto.id,
-                        cantidad: cantidadEnUnidades,
-                        precio: precioPorUnidad
-                    };
-                })
+                productos: prepararProductos()
             };
 
-            // Enviar al backend
+            // 1) Crear movimiento
             const response = await movimientosAlmacenService.create(movimientoData);
 
             if (response.success) {
-                // Actualizar solo el stock de los productos
+                // 2) Si es salida con método de pago "credito", registrar deuda automáticamente
+                if (tipoMovimiento === 'salida' && metodoPagoSeleccionado === 'credito') {
+                    try {
+                        const totalMovimiento = getTotalValor();
+                        const deudaData = {
+                            fecha_deuda: new Date().toISOString().split('T')[0],
+                            fecha_vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                            monto_total: totalMovimiento,
+                            saldo_pendiente: totalMovimiento,
+                            concepto: 'Venta a crédito',
+                            estado: 'pendiente',
+                            cliente_id: (clienteSeleccionado || null),
+                            movimiento_salida_id: response.data.id,
+                            destino_sucursal_id: null
+                        };
+                        const deudaResponse = await deudasService.create(deudaData);
+                        if (deudaResponse.success) {
+                            // Actualizar el movimiento con el deuda_id
+                            try {
+                                await movimientosAlmacenService.update(response.data.id, { deuda_id: deudaResponse.data.id });
+                            } catch (updateError) {
+                                console.warn('Error al actualizar movimiento con deuda_id:', updateError);
+                            }
+                        } else {
+                            mostrarNotificacion('warning', `Movimiento creado, pero error al registrar deuda: ${deudaResponse.message}`);
+                        }
+                    } catch (deudaError) {
+                        mostrarNotificacion('warning', 'Movimiento creado, pero error al registrar deuda automática');
+                    }
+                }
+
+                // Actualizar stock de productos
                 if (response.data?.productos && onProductosUpdated) {
                     const productosActualizados = response.data.productos.map(productoMovimiento => ({
                         id: productoMovimiento.id,
-                        stock: productoMovimiento.stock // Solo el stock actualizado
+                        stock: productoMovimiento.stock
                     }));
                     onProductosUpdated(productosActualizados);
                 }
 
-                if (esEntrega) {
-                    // Para entregas, NO cerrar la canasta aquí, solo pasar el movimiento_id
-                    // La canasta se cerrará cuando se complete la entrega del pedido
-                    if (onCerrarCanasta) {
-                        onCerrarCanasta(productosCanasta, precioSeleccionado, response.data.id);
-                    }
-                } else {
-                    // Para movimientos normales, cerrar canasta y mostrar notificación
-                    setProductosCanasta([]);
-                    setObservacionesGenerales('');
-                    setProveedorSeleccionado('');
-                    setClienteSeleccionado('');
-                    setMetodoPagoSeleccionado('');
+                // Limpiar canasta y cerrar
+                setProductosCanasta([]);
+                setObservacionesGenerales('');
+                setProveedorSeleccionado('');
+                setClienteSeleccionado('');
+                setMetodoPagoSeleccionado('');
 
-                    // Limpiar localStorage
-                    const localStorageKey = tipoMovimiento === 'entrada' ? 'canastaEntradas' : 'canastaSalidas';
-                    localStorage.removeItem(localStorageKey);
+                const localStorageKey = tipoMovimiento === 'entrada' ? 'canastaEntradas' : 'canastaSalidas';
+                localStorage.removeItem(localStorageKey);
 
-                    // Cerrar canasta y mostrar notificación
-                    setIsOpen(false);
-                    if (onCerrarCanasta) {
-                        onCerrarCanasta(productosCanasta, precioSeleccionado);
-                    }
+                setIsOpen(false);
+                if (onCerrarCanasta) {
+                    onCerrarCanasta(productosCanasta, precioSeleccionado);
                 }
             } else {
-                console.error('Error al crear movimiento:', response.message);
                 mostrarNotificacion('error', response.message || 'Error al crear el movimiento');
             }
 
         } catch (error) {
-            console.error('Error al confirmar movimientos:', error);
             mostrarNotificacion('error', error.message || 'Error al confirmar movimientos');
         } finally {
             setLoadingConfirmar(false);
+        }
+    };
+
+
+    // Método para actualizar estado del pedido
+    const actualizarEstadoPedido = async (pedidoId, nuevoEstado, movimientoSalidaId = null, deudaId = null) => {
+        try {
+            const response = await pedidosAlmacenService.updateEstado(pedidoId, nuevoEstado, movimientoSalidaId, deudaId);
+            if (response.success) {
+                return response.data;
+            } else {
+                console.error('Error al actualizar estado del pedido:', response.message);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error al actualizar estado del pedido:', error);
+            return null;
         }
     };
 
@@ -628,9 +817,14 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                     <div className={styles.content} style={{ padding: '5px 15px', marginTop: 'auto' }}>
                                         <Boton
                                             className='btn-transparent'
-                                            label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+                                            label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 
+                                                (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)')}
                                             onClick={() => setIsClientesSeleccionOpen(true)}
-                                            style={{ width: '100%', justifyContent: 'flex-start' }}
+                                            style={{ 
+                                                width: '100%', 
+                                                justifyContent: 'flex-start',
+                                                ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
+                                            }}
                                         />
                                     </div>
                                 )}
@@ -656,8 +850,15 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             <Boton
                                 className='btn-original'
                                 label={esEntrega ? 'Entregar Pedido' : `Confirmar ${tipoMovimiento === 'entrada' ? 'Entrada' : 'Salida'}`}
-                                onClick={handleConfirmarMovimientos}
+                                onClick={esEntrega ? handleConfirmarEntrega : handleConfirmarMovimientos}
                                 loading={loadingConfirmar}
+                                disabled={
+                                    // Deshabilitar si es salida a crédito sin cliente (excepto entregas)
+                                    tipoMovimiento === 'salida' && 
+                                    metodoPagoSeleccionado === 'credito' && 
+                                    !esEntrega && 
+                                    !clienteSeleccionado
+                                }
                             />
                         </div>
                     </>

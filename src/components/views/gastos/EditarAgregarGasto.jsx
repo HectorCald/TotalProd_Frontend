@@ -217,14 +217,14 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
           disabled={!dataGasto.fecha || !dataGasto.valor || !dataGasto.concepto || !dataGasto.metodo_pago}
         />
       </div>
-    </ViewModal>
-    {/* Modal de selección de proveedores */}
+      {/* Modal de selección de proveedores */}
     <Proveedores
         isOpen={isProveedoresSeleccionOpen}
         setIsOpen={setIsProveedoresSeleccionOpen}
         modoSeleccion={true}
         onProveedorSeleccionado={handleProveedorSeleccionado}
       />
+    </ViewModal>
 
       <Notification
         isVisible={notification.isVisible}

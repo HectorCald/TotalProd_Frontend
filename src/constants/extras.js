@@ -34,6 +34,11 @@ export const EXTRAS = [
         view: 'gastos'
     },
     {
+        title: 'Deudas',
+        image: imageDeudas,
+        view: 'deudas'
+    },
+    {
         title: 'Importar',
         image: imageImportExport,
         view: 'import-export'

@@ -7,6 +7,7 @@ import imagenPrecios from '../assets/precios.png';
 import imagenClientes from '../assets/clientes.png';
 import imagenProveedores from '../assets/proveedores.png';
 import imagenGastos from '../assets/gastos.png';
+import imagenDeudas from '../assets/deudas.png';
 export const MODULES = {
     // Módulos principales
     Almacen: {
@@ -162,6 +163,18 @@ export const MODULES = {
             props: { tipo: 'almacen' }
         },
     },
+    Deudas: {
+        name: 'Deudas',
+        imagen: imagenDeudas,
+        descripcion: 'Administra las deudas de tus clientes, controla vencimientos y pagos.',
+        gestionar: {
+            name: 'Deudas',
+            description: 'Administra las deudas de tus clientes.',
+            icon: 'receipt',
+            component: 'Deudas',
+            props: { tipo: 'almacen' }
+        },
+    },
 };
 
 // Función para obtener los módulos principales disponibles para un empleado
@@ -189,6 +202,8 @@ export const getAvailableMainModules = (employeeModules) => {
                 mainModules.add('Proveedores');
             } else if (module.modulos.name === 'Gastos') {
                 mainModules.add('Gastos');
+            } else if (module.modulos.name === 'Deudas') {
+                mainModules.add('Deudas');
             }
         }
     });
@@ -309,6 +324,19 @@ export const getAvailableModules = (employeeModules) => {
         }
         if (module.modulos && module.modulos.name === 'Gastos') {
             const submodule = MODULES.Gastos[module.name];
+            if (submodule) {
+                return {
+                    ...module,
+                    name: submodule.name,
+                    description: submodule.description,
+                    component: submodule.component,
+                    props: submodule.props,
+                    icon: submodule.imagen
+                };
+            }
+        }
+        if (module.modulos && module.modulos.name === 'Deudas') {
+            const submodule = MODULES.Deudas[module.name];
             if (submodule) {
                 return {
                     ...module,
