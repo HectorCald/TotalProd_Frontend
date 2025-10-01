@@ -575,9 +575,9 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   };
 
   return (
-    <View isOpen={isOpen} setIsOpen={setIsOpen}>
+    <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
       <HeaderView onBack={() => setIsOpen(false)} title='Reportes' />
-      <div className={styles.container} style={{ maxWidth: '500px' }}>
+      <div className={styles.container}>
         <div className={styles.titleContainer}>
           <RefreshIndicator
             isVisible={showRefreshIndicator || isLoading}

@@ -106,7 +106,7 @@ export const MENU_OPTIONS = [
       {
         id: 'movimientos',
         title: 'Movimientos',
-        icon: 'move-horizontal',
+        icon: 'transfer',
         hasSubmenu: true,
         action: 'toggleSubmenu',
         submenu: [
@@ -208,6 +208,27 @@ export const MENU_OPTIONS = [
         icon: 'wallet',
         action: 'openView',
         viewName: 'gastos'
+      },
+      {
+        id: 'balance',
+        title: 'Balance',
+        icon: 'bar-chart-alt',
+        action: 'openView',
+        viewName: 'balance'
+      },
+      {
+        id: 'destacados',
+        title: 'Destacados',
+        icon: 'star',
+        action: 'openView',
+        viewName: 'destacados'
+      },
+      {
+        id: 'reportes',
+        title: 'Reportes',
+        icon: 'file',
+        action: 'openView',
+        viewName: 'reportes'
       },
     ]
   }

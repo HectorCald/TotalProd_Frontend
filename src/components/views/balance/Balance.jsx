@@ -225,9 +225,9 @@ const Balance = ({ isOpen, setIsOpen }) => {
   }, [datosCargados, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <View isOpen={isOpen} setIsOpen={setIsOpen}>
+    <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
       <HeaderView onBack={() => setIsOpen(false)} title='Balance' />
-      <div className={styles.container} style={{ maxWidth: '500px' }}>
+      <div className={styles.container}>
         <div className={styles.titleContainer}>
           <RefreshIndicator
             isVisible={showRefreshIndicator}

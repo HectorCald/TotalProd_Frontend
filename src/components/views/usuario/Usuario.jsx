@@ -111,7 +111,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                 <div className={styles.content} style={{ padding: '10px', gap: '10px' }}>
                     <ItemView
                         title={nombreCompleto}
-                        description={isEmployee ? currentUser.email || currentUser.phone || 'Sin contacto' : currentUser.email || 'Sin email'}
+                        description={isEmployee ? currentUser.codigo || 'Sin código' : currentUser.email || 'Sin email'}
                         description2={`${nombreEmpresa}${isEmployee && sucursal ? ` • ${sucursal.name}` : ''}`}
                         circulo={true}
                         transparent={false}

@@ -17,6 +17,9 @@ import Pagos from '../views/pagos/Pagos';
 import PanelGastos from '../views/gastos/PanelGastos';
 import Sucursales from '../views/sucursales/Sucursales';
 import Precios from '../views/precios/Precios';
+import Balance from '../views/balance/Balance';
+import Destacados from '../views/destacados/Destacados';
+import Reportes from '../views/reportes/Reportes';
 
 const BarraLateral = ({ 
   onMenuClick, 
@@ -322,6 +325,24 @@ const BarraLateral = ({
 
       <Precios
         isOpen={activeView === 'precios'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+
+      <Balance
+        isOpen={activeView === 'balance'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+
+      <Destacados
+        isOpen={activeView === 'destacados'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+
+      <Reportes
+        isOpen={activeView === 'reportes'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

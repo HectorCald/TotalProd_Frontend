@@ -26,8 +26,9 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     
-    // Estado para búsqueda local
+    // Estados para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para categorías
     const [categorias, setCategorias] = useState([]);
@@ -109,6 +110,19 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
         }
     };
 
+    // Funciones para el buscador expandible
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+    };
+
+    const handleSearchToggle = (isExpanded) => {
+        setIsSearchExpanded(isExpanded);
+    };
+
     // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
         if (isOpen) {
@@ -168,28 +182,26 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView 
+                onBack={() => setIsOpen(false)} 
+                title={modoSeleccion ? 'Seleccionar Categoría' : 'Categorías'}
+                showSearch={true}
+                searchPlaceholder="Buscar categoría"
+                searchValue={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
+                searchExpanded={isSearchExpanded}
+                onSearchToggle={handleSearchToggle}
+            />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
-                    <h1 className={styles.title}>
-                        {modoSeleccion ? 'Seleccionar Categoría' : 'Categorías'}
-                        <button className={styles.refreshButton} onClick={handleRefresh}>
-                            <BoxIcon name='refresh' />
-                        </button>
-                    </h1>
                     <RefreshIndicator
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}
                     />
-                </div>
-                <div className={styles.searchContainer}>
-                    <InputSearch
-                        placeholder='Buscar categoría'
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                        }}
+                    <RefreshIndicator
+                        isVisible={showRefreshIndicator}
+                        isLoading={isRefreshing}
                     />
                 </div>
                 <div className={styles.content}>
