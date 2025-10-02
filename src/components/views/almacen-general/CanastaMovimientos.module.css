@@ -358,10 +358,15 @@
 
 .buttons {
     display: flex;
-    flex-direction: row;
+    flex-direction: column-reverse;
     gap: 7px;
     width: 100%;
     margin-top: auto;
+}
+@media (min-width: 700px) {
+    .buttons {
+        flex-direction: row;
+    }
 }
 
 .canastaVacia {

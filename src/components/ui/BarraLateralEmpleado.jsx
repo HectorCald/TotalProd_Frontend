@@ -15,6 +15,8 @@ import Proveedores from '../views/proveedores/Proveedores';
 import Precios from '../views/precios/Precios';
 import Gastos from '../views/gastos/PanelGastos';
 import Deudas from '../views/deudas/PanelDeudas';
+import Reportes from '../views/reportes/Reportes';
+import Balance from '../views/balance/Balance';
 
 const BarraLateralEmpleado = ({ 
   onMenuClick, 
@@ -50,7 +52,9 @@ const BarraLateralEmpleado = ({
       'Clientes': 'user',
       'Proveedores': 'truck',
       'Gastos': 'receipt',
-      'Deudas': 'receipt'
+      'Deudas': 'receipt',
+      'Reportes': 'bar-chart-alt-2',
+      'Balance': 'trending-up'
     };
 
     const viewMap = {
@@ -62,7 +66,9 @@ const BarraLateralEmpleado = ({
       'Clientes': 'clientes',
       'Proveedores': 'proveedores',
       'Gastos': 'gastos',
-      'Deudas': 'deudas'
+      'Deudas': 'deudas',
+      'Reportes': 'reportes',
+      'Balance': 'balance'
     };
 
     const propsMap = {
@@ -74,7 +80,9 @@ const BarraLateralEmpleado = ({
       'Clientes': { tipo: 'almacen' },
       'Proveedores': { tipo: 'almacen' },
       'Gastos': { tipo: 'almacen' },
-      'Deudas': { tipo: 'almacen' }
+      'Deudas': { tipo: 'almacen' },
+      'Reportes': { tipo: 'almacen' },
+      'Balance': { tipo: 'almacen' }
     };
 
     // Si el módulo tiene submodules
@@ -94,7 +102,10 @@ const BarraLateralEmpleado = ({
                 submodule.component === 'Precios' ? 'precios' :
                 submodule.component === 'Clientes' ? 'clientes' :
                 submodule.component === 'Proveedores' ? 'proveedores' :
-                submodule.component === 'Gastos' ? 'gastos' : 'almacenMedioGeneral',
+                submodule.component === 'Gastos' ? 'gastos' :
+                submodule.component === 'Deudas' ? 'deudas' :
+                submodule.component === 'Reportes' ? 'reportes' :
+                submodule.component === 'Balance' ? 'balance' : 'almacenMedioGeneral',
           props: submodule.props || propsMap[module.key] || { tipo: 'almacen' }
         };
       } else {
@@ -117,7 +128,9 @@ const BarraLateralEmpleado = ({
                   submodule.component === 'Clientes' ? 'clientes' :
                   submodule.component === 'Proveedores' ? 'proveedores' :
                   submodule.component === 'Gastos' ? 'gastos' :
-                  submodule.component === 'Deudas' ? 'deudas' : 'almacenMedioGeneral',
+                  submodule.component === 'Deudas' ? 'deudas' :
+                  submodule.component === 'Reportes' ? 'reportes' :
+                  submodule.component === 'Balance' ? 'balance' : 'almacenMedioGeneral',
             props: submodule.props || propsMap[module.key] || { tipo: 'almacen' }
           }))
         };
@@ -415,6 +428,18 @@ const BarraLateralEmpleado = ({
 
       <Deudas
         isOpen={activeView === 'deudas'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+
+      <Reportes
+        isOpen={activeView === 'reportes'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+
+      <Balance
+        isOpen={activeView === 'balance'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

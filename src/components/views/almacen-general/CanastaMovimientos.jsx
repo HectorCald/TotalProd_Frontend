@@ -289,10 +289,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     };
 
 
-
-
-
-
     // Función para manejar cuando se selecciona un proveedor
     const handleProveedorSeleccionado = (proveedor) => {
         setProveedorSeleccionadoData(proveedor);
@@ -308,10 +304,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     };
 
 
-
-
-
-
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
         // Limpiar también el localStorage
@@ -322,9 +314,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     };
 
     
-
-
-
 
 
     // Función común para preparar productos
@@ -360,6 +349,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
         return true;
     };
+
+
+
 
     const handleConfirmarEntrega = async () => {
         setLoadingConfirmar(true);
@@ -482,9 +474,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             setLoadingConfirmar(false);
         }
     };
-
-
-
 
     
     const handleConfirmarMovimientos = async () => {

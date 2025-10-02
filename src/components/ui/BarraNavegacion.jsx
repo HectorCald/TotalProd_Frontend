@@ -15,7 +15,10 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
     });
     const [isUsuarioOpen, setIsUsuarioOpen] = useState(false);
 
-    const navigationItems = [
+    const navigationItems = isEmployee ? [
+        { id: 'inicio', icon: 'home', title: '' },
+        { id: 'configuracion', icon: 'cog', title: '' },
+    ] : [
         { id: 'inicio', icon: 'home', title: '' },
         { id: 'explorar', icon: 'category', title: '' },
         { id: 'configuracion', icon: 'cog', title: '' },

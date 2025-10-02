@@ -2,7 +2,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 50%;
     height: 60px;
     background-color: var(--tertiary-color);
     padding: 15px;

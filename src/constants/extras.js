@@ -7,16 +7,12 @@ import imageReportIA from '../assets/reporte-ia.png';
 import imageDeudas from '../assets/deudas.png';
 import imageOffline from '../assets/offline.png';
 import imageGastos from '../assets/gastos.png'
+import imageBalance from '../assets/balance.png';
 export const EXTRAS = [
     {
         title: 'Balance',
-        image: imageCajaChica,
+        image: imageBalance,
         view: 'balance'
-    },
-    {
-        title: 'Destacados',
-        image: imageDeudas,
-        view: 'destacados'
     },
     {
         title: 'Reportes',
@@ -38,11 +34,13 @@ export const EXTRAS = [
         image: imageDeudas,
         view: 'deudas'
     },
+    /**
     {
         title: 'Importar',
         image: imageImportExport,
         view: 'import-export'
     },
+    */
     {
         title: 'Precios',
         image: imagePrecios,

@@ -6,7 +6,6 @@ import Sucursales from '../views/sucursales/Sucursales';
 import PanelGastos from '../views/gastos/PanelGastos';
 import PanelDeudas from '../views/deudas/PanelDeudas';
 import Balance from '../views/balance/Balance';
-import Destacados from '../views/destacados/Destacados';
 import Reportes from '../views/reportes/Reportes';
 import Notification from '../common/Notification';
 
@@ -16,7 +15,6 @@ const Explorar = () => {
   const [isOpenGastos, setIsOpenGastos] = useState(false);
   const [isOpenDeudas, setIsOpenDeudas] = useState(false);
   const [isOpenBalance, setIsOpenBalance] = useState(false);
-  const [isOpenDestacados, setIsOpenDestacados] = useState(false);
   const [isOpenReportes, setIsOpenReportes] = useState(false);
   const [notification, setNotification] = useState({
     isVisible: false,
@@ -48,8 +46,6 @@ const Explorar = () => {
       setIsOpenDeudas(true);
     } else if (viewName === 'balance') {
       setIsOpenBalance(true);
-    } else if (viewName === 'destacados') {
-      setIsOpenDestacados(true);
     } else if (viewName === 'reportes') {
       setIsOpenReportes(true);
     } else {
@@ -78,7 +74,6 @@ const Explorar = () => {
       <PanelGastos isOpen={isOpenGastos} setIsOpen={setIsOpenGastos} />
       <PanelDeudas isOpen={isOpenDeudas} setIsOpen={setIsOpenDeudas} />
       <Balance isOpen={isOpenBalance} setIsOpen={setIsOpenBalance} />
-      <Destacados isOpen={isOpenDestacados} setIsOpen={setIsOpenDestacados} />
       <Reportes isOpen={isOpenReportes} setIsOpen={setIsOpenReportes} />
       <Notification
         isVisible={notification.isVisible}

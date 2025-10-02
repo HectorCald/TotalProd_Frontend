@@ -8,6 +8,9 @@ import imagenClientes from '../assets/clientes.png';
 import imagenProveedores from '../assets/proveedores.png';
 import imagenGastos from '../assets/gastos.png';
 import imagenDeudas from '../assets/deudas.png';
+import imagenReportes from '../assets/reporte-ia.png';
+import imagenBalance from '../assets/import-export.png';
+import imageBalance from '../assets/balance.png';
 export const MODULES = {
     // Módulos principales
     Almacen: {
@@ -175,6 +178,30 @@ export const MODULES = {
             props: { tipo: 'almacen' }
         },
     },
+    Reportes: {
+        name: 'Reportes',
+        imagen: imagenReportes,
+        descripcion: 'Genera reportes detallados de ventas, movimientos y análisis de negocio.',
+        gestionar: {
+            name: 'Reportes',
+            description: 'Genera reportes de tu negocio.',
+            icon: 'bar-chart-alt-2',
+            component: 'Reportes',
+            props: { tipo: 'almacen' }
+        },
+    },
+    Balance: {
+        name: 'Balance',
+        imagen: imageBalance,
+        descripcion: 'Visualiza el balance de ingresos y egresos de tu negocio.',
+        gestionar: {
+            name: 'Balance',
+            description: 'Controla el balance de tu negocio.',
+            icon: 'trending-up',
+            component: 'Balance',
+            props: { tipo: 'almacen' }
+        },
+    },
 };
 
 // Función para obtener los módulos principales disponibles para un empleado
@@ -204,6 +231,10 @@ export const getAvailableMainModules = (employeeModules) => {
                 mainModules.add('Gastos');
             } else if (module.modulos.name === 'Deudas') {
                 mainModules.add('Deudas');
+            } else if (module.modulos.name === 'Reportes') {
+                mainModules.add('Reportes');
+            } else if (module.modulos.name === 'Balance') {
+                mainModules.add('Balance');
             }
         }
     });
@@ -337,6 +368,32 @@ export const getAvailableModules = (employeeModules) => {
         }
         if (module.modulos && module.modulos.name === 'Deudas') {
             const submodule = MODULES.Deudas[module.name];
+            if (submodule) {
+                return {
+                    ...module,
+                    name: submodule.name,
+                    description: submodule.description,
+                    component: submodule.component,
+                    props: submodule.props,
+                    icon: submodule.imagen
+                };
+            }
+        }
+        if (module.modulos && module.modulos.name === 'Reportes') {
+            const submodule = MODULES.Reportes[module.name];
+            if (submodule) {
+                return {
+                    ...module,
+                    name: submodule.name,
+                    description: submodule.description,
+                    component: submodule.component,
+                    props: submodule.props,
+                    icon: submodule.imagen
+                };
+            }
+        }
+        if (module.modulos && module.modulos.name === 'Balance') {
+            const submodule = MODULES.Balance[module.name];
             if (submodule) {
                 return {
                     ...module,

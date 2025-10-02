@@ -19,7 +19,6 @@ import PanelDeudas from '../views/deudas/PanelDeudas';
 import Sucursales from '../views/sucursales/Sucursales';
 import Precios from '../views/precios/Precios';
 import Balance from '../views/balance/Balance';
-import Destacados from '../views/destacados/Destacados';
 import Reportes from '../views/reportes/Reportes';
 
 const BarraLateral = ({ 
@@ -338,12 +337,6 @@ const BarraLateral = ({
 
       <Balance
         isOpen={activeView === 'balance'}
-        setIsOpen={handleCloseView}
-        {...viewProps}
-      />
-
-      <Destacados
-        isOpen={activeView === 'destacados'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />
