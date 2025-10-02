@@ -11,6 +11,7 @@ import Notification from '../common/Notification';
 import { EXTRAS as EXTRAS_DAMABRAVA } from '../../constants/damabravaFunctions';
 import FormularioProduccion from '../views/damabrava/produccion/FormularioProduccion';
 import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
+import { isDamabrava } from '../../utils/empresaHelper';
 
 const Explorar = () => {
   const [isOpenPrecios, setIsOpenPrecios] = useState(false);
@@ -76,17 +77,21 @@ const Explorar = () => {
           />
         ))}
       </div>
-      <p className="subTitle">Funciones Damabrava</p>
-      <div className="funciones-extras">
-        {EXTRAS_DAMABRAVA.map((extra) => (
-          <ModuloExtra
-            key={extra.title}
-            title={extra.title}
-            image={extra.image}
-            onClick={() => handleExplorarOpen(extra.view)}
-          />
-        ))}
-      </div>
+      {isDamabrava() && (
+        <>
+          <p className="subTitle">Funciones Damabrava</p>
+          <div className="funciones-extras">
+            {EXTRAS_DAMABRAVA.map((extra) => (
+              <ModuloExtra
+                key={extra.title}
+                title={extra.title}
+                image={extra.image}
+                onClick={() => handleExplorarOpen(extra.view)}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Modales de explorar */}
       <Precios isOpen={isOpenPrecios} setIsOpen={setIsOpenPrecios} />
@@ -95,8 +100,12 @@ const Explorar = () => {
       <PanelDeudas isOpen={isOpenDeudas} setIsOpen={setIsOpenDeudas} />
       <Balance isOpen={isOpenBalance} setIsOpen={setIsOpenBalance} />
       <Reportes isOpen={isOpenReportes} setIsOpen={setIsOpenReportes} />
-      <FormularioProduccion isOpen={isOpenFormularioProduccion} setIsOpen={setIsOpenFormularioProduccion} />
-      <VerificarProduccion isOpen={isOpenVerificarProduccion} setIsOpen={setIsOpenVerificarProduccion} />
+      {isDamabrava() && (
+        <>
+          <FormularioProduccion isOpen={isOpenFormularioProduccion} setIsOpen={setIsOpenFormularioProduccion} />
+          <VerificarProduccion isOpen={isOpenVerificarProduccion} setIsOpen={setIsOpenVerificarProduccion} />
+        </>
+      )}
       <Notification
         isVisible={notification.isVisible}
         type={notification.type}
