@@ -240,11 +240,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     circulo={false}
                     flot6={movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'}
                 />
-                <ItemView
-                    title={movimiento?.type === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
-                    description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
-                    transparent={false}
-                />
+                {(movimiento?.proveedor_id || movimiento?.cliente_id) && (
+                    <ItemView
+                        title={movimiento?.type === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
+                        description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
+                        transparent={false}
+                    />
+                )}
+
                 {/* Botón para ver productos - solo para movimientos con múltiples productos */}
                 {movimiento?.productos && movimiento.productos.length > 0 && (
                     <Boton
@@ -253,6 +256,19 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         onClick={() => setIsProductosOpen(true)}
                     />
                 )}
+                {/* Información de producción si es un movimiento de Damabrava 
+                {movimiento?.produccion_damabrava_id && (
+                    <div className={styles.content}>
+                        <Dato
+                            label="Origen"
+                            value="Ingreso desde Producción Damabrava"
+                            vertical={false}
+                            especial="blue"
+                        />
+                    </div>
+                )}
+                    */}
+
                 {/* Observaciones del movimiento */}
                 {movimiento?.observaciones && (
                     <div className={styles.content}>
@@ -270,7 +286,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         vertical={false}
                     />
                 )}
-                
+
 
                 {/* Total calculado para movimientos */}
                 {movimiento?.productos && movimiento.productos.length > 0 && (
@@ -345,6 +361,11 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>
                         ¿Estás seguro que deseas anular este movimiento? Esta acción no se puede deshacer y si en el movimiento se consumio materia prima se devolvera el peso correspondiente.
+                        {movimiento?.produccion_damabrava_id && (
+                            <><br /><br />
+                                <strong>Nota:</strong> Este movimiento proviene de producción de Damabrava. Al anularlo, se restará la cantidad del registro de producción y se actualizará su estado si es necesario.
+                            </>
+                        )}
                     </p>
                     <div className={styles.buttons}>
                         <Boton

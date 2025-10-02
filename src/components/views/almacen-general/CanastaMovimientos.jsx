@@ -556,7 +556,17 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     onCerrarCanasta(productosCanasta, precioSeleccionado);
                 }
             } else {
-                mostrarNotificacion('error', response.message || 'Error al crear el movimiento');
+                // Manejar específicamente errores de stock insuficiente de ingredientes
+                if (response.ingredientesConStockInsuficiente && response.ingredientesConStockInsuficiente.length > 0) {
+                    // Crear mensaje detallado para ingredientes con stock insuficiente
+                    const ingredientesDetalle = response.ingredientesConStockInsuficiente.map(ing => 
+                        `${ing.nombre}: Stock actual ${ing.stockActual}, requerido ${ing.requerido}`
+                    ).join('\n');
+                    
+                    mostrarNotificacion('error', `Stock insuficiente de ingredientes:\n${ingredientesDetalle}`);
+                } else {
+                    mostrarNotificacion('error', response.message || 'Error al crear el movimiento');
+                }
             }
 
         } catch (error) {

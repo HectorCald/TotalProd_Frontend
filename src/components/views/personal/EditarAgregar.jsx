@@ -11,6 +11,7 @@ import modulesService from '../../../services/modulesService';
 import Switch from '../../common/Switch';
 import Select from '../../common/Select';
 import Notification from '../../common/Notification';
+import { isDamabrava } from '../../../utils/empresaHelper';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated, sucursales = [] }) {
 
@@ -100,7 +101,19 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             setLoadingModules(true);
             const response = await modulesService.getAll();
             if (response.success) {
-                setModules(response.data);
+                // Si la empresa es Damabrava, cargar TODOS los módulos
+                if (isDamabrava()) {
+                    setModules(response.data);
+                } else {
+                    // Para otras empresas, cargar todos los módulos EXCEPTO los de Damabrava
+                    const nonDamabravaModules = response.data.filter(module => 
+                        !module.name.toLowerCase().includes('damabrava') &&
+                        !module.name.toLowerCase().includes('producción') &&
+                        !module.name.toLowerCase().includes('formulario') &&
+                        !module.name.toLowerCase().includes('verificación')
+                    );
+                    setModules(nonDamabravaModules);
+                }
             }
         } catch (error) {
             console.error('Error al cargar módulos:', error);
@@ -408,7 +421,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         checked={permisos.anular || false}
                         onChange={(checked) => hanclePermisos('anular', checked)}
                     />
-                    <p className={styles.subTitle}>MÓDULOS</p>
+                    <p className={styles.subTitle}>MÓDULOS {isDamabrava() ? '(TODOS)' : '(GENERALES)'}</p>
                     {loadingModules ? (
                         <div className={styles.noData}>
                             <p>Cargando módulos...</p>

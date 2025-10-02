@@ -78,6 +78,49 @@ class productsAlmacenService {
     }
   }
 
+  // Obtener un producto por ID
+  static async getById(id) {
+    try {
+      const sucuId = getSucuId();
+      
+      if (!id) {
+        return {
+          success: false,
+          message: 'ID del producto es requerido'
+        };
+      }
+
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/products-almacen/${id}?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener el producto');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error en productsAlmacenService.getById:', error);
+      return {
+        success: false,
+        message: error.message || 'Error de conexión con el servidor'
+      };
+    }
+  }
+
   // Crear un producto
   static async create(productData) {
     try {

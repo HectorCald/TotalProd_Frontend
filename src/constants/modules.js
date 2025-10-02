@@ -9,14 +9,17 @@ import imagenProveedores from '../assets/proveedores.png';
 import imagenGastos from '../assets/gastos.png';
 import imagenDeudas from '../assets/deudas.png';
 import imagenReportes from '../assets/reporte-ia.png';
-import imagenBalance from '../assets/import-export.png';
+import imageImport from '../assets/import-export.png';
 import imageBalance from '../assets/balance.png';
+import imageDamabrava from '../assets/damabrava/damabrava.png';
+
 export const MODULES = {
     // Módulos principales
     Almacen: {
         name: 'Almacén General',
         imagen: imagenAlmacen,
         descripcion: 'Administra tu almacén de productos terminados, realiza entradas y salidas.',
+
         realizar_salidas: {
             name: 'Salida o Venta',
             description: 'Realizar salida de productos en almacén',
@@ -71,6 +74,7 @@ export const MODULES = {
             component: 'AlmacenAcopio',
             props: { tipo: 'pedido' }
         },
+        
         gestionar: {
             name: 'Gestionar',
             description: 'Gestionar almacen de productos',
@@ -103,6 +107,7 @@ export const MODULES = {
         name: 'Pedidos',
         imagen: imagenPedidos,
         descripcion: 'Administra tus pedidos de productos, realiza entradas y salidas.',
+
         pedidos_almacen: {
             name: 'Almacen',
             description: 'Administra tus pedidos de productos.',
@@ -110,7 +115,7 @@ export const MODULES = {
             component: 'Pedidos',
             props: { tipo: 'almacen' }
         },
-        pedidos_acopio: {
+        pedidos_materia_prima: {
             name: 'Materia Prima',
             description: 'Administra tus pedidos de materia prima.',
             icon: 'leaf',
@@ -182,7 +187,7 @@ export const MODULES = {
         name: 'Reportes',
         imagen: imagenReportes,
         descripcion: 'Genera reportes detallados de ventas, movimientos y análisis de negocio.',
-        gestionar: {
+        generar_reportes: {
             name: 'Reportes',
             description: 'Genera reportes de tu negocio.',
             icon: 'bar-chart-alt-2',
@@ -194,12 +199,39 @@ export const MODULES = {
         name: 'Balance',
         imagen: imageBalance,
         descripcion: 'Visualiza el balance de ingresos y egresos de tu negocio.',
-        gestionar: {
+        ver_balance: {
             name: 'Balance',
             description: 'Controla el balance de tu negocio.',
             icon: 'trending-up',
             component: 'Balance',
             props: { tipo: 'almacen' }
+        },
+    },
+    Damabrava: {
+        name: 'Damabrava',
+        imagen: imageDamabrava,
+        descripcion: 'Registra y verifica la producción de damabrava.',
+        
+        formulario: {
+            name: 'Formulario',
+            description: 'Registra una nueva producción de damabrava.',
+            icon: 'detail',
+            component: 'FormularioProduccion',
+            props: { tipo: 'almacen' }
+        },
+        verificar: {
+            name: 'Verificación',
+            description: 'Verifica la producción de damabrava.',
+            icon: 'list-check',
+            component: 'VerificarProduccion',
+            props: {}
+        },
+        mi_produccion: {
+            name: 'Mi Producción',
+            description: 'Visualiza tu producción de damabrava.',
+            icon: 'archive',
+            component: 'MiProduccion',
+            props: {}
         },
     },
 };
@@ -208,48 +240,110 @@ export const MODULES = {
 export const getAvailableMainModules = (employeeModules) => {
     if (!employeeModules || !Array.isArray(employeeModules)) return [];
 
-    const mainModules = new Set();
+    // Agrupar submódulos por módulo principal
+    const modulesByMainModule = {};
     
-    // Recopilar módulos principales únicos
     employeeModules.forEach(module => {
         if (module.modulos) {
+            let mainModuleKey = null;
+            
+            // Mapear nombres de módulos a claves
             if (module.modulos.name === 'Almacen') {
-                mainModules.add('Almacen');
+                mainModuleKey = 'Almacen';
             } else if (module.modulos.name === 'Materia') {
-                mainModules.add('Acopio');
+                mainModuleKey = 'Acopio';
             } else if (module.modulos.name === 'Movimientos') {
-                mainModules.add('Movimientos');
+                mainModuleKey = 'Movimientos';
             } else if (module.modulos.name === 'Pedidos') {
-                mainModules.add('Pedidos');
+                mainModuleKey = 'Pedidos';
             } else if (module.modulos.name === 'Precios') {
-                mainModules.add('Precios');
+                mainModuleKey = 'Precios';
             } else if (module.modulos.name === 'Clientes') {
-                mainModules.add('Clientes');
+                mainModuleKey = 'Clientes';
             } else if (module.modulos.name === 'Proveedores') {
-                mainModules.add('Proveedores');
+                mainModuleKey = 'Proveedores';
             } else if (module.modulos.name === 'Gastos') {
-                mainModules.add('Gastos');
+                mainModuleKey = 'Gastos';
             } else if (module.modulos.name === 'Deudas') {
-                mainModules.add('Deudas');
+                mainModuleKey = 'Deudas';
             } else if (module.modulos.name === 'Reportes') {
-                mainModules.add('Reportes');
+                mainModuleKey = 'Reportes';
             } else if (module.modulos.name === 'Balance') {
-                mainModules.add('Balance');
+                mainModuleKey = 'Balance';
+            } else if (module.modulos.name === 'Damabrava') {
+                mainModuleKey = 'Damabrava';
+            }
+            
+            if (mainModuleKey) {
+                if (!modulesByMainModule[mainModuleKey]) {
+                    modulesByMainModule[mainModuleKey] = [];
+                }
+                modulesByMainModule[mainModuleKey].push(module);
             }
         }
     });
 
-    // Convertir a array con datos completos
-    return Array.from(mainModules).map(moduleKey => {
+    // Convertir a array con datos completos, incluyendo solo los submódulos asignados
+    return Object.keys(modulesByMainModule).map(moduleKey => {
         const module = MODULES[moduleKey];
+        const assignedSubmodules = modulesByMainModule[moduleKey];
+        
+        // Mapear los submódulos asignados a sus definiciones completas
+        const availableSubmodules = assignedSubmodules.map(assignedModule => {
+            console.log('🔍 Procesando submódulo:', assignedModule.name, 'en módulo:', moduleKey);
+            console.log('🔍 Claves disponibles en módulo:', Object.keys(module).filter(key => key !== 'name' && key !== 'imagen' && key !== 'descripcion'));
+            
+            // Buscar el submódulo correspondiente en la definición del módulo
+            const submoduleKey = Object.keys(module).find(key => {
+                if (key === 'name' || key === 'imagen' || key === 'descripcion') return false;
+                
+                // Mapear nombres de submódulos
+                const nameMapping = {
+                    'Formulario': 'formulario',
+                    'Verificación': 'verificacion', 
+                    'Mi Producción': 'mi_produccion',
+                    'Salida o Venta': 'realizar_salidas',
+                    'Entrada': 'realizar_entradas',
+                    'Nuevo Pedido': 'realizar_pedidos',
+                    'Gestionar': 'gestionar',
+                    'Almacen': 'movimientos_almacen',
+                    'Materia Prima': 'movimientos_materia_prima',
+                    'Almacen': 'pedidos_almacen',
+                    'Materia Prima': 'pedidos_acopio'
+                };
+                
+                const mappedKey = nameMapping[assignedModule.name] || assignedModule.name.toLowerCase().replace(/\s+/g, '_');
+                console.log('🔍 Comparando:', key, 'con', mappedKey, 'para', assignedModule.name);
+                return key === mappedKey;
+            });
+            
+            if (submoduleKey && module[submoduleKey]) {
+                const submodule = {
+                    ...module[submoduleKey],
+                    // Mantener información del módulo asignado
+                    assignedModule: assignedModule
+                };
+                console.log('✅ Submódulo encontrado:', assignedModule.name, '->', submoduleKey, 'icon:', submodule.icon);
+                return submodule;
+            }
+            
+            // Si no se encuentra el mapeo, crear un submódulo básico
+            console.log('⚠️ Submódulo no encontrado:', assignedModule.name, 'en módulo:', moduleKey);
+            return {
+                name: assignedModule.name,
+                description: assignedModule.name,
+                icon: 'grid',
+                component: 'Unknown',
+                props: {}
+            };
+        });
+        
         return {
             key: moduleKey,
             name: module.name,
             description: module.descripcion,
             image: module.imagen,
-            submodules: Object.keys(module).filter(key => 
-                key !== 'name' && key !== 'imagen' && key !== 'descripcion'
-            ).map(key => module[key])
+            submodules: availableSubmodules
         };
     });
 };
@@ -402,6 +496,28 @@ export const getAvailableModules = (employeeModules) => {
                     component: submodule.component,
                     props: submodule.props,
                     icon: submodule.imagen
+                };
+            }
+        }
+        if (module.modulos && module.modulos.name === 'Damabrava') {
+            // Mapear nombres de submódulos a claves del objeto MODULES
+            const nameMapping = {
+                'Formulario': 'formulario',
+                'Verificación': 'verificacion',
+                'Mi Producción': 'mi_produccion'
+            };
+            
+            const moduleKey = nameMapping[module.name] || module.name.toLowerCase().replace(/\s+/g, '_');
+            const submodule = MODULES.Damabrava[moduleKey];
+            
+            if (submodule) {
+                return {
+                    ...module,
+                    name: submodule.name,
+                    description: submodule.description,
+                    component: submodule.component,
+                    props: submodule.props,
+                    icon: submodule.icon
                 };
             }
         }

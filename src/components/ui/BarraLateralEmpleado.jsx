@@ -17,6 +17,9 @@ import Gastos from '../views/gastos/PanelGastos';
 import Deudas from '../views/deudas/PanelDeudas';
 import Reportes from '../views/reportes/Reportes';
 import Balance from '../views/balance/Balance';
+import FormularioProduccion from '../views/damabrava/produccion/FormularioProduccion';
+import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
+import MiProduccion from '../views/damabrava/produccion/MiProduccion';
 
 const BarraLateralEmpleado = ({ 
   onMenuClick, 
@@ -54,7 +57,8 @@ const BarraLateralEmpleado = ({
       'Gastos': 'receipt',
       'Deudas': 'receipt',
       'Reportes': 'bar-chart-alt-2',
-      'Balance': 'trending-up'
+      'Balance': 'trending-up',
+      'Damabrava': 'category'
     };
 
     const viewMap = {
@@ -68,7 +72,8 @@ const BarraLateralEmpleado = ({
       'Gastos': 'gastos',
       'Deudas': 'deudas',
       'Reportes': 'reportes',
-      'Balance': 'balance'
+      'Balance': 'balance',
+      'Damabrava': 'mi_produccion'
     };
 
     const propsMap = {
@@ -82,7 +87,8 @@ const BarraLateralEmpleado = ({
       'Gastos': { tipo: 'almacen' },
       'Deudas': { tipo: 'almacen' },
       'Reportes': { tipo: 'almacen' },
-      'Balance': { tipo: 'almacen' }
+      'Balance': { tipo: 'almacen' },
+      'Damabrava': { tipo: 'almacen' }
     };
 
     // Si el módulo tiene submodules
@@ -105,7 +111,11 @@ const BarraLateralEmpleado = ({
                 submodule.component === 'Gastos' ? 'gastos' :
                 submodule.component === 'Deudas' ? 'deudas' :
                 submodule.component === 'Reportes' ? 'reportes' :
-                submodule.component === 'Balance' ? 'balance' : 'almacenMedioGeneral',
+                submodule.component === 'Balance' ? 'balance' :
+                submodule.component === 'FormularioProduccion' ? 'formulario' :
+                submodule.component === 'VerificarProduccion' ? 'verificacion' :
+                submodule.component === 'MiProduccion' ? 'mi_produccion' :
+                submodule.component === 'Damabrava' ? 'mi_produccion' : 'verificar_produccion',
           props: submodule.props || propsMap[module.key] || { tipo: 'almacen' }
         };
       } else {
@@ -124,13 +134,16 @@ const BarraLateralEmpleado = ({
                   submodule.component === 'AlmacenAcopio' ? 'almacenMedio' :
                   submodule.component === 'Movimientos' ? 'movimientos' :
                   submodule.component === 'Pedidos' ? 'pedidos' :
-                  submodule.component === 'Precios' ? 'precios' :
                   submodule.component === 'Clientes' ? 'clientes' :
                   submodule.component === 'Proveedores' ? 'proveedores' :
                   submodule.component === 'Gastos' ? 'gastos' :
                   submodule.component === 'Deudas' ? 'deudas' :
                   submodule.component === 'Reportes' ? 'reportes' :
-                  submodule.component === 'Balance' ? 'balance' : 'almacenMedioGeneral',
+                  submodule.component === 'Balance' ? 'balance' :
+                  submodule.component === 'FormularioProduccion' ? 'formulario' :
+                  submodule.component === 'VerificarProduccion' ? 'verificacion' :
+                  submodule.component === 'MiProduccion' ? 'mi_produccion' :
+                  submodule.component === 'Damabrava' ? 'mi_produccion' : 'verificar_produccion',
             props: submodule.props || propsMap[module.key] || { tipo: 'almacen' }
           }))
         };
@@ -440,6 +453,21 @@ const BarraLateralEmpleado = ({
 
       <Balance
         isOpen={activeView === 'balance'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <FormularioProduccion
+        isOpen={activeView === 'formulario'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <VerificarProduccion
+        isOpen={activeView === 'verificacion'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <MiProduccion
+        isOpen={activeView === 'mi_produccion'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

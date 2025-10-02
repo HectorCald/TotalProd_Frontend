@@ -1,3 +1,5 @@
+import { isDamabrava } from '../utils/empresaHelper';
+
 // Opciones oficiales del menú lateral para TotalProd
 export const MENU_OPTIONS = [
   {
@@ -238,7 +240,36 @@ export const MENU_OPTIONS = [
         viewName: 'reportes'
       },
     ]
-  }
+  },
+  // Solo incluir sección Damabrava si la empresa es Damabrava
+  ...(isDamabrava() ? [{
+    id: 'damabrava',
+    title: 'DAMABRAVA',
+    type: 'section',
+    items: [
+      {
+        id: 'Formulario',
+        title: 'Formulario',
+        icon: 'file',
+        action: 'openView',
+        viewName: 'formulario'
+      },
+      {
+        id: 'Verificación',
+        title: 'Verificación',
+        icon: 'check-circle',
+        action: 'openView',
+        viewName: 'verificacion'
+      },
+      {
+        id: 'Mi Producción',
+        title: 'Mi Producción',
+        icon: 'file',
+        action: 'openView',
+        viewName: 'mi_produccion'
+      },
+    ]
+  }] : [])
 ];
 
 // Función para manejar las acciones del menú

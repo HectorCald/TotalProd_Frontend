@@ -20,6 +20,9 @@ import Sucursales from '../views/sucursales/Sucursales';
 import Precios from '../views/precios/Precios';
 import Balance from '../views/balance/Balance';
 import Reportes from '../views/reportes/Reportes';
+import FormularioProduccion from '../views/damabrava/produccion/FormularioProduccion';
+import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
+import MiProduccion from '../views/damabrava/produccion/MiProduccion';
 
 const BarraLateral = ({ 
   onMenuClick, 
@@ -343,6 +346,21 @@ const BarraLateral = ({
 
       <Reportes
         isOpen={activeView === 'reportes'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <FormularioProduccion
+        isOpen={activeView === 'formulario'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <VerificarProduccion
+        isOpen={activeView === 'verificacion'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <MiProduccion
+        isOpen={activeView === 'mi_produccion'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

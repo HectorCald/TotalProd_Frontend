@@ -21,6 +21,13 @@ import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
 import Precios from '../components/views/precios/Precios';
 import Gastos from '../components/views/gastos/PanelGastos';
+import FormularioProduccion from '../components/views/damabrava/produccion/FormularioProduccion';
+import VerificarProduccion from '../components/views/damabrava/produccion/VerificarProduccion';
+import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
+import Balance from '../components/views/balance/Balance';
+import Reportes from '../components/views/reportes/Reportes';
+import Deudas from '../components/views/deudas/PanelDeudas';
+
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, refreshEmployeeData } = useEmployee();
     const { isLargeScreen } = useLayout();
@@ -107,6 +114,18 @@ const HomeEmpleado = () => {
                 return <Proveedores isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Gastos':
                 return <Gastos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'FormularioProduccion':
+                return <FormularioProduccion isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'VerificarProduccion':
+                return <VerificarProduccion isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'Balance':
+                return <Balance isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'Reportes':
+                return <Reportes isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'Deudas':
+                return <Deudas isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'MiProduccion':
+                return <MiProduccion isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             default:
                 console.log('⚠️ Componente no encontrado:', currentSubModule.component);
                 return null;

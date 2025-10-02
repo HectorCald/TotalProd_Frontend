@@ -111,7 +111,6 @@ const Nav = () => {
                     {sucursalSeleccionada && (
                         <div className={styles.sucursalBadge} onClick={handleSucursalClick}>
                             <span>{sucursalSeleccionada.name}</span>
-                            <BoxIcon name='chevron-down' size="10px" />
                         </div>
                     )}
                 </div>

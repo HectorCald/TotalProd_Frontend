@@ -1,0 +1,183 @@
+.inputContainer {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+  gap: 5px;
+}
+
+.inputLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: gray;
+  background-color: var(--secondary-color);
+  z-index: 0;
+  width: auto;
+  padding: 0 3px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.inputLabelFocused {
+  color: var(--primary-color);
+}
+
+.inputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  min-height: 55px;
+  height: 50px;
+  padding: 10px 20px;
+  padding-left: 50px;
+  border: 2px solid var(--tertiary-color);
+  border-radius: 15px;
+  background-color: var(--tertiary-color);
+  color: var(--white-color);
+  font-size: 16px;
+  font-weight: 400;
+  outline: none;
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.input:focus {
+  border: 2px solid var(--primary-color);
+}
+
+.input::placeholder {
+  color: var(--quinary-color);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--quinary-color);
+  pointer-events: none;
+  z-index: 2;
+  font-weight: 400;
+  transition: all 0.3s ease;
+}
+
+.sugerenciasContainer {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--quaternary-color);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.sugerenciaItem {
+  padding: 15px 20px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--quinary-color);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 40px;
+  justify-content: center;
+}
+
+.sugerenciaItem:last-child {
+  border-bottom: none;
+}
+
+.sugerenciaItem:hover,
+.sugerenciaActiva {
+  background-color: var(--quaternary-color);
+}
+
+.sugerenciaTexto {
+  color: var(--white-color);
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.sugerenciaDescripcion {
+  color: var(--quinary-color);
+  font-size: 12px;
+  font-weight: 300;
+}
+
+.inputError {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--error-color);
+  position: absolute;
+  bottom: -15px;
+  left: 0;
+}
+
+/* Scrollbar personalizado para las sugerencias */
+.sugerenciasContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sugerenciasContainer::-webkit-scrollbar-track {
+  background: var(--quaternary-color);
+  border-radius: 3px;
+}
+
+.sugerenciasContainer::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 3px;
+}
+
+.sugerenciasContainer::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+  opacity: 0.8;
+}
+
+/* Animación suave para mostrar/ocultar sugerencias */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sugerenciasContainer {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sugerenciasContainer {
+    max-height: 150px;
+  }
+  
+  .sugerenciaItem {
+    padding: 10px 15px;
+  }
+  
+  .sugerenciaTexto {
+    font-size: 14px;
+  }
+  
+  .sugerenciaDescripcion {
+    font-size: 11px;
+  }
+}

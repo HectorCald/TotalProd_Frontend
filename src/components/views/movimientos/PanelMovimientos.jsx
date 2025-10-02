@@ -406,7 +406,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
-                title={tipoMovimiento === 'acopio' ? 'Movimientos de Materia Prima' : 'Movimientos de Almacén'}
+                title={tipoMovimiento === 'acopio' ? 'Mov. Materia Prima' : 'Mov. Almacén'}
             />
             <div className={styles.container}>
                 <div className={styles.titleContainer}>
