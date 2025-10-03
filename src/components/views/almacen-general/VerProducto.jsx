@@ -104,9 +104,9 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
     const handleDelete = async () => {
         setLoading(true);
         try {
-            // Verificar si tiene movimientos
-            const movimientosResponse = await movimientosAlmacenService.getByProduct(registro.id);
-            const tieneMovimientos = movimientosResponse.success && movimientosResponse.data && movimientosResponse.data.length > 0;
+            // Verificar si tiene movimientos (ULTRA OPTIMIZADO)
+            const movimientosResponse = await movimientosAlmacenService.hasMovements(registro.id);
+            const tieneMovimientos = movimientosResponse.success && movimientosResponse.hasMovements;
 
             // Verificar si tiene pedidos
             const pedidosResponse = await pedidosAcopioService.verificarProductoEnPedidos(registro.id);
@@ -126,6 +126,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
 
             // Si no tiene movimientos ni pedidos, proceder con la eliminación
             const response = await productsAlmacenService.delete(registro.id);
+            
             if (response.success) {
                 onProductDeleted(registro.id);
                 setIsDeleteOpen(false);
@@ -315,7 +316,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                         <>
                             <p className={styles.subTitle}>HISTORIAL DE MOVIMIENTOS</p>
                             {groupedMovements.map(([dateGroup, groupMovements]) => (
-                                <>
+                                <div key={dateGroup}>
                                     <p className={styles.subTitle}>
                                         {dateGroup}
                                     </p>
@@ -326,24 +327,24 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
 
                                         return (
                                             <ItemView
-                                                key={movimiento.id || index}
-                                                title={`${movimiento.tipo === 'entrada' ? 'Entrada' : 'Salida'} - ${cantidad} ud`}
+                                                key={`${movimiento.id}-${index}`}
+                                                title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${cantidad} ud`}
                                                 description={
                                                     <div>
                                                         <div>{movimiento.observaciones || 'Sin observaciones'}</div>
                                                         <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
                                                             {new Date(movimiento.fecha).toLocaleDateString()}
-                                                            {movimiento.tipo === 'entrada' && movimiento.proveedor?.name && ` • ${movimiento.proveedor.name}`}
-                                                            {movimiento.tipo === 'salida' && movimiento.cliente?.name && ` • ${movimiento.cliente.name}`}
+                                                            {movimiento.type === 'entrada' && movimiento.proveedor?.name && ` • ${movimiento.proveedor.name}`}
+                                                            {movimiento.type === 'salida' && movimiento.cliente?.name && ` • ${movimiento.cliente.name}`}
                                                         </div>
                                                     </div>
                                                 }
-                                                icon={movimiento.tipo === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                                                icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
                                                 arrow={false}
                                             />
                                         );
                                     })}
-                                </>
+                                </div>
                             ))}
                         </>
                     ) : (

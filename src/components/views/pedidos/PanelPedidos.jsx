@@ -62,12 +62,30 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         
         try {
             const response = tipoPedido === 'acopio' 
-                ? await pedidosAcopioService.getAll(page, 10, search, estado, orden)
-                : await pedidosAlmacenService.getAll(page, 10, search, estado, orden);
+                ? await pedidosAcopioService.getAll(page, 20, search, estado, orden)
+                : await pedidosAlmacenService.getAll(page, 20, search, estado, orden);
                 
             if (response.success) {
-                setPedidos(response.data);
+                const newData = response.data || [];
+                setPedidos(newData);
                 setHasMorePages(response.pagination?.hasNextPage || false);
+
+                // Reemplazar o acumular SOLO después de que llega la data
+                if (page === 1) {
+                    // Si no llegó nada, limpiar; si llegó, reemplazar
+                    setAllPedidos(newData.length > 0 ? newData : []);
+                } else {
+                    // Paginación: acumular sin borrar lo anterior
+                    setAllPedidos(prev => {
+                        // Evitar duplicados por id
+                        const existingIds = new Set(prev.map(p => p.id));
+                        const merged = [...prev];
+                        newData.forEach(item => {
+                            if (!existingIds.has(item.id)) merged.push(item);
+                        });
+                        return merged;
+                    });
+                }
             } else {
                 setError(response);
             }
@@ -78,23 +96,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     };
 
-    // Acumular datos de todas las páginas cuando llegan nuevos pedidos
-    useEffect(() => {
-        if (pedidos && pedidos.length > 0 && isOpen) {
-            if (currentPage === 1) {
-                // Si es la primera página, tomar todos los pedidos que vienen del servicio
-                setAllPedidos(pedidos);
-            } else {
-                // Si es una página posterior, acumular los datos
-                setAllPedidos(prevPedidos => {
-                    // Evitar duplicados por si acaso
-                    const existingIds = new Set(prevPedidos.map(p => p.id));
-                    const newPedidos = pedidos.filter(p => !existingIds.has(p.id));
-                    return [...prevPedidos, ...newPedidos];
-                });
-            }
-        }
-    }, [pedidos, currentPage, isOpen]);
+    // Nota: el reemplazo/acumulación se maneja al finalizar el fetch dentro de cargarPedidos
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
@@ -423,6 +425,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                 handleVerPedido(pedidoOriginal);
                             }}
                             getCellBadge={getCellBadge}
+                            onScroll={handleScroll}
                         />
                     ) : (
                         // Vista de cards para pantallas pequeñas

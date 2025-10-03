@@ -122,9 +122,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             const deudaId = pedido.deuda_id;
 
             console.log('PASO 1: Anulando movimiento...');
-            // 1) PRIMERO: Anular el movimiento
+            // 1) PRIMERO: Anular el movimiento (desde pedido)
             if (movimientoId) {
-                const anularResponse = await movimientosAlmacenService.anular(movimientoId);
+                const anularResponse = await movimientosAlmacenService.anular(movimientoId, true);
                 if (!anularResponse.success) {
                     mostrarNotificacion('error', 'Error al anular el movimiento: ' + anularResponse.message);
                     return;
@@ -132,26 +132,17 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 console.log('✅ Movimiento anulado correctamente');
             }
 
-            console.log('PASO 2: Borrando movimiento_salida_id del pedido...');
-            // 2) SEGUNDO: Borrar el movimiento_salida_id del pedido (sin cambiar estado)
-            const limpiarMovimientoResponse = await pedidosAlmacenService.updateEstado(pedido.id, pedido.estado, null, null);
-            if (!limpiarMovimientoResponse.success) {
-                mostrarNotificacion('error', 'Error al limpiar movimiento_salida_id: ' + limpiarMovimientoResponse.message);
+            console.log('PASO 2: Limpiando campos del pedido...');
+            // 2) SEGUNDO: Limpiar movimiento_salida_id y deuda_id del pedido (sin cambiar estado)
+            const limpiarCamposResponse = await pedidosAlmacenService.updateEstado(pedido.id, pedido.estado, null, null);
+            if (!limpiarCamposResponse.success) {
+                mostrarNotificacion('error', 'Error al limpiar campos del pedido: ' + limpiarCamposResponse.message);
                 return;
             }
-            console.log('✅ movimiento_salida_id borrado del pedido');
+            console.log('✅ Campos del pedido limpiados (movimiento_salida_id y deuda_id)');
 
-            console.log('PASO 3: Borrando deuda_id del pedido...');
-            // 3) TERCERO: Borrar el deuda_id del pedido (sin cambiar estado)
-            const limpiarDeudaResponse = await pedidosAlmacenService.updateEstado(pedido.id, pedido.estado, null, null);
-            if (!limpiarDeudaResponse.success) {
-                mostrarNotificacion('error', 'Error al limpiar deuda_id: ' + limpiarDeudaResponse.message);
-                return;
-            }
-            console.log('✅ deuda_id borrado del pedido');
-
-            console.log('PASO 4: Eliminando deuda...');
-            // 4) CUARTO: Eliminar la deuda
+            console.log('PASO 3: Eliminando deuda...');
+            // 3) TERCERO: Eliminar la deuda
             if (deudaId) {
                 const eliminarDeudaResponse = await deudasService.delete(deudaId);
                 if (!eliminarDeudaResponse.success) {
@@ -161,8 +152,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 console.log('✅ Deuda eliminada correctamente');
             }
 
-            console.log('PASO 5: Eliminando movimiento...');
-            // 5) QUINTO: Eliminar el movimiento
+            console.log('PASO 4: Eliminando movimiento...');
+            // 4) CUARTO: Eliminar el movimiento
             if (movimientoId) {
                 const eliminarMovimientoResponse = await movimientosAlmacenService.eliminar(movimientoId);
                 if (!eliminarMovimientoResponse.success) {
@@ -172,8 +163,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 console.log('✅ Movimiento eliminado correctamente');
             }
 
-            console.log('PASO 6: Cambiando estado del pedido a Pendiente...');
-            // 6) SEXTO: Cambiar estado del pedido a Pendiente
+            console.log('PASO 5: Cambiando estado del pedido a Pendiente...');
+            // 5) QUINTO: Cambiar estado del pedido a Pendiente
             const cambiarEstadoResponse = await pedidosAlmacenService.updateEstado(pedido.id, 'Pendiente');
             if (!cambiarEstadoResponse.success) {
                 mostrarNotificacion('error', 'Error al cambiar estado del pedido: ' + cambiarEstadoResponse.message);

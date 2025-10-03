@@ -13,6 +13,7 @@ import deudasService from '../../../services/deudasService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
+import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
 
 function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
     const [loading, setLoading] = useState(false);
@@ -82,47 +83,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
 
 
 
-    // Función para preparar datos de descarga
-    const prepararDatosDescarga = () => {
-        if (!movimiento) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
-
-        // Obtener nombre de la sucursal (ya viene del backend)
-        const nombreSucursal = movimiento?.sucursal?.name || 'Sucursal no encontrada';
-
-        // Información superior
-        const informacionSuperior = {
-            'Responsable': movimiento?.user?.name || movimiento?.personal?.name || 'Usuario desconocido',
-            'Tipo': movimiento?.type === 'entrada' ? 'Entrada' : 'Salida',
-            'Fecha': new Date(movimiento?.fecha).toLocaleString(),
-            'Estado': movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado',
-            'Sucursal': nombreSucursal
-        };
-
-        if (movimiento?.precio?.name) {
-            informacionSuperior['Tipo de Precio'] = movimiento.precio.name;
-        }
-        if (movimiento?.metodo_pago) {
-            informacionSuperior['Método de Pago'] = movimiento.metodo_pago;
-        }
-        if (movimiento?.productos && movimiento.productos.length > 0) {
-            const total = movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
-            informacionSuperior['Total'] = `Bs. ${total.toFixed(2)}`;
-        }
-        if (movimiento?.observaciones) {
-            informacionSuperior['Observaciones'] = movimiento.observaciones;
-        }
-
-        // Tabla para almacén (múltiples productos)
-        const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-        const tablaValores = (movimiento?.productos || []).map(producto => [
-            producto?.producto?.name || 'Sin producto',
-            producto?.cantidad || '0',
-            `Bs. ${(parseFloat(producto?.precio_unitario) || 0).toFixed(2)}`,
-            `Bs. ${(parseFloat(producto?.subtotal) || 0).toFixed(2)}`
-        ]);
-
-        return { informacionSuperior, tablaHeaders, tablaValores };
-    };
+    // Preparación de descarga ahora es manejada por DescargaMovimientoBuilder
 
     // Handle para anular movimiento
     const handleAnular = async () => {
@@ -159,7 +120,8 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 }
                 mostrarNotificacion('success', 'Movimiento anulado correctamente');
             } else {
-                mostrarNotificacion('error', response.message || 'Error al anular el movimiento');
+                const msg = response.message || 'Error al anular el movimiento';
+                mostrarNotificacion('error', msg);
             }
         } catch (error) {
             console.error('Error anulando movimiento:', error);
@@ -343,13 +305,12 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             </ViewModal>
 
             {/* Modal de descarga */}
-            <ModalDescarga
+            <DescargaMovimientoBuilder
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
-                titulo="Descargar Movimiento"
-                subtitulo="Selecciona el formato que prefieras para descargar este movimiento."
-                nombreArchivo={`Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`}
-                {...prepararDatosDescarga()}
+                movimientoId={movimiento?.id}
+                movimientoData={movimiento}
+                tipo="almacen"
             />
 
             {/* Modal de anular movimiento */}

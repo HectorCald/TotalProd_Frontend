@@ -69,7 +69,7 @@ class movimientosAlmacenService {
         throw new Error(data.message || 'Error al crear el movimiento');
       }
 
-      return data;
+      return data.id;
     } catch (error) {
       console.error('Error creando movimiento de almacén:', error);
       return {
@@ -202,11 +202,12 @@ class movimientosAlmacenService {
   }
 
   // Anular un movimiento
-  static async anular(movimientoId) {
+  static async anular(movimientoId, desdePedido = false) {
     try {
       const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${movimientoId}/anular`, {
         method: 'PUT',
         headers: getAuthHeaders(),
+        body: JSON.stringify({ desdePedido }),
       });
 
       const data = await response.json();
@@ -285,6 +286,38 @@ class movimientosAlmacenService {
       return {
         success: false,
         message: error.message || 'Error al obtener los movimientos'
+      };
+    }
+  }
+
+  // Verificar si un producto tiene movimientos (ULTRA OPTIMIZADO)
+  static async hasMovements(productId) {
+    try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/product/${productId}/has-movements?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en hasMovements:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
       };
     }
   }

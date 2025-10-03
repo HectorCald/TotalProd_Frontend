@@ -22,6 +22,7 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import { useUser } from '../../../context/UserContext';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
+import DescargaMovimientoBuilder from '../movimientos/DescargaMovimientoBuilder';
 
 
 function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null }) {
@@ -61,6 +62,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [productosCanastaEntradas, setProductosCanastaEntradas] = useState([]);
     const [productosCanastaSalidas, setProductosCanastaSalidas] = useState([]);
     const [isCanastaMovimientosOpen, setIsCanastaMovimientosOpen] = useState(false);
+    const [isDescargaMovimientoOpen, setIsDescargaMovimientoOpen] = useState(false);
+    const [movimientoIdParaDescarga, setMovimientoIdParaDescarga] = useState(null);
 
     // Estados para datos
     const [productos, setProductos] = useState([]);
@@ -807,9 +810,13 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     loadingPrecios={false}
                     productosActualizados={productos}
                     isCartMode={isCartMode && isLargeScreen}
-                    onCerrarCanasta={() => {
+                    onCerrarCanasta={(productosActualizados, precioId, movimientoId) => {
                         setIsCanastaMovimientosOpen(false);
                         mostrarNotificacion('success', 'Entradas confirmadas correctamente');
+                        if (movimientoId) {
+                            setMovimientoIdParaDescarga(movimientoId);
+                            setIsDescargaMovimientoOpen(true);
+                        }
                     }}
                 />
             )}
@@ -836,9 +843,20 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                             setIsCanastaMovimientosOpen(false);
                             mostrarNotificacion('success', 'Salidas confirmadas correctamente');
                         }
+                        if (movimientoId) {
+                            setMovimientoIdParaDescarga(movimientoId);
+                            setIsDescargaMovimientoOpen(true);
+                        }
                     }}
                 />
             )}
+
+            {/* Modal de descarga del movimiento generado */}
+            <DescargaMovimientoBuilder
+                isOpen={isDescargaMovimientoOpen}
+                setIsOpen={setIsDescargaMovimientoOpen}
+                movimientoId={movimientoIdParaDescarga}
+            />
 
             {/* Modal de Categorías de Almacén */}
             <CategoriasAlmacen

@@ -12,6 +12,7 @@ import movimientosAcopioService from '../../../services/movimientosAcopioService
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
+import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
 
 function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
     const [loading, setLoading] = useState(false);
@@ -80,51 +81,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
 
 
 
-    // Función para preparar datos de descarga
-    const prepararDatosDescarga = () => {
-        if (!movimiento) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
-
-        // Obtener nombre de la sucursal (ya viene del backend)
-        const nombreSucursal = movimiento?.sucursal?.name || 'Sucursal no encontrada';
-
-        // Información superior
-        const informacionSuperior = {
-            'Responsable': movimiento?.user?.name || movimiento?.personal?.name || 'Usuario desconocido',
-            'Tipo': movimiento?.type === 'entrada' ? 'Entrada' : 'Salida',
-            'Fecha': new Date(movimiento?.date).toLocaleString(),
-            'Estado': movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado',
-            'Sucursal': nombreSucursal
-        };
-
-        if (movimiento?.type === 'entrada' && movimiento?.proveedor?.name) {
-            informacionSuperior['Proveedor'] = movimiento.proveedor.name;
-        }
-        if (movimiento?.type === 'salida' && movimiento?.cliente?.name) {
-            informacionSuperior['Cliente'] = movimiento.cliente.name;
-        }
-        if (movimiento?.metodo_pago) {
-            informacionSuperior['Método de Pago'] = movimiento.metodo_pago;
-        }
-        if (movimiento?.costo) {
-            informacionSuperior['Costo'] = `Bs. ${parseFloat(movimiento.costo).toFixed(2)}`;
-        }
-        if (movimiento?.restar_ingredientes !== undefined) {
-            informacionSuperior['Restar Ingredientes'] = movimiento.restar_ingredientes ? 'Sí' : 'No';
-        }
-        if (movimiento?.observaciones) {
-            informacionSuperior['Observaciones'] = movimiento.observaciones;
-        }
-
-        // Tabla para acopio (un solo producto)
-        const tablaHeaders = ['Producto', 'Cantidad', 'Unidad de Medida'];
-        const tablaValores = [[
-            movimiento?.product?.name || 'Sin producto',
-            movimiento?.quantity || '0',
-            movimiento?.product?.type_measure?.code || ''
-        ]];
-
-        return { informacionSuperior, tablaHeaders, tablaValores };
-    };
+    // Preparación de descarga ahora es manejada por DescargaMovimientoBuilder
 
 
     // Handle para anular movimiento
@@ -141,7 +98,8 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                     onMovimientoAnulado(movimiento.id);
                 }
             } else {
-                mostrarNotificacion('error', response.message || 'Error al anular el movimiento');
+                const msg = response.message || 'Error al anular el movimiento';
+                mostrarNotificacion('error', msg);
             }
         } catch (error) {
             console.error('Error anulando movimiento:', error);
@@ -293,13 +251,12 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
             </div>
 
             {/* Modal de descarga */}
-            <ModalDescarga
+            <DescargaMovimientoBuilder
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
-                titulo="Descargar Movimiento"
-                subtitulo="Selecciona el formato que prefieras para descargar este movimiento."
-                nombreArchivo={`Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.date).toLocaleDateString().replace(/\//g, '-')}`}
-                {...prepararDatosDescarga()}
+                movimientoId={movimiento?.id}
+                movimientoData={movimiento}
+                tipo="acopio"
             />
 
             {/* Modal de anular movimiento */}

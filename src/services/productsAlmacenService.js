@@ -205,7 +205,6 @@ class productsAlmacenService {
   // Eliminar un producto
   static async delete(id) {
     try {
-
       const response = await fetch(`${API_BASE_URL}/products-almacen/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),

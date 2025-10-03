@@ -18,7 +18,12 @@ function ModalDescarga({
     informacionSuperior = {},
     tablaHeaders = [],
     tablaValores = [],
-    nombreArchivo = "Descargar Movimiento"
+    nombreArchivo = "Descargar Movimiento",
+    loading = false,
+    onExcel,
+    onPDF,
+    autoDownloadType = null,
+    onAutoDownloadDone
 }) {
     const [nombreArchivoState, setNombreArchivoState] = useState(nombreArchivo);
 
@@ -131,8 +136,6 @@ function ModalDescarga({
             
             // Generar y descargar archivo
             XLSX.writeFile(workbook, `${nombreArchivoState.replace(/\s+/g, '_')}.xlsx`);
-            
-            setIsOpen(false);
         } catch (error) {
             console.error('Error generando Excel:', error);
         }
@@ -221,12 +224,24 @@ function ModalDescarga({
             
             // Descargar archivo
             doc.save(`${nombreArchivoState.replace(/\s+/g, '_')}.pdf`);
-            
-            setIsOpen(false);
         } catch (error) {
             console.error('Error generando PDF:', error);
         }
     };
+
+    // Auto-disparar descarga si se solicita desde afuera
+    useEffect(() => {
+        if (!autoDownloadType) return;
+        try {
+            if (autoDownloadType === 'excel') {
+                handleDescargaExcel();
+            } else if (autoDownloadType === 'pdf') {
+                handleDescargaPDF();
+            }
+        } finally {
+            if (onAutoDownloadDone) onAutoDownloadDone();
+        }
+    }, [autoDownloadType]);
 
     return (
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -254,14 +269,18 @@ function ModalDescarga({
                         label='Archivo Excel'
                         style={{ marginTop: 'auto' }}
                         icon={excelIcon}
-                        onClick={handleDescargaExcel}
+                        onClick={onExcel || handleDescargaExcel}
+                        loading={loading}
+                        disabled={loading}
                     />
                     <Boton
                         className='btn-default'
                         label='Archivo PDF'
                         style={{ marginTop: 'auto' }}
                         icon={pdfIcon}
-                        onClick={handleDescargaPDF}
+                        onClick={onPDF || handleDescargaPDF}
+                        loading={loading}
+                        disabled={loading}
                     />
                 </div>
             </div>

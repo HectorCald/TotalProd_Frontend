@@ -226,13 +226,6 @@ export const MENU_OPTIONS = [
         viewName: 'balance'
       },
       {
-        id: 'destacados',
-        title: 'Destacados',
-        icon: 'star',
-        action: 'openView',
-        viewName: 'destacados'
-      },
-      {
         id: 'reportes',
         title: 'Reportes',
         icon: 'file',

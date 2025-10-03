@@ -408,9 +408,20 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 productos: prepararProductos()
             };
 
-            const response = await movimientosAlmacenService.create(movimientoData);
+            const movimientoId = await movimientosAlmacenService.create(movimientoData);
 
-            if (response.success) {
+            if (movimientoId) {
+                // Actualizar stock EN FRONT usando lo que había en la canasta
+                const productosEnUnidades = prepararProductos();
+                const productosStockActualizados = productosEnUnidades.map(pu => {
+                    const prodActual = (productosActualizados || []).find(p => p.id === pu.id);
+                    const stockBase = prodActual ? (prodActual.stock || 0) : 0;
+                    const nuevoStock = Math.max(0, stockBase - pu.cantidad); // entrega es salida
+                    return { id: pu.id, stock: nuevoStock };
+                });
+                if (onProductosUpdated) {
+                    onProductosUpdated(productosStockActualizados);
+                }
                 let deudaId = null;
                 
                 // 3) Si es crédito, crear deuda
@@ -430,7 +441,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         concepto: concepto,
                         estado: 'pendiente',
                         cliente_id: null,
-                        movimiento_salida_id: response.data.id,
+                        movimiento_salida_id: movimientoId,
                         destino_sucursal_id: sucursalOrigenId // Sucursal origen del pedido
                     };
                     
@@ -441,7 +452,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 }
 
                 // 4) Actualizar estado del pedido con el ID del movimiento y deuda_id (si existe)
-                await actualizarEstadoPedido(pedidoId, 'Entregado', response.data.id, deudaId);
+                await actualizarEstadoPedido(pedidoId, 'Entregado', movimientoId, deudaId);
 
                 // Limpiar localStorage específico de entregas
                 localStorage.removeItem('pedidoDestinoSucursalId');
@@ -452,19 +463,18 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     const pedidoConEstadoActualizado = {
                         ...pedidoActualizado.data,
                         estado: 'Entregado',
-                        movimiento_salida_id: response.data.id,
+                        movimiento_salida_id: movimientoId,
                         deuda_id: deudaId // Incluir deuda_id en la notificación
                     };
                     onPedidoActualizado(pedidoConEstadoActualizado);
                 }
 
                 if (onCerrarCanasta) {
-                    // Solo pasar los datos necesarios, no el pedido actualizado (ya se notificó arriba)
-                    onCerrarCanasta();
+                    onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId);
                 }
                 mostrarNotificacion('success', 'Pedido entregado correctamente');
             } else {
-                mostrarNotificacion('error', response.message || 'Error al crear el movimiento');
+                mostrarNotificacion('error', 'Error al crear el movimiento');
             }
 
         } catch (error) {
@@ -498,9 +508,22 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             };
 
             // 1) Crear movimiento
-            const response = await movimientosAlmacenService.create(movimientoData);
+            const movimientoId = await movimientosAlmacenService.create(movimientoData);
 
-            if (response.success) {
+            if (movimientoId) {
+                // Actualizar stock EN FRONT usando lo que había en la canasta
+                const productosEnUnidades = prepararProductos();
+                const productosStockActualizados = productosEnUnidades.map(pu => {
+                    const prodActual = (productosActualizados || []).find(p => p.id === pu.id);
+                    const stockBase = prodActual ? (prodActual.stock || 0) : 0;
+                    const delta = tipoMovimiento === 'entrada' ? pu.cantidad : -pu.cantidad;
+                    const nuevoStock = Math.max(0, stockBase + delta);
+                    return { id: pu.id, stock: nuevoStock };
+                });
+                if (onProductosUpdated) {
+                    onProductosUpdated(productosStockActualizados);
+                }
+
                 // 2) Si es salida con método de pago "credito", registrar deuda automáticamente
                 if (tipoMovimiento === 'salida' && metodoPagoSeleccionado === 'credito') {
                     try {
@@ -513,14 +536,14 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             concepto: 'Venta a crédito',
                             estado: 'pendiente',
                             cliente_id: (clienteSeleccionado || null),
-                            movimiento_salida_id: response.data.id,
+                            movimiento_salida_id: movimientoId,
                             destino_sucursal_id: null
                         };
                         const deudaResponse = await deudasService.create(deudaData);
                         if (deudaResponse.success) {
                             // Actualizar el movimiento con el deuda_id
                             try {
-                                await movimientosAlmacenService.update(response.data.id, { deuda_id: deudaResponse.data.id });
+                                await movimientosAlmacenService.update(movimientoId, { deuda_id: deudaResponse.data.id });
                             } catch (updateError) {
                                 console.warn('Error al actualizar movimiento con deuda_id:', updateError);
                             }
@@ -533,13 +556,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 }
 
                 // Actualizar stock de productos
-                if (response.data?.productos && onProductosUpdated) {
-                    const productosActualizados = response.data.productos.map(productoMovimiento => ({
-                        id: productoMovimiento.id,
-                        stock: productoMovimiento.stock
-                    }));
-                    onProductosUpdated(productosActualizados);
-                }
+                // Ya no tenemos productos en la respuesta directa; refresco se maneja fuera si es necesario
 
                 // Limpiar canasta y cerrar
                 setProductosCanasta([]);
@@ -553,20 +570,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
                 setIsOpen(false);
                 if (onCerrarCanasta) {
-                    onCerrarCanasta(productosCanasta, precioSeleccionado);
+                    onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId);
                 }
             } else {
-                // Manejar específicamente errores de stock insuficiente de ingredientes
-                if (response.ingredientesConStockInsuficiente && response.ingredientesConStockInsuficiente.length > 0) {
-                    // Crear mensaje detallado para ingredientes con stock insuficiente
-                    const ingredientesDetalle = response.ingredientesConStockInsuficiente.map(ing => 
-                        `${ing.nombre}: Stock actual ${ing.stockActual}, requerido ${ing.requerido}`
-                    ).join('\n');
-                    
-                    mostrarNotificacion('error', `Stock insuficiente de ingredientes:\n${ingredientesDetalle}`);
-                } else {
-                    mostrarNotificacion('error', response.message || 'Error al crear el movimiento');
-                }
+                mostrarNotificacion('error', 'Error al crear el movimiento');
             }
 
         } catch (error) {

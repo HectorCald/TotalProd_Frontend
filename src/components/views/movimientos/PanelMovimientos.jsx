@@ -35,7 +35,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     
-    // Estado para acumular todos los movimientos de todas las páginas
+    // Estado para acumular o reemplazar los movimientos mostrados
     const [allMovimientos, setAllMovimientos] = useState([]);
     
     // Debounce para búsqueda
@@ -60,12 +60,30 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         
         try {
             const response = tipoMovimiento === 'acopio' 
-                ? await movimientosAcopioService.getAll(page, 10, filtro, estado, orden)
-                : await movimientosAlmacenService.getAll(page, 10, filtro, estado, orden);
+                ? await movimientosAcopioService.getAll(page, 20, filtro, estado, orden)
+                : await movimientosAlmacenService.getAll(page, 20, filtro, estado, orden);
                 
             if (response.success) {
-                setMovimientos(response.data);
+                const newData = response.data || [];
+                setMovimientos(newData);
                 setHasMorePages(response.pagination?.hasNextPage || false);
+
+                // Reemplazar o acumular SOLO después de que llega la data
+                if (page === 1) {
+                    // Si no llegó nada, limpiar; si llegó, reemplazar
+                    setAllMovimientos(newData.length > 0 ? newData : []);
+                } else {
+                    // Paginación: acumular sin borrar lo anterior
+                    setAllMovimientos(prev => {
+                        // Evitar duplicados por id
+                        const existingIds = new Set(prev.map(m => m.id));
+                        const merged = [...prev];
+                        newData.forEach(item => {
+                            if (!existingIds.has(item.id)) merged.push(item);
+                        });
+                        return merged;
+                    });
+                }
             } else {
                 setError(response);
             }
@@ -76,23 +94,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     };
 
-    // Acumular datos de todas las páginas cuando llegan nuevos movimientos
-    useEffect(() => {
-        if (movimientos && movimientos.length > 0 && isOpen) {
-            if (currentPage === 1) {
-                // Si es la primera página, tomar todos los movimientos que vienen del servicio
-                setAllMovimientos(movimientos);
-            } else {
-                // Si es una página posterior, acumular los datos
-                setAllMovimientos(prevMovimientos => {
-                    // Evitar duplicados por si acaso
-                    const existingIds = new Set(prevMovimientos.map(m => m.id));
-                    const newMovimientos = movimientos.filter(m => !existingIds.has(m.id));
-                    return [...prevMovimientos, ...newMovimientos];
-                });
-            }
-        }
-    }, [movimientos, currentPage, isOpen]);
+    // Nota: el reemplazo/acumulación se maneja al finalizar el fetch dentro de cargarMovimientos
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
