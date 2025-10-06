@@ -408,7 +408,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 productos: prepararProductos()
             };
 
-            const movimientoId = await movimientosAlmacenService.create(movimientoData);
+            const movimientoRespEntrega = await movimientosAlmacenService.create(movimientoData);
+            const movimientoId = (movimientoRespEntrega && movimientoRespEntrega.success) ? movimientoRespEntrega.data?.id : null;
 
             if (movimientoId) {
                 // Actualizar stock EN FRONT usando lo que había en la canasta
@@ -508,7 +509,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             };
 
             // 1) Crear movimiento
-            const movimientoId = await movimientosAlmacenService.create(movimientoData);
+            const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
+            const movimientoId = (movimientoResponse && movimientoResponse.success) ? movimientoResponse.data?.id : null;
 
             if (movimientoId) {
                 // Actualizar stock EN FRONT usando lo que había en la canasta

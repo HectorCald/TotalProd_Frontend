@@ -27,17 +27,17 @@
 
 /* Cuando la barra lateral está expandida (ancho normal) */
 .viewContainerSidebarExpanded {
-    width: calc(100% - 280px); /* 280px es el ancho de la barra lateral expandida */
+    width: calc(100% - 240px); /* 240px es el ancho de la barra lateral expandida */
 }
 
 /* Cuando la barra lateral está colapsada (ancho reducido) */
 .viewContainerSidebarCollapsed {
-    width: calc(100% - 70px); /* 70px es el ancho de la barra lateral colapsada */
+    width: calc(100% - 60px); /* 60px es el ancho de la barra lateral colapsada */
 }
 
-/* Modo carrito - panel lateral de 400px */
+/* Modo carrito - panel lateral con ancho máximo del 30% de la pantalla */
 .viewContainerCart {
-    width: 450px !important;
+    width: 39% !important;
     left: auto;
     right: 0;
     z-index: 998; /* Un nivel menos que las views principales */

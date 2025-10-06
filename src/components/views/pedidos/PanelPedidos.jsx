@@ -368,7 +368,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             return {
                 id: pedido.id,
                 sucursal: pedido.sucursal?.name || 'Sucursal desconocida',
-                usuario: pedido.user?.name || 'Usuario desconocido',
+                usuario: pedido.user?.name || pedido.personal?.name || 'Usuario desconocido',
                 fecha: new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
                     year: 'numeric',
                     month: '2-digit',

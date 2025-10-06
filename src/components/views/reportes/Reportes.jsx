@@ -13,6 +13,7 @@ import styles from '../../../styles/view.module.css';
 import Boton from '../../common/Boton';
 
 const Reportes = ({ isOpen, setIsOpen }) => {
+  const DEBUG_REPORTES = false;
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('');
   const [areaSeleccionada, setAreaSeleccionada] = useState('');
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
@@ -37,7 +38,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
   // Función para cargar sucursales
   const cargarSucursales = async () => {
-    console.log('cargando sucursales');
+    if (DEBUG_REPORTES) console.group('Sucursal: carga');
+    if (DEBUG_REPORTES) console.log('Iniciando carga de sucursales...');
     setLoadingSucursales(true);
     setShowRefreshIndicator(true);
     setIsRefreshing(true);
@@ -45,8 +47,10 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
     try {
       const response = await sucursalesService.getByEmpresaId();
+      if (DEBUG_REPORTES) console.log('Respuesta sucursales:', response);
       if (response.success) {
         setSucursales(response.data);
+        if (DEBUG_REPORTES) console.table(response.data);
         setSucursalesCargadas(true);
       } else {
         setError(response);
@@ -61,18 +65,21 @@ const Reportes = ({ isOpen, setIsOpen }) => {
           setShowRefreshIndicator(false);
         }, 1000);
       }, 500);
+      if (DEBUG_REPORTES) console.groupEnd();
     }
   };
 
   // Cargar sucursales solo la primera vez
   React.useEffect(() => {
     if (!sucursalesCargadas && isOpen) {
+      if (DEBUG_REPORTES) console.log('Vista abierta: iniciando carga inicial de sucursales');
       cargarSucursales();
     }
   }, [sucursalesCargadas, isOpen]);
 
   // Función para mostrar notificaciones
   const mostrarNotificacion = (tipo, texto) => {
+    if (DEBUG_REPORTES) console.log('Notificación ->', { tipo, texto });
     setNotification({
       isVisible: true,
       type: tipo,
@@ -85,10 +92,10 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     }, 3000);
   };
 
-  // Función para calcular fechas según el período
+  // Función para calcular fechas según el período (en hora local; formato mostrado en America/La_Paz)
   const getFechasPeriodo = (periodo) => {
     const hoy = new Date();
-    const fechaInicio = new Date();
+    const fechaInicio = new Date(hoy);
 
     switch (periodo) {
       case 'hoy':
@@ -96,28 +103,54 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         break;
       case '1_semana':
         fechaInicio.setDate(hoy.getDate() - 7);
+        fechaInicio.setHours(0, 0, 0, 0);
         break;
       case '1_mes':
         fechaInicio.setMonth(hoy.getMonth() - 1);
+        fechaInicio.setHours(0, 0, 0, 0);
         break;
       case '3_meses':
         fechaInicio.setMonth(hoy.getMonth() - 3);
+        fechaInicio.setHours(0, 0, 0, 0);
         break;
       case '6_meses':
         fechaInicio.setMonth(hoy.getMonth() - 6);
+        fechaInicio.setHours(0, 0, 0, 0);
         break;
       case '1_año':
         fechaInicio.setFullYear(hoy.getFullYear() - 1);
+        fechaInicio.setHours(0, 0, 0, 0);
         break;
       default:
         fechaInicio.setHours(0, 0, 0, 0);
     }
 
+    const fechaFin = new Date(hoy);
+    fechaFin.setHours(23, 59, 59, 999);
+
+    const infoDebug = {
+      periodo,
+      tzOffsetMin: hoy.getTimezoneOffset(),
+      ahora_toString: hoy.toString(),
+      ahora_locale_LaPaz: hoy.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+      inicio_toString: fechaInicio.toString(),
+      inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+      fin_toString: fechaFin.toString(),
+      fin_locale_LaPaz: fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+    };
+    if (DEBUG_REPORTES) {
+      console.group('Cálculo Fechas Periodo');
+      console.log(infoDebug);
+      console.groupEnd();
+    }
+
     return {
-      fechaInicio: fechaInicio.toISOString(),
-      fechaFin: hoy.toISOString(),
-      fechaInicioFormateada: fechaInicio.toLocaleDateString('es-ES'),
-      fechaFinFormateada: hoy.toLocaleDateString('es-ES')
+      // devolvemos objetos Date para evitar desplazamientos a UTC
+      fechaInicio,
+      fechaFin,
+      // el formateo para visualización se fuerza a es-BO y America/La_Paz
+      fechaInicioFormateada: fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' }),
+      fechaFinFormateada: fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' })
     };
   };
 
@@ -146,31 +179,43 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
   const handleAreaChange = (valor) => {
     setAreaSeleccionada(valor);
-    console.log('Área seleccionada:', valor);
+    if (DEBUG_REPORTES) console.log('Área seleccionada:', valor);
   };
 
   const handleSucursalChange = (valor) => {
     setSucursalSeleccionada(valor);
-    console.log('Sucursal seleccionada:', valor);
+    if (DEBUG_REPORTES) console.log('Sucursal seleccionada:', valor);
   };
 
   const handlePeriodoChange = (valor) => {
     setPeriodoSeleccionado(valor);
-    console.log('Período seleccionado:', valor);
+    if (DEBUG_REPORTES) console.log('Período seleccionado:', valor);
     // Aquí puedes agregar la lógica para cargar reportes según el período
   };
 
   const handleRefresh = async () => {
+    if (DEBUG_REPORTES) console.log('Refrescando sucursales manualmente...');
     await cargarSucursales();
   };
 
   // Función para generar reporte de ventas (solo salidas de almacén)
   const generarReporteVentas = async (movimientos, fechasPeriodo) => {
+    if (DEBUG_REPORTES) {
+      console.group('Generar Reporte: Ventas');
+      console.log('Fechas periodo:', {
+        fechaInicio: fechasPeriodo.fechaInicio,
+        fechaFin: fechasPeriodo.fechaFin,
+        inicio_locale_LaPaz: fechasPeriodo.fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+        fin_locale_LaPaz: fechasPeriodo.fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+      });
+      console.log('Movimientos recibidos:', movimientos?.length);
+    }
     const salidas = movimientos.filter(m => m.type === 'salida');
+    if (DEBUG_REPORTES) console.log('Salidas filtradas:', salidas.length);
 
     // Agrupar productos
     const productosAgrupados = {};
-    salidas.forEach(movimiento => {
+    salidas.forEach((movimiento, idx) => {
       movimiento.productos.forEach(producto => {
         const key = producto.producto.id;
         if (!productosAgrupados[key]) {
@@ -184,6 +229,17 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         productosAgrupados[key].cantidad += parseFloat(producto.cantidad);
         productosAgrupados[key].subtotal += parseFloat(producto.subtotal);
       });
+      if (DEBUG_REPORTES && idx < 5) {
+        // Muestra algunas filas para no saturar la consola
+        const fechaMovimiento = new Date(movimiento.fecha);
+        const infoFila = {
+          id: movimiento.id,
+          fecha_raw: movimiento.fecha,
+          fecha_toString: fechaMovimiento.toString(),
+          fecha_locale_LaPaz: fechaMovimiento.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+        };
+        console.log('Salida ejemplo:', infoFila);
+      }
     });
 
     const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
@@ -204,7 +260,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
     }
 
-    return {
+    const resultado = {
       informacionSuperior: {
         'Tipo de Reporte': 'Ventas',
         'Período': periodoConFechas,
@@ -215,12 +271,28 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       tablaHeaders,
       tablaValores
     };
+    if (DEBUG_REPORTES) {
+      console.log('Resultado Ventas:', resultado.informacionSuperior);
+      console.groupEnd();
+    }
+    return resultado;
   };
 
   // Función para generar reporte de almacén general (entradas y salidas por separado)
   const generarReporteAlmacen = async (movimientos, fechasPeriodo) => {
+    if (DEBUG_REPORTES) {
+      console.group('Generar Reporte: Almacén General');
+      console.log('Fechas periodo:', {
+        fechaInicio: fechasPeriodo.fechaInicio,
+        fechaFin: fechasPeriodo.fechaFin,
+        inicio_locale_LaPaz: fechasPeriodo.fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+        fin_locale_LaPaz: fechasPeriodo.fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+      });
+      console.log('Movimientos recibidos:', movimientos?.length);
+    }
     const entradas = movimientos.filter(m => m.type === 'entrada');
     const salidas = movimientos.filter(m => m.type === 'salida');
+    if (DEBUG_REPORTES) console.log('Entradas:', entradas.length, 'Salidas:', salidas.length);
 
     // Agrupar productos de entradas
     const productosEntradas = {};
@@ -294,7 +366,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
     }
 
-    return {
+    const resultado = {
       informacionSuperior: {
         'Tipo de Reporte': 'Almacén General',
         'Período': periodoConFechas,
@@ -307,13 +379,18 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       tablaHeaders,
       tablaValores
     };
+    if (DEBUG_REPORTES) {
+      console.log('Resultado Almacén:', resultado.informacionSuperior);
+      console.groupEnd();
+    }
+    return resultado;
   };
 
   // Función para generar reporte de materia prima (entradas con costo)
   const generarReporteMateriaPrima = async (movimientos, fechasPeriodo) => {
-    console.log('🌾 Movimientos de materia prima recibidos:', movimientos);
+    if (DEBUG_REPORTES) console.log('🌾 Movimientos de materia prima recibidos:', movimientos);
     const entradas = movimientos.filter(m => m.type === 'entrada');
-    console.log('🌾 Entradas filtradas:', entradas);
+    if (DEBUG_REPORTES) console.log('🌾 Entradas filtradas:', entradas);
 
     // Agrupar productos
     const productosAgrupados = {};
@@ -331,7 +408,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       productosAgrupados[key].subtotal += parseFloat(movimiento.costo || 0);
     });
 
-    console.log('🌾 Productos agrupados:', productosAgrupados);
+    if (DEBUG_REPORTES) console.log('🌾 Productos agrupados:', productosAgrupados);
 
     const tablaHeaders = ['Producto', 'Cantidad', 'Costo', 'Subtotal'];
     const tablaValores = Object.values(productosAgrupados).map(producto => [
@@ -341,8 +418,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
     ]);
 
-    console.log('🌾 Tabla headers:', tablaHeaders);
-    console.log('🌾 Tabla valores:', tablaValores);
+    if (DEBUG_REPORTES) console.log('🌾 Tabla headers:', tablaHeaders);
+    if (DEBUG_REPORTES) console.log('🌾 Tabla valores:', tablaValores);
 
     const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
@@ -366,12 +443,22 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       tablaValores
     };
 
-    console.log('🌾 Reporte data final:', reporteData);
+    if (DEBUG_REPORTES) console.log('🌾 Reporte data final:', reporteData);
     return reporteData;
   };
 
   // Función para generar reporte de pedidos
   const generarReportePedidos = async (pedidos, fechasPeriodo) => {
+    if (DEBUG_REPORTES) {
+      console.group('Generar Reporte: Pedidos');
+      console.log('Pedidos recibidos:', pedidos?.length);
+      console.log('Fechas periodo:', {
+        fechaInicio: fechasPeriodo.fechaInicio,
+        fechaFin: fechasPeriodo.fechaFin,
+        inicio_locale_LaPaz: fechasPeriodo.fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+        fin_locale_LaPaz: fechasPeriodo.fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+      });
+    }
     // Agrupar productos de pedidos
     const productosAgrupados = {};
     pedidos.forEach(pedido => {
@@ -408,7 +495,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
     }
 
-    return {
+    const resultado = {
       informacionSuperior: {
         'Tipo de Reporte': 'Pedidos',
         'Período': periodoConFechas,
@@ -419,6 +506,11 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       tablaHeaders,
       tablaValores
     };
+    if (DEBUG_REPORTES) {
+      console.log('Resultado Pedidos:', resultado.informacionSuperior);
+      console.groupEnd();
+    }
+    return resultado;
   };
 
   // Función principal para generar el reporte
@@ -437,17 +529,27 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       }
     }
 
+    if (DEBUG_REPORTES) {
+      console.group('Generar Reporte: Inicio');
+      console.log('Inputs ->', { periodoSeleccionado, areaSeleccionada, sucursalSeleccionada });
+    }
     setIsLoading(true);
     try {
       const fechasPeriodo = getFechasPeriodo(periodoSeleccionado);
       const { fechaInicio, fechaFin } = fechasPeriodo;
+      if (DEBUG_REPORTES) console.log('Rango calculado ->', {
+        fechaInicio,
+        fechaFin,
+        inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+        fin_locale_LaPaz: fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+      });
       let reporteData = {};
 
       switch (areaSeleccionada) {
         case 'ventas':
           // Para ventas, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosVentas = await movimientosAlmacenService.getAllSinLimite('salida', 'fecha_desc', sucursalSeleccionada);
-
+          const movimientosVentas = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucursalSeleccionada);
+          if (DEBUG_REPORTES) console.log('API ventas ->', movimientosVentas?.data?.length ?? 0);
           if (movimientosVentas.success && movimientosVentas.data) {
             // Filtrar por fecha en el frontend
             const movimientosFiltradosVentas = movimientosVentas.data.filter(movimiento => {
@@ -460,11 +562,24 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
               const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
 
-              return fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
+              const enRango = fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
+              if (DEBUG_REPORTES) {
+                console.log('Comparación Ventas:', {
+                  fechaMovimiento_raw: movimiento.fecha,
+                  fechaMovimiento_toString: fechaMovimiento.toString(),
+                  fechaMovimiento_locale_LaPaz: fechaMovimiento.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+                  fechaMovimientoNormalizada: fechaMovimientoNormalizada.toString(),
+                  fechaInicioNormalizada: fechaInicioNormalizada.toString(),
+                  fechaFinNormalizada: fechaFinNormalizada.toString(),
+                  enRango
+                });
+              }
+              return enRango;
             });
 
             if (movimientosFiltradosVentas.length === 0) {
               mostrarNotificacion('warning', 'No hay ventas en el período seleccionado');
+              if (DEBUG_REPORTES) console.warn('Sin ventas en rango. Total API:', movimientosVentas.data.length);
               return;
             }
 
@@ -477,7 +592,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
         case 'almacen_general':
           // Para almacén general, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosAlmacen = await movimientosAlmacenService.getAllSinLimite(null, 'fecha_desc', sucursalSeleccionada);
+          const movimientosAlmacen = await movimientosAlmacenService.getAllSinLimite(null, null, 'fecha_desc', sucursalSeleccionada);
+          if (DEBUG_REPORTES) console.log('API almacén ->', movimientosAlmacen?.data?.length ?? 0);
 
           if (movimientosAlmacen.success && movimientosAlmacen.data) {
             // Filtrar por fecha en el frontend
@@ -485,11 +601,23 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               const fechaMovimiento = new Date(movimiento.fecha);
               const fechaInicioObj = new Date(fechaInicio);
               const fechaFinObj = new Date(fechaFin);
-              return fechaMovimiento >= fechaInicioObj && fechaMovimiento <= fechaFinObj;
+              const enRango = fechaMovimiento >= fechaInicioObj && fechaMovimiento <= fechaFinObj;
+              if (DEBUG_REPORTES) {
+                console.log('Comparación Almacén:', {
+                  fechaMovimiento_raw: movimiento.fecha,
+                  fechaMovimiento_toString: fechaMovimiento.toString(),
+                  fechaMovimiento_locale_LaPaz: fechaMovimiento.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+                  fechaInicio: fechaInicioObj.toString(),
+                  fechaFin: fechaFinObj.toString(),
+                  enRango
+                });
+              }
+              return enRango;
             });
 
             if (movimientosFiltradosAlmacen.length === 0) {
               mostrarNotificacion('warning', 'No hay movimientos de almacén en el período seleccionado');
+              if (DEBUG_REPORTES) console.warn('Sin movimientos de almacén en rango. Total API:', movimientosAlmacen.data.length);
               return;
             }
 
@@ -503,6 +631,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         case 'materia_Prima':
           // Para materia prima, obtener todos los movimientos y filtrar por fecha en el frontend
           const movimientosAcopio = await movimientosAcopioService.getAllSinLimite('entrada', 'fecha_desc', sucursalSeleccionada);
+          if (DEBUG_REPORTES) console.log('API acopio ->', movimientosAcopio?.data?.length ?? 0);
 
           if (movimientosAcopio.success && movimientosAcopio.data) {
 
@@ -518,12 +647,24 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
 
               const enRango = fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
+              if (DEBUG_REPORTES) {
+                console.log('Comparación Materia Prima:', {
+                  fechaMovimiento_raw: movimiento.date,
+                  fechaMovimiento_toString: fechaMovimiento.toString(),
+                  fechaMovimiento_locale_LaPaz: fechaMovimiento.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+                  fechaMovimientoNormalizada: fechaMovimientoNormalizada.toString(),
+                  fechaInicioNormalizada: fechaInicioNormalizada.toString(),
+                  fechaFinNormalizada: fechaFinNormalizada.toString(),
+                  enRango
+                });
+              }
               return enRango;
             });
 
 
             if (movimientosFiltrados.length === 0) {
               mostrarNotificacion('warning', 'No hay movimientos de materia prima en el período seleccionado');
+              if (DEBUG_REPORTES) console.warn('Sin materia prima en rango. Total API:', movimientosAcopio.data.length);
               return;
             }
 
@@ -537,6 +678,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         case 'pedidos':
           // Para pedidos, obtener todos los pedidos y filtrar por fecha en el frontend
           const pedidos = await pedidosAlmacenService.getAllSinLimite(sucursalSeleccionada);
+          if (DEBUG_REPORTES) console.log('API pedidos ->', pedidos?.data?.length ?? 0);
 
           if (pedidos.success && pedidos.data) {
             // Filtrar por fecha en el frontend
@@ -544,11 +686,23 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               const fechaPedido = new Date(pedido.fecha || pedido.created_at);
               const fechaInicioObj = new Date(fechaInicio);
               const fechaFinObj = new Date(fechaFin);
-              return fechaPedido >= fechaInicioObj && fechaPedido <= fechaFinObj;
+              const enRango = fechaPedido >= fechaInicioObj && fechaPedido <= fechaFinObj;
+              if (DEBUG_REPORTES) {
+                console.log('Comparación Pedidos:', {
+                  fechaPedido_raw: pedido.fecha || pedido.created_at,
+                  fechaPedido_toString: fechaPedido.toString(),
+                  fechaPedido_locale_LaPaz: fechaPedido.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+                  fechaInicio: fechaInicioObj.toString(),
+                  fechaFin: fechaFinObj.toString(),
+                  enRango
+                });
+              }
+              return enRango;
             });
 
             if (pedidosFiltrados.length === 0) {
               mostrarNotificacion('warning', 'No hay pedidos en el período seleccionado');
+              if (DEBUG_REPORTES) console.warn('Sin pedidos en rango. Total API:', pedidos.data.length);
               return;
             }
 
@@ -566,11 +720,13 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       setDatosReporte(reporteData);
       setIsDescargaOpen(true);
       mostrarNotificacion('success', 'Reporte generado correctamente');
+      if (DEBUG_REPORTES) console.log('Reporte listo, abriendo modal de descarga');
     } catch (error) {
       console.error('Error generando reporte:', error);
       mostrarNotificacion('error', 'Error al generar el reporte');
     } finally {
       setIsLoading(false);
+      if (DEBUG_REPORTES) console.groupEnd();
     }
   };
 

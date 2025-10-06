@@ -172,7 +172,7 @@
 
 /* Estilos para el layout con panel lateral */
 .containerWithCart {
-    width: calc(100% - 450px) !important;
+    width: calc(100% - 38%) !important;
 }
 
 /* En pantallas pequeñas, no aplicar el ajuste */

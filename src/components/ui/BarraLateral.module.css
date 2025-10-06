@@ -1,6 +1,6 @@
 /* Barra Lateral Styles */
 .sidebar {
-  width: 280px;
+  width: 240px;
   height: 100vh;
   background: linear-gradient(135deg, var(--secondary-color) 0%, var(--secondary-color) 100%);
   color: white;
@@ -12,7 +12,7 @@
 }
 
 .sidebar.collapsed {
-  width: 70px;
+  width: 60px;
 }
 
 /* Header */

@@ -5,6 +5,7 @@ import HeaderView from '../../common/HeaderView';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
+import InputNormal from '../../common/InputNormal';
 import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
 import { motion } from 'framer-motion';
@@ -501,7 +502,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                             ))}
                             {/* Selector de sucursal - Solo mostrar si no estamos editando */}
                         {!pedidoId && (
-                            <div className={styles.content} style={{ padding: '10px 15px' }}>
+                            <div className={styles.content} style={{ padding: '10px 15px', marginTop: 'auto' }}>
                                 <Select
                                     value={sucursalSeleccionada}
                                     onChange={setSucursalSeleccionada}
@@ -512,6 +513,14 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                 />
                             </div>
                         )}
+                        {/* Input de observaciones debajo del selector de sucursal */}
+
+                            <InputNormal
+                                tipo="text"
+                                value={observacionesGenerales}
+                                placeholder="Observaciones del pedido"
+                                onChange={(e) => setObservacionesGenerales(e.target.value)}
+                            />
                         </div>
 
                         {/* Total general */}
@@ -563,15 +572,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 </div>
             </ViewModal>
 
-            {/* Input de observaciones (oculto) */}
-            {/* <div className={styles.observacionesGenerales}>
-                <InputNormal
-                    tipo="text"
-                    value={observacionesGenerales}
-                    placeholder="Observaciones del pedido"
-                    onChange={(e) => setObservacionesGenerales(e.target.value)}
-                />
-            </div> */}
+            
 
             <Notification
                 isVisible={notification.isVisible}

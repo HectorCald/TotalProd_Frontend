@@ -106,7 +106,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             };
             onPedidoActualizado(pedidoActualizado);
         }
-        
+
         // Cerrar AlmacenGeneral (VerPedido se cerrará desde PanelPedidos después de actualizar)
         setIsAlmacenOpen(false);
     };
@@ -413,7 +413,6 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                                 className={styles.iconDownload}
                             />
                         </button>
-
                     </div>
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL SOLICITANTE</p>
@@ -454,6 +453,11 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         return total + (precio * cantidad);
                     }, 0).toFixed(2)}`}
                     especial='green'
+                    vertical={false}
+                />
+                <Dato
+                    label="Observaciones"
+                    value={pedido.observaciones || 'Sin observaciones'}
                     vertical={false}
                 />
 
