@@ -109,7 +109,9 @@ class pedidosAcopioService {
         params.append('estado', estado);
       }
       
-      const response = await fetch(`${API_BASE_URL}/pedidos-acopio?${params}`, {
+      const finalUrl = `${API_BASE_URL}/pedidos-acopio?${params}`;
+      console.log('[pedidosAcopioService.getAll] URL =>', finalUrl);
+      const response = await fetch(finalUrl, {
         method: 'GET',
         headers: getAuthHeaders(),
       });

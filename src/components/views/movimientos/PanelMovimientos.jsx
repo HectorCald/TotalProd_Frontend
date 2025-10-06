@@ -10,7 +10,6 @@ import Filtros from '../../common/Filtros';
 import Notification from '../../common/Notification';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
-import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
@@ -60,8 +59,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         
         try {
             const response = tipoMovimiento === 'acopio' 
-                ? await movimientosAcopioService.getAll(page, 20, filtro, estado, orden)
-                : await movimientosAlmacenService.getAll(page, 20, filtro, estado, orden);
+                ? await movimientosAcopioService.getAll(page, 20, filtro, estado, orden, null, search)
+                : await movimientosAlmacenService.getAll(page, 20, filtro, estado, orden, null, search);
                 
             if (response.success) {
                 const newData = response.data || [];

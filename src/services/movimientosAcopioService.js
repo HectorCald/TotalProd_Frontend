@@ -172,7 +172,7 @@ class movimientosAcopioService {
   }
 
   // Obtener todos los movimientos
-  static async getAll(page = 1, limit = 10, tipo = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+  static async getAll(page = 1, limit = 10, tipo = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null, search = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -197,8 +197,13 @@ class movimientosAcopioService {
       if (ordenamiento) {
         params.append('ordenamiento', ordenamiento);
       }
+      if (search && search.trim() !== '') {
+        params.append('search', search);
+      }
 
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio?${params}`, {
+      const finalUrl = `${API_BASE_URL}/movimientos-acopio?${params}`;
+      console.log('[movimientosAcopioService.getAll] URL =>', finalUrl);
+      const response = await fetch(finalUrl, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
