@@ -11,8 +11,9 @@ const DateRangePicker = ({
   disabled = false 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [internalStartDate, setInternalStartDate] = useState(startDate);
-  const [internalEndDate, setInternalEndDate] = useState(endDate);
+  const [internalStartDate, setInternalStartDate] = useState(startDate || new Date());
+  const [internalEndDate, setInternalEndDate] = useState(endDate || new Date());
+  const [buttonText, setButtonText] = useState('Hoy');
   const datePickerRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -21,6 +22,14 @@ const DateRangePicker = ({
     setInternalStartDate(startDate);
     setInternalEndDate(endDate);
   }, [startDate, endDate]);
+
+  // Cuando se abre el calendario, sincronizar con el estado actual
+  useEffect(() => {
+    if (isOpen) {
+      setInternalStartDate(startDate);
+      setInternalEndDate(endDate);
+    }
+  }, [isOpen, startDate, endDate]);
 
   // Función para formatear el rango de fechas
   const formatDateRange = (start, end) => {
@@ -99,6 +108,7 @@ const DateRangePicker = ({
   // Función para establecer fecha de hoy
   const handleToday = () => {
     const today = new Date();
+    setButtonText(formatDateRange(today, today));
     onChange(today, today);
     setIsOpen(false);
   };
@@ -120,6 +130,7 @@ const DateRangePicker = ({
     const endOfWeek = new Date(today);
     endOfWeek.setHours(23, 59, 59, 999);
     
+    setButtonText(formatDateRange(startOfWeek, endOfWeek));
     onChange(startOfWeek, endOfWeek);
     setIsOpen(false);
   };
@@ -133,6 +144,7 @@ const DateRangePicker = ({
     const endOfMonth = new Date(today);
     endOfMonth.setHours(23, 59, 59, 999);
     
+    setButtonText(formatDateRange(startOfMonth, endOfMonth));
     onChange(startOfMonth, endOfMonth);
     setIsOpen(false);
   };
@@ -169,7 +181,7 @@ const DateRangePicker = ({
       >
         <i className="bx bx-calendar" style={{ color: 'var(--primary-color)' }}></i>
         <span className={styles.dateText}>
-          {formatDateRange(internalStartDate, internalEndDate)}
+          {buttonText}
         </span>
         <span className={styles.arrowIcon}>
           {isOpen ? '▲' : '▼'}
@@ -219,6 +231,7 @@ const DateRangePicker = ({
                 const [start, end] = dates;
                 setInternalStartDate(start);
                 setInternalEndDate(end);
+                // NO actualizar el texto del botón aquí, solo cuando se aplique
               }}
               startDate={internalStartDate}
               endDate={internalEndDate}
@@ -248,9 +261,12 @@ const DateRangePicker = ({
                   if (internalStartDate) {
                     // Si solo hay fecha de inicio, usar la misma fecha como fin
                     const endDate = internalEndDate || internalStartDate;
+                    // Actualizar el texto del botón
+                    setButtonText(formatDateRange(internalStartDate, internalEndDate));
+                    // Notificar al componente padre
                     onChange(internalStartDate, endDate);
-                    setIsOpen(false);
                   }
+                  setIsOpen(false);
                 }}
                 disabled={!internalStartDate}
               >
