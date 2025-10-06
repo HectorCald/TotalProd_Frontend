@@ -110,7 +110,6 @@ class pedidosAcopioService {
       }
       
       const finalUrl = `${API_BASE_URL}/pedidos-acopio?${params}`;
-      console.log('[pedidosAcopioService.getAll] URL =>', finalUrl);
       const response = await fetch(finalUrl, {
         method: 'GET',
         headers: getAuthHeaders(),

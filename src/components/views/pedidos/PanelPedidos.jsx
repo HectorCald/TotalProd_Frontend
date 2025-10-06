@@ -438,7 +438,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                         key={pedido.id || index}
                                         title={tipoPedido === 'acopio' 
                                             ? (pedido.producto_acopio?.name || 'Producto desconocido')
-                                            : (pedido.sucursal?.name || 'Sucursal desconocida')
+                                            : (pedido.user?.name || pedido.personal?.name || 'Usuario desconocido')
                                         }
                                         description={tipoPedido === 'acopio'
                                             ? `${pedido.cantidad || 0} ${pedido.tipo_medida || ''} - ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
