@@ -69,7 +69,11 @@ class movimientosAlmacenService {
         throw new Error(data.message || 'Error al crear el movimiento');
       }
 
-      return data.id;
+      // Normalizar la respuesta para que siempre tenga { success, data: { id } }
+      return {
+        success: true,
+        data: { id: data.id }
+      };
     } catch (error) {
       console.error('Error creando movimiento de almacén:', error);
       return {
