@@ -212,7 +212,7 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                             tipo="password"
                             icon="lock"
                             value={password}
-                            placeholder="Nueva contraseña (mínimo 8 caracteres)"
+                            placeholder="Nueva contraseña"
                             onChange={(e) => setPassword(e.target.value)}
                         />
                         <InputNormal

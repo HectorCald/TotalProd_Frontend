@@ -30,8 +30,9 @@ function FiltroCategorias({ isOpen, setIsOpen, onCategoriaSeleccionada }) {
         }
     };
 
-    const handleCategoriaSelect = (categoriaId) => {
-        onCategoriaSeleccionada(categoriaId);
+    const handleCategoriaSelect = (categoriaId, categoriaNombre = null) => {
+        // Pasar también el nombre para que el consumidor pueda mostrar la etiqueta seleccionada
+        onCategoriaSeleccionada(categoriaId, categoriaNombre);
         setIsOpen(false);
     };
 
@@ -48,14 +49,14 @@ function FiltroCategorias({ isOpen, setIsOpen, onCategoriaSeleccionada }) {
                 <ItemLine
                     title='Todas las categorías'
                     icon='tag'
-                    onClick={() => handleCategoriaSelect(null)}
+                    onClick={() => handleCategoriaSelect(null, 'Categorías')}
                 />
 
                 {/* Opción para productos sin categoría */}
                 <ItemLine
                     title='Sin categoría'
                     icon='tag'
-                    onClick={() => handleCategoriaSelect('')}
+                    onClick={() => handleCategoriaSelect('', 'Sin categoría')}
                 />
 
                 {/* Categorías dinámicas */}
@@ -69,7 +70,7 @@ function FiltroCategorias({ isOpen, setIsOpen, onCategoriaSeleccionada }) {
                             key={categoria.id}
                             title={categoria.name}
                             icon='tag'
-                            onClick={() => handleCategoriaSelect(categoria.id)}
+                            onClick={() => handleCategoriaSelect(categoria.id, categoria.name)}
                         />
                     ))
                 )}

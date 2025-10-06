@@ -47,6 +47,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Estados para filtros locales
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
+    const [categoriaFiltroNombre, setCategoriaFiltroNombre] = useState('Categorías');
     const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
 
     // Estados para filtros y modales
@@ -203,8 +204,15 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
 
     // Funciones de filtrado locales
-    const handleCategoriaFilter = (categoriaId) => {
+    const handleCategoriaFilter = (categoriaId, categoriaNombre = null) => {
         setCategoriaFiltro(categoriaId);
+        if (categoriaId === null) {
+            setCategoriaFiltroNombre('Categorías');
+        } else if (categoriaId === '') {
+            setCategoriaFiltroNombre('Sin categoría');
+        } else if (categoriaNombre) {
+            setCategoriaFiltroNombre(categoriaNombre);
+        }
     };
     const handleOrdenamiento = (orden) => {
         setOrdenamiento(orden);
@@ -216,6 +224,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         if (isOpen) {
             setSearchQuery('');
             setCategoriaFiltro(null);
+            setCategoriaFiltroNombre('Categorías');
             setOrdenamiento('nombre_asc');
 
             // Cargar canastas desde localStorage
@@ -534,7 +543,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const getCategoriaNombre = () => {
         if (categoriaFiltro === null) return 'Categorías';
         if (categoriaFiltro === '') return 'Sin categoría';
-        return 'Categorías';
+        return categoriaFiltroNombre || 'Categorías';
     };
     // Función para obtener el nombre del ordenamiento
     const getOrdenamientoNombre = () => {
@@ -875,6 +884,12 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 isOpen={isOpenOrden}
                 setIsOpen={setOpenOrden}
                 onOrdenamientoSeleccionado={handleOrdenamiento}
+                opciones={[
+                    { value: 'nombre_asc', label: 'Nombre A-Z', icon: 'sort-a-z' },
+                    { value: 'nombre_desc', label: 'Nombre Z-A', icon: 'sort-z-a' },
+                    { value: 'stock_asc', label: 'Stock ↑', icon: 'up-arrow-alt' },
+                    { value: 'stock_desc', label: 'Stock ↓', icon: 'down-arrow-alt' }
+                ]}
             />
         </>
     );
