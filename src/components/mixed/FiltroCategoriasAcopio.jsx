@@ -12,12 +12,19 @@ function FiltroCategoriasAcopio({ isOpen, setIsOpen, onCategoriaSeleccionada }) 
     // Cargar categorías solo la primera vez
     useEffect(() => {
         if (categorias.length === 0) {
-            cargarCategorias();
+            cargarCategorias(false);
         }
     }, []);
 
-    const cargarCategorias = async () => {
-        setLoading(true);
+    // Refrescar categorías en silencio cuando el modal se abra, sin bloquear la UI
+    useEffect(() => {
+        if (isOpen) {
+            cargarCategorias(true);
+        }
+    }, [isOpen]);
+
+    const cargarCategorias = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const response = await categoryAcopioService.getAll();
             if (response.success) {
@@ -26,7 +33,7 @@ function FiltroCategoriasAcopio({ isOpen, setIsOpen, onCategoriaSeleccionada }) 
         } catch (error) {
             console.error('Error cargando categorías:', error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 

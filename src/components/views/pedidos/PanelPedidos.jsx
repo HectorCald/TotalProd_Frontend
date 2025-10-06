@@ -344,7 +344,8 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         { key: 'usuario', label: 'Usuario', icon: 'user' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
         { key: 'estado', label: 'Estado', icon: 'check-circle' },
-        { key: 'tipo_precio', label: 'Tipo de Precio', icon: 'dollar-sign' }
+        { key: 'cliente', label: 'Cliente', icon: 'user' },
+        { key: 'observaciones', label: 'Observaciones', icon: 'file' }
     ];
 
     // Datos para la tabla
@@ -376,7 +377,8 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                     hour: '2-digit',
                     minute: '2-digit'
                 }),
-                tipo_precio: pedido.precio?.name || 'Precio desconocido',
+                cliente: pedido.cliente?.name || 'Cliente desconocido',
+                observaciones: pedido.observaciones || 'Sin observaciones',
                 estado: pedido.estado
             };
         }

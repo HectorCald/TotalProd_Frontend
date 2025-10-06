@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
+import Clientes from '../clientes/Clientes';
 
 function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], sucursales = [], loadingPrecios = false, loadingSucursales = false, productosActualizados = [], isCartMode = false }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
@@ -22,6 +23,9 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     const [animarCantidad, setAnimarCantidad] = useState({});
     const [precioSeleccionado, setPrecioSeleccionado] = useState('');
     const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
+    const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
+    const [clienteSeleccionado, setClienteSeleccionado] = useState('');
+    const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
     // Estado para notificaciones
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -79,6 +83,18 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             }
         }
     }, [isOpen, preciosTipos, precioSeleccionado, pedidoId]);
+
+    // Inicializar cliente seleccionado cuando se edita un pedido
+    useEffect(() => {
+        if (isOpen && pedidoId) {
+            const clienteId = localStorage.getItem('clienteIdEditando');
+            const clienteName = localStorage.getItem('clienteNameEditando');
+            if (clienteId) {
+                setClienteSeleccionado(clienteId);
+                setClienteSeleccionadoData({ id: clienteId, name: clienteName || '' });
+            }
+        }
+    }, [isOpen, pedidoId]);
 
     // Actualizar precios cuando se inicializa el precioSeleccionado
     useEffect(() => {
@@ -244,6 +260,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         setIsOpen(false);
     };
 
+    // Función para manejar cuando se selecciona un cliente (modal)
+    const handleClienteSeleccionado = (cliente) => {
+        setClienteSeleccionadoData(cliente);
+        setClienteSeleccionado(cliente.id);
+        setIsClientesSeleccionOpen(false);
+    };
+
     // Función para crear un nuevo pedido
     const handleCrearPedido = async () => {
         setLoadingConfirmar(true);
@@ -267,6 +290,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 observaciones: observacionesGenerales || null,
                 precio_id: precioSeleccionado,
                 sucursal_destino_id: sucursalSeleccionada,
+                // Si no hay cliente seleccionado, no enviar el campo para evitar overwriting en backend
+                ...(clienteSeleccionado ? { cliente_id: clienteSeleccionado } : {}),
                 productos: productosCanasta.map(producto => ({
                     id: producto.id,
                     cantidad: producto.cantidad,
@@ -282,6 +307,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
                 setSucursalSeleccionada('');
+                setClienteSeleccionado('');
+                setClienteSeleccionadoData(null);
                 
                 // Limpiar localStorage
                 localStorage.removeItem('canastaPedidos');
@@ -291,8 +318,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 if (onCerrarCanasta) {
                     onCerrarCanasta();
                 }
-                
-                mostrarNotificacion('success', 'Pedido creado correctamente');
+            
             } else {
                 console.error('Error al crear pedido:', response.message);
                 mostrarNotificacion('error', response.message || 'Error al crear el pedido');
@@ -314,6 +340,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             const pedidoData = {
                 observaciones: observacionesGenerales || null,
                 precio_id: precioSeleccionado,
+                // Solo enviar cliente_id si el usuario seleccionó uno explícitamente
+                ...(clienteSeleccionado ? { cliente_id: clienteSeleccionado } : {}),
                 productos: productosCanasta.map(producto => ({
                     id: producto.id,
                     cantidad: producto.cantidad,
@@ -333,6 +361,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 // Limpiar la canasta
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
+                setClienteSeleccionado('');
+                setClienteSeleccionadoData(null);
                 
                 // Limpiar localStorage
                 localStorage.removeItem('canastaPedidos');
@@ -344,8 +374,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 if (onCerrarCanasta) {
                     onCerrarCanasta();
                 }
-                
-                mostrarNotificacion('success', 'Pedido actualizado correctamente');
+            
             } else {
                 console.error('Error al actualizar pedido:', response.message);
                 mostrarNotificacion('error', response.message || 'Error al actualizar el pedido');
@@ -513,7 +542,17 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                 />
                             </div>
                         )}
-                        {/* Input de observaciones debajo del selector de sucursal */}
+                        {/* Botón para seleccionar cliente entre sucursal y observaciones */}
+                        <div className={styles.content} style={{ padding: '5px 15px' }}>
+                            <Boton
+                                className='btn-transparent'
+                                label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+                                onClick={() => setIsClientesSeleccionOpen(true)}
+                                style={{ width: '100%', justifyContent: 'flex-start' }}
+                            />
+                        </div>
+
+                        {/* Input de observaciones debajo del selector de cliente */}
 
                             <InputNormal
                                 tipo="text"
@@ -572,7 +611,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 </div>
             </ViewModal>
 
-            
+            {/* View de selección de clientes */}
+            <Clientes
+                isOpen={isClientesSeleccionOpen}
+                setIsOpen={setIsClientesSeleccionOpen}
+                modoSeleccion={true}
+                onClienteSeleccionado={handleClienteSeleccionado}
+            />
 
             <Notification
                 isVisible={notification.isVisible}

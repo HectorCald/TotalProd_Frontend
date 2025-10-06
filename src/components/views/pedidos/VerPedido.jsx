@@ -87,6 +87,14 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.setItem('canastaPedidos', JSON.stringify(productosParaCanasta));
         localStorage.setItem('pedidoIdEditando', pedido.id);
         localStorage.setItem('precioIdEditando', pedido.precio_id || '');
+        // Guardar cliente si existe para preseleccionarlo en CanastaPedidos
+        if (pedido.cliente?.id) {
+            localStorage.setItem('clienteIdEditando', pedido.cliente.id);
+            localStorage.setItem('clienteNameEditando', pedido.cliente.name || '');
+        } else {
+            localStorage.removeItem('clienteIdEditando');
+            localStorage.removeItem('clienteNameEditando');
+        }
 
         // Abrir AlmacenGeneral en modo pedido
         setModoAlmacen('pedido');
@@ -333,6 +341,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         if (pedido?.precio?.name) {
             informacionSuperior['Tipo de Precio'] = pedido.precio.name;
         }
+        if (pedido?.cliente?.name) {
+            informacionSuperior['Cliente'] = pedido.cliente.name;
+        }
 
         // Calcular total
         const total = (pedido?.pedido_almacen_detalle || []).reduce((sum, detalle) => {
@@ -436,6 +447,13 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                     circulo={false}
                     transparent={false}
                 />
+                {pedido?.cliente?.name && (
+                    <ItemView
+                        title={pedido.cliente.name}
+                        description="Cliente"
+                        transparent={false}
+                    />
+                )}
                 {/* Botón para ver productos */}
                 {detalles.length > 0 && (
                     <Boton
