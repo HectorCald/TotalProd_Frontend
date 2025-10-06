@@ -11,10 +11,13 @@ import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import Notification from '../../common/Notification';
 import styles from '../../../styles/view.module.css';
 import Boton from '../../common/Boton';
+import DateRangePicker from '../../common/DateRangePicker';
 
 const Reportes = ({ isOpen, setIsOpen }) => {
   const DEBUG_REPORTES = false;
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState('');
+  // Estados para el rango de fechas
+  const [fechaInicio, setFechaInicio] = useState(new Date());
+  const [fechaFin, setFechaFin] = useState(new Date());
   const [areaSeleccionada, setAreaSeleccionada] = useState('');
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
   const [isDescargaOpen, setIsDescargaOpen] = useState(false);
@@ -92,76 +95,36 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     }, 3000);
   };
 
-  // Función para calcular fechas según el período (en hora local; formato mostrado en America/La_Paz)
-  const getFechasPeriodo = (periodo) => {
-    const hoy = new Date();
-    const fechaInicio = new Date(hoy);
-
-    switch (periodo) {
-      case 'hoy':
-        fechaInicio.setHours(0, 0, 0, 0);
-        break;
-      case '1_semana':
-        fechaInicio.setDate(hoy.getDate() - 7);
-        fechaInicio.setHours(0, 0, 0, 0);
-        break;
-      case '1_mes':
-        fechaInicio.setMonth(hoy.getMonth() - 1);
-        fechaInicio.setHours(0, 0, 0, 0);
-        break;
-      case '3_meses':
-        fechaInicio.setMonth(hoy.getMonth() - 3);
-        fechaInicio.setHours(0, 0, 0, 0);
-        break;
-      case '6_meses':
-        fechaInicio.setMonth(hoy.getMonth() - 6);
-        fechaInicio.setHours(0, 0, 0, 0);
-        break;
-      case '1_año':
-        fechaInicio.setFullYear(hoy.getFullYear() - 1);
-        fechaInicio.setHours(0, 0, 0, 0);
-        break;
-      default:
-        fechaInicio.setHours(0, 0, 0, 0);
+  // Función para manejar el cambio de fechas del DateRangePicker
+  const handleFechaChange = (start, end) => {
+    if (start) {
+      // Establecer inicio del día
+      const fechaInicioNormalizada = new Date(start);
+      fechaInicioNormalizada.setHours(0, 0, 0, 0);
+      setFechaInicio(fechaInicioNormalizada);
     }
 
-    const fechaFin = new Date(hoy);
-    fechaFin.setHours(23, 59, 59, 999);
+    if (end) {
+      // Establecer fin del día
+      const fechaFinNormalizada = new Date(end);
+      fechaFinNormalizada.setHours(23, 59, 59, 999);
+      setFechaFin(fechaFinNormalizada);
+    } else if (start) {
+      // Si solo hay fecha de inicio, usar la misma como fin
+      const fechaFinNormalizada = new Date(start);
+      fechaFinNormalizada.setHours(23, 59, 59, 999);
+      setFechaFin(fechaFinNormalizada);
+    }
 
-    const infoDebug = {
-      periodo,
-      tzOffsetMin: hoy.getTimezoneOffset(),
-      ahora_toString: hoy.toString(),
-      ahora_locale_LaPaz: hoy.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-      inicio_toString: fechaInicio.toString(),
-      inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-      fin_toString: fechaFin.toString(),
-      fin_locale_LaPaz: fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
-    };
     if (DEBUG_REPORTES) {
-      console.group('Cálculo Fechas Periodo');
-      console.log(infoDebug);
-      console.groupEnd();
+      console.log('Fechas actualizadas:', {
+        fechaInicio: start,
+        fechaFin: end,
+        fechaInicioNormalizada: start ? new Date(start).setHours(0, 0, 0, 0) : null,
+        fechaFinNormalizada: end ? new Date(end).setHours(23, 59, 59, 999) : null
+      });
     }
-
-    return {
-      // devolvemos objetos Date para evitar desplazamientos a UTC
-      fechaInicio,
-      fechaFin,
-      // el formateo para visualización se fuerza a es-BO y America/La_Paz
-      fechaInicioFormateada: fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' }),
-      fechaFinFormateada: fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' })
-    };
   };
-
-  const opcionesPeriodo = [
-    { value: 'hoy', label: 'Hoy', icon: 'calendar' },
-    { value: '1_semana', label: '1 Semana', icon: 'calendar' },
-    { value: '1_mes', label: '1 Mes', icon: 'calendar' },
-    { value: '3_meses', label: '3 Meses', icon: 'calendar' },
-    { value: '6_meses', label: '6 Meses', icon: 'calendar' },
-    { value: '1_año', label: '1 Año', icon: 'calendar' }
-  ];
 
   const opcionesArea = [
     { value: 'ventas', label: 'Ventas', icon: 'money' },
@@ -187,11 +150,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     if (DEBUG_REPORTES) console.log('Sucursal seleccionada:', valor);
   };
 
-  const handlePeriodoChange = (valor) => {
-    setPeriodoSeleccionado(valor);
-    if (DEBUG_REPORTES) console.log('Período seleccionado:', valor);
-    // Aquí puedes agregar la lógica para cargar reportes según el período
-  };
 
   const handleRefresh = async () => {
     if (DEBUG_REPORTES) console.log('Refrescando sucursales manualmente...');
@@ -199,14 +157,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   };
 
   // Función para generar reporte de ventas (solo salidas de almacén)
-  const generarReporteVentas = async (movimientos, fechasPeriodo) => {
+  const generarReporteVentas = async (movimientos, { fechaInicio, fechaFin }) => {
     if (DEBUG_REPORTES) {
       console.group('Generar Reporte: Ventas');
       console.log('Fechas periodo:', {
-        fechaInicio: fechasPeriodo.fechaInicio,
-        fechaFin: fechasPeriodo.fechaFin,
-        inicio_locale_LaPaz: fechasPeriodo.fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-        fin_locale_LaPaz: fechasPeriodo.fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+        fechaInicio,
+        fechaFin,
+        inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+        fin_locale_LaPaz: fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
       });
       console.log('Movimientos recibidos:', movimientos?.length);
     }
@@ -253,11 +211,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
     // Formatear período con fechas específicas
-    let periodoConFechas = opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '';
-    if (periodoSeleccionado === 'hoy') {
-      periodoConFechas = `Hoy (${fechasPeriodo.fechaFinFormateada})`;
+    const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+    const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+
+    let periodoConFechas;
+    if (fechaInicio.getTime() === fechaFin.getTime()) {
+      periodoConFechas = fechaFinFormateada;
     } else {
-      periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
+      periodoConFechas = `${fechaInicioFormateada} a ${fechaFinFormateada}`;
     }
 
     const resultado = {
@@ -279,14 +240,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   };
 
   // Función para generar reporte de almacén general (entradas y salidas por separado)
-  const generarReporteAlmacen = async (movimientos, fechasPeriodo) => {
+  const generarReporteAlmacen = async (movimientos, { fechaInicio, fechaFin }) => {
     if (DEBUG_REPORTES) {
       console.group('Generar Reporte: Almacén General');
       console.log('Fechas periodo:', {
-        fechaInicio: fechasPeriodo.fechaInicio,
-        fechaFin: fechasPeriodo.fechaFin,
-        inicio_locale_LaPaz: fechasPeriodo.fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-        fin_locale_LaPaz: fechasPeriodo.fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+        fechaInicio,
+        fechaFin,
+        inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+        fin_locale_LaPaz: fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
       });
       console.log('Movimientos recibidos:', movimientos?.length);
     }
@@ -359,11 +320,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     const totalSalidas = Object.values(productosSalidas).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
     // Formatear período con fechas específicas
-    let periodoConFechas = opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '';
-    if (periodoSeleccionado === 'hoy') {
-      periodoConFechas = `Hoy (${fechasPeriodo.fechaFinFormateada})`;
+    const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+    const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+
+    let periodoConFechas;
+    if (fechaInicio.getTime() === fechaFin.getTime()) {
+      periodoConFechas = fechaFinFormateada;
     } else {
-      periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
+      periodoConFechas = `${fechaInicioFormateada} a ${fechaFinFormateada}`;
     }
 
     const resultado = {
@@ -387,7 +351,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   };
 
   // Función para generar reporte de materia prima (entradas con costo)
-  const generarReporteMateriaPrima = async (movimientos, fechasPeriodo) => {
+  const generarReporteMateriaPrima = async (movimientos, { fechaInicio, fechaFin }) => {
     if (DEBUG_REPORTES) console.log('🌾 Movimientos de materia prima recibidos:', movimientos);
     const entradas = movimientos.filter(m => m.type === 'entrada');
     if (DEBUG_REPORTES) console.log('🌾 Entradas filtradas:', entradas);
@@ -424,11 +388,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
     // Formatear período con fechas específicas
-    let periodoConFechas = opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '';
-    if (periodoSeleccionado === 'hoy') {
-      periodoConFechas = `Hoy (${fechasPeriodo.fechaFinFormateada})`;
+    const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+    const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+
+    let periodoConFechas;
+    if (fechaInicio.getTime() === fechaFin.getTime()) {
+      periodoConFechas = fechaFinFormateada;
     } else {
-      periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
+      periodoConFechas = `${fechaInicioFormateada} a ${fechaFinFormateada}`;
     }
 
     const reporteData = {
@@ -448,15 +415,15 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   };
 
   // Función para generar reporte de pedidos
-  const generarReportePedidos = async (pedidos, fechasPeriodo) => {
+  const generarReportePedidos = async (pedidos, { fechaInicio, fechaFin }) => {
     if (DEBUG_REPORTES) {
       console.group('Generar Reporte: Pedidos');
       console.log('Pedidos recibidos:', pedidos?.length);
       console.log('Fechas periodo:', {
-        fechaInicio: fechasPeriodo.fechaInicio,
-        fechaFin: fechasPeriodo.fechaFin,
-        inicio_locale_LaPaz: fechasPeriodo.fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-        fin_locale_LaPaz: fechasPeriodo.fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+        fechaInicio,
+        fechaFin,
+        inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+        fin_locale_LaPaz: fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
       });
     }
     // Agrupar productos de pedidos
@@ -488,11 +455,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
     // Formatear período con fechas específicas
-    let periodoConFechas = opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || '';
-    if (periodoSeleccionado === 'hoy') {
-      periodoConFechas = `Hoy (${fechasPeriodo.fechaFinFormateada})`;
+    const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+    const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+
+    let periodoConFechas;
+    if (fechaInicio.getTime() === fechaFin.getTime()) {
+      periodoConFechas = fechaFinFormateada;
     } else {
-      periodoConFechas = `${periodoConFechas} (${fechasPeriodo.fechaInicioFormateada} a ${fechasPeriodo.fechaFinFormateada})`;
+      periodoConFechas = `${fechaInicioFormateada} a ${fechaFinFormateada}`;
     }
 
     const resultado = {
@@ -515,8 +485,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
   // Función principal para generar el reporte
   const handleGenerarReporte = async () => {
-    if (!periodoSeleccionado || !areaSeleccionada || !sucursalSeleccionada) {
-      mostrarNotificacion('error', 'Por favor selecciona período, área y sucursal');
+    if (!fechaInicio || !fechaFin || !areaSeleccionada || !sucursalSeleccionada) {
+      mostrarNotificacion('error', 'Por favor selecciona fechas, área y sucursal');
       return;
     }
 
@@ -531,13 +501,11 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
     if (DEBUG_REPORTES) {
       console.group('Generar Reporte: Inicio');
-      console.log('Inputs ->', { periodoSeleccionado, areaSeleccionada, sucursalSeleccionada });
+      console.log('Inputs ->', { fechaInicio, fechaFin, areaSeleccionada, sucursalSeleccionada });
     }
     setIsLoading(true);
     try {
-      const fechasPeriodo = getFechasPeriodo(periodoSeleccionado);
-      const { fechaInicio, fechaFin } = fechasPeriodo;
-      if (DEBUG_REPORTES) console.log('Rango calculado ->', {
+      if (DEBUG_REPORTES) console.log('Rango de fechas ->', {
         fechaInicio,
         fechaFin,
         inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
@@ -583,7 +551,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               return;
             }
 
-            reporteData = await generarReporteVentas(movimientosFiltradosVentas, fechasPeriodo);
+            reporteData = await generarReporteVentas(movimientosFiltradosVentas, { fechaInicio, fechaFin });
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de ventas');
             return;
@@ -621,7 +589,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               return;
             }
 
-            reporteData = await generarReporteAlmacen(movimientosFiltradosAlmacen, fechasPeriodo);
+            reporteData = await generarReporteAlmacen(movimientosFiltradosAlmacen, { fechaInicio, fechaFin });
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de almacén');
             return;
@@ -668,7 +636,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               return;
             }
 
-            reporteData = await generarReporteMateriaPrima(movimientosFiltrados, fechasPeriodo);
+            reporteData = await generarReporteMateriaPrima(movimientosFiltrados, { fechaInicio, fechaFin });
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de materia prima');
             return;
@@ -706,7 +674,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               return;
             }
 
-            reporteData = await generarReportePedidos(pedidosFiltrados, fechasPeriodo);
+            reporteData = await generarReportePedidos(pedidosFiltrados, { fechaInicio, fechaFin });
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los pedidos');
             return;
@@ -743,35 +711,35 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         <div className={styles.headerContainer}>
           <p className={styles.subTitle}>SELECCIONAR</p>
         </div>
-        <div className={styles.content}>
-          <Select
-            placeholder="Período de tiempo"
-            options={opcionesPeriodo}
-            value={periodoSeleccionado}
-            onChange={handlePeriodoChange}
-            icon="calendar"
+        <div style={{ display: 'flex', flexDirection: 'row',gap: '10px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <DateRangePicker
+            startDate={fechaInicio}
+            endDate={fechaFin}
+            onChange={handleFechaChange}
+            placeholder="Seleccionar rango de fechas"
           />
+
+          <div className={styles.content}>
+            <Select
+              placeholder="Área"
+              options={opcionesArea}
+              value={areaSeleccionada}
+              onChange={handleAreaChange}
+              icon="category"
+            />
+          </div>
+
+          <div className={styles.content}>
+            <Select
+              placeholder="Sucursal"
+              options={opcionesSucursales}
+              value={sucursalSeleccionada}
+              onChange={handleSucursalChange}
+              icon="map"
+            />
+          </div>
         </div>
 
-        <div className={styles.content}>
-          <Select
-            placeholder="Área"
-            options={opcionesArea}
-            value={areaSeleccionada}
-            onChange={handleAreaChange}
-            icon="category"
-          />
-        </div>
-
-        <div className={styles.content}>
-          <Select
-            placeholder="Sucursal"
-            options={opcionesSucursales}
-            value={sucursalSeleccionada}
-            onChange={handleSucursalChange}
-            icon="map"
-          />
-        </div>
         <div className={styles.buttons}>
           <Boton
             className='btn-blue'
@@ -795,7 +763,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         setIsOpen={setIsDescargaOpen}
         titulo="Descargar Reporte"
         subtitulo="Selecciona el formato que prefieras para descargar este reporte."
-        nombreArchivo={`Reporte_${areaSeleccionada}_${opcionesPeriodo.find(p => p.value === periodoSeleccionado)?.label || ''}_${new Date().toLocaleDateString().replace(/\//g, '-')}`}
+        nombreArchivo={`Reporte_${areaSeleccionada}_${fechaInicio.toLocaleDateString('es-BO').replace(/\//g, '-')}_${fechaFin.toLocaleDateString('es-BO').replace(/\//g, '-')}`}
         {...datosReporte}
       />
 

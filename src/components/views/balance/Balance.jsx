@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import Select from '../../common/Select';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import Boton from '../../common/Boton';
+import DateRangePicker from '../../common/DateRangePicker';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import EditarAgregarGasto from '../gastos/EditarAgregarGasto';
 import VerBalance from './VerBalance';
@@ -12,7 +12,8 @@ import movimientosAlmacenService from '../../../services/movimientosAlmacenServi
 import gastosService from '../../../services/gastosService';
 
 const Balance = ({ isOpen, setIsOpen }) => {
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState('hoy');
+  const [fechaInicio, setFechaInicio] = useState(new Date());
+  const [fechaFin, setFechaFin] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -38,64 +39,36 @@ const Balance = ({ isOpen, setIsOpen }) => {
     console.log(`${tipo.toUpperCase()}: ${texto}`);
   };
 
-  // Función para calcular fechas según el período
-  const getFechasPeriodo = (periodo) => {
-    const hoy = new Date();
-    const fechaInicio = new Date();
-    
-    switch (periodo) {
-      case 'hoy':
-        fechaInicio.setHours(0, 0, 0, 0);
-        break;
-      case '1_semana':
-        fechaInicio.setDate(hoy.getDate() - 7);
-        break;
-      case '1_mes':
-        fechaInicio.setMonth(hoy.getMonth() - 1);
-        break;
-      case '3_meses':
-        fechaInicio.setMonth(hoy.getMonth() - 3);
-        break;
-      case '6_meses':
-        fechaInicio.setMonth(hoy.getMonth() - 6);
-        break;
-      case '1_año':
-        fechaInicio.setFullYear(hoy.getFullYear() - 1);
-        break;
-      default:
-        fechaInicio.setHours(0, 0, 0, 0);
-    }
-    
-    return {
-      fechaInicio: fechaInicio.toISOString(),
-      fechaFin: hoy.toISOString(),
-      fechaInicioFormateada: fechaInicio.toLocaleDateString('es-ES'),
-      fechaFinFormateada: hoy.toLocaleDateString('es-ES')
-    };
+  const handleFechaChange = (startDate, endDate) => {
+    setFechaInicio(startDate);
+    setFechaFin(endDate);
+    console.log('Fechas seleccionadas:', { startDate, endDate });
+    cargarDatosBalance(startDate, endDate);
   };
 
-  const opcionesPeriodo = [
-    { value: 'hoy', label: 'Hoy', icon: 'calendar' },
-    { value: '1_semana', label: '1 Semana', icon: 'calendar' },
-    { value: '1_mes', label: '1 Mes', icon: 'calendar' },
-    { value: '3_meses', label: '3 Meses', icon: 'calendar' },
-    { value: '6_meses', label: '6 Meses', icon: 'calendar' },
-    { value: '1_año', label: '1 Año', icon: 'calendar' }
-  ];
-
-  const handlePeriodoChange = (valor) => {
-    setPeriodoSeleccionado(valor);
-    console.log('Período seleccionado:', valor);
-    cargarDatosBalance(valor);
-  };
-
-  const cargarDatosBalance = async (periodo = periodoSeleccionado) => {
+  const cargarDatosBalance = async (startDate = fechaInicio, endDate = fechaFin) => {
     setIsLoading(true);
     setShowRefreshIndicator(true);
     setIsRefreshing(true);
 
     try {
-      const fechas = getFechasPeriodo(periodo);
+      // Configurar fechas correctamente para el filtrado
+      const fechaInicioAjustada = new Date(startDate);
+      fechaInicioAjustada.setHours(0, 0, 0, 0); // Inicio del día
+      
+      const fechaFinAjustada = new Date(endDate);
+      fechaFinAjustada.setHours(23, 59, 59, 999); // Final del día
+      
+      // Formatear fechas para la consulta
+      const fechaInicioFormateada = fechaInicioAjustada.toISOString();
+      const fechaFinFormateada = fechaFinAjustada.toISOString();
+      
+      console.log('Fechas para filtrado:', {
+        fechaInicioFormateada,
+        fechaFinFormateada,
+        fechaInicioAjustada: fechaInicioAjustada.toLocaleString(),
+        fechaFinAjustada: fechaFinAjustada.toLocaleString()
+      });
       
       // Hacer las 2 peticiones en paralelo para mejorar el rendimiento
       const [movimientosAlmacenResponse, gastosResponse] = await Promise.all([
@@ -106,19 +79,26 @@ const Balance = ({ isOpen, setIsOpen }) => {
       // Filtrar movimientos de almacén (salidas = ingresos/ventas)
       const salidasAlmacen = movimientosAlmacenResponse.data?.filter(mov => 
         mov.type === 'salida' && 
-        new Date(mov.fecha) >= new Date(fechas.fechaInicio) && 
-        new Date(mov.fecha) <= new Date(fechas.fechaFin)
+        new Date(mov.fecha) >= new Date(fechaInicioFormateada) && 
+        new Date(mov.fecha) <= new Date(fechaFinFormateada)
       ) || [];
 
       // Filtrar gastos por período (incluye gastos de entradas de acopio + gastos manuales)
       const gastosPeriodo = gastosResponse.data?.filter(gasto => {
         // fecha_gasto es tipo DATE (YYYY-MM-DD), comparar solo fechas
         const fechaGasto = gasto.fecha_gasto; // Ya es YYYY-MM-DD
-        const fechaInicio = fechas.fechaInicio.split('T')[0]; // Extraer solo YYYY-MM-DD
-        const fechaFin = fechas.fechaFin.split('T')[0]; // Extraer solo YYYY-MM-DD
+        const fechaInicioStr = fechaInicioFormateada.split('T')[0]; // Extraer solo YYYY-MM-DD
+        const fechaFinStr = fechaFinFormateada.split('T')[0]; // Extraer solo YYYY-MM-DD
         
-        return fechaGasto >= fechaInicio && fechaGasto <= fechaFin;
+        return fechaGasto >= fechaInicioStr && fechaGasto <= fechaFinStr;
       }) || [];
+
+      console.log('Datos filtrados:', {
+        totalMovimientos: movimientosAlmacenResponse.data?.length || 0,
+        salidasAlmacen: salidasAlmacen.length,
+        totalGastos: gastosResponse.data?.length || 0,
+        gastosPeriodo: gastosPeriodo.length
+      });
 
       // Guardar datos para actualización directa y para VerBalance
       setGastosData(gastosResponse.data || []);
@@ -182,14 +162,12 @@ const Balance = ({ isOpen, setIsOpen }) => {
     mostrarNotificacion('success', 'Gasto registrado correctamente');
     
     // Actualizar balance directamente sin hacer nueva petición
-    const fechas = getFechasPeriodo(periodoSeleccionado);
-    
     // Verificar si el gasto está dentro del período seleccionado (comparar solo fechas)
     const fechaGasto = gastoData.fecha_gasto; // Ya es YYYY-MM-DD
-    const fechaInicio = fechas.fechaInicio.split('T')[0]; // Extraer solo YYYY-MM-DD
-    const fechaFin = fechas.fechaFin.split('T')[0]; // Extraer solo YYYY-MM-DD
+    const fechaInicioStr = fechaInicio.toISOString().split('T')[0]; // Extraer solo YYYY-MM-DD
+    const fechaFinStr = fechaFin.toISOString().split('T')[0]; // Extraer solo YYYY-MM-DD
     
-    if (fechaGasto >= fechaInicio && fechaGasto <= fechaFin) {
+    if (fechaGasto >= fechaInicioStr && fechaGasto <= fechaFinStr) {
       // Agregar el nuevo gasto a los datos locales
       const nuevoGasto = {
         id: gastoData.id,
@@ -238,15 +216,13 @@ const Balance = ({ isOpen, setIsOpen }) => {
           <p className={styles.subTitle}>SELECCIONAR</p>
         </div>
 
-        <div className={styles.content}>
-          <Select
-            placeholder="Período de tiempo"
-            options={opcionesPeriodo}
-            value={periodoSeleccionado}
-            onChange={handlePeriodoChange}
-            icon="calendar"
+
+          <DateRangePicker
+            startDate={fechaInicio}
+            endDate={fechaFin}
+            onChange={handleFechaChange}
           />
-        </div>
+
 
         {/* Componente de Balance - Simple */}
         <div className={styles.balanceSimple}>
