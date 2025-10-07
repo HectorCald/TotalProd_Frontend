@@ -16,7 +16,8 @@ const getSucuId = () => {
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {
     const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.id;
+    // Usar el almacén compartido si existe; si no, la sucursal actual
+    return parsed.almacen_sucursal_id || parsed.id;
   }
   return null;
 };

@@ -11,13 +11,20 @@ root.render(
   </React.StrictMode>
 );
 
-// Register Service Worker to enable offline caching and PWA capabilities
+// Register Service Worker only in production; aggressively unregister in development to avoid HMR reload loops
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/service-worker.js')
-      .catch(() => {
-        // Intentionally swallow errors to avoid breaking the UI on SW registration failures
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd) {
+      navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+    } else {
+      // Development: unregister any existing SW and clear caches to prevent stale assets and reload loops
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(reg => reg.unregister());
       });
+      if (window.caches && window.caches.keys) {
+        caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {});
+      }
+    }
   });
 }

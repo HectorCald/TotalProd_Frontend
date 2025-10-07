@@ -25,7 +25,8 @@ const getSucuId = () => {
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {
     const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.id;
+    // Si la sucursal usa el almacén de otra sucursal, usar ese ID; si no, usar su propio ID
+    return parsed.almacen_sucursal_id || parsed.id;
   }
   return null;
 };

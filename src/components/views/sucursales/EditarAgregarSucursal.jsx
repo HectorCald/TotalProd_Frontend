@@ -4,6 +4,7 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
+import Switch from '../../common/Switch';
 import sucursalesService from '../../../services/sucursalesService';
 import Notification from '../../common/Notification';
 
@@ -13,6 +14,7 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
   });
 
   const [loading, setLoading] = useState(false);
+  const [almacenSeparado, setAlmacenSeparado] = useState(true);
 
   // Estado para la notificación
   const [notification, setNotification] = useState({
@@ -39,10 +41,13 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
       setDataMov({
         name: data.name || ''
       });
+      // Si la sucursal comparte almacén (tiene almacen_sucursal_id), el switch debe estar desactivado
+      setAlmacenSeparado(!data.almacen_sucursal_id);
     } else {
       setDataMov({
         name: ''
       });
+      setAlmacenSeparado(true);
     }
   }, [isOpen, data, tipo]);
 
@@ -62,7 +67,9 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
     try {
       let response;
       const sucursalData = {
-        name: dataMov.name.trim()
+        name: dataMov.name.trim(),
+        // Solo informativo para el service; no se envía al backend directamente
+        almacenSeparado: almacenSeparado
       };
 
       if (tipo === 'editar') {
@@ -109,6 +116,16 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
           onChange={(e) => handleChange('name', e.target.value)}
           icon='building'
         />
+
+        <div className={styles.content}>
+          <Switch
+            title="Almacén separado"
+            subtitle="La sucursal tendrá su propio almacén y stock"
+            checked={almacenSeparado}
+            onChange={setAlmacenSeparado}
+            icon="store"
+          />
+        </div>
 
         <Boton
           className='btn-original'

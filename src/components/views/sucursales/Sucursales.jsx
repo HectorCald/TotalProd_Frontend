@@ -175,6 +175,7 @@ function Sucursales({ isOpen, setIsOpen }) {
     // Headers para la tabla
     const tableHeaders = [
         { key: 'name', label: 'Sucursal', icon: 'building' },
+        { key: 'almacen_tipo', label: 'Almacén', icon: 'store' },
         { key: 'created_at', label: 'Fecha de Creación', icon: 'calendar' }
     ];
 
@@ -182,6 +183,7 @@ function Sucursales({ isOpen, setIsOpen }) {
     const tableData = sucursalesFiltradas.map(sucursal => ({
         id: sucursal.id,
         name: sucursal.name || 'Sin nombre',
+        almacen_tipo: sucursal.almacen_sucursal_id ? 'Comparte' : 'Propio',
         created_at: sucursal.created_at ? new Date(sucursal.created_at).toLocaleDateString('es-ES') : 'Sin fecha'
     }));
 

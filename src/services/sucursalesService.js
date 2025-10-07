@@ -21,6 +21,37 @@ const getEmpresaId = () => {
     return null;
 };
 
+// Función helper para obtener sucu_id (id de sucursal actual)
+const getSucuId = () => {
+    const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+    if (sucursalSeleccionada) {
+        const parsed = JSON.parse(sucursalSeleccionada);
+        return parsed.id;
+    }
+    return null;
+};
+
+// Función helper para obtener el id de la sucursal "Casa Matriz" de la empresa
+const getCasaMatrizId = async (empresaId) => {
+    try {
+        if (!empresaId) return null;
+        const response = await fetch(`${API_BASE_URL}/sucursales/empresa/${empresaId}`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return null;
+        }
+        const lista = data?.data || [];
+        const casaMatriz = lista.find(s => (s.name || '').trim() === 'Casa Matriz');
+        return casaMatriz ? casaMatriz.id : null;
+    } catch (e) {
+        console.error('Error obteniendo Casa Matriz:', e);
+        return null;
+    }
+};
+
 const sucursalesService = {
     // Obtener sucursales por empresa
     async getByEmpresaId(empresaIdParam = null) {
@@ -90,13 +121,18 @@ const sucursalesService = {
                     message: 'No hay empresa seleccionada'
                 };
             }
-
+            // Si el switch de almacén separado está inactivo en el frontend (Comparte),
+            // se debe enviar almacen_sucursal_id con el id de "Casa Matriz" de la misma empresa
+            const shouldUseAlmacenSucursal = (sucursalData && typeof sucursalData.almacenSeparado === 'boolean') ? !sucursalData.almacenSeparado : false;
+            const casaMatrizId = shouldUseAlmacenSucursal ? await getCasaMatrizId(empresaId) : null;
+            const { almacenSeparado, ...payload } = sucursalData;
             const response = await fetch(`${API_BASE_URL}/sucursales`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
-                    ...sucursalData,
-                    empresa_id: empresaId
+                    ...payload,
+                    empresa_id: empresaId,
+                    ...(casaMatrizId ? { almacen_sucursal_id: casaMatrizId } : {})
                 })
             });
 
@@ -120,10 +156,20 @@ const sucursalesService = {
     // Actualizar sucursal
     async update(id, sucursalData) {
         try {
+            // Para update, también respetar el switch si viene
+            const hasFlag = sucursalData && typeof sucursalData.almacenSeparado === 'boolean';
+            const shouldUseAlmacenSucursal = hasFlag ? !sucursalData.almacenSeparado : false;
+            const empresaId = getEmpresaId();
+            const casaMatrizId = shouldUseAlmacenSucursal ? await getCasaMatrizId(empresaId) : null;
+            const { almacenSeparado, ...payload } = sucursalData;
             const response = await fetch(`${API_BASE_URL}/sucursales/${id}`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
-                body: JSON.stringify(sucursalData)
+                body: JSON.stringify({
+                    ...payload,
+                    // Si vino el flag, siempre enviar el campo (incluso null para indicar propio)
+                    ...(hasFlag ? { almacen_sucursal_id: casaMatrizId } : {})
+                })
             });
 
             const data = await response.json();

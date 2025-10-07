@@ -75,6 +75,10 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
                         value={sucursal?.name || 'Sin nombre'}
                     />
                     <Dato
+                        label="Tipo de almacén"
+                        value={sucursal?.almacen_sucursal_id ? 'Comparte' : 'Propio'}
+                    />
+                    <Dato
                         label="Fecha de creación"
                         value={sucursal?.created_at ? new Date(sucursal.created_at).toLocaleDateString('es-ES') : 'Sin fecha'}
                     />
@@ -84,7 +88,13 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
                     <Boton
                         className='btn-default'
                         label='Editar Sucursal'
-                        onClick={() => setIsEditarOpen(true)}
+                        onClick={() => {
+                            if (sucursal?.name === 'Casa Matriz') {
+                                mostrarNotificacion('error', 'No se puede editar la sucursal principal "Casa Matriz"');
+                                return;
+                            }
+                            setIsEditarOpen(true);
+                        }}
                     />
                     <Boton
                         className='btn-red'

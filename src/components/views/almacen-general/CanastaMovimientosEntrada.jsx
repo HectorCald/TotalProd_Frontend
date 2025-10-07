@@ -1,0 +1,448 @@
+import React, { useState, useEffect, useRef } from 'react';
+import styles from './CanastaMovimientos.module.css';
+import View from '../../ui/View';
+import HeaderView from '../../common/HeaderView';
+import Boton from '../../common/Boton';
+import Select from '../../common/Select';
+import { BoxIcon } from 'boxicons-react';
+import { motion } from 'framer-motion';
+import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
+import Switch from '../../common/Switch';
+import Proveedores from '../proveedores/Proveedores';
+import Notification from '../../common/Notification';
+import LimpiarCanasta from '../../mixed/LimpiarCanasta';
+
+function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
+    const [observacionesGenerales, setObservacionesGenerales] = useState('');
+    const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
+    const [loadingConfirmar, setLoadingConfirmar] = useState(false);
+    const [animarCantidad, setAnimarCantidad] = useState({});
+    const [precioSeleccionado, setPrecioSeleccionado] = useState('');
+    const [modoAgrupacion, setModoAgrupacion] = useState('agrupado');
+
+    // Estados para proveedores
+    const [proveedorSeleccionado, setProveedorSeleccionado] = useState('');
+    const [isProveedoresSeleccionOpen, setIsProveedoresSeleccionOpen] = useState(false);
+    const [proveedorSeleccionadoData, setProveedorSeleccionadoData] = useState(null);
+    const [restarIngredientes, setRestarIngredientes] = useState(() => {
+        const saved = localStorage.getItem('restarIngredientes');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
+
+    // Notificaciones
+    const [notification, setNotification] = useState({ isVisible: false, type: 'error', text: '' });
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({ isVisible: true, type: tipo, text: texto });
+        setTimeout(() => { setNotification(prev => ({ ...prev, isVisible: false })); }, 3000);
+    };
+
+    // Referencias para el auto-focus en inputs de cantidad
+    const cantidadInputRefs = useRef({});
+    useEffect(() => {
+        if (isCartMode && productosCanasta.length > 0) {
+            const ultimoProducto = productosCanasta[productosCanasta.length - 1];
+            const inputRef = cantidadInputRefs.current[ultimoProducto.id];
+            if (inputRef) {
+                setTimeout(() => {
+                    inputRef.focus();
+                    inputRef.select();
+                }, 100);
+            }
+        }
+    }, [productosCanasta.length, isCartMode]);
+
+    // Inicializar precio seleccionado
+    useEffect(() => {
+        if (isOpen && preciosTipos.length > 0 && !precioSeleccionado) {
+            setPrecioSeleccionado(preciosTipos[0].value);
+        }
+    }, [isOpen, preciosTipos, precioSeleccionado]);
+
+    // Guardar canasta en localStorage (entradas)
+    useEffect(() => {
+        if (productosCanasta.length > 0) {
+            localStorage.setItem('canastaEntradas', JSON.stringify(productosCanasta));
+        }
+    }, [productosCanasta]);
+
+    // Cargar canasta desde localStorage al abrir el modal
+    useEffect(() => {
+        if (isOpen) {
+            const canastaGuardada = localStorage.getItem('canastaEntradas');
+            if (canastaGuardada) {
+                try {
+                    const productosGuardados = JSON.parse(canastaGuardada);
+                    setProductosCanasta(productosGuardados);
+                } catch (error) {
+                    console.error('Error al cargar canasta desde localStorage:', error);
+                }
+            }
+        }
+    }, [isOpen]);
+
+    // Sincronizar stock y precios del carrito con productos actualizados
+    useEffect(() => {
+        if (productosActualizados.length > 0 && productosCanasta.length > 0) {
+            setProductosCanasta(prevCanasta => {
+                return prevCanasta.map(productoCarrito => {
+                    const productoActualizado = productosActualizados.find(p => p.id === productoCarrito.id);
+                    if (productoActualizado) {
+                        let productoModificado = { ...productoCarrito };
+
+                        // Si el stock cambió, actualizar el stock en el carrito
+                        if (productoActualizado.stock !== productoCarrito.stock) {
+                            // Si la cantidad en el carrito excede el nuevo stock, ajustar
+                            if (productoCarrito.cantidad > productoActualizado.stock) {
+                                mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoActualizado.stock}`);
+                                productoModificado.stock = productoActualizado.stock;
+                                productoModificado.cantidad = productoActualizado.stock;
+                            } else {
+                                productoModificado.stock = productoActualizado.stock;
+                            }
+                        }
+
+                        // Actualizar precio según tipo seleccionado
+                        if (productoActualizado.price_product && precioSeleccionado) {
+                            const precioTipo = productoActualizado.price_product.find(pp => pp.prices_types?.id === precioSeleccionado);
+                            if (precioTipo) {
+                                const precioUnit = precioTipo.valor;
+                                const precioFinal = (modoAgrupacion === 'agrupado' && productoCarrito.grup) ? (precioUnit * (productoCarrito.grup || 1)) : precioUnit;
+                                productoModificado.precio = precioFinal;
+                                productoModificado.price_product = productoActualizado.price_product;
+                            }
+                        }
+                        return productoModificado;
+                    }
+                    return productoCarrito;
+                });
+            });
+        }
+    }, [productosActualizados, precioSeleccionado, modoAgrupacion]);
+
+
+
+
+    const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
+        if (nuevaCantidad <= 0) {
+            handleEliminarProducto(productoId);
+            return;
+        }
+        if (animar) {
+            setAnimarCantidad(prev => ({ ...prev, [productoId]: true }));
+            setTimeout(() => { setAnimarCantidad(prev => ({ ...prev, [productoId]: false })); }, 300);
+        }
+        setProductosCanasta(prev => prev.map(p => p.id === productoId ? { ...p, cantidad: nuevaCantidad } : p));
+    };
+
+    const handleEliminarProducto = (productoId) => {
+        const elemento = document.querySelector(`[data-producto-id="${productoId}"]`);
+        if (elemento) {
+            elemento.classList.add(styles.eliminando);
+            setTimeout(() => { setProductosCanasta(prev => prev.filter(p => p.id !== productoId)); }, 300);
+        } else {
+            setProductosCanasta(prev => prev.filter(p => p.id !== productoId));
+        }
+    };
+
+    const handleActualizarPrecio = (productoId, nuevoPrecio) => {
+        setProductosCanasta(prev => prev.map(p => p.id === productoId ? { ...p, precio: parseFloat(nuevoPrecio) || 0 } : p));
+    };
+
+    const handleCambiarTipoPrecio = (nuevoTipoPrecio) => {
+        setPrecioSeleccionado(nuevoTipoPrecio);
+        setProductosCanasta(prev => prev.map(producto => {
+            const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
+            const precioUnit = precioProducto?.valor || 0;
+            const nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
+            return { ...producto, precio: nuevoPrecio };
+        }));
+    };
+
+    const handleCambiarModoAgrupacion = (nuevoModo) => {
+        if (nuevoModo === modoAgrupacion) return;
+        setModoAgrupacion(nuevoModo);
+        setProductosCanasta(prev => prev.map(producto => {
+            const stockOriginalEnUnidades = producto.stockOriginal || producto.stock;
+            if (nuevoModo === 'agrupado' && producto.grup) {
+                const stockEnGrupos = Math.floor(stockOriginalEnUnidades / producto.grup);
+                const cantidadBaseUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
+                const cantidadEnGrupos = Math.max(1, Math.floor(cantidadBaseUnidades / (producto.grup || 1)));
+                const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
+                const precioPorGrupo = precioUnitario * (producto.grup || 1);
+                return { ...producto, cantidad: cantidadEnGrupos || 1, precio: precioPorGrupo, stock: stockEnGrupos, stockOriginal: stockOriginalEnUnidades };
+            } else {
+                const cantidadEnUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
+                const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
+                return { ...producto, cantidad: cantidadEnUnidades, precio: precioUnitario, stock: stockOriginalEnUnidades, stockOriginal: stockOriginalEnUnidades };
+            }
+        }));
+    };
+
+    const handleProveedorSeleccionado = (proveedor) => {
+        setProveedorSeleccionadoData(proveedor);
+        setProveedorSeleccionado(proveedor.id);
+        setIsProveedoresSeleccionOpen(false);
+    };
+
+    const handleLimpiarCanasta = () => {
+        setProductosCanasta([]);
+        localStorage.removeItem('canastaEntradas');
+        setIsLimpiarModalOpen(false);
+        setIsOpen(false);
+    };
+
+    // Preparar productos respetando agrupación
+    const prepararProductos = () => {
+        return productosCanasta.map(producto => {
+            let cantidadEnUnidades = producto.cantidad;
+            let precioPorUnidad = producto.precio || 0;
+            if (modoAgrupacion === 'agrupado' && producto.grup) {
+                cantidadEnUnidades = producto.cantidad * producto.grup;
+                precioPorUnidad = producto.precio / producto.grup;
+            }
+            return { id: producto.id, cantidad: cantidadEnUnidades, precio: precioPorUnidad };
+        });
+    };
+
+    // Validar (entradas no requieren campos adicionales)
+    const validarMovimiento = () => {
+        return true;
+    };
+
+    const handleConfirmarMovimientos = async () => {
+        setLoadingConfirmar(true);
+        try {
+            if (!validarMovimiento()) {
+                setLoadingConfirmar(false);
+                return;
+            }
+
+            const movimientoData = {
+                type: 'entrada',
+                observaciones: (observacionesGenerales || null),
+                precio_id: precioSeleccionado,
+                metodo_pago: null,
+                cliente_id: null,
+                proveedor_id: proveedorSeleccionado || null,
+                restar_ingredientes: restarIngredientes && tieneProductosConRecetas(),
+                agrupado: modoAgrupacion === 'agrupado',
+                productos: prepararProductos()
+            };
+
+            const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
+            const movimientoId = (movimientoResponse && movimientoResponse.success) ? movimientoResponse.data?.id : null;
+
+            if (movimientoId) {
+                const productosEnUnidades = prepararProductos();
+                const productosStockActualizados = productosEnUnidades.map(pu => {
+                    const prodActual = (productosActualizados || []).find(p => p.id === pu.id);
+                    const stockBase = prodActual ? (prodActual.stock || 0) : 0;
+                    const nuevoStock = Math.max(0, stockBase + pu.cantidad);
+                    return { id: pu.id, stock: nuevoStock };
+                });
+                if (onProductosUpdated) {
+                    onProductosUpdated(productosStockActualizados);
+                }
+
+                setProductosCanasta([]);
+                setObservacionesGenerales('');
+                setProveedorSeleccionado('');
+                localStorage.removeItem('canastaEntradas');
+                setIsOpen(false);
+                if (onCerrarCanasta) {
+                    onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId);
+                }
+            } else {
+                mostrarNotificacion('error', 'Error al crear el movimiento');
+            }
+        } catch (error) {
+            mostrarNotificacion('error', error.message || 'Error al confirmar movimientos');
+        } finally {
+            setLoadingConfirmar(false);
+        }
+    };
+
+    const tieneProductosConRecetas = () => {
+        return productosCanasta.some(producto => producto.recetas && producto.recetas.length > 0);
+    };
+
+    // Exponer las funciones para que AlmacenGeneral pueda acceder al precio seleccionado y modo de agrupación
+    useEffect(() => {
+        if (isCartMode) {
+            // Guardar las referencias a las funciones en el window para acceso global
+            window.getPrecioSeleccionadoCanastaMovimientosEntrada = () => precioSeleccionado;
+            window.getModoAgrupacionCanastaMovimientosEntrada = () => modoAgrupacion;
+        }
+    }, [isCartMode, precioSeleccionado, modoAgrupacion]);
+
+    return (
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
+            {!isCartMode && <HeaderView onBack={() => setIsOpen(false)} />}
+            <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
+                <h1 className={styles.title}>Canasta de Entradas
+                    <div className={styles.iconButton}>
+                        <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
+                            <BoxIcon name='trash' className={styles.iconTrash} />
+                        </button>
+                    </div>
+                </h1>
+                {/* Selectores de precio y agrupación */}
+                <div className={styles.controlesGenerales}>
+                    <div className={styles.precioGeneral}>
+                        <Select
+                            value={precioSeleccionado}
+                            onChange={handleCambiarTipoPrecio}
+                            options={preciosTipos}
+                            placeholder="Seleccionar precio general"
+                            disabled={loadingPrecios}
+                            icon='dollar'
+                        />
+                    </div>
+                    <div className={styles.grupoGeneral}>
+                        <Select
+                            value={modoAgrupacion}
+                            onChange={handleCambiarModoAgrupacion}
+                            options={[
+                                { value: 'agrupado', label: 'Agrupado' },
+                                { value: 'no_agrupado', label: 'No agrupado' }
+                            ]}
+                            placeholder="Modo de agrupación"
+                            icon='package'
+                        />
+                    </div>
+                </div>
+
+                {productosCanasta.length > 0 ? (
+                    <>
+                        <div className={styles.productosList}>
+                            {productosCanasta.map((producto, index) => (
+                                <div key={`${producto.id}-${index}`} className={styles.productoItem} data-producto-id={producto.id}>
+                                    <div className={styles.productoInfo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div className={styles.productoInfoContent}>
+                                            <BoxIcon name='box' className={styles.productoIcon} />
+                                            <div>
+                                                <h3 className={styles.productoNombre}>{producto.name}</h3>
+                                                <p className={styles.stockInfo}>
+                                                    Stock: {modoAgrupacion === 'agrupado' && producto.grup
+                                                        ? `${producto.stock || 0} grupos (${(producto.stock || 0) * (producto.grup || 1)} unidades)`
+                                                        : `${producto.stock || 0} unidades`
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <button className={styles.btnEliminar} onClick={() => handleEliminarProducto(producto.id)}>
+                                            <BoxIcon name='trash' className={styles.btnEliminarIcon} />
+                                        </button>
+                                    </div>
+
+                                    <div className={styles.productoControles}>
+                                        <div className={styles.precioControl}>
+                                            <label className={styles.precioLabel}>Precio (Bs.)</label>
+                                            <input type="number" step="0.01" min="0" value={producto.precio || 0} onChange={(e) => handleActualizarPrecio(producto.id, e.target.value)} className={styles.precioInput} />
+                                        </div>
+
+                                        <div className={styles.cantidadControl}>
+                                            <button className={styles.btnCantidad} onClick={() => handleActualizarCantidad(producto.id, producto.cantidad - 1, true)} disabled={producto.cantidad <= 1}>
+                                                <BoxIcon name='minus' className={styles.iconMinus} />
+                                            </button>
+                                            <motion.span animate={animarCantidad[producto.id] ? { scale: [1, 1.3, 0.9, 1] } : { scale: 1 }} transition={{ duration: 0.3 }} className={styles.cantidad}>
+                                                <input
+                                                    ref={(el) => { if (el) { cantidadInputRefs.current[producto.id] = el; } }}
+                                                    type="number"
+                                                    value={producto.cantidad}
+                                                    min="1"
+                                                    onChange={(e) => { const nuevaCantidad = parseInt(e.target.value) || 1; handleActualizarCantidad(producto.id, nuevaCantidad, false); }}
+                                                    onBlur={(e) => { const nuevaCantidad = parseInt(e.target.value) || 1; if (nuevaCantidad < 1) { handleActualizarCantidad(producto.id, 1, false); } }}
+                                                />
+                                            </motion.span>
+                                            <button className={styles.btnCantidad} onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}>
+                                                <BoxIcon name='plus' className={styles.iconPlus} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.productoTotal}>
+                                        <span className={styles.totalLabel}>Subtotal:</span>
+                                        <span className={styles.totalValue}>Bs. {((producto.precio || 0) * producto.cantidad).toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {/* Selector de proveedor para entradas */}
+                            <div className={styles.content} style={{ padding: '5px 15px', marginTop: 'auto' }}>
+                                <Boton
+                                    className='btn-transparent'
+                                    label={proveedorSeleccionadoData ? 'Proveedor: ' + proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
+                                    onClick={() => setIsProveedoresSeleccionOpen(true)}
+                                    style={{ width: '100%', justifyContent: 'flex-start' }}
+                                />
+                            </div>
+
+                            {/* Switch para restar ingredientes (solo si hay productos con recetas) */}
+                            {tieneProductosConRecetas() && (
+                                <div className={styles.content} style={{ padding: '10px 15px' }}>
+                                    <Switch
+                                        title="Restar ingredientes"
+                                        subtitle="Restar automáticamente los ingredientes de las recetas del stock"
+                                        checked={restarIngredientes}
+                                        onChange={(value) => {
+                                            setRestarIngredientes(value);
+                                            localStorage.setItem('restarIngredientes', JSON.stringify(value));
+                                        }}
+                                        icon="minus-circle"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Total general */}
+                        <div className={styles.totalGeneral}>
+                            <div className={styles.totalGeneralContent}>
+                                <span className={styles.totalGeneralLabel}>Total:</span>
+                                <span className={styles.totalGeneralValue}>Bs. {productosCanasta.reduce((total, producto) => {
+                                    const valorProducto = (producto.precio || 0) * producto.cantidad;
+                                    return total + valorProducto;
+                                }, 0).toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        <div className={styles.buttons}>
+                            <Boton
+                                className='btn-original'
+                                label={'Confirmar Entrada'}
+                                onClick={handleConfirmarMovimientos}
+                                loading={loadingConfirmar}
+                            />
+                        </div>
+                    </>
+                ) : (
+                    <div className={styles.canastaVacia}>
+                        <BoxIcon name='cart' className={styles.iconoVacio} />
+                        <p>Tu canasta está vacía</p>
+                        <p className={styles.subtexto}>Agrega productos desde la lista para crear entradas</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Modal de limpiar canasta */}
+            <LimpiarCanasta
+                isOpen={isLimpiarModalOpen}
+                setIsOpen={setIsLimpiarModalOpen}
+                onConfirmar={handleLimpiarCanasta}
+            />
+
+            {/* View de selección de proveedores */}
+            <Proveedores
+                isOpen={isProveedoresSeleccionOpen}
+                setIsOpen={setIsProveedoresSeleccionOpen}
+                modoSeleccion={true}
+                onProveedorSeleccionado={handleProveedorSeleccionado}
+            />
+
+            <Notification isVisible={notification.isVisible} type={notification.type} text={notification.text} />
+        </View>
+    );
+}
+
+export default CanastaMovimientosEntrada;

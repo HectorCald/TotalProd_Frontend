@@ -71,22 +71,21 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.removeItem('canastaPedidos');
         localStorage.removeItem('pedidoIdEditando');
         localStorage.removeItem('precioIdEditando');
+        localStorage.removeItem('pedidoAgrupadoEditando');
+        localStorage.removeItem('productosPedidoEditando');
 
-        // Preparar los productos del pedido para la canasta
-        const productosParaCanasta = pedido.pedido_almacen_detalle?.map(detalle => ({
-            id: detalle.producto_almacen.id,
-            name: detalle.producto_almacen.name,
-            description: detalle.producto_almacen.description,
-            cantidad: detalle.cantidad,
-            precio: detalle.precio,
-            // No incluir medidaPedido ni observacionesPedido para pedidos de almacén
-            // Estos campos solo se usan para pedidos de acopio
-        })) || [];
-
-        // Guardar los productos, el ID del pedido y el precio_id en localStorage para que AlmacenGeneral los cargue
-        localStorage.setItem('canastaPedidos', JSON.stringify(productosParaCanasta));
+        // Guardar datos del pedido para edición (similar a entrega)
         localStorage.setItem('pedidoIdEditando', pedido.id);
         localStorage.setItem('precioIdEditando', pedido.precio_id || '');
+        localStorage.setItem('pedidoAgrupadoEditando', pedido.agrupado ? 'agrupado' : 'no_agrupado');
+        
+        // Guardar productos del pedido para cargar automáticamente (solo ID y cantidad)
+        const productosPedido = pedido.pedido_almacen_detalle?.map(detalle => ({
+            id: detalle.producto_almacen.id,
+            cantidad: detalle.cantidad
+        })) || [];
+        localStorage.setItem('productosPedidoEditando', JSON.stringify(productosPedido));
+
         // Guardar cliente si existe para preseleccionarlo en CanastaPedidos
         if (pedido.cliente?.id) {
             localStorage.setItem('clienteIdEditando', pedido.cliente.id);
@@ -211,6 +210,27 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         try {
             setLoading(true);
 
+            // Si la sucursal actual comparte almacén, solo finalizar sin crear movimiento
+            const usaAlmacenCompartido = !!(sucursalActual && sucursalActual.almacen_sucursal_id);
+            if (usaAlmacenCompartido) {
+                const estadoResponse = await pedidosAlmacenService.updateEstado(pedido.id, 'Completado');
+                if (estadoResponse.success) {
+                    mostrarNotificacion('success', 'Pedido finalizado correctamente');
+                    const pedidoActualizado = {
+                        ...pedido,
+                        estado: 'Completado'
+                    };
+                    if (onPedidoActualizado) {
+                        onPedidoActualizado(pedidoActualizado);
+                    }
+                    setIsOpen(false);
+                    return;
+                } else {
+                    mostrarNotificacion('error', 'Error al finalizar el pedido: ' + estadoResponse.message);
+                    return;
+                }
+            }
+
             // Preparar los productos del pedido para el ingreso
             const productosParaIngreso = pedido.pedido_almacen_detalle?.map(detalle => ({
                 id: detalle.producto_almacen.id,
@@ -279,23 +299,19 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.removeItem('pedidoDestinoSucursalId');
         localStorage.removeItem('pedidoDestinoSucursalName');
 
-        // Preparar los productos del pedido para la canasta de salidas
-        const productosParaSalidas = pedido.pedido_almacen_detalle?.map(detalle => ({
-            id: detalle.producto_almacen.id,
-            name: detalle.producto_almacen.name,
-            description: detalle.producto_almacen.description,
-            cantidad: detalle.cantidad,
-            precio: detalle.precio || 0,
-            // No incluir stock aquí, se actualizará en AlmacenGeneral.jsx
-            type_measure: detalle.producto_almacen.type_measure
-        })) || [];
-
-        // Guardar los productos del pedido en canastaSalidas
-        localStorage.setItem('canastaSalidas', JSON.stringify(productosParaSalidas));
+        // Guardar datos del pedido para entrega
         localStorage.setItem('pedidoIdEntregando', pedido.id);
         localStorage.setItem('precioIdEntregando', pedido.precio_id || '');
+        localStorage.setItem('pedidoAgrupadoEntregando', pedido.agrupado ? 'agrupado' : 'no_agrupado');
         localStorage.setItem('pedidoDestinoSucursalId', pedido.sucursal_id || '');
         localStorage.setItem('pedidoDestinoSucursalName', pedido.sucursal?.name || '');
+        
+        // Guardar productos del pedido para cargar automáticamente
+        const productosPedido = pedido.pedido_almacen_detalle?.map(detalle => ({
+            id: detalle.producto_almacen.id,
+            cantidad: detalle.cantidad
+        })) || [];
+        localStorage.setItem('productosPedidoEntregando', JSON.stringify(productosPedido));
 
         // Abrir AlmacenGeneral en modo salida
         setModoAlmacen('entregar');
@@ -447,6 +463,11 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                     circulo={false}
                     transparent={false}
                 />
+                <ItemView
+                    title={pedido.agrupado ? 'Agrupado' : 'Unidades'}
+                    description="Modo de pedido"
+                    transparent={false}
+                />
                 {pedido?.cliente?.name && (
                     <ItemView
                         title={pedido.cliente.name}
@@ -513,7 +534,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                     {puedeIngresarPedido() && (
                         <Boton
                             className='btn-green'
-                            label='Ingresar Pedido'
+                            label={sucursalActual?.almacen_sucursal_id ? 'Finalizar Pedido' : 'Ingresar Pedido'}
                             onClick={handleIngresarPedido}
                             loading={loading}
                         />

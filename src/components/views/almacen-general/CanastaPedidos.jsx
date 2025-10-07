@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from './CanastaMovimientos.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
-import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import Select from '../../common/Select';
@@ -13,6 +11,7 @@ import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
 import Clientes from '../clientes/Clientes';
+import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 
 function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], sucursales = [], loadingPrecios = false, loadingSucursales = false, productosActualizados = [], isCartMode = false }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
@@ -23,16 +22,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     const [animarCantidad, setAnimarCantidad] = useState({});
     const [precioSeleccionado, setPrecioSeleccionado] = useState('');
     const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
+    const [modoAgrupacion, setModoAgrupacion] = useState('agrupado'); // 'agrupado' o 'no_agrupado'
     const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
     const [clienteSeleccionado, setClienteSeleccionado] = useState('');
     const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
-    // Estado para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'error',
-        text: ''
-    });
 
+    // Estado para notificaciones
+    const [notification, setNotification] = useState({ isVisible: false, type: 'error', text: '' });
     const mostrarNotificacion = (tipo, texto) => {
         setNotification({
             isVisible: true,
@@ -48,14 +44,12 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
     // Referencias para el auto-focus en inputs de cantidad
     const cantidadInputRefs = useRef({});
-
-    // Auto-focus en input de cantidad cuando se agrega un producto nuevo (solo en pantallas grandes)
     useEffect(() => {
         if (isCartMode && productosCanasta.length > 0) {
             // Encontrar el último producto agregado (el más reciente)
             const ultimoProducto = productosCanasta[productosCanasta.length - 1];
             const inputRef = cantidadInputRefs.current[ultimoProducto.id];
-            
+
             if (inputRef) {
                 // Pequeño delay para asegurar que el DOM se haya actualizado
                 setTimeout(() => {
@@ -96,13 +90,23 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }
     }, [isOpen, pedidoId]);
 
+    // Inicializar modo de agrupación desde el pedido al abrir en edición
+    useEffect(() => {
+        if (isOpen && pedidoId) {
+            const modoPedido = localStorage.getItem('pedidoAgrupadoEditando');
+            if (modoPedido === 'agrupado' || modoPedido === 'no_agrupado') {
+                setModoAgrupacion(modoPedido);
+            }
+        }
+    }, [isOpen, pedidoId]);
+
     // Actualizar precios cuando se inicializa el precioSeleccionado
     useEffect(() => {
         if (precioSeleccionado && preciosTipos.length > 0 && productosCanasta.length > 0) {
             const precioSeleccionadoData = preciosTipos.find(p => p.value === precioSeleccionado);
             if (precioSeleccionadoData) {
                 // Solo actualizar productos que no tienen precio o tienen precio 0 (recién agregados)
-                const productosNecesitanPrecio = productosCanasta.filter(producto => 
+                const productosNecesitanPrecio = productosCanasta.filter(producto =>
                     !producto.precio || producto.precio === 0
                 );
 
@@ -112,7 +116,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         if (!producto.precio || producto.precio === 0) {
                             const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === precioSeleccionadoData.value);
                             const nuevoPrecio = precioProducto?.valor || 0;
-                            
+
                             return {
                                 ...producto,
                                 precio: nuevoPrecio
@@ -124,7 +128,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             }
         }
     }, [precioSeleccionado, preciosTipos, productosCanasta.length]);
-
 
     // Guardar en localStorage cuando cambie la canasta
     useEffect(() => {
@@ -158,7 +161,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     const productoActualizado = productosActualizados.find(p => p.id === productoCarrito.id);
                     if (productoActualizado) {
                         let productoModificado = { ...productoCarrito };
-                        
+
                         // Si el stock cambió, actualizar el stock en el carrito
                         if (productoActualizado.stock !== productoCarrito.stock) {
                             // Si la cantidad en el carrito excede el nuevo stock, ajustar
@@ -188,60 +191,21 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }
     }, [productosActualizados, precioSeleccionado]);
 
+
+
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
             handleEliminarProducto(productoId);
             return;
         }
-
-        // Si debe animar, activar la animación
         if (animar) {
-            setAnimarCantidad(prev => ({
-                ...prev,
-                [productoId]: true
-            }));
-            
-            // Desactivar la animación después de 300ms
-            setTimeout(() => {
-                setAnimarCantidad(prev => ({
-                    ...prev,
-                    [productoId]: false
-                }));
-            }, 300);
+            setAnimarCantidad(prev => ({ ...prev, [productoId]: true }));
+            setTimeout(() => { setAnimarCantidad(prev => ({ ...prev, [productoId]: false })); }, 300);
         }
-
-        setProductosCanasta(prev => prev.map(p =>
-            p.id === productoId
-                ? { ...p, cantidad: nuevaCantidad }
-                : p
-        ));
-    };
-
-    const handleActualizarPrecio = (productoId, nuevoPrecio) => {
-        setProductosCanasta(prev => prev.map(p =>
-            p.id === productoId
-                ? { ...p, precio: parseFloat(nuevoPrecio) || 0 }
-                : p
-        ));
-    };
-
-    const handleCambiarTipoPrecio = (nuevoTipoPrecio) => {
-        setPrecioSeleccionado(nuevoTipoPrecio);
-        
-        // Actualizar precios de todos los productos
-        setProductosCanasta(prev => prev.map(producto => {
-            const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
-            const nuevoPrecio = precioProducto?.valor || 0;
-            
-            return {
-                ...producto,
-                precio: nuevoPrecio
-            };
-        }));
+        setProductosCanasta(prev => prev.map(p => p.id === productoId ? { ...p, cantidad: nuevaCantidad } : p));
     };
 
     const handleEliminarProducto = (productoId) => {
-        // Agregar clase de animación antes de eliminar
         const elemento = document.querySelector(`[data-producto-id="${productoId}"]`);
         if (elemento) {
             elemento.classList.add(styles.eliminando);
@@ -253,6 +217,46 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }
     };
 
+    const handleActualizarPrecio = (productoId, nuevoPrecio) => {
+        setProductosCanasta(prev => prev.map(p => p.id === productoId ? { ...p, precio: parseFloat(nuevoPrecio) || 0 } : p));
+    };
+
+    const handleCambiarTipoPrecio = (nuevoTipoPrecio) => {
+        setPrecioSeleccionado(nuevoTipoPrecio);
+        setProductosCanasta(prev => prev.map(producto => {
+            const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
+            const precioUnit = precioProducto?.valor || 0;
+            const nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
+            return { ...producto, precio: nuevoPrecio };
+        }));
+    };
+
+    const handleCambiarModoAgrupacion = (nuevoModo) => {
+        if (nuevoModo === modoAgrupacion) return;
+        setModoAgrupacion(nuevoModo);
+        setProductosCanasta(prev => prev.map(producto => {
+            const stockOriginalEnUnidades = producto.stockOriginal || producto.stock;
+            if (nuevoModo === 'agrupado' && producto.grup) {
+                const stockEnGrupos = Math.floor(stockOriginalEnUnidades / producto.grup);
+                const cantidadBaseUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
+                const cantidadEnGrupos = Math.max(1, Math.floor(cantidadBaseUnidades / (producto.grup || 1)));
+                const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
+                const precioPorGrupo = precioUnitario * (producto.grup || 1);
+                return { ...producto, cantidad: cantidadEnGrupos || 1, precio: precioPorGrupo, stock: stockEnGrupos, stockOriginal: stockOriginalEnUnidades };
+            } else {
+                const cantidadEnUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
+                const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
+                return { ...producto, cantidad: cantidadEnUnidades, precio: precioUnitario, stock: stockOriginalEnUnidades, stockOriginal: stockOriginalEnUnidades };
+            }
+        }));
+    };
+
+    const handleClienteSeleccionado = (cliente) => {
+        setClienteSeleccionadoData(cliente);
+        setClienteSeleccionado(cliente.id);
+        setIsClientesSeleccionOpen(false);
+    };
+
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
         localStorage.removeItem('canastaPedidos');
@@ -260,11 +264,21 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         setIsOpen(false);
     };
 
-    // Función para manejar cuando se selecciona un cliente (modal)
-    const handleClienteSeleccionado = (cliente) => {
-        setClienteSeleccionadoData(cliente);
-        setClienteSeleccionado(cliente.id);
-        setIsClientesSeleccionOpen(false);
+    // Preparar productos respetando agrupación
+    const prepararProductos = () => {
+        return productosCanasta.map(producto => {
+            let cantidadEnUnidades = producto.cantidad;
+            let precioPorUnidad = producto.precio || 0;
+            if (modoAgrupacion === 'agrupado' && producto.grup) {
+                cantidadEnUnidades = (producto.cantidad || 0) * producto.grup;
+                precioPorUnidad = (producto.precio || 0) / producto.grup;
+            }
+            return {
+                id: producto.id,
+                cantidad: cantidadEnUnidades,
+                precio: precioPorUnidad
+            };
+        });
     };
 
     // Función para crear un nuevo pedido
@@ -290,13 +304,10 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 observaciones: observacionesGenerales || null,
                 precio_id: precioSeleccionado,
                 sucursal_destino_id: sucursalSeleccionada,
+                agrupado: modoAgrupacion === 'agrupado',
                 // Si no hay cliente seleccionado, no enviar el campo para evitar overwriting en backend
                 ...(clienteSeleccionado ? { cliente_id: clienteSeleccionado } : {}),
-                productos: productosCanasta.map(producto => ({
-                    id: producto.id,
-                    cantidad: producto.cantidad,
-                    precio: producto.precio || 0
-                }))
+                productos: prepararProductos()
             };
 
             // Crear nuevo pedido
@@ -309,16 +320,16 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 setSucursalSeleccionada('');
                 setClienteSeleccionado('');
                 setClienteSeleccionadoData(null);
-                
+
                 // Limpiar localStorage
                 localStorage.removeItem('canastaPedidos');
-                
+
                 // Cerrar canasta y mostrar notificación
                 setIsOpen(false);
                 if (onCerrarCanasta) {
                     onCerrarCanasta();
                 }
-            
+
             } else {
                 console.error('Error al crear pedido:', response.message);
                 mostrarNotificacion('error', response.message || 'Error al crear el pedido');
@@ -340,13 +351,10 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             const pedidoData = {
                 observaciones: observacionesGenerales || null,
                 precio_id: precioSeleccionado,
+                agrupado: modoAgrupacion === 'agrupado',
                 // Solo enviar cliente_id si el usuario seleccionó uno explícitamente
                 ...(clienteSeleccionado ? { cliente_id: clienteSeleccionado } : {}),
-                productos: productosCanasta.map(producto => ({
-                    id: producto.id,
-                    cantidad: producto.cantidad,
-                    precio: producto.precio || 0
-                }))
+                productos: prepararProductos()
             };
 
             // Actualizar pedido existente
@@ -363,18 +371,20 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 setObservacionesGenerales('');
                 setClienteSeleccionado('');
                 setClienteSeleccionadoData(null);
-                
+
                 // Limpiar localStorage
                 localStorage.removeItem('canastaPedidos');
                 localStorage.removeItem('pedidoIdEditando');
                 localStorage.removeItem('precioIdEditando');
-                
+                localStorage.removeItem('pedidoAgrupadoEditando');
+                localStorage.removeItem('productosPedidoEditando');
+
                 // Cerrar canasta y mostrar notificación
                 setIsOpen(false);
                 if (onCerrarCanasta) {
                     onCerrarCanasta();
                 }
-            
+
             } else {
                 console.error('Error al actualizar pedido:', response.message);
                 mostrarNotificacion('error', response.message || 'Error al actualizar el pedido');
@@ -388,30 +398,22 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }
     };
 
-    const getTotalValor = () => {
-        return productosCanasta.reduce((total, producto) => {
-            const valorProducto = (producto.precio || 0) * producto.cantidad;
-            return total + valorProducto;
-        }, 0);
-    };
 
-    // Función para obtener el precio actual seleccionado
-    const getPrecioActualSeleccionado = () => {
-        return precioSeleccionado;
-    };
-
-    // Exponer la función para que AlmacenGeneral pueda acceder al precio seleccionado
+    // Exponer funciones para que AlmacenGeneral pueda acceder al precio y modo seleccionados
     useEffect(() => {
         if (isCartMode) {
-            // Guardar la referencia a la función en el window para acceso global
-            window.getPrecioSeleccionadoCanastaPedidos = getPrecioActualSeleccionado;
+            // Guardar la referencia a las funciones en el window para acceso global
+            window.getPrecioSeleccionadoCanastaPedidos = () => precioSeleccionado;
+            window.getModoAgrupacionCanastaPedidos = () => modoAgrupacion;
         }
-    }, [isCartMode, precioSeleccionado]);
+    }, [isCartMode, precioSeleccionado, modoAgrupacion]);
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
             {!isCartMode && <HeaderView onBack={() => {
                 localStorage.removeItem('precioIdEditando');
+                localStorage.removeItem('pedidoAgrupadoEditando');
+                localStorage.removeItem('productosPedidoEditando');
                 setIsOpen(false);
             }} />}
             <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
@@ -423,8 +425,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     </div>
                 </h1>
 
-                {/* Selector de precio general */}
-                {productosCanasta.length > 0 && (
+                {/* Selectores de precio y agrupación */}
+                <div className={styles.controlesGenerales}>
                     <div className={styles.precioGeneral}>
                         <Select
                             value={precioSeleccionado}
@@ -435,7 +437,19 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                             icon='dollar'
                         />
                     </div>
-                )}
+                    <div className={styles.grupoGeneral}>
+                        <Select
+                            value={modoAgrupacion}
+                            onChange={handleCambiarModoAgrupacion}
+                            options={[
+                                { value: 'agrupado', label: 'Agrupado' },
+                                { value: 'no_agrupado', label: 'No agrupado' }
+                            ]}
+                            placeholder="Modo de agrupación"
+                            icon='package'
+                        />
+                    </div>
+                </div>
 
                 {productosCanasta.length > 0 ? (
                     <>
@@ -452,7 +466,10 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                             <div>
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
-                                                    Disponible: {producto.stock || 0} {producto.type_measure?.code || ''}
+                                                    {modoAgrupacion === 'agrupado' && producto.grup
+                                                        ? `Disponible: ${(producto.stock || 0)} grupos (${((producto.stock || 0) * (producto.grup || 1))} ${producto.type_measure?.code || ''})`
+                                                        : `Disponible: ${producto.stock || 0} ${producto.type_measure?.code || ''}`
+                                                    }
                                                 </p>
                                             </div>
                                         </div>
@@ -477,15 +494,15 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                 className={styles.precioInput}
                                             />
                                         </div>
-                                        
+
                                         <div className={styles.cantidadControl}>
-                                             <button
-                                                 className={styles.btnCantidad}
-                                                 onClick={() => handleActualizarCantidad(producto.id, producto.cantidad - 1, true)}
-                                                 disabled={producto.cantidad <= 1}
-                                             >
-                                                 <BoxIcon name='minus' />
-                                             </button>
+                                            <button
+                                                className={styles.btnCantidad}
+                                                onClick={() => handleActualizarCantidad(producto.id, producto.cantidad - 1, true)}
+                                                disabled={producto.cantidad <= 1}
+                                            >
+                                                <BoxIcon name='minus' />
+                                            </button>
                                             <motion.span
                                                 animate={animarCantidad[producto.id] ? { scale: [1, 1.3, 0.9, 1] } : { scale: 1 }}
                                                 transition={{ duration: 0.3 }}
@@ -512,12 +529,12 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                     }}
                                                 />
                                             </motion.span>
-                                             <button
-                                                 className={styles.btnCantidad}
-                                                 onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}
-                                             >
-                                                 <BoxIcon name='plus' />
-                                             </button>
+                                            <button
+                                                className={styles.btnCantidad}
+                                                onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}
+                                            >
+                                                <BoxIcon name='plus' />
+                                            </button>
                                         </div>
                                     </div>
 
@@ -530,29 +547,29 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                 </div>
                             ))}
                             {/* Selector de sucursal - Solo mostrar si no estamos editando */}
-                        {!pedidoId && (
-                            <div className={styles.content} style={{ padding: '10px 15px', marginTop: 'auto' }}>
-                                <Select
-                                    value={sucursalSeleccionada}
-                                    onChange={setSucursalSeleccionada}
-                                    options={sucursales}
-                                    placeholder='Sucursal de destino (obligatorio)'
-                                    disabled={loadingSucursales}
-                                    icon='building'
+                            {!pedidoId && (
+                                <div className={styles.content} style={{ padding: '10px 15px', marginTop: 'auto' }}>
+                                    <Select
+                                        value={sucursalSeleccionada}
+                                        onChange={setSucursalSeleccionada}
+                                        options={sucursales}
+                                        placeholder='Sucursal de destino (obligatorio)'
+                                        disabled={loadingSucursales}
+                                        icon='building'
+                                    />
+                                </div>
+                            )}
+                            {/* Botón para seleccionar cliente entre sucursal y observaciones */}
+                            <div className={styles.content} style={{ padding: '5px 15px' }}>
+                                <Boton
+                                    className='btn-transparent'
+                                    label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+                                    onClick={() => setIsClientesSeleccionOpen(true)}
+                                    style={{ width: '100%', justifyContent: 'flex-start' }}
                                 />
                             </div>
-                        )}
-                        {/* Botón para seleccionar cliente entre sucursal y observaciones */}
-                        <div className={styles.content} style={{ padding: '5px 15px' }}>
-                            <Boton
-                                className='btn-transparent'
-                                label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
-                                onClick={() => setIsClientesSeleccionOpen(true)}
-                                style={{ width: '100%', justifyContent: 'flex-start' }}
-                            />
-                        </div>
 
-                        {/* Input de observaciones debajo del selector de cliente */}
+                            {/* Input de observaciones debajo del selector de cliente */}
 
                             <InputNormal
                                 tipo="text"
@@ -566,7 +583,10 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         <div className={styles.totalGeneral}>
                             <div className={styles.totalGeneralContent}>
                                 <span className={styles.totalGeneralLabel}>Total General:</span>
-                                <span className={styles.totalGeneralValue}>Bs. {getTotalValor().toFixed(2)}</span>
+                                <span className={styles.totalGeneralValue}>Bs. {productosCanasta.reduce((total, producto) => {
+                                    const valorProducto = (producto.precio || 0) * producto.cantidad;
+                                    return total + valorProducto;
+                                }, 0).toFixed(2)}</span>
                             </div>
                         </div>
 
@@ -589,27 +609,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             </div>
 
             {/* Modal de limpiar canasta */}
-            <ViewModal isOpen={isLimpiarModalOpen} setIsOpen={setIsLimpiarModalOpen}>
-                <HeaderModal
-                    title="Limpiar Canasta"
-                    onClose={() => setIsLimpiarModalOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Estás seguro que deseas limpiar toda la canasta? Esta acción no se puede deshacer.</p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            onClick={() => setIsLimpiarModalOpen(false)}
-                        />
-                         <Boton
-                            className='btn-red'
-                            label='Si, limpiar'
-                            onClick={handleLimpiarCanasta}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
+            <LimpiarCanasta
+                isOpen={isLimpiarModalOpen}
+                setIsOpen={setIsLimpiarModalOpen}
+                onConfirmar={handleLimpiarCanasta}
+            />
 
             {/* View de selección de clientes */}
             <Clientes
@@ -619,11 +623,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 onClienteSeleccionado={handleClienteSeleccionado}
             />
 
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
+            <Notification isVisible={notification.isVisible} type={notification.type} text={notification.text} />
         </View>
     );
 }
