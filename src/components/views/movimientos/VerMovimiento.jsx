@@ -324,6 +324,13 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                 />
                             ))}
 
+                            {/* Total al final de la lista */}
+                            <ItemView
+                                title={'TOTAL'}
+                                description={''}
+                                flot2={`${(movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)} BOB`}
+                            />
+
                         </>
                     )}
                 </div>

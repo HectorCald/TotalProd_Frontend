@@ -7,8 +7,7 @@ import styles from '../../styles/Inicial.module.css';
 import pdfIcon from '../../assets/pdf.png';
 import excelIcon from '../../assets/xls.png';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { pdf as pdfRenderer, Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 
 function ModalDescarga({ 
     isOpen, 
@@ -18,6 +17,7 @@ function ModalDescarga({
     informacionSuperior = {},
     tablaHeaders = [],
     tablaValores = [],
+    tablas = null, // [{ titulo?: string, headers: string[], valores: string[][] }]
     nombreArchivo = "Descargar Movimiento",
     loading = false,
     onExcel,
@@ -63,8 +63,20 @@ function ModalDescarga({
             allData.push([]);
             allData.push([]);
             
-            // 4. Tabla de productos
-            if (tablaHeaders.length > 0 && tablaValores.length > 0) {
+            // 4. Tablas
+            if (Array.isArray(tablas) && tablas.length > 0) {
+                tablas.forEach((seccion, idx) => {
+                    allData.push([]);
+                    if (seccion.titulo) allData.push([seccion.titulo]);
+                    if (seccion.headers && seccion.headers.length > 0) {
+                        allData.push(seccion.headers);
+                    }
+                    if (seccion.valores && seccion.valores.length > 0) {
+                        allData.push(...seccion.valores);
+                    }
+                    if (idx !== tablas.length - 1) allData.push([]);
+                });
+            } else if (tablaHeaders.length > 0 && tablaValores.length > 0) {
                 allData.push(tablaHeaders);
                 allData.push(...tablaValores);
             }
@@ -95,31 +107,8 @@ function ModalDescarga({
             }
             worksheet['!cols'] = colWidths;
             
-            // Aplicar estilos a los headers de la tabla
-            if (tablaHeaders.length > 0) {
-                const headerRowIndex = allData.length - tablaValores.length - 1; // Fila de headers
-                
-                // Estilo para headers (fondo azul, texto blanco, negrita)
-                for (let i = 0; i < tablaHeaders.length; i++) {
-                    const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: i });
-                    if (!worksheet[cellAddress]) worksheet[cellAddress] = { v: tablaHeaders[i] };
-                    
-                    worksheet[cellAddress].s = {
-                        fill: { fgColor: { rgb: "428BCA" } }, // Color azul como en PDF
-                        font: { 
-                            color: { rgb: "FFFFFF" }, // Texto blanco
-                            bold: true 
-                        },
-                        alignment: { horizontal: "center", vertical: "center" },
-                        border: {
-                            top: { style: "thin", color: { rgb: "000000" } },
-                            bottom: { style: "thin", color: { rgb: "000000" } },
-                            left: { style: "thin", color: { rgb: "000000" } },
-                            right: { style: "thin", color: { rgb: "000000" } }
-                        }
-                    };
-                }
-            }
+            // Aplicar estilos básicos al primer header encontrado (mejoras futuras: estilos por sección)
+            // Opcional: omitir si no hay headers
             
             // Estilo para el título (negrita y centrado)
             if (allData.length > 0) {
@@ -141,89 +130,199 @@ function ModalDescarga({
         }
     };
 
-    const handleDescargaPDF = () => {
+    const handleDescargaPDF = async () => {
         try {
-            const doc = new jsPDF();
-            
-            // Título centrado
-            doc.setFontSize(16);
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const textWidth = doc.getTextWidth(nombreArchivoState);
-            const xPosition = (pageWidth - textWidth) / 2;
-            doc.text(nombreArchivoState, xPosition, 20);
-            
-            // Información superior
-            let yPosition = 35;
-            const keys = Object.keys(informacionSuperior);
-            
-            doc.setFontSize(10);
-            for (let i = 0; i < keys.length; i += 2) {
-                const leftText = `${keys[i]}: ${informacionSuperior[keys[i]]}`;
-                doc.text(leftText, 20, yPosition);
-                
-                if (i + 1 < keys.length) {
-                    const rightText = `${keys[i + 1]}: ${informacionSuperior[keys[i + 1]]}`;
-                    doc.text(rightText, 110, yPosition);
-                }
-                yPosition += 8;
-            }
-            
-            // Tabla
-            if (tablaHeaders.length > 0 && tablaValores.length > 0) {
-                autoTable(doc, {
-                    startY: yPosition + 5,
-                    head: [tablaHeaders],
-                    body: tablaValores,
-                    theme: 'grid',
-                    headStyles: { fillColor: [66, 139, 202] },
-                    styles: { fontSize: 8 }
-                });
+            const styles = StyleSheet.create({
+                page: { paddingTop: 30, paddingBottom: 36, paddingHorizontal: 36 },
+                title: { textAlign: 'center', fontSize: 15, fontWeight: 700, marginBottom: 8 },
+                infoContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, marginBottom: 12 },
+                infoBox: { width: '49%', borderWidth: 1, borderRadius: 8, borderColor: '#000', paddingVertical: 6, paddingHorizontal: 8 },
+                infoItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 },
+                infoLabel: { fontSize: 10, fontWeight: 700 },
+                infoValue: { fontSize: 10, textAlign: 'right' },
+                headerBox: { borderWidth: 1.2, borderRadius: 8, borderColor: '#000', paddingVertical: 3, paddingHorizontal: 8, marginTop: 6, height: 22, justifyContent: 'center' },
+                headerRow: { flexDirection: 'row', alignItems: 'center' },
+                row: { flexDirection: 'row', marginTop: 6 },
+                headerCell: { fontSize: 9, fontWeight: 700 },
+                headerLast: { paddingLeft: 0 },
+                cellText: { fontSize: 9 },
+                contentPad: { paddingHorizontal: 8 },
+                separator: { borderTopWidth: 1, borderColor: '#000', marginTop: 6, marginBottom: 4 },
+                totalLabel: { fontSize: 10, fontWeight: 700, textAlign: 'right' },
+                totalValue: { fontSize: 10, fontWeight: 700 },
+                footer: { position: 'absolute', left: 0, right: 0, bottom: 20, alignItems: 'center' },
+                footerLine1: { fontSize: 9, color: '#888', marginBottom: 2, textAlign: 'center' },
+                footerLine2: { fontSize: 9, color: '#888', textAlign: 'center' }
+            });
 
-                // Agregar total debajo de la tabla si es un movimiento de almacén
-                const finalY = doc.lastAutoTable.finalY || (yPosition + 5);
-                
-                // Verificar si hay información de total en los datos superiores
-                const totalInfo = Object.entries(informacionSuperior).find(([key, value]) => 
-                    key === 'Total' && value && value.toString().includes('Bs.')
-                );
-                
-                if (totalInfo) {
-                    doc.setFontSize(10);
-                    doc.setTextColor(0, 0, 0); // Resetear color a negro
-                    doc.setFont(undefined, 'bold'); // Negrita para el total
-                    
-                    const totalText = `Total: ${totalInfo[1]}`;
-                    const totalTextWidth = doc.getTextWidth(totalText);
-                    const totalXPosition = pageWidth - totalTextWidth - 20; // Alineado a la derecha con margen
-                    const totalYPosition = finalY + 15; // 15px debajo de la tabla
-                    
-                    doc.text(totalText, totalXPosition, totalYPosition);
-                }
-            }
-            
-            // Pie de página
-            const pageHeight = doc.internal.pageSize.getHeight();
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'italic'); // Cursiva
-            doc.setTextColor(128, 128, 128); // Color gris
-            
-            // TotalProd
-            const footerText = 'TotalProd';
-            const footerTextWidth = doc.getTextWidth(footerText);
-            const footerXPosition = (pageWidth - footerTextWidth) / 2; // Centrado
-            const footerYPosition = pageHeight - 15; // 15px desde abajo
-            
-            // Texto descriptivo
-            const descText = 'Fue generado por la app de TotalProd - Gestión de Procesos y Ventas';
-            const descTextWidth = doc.getTextWidth(descText);
-            const descXPosition = (pageWidth - descTextWidth) / 2; // Centrado
-            const descYPosition = pageHeight - 8; // 8px desde abajo
-            
-            doc.text(footerText, footerXPosition, footerYPosition);
-            doc.text(descText, descXPosition, descYPosition);
-            
-            // Descargar archivo
-            doc.save(`${nombreArchivoState.replace(/\s+/g, '_')}.pdf`);
+            // Ordenar y dividir sin zigzag: primero mitad izquierda, luego mitad derecha
+            const preferredOrder = [
+                'Responsable','Tipo','Fecha','Hora','Estado','Sucursal',
+                'Método de Pago','Cliente','Proveedor','Órdenes del Cliente','Órdenes del Proveedor',
+                'Tipo de Precio','Costo','Restar Ingredientes','Observaciones','Venta N°','Entrega N°','Total'
+            ];
+            const entriesAll = Object.entries(informacionSuperior || {});
+            const entriesSorted = entriesAll.sort((a, b) => {
+                const ia = preferredOrder.indexOf(a[0]);
+                const ib = preferredOrder.indexOf(b[0]);
+                if (ia === -1 && ib === -1) return 0;
+                if (ia === -1) return 1;
+                if (ib === -1) return -1;
+                return ia - ib;
+            });
+            const mid = Math.ceil(entriesSorted.length / 2);
+            const leftEntries = entriesSorted.slice(0, mid);
+            const rightEntries = entriesSorted.slice(mid);
+
+            const getWidthsPct = (headers) => {
+                if (!headers || headers.length === 0) return [];
+                if (headers.length === 8) return ['9%', '43%', '8%', '8%', '14%', '6%', '6%', '6%'];
+                if (headers.length === 4) return ['46%', '18%', '18%', '18%'];
+                return new Array(headers.length).fill(`${Math.floor(100 / headers.length)}%`);
+            };
+
+            const doc = (
+                <Document>
+                    <Page size="A4" style={styles.page}>
+                        <Text style={styles.title}>{nombreArchivoState}</Text>
+
+                        <View style={styles.infoContainer}>
+                            <View style={styles.infoBox}>
+                                {leftEntries.map(([k, v], i) => (
+                                    <View key={i} style={styles.infoItemRow}>
+                                        <Text style={styles.infoLabel}>{`${k}:`}</Text>
+                                        <Text style={styles.infoValue}>{String(v)}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                            <View style={styles.infoBox}>
+                                {rightEntries.map(([k, v], i) => (
+                                    <View key={i} style={styles.infoItemRow}>
+                                        <Text style={styles.infoLabel}>{`${k}:`}</Text>
+                                        <Text style={styles.infoValue}>{String(v)}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+
+                        {Array.isArray(tablas) && tablas.length > 0 ? (
+                            tablas.map((seccion, sIdx) => {
+                                const widths = getWidthsPct(seccion.headers || []);
+                                return (
+                                    <View key={sIdx}>
+                                        {(seccion.titulo) && (
+                                            <View style={{ marginTop: 8, marginBottom: 2 }}>
+                                                <Text style={{ fontSize: 10, fontWeight: 700 }}>{String(seccion.titulo)}</Text>
+                                            </View>
+                                        )}
+                                        {seccion.headers && seccion.headers.length > 0 && (
+                                            <View style={[styles.headerBox, styles.contentPad]}>
+                                                <View style={styles.headerRow}>
+                                                    {seccion.headers.map((h, idx) => (
+                                                        <View key={idx} style={{ width: widths[idx] }}>
+                                                            <Text style={[styles.headerCell, idx === seccion.headers.length - 1 ? styles.headerLast : null]}>{String(h)}</Text>
+                                                        </View>
+                                                    ))}
+                                                </View>
+                                            </View>
+                                        )}
+                                        {seccion.valores && seccion.valores.length > 0 && (
+                                            <View style={styles.contentPad}>
+                                                {seccion.valores.map((row, rIdx) => (
+                                                    <View key={rIdx} style={styles.row}>
+                                                        {row.map((cell, cIdx) => (
+                                                            <View key={cIdx} style={{ width: widths[cIdx] }}>
+                                                                <Text style={styles.cellText}>{cell != null ? String(cell) : ''}</Text>
+                                                            </View>
+                                                        ))}
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            })
+                        ) : (
+                            <>
+                                {tablaHeaders.length > 0 && (
+                                    <View style={[styles.headerBox, styles.contentPad]}>
+                                        <View style={styles.headerRow}>
+                                            {tablaHeaders.map((h, idx) => (
+                                                <View key={idx} style={{ width: getWidthsPct(tablaHeaders)[idx] }}>
+                                                    <Text style={[styles.headerCell, idx === tablaHeaders.length - 1 ? styles.headerLast : null]}>{String(h)}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
+                                {tablaValores.length > 0 && (
+                                    <View style={styles.contentPad}>
+                                        {tablaValores.map((row, rIdx) => (
+                                            <View key={rIdx} style={styles.row}>
+                                                {row.map((cell, cIdx) => (
+                                                    <View key={cIdx} style={{ width: getWidthsPct(tablaHeaders)[cIdx] }}>
+                                                        <Text style={styles.cellText}>{cell != null ? String(cell) : ''}</Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        ))}
+                                    </View>
+                                )}
+                            </>
+                        )}
+
+                        {informacionSuperior && informacionSuperior.Total && (
+                            <>
+                                <View style={[styles.contentPad, styles.separator]} />
+                                <View style={[styles.contentPad, styles.row]}>
+                                    {(() => {
+                                        const currentWidths = Array.isArray(tablas) && tablas.length > 0 
+                                            ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                            : getWidthsPct(tablaHeaders);
+                                        return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
+                                            <View key={i} style={{ width: w }} />
+                                        ));
+                                    })()}
+                                    {/* Columna de etiqueta (alineada a la derecha) */}
+                                    <View style={{ 
+                                        width: (() => {
+                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0 
+                                                ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                : getWidthsPct(tablaHeaders);
+                                            return currentWidths[currentWidths.length - 2];
+                                        })(), 
+                                        paddingRight: 6 
+                                    }}>
+                                        <Text style={styles.totalLabel}>Total:</Text>
+                                    </View>
+                                    {/* Columna de valor (alineada a la derecha) */}
+                                    <View style={{ 
+                                        width: (() => {
+                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0 
+                                                ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                : getWidthsPct(tablaHeaders);
+                                            return currentWidths[currentWidths.length - 1];
+                                        })()
+                                    }}>
+                                        <Text style={styles.totalValue}>{String(informacionSuperior.Total)}</Text>
+                                    </View>
+                                </View>
+                            </>
+                        )}
+                        {/* Pie de página fijo */}
+                        <View style={styles.footer} fixed>
+                            <Text style={styles.footerLine1}>TotalProd</Text>
+                            <Text style={styles.footerLine2}>Generado por TotalProd - aplicación de gestión de procesos y ventas</Text>
+                        </View>
+                    </Page>
+                </Document>
+            );
+
+            const blob = await pdfRenderer(doc).toBlob();
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${nombreArchivoState.replace(/\s+/g, '_')}.pdf`;
+            link.click();
         } catch (error) {
             console.error('Error generando PDF:', error);
         }

@@ -8,6 +8,7 @@ import ModalDescarga from '../../ui/ModalDescarga';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
+import gastosService from '../../../services/gastosService';
 import Notification from '../../common/Notification';
 import styles from '../../../styles/view.module.css';
 import Boton from '../../common/Boton';
@@ -128,9 +129,10 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
   const opcionesArea = [
     { value: 'ventas', label: 'Ventas', icon: 'money' },
-    { value: 'almacen_general', label: 'Almacen General', icon: 'money' },
-    { value: 'materia_Prima', label: 'Materia Prima', icon: 'money' },
-    { value: 'pedidos', label: 'Pedidos', icon: 'money' },
+    { value: 'almacen_general', label: 'Almacen General', icon: 'store' },
+    { value: 'materia_Prima', label: 'Materia Prima', icon: 'leaf' },
+    { value: 'pedidos', label: 'Pedidos', icon: 'cart' },
+    { value: 'balance', label: 'Balance', icon: 'transfer' },
   ];
 
   // Convertir sucursales a formato para el Select
@@ -201,14 +203,25 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     });
 
     const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-    const tablaValores = Object.values(productosAgrupados).map(producto => [
+    const productosArray = Object.values(productosAgrupados);
+    const tablaValores = productosArray.map(producto => [
       producto.nombre,
       producto.cantidad.toString(),
       `Bs. ${parseFloat(producto.precioUnitario).toFixed(2)}`,
       `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
     ]);
 
-    const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    const total = productosArray.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+
+    // No agregar fila TOTAL en la tabla
+
+    // Calcular producto más y menos vendido por cantidad
+    let productoMasVendido = null;
+    let productoMenosVendido = null;
+    if (productosArray.length > 0) {
+      productoMasVendido = productosArray.reduce((a, b) => (a.cantidad >= b.cantidad ? a : b));
+      productoMenosVendido = productosArray.reduce((a, b) => (a.cantidad <= b.cantidad ? a : b));
+    }
 
     // Formatear período con fechas específicas
     const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
@@ -226,8 +239,10 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         'Tipo de Reporte': 'Ventas',
         'Período': periodoConFechas,
         'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
-        'Total Ventas': `Bs. ${total.toFixed(2)}`,
-        'Cantidad de Movimientos': salidas.length.toString()
+        'Total': `Bs. ${total.toFixed(2)}`,
+        'Cantidad de Movimientos': salidas.length.toString(),
+        ...(productoMasVendido ? { 'Más vendido': `${productoMasVendido.nombre} (${productoMasVendido.cantidad})` } : {}),
+        ...(productoMenosVendido ? { 'Menos vendido': `${productoMenosVendido.nombre} (${productoMenosVendido.cantidad})` } : {})
       },
       tablaHeaders,
       tablaValores
@@ -454,6 +469,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
     const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
+    // No agregar fila TOTAL en la tabla
+
     // Formatear período con fechas específicas
     const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
     const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
@@ -470,7 +487,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         'Tipo de Reporte': 'Pedidos',
         'Período': periodoConFechas,
         'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
-        'Total Pedidos': `Bs. ${total.toFixed(2)}`,
+        'Total': `Bs. ${total.toFixed(2)}`,
         'Cantidad de Pedidos': pedidos.length.toString()
       },
       tablaHeaders,
@@ -481,6 +498,92 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       console.groupEnd();
     }
     return resultado;
+  };
+
+  // Función para generar reporte de balance (ingresos vs gastos)
+  const generarReporteBalance = async ({ fechaInicio, fechaFin }) => {
+    // 1) Obtener movimientos de almacén (solo salidas = ingresos/ventas)
+    const movimientosResponse = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucursalSeleccionada);
+    // 2) Obtener gastos (todos) y filtrar por fecha
+    const gastosResponse = await gastosService.getAllSinLimite();
+
+    const fechaInicioObj = new Date(fechaInicio);
+    const fechaFinObj = new Date(fechaFin);
+    const fechaInicioStr = new Date(fechaInicioObj).toISOString().split('T')[0];
+    const fechaFinStr = new Date(fechaFinObj).toISOString().split('T')[0];
+
+    // Normalizar movimientos por día
+    const movimientosFiltrados = (movimientosResponse?.data || []).filter(mov => {
+      const fechaMovimiento = new Date(mov.fecha);
+      const fMov = new Date(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
+      const fIni = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
+      const fFin = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
+      return fMov >= fIni && fMov <= fFin;
+    });
+
+    // Tabla de ingresos
+    const headersIngresos = ['Fecha', 'Cliente/Detalle', 'Subtotal'];
+    const valoresIngresos = [];
+    let totalIngresos = 0;
+    movimientosFiltrados.forEach(mov => {
+      const subtotal = (mov.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
+      totalIngresos += subtotal;
+      valoresIngresos.push([
+        new Date(mov.fecha).toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' }),
+        mov?.cliente?.name || mov?.observaciones || '-',
+        `Bs. ${subtotal.toFixed(2)}`
+      ]);
+    });
+
+    // Tabla de gastos
+    const headersGastos = ['Fecha', 'Concepto', 'Valor'];
+    const valoresGastos = [];
+    let totalGastos = 0;
+    (gastosResponse?.data || []).forEach(g => {
+      const fechaG = g.fecha_gasto; // YYYY-MM-DD
+      if (fechaG >= fechaInicioStr && fechaG <= fechaFinStr) {
+        const valor = parseFloat(g.valor || 0);
+        totalGastos += valor;
+        valoresGastos.push([
+          fechaG,
+          g.concepto || '-',
+          `Bs. ${valor.toFixed(2)}`
+        ]);
+      }
+    });
+
+    const neto = totalIngresos - totalGastos;
+
+    // Para ModalDescarga: dos tablas separadas
+    const tablas = [
+      {
+        titulo: 'INGRESOS',
+        headers: headersIngresos,
+        valores: [...valoresIngresos, ['Total Ingresos', '', `Bs. ${totalIngresos.toFixed(2)}`]]
+      },
+      {
+        titulo: 'GASTOS',
+        headers: headersGastos,
+        valores: [...valoresGastos, ['Total Gastos', '', `Bs. ${totalGastos.toFixed(2)}`]]
+      }
+    ];
+
+    // Periodo para header
+    const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+    const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+    const periodoConFechas = fechaInicio.getTime() === fechaFin.getTime() ? fechaFinFormateada : `${fechaInicioFormateada} a ${fechaFinFormateada}`;
+
+    return {
+      informacionSuperior: {
+        'Tipo de Reporte': 'Balance',
+        'Período': periodoConFechas,
+        'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
+        'Total Ingresos': `Bs. ${totalIngresos.toFixed(2)}`,
+        'Total Gastos': `Bs. ${totalGastos.toFixed(2)}`,
+        'Total': `Bs. ${neto.toFixed(2)}`
+      },
+      tablas
+    };
   };
 
   // Función principal para generar el reporte
@@ -569,14 +672,21 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               const fechaMovimiento = new Date(movimiento.fecha);
               const fechaInicioObj = new Date(fechaInicio);
               const fechaFinObj = new Date(fechaFin);
-              const enRango = fechaMovimiento >= fechaInicioObj && fechaMovimiento <= fechaFinObj;
+
+              // Normalizar fechas a medianoche para comparación de días
+              const fechaMovimientoNormalizada = new Date(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
+              const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
+              const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
+
+              const enRango = fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
               if (DEBUG_REPORTES) {
                 console.log('Comparación Almacén:', {
                   fechaMovimiento_raw: movimiento.fecha,
                   fechaMovimiento_toString: fechaMovimiento.toString(),
                   fechaMovimiento_locale_LaPaz: fechaMovimiento.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-                  fechaInicio: fechaInicioObj.toString(),
-                  fechaFin: fechaFinObj.toString(),
+                  fechaMovimientoNormalizada: fechaMovimientoNormalizada.toString(),
+                  fechaInicioNormalizada: fechaInicioNormalizada.toString(),
+                  fechaFinNormalizada: fechaFinNormalizada.toString(),
                   enRango
                 });
               }
@@ -679,6 +789,11 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             mostrarNotificacion('error', 'No se pudieron obtener los pedidos');
             return;
           }
+          break;
+
+        case 'balance':
+          // Generar reporte de balance (ingresos y gastos)
+          reporteData = await generarReporteBalance({ fechaInicio, fechaFin });
           break;
 
         default:

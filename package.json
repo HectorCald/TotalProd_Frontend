@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@react-pdf/renderer": "^4.3.1",
     "@types/react-datepicker": "^6.2.0",
     "boxicons-react": "^0.1.1",
     "framer-motion": "^12.23.12",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
+    "pdf-lib": "^1.17.1",
     "react": "^18.2.0",
     "react-datepicker": "^8.7.0",
     "react-dom": "^18.3.1",

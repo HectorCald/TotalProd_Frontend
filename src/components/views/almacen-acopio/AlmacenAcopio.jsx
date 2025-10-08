@@ -142,29 +142,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
-    // Función para manejar refresh con indicador
-    const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-
-        try {
-            const response = await productsAcopioService.getAll();
-            if (response.success) {
-                setProductos(response.data);
-            }
-        } catch (error) {
-            console.error('Error al refrescar productos:', error);
-        } finally {
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    };
-
     // Funciones de filtrado locales
     const handleCategoriaFilter = (categoriaId) => {
         setCategoriaFiltro(categoriaId);
