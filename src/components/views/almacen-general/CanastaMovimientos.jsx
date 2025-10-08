@@ -461,7 +461,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             ...pedidoActualizado.data,
                             estado: 'Entregado',
                             movimiento_salida_id: movimientoId,
-                            deuda_id: deudaId
+                            deuda_id: deudaId,
+                            movimiento_salida: {
+                                id: movimientoId,
+                                metodo_pago: metodoPagoSeleccionado
+                            }
                         };
                         onPedidoActualizado(pedidoConEstadoActualizado);
                     }
