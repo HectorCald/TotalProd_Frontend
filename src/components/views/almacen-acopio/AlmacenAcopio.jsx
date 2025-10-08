@@ -11,6 +11,7 @@ import CategoriasAcopio from './CategoriasAcopio';
 import MovimientoAcopio from './MovimientoAcopio';
 import CanastaPedidos from './CanastaPedidos';
 import productsAcopioService from '../../../services/productsAcopioService';
+import categoryAcopioService from '../../../services/categoryAcopioService';
 import typeMeasureService from '../../../services/typeMeasureService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
@@ -570,6 +571,12 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                         onDataLoaded={handleProductosLoaded}
                         onLoadingStart={() => handleLoading(true)}
                         onLoadingEnd={() => handleLoading(false)}
+                    />
+                    <FetchData
+                        service={categoryAcopioService}
+                        serviceName="categoryAcopioService"
+                        isOpen={isOpen}
+                        onDataLoaded={setCategorias}
                     />
                     <FetchData
                         service={typeMeasureService}

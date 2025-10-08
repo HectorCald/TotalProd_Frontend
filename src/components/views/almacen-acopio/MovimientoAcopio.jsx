@@ -24,7 +24,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   });
 
   const [loading, setLoading] = useState(false);
-  
+
   // Estados para la notificación
   const [notification, setNotification] = useState({
     isVisible: false,
@@ -192,10 +192,10 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         // Manejar específicamente errores de stock insuficiente de ingredientes
         if (response.ingredientesConStockInsuficiente && response.ingredientesConStockInsuficiente.length > 0) {
           // Crear mensaje detallado para ingredientes con stock insuficiente
-          const ingredientesDetalle = response.ingredientesConStockInsuficiente.map(ing => 
+          const ingredientesDetalle = response.ingredientesConStockInsuficiente.map(ing =>
             `${ing.nombre}: Stock actual ${ing.stockActual}, requerido ${ing.requerido}`
           ).join('\n');
-          
+
           mostrarNotificacion('error', `Stock insuficiente de ingredientes:\n${ingredientesDetalle}`);
         } else {
           mostrarNotificacion('error', response.message || `Error al registrar ${tipo}`);
@@ -211,12 +211,12 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
 
   return (
     <>
-    <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-      <HeaderModal
-        title={`${tipo === 'entrada' ? 'Entrada' : 'Salida'} - ${producto?.name}`}
-        onClose={() => setIsOpen(false)}
-      />
-      
+      <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
+        <HeaderModal
+          title={`${tipo === 'entrada' ? 'Entrada' : 'Salida'} - ${producto?.name}`}
+          onClose={() => setIsOpen(false)}
+        />
+
         <div className={styles.modalContent}>
 
           <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
@@ -282,7 +282,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
 
               <Boton
                 className='btn-gray'
-                label={proveedorSeleccionadoData ? 'Proveedor: '+proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
+                label={proveedorSeleccionadoData ? 'Proveedor: ' + proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
                 onClick={() => setIsProveedoresSeleccionOpen(true)}
               />
 
@@ -294,7 +294,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
             <div className={styles.content} style={{ padding: '5px 15px' }}>
               <Boton
                 className='btn-gray'
-                label={clienteSeleccionadoData ? 'Cliente: '+clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+                label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
                 onClick={() => setIsClientesSeleccionOpen(true)}
               />
             </div>
@@ -328,23 +328,22 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
             }
           />
         </div>
+        <Proveedores
+          isOpen={isProveedoresSeleccionOpen}
+          setIsOpen={setIsProveedoresSeleccionOpen}
+          modoSeleccion={true}
+          onProveedorSeleccionado={handleProveedorSeleccionado}
+        />
 
-        </ViewModal>
+        {/* Modal de selección de clientes */}
+        <Clientes
+          isOpen={isClientesSeleccionOpen}
+          setIsOpen={setIsClientesSeleccionOpen}
+          modoSeleccion={true}
+          onClienteSeleccionado={handleClienteSeleccionado}
+        />
+      </ViewModal>
       {/* Modal de selección de proveedores */}
-      <Proveedores
-        isOpen={isProveedoresSeleccionOpen}
-        setIsOpen={setIsProveedoresSeleccionOpen}
-        modoSeleccion={true}
-        onProveedorSeleccionado={handleProveedorSeleccionado}
-      />
-
-      {/* Modal de selección de clientes */}
-      <Clientes
-        isOpen={isClientesSeleccionOpen}
-        setIsOpen={setIsClientesSeleccionOpen}
-        modoSeleccion={true}
-        onClienteSeleccionado={handleClienteSeleccionado}
-      />
 
       <Notification
         isVisible={notification.isVisible}

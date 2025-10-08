@@ -99,11 +99,36 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 }
             }
 
-            // 2) Anular el movimiento normalmente
+            // 2) Si el movimiento tiene gasto_id, limpiar y eliminar gasto antes de anular
+            if (movimiento?.gasto_id) {
+                // Limpiar gasto_id en el movimiento
+                const limpiarResp = await movimientosAlmacenService.update(movimiento.id, { gasto_id: null });
+                if (!limpiarResp.success) {
+                    mostrarNotificacion('error', `Error al limpiar gasto_id del movimiento: ${limpiarResp.message}`);
+                    setLoading(false);
+                    return;
+                }
+                // Eliminar el gasto
+                try {
+                    const gastoResp = await (await import('../../../services/gastosService')).default.delete(movimiento.gasto_id);
+                    if (!gastoResp.success) {
+                        mostrarNotificacion('error', `Error al eliminar gasto asociado: ${gastoResp.message}`);
+                        setLoading(false);
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Error eliminando gasto asociado:', e);
+                    mostrarNotificacion('error', 'Error al eliminar el gasto asociado');
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // 3) Anular el movimiento normalmente
             const response = await movimientosAlmacenService.anular(movimiento.id);
 
             if (response.success) {
-                // 3) Si había una deuda, eliminarla después de anular el movimiento
+                // 4) Si había una deuda, eliminarla después de anular el movimiento
                 if (movimiento?.deuda_id) {
                     const deudaResponse = await deudasService.delete(movimiento.deuda_id);
                     if (!deudaResponse.success) {

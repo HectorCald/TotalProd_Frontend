@@ -222,11 +222,11 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 )}
 
                 {/* Observaciones del movimiento */}
-                {movimiento?.observaciones && (
+                {(movimiento?.observations || movimiento?.observaciones) && (
                     <div className={styles.content}>
                         <Dato
                             label="Observaciones"
-                            value={movimiento.observaciones}
+                            value={movimiento.observations || movimiento.observaciones}
                             vertical={true}
                         />
                     </div>

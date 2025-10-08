@@ -11,6 +11,9 @@ import Switch from '../../common/Switch';
 import Proveedores from '../proveedores/Proveedores';
 import Notification from '../../common/Notification';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
+import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
+import gastosService from '../../../services/gastosService';
+import InputNormal from '../../common/InputNormal';
 
 function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
@@ -28,6 +31,10 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         const saved = localStorage.getItem('restarIngredientes');
         return saved !== null ? JSON.parse(saved) : true;
     });
+    const [registrarGasto, setRegistrarGasto] = useState(false);
+    const [costo, setCosto] = useState('');
+    const [concepto, setConcepto] = useState('');
+    const [metodoPago, setMetodoPago] = useState('');
 
     // Notificaciones
     const [notification, setNotification] = useState({ isVisible: false, type: 'error', text: '' });
@@ -221,13 +228,45 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 type: 'entrada',
                 observaciones: (observacionesGenerales || null),
                 precio_id: precioSeleccionado,
-                metodo_pago: null,
+                metodo_pago: registrarGasto ? (metodoPago || null) : null,
                 cliente_id: null,
-                proveedor_id: proveedorSeleccionado || null,
+                proveedor_id: registrarGasto ? (proveedorSeleccionado || null) : null,
                 restar_ingredientes: restarIngredientes && tieneProductosConRecetas(),
                 agrupado: modoAgrupacion === 'agrupado',
                 productos: prepararProductos()
             };
+
+            // Si registrarGasto está activo, crear gasto primero
+            let gastoId = null;
+            if (registrarGasto) {
+                if (!costo || parseFloat(costo) <= 0) {
+                    mostrarNotificacion('error', 'El costo es obligatorio y debe ser mayor a 0');
+                    setLoadingConfirmar(false);
+                    return;
+                }
+                if (!metodoPago || metodoPago.trim() === '') {
+                    mostrarNotificacion('error', 'El método de pago es obligatorio');
+                    setLoadingConfirmar(false);
+                    return;
+                }
+                const valorTotal = parseFloat(costo);
+                const conceptoFinal = (concepto && concepto.trim() !== '') ? concepto.trim() : `Entradas (${productosCanasta.length} items)`;
+                const gastoData = {
+                    fecha_gasto: new Date().toISOString().split('T')[0],
+                    valor: valorTotal,
+                    concepto: conceptoFinal,
+                    metodo_pago: metodoPago,
+                    proveedor_id: proveedorSeleccionado || null
+                };
+                const gastoResponse = await gastosService.create(gastoData);
+                if (!gastoResponse.success) {
+                    mostrarNotificacion('error', `Error al crear gasto: ${gastoResponse.message}`);
+                    setLoadingConfirmar(false);
+                    return;
+                }
+                gastoId = gastoResponse.data.id;
+                movimientoData.gasto_id = gastoId;
+            }
 
             const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
             const movimientoId = (movimientoResponse && movimientoResponse.success) ? movimientoResponse.data?.id : null;
@@ -254,6 +293,14 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 }
             } else {
                 mostrarNotificacion('error', 'Error al crear el movimiento');
+                // Si falló el movimiento y se creó gasto, intentar rollback
+                try {
+                    if (registrarGasto && gastoId) {
+                        await gastosService.delete(gastoId);
+                    }
+                } catch (e) {
+                    console.error('Error rollback gasto:', e);
+                }
             }
         } catch (error) {
             mostrarNotificacion('error', error.message || 'Error al confirmar movimientos');
@@ -369,16 +416,6 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                 </div>
                             ))}
 
-                            {/* Selector de proveedor para entradas */}
-                            <div className={styles.content} style={{ padding: '5px 15px', marginTop: 'auto' }}>
-                                <Boton
-                                    className='btn-transparent'
-                                    label={proveedorSeleccionadoData ? 'Proveedor: ' + proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
-                                    onClick={() => setIsProveedoresSeleccionOpen(true)}
-                                    style={{ width: '100%', justifyContent: 'flex-start' }}
-                                />
-                            </div>
-
                             {/* Switch para restar ingredientes (solo si hay productos con recetas) */}
                             {tieneProductosConRecetas() && (
                                 <div className={styles.content} style={{ padding: '10px 15px' }}>
@@ -393,6 +430,43 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                         icon="minus-circle"
                                     />
                                 </div>
+                            )}
+                            {/* Registrar gasto (opcional) */}
+                            <div className={styles.content} style={{ marginTop: 'auto' }}>
+                                <Switch
+                                    title="Registrar gasto"
+                                    subtitle="Crear un gasto automáticamente con estas entradas"
+                                    checked={registrarGasto}
+                                    onChange={setRegistrarGasto}
+                                    icon="money"
+                                />
+                            </div>
+                            {registrarGasto && (
+                                <>
+                                    <InputNormal
+                                        placeholder="Costo (Bs.)"
+                                        type="number"
+                                        step="0.01" min="0"
+                                        value={costo}
+                                        onChange={(e) => setCosto(e.target.value)}
+                                        className={styles.precioInput}
+                                    />
+                                     <Boton
+                                        className='btn-gray'
+                                        label={proveedorSeleccionadoData ? 'Proveedor: ' + proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
+                                        onClick={() => setIsProveedoresSeleccionOpen(true)}
+                                        style={{ width: '100%', justifyContent: 'flex-start' }}
+                                    />
+                                    <div className={styles.content} style={{padding: '5px 15px'}}>
+                                        <SelectorMetodoPago value={metodoPago} onChange={setMetodoPago} />
+                                    </div>
+                                     <InputNormal
+                                         placeholder="Concepto del gasto"
+                                         type="text"
+                                         value={concepto}
+                                         onChange={(e) => setConcepto(e.target.value)}
+                                     />
+                                </>
                             )}
                         </div>
 
