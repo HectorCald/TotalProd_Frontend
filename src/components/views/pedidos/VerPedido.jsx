@@ -9,7 +9,7 @@ import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
-import ModalDescarga from '../../ui/ModalDescarga';
+import DescargaPedidoBuilder from './DescargaPedidoBuilder';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import { useUser } from '../../../context/UserContext';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
@@ -337,49 +337,6 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     };
 
 
-    // Función para preparar datos de descarga
-    const prepararDatosDescarga = () => {
-        if (!pedido) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
-
-        // Obtener nombre de la sucursal (ya viene del backend)
-        const nombreSucursal = pedido?.sucursal?.name || 'Sucursal no encontrada';
-
-        // Información superior
-        const informacionSuperior = {
-            'Solicitante': pedido?.user?.name || pedido?.personal?.name || 'Usuario desconocido',
-            'Sucursal': nombreSucursal,
-            'Número de Pedido': `#${pedido.id.slice(-8)}`,
-            'Fecha': new Date(pedido.fecha || pedido.created_at).toLocaleString(),
-            'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'
-        };
-
-        // Para pedidos de almacén
-        if (pedido?.precio?.name) {
-            informacionSuperior['Tipo de Precio'] = pedido.precio.name;
-        }
-        if (pedido?.cliente?.name) {
-            informacionSuperior['Cliente'] = pedido.cliente.name;
-        }
-
-        // Calcular total
-        const total = (pedido?.pedido_almacen_detalle || []).reduce((sum, detalle) => {
-            const precio = detalle.precio || 0;
-            const cantidad = detalle.cantidad || 0;
-            return sum + (precio * cantidad);
-        }, 0);
-        informacionSuperior['Total'] = `Bs. ${total.toFixed(2)}`;
-
-        // Tabla para almacén (múltiples productos)
-        const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-        const tablaValores = (pedido?.pedido_almacen_detalle || []).map(detalle => [
-            detalle?.producto_almacen?.name || 'Sin producto',
-            detalle?.cantidad || '0',
-            `Bs. ${(detalle?.precio || 0).toFixed(2)}`,
-            `Bs. ${((detalle?.precio || 0) * (detalle?.cantidad || 0)).toFixed(2)}`
-        ]);
-
-        return { informacionSuperior, tablaHeaders, tablaValores };
-    };
 
     // Función para obtener los detalles del pedido
     const getDetallesPedido = () => {
@@ -499,6 +456,16 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                     value={pedido.observaciones || 'Sin observaciones'}
                     vertical={false}
                 />
+                
+                {/* Mostrar método de pago si el pedido está entregado */}
+                {pedido.estado === 'Entregado' && pedido?.movimiento_salida?.metodo_pago && (
+                    <Dato
+                        label="Método de Pago"
+                        value={pedido.movimiento_salida.metodo_pago}
+                        vertical={false}
+                        especial="green"
+                    />
+                )}
 
 
                 <div className={styles.buttons}>
@@ -568,13 +535,12 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             </ViewModal>
 
             {/* Modal de descarga */}
-            <ModalDescarga
+            <DescargaPedidoBuilder
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
-                titulo="Descargar Pedido"
-                subtitulo="Selecciona el formato que prefieras para descargar este pedido."
-                nombreArchivo={`Pedido_Almacen_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`}
-                {...prepararDatosDescarga()}
+                pedidoId={pedido?.id}
+                pedidoData={pedido}
+                tipo="almacen"
             />
 
             {/* Modal de eliminar pedido */}

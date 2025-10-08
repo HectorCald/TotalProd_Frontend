@@ -9,7 +9,7 @@ import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
-import ModalDescarga from '../../ui/ModalDescarga';
+import DescargaPedidoBuilder from './DescargaPedidoBuilder';
 import EntregaPedidoAcopio from './EntregaPedidoAcopio';
 import MovimientoAcopio from '../almacen-acopio/MovimientoAcopio';
 import { useUser } from '../../../context/UserContext';
@@ -82,32 +82,6 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         }, 3000);
     };
 
-    // Función para preparar datos de descarga
-    const prepararDatosDescarga = () => {
-        if (!pedido) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
-
-        // Obtener nombre de la sucursal (ya viene del backend)
-        const nombreSucursal = pedido?.sucursal?.name || 'Sucursal no encontrada';
-
-        // Información superior
-        const informacionSuperior = {
-            'Solicitante': pedido?.user?.name || pedido?.personal?.name || 'Usuario desconocido',
-            'Sucursal': nombreSucursal,
-            'Número de Pedido': `#${pedido.id.slice(-8)}`,
-            'Fecha': new Date(pedido.fecha || pedido.created_at).toLocaleString(),
-            'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'
-        };
-
-        // Tabla para acopio (un solo producto)
-        const tablaHeaders = ['Producto', 'Cantidad', 'Unidad de Medida'];
-        const tablaValores = [[
-            pedido?.producto_acopio?.name || 'Sin producto',
-            pedido?.cantidad || '0',
-            pedido?.tipo_medida || ''
-        ]];
-
-        return { informacionSuperior, tablaHeaders, tablaValores };
-    };
 
     // Función para obtener los detalles del pedido
     const getDetallesPedido = () => {
@@ -480,13 +454,12 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
             </div>
 
             {/* Modal de descarga */}
-            <ModalDescarga
+            <DescargaPedidoBuilder
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
-                titulo="Descargar Pedido"
-                subtitulo="Selecciona el formato que prefieras para descargar este pedido."
-                nombreArchivo={`Pedido_Acopio_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`}
-                {...prepararDatosDescarga()}
+                pedidoId={pedido?.id}
+                pedidoData={pedido}
+                tipo="acopio"
             />
 
             {/* Modal de eliminar pedido */}

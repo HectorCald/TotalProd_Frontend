@@ -6,13 +6,11 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Dato from '../../common/Dato';
 import { BoxIcon } from 'boxicons-react';
-import { FaStar, FaRegStar } from 'react-icons/fa';
 import Boton from '../../common/Boton';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import deudasService from '../../../services/deudasService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
-import ModalDescarga from '../../ui/ModalDescarga';
 import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
 
 function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
@@ -21,7 +19,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
-    const [isDestacado, setIsDestacado] = useState(false);
 
     // Estados para notificaciones
     const [notification, setNotification] = useState({
@@ -42,48 +39,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         }, 3000);
     };
 
-    // Función para manejar el destacado
-    const handleDestacar = () => {
-        if (!movimiento?.id) return;
-
-        let movimientosDestacados = JSON.parse(localStorage.getItem('MovimientosDestacados') || '[]');
-
-        if (isDestacado) {
-            // Quitar de destacados
-            movimientosDestacados = movimientosDestacados.filter(m =>
-                !(m.id === movimiento.id && m.tipo === 'almacen')
-            );
-            setIsDestacado(false);
-        } else {
-            // Verificar si ya hay 10 movimientos destacados
-            if (movimientosDestacados.length >= 10) {
-                mostrarNotificacion('error', 'Solo puedes destacar máximo 10 movimientos');
-                return;
-            }
-
-            // Agregar a destacados
-            movimientosDestacados.push({
-                id: movimiento.id,
-                tipo: 'almacen'
-            });
-            setIsDestacado(true);
-        }
-
-        localStorage.setItem('MovimientosDestacados', JSON.stringify(movimientosDestacados));
-    };
-    useEffect(() => {
-        if (movimiento?.id) {
-            const movimientosDestacados = JSON.parse(localStorage.getItem('MovimientosDestacados') || '[]');
-            const esDestacado = movimientosDestacados.some(m =>
-                m.id === movimiento.id && m.tipo === 'almacen'
-            );
-            setIsDestacado(esDestacado);
-        }
-    }, [movimiento?.id]);
-
-
-
-    // Preparación de descarga ahora es manejada por DescargaMovimientoBuilder
 
     // Handle para anular movimiento
     const handleAnular = async () => {
@@ -188,23 +143,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 <h1 className={styles.title}>
                     Detalles
                     <div className={styles.iconButton}>
-                        <button
-                            className={styles.iconButton}
-                            onClick={handleDestacar}
-                            title={isDestacado ? 'Quitar de destacados' : 'Destacar movimiento'}
-                        >
-                            {isDestacado ? (
-                                <FaStar
-                                    className={styles.iconStar}
-                                    style={{ color: '#FFD700' }}
-                                />
-                            ) : (
-                                <FaRegStar
-                                    className={styles.iconStar}
-                                    style={{ color: '#666' }}
-                                />
-                            )}
-                        </button>
                         <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
                             <BoxIcon
                                 name='download'
