@@ -10,6 +10,7 @@ import Explorar from '../components/screens/Explorar';
 
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
 import AlmacenMedioGeneral from '../components/views/almacen-general/AlmacenMedioGeneral';
+import ConteosMedio from '../components/views/conteos/ConteosMedio';
 import MovimientosMedio from '../components/views/movimientos/MovimientosMedio';
 import PedidosMedio from '../components/views/pedidos/PedidosMedio';
 import Personal from '../components/views/personal/Personal';
@@ -117,6 +118,10 @@ const Home = () => {
             isOpen={activeView === 'pedidos'}
             setIsOpen={() => handleViewClose()}
           />
+          <ConteosMedio
+            isOpen={activeView === 'conteos'}
+            setIsOpen={() => handleViewClose()}
+          />
           <Personal
             isOpen={activeView === 'personal'}
             setIsOpen={() => handleViewClose()}
@@ -176,6 +181,10 @@ const Home = () => {
           />
           <PedidosMedio
             isOpen={activeView === 'pedidos'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <ConteosMedio
+            isOpen={activeView === 'conteos'}
             setIsOpen={() => handleViewClose()}
           />
         </>

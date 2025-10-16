@@ -24,10 +24,20 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [modoAlmacen, setModoAlmacen] = useState('pedido'); // 'pedido' o 'entregar'
+    
+    // Estado local para el pedido actual
+    const [pedidoActual, setPedidoActual] = useState(pedido);
 
+    // Actualizar el estado local cuando cambie el prop pedido
+    useEffect(() => {
+        setPedidoActual(pedido);
+    }, [pedido]);
 
     // Función para manejar cuando se actualiza un pedido
     const handlePedidoActualizado = (pedidoActualizado) => {
+        // Actualizar el estado local del pedido
+        setPedidoActual(pedidoActualizado);
+        
         if (onPedidoActualizado) {
             onPedidoActualizado(pedidoActualizado);
         }
@@ -36,11 +46,11 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     };
     // Función para eliminar pedido
     const handleEliminarPedido = async () => {
-        if (!pedido) return;
+        if (!pedidoActual) return;
 
         try {
             setLoading(true);
-            const response = await pedidosAlmacenService.eliminar(pedido.id);
+            const response = await pedidosAlmacenService.eliminar(pedidoActual.id);
 
             if (response.success) {
                 mostrarNotificacion('success', 'Pedido eliminado correctamente');
@@ -48,7 +58,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
                 // Llamar a la función para actualizar la lista en el padre
                 if (onPedidoEliminado) {
-                    onPedidoEliminado(pedido.id);
+                    onPedidoEliminado(pedidoActual.id);
                 }
             } else {
                 mostrarNotificacion('error', response.message || 'Error al eliminar el pedido');
@@ -62,7 +72,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     };
     // Función para editar pedido
     const handleEditarPedido = () => {
-        if (!pedido) {
+        if (!pedidoActual) {
             mostrarNotificacion('error', 'No hay pedido para editar');
             return;
         }
@@ -75,21 +85,30 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.removeItem('productosPedidoEditando');
 
         // Guardar datos del pedido para edición (similar a entrega)
-        localStorage.setItem('pedidoIdEditando', pedido.id);
-        localStorage.setItem('precioIdEditando', pedido.precio_id || '');
-        localStorage.setItem('pedidoAgrupadoEditando', pedido.agrupado ? 'agrupado' : 'no_agrupado');
+        localStorage.setItem('pedidoIdEditando', pedidoActual.id);
+        localStorage.setItem('precioIdEditando', pedidoActual.precio_id || '');
+        localStorage.setItem('pedidoAgrupadoEditando', pedidoActual.agrupado ? 'agrupado' : 'no_agrupado');
         
         // Guardar productos del pedido para cargar automáticamente (solo ID y cantidad)
-        const productosPedido = pedido.pedido_almacen_detalle?.map(detalle => ({
-            id: detalle.producto_almacen.id,
-            cantidad: detalle.cantidad
-        })) || [];
+        const productosPedido = pedidoActual.pedido_almacen_detalle?.map(detalle => {
+            let cantidadParaGuardar = detalle.cantidad;
+            
+            // Si el pedido es agrupado, convertir la cantidad a grupos
+            if (pedidoActual.agrupado && detalle.producto_almacen?.grup) {
+                cantidadParaGuardar = Math.round(detalle.cantidad / detalle.producto_almacen.grup);
+            }
+            
+            return {
+                id: detalle.producto_almacen.id,
+                cantidad: cantidadParaGuardar
+            };
+        }) || [];
         localStorage.setItem('productosPedidoEditando', JSON.stringify(productosPedido));
 
         // Guardar cliente si existe para preseleccionarlo en CanastaPedidos
-        if (pedido.cliente?.id) {
-            localStorage.setItem('clienteIdEditando', pedido.cliente.id);
-            localStorage.setItem('clienteNameEditando', pedido.cliente.name || '');
+        if (pedidoActual.cliente?.id) {
+            localStorage.setItem('clienteIdEditando', pedidoActual.cliente.id);
+            localStorage.setItem('clienteNameEditando', pedidoActual.cliente.name || '');
         } else {
             localStorage.removeItem('clienteIdEditando');
             localStorage.removeItem('clienteNameEditando');
@@ -99,34 +118,34 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         setModoAlmacen('pedido');
         setIsAlmacenOpen(true);
     };
-    // Función para manejar la entrega de pedido (ya no se usa, la lógica está en CanastaMovimientos)
-    const handleEntregaConfirmada = async (movimientoId, pedidoActualizadoData) => {
-        // Esta función ya no se usa porque la lógica de entrega está en el backend
-        // Solo actualizar el pedido local si viene de CanastaMovimientos
-        if (onPedidoActualizado) {
-            const pedidoActualizado = {
-                ...pedido,
-                estado: 'Entregado',
-                movimiento_id: movimientoId,
-                // Si viene pedidoActualizadoData del update, usar esos datos
-                ...(pedidoActualizadoData && { ...pedidoActualizadoData })
-            };
-            onPedidoActualizado(pedidoActualizado);
+    // Función para manejar la entrega de pedido
+    const handleEntregaConfirmada = async (productosActualizados, precioId, movimientoId, pedidoActualizadoData) => {
+        // Actualizar el estado local del pedido
+        if (pedidoActualizadoData) {
+            setPedidoActual(pedidoActualizadoData);
         }
 
-        // Cerrar AlmacenGeneral (VerPedido se cerrará desde PanelPedidos después de actualizar)
+        // Actualizar el pedido en el componente padre
+        if (onPedidoActualizado && pedidoActualizadoData) {
+            onPedidoActualizado(pedidoActualizadoData);
+        }
+
+        // Cerrar AlmacenGeneral pero mantener VerPedido abierto
         setIsAlmacenOpen(false);
+        
+        // Mostrar notificación de éxito
+        mostrarNotificacion('success', 'Pedido entregado correctamente');
     };
     // Función para cancelar entrega
     const handleCancelarEntrega = async () => {
-        if (!pedido) return;
+        if (!pedidoActual) return;
 
         try {
             setLoading(true);
 
             // Guardar los IDs antes de empezar
-            const movimientoId = pedido.movimiento_salida_id;
-            const deudaId = pedido.deuda_id;
+            const movimientoId = pedidoActual.movimiento_salida_id;
+            const deudaId = pedidoActual.deuda_id;
 
             console.log('PASO 1: Anulando movimiento...');
             // 1) PRIMERO: Anular el movimiento (desde pedido)
@@ -141,7 +160,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
             console.log('PASO 2: Limpiando campos del pedido...');
             // 2) SEGUNDO: Limpiar movimiento_salida_id y deuda_id del pedido (sin cambiar estado)
-            const limpiarCamposResponse = await pedidosAlmacenService.updateEstado(pedido.id, pedido.estado, null, null);
+            const limpiarCamposResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, pedidoActual.estado, null, null);
             if (!limpiarCamposResponse.success) {
                 mostrarNotificacion('error', 'Error al limpiar campos del pedido: ' + limpiarCamposResponse.message);
                 return;
@@ -172,7 +191,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
             console.log('PASO 5: Cambiando estado del pedido a Pendiente...');
             // 5) QUINTO: Cambiar estado del pedido a Pendiente
-            const cambiarEstadoResponse = await pedidosAlmacenService.updateEstado(pedido.id, 'Pendiente');
+            const cambiarEstadoResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, 'Pendiente');
             if (!cambiarEstadoResponse.success) {
                 mostrarNotificacion('error', 'Error al cambiar estado del pedido: ' + cambiarEstadoResponse.message);
                 return;
@@ -183,18 +202,20 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
             // Actualizar el pedido local y cerrar
             const pedidoActualizado = {
-                ...pedido,
+                ...pedidoActual,
                 estado: 'Pendiente',
                 movimiento_salida_id: null,
                 deuda_id: null
             };
 
+            // Actualizar el estado local del pedido
+            setPedidoActual(pedidoActualizado);
+
             if (onPedidoActualizado) {
                 onPedidoActualizado(pedidoActualizado);
             }
 
-            // Cerrar modal y regresar a PanelPedidos
-            setIsOpen(false);
+            // No cerrar VerPedido, solo actualizar el estado
 
         } catch (error) {
             console.error('Error al cancelar entrega:', error);
@@ -205,7 +226,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     };
     // Función para ingresar pedido
     const handleIngresarPedido = async () => {
-        if (!pedido) return;
+        if (!pedidoActual) return;
 
         try {
             setLoading(true);
@@ -213,11 +234,11 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             // Si la sucursal actual comparte almacén, solo finalizar sin crear movimiento
             const usaAlmacenCompartido = !!(sucursalActual && sucursalActual.almacen_sucursal_id);
             if (usaAlmacenCompartido) {
-                const estadoResponse = await pedidosAlmacenService.updateEstado(pedido.id, 'Completado');
+                const estadoResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, 'Completado');
                 if (estadoResponse.success) {
                     mostrarNotificacion('success', 'Pedido finalizado correctamente');
                     const pedidoActualizado = {
-                        ...pedido,
+                        ...pedidoActual,
                         estado: 'Completado'
                     };
                     if (onPedidoActualizado) {
@@ -232,7 +253,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             }
 
             // Preparar los productos del pedido para el ingreso
-            const productosParaIngreso = pedido.pedido_almacen_detalle?.map(detalle => ({
+            const productosParaIngreso = pedidoActual.pedido_almacen_detalle?.map(detalle => ({
                 id: detalle.producto_almacen.id,
                 cantidad: detalle.cantidad,
                 precio: detalle.precio || 0
@@ -246,23 +267,23 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             // Crear el movimiento de entrada usando el MVC de movimientos
             const movimientoData = {
                 type: 'entrada',
-                observaciones: `Ingreso automático del pedido #${pedido.id.slice(-8)}`,
+                observaciones: `Ingreso automático del pedido #${pedidoActual.id.slice(-8)}`,
                 productos: productosParaIngreso,
-                precio_id: pedido.precio_id
+                precio_id: pedidoActual.precio_id
             };
 
             const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
 
             if (movimientoResponse.success) {
                 // Actualizar el estado del pedido a Completado y registrar el movimiento de entrada
-                const estadoResponse = await pedidosAlmacenService.updateEstado(pedido.id, 'Completado', movimientoResponse.data.id);
+                const estadoResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, 'Completado', movimientoResponse.data.id);
 
                 if (estadoResponse.success) {
                     mostrarNotificacion('success', 'Pedido ingresado correctamente');
 
                     // Actualizar el pedido local
                     const pedidoActualizado = {
-                        ...pedido,
+                        ...pedidoActual,
                         estado: 'Completado'
                     };
 
@@ -287,7 +308,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     };
     // Función para entregar pedido
     const handleEntregarPedido = () => {
-        if (!pedido || tipoPedido === 'acopio') {
+        if (!pedidoActual || tipoPedido === 'acopio') {
             mostrarNotificacion('error', 'Solo se pueden entregar pedidos de almacén');
             return;
         }
@@ -300,17 +321,26 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.removeItem('pedidoDestinoSucursalName');
 
         // Guardar datos del pedido para entrega
-        localStorage.setItem('pedidoIdEntregando', pedido.id);
-        localStorage.setItem('precioIdEntregando', pedido.precio_id || '');
-        localStorage.setItem('pedidoAgrupadoEntregando', pedido.agrupado ? 'agrupado' : 'no_agrupado');
-        localStorage.setItem('pedidoDestinoSucursalId', pedido.sucursal_id || '');
-        localStorage.setItem('pedidoDestinoSucursalName', pedido.sucursal?.name || '');
+        localStorage.setItem('pedidoIdEntregando', pedidoActual.id);
+        localStorage.setItem('precioIdEntregando', pedidoActual.precio_id || '');
+        localStorage.setItem('pedidoAgrupadoEntregando', pedidoActual.agrupado ? 'agrupado' : 'no_agrupado');
+        localStorage.setItem('pedidoDestinoSucursalId', pedidoActual.sucursal_id || '');
+        localStorage.setItem('pedidoDestinoSucursalName', pedidoActual.sucursal?.name || '');
         
         // Guardar productos del pedido para cargar automáticamente
-        const productosPedido = pedido.pedido_almacen_detalle?.map(detalle => ({
-            id: detalle.producto_almacen.id,
-            cantidad: detalle.cantidad
-        })) || [];
+        const productosPedido = pedidoActual.pedido_almacen_detalle?.map(detalle => {
+            let cantidadParaGuardar = detalle.cantidad;
+            
+            // Si el pedido es agrupado, convertir la cantidad a grupos
+            if (pedidoActual.agrupado && detalle.producto_almacen?.grup) {
+                cantidadParaGuardar = Math.round(detalle.cantidad / detalle.producto_almacen.grup);
+            }
+            
+            return {
+                id: detalle.producto_almacen.id,
+                cantidad: cantidadParaGuardar
+            };
+        }) || [];
         localStorage.setItem('productosPedidoEntregando', JSON.stringify(productosPedido));
 
         // Abrir AlmacenGeneral en modo salida
@@ -340,47 +370,60 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
     // Función para obtener los detalles del pedido
     const getDetallesPedido = () => {
-        if (!pedido) return [];
+        if (!pedidoActual || !pedidoActual.pedido_almacen_detalle) return [];
 
         // Para almacén, usar la estructura de detalles
-        const detalles = pedido.pedido_almacen_detalle || [];
+        const detalles = pedidoActual.pedido_almacen_detalle || [];
         return detalles.map(detalle => {
             const producto = detalle.producto_almacen || {};
+            
+            // Si el pedido es agrupado, mostrar la cantidad visual (agrupada)
+            // Si no es agrupado, mostrar la cantidad real (unidades)
+            let cantidadVisual = detalle.cantidad || 0;
+            let medidaVisual = detalle.medida || producto.type_measure?.code || 'u';
+            
+            if (pedidoActual.agrupado && producto.grup) {
+                // Calcular cantidad agrupada: cantidad real / factor de agrupación
+                const factorAgrupacion = producto.grup || 1;
+                cantidadVisual = Math.round((detalle.cantidad || 0) / factorAgrupacion);
+                medidaVisual = 'grp';
+            }
+            
             return {
                 id: detalle.id,
                 nombre: producto.name || 'Producto no encontrado',
-                cantidad: detalle.cantidad || 0,
-                medida: detalle.medida || producto.type_measure?.code || 'u',
+                cantidad: cantidadVisual,
+                medida: medidaVisual,
                 precio: detalle.precio || 0,
-                subtotal: (detalle.precio || 0) * (detalle.cantidad || 0)
+                subtotal: (detalle.precio || 0) * (detalle.cantidad || 0) // El subtotal siempre usa la cantidad real para el cálculo
             };
         });
     };
 
-    if (!pedido) return null;
+    if (!pedidoActual) return null;
     const detalles = getDetallesPedido();
 
 
 
     const puedeEditarPedido = () => {
-        if (!pedido || !sucursalActual) return false;
-        return pedido.sucursal_id === sucursalActual.id && pedido.estado !== 'Entregado' && pedido.estado !== 'Completado';
+        if (!pedidoActual || !sucursalActual) return false;
+        return pedidoActual.sucursal_id === sucursalActual.id && pedidoActual.estado !== 'Entregado' && pedidoActual.estado !== 'Completado';
     };
     const puedeEntregarPedido = () => {
-        if (!pedido || !sucursalActual) return false;
-        return pedido.sucursal_destino_id === sucursalActual.id && pedido.estado !== 'Entregado' && pedido.estado !== 'Completado';
+        if (!pedidoActual || !sucursalActual) return false;
+        return pedidoActual.sucursal_destino_id === sucursalActual.id && pedidoActual.estado !== 'Entregado' && pedidoActual.estado !== 'Completado';
     };
     const puedeCancelarEntrega = () => {
-        if (!pedido || !sucursalActual) return false;
-        return pedido.sucursal_destino_id === sucursalActual.id && pedido.estado === 'Entregado';
+        if (!pedidoActual || !sucursalActual) return false;
+        return pedidoActual.sucursal_destino_id === sucursalActual.id && pedidoActual.estado === 'Entregado';
     };
     const puedeIngresarPedido = () => {
-        if (!pedido || !sucursalActual) return false;
-        return pedido.sucursal_id === sucursalActual.id && pedido.estado === 'Entregado';
+        if (!pedidoActual || !sucursalActual) return false;
+        return pedidoActual.sucursal_id === sucursalActual.id && pedidoActual.estado === 'Entregado';
     };
     const puedeEliminarPedido = () => {
-        if (!pedido || !sucursalActual) return false;
-        return pedido.sucursal_id === sucursalActual.id && pedido.estado !== 'Completado' && pedido.estado !== 'Entregado';
+        if (!pedidoActual || !sucursalActual) return false;
+        return pedidoActual.sucursal_id === sucursalActual.id && pedidoActual.estado !== 'Completado' && pedidoActual.estado !== 'Entregado';
     };
 
 
@@ -401,33 +444,35 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL SOLICITANTE</p>
                 <ItemView
-                    title={pedido.user?.name || pedido.personal?.name || 'Usuario desconocido'}
-                    description={pedido.sucursal?.name || 'Sucursal desconocida'}
+                    title={pedidoActual.user?.name || pedidoActual.personal?.name || 'Usuario desconocido'}
+                    description={pedidoActual.sucursal?.name || 'Sucursal desconocida'}
                     transparent={false}
                 />
                 <p className={styles.subTitle}>INFORMACIÓN DEL PEDIDO</p>
                 <ItemView
-                    title={`Pedido #${pedido.id.slice(-8)}`}
-                    description={`Fecha y hora: ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                    title={`Pedido #${pedidoActual.id.slice(-8)}`}
+                    description={`Fecha y hora: ${new Date(pedidoActual.fecha || pedidoActual.created_at).toLocaleDateString('es-ES', {
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
                         minute: '2-digit'
                     })}`}
-                    description2={`Tipo de precio: ${pedido.precio?.name || 'Precio desconocido'}`}
-                    flot6={pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'}
+                    description2={`Tipo de precio: ${pedidoActual.precio?.name || 'Precio desconocido'}`}
+                    flot3={pedidoActual.estado === 'Pendiente' ? 'Pendiente' : ''}
+                    flot5={pedidoActual.estado === 'Completado' ? 'Completado' : ''}
+                    flot2={pedidoActual.estado === 'Entregado' ? 'Entregado' : ''}
                     circulo={false}
                     transparent={false}
                 />
                 <ItemView
-                    title={pedido.agrupado ? 'Agrupado' : 'Unidades'}
-                    description="Modo de pedido"
+                    title={pedidoActual.agrupado ? 'Agrupado' : 'Unidades'}
+                    description="Modalidad de pedido"
                     transparent={false}
                 />
-                {pedido?.cliente?.name && (
+                {pedidoActual?.cliente?.name && (
                     <ItemView
-                        title={pedido.cliente.name}
+                        title={pedidoActual.cliente.name}
                         description="Cliente"
                         transparent={false}
                     />
@@ -443,7 +488,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
                 <Dato
                     label="Total"
-                    value={`Bs. ${(pedido.pedido_almacen_detalle || []).reduce((total, detalle) => {
+                    value={`Bs. ${(pedidoActual.pedido_almacen_detalle || []).reduce((total, detalle) => {
                         const precio = detalle.precio || 0;
                         const cantidad = detalle.cantidad || 0;
                         return total + (precio * cantidad);
@@ -453,15 +498,15 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 />
                 <Dato
                     label="Observaciones"
-                    value={pedido.observaciones || 'Sin observaciones'}
+                    value={pedidoActual.observaciones || 'Sin observaciones'}
                     vertical={false}
                 />
                 
                 {/* Mostrar método de pago si el pedido está entregado */}
-                {pedido.estado === 'Entregado' && pedido?.movimiento_salida?.metodo_pago && (
+                {pedidoActual.estado === 'Entregado' && pedidoActual?.movimiento_salida?.metodo_pago && (
                     <Dato
                         label="Método de Pago"
-                        value={pedido.movimiento_salida.metodo_pago}
+                        value={pedidoActual.movimiento_salida.metodo_pago}
                         vertical={false}
                         especial="green"
                     />
@@ -525,7 +570,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                                     title={producto.nombre}
                                     description={`Bs. ${producto.precio.toFixed(2)}`}
                                     description2={`Subtotal: Bs. ${producto.subtotal.toFixed(2)}`}
-                                    flot2={`${producto.cantidad} Und.`}
+                                    flot2={`${producto.cantidad} ${producto.medida}`}
                                     icon='package'
                                 />
                             ))}
@@ -538,8 +583,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             <DescargaPedidoBuilder
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
-                pedidoId={pedido?.id}
-                pedidoData={pedido}
+                pedidoId={pedidoActual?.id}
+                pedidoData={pedidoActual}
                 tipo="almacen"
             />
 
@@ -585,7 +630,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 tipo={modoAlmacen === 'entregar' ? 'salida' : 'pedido'}
                 onPedidoActualizado={handlePedidoActualizado}
                 onEntregaConfirmada={modoAlmacen === 'entregar' ? handleEntregaConfirmada : null}
-                pedidoIdEditando={modoAlmacen === 'pedido' ? pedido?.id : null}
+                pedidoIdEditando={modoAlmacen === 'pedido' ? pedidoActual?.id : null}
             />
         </View>
     );

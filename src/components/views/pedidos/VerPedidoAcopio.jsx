@@ -36,15 +36,23 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
     const [isVerEntradaOpen, setIsVerEntradaOpen] = useState(false);
     const [movimientoEntrada, setMovimientoEntrada] = useState(null);
     const [loadingVerEntrada, setLoadingVerEntrada] = useState(false);
+    
+    // Estado local para el pedido actual
+    const [pedidoActual, setPedidoActual] = useState(pedido);
+
+    // Actualizar el estado local cuando cambie el prop pedido
+    useEffect(() => {
+        setPedidoActual(pedido);
+    }, [pedido]);
 
 
     // Función para eliminar pedido
     const handleEliminarPedido = async () => {
-        if (!pedido) return;
+        if (!pedidoActual) return;
 
         try {
             setLoading(true);
-            const response = await pedidosAcopioService.eliminar(pedido.id);
+            const response = await pedidosAcopioService.eliminar(pedidoActual.id);
 
             if (response.success) {
                 mostrarNotificacion('success', 'Pedido eliminado correctamente');
@@ -52,7 +60,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
                 // Llamar a la función para actualizar la lista en el padre
                 if (onPedidoEliminado) {
-                    onPedidoEliminado(pedido.id);
+                    onPedidoEliminado(pedidoActual.id);
                 }
             } else {
                 mostrarNotificacion('error', response.message || 'Error al eliminar el pedido');
@@ -85,59 +93,59 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
     // Función para obtener los detalles del pedido
     const getDetallesPedido = () => {
-        if (!pedido) return [];
+        if (!pedidoActual) return [];
 
         // Para acopio, el pedido es un solo producto
         return [{
-            id: pedido.id,
-            nombre: pedido.producto_acopio?.name || 'Producto no encontrado',
-            cantidad: pedido.cantidad || 0,
-            medida: pedido.tipo_medida || 'kg',
+            id: pedidoActual.id,
+            nombre: pedidoActual.producto_acopio?.name || 'Producto no encontrado',
+            cantidad: pedidoActual.cantidad || 0,
+            medida: pedidoActual.tipo_medida || 'kg',
             precio: 0, // No hay precio en la nueva estructura
             subtotal: 0
         }];
     };
 
     const puedeEliminarPedido = () => {
-        if (!pedido || !sucursalActual) return false;
+        if (!pedidoActual || !sucursalActual) return false;
         // Para pedidos de acopio en estado "Entregado", no se puede eliminar
-        if (pedido.estado === 'Entregado') return false;
-        return pedido.sucursal?.id === sucursalActual.id && pedido.estado !== 'Completado';
+        if (pedidoActual.estado === 'Entregado') return false;
+        return pedidoActual.sucursal?.id === sucursalActual.id && pedidoActual.estado !== 'Completado';
     };
 
     const puedeEntregarPedidoAcopio = () => {
-        if (!pedido || !sucursalActual) return false;
-        return pedido.sucursal?.id === sucursalActual.id && pedido.estado !== 'Completado' && pedido.estado !== 'Entregado';
+        if (!pedidoActual || !sucursalActual) return false;
+        return pedidoActual.sucursal?.id === sucursalActual.id && pedidoActual.estado !== 'Completado' && pedidoActual.estado !== 'Entregado';
     };
 
     const puedeVerGasto = () => {
-        if (!pedido) return false;
-        return (pedido.estado === 'Entregado' || pedido.estado === 'Completado') && pedido.gasto_id;
+        if (!pedidoActual) return false;
+        return (pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && pedidoActual.gasto_id;
     };
 
     const puedeVerEntrega = () => {
-        if (!pedido) return false;
-        return (pedido.estado === 'Entregado' || pedido.estado === 'Completado') && pedido.fecha_entregado;
+        if (!pedidoActual) return false;
+        return (pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && pedidoActual.fecha_entregado;
     };
 
     const puedeAnularEntregaAcopio = () => {
-        if (!pedido || !sucursalActual) return false;
-        return pedido.sucursal?.id === sucursalActual.id && pedido.estado === 'Entregado';
+        if (!pedidoActual || !sucursalActual) return false;
+        return pedidoActual.sucursal?.id === sucursalActual.id && pedidoActual.estado === 'Entregado';
     };
 
     const puedeIngresarPedidoAcopio = () => {
-        if (!pedido || !sucursalActual) return false;
-        return pedido.sucursal?.id === sucursalActual.id && pedido.estado === 'Entregado';
+        if (!pedidoActual || !sucursalActual) return false;
+        return pedidoActual.sucursal?.id === sucursalActual.id && pedidoActual.estado === 'Entregado';
     };
 
     const puedeVerEntrada = () => {
-        if (!pedido) return false;
-        return pedido.estado === 'Completado' && pedido.movimiento_entrada_id;
+        if (!pedidoActual) return false;
+        return pedidoActual.estado === 'Completado' && pedidoActual.movimiento_entrada_id;
     };
 
     // Función para manejar la entrega de pedido de materia prima
     const handleEntregarPedidoAcopio = () => {
-        if (!pedido) {
+        if (!pedidoActual) {
             mostrarNotificacion('error', 'Solo se pueden entregar pedidos de materia prima');
             return;
         }
@@ -156,7 +164,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
         // Actualizar solo la parte de entrega del pedido, manteniendo el resto
         const pedidoActualizadoParcial = {
-            ...pedido, // Mantener todos los datos originales
+            ...pedidoActual, // Mantener todos los datos originales
             estado: pedidoActualizado.estado, // Solo actualizar estado
             fecha_entregado: pedidoActualizado.fecha_entregado,
             entregado_por: pedidoActualizado.entregado_por,
@@ -167,6 +175,9 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
             gasto_id: pedidoActualizado.gasto_id
         };
 
+        // Actualizar el estado local del pedido
+        setPedidoActual(pedidoActualizadoParcial);
+
         if (onPedidoActualizado) {
             onPedidoActualizado(pedidoActualizadoParcial);
         }
@@ -174,7 +185,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
     // Función para anular entrega de pedido de acopio
     const handleAnularEntregaAcopio = async () => {
-        if (!pedido) {
+        if (!pedidoActual) {
             mostrarNotificacion('error', 'Solo se pueden anular entregas de pedidos de materia prima');
             return;
         }
@@ -182,14 +193,14 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         try {
             setLoading(true);
 
-            const response = await pedidosAcopioService.anularEntrega(pedido.id);
+            const response = await pedidosAcopioService.anularEntrega(pedidoActual.id);
 
             if (response.success) {
                 mostrarNotificacion('success', 'Entrega anulada correctamente');
 
                 // Actualizar el pedido local: solo cambiar estado a Pendiente y limpiar campos de entrega
                 const pedidoActualizado = {
-                    ...pedido,
+                    ...pedidoActual,
                     estado: 'Pendiente',
                     fecha_entregado: null,
                     entregado_por: null,
@@ -199,6 +210,9 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                     observaciones_entrega: null,
                     gasto_id: null
                 };
+
+                // Actualizar el estado local del pedido
+                setPedidoActual(pedidoActualizado);
 
                 if (onPedidoActualizado) {
                     onPedidoActualizado(pedidoActualizado);
@@ -216,7 +230,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
     // Función para ingresar pedido de acopio
     const handleIngresarPedidoAcopio = async () => {
-        if (!pedido || !pedido.producto_acopio) {
+        if (!pedidoActual || !pedidoActual.producto_acopio) {
             mostrarNotificacion('error', 'No se encontró información del producto');
             return;
         }
@@ -224,7 +238,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         try {
             setLoadingIngresar(true);
             // Obtener la información completa del producto
-            const response = await productsAcopioService.getById(pedido.producto_acopio.id);
+            const response = await productsAcopioService.getById(pedidoActual.producto_acopio.id);
 
             if (response.success) {
                 setProductoCompleto(response.data);
@@ -244,7 +258,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
     const handleMovimientoCreated = async (movimiento, tieneReceta = false) => {
         try {
             // Actualizar el estado del pedido a "Completado" y registrar el movimiento_entrada_id
-            const response = await pedidosAcopioService.updateEstado(pedido.id, 'Completado', movimiento.id);
+            const response = await pedidosAcopioService.updateEstado(pedidoActual.id, 'Completado', movimiento.id);
 
             if (response.success) {
                 // Cerrar el modal de movimiento
@@ -252,10 +266,13 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
                 // Actualizar el pedido local
                 const pedidoActualizado = {
-                    ...pedido,
+                    ...pedidoActual,
                     estado: 'Completado',
                     movimiento_entrada_id: movimiento.id
                 };
+
+                // Actualizar el estado local del pedido
+                setPedidoActual(pedidoActualizado);
 
                 if (onPedidoActualizado) {
                     onPedidoActualizado(pedidoActualizado);
@@ -271,14 +288,14 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
     // Función para abrir el modal del gasto
     const handleVerGasto = async () => {
-        if (!pedido || !pedido.gasto_id) {
+        if (!pedidoActual || !pedidoActual.gasto_id) {
             mostrarNotificacion('error', 'No se encontró información del gasto');
             return;
         }
 
         try {
             setLoadingGasto(true);
-            const response = await gastosService.getById(pedido.gasto_id);
+            const response = await gastosService.getById(pedidoActual.gasto_id);
 
             if (response.success) {
                 setGasto(response.data);
@@ -296,7 +313,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
     // Función para abrir el modal de entrega
     const handleVerEntrega = () => {
-        if (!pedido) {
+        if (!pedidoActual) {
             mostrarNotificacion('error', 'No se encontró información de la entrega');
             return;
         }
@@ -305,14 +322,14 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
     // Función para ver la entrada del pedido
     const handleVerEntrada = async () => {
-        if (!pedido || !pedido.movimiento_entrada_id) {
+        if (!pedidoActual || !pedidoActual.movimiento_entrada_id) {
             mostrarNotificacion('error', 'No se encontró información de la entrada');
             return;
         }
 
         try {
             setLoadingVerEntrada(true);
-            const response = await movimientosAcopioService.getById(pedido.movimiento_entrada_id);
+            const response = await movimientosAcopioService.getById(pedidoActual.movimiento_entrada_id);
             
             if (response.success) {
                 setMovimientoEntrada(response.data);
@@ -342,7 +359,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         }
     }, [isVerEntradaOpen]);
 
-    if (!pedido) return null;
+    if (!pedidoActual) return null;
     const detalles = getDetallesPedido();
 
     return (
@@ -362,33 +379,35 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL SOLICITANTE</p>
                 <ItemView
-                    title={pedido.user?.name || pedido.personal?.name || 'Usuario desconocido'}
-                    description={pedido.sucursal?.name || 'Sucursal desconocida'}
+                    title={pedidoActual.user?.name || pedidoActual.personal?.name || 'Usuario desconocido'}
+                    description={pedidoActual.sucursal?.name || 'Sucursal desconocida'}
                     transparent={false}
                 />
                 <p className={styles.subTitle}>INFORMACIÓN DEL PEDIDO</p>
                 <ItemView
-                    title={`Pedido #${pedido.id.slice(-8)}`}
-                    description={`Fecha y hora: ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                    title={`Pedido #${pedidoActual.id.slice(-8)}`}
+                    description={`Fecha y hora: ${new Date(pedidoActual.fecha || pedidoActual.created_at).toLocaleDateString('es-ES', {
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
                         minute: '2-digit'
                     })}`}
-                    flot6={pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'}
+                    flot3={pedidoActual.estado === 'Pendiente' ? 'Pendiente' : ''}
+                    flot5={pedidoActual.estado === 'Completado' ? 'Completado' : ''}
+                    flot2={pedidoActual.estado === 'Entregado' ? 'Entregado' : ''}
                     circulo={false}
                     transparent={false}
                 />
 
                 <ItemView
-                    title={pedido.producto_acopio?.name || 'Producto no encontrado'}
-                    description={`Cantidad solicitada: ${pedido.cantidad} ${pedido.tipo_medida}`}
+                    title={pedidoActual.producto_acopio?.name || 'Producto no encontrado'}
+                    description={`Cantidad solicitada: ${pedidoActual.cantidad} ${pedidoActual.tipo_medida}`}
                     icon='package'
                     transparent={false}
                 />
                 {/* Mostrar detalles de entrega si el pedido está entregado */}
-                {(pedido.estado === 'Entregado' || pedido.estado === 'Completado') && (
+                {(pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && (
                     <>
                         {puedeVerEntrega() && (
                             <Boton
@@ -407,7 +426,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                         )}
                     </>
                 )}
-                {pedido.estado === 'Completado' && (
+                {pedidoActual.estado === 'Completado' && (
                     <>
                         {puedeVerEntrada() && (
                             <Boton
@@ -457,8 +476,8 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
             <DescargaPedidoBuilder
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
-                pedidoId={pedido?.id}
-                pedidoData={pedido}
+                pedidoId={pedidoActual?.id}
+                pedidoData={pedidoActual}
                 tipo="acopio"
             />
 
@@ -501,7 +520,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
             <EntregaPedidoAcopio
                 isOpen={isEntregaAcopioOpen}
                 setIsOpen={setIsEntregaAcopioOpen}
-                pedido={pedido}
+                pedido={pedidoActual}
                 onEntregaRealizada={handleEntregaRealizada}
             />
 
@@ -567,32 +586,32 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                     onClose={() => setIsEntregaOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    {pedido && (
+                    {pedidoActual && (
                         <>
                             <p className={styles.subTitle}>INFORMACIÓN DE LA ENTREGA</p>
                             <Dato
                                 label="Producto Entregado"
-                                value={pedido.producto_acopio?.name || 'Producto no encontrado'}
+                                value={pedidoActual.producto_acopio?.name || 'Producto no encontrado'}
                             />
                             <Dato
                                 label="Cantidad Entregada"
-                                value={`${pedido.cantidad_entregada || 0} ${pedido.unidad_entregada || 'kg'}`}
+                                value={`${pedidoActual.cantidad_entregada || 0} ${pedidoActual.unidad_entregada || 'kg'}`}
                             />
                             <Dato
                                 label="Cantidad en Unidades"
-                                value={`${pedido.cantidad_entregada_ud || 0} ${pedido.unidad_entregada_ud || 'ud'}`}
+                                value={`${pedidoActual.cantidad_entregada_ud || 0} ${pedidoActual.unidad_entregada_ud || 'ud'}`}
                             />
                             <Dato
                                 label="Estado de Entrega"
-                                value={pedido.estado_entrega === 'llego' ? 'Llegó' : 'No llegó'}
+                                value={pedidoActual.estado_entrega === 'llego' ? 'Llegó' : 'No llegó'}
                             />
                             <Dato
                                 label="Entregado por"
-                                value={pedido.entregado_por || 'No especificado'}
+                                value={pedidoActual.entregado_por || 'No especificado'}
                             />
                             <Dato
                                 label="Fecha de Entrega"
-                                value={pedido.fecha_entregado ? new Date(pedido.fecha_entregado).toLocaleDateString('es-ES', {
+                                value={pedidoActual.fecha_entregado ? new Date(pedidoActual.fecha_entregado).toLocaleDateString('es-ES', {
                                     year: 'numeric',
                                     month: '2-digit',
                                     day: '2-digit',
@@ -600,10 +619,10 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                                     minute: '2-digit'
                                 }) : 'No especificada'}
                             />
-                            {pedido.observaciones_entrega && (
+                            {pedidoActual.observaciones_entrega && (
                                 <Dato
                                     label="Observaciones de Entrega"
-                                    value={pedido.observaciones_entrega}
+                                    value={pedidoActual.observaciones_entrega}
                                 />
                             )}
                         </>

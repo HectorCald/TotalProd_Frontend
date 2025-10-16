@@ -111,6 +111,7 @@ const Explorar = () => {
         type={notification.type}
         text={notification.text}
       />
+      {/* Conteos se maneja ahora desde Inicio.jsx */}
     </>
   );
 };

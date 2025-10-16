@@ -23,6 +23,9 @@ import Reportes from '../views/reportes/Reportes';
 import FormularioProduccion from '../views/damabrava/produccion/FormularioProduccion';
 import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
 import MiProduccion from '../views/damabrava/produccion/MiProduccion';
+import AlmacenGeneralAuxiliar from '../views/almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
+import AlmacenAcopioAuxiliar from '../views/almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
+import PanelConteos from '../views/conteos/PanelConteos';
 
 const BarraLateral = ({ 
   onMenuClick, 
@@ -362,6 +365,22 @@ const BarraLateral = ({
       <MiProduccion
         isOpen={activeView === 'mi_produccion'}
         setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <AlmacenGeneralAuxiliar
+        isOpen={activeView === 'almacenGeneralAuxiliar'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <AlmacenAcopioAuxiliar
+        isOpen={activeView === 'almacenAcopioAuxiliar'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <PanelConteos
+        isOpen={activeView === 'conteos'}
+        setIsOpen={handleCloseView}
+        tipoConteo={viewProps.tipo || 'almacen'}
         {...viewProps}
       />
     </div>

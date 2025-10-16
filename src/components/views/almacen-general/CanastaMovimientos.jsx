@@ -128,14 +128,21 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         let productoModificado = { ...productoCarrito };
 
                         // Si el stock cambió, actualizar el stock en el carrito
-                        if (productoActualizado.stock !== productoCarrito.stock) {
-                            // Si la cantidad en el carrito excede el nuevo stock, ajustar
-                            if (productoCarrito.cantidad > productoActualizado.stock) {
-                                mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoActualizado.stock}`);
-                                productoModificado.stock = productoActualizado.stock;
-                                productoModificado.cantidad = productoActualizado.stock;
+                        if (productoActualizado.stock !== productoCarrito.stockOriginal) {
+                            // Actualizar el stockOriginal con el nuevo stock del backend
+                            productoModificado.stockOriginal = productoActualizado.stock;
+                            
+                            // Recalcular el stock mostrado según el modo de agrupación actual
+                            if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
+                                productoModificado.stock = Math.floor(productoActualizado.stock / productoCarrito.grup);
                             } else {
                                 productoModificado.stock = productoActualizado.stock;
+                            }
+                            
+                            // Si la cantidad en el carrito excede el nuevo stock, ajustar
+                            if (productoCarrito.cantidad > productoModificado.stock) {
+                                mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoModificado.stock}`);
+                                productoModificado.cantidad = productoModificado.stock;
                             }
                         }
 
@@ -242,7 +249,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         // Actualizar productos según el nuevo modo
         setProductosCanasta(prev => prev.map(producto => {
             // Usar stockOriginal si existe, sino usar stock
+            // Si no hay stockOriginal, establecerlo ahora
             const stockOriginalEnUnidades = producto.stockOriginal || producto.stock;
+            if (!producto.stockOriginal) {
+                producto.stockOriginal = producto.stock;
+            }
 
             if (nuevoModo === 'agrupado' && producto.grup) {
                 // Cambiar a modo agrupado
@@ -480,7 +491,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 setIsOpen(false);
 
                 if (onCerrarCanasta) {
-                    onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId);
+                    onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId, pedidoActualizado);
                 }
 
                 mostrarNotificacion('success', esEntrega ? 'Pedido entregado correctamente' : 'Salidas confirmadas correctamente');
@@ -558,8 +569,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                             <div>
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
-                                                    Stock: {modoAgrupacion === 'agrupado' && producto.grup
-                                                        ? `${producto.stock || 0} grupos (${(producto.stock || 0) * (producto.grup || 1)} unidades)`
+                                                    Disponible: {modoAgrupacion === 'agrupado' && producto.grup
+                                                        ? `${producto.stock || 0} grupos`
                                                         : `${producto.stock || 0} unidades`
                                                     }
                                                 </p>

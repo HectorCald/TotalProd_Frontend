@@ -12,6 +12,7 @@ import imagenReportes from '../assets/reporte-ia.png';
 import imageImport from '../assets/import-export.png';
 import imageBalance from '../assets/balance.png';
 import imageDamabrava from '../assets/damabrava/damabrava.png';
+import imagenBalance from '../assets/balance.png';
 
 export const MODULES = {
     // Módulos principales
@@ -48,6 +49,13 @@ export const MODULES = {
             component: 'AlmacenGeneral',
             props: { tipo: 'almacen' }
         },
+        realizar_conteo: {
+            name: 'Conteo',
+            description: 'Realizar conteo físico de productos',
+            icon: 'calculator',
+            component: 'AlmacenGeneralAuxiliar',
+            props: { tipo: 'conteo' }
+        },
     },
     Acopio: {
         name: 'Materia Prima',
@@ -82,6 +90,13 @@ export const MODULES = {
             component: 'AlmacenAcopio',
             props: { tipo: 'almacen' }
         },
+        realizar_conteo: {
+            name: 'Pesaje',
+            description: 'Realizar conteo (pesaje) de materia prima',
+            icon: 'calculator',
+            component: 'AlmacenAcopioAuxiliar',
+            props: { tipo: 'conteo' }
+        },
     },
     Movimientos: {  
         name: 'Movimientos',
@@ -102,6 +117,26 @@ export const MODULES = {
             component: 'Movimientos',
             props: { tipo:'acopio' }
         },
+    },
+    Conteos: {
+        name: 'Conteos',
+        imagen: imagenBalance,
+        descripcion: 'Revisa los conteos físicos registrados.',
+        
+        conteos_almacen: {
+            name: 'Almacen',
+            description: 'Conteos de almacén.',
+            icon: 'calculator',
+            component: 'Conteos',
+            props: { tipo: 'almacen' }
+        },
+        conteos_materia_prima: {
+            name: 'Materia Prima',
+            description: 'Conteos de materia prima.',
+            icon: 'calculator',
+            component: 'Conteos',
+            props: { tipo: 'acopio' }
+        }
     },
     Pedidos: {
         name: 'Pedidos',

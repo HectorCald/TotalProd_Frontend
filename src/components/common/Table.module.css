@@ -28,6 +28,31 @@
   position: relative;
 }
 
+/* Inputs dentro de la tabla */
+.inputTable {
+  width: auto;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--quinary-color);
+  background: transparent;
+  color: var(--white-color);
+  outline: none;
+}
+.inputTable:focus {
+  border: 1px solid var(--primary-color);
+}
+
+/* Ocultar spinners en inputs numéricos */
+.inputTable[type="number"]::-webkit-outer-spin-button,
+.inputTable[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.inputTable[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* Estilos de la tabla */
 .table {
   width: 100%;

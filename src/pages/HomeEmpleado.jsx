@@ -15,6 +15,8 @@ import ViewModal from '../components/ui/ViewModal';
 import HeaderModal from '../components/common/HeaderModal';
 import AlmacenGeneral from '../components/views/almacen-general/AlmacenGeneral';
 import AlmacenAcopio from '../components/views/almacen-acopio/AlmacenAcopio';
+import AlmacenGeneralAuxiliar from '../components/views/almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
+import AlmacenAcopioAuxiliar from '../components/views/almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
 import PanelMovimientos from '../components/views/movimientos/PanelMovimientos';
 import Pedidos from '../components/views/pedidos/PanelPedidos';
 import Clientes from '../components/views/clientes/Clientes';
@@ -27,6 +29,7 @@ import MiProduccion from '../components/views/damabrava/produccion/MiProduccion'
 import Balance from '../components/views/balance/Balance';
 import Reportes from '../components/views/reportes/Reportes';
 import Deudas from '../components/views/deudas/PanelDeudas';
+import PanelConteos from '../components/views/conteos/PanelConteos';
 
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, refreshEmployeeData } = useEmployee();
@@ -100,8 +103,12 @@ const HomeEmpleado = () => {
         switch (currentSubModule.component) {
             case 'AlmacenGeneral':
                 return <AlmacenGeneral isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'AlmacenGeneralAuxiliar':
+                return <AlmacenGeneralAuxiliar isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'AlmacenAcopio':
                 return <AlmacenAcopio isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'AlmacenAcopioAuxiliar':
+                return <AlmacenAcopioAuxiliar isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Movimientos':
                 return <PanelMovimientos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoMovimiento={currentSubModule.props?.tipo} />;
             case 'Pedidos':
@@ -124,6 +131,8 @@ const HomeEmpleado = () => {
                 return <Reportes isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Deudas':
                 return <Deudas isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'Conteos':
+                return <PanelConteos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoConteo={currentSubModule.props?.tipo || 'almacen'} />;
             case 'MiProduccion':
                 return <MiProduccion isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             default:

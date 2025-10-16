@@ -58,7 +58,7 @@ function Select({
                 {iconOnly ? (
                     // Modo solo icono
                     <BoxIcon 
-                        name={selectedOption ? selectedOption.icon : icon} 
+                        name={(selectedOption && selectedOption.icon) ? selectedOption.icon : icon} 
                         className={styles.iconOnlyIcon} 
                     />
                 ) : (

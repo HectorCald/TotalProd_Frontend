@@ -234,7 +234,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         );
         
         mostrarNotificacion('success', 'Pedido actualizado correctamente');
-        setIsOpenVerPedido(false);
+        // No cerrar VerPedido para permitir que se mantenga abierto después de entregas/ediciones
     };
 
 

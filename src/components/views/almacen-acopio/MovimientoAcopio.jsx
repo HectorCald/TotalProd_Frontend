@@ -59,6 +59,18 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   // Estado para el Switch de registrar gasto
   const [registrarGasto, setRegistrarGasto] = useState(false);
 
+  // Estado para calcular ingredientes que se van a consumir
+  const [ingredientesAConsumir, setIngredientesAConsumir] = useState([]);
+
+  // Estado para controlar qué ingrediente está siendo editado
+  const [ingredienteEditando, setIngredienteEditando] = useState(null);
+
+  // Estado para las cantidades personalizadas de ingredientes
+  const [cantidadesPersonalizadas, setCantidadesPersonalizadas] = useState({});
+
+  // Estado para controlar si hay cambios pendientes en cada ingrediente
+  const [cambiosPendientes, setCambiosPendientes] = useState({});
+
 
 
   // Efecto para verificar si el producto tiene receta
@@ -84,12 +96,61 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
       // Resetear el switch de registrar gasto siempre a false
       setRegistrarGasto(false);
       // No resetear el switch de materia prima, mantener el valor del localStorage
+    } else {
+      // Limpiar estados de ingredientes cuando se cierra el modal
+      setIngredienteEditando(null);
+      setCantidadesPersonalizadas({});
+      setCambiosPendientes({});
+      setIngredientesAConsumir([]);
     }
   }, [isOpen]);
+
+  // Efecto para calcular ingredientes cuando cambie la cantidad, la receta o las cantidades personalizadas
+  useEffect(() => {
+    if (tieneReceta && recetaData && dataMov.quantity) {
+      const ingredientes = calcularIngredientesAConsumir(dataMov.quantity, recetaData);
+      setIngredientesAConsumir(ingredientes);
+    } else {
+      setIngredientesAConsumir([]);
+    }
+  }, [dataMov.quantity, recetaData, tieneReceta, cantidadesPersonalizadas, ingredienteEditando]);
 
   // Función para actualizar los datos del formulario
   const handleChange = (field, value) => {
     setDataMov({ ...dataMov, [field]: value });
+  };
+
+  // Función para calcular ingredientes que se van a consumir
+  const calcularIngredientesAConsumir = (cantidad, receta) => {
+    if (!cantidad || !receta || !receta.recetas_acopio_detalle) {
+      return [];
+    }
+
+    const cantidadNumerica = parseFloat(cantidad);
+    if (isNaN(cantidadNumerica) || cantidadNumerica <= 0) {
+      return [];
+    }
+
+    return receta.recetas_acopio_detalle.map((detalle, index) => {
+      const cantidadCalculada = parseFloat(detalle.cantidad) * cantidadNumerica;
+      const cantidadPersonalizada = cantidadesPersonalizadas[index];
+
+      // Solo usar cantidad personalizada si no está en modo edición
+      let cantidadFinal = cantidadCalculada;
+      if (cantidadPersonalizada !== undefined && ingredienteEditando !== index) {
+        cantidadFinal = parseFloat(cantidadPersonalizada) || 0;
+      }
+
+      return {
+        nombre: detalle.products_acopio?.name || 'Producto desconocido',
+        cantidad: cantidadFinal,
+        cantidadCalculada: cantidadCalculada,
+        unidad: detalle.products_acopio?.type_measure?.code || '',
+        cantidadOriginal: detalle.cantidad,
+        productoId: detalle.products_acopio?.id,
+        index: index
+      };
+    });
   };
 
 
@@ -105,6 +166,38 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
     setClienteSeleccionadoData(cliente);
     setDataMov(prev => ({ ...prev, cliente_id: cliente.id }));
     setIsClientesSeleccionOpen(false);
+  };
+
+  // Función para manejar la edición de ingredientes
+  const handleEditarIngrediente = (index) => {
+    setIngredienteEditando(index);
+  };
+
+  // Función para actualizar cantidad personalizada de ingrediente (solo en el input, no en el Dato)
+  const handleCambiarCantidadIngrediente = (index, nuevaCantidad) => {
+    setCantidadesPersonalizadas(prev => ({
+      ...prev,
+      [index]: nuevaCantidad
+    }));
+  };
+
+  // Función para guardar la cantidad personalizada
+  const handleGuardarCantidadIngrediente = (index) => {
+    // Cerrar el modo de edición
+    setIngredienteEditando(null);
+  };
+
+  // Función para cancelar la edición sin guardar cambios
+  const handleCancelarEdicion = (index) => {
+    // Limpiar cualquier cambio pendiente
+    setCantidadesPersonalizadas(prev => {
+      const newState = { ...prev };
+      delete newState[index];
+      return newState;
+    });
+
+    // Cerrar el modo de edición
+    setIngredienteEditando(null);
   };
 
   // Función para enviar los datos
@@ -142,7 +235,9 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         // Agregar flag para restar materia prima
         restar_materia_prima: tipo === 'entrada' && restarMateriaPrima && tieneReceta,
         // Agregar campo restar_ingredientes
-        restar_ingredientes: tipo === 'entrada' && restarMateriaPrima && tieneReceta
+        restar_ingredientes: tipo === 'entrada' && restarMateriaPrima && tieneReceta,
+        // Agregar cantidades personalizadas de ingredientes si existen
+        ingredientes_cantidades_personalizadas: tipo === 'entrada' && restarMateriaPrima && tieneReceta && Object.keys(cantidadesPersonalizadas).length > 0 ? cantidadesPersonalizadas : null
       };
 
       let gastoId = null;
@@ -313,6 +408,53 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
                 icon="minus-circle"
               />
             </div>
+          )}
+
+          {/* Mostrar ingredientes que se van a consumir */}
+          {tipo === 'entrada' && tieneReceta && restarMateriaPrima && ingredientesAConsumir.length > 0 && (
+            <>
+              <p className={styles.subTitle}>INGREDIENTES A CONSUMIR</p>
+              {ingredientesAConsumir.map((ingrediente, index) => (
+                <div key={index} className={styles.content}>
+                  <Dato
+                    label={ingrediente.nombre}
+                    value={`${ingrediente.cantidad.toFixed(2)} ${ingrediente.unidad}`}
+                    icon={ingredienteEditando === index ? "x" : "edit"}
+                    onClick={() => {
+                      if (ingredienteEditando === index) {
+                        handleCancelarEdicion(index);
+                      } else {
+                        handleEditarIngrediente(index);
+                      }
+                    }}
+                  />
+
+                  {/* Input para editar cantidad cuando está en modo edición */}
+                  {ingredienteEditando === index && (
+                    <div style={{ marginTop: '10px', marginBottom: '10px', width: '100%' }}>
+                      <InputNormal
+                        style={{ width: '100%', marginBottom: '10px' }}
+                        tipo="number"
+                        value={cantidadesPersonalizadas[index] !== undefined ? cantidadesPersonalizadas[index] : ''}
+                        placeholder={`Cantidad real a consumir (${ingrediente.unidad})`}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Solo permitir valores positivos o vacío
+                          if (value === '' || parseFloat(value) >= 0) {
+                            handleCambiarCantidadIngrediente(index, value);
+                          }
+                        }}
+                        icon="calculator"
+                        buttonIcon="check"
+                        buttonIconClick={() => handleGuardarCantidadIngrediente(index)}
+                        step="0.01"
+                        min="0"
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </>
           )}
 
           <Boton

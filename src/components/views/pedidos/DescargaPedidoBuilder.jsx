@@ -61,6 +61,8 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         if (pedido?.cliente?.name) {
                             infoSup['Cliente'] = pedido.cliente.name;
                         }
+                        // Agregar modalidad (Agrupado o Unidades)
+                        infoSup['Modalidad'] = pedido.agrupado ? 'Agrupado' : 'Unidades';
                         
                         // Mostrar método de pago si el pedido está entregado
                         if (pedido.estado === 'Entregado' && pedido?.movimiento_salida?.metodo_pago) {
@@ -77,12 +79,26 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
 
                         // Tabla para almacén (múltiples productos)
                         const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-                        const valores = (pedido?.pedido_almacen_detalle || []).map(detalle => [
-                            detalle?.producto_almacen?.name || 'Sin producto',
-                            detalle?.cantidad || '0',
-                            `Bs. ${(detalle?.precio || 0).toFixed(2)}`,
-                            `Bs. ${((detalle?.precio || 0) * (detalle?.cantidad || 0)).toFixed(2)}`
-                        ]);
+                        const valores = (pedido?.pedido_almacen_detalle || []).map(detalle => {
+                            // Si el pedido es agrupado, mostrar la cantidad visual (agrupada)
+                            // Si no es agrupado, mostrar la cantidad real (unidades)
+                            let cantidadVisual = detalle?.cantidad || 0;
+                            let unidadVisual = detalle?.medida || detalle?.producto_almacen?.type_measure?.code || 'u';
+                            
+                            if (pedido.agrupado && detalle?.producto_almacen?.grup) {
+                                // Calcular cantidad agrupada: cantidad real / factor de agrupación
+                                const factorAgrupacion = detalle.producto_almacen.grup || 1;
+                                cantidadVisual = Math.round((detalle?.cantidad || 0) / factorAgrupacion);
+                                unidadVisual = 'grp';
+                            }
+                            
+                            return [
+                                detalle?.producto_almacen?.name || 'Sin producto',
+                                `${cantidadVisual} ${unidadVisual}`,
+                                `Bs. ${(detalle?.precio || 0).toFixed(2)}`,
+                                `Bs. ${((detalle?.precio || 0) * (detalle?.cantidad || 0)).toFixed(2)}`
+                            ];
+                        });
 
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
@@ -144,6 +160,8 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         if (pedido?.cliente?.name) {
                             infoSup['Cliente'] = pedido.cliente.name;
                         }
+                        // Agregar modalidad (Agrupado o Unidades)
+                        infoSup['Modalidad'] = pedido.agrupado ? 'Agrupado' : 'Unidades';
                         
                         // Mostrar método de pago si el pedido está entregado
                         if (pedido.estado === 'Entregado' && pedido?.movimiento_salida?.metodo_pago) {
@@ -160,12 +178,26 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
 
                         // Tabla para almacén (múltiples productos)
                         const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-                        const valores = (pedido?.pedido_almacen_detalle || []).map(detalle => [
-                            detalle?.producto_almacen?.name || 'Sin producto',
-                            detalle?.cantidad || '0',
-                            `Bs. ${(detalle?.precio || 0).toFixed(2)}`,
-                            `Bs. ${((detalle?.precio || 0) * (detalle?.cantidad || 0)).toFixed(2)}`
-                        ]);
+                        const valores = (pedido?.pedido_almacen_detalle || []).map(detalle => {
+                            // Si el pedido es agrupado, mostrar la cantidad visual (agrupada)
+                            // Si no es agrupado, mostrar la cantidad real (unidades)
+                            let cantidadVisual = detalle?.cantidad || 0;
+                            let unidadVisual = detalle?.medida || detalle?.producto_almacen?.type_measure?.code || 'u';
+                            
+                            if (pedido.agrupado && detalle?.producto_almacen?.grup) {
+                                // Calcular cantidad agrupada: cantidad real / factor de agrupación
+                                const factorAgrupacion = detalle.producto_almacen.grup || 1;
+                                cantidadVisual = Math.round((detalle?.cantidad || 0) / factorAgrupacion);
+                                unidadVisual = 'grp';
+                            }
+                            
+                            return [
+                                detalle?.producto_almacen?.name || 'Sin producto',
+                                `${cantidadVisual} ${unidadVisual}`,
+                                `Bs. ${(detalle?.precio || 0).toFixed(2)}`,
+                                `Bs. ${((detalle?.precio || 0) * (detalle?.cantidad || 0)).toFixed(2)}`
+                            ];
+                        });
 
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);

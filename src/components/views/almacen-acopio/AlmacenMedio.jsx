@@ -4,18 +4,25 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
 import AlmacenAcopio from './AlmacenAcopio';
+import AlmacenAcopioAuxiliar from '../almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
 
 
 function AlmacenMedio({ isOpen, setIsOpen }) {
     const [isAlmacenOpen, setIsAlmcenOpen] = useState(false);
+    const [isAuxOpen, setIsAuxOpen] = useState(false);
     const [type, setType] = useState('');
 
     const handleTypeAlmacen = (tipo) => {
         // Cerrar el modal del medio
         setIsOpen(false);
-        // Abrir directamente la vista específica
-        setIsAlmcenOpen(true);
-        setType(tipo);
+        if (tipo === 'conteo') {
+            setIsAuxOpen(true);
+            setType('conteo');
+        } else {
+            // Abrir directamente la vista específica
+            setIsAlmcenOpen(true);
+            setType(tipo);
+        }
     }
 
     return (
@@ -48,6 +55,13 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
                     onClick={()=> handleTypeAlmacen('pedido')}
                 />
                 <ItemView
+                    title='Conteo'
+                    description='Realizar conteo físico (pesaje) de materia prima'
+                    icon='calculator'
+                    arrow={true}
+                    onClick={()=> handleTypeAlmacen('conteo')}
+                />
+                <ItemView
                     title='Materia Prima'
                     description='Ver y gestionar los productos en el almacén'
                     icon='package'
@@ -59,6 +73,7 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
         </ViewModal >
         {/* Almcen acopio */}
         <AlmacenAcopio isOpen={isAlmacenOpen} setIsOpen={setIsAlmcenOpen} tipo={type} />
+        <AlmacenAcopioAuxiliar isOpen={isAuxOpen} setIsOpen={setIsAuxOpen} tipo={type} />
         </>
     );
 }

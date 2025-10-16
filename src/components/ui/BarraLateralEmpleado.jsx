@@ -20,6 +20,7 @@ import Balance from '../views/balance/Balance';
 import FormularioProduccion from '../views/damabrava/produccion/FormularioProduccion';
 import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
 import MiProduccion from '../views/damabrava/produccion/MiProduccion';
+import PanelConteos from '../views/conteos/PanelConteos';
 
 const BarraLateralEmpleado = ({ 
   onMenuClick, 
@@ -50,6 +51,7 @@ const BarraLateralEmpleado = ({
       'Almacen': 'package',
       'Acopio': 'leaf',
       'Movimientos': 'transfer',
+      'Conteos': 'calculator',
       'Pedidos': 'shopping-bag',
       'Precios': 'dollar',
       'Clientes': 'user',
@@ -65,6 +67,7 @@ const BarraLateralEmpleado = ({
       'Almacen': 'almacenMedioGeneral',
       'Acopio': 'almacenMedio',
       'Movimientos': 'movimientos',
+      'Conteos': 'conteos',
       'Pedidos': 'pedidos',
       'Precios': 'precios',
       'Clientes': 'clientes',
@@ -80,6 +83,7 @@ const BarraLateralEmpleado = ({
       'Almacen': { tipo: 'almacen' },
       'Acopio': { tipo: 'acopio' },
       'Movimientos': { tipo: 'almacen' },
+      'Conteos': { tipo: 'almacen' },
       'Pedidos': { tipo: 'almacen' },
       'Precios': { tipo: 'almacen' },
       'Clientes': { tipo: 'almacen' },
@@ -104,6 +108,7 @@ const BarraLateralEmpleado = ({
           view: submodule.component === 'AlmacenGeneral' ? 'almacenMedioGeneral' :
                 submodule.component === 'AlmacenAcopio' ? 'almacenMedio' :
                 submodule.component === 'Movimientos' ? 'movimientos' :
+                submodule.component === 'Conteos' ? 'conteos' :
                 submodule.component === 'Pedidos' ? 'pedidos' :
                 submodule.component === 'Precios' ? 'precios' :
                 submodule.component === 'Clientes' ? 'clientes' :
@@ -133,6 +138,7 @@ const BarraLateralEmpleado = ({
             view: submodule.component === 'AlmacenGeneral' ? 'almacenMedioGeneral' :
                   submodule.component === 'AlmacenAcopio' ? 'almacenMedio' :
                   submodule.component === 'Movimientos' ? 'movimientos' :
+                  submodule.component === 'Conteos' ? 'conteos' :
                   submodule.component === 'Pedidos' ? 'pedidos' :
                   submodule.component === 'Clientes' ? 'clientes' :
                   submodule.component === 'Proveedores' ? 'proveedores' :
@@ -448,6 +454,12 @@ const BarraLateralEmpleado = ({
       <Reportes
         isOpen={activeView === 'reportes'}
         setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <PanelConteos
+        isOpen={activeView === 'conteos'}
+        setIsOpen={handleCloseView}
+        tipoConteo={viewProps.tipo || 'almacen'}
         {...viewProps}
       />
 

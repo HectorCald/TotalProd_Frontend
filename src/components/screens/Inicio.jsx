@@ -8,6 +8,7 @@ import almacenImage from '../../assets/almacen.png';
 import acopioImage from '../../assets/acopio.png';
 import movimientosImage from '../../assets/movimientos.png';
 import pedidosImage from '../../assets/pedidos.png';
+import conteosImage from '../../assets/conteos.png';  
 import './Inicio.css';
 
 const Inicio = ({ onViewOpen }) => {
@@ -81,6 +82,15 @@ const Inicio = ({ onViewOpen }) => {
             description="" 
             image={pedidosImage} 
             onClick={() => onViewOpen('pedidos')} 
+          />
+        </div>
+        <p className="subTitle">Extras</p>
+        <div className="atajoAnuncioOtros">
+          <AtajoAnuncio 
+            title="Conteos" 
+            description="" 
+            image={conteosImage} 
+            onClick={() => onViewOpen('conteos')} 
           />
         </div>
       </div>

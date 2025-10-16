@@ -61,6 +61,14 @@ export const MENU_OPTIONS = [
             action: 'openView',
             viewName: 'almacenMedioGeneral',
             props: { tipo: 'almacen' }
+          },
+          {
+            id: 'almacen-auxiliar',
+            title: 'Conteo',
+            icon: 'calculator',
+            action: 'openView',
+            viewName: 'almacenGeneralAuxiliar',
+            props: { tipo: 'conteo' }
           }
         ]
       },
@@ -102,6 +110,14 @@ export const MENU_OPTIONS = [
             action: 'openView',
             viewName: 'almacenMedio',
             props: { tipo: 'almacen' }
+          },
+          {
+            id: 'acopio-auxiliar',
+            title: 'Conteo',
+            icon: 'calculator',
+            action: 'openView',
+            viewName: 'almacenAcopioAuxiliar',
+            props: { tipo: 'conteo' }
           }
         ]
       },
@@ -154,7 +170,32 @@ export const MENU_OPTIONS = [
             props: { tipo: 'acopio' }
           }
         ]
-      }
+      },
+      {
+        id: 'conteos',
+        title: 'Conteos',
+        icon: 'calculator',
+        hasSubmenu: true,
+        action: 'toggleSubmenu',
+        submenu: [
+          {
+            id: 'conteos-almacen',
+            title: 'Almacén',
+            icon: 'package',
+            action: 'openView',
+            viewName: 'conteos',
+            props: { tipo: 'almacen' }
+          },
+          {
+            id: 'conteos-acopio',
+            title: 'Materia Prima',
+            icon: 'leaf',
+            action: 'openView',
+            viewName: 'conteos',
+            props: { tipo: 'acopio' }
+          }
+        ]
+      },
     ]
   },
   {

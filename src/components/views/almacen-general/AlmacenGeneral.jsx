@@ -186,6 +186,34 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const handleOrdenamiento = (orden) => {
         setOrdenamiento(orden);
     };
+     const productosFiltrados = productosMapeados.filter(producto => {
+        // Filtro de búsqueda
+        const matchesSearch = !searchQuery ||
+            producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        // Filtro de categoría
+        const matchesCategoria = categoriaFiltro === null ||
+            (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
+
+        return matchesSearch && matchesCategoria;
+    }).sort((a, b) => {
+        // Ordenamiento
+        switch (ordenamiento) {
+            case 'nombre_asc':
+                return a.name.localeCompare(b.name);
+            case 'nombre_desc':
+                return b.name.localeCompare(a.name);
+            case 'stock_asc':
+                return (a.stock || 0) - (b.stock || 0);
+            case 'stock_desc':
+                return (b.stock || 0) - (a.stock || 0);
+            default:
+                return a.name.localeCompare(b.name);
+        }
+    });
+
 
 
     // Efecto para resetear búsqueda y filtros cuando se abre
@@ -286,35 +314,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             }
         }
     }, [isOpen, tipo]);
-    // Filtrar y ordenar productos localmente
-    const productosFiltrados = productosMapeados.filter(producto => {
-        // Filtro de búsqueda
-        const matchesSearch = !searchQuery ||
-            producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(searchQuery.toLowerCase()));
 
-        // Filtro de categoría
-        const matchesCategoria = categoriaFiltro === null ||
-            (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
-
-        return matchesSearch && matchesCategoria;
-    }).sort((a, b) => {
-        // Ordenamiento
-        switch (ordenamiento) {
-            case 'nombre_asc':
-                return a.name.localeCompare(b.name);
-            case 'nombre_desc':
-                return b.name.localeCompare(a.name);
-            case 'stock_asc':
-                return (a.stock || 0) - (b.stock || 0);
-            case 'stock_desc':
-                return (b.stock || 0) - (a.stock || 0);
-            default:
-                return a.name.localeCompare(b.name);
-        }
-    });
-
+   
 
     // Función para manejar cuando se crea un nuevo producto
     const handleProductCreated = (newProduct) => {

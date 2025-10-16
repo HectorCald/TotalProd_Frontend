@@ -1,0 +1,50 @@
+import React, { useState } from 'react';
+import styles from '../../../styles/view.module.css';
+import ViewModal from '../../ui/ViewModal';
+import HeaderModal from '../../common/HeaderModal';
+import ItemView from '../../common/ItemView';
+import PanelConteos from './PanelConteos';
+
+
+function ConteosMedio({ isOpen, setIsOpen }) {
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const [tipoConteo, setTipoConteo] = useState('almacen');
+
+    const handleTipoConteo = (tipo) => {
+        setIsOpen(false);
+        setIsPanelOpen(true);
+        setTipoConteo(tipo);
+    };
+
+    return (
+        <>
+        <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} >
+            <HeaderModal
+                title="Conteos"
+                onClose={() => setIsOpen(false)}
+            />
+            <div className={styles.modalContent}>
+                <ItemView
+                    title='Almacén General'
+                    description='Ver y gestionar los conteos del almacén general'
+                    icon='store'
+                    arrow={true}
+                    onClick={() => handleTipoConteo('almacen')}
+                />
+                <ItemView
+                    title='Materia Prima'
+                    description='Ver y gestionar los conteos de materia prima'
+                    icon='factory'
+                    arrow={true}
+                    onClick={() => handleTipoConteo('acopio')}
+                />
+            </div>
+        </ViewModal>
+        <PanelConteos isOpen={isPanelOpen} setIsOpen={setIsPanelOpen} tipoConteo={tipoConteo} />
+        </>
+    );
+}
+
+export default ConteosMedio;
+
+

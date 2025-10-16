@@ -27,7 +27,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
         crear: false,
         eliminar: false,
         editar: false,
-        anular: false
+        anular: false,
+        reemplazar: false
     });
     // Estado para la notificación
     const [notification, setNotification] = useState({
@@ -174,7 +175,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                 crear: false,
                 eliminar: false,
                 editar: false,
-                anular: false
+                anular: false,
+                reemplazar: false
             });
         }
     }, [isOpen, usuario, tipo]);
@@ -420,6 +422,13 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         subtitle="Permite anular registros"
                         checked={permisos.anular || false}
                         onChange={(checked) => hanclePermisos('anular', checked)}
+                    />
+                    <Switch
+                        icon="refresh"
+                        title="Reemplazar"
+                        subtitle="Permite reemplazar stocks por conteos"
+                        checked={permisos.reemplazar || false}
+                        onChange={(checked) => hanclePermisos('reemplazar', checked)}
                     />
                     <p className={styles.subTitle}>MÓDULOS {isDamabrava() ? '(TODOS)' : '(GENERALES)'}</p>
                     {loadingModules ? (

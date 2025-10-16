@@ -467,7 +467,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
                                                     {modoAgrupacion === 'agrupado' && producto.grup
-                                                        ? `Disponible: ${(producto.stock || 0)} grupos (${((producto.stock || 0) * (producto.grup || 1))} ${producto.type_measure?.code || ''})`
+                                                        ? `Disponible: ${(producto.stock || 0)} grupos`
                                                         : `Disponible: ${producto.stock || 0} ${producto.type_measure?.code || ''}`
                                                     }
                                                 </p>
