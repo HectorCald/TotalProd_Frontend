@@ -21,7 +21,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
         last_name: '',
         codigo: ''
     });
-    const [estado, setEstado] = useState(false); // Siempre inactivo por defecto
+    const [estado, setEstado] = useState(true); // Siempre activo por defecto
     const [sucursalId, setSucursalId] = useState('');
     const [permisos, setPermisos] = useState({
         crear: false,
@@ -169,7 +169,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                 codigo: ''
             });
             setSelectedModules([]);
-            setEstado(false); // Siempre inactivo por defecto
+            setEstado(true); // Siempre activo por defecto
             setSucursalId('');
             setPermisos({
                 crear: false,
@@ -254,9 +254,11 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             }
 
             if (response.success) {
+                
                 if (tipo === 'editar' && onPersonalUpdated) {
                     onPersonalUpdated(response.data);
                 } else if (tipo === 'agregar' && onPersonalCreated) {
+                    
                     onPersonalCreated(response.data);
                 }
 

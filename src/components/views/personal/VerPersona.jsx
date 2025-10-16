@@ -242,6 +242,10 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                                     label="Anular"
                                     value={usuario.permisos.anular ? 'Permitido' : 'No permitido'}
                                 />
+                                <Dato
+                                    label="Reemplazar"
+                                    value={usuario.permisos.reemplazar ? 'Permitido' : 'No permitido'}
+                                />
                             </div>
                         </>
                     ) : (

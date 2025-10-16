@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BoxIcon } from 'boxicons-react';
 import { useLayout } from '../../context/LayoutContext';
 import { useModalStack } from '../../context/ModalStackContext';
@@ -8,6 +8,8 @@ import styles from './BarraLateral.module.css';
 // Importar componentes de vistas para empleados
 import AlmacenGeneral from '../views/almacen-general/AlmacenGeneral';
 import AlmacenAcopio from '../views/almacen-acopio/AlmacenAcopio';
+import AlmacenGeneralAuxiliar from '../views/almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
+import AlmacenAcopioAuxiliar from '../views/almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
 import PanelMovimientos from '../views/movimientos/PanelMovimientos';
 import PanelPedidos from '../views/pedidos/PanelPedidos';
 import Clientes from '../views/clientes/Clientes';
@@ -42,8 +44,10 @@ const BarraLateralEmpleado = ({
   // Estado para rastrear el último elemento clickeado
   const [lastClickedItem, setLastClickedItem] = useState(null);
 
-  // Obtener módulos disponibles para el empleado
-  const availableMainModules = getAvailableMainModules(employee?.modules || []);
+  // Obtener módulos disponibles para el empleado con memoización
+  const availableMainModules = useMemo(() => {
+    return getAvailableMainModules(employee?.modules || []);
+  }, [employee?.modules]);
 
   // Función para mapear módulos a opciones del menú
   const mapModuleToMenuOption = (module) => {
@@ -107,6 +111,8 @@ const BarraLateralEmpleado = ({
           action: 'openView',
           view: submodule.component === 'AlmacenGeneral' ? 'almacenMedioGeneral' :
                 submodule.component === 'AlmacenAcopio' ? 'almacenMedio' :
+                submodule.component === 'AlmacenGeneralAuxiliar' ? 'almacenMedioGeneralAuxiliar' :
+                submodule.component === 'AlmacenAcopioAuxiliar' ? 'almacenMedioAuxiliar' :
                 submodule.component === 'Movimientos' ? 'movimientos' :
                 submodule.component === 'Conteos' ? 'conteos' :
                 submodule.component === 'Pedidos' ? 'pedidos' :
@@ -137,6 +143,8 @@ const BarraLateralEmpleado = ({
             action: 'openView',
             view: submodule.component === 'AlmacenGeneral' ? 'almacenMedioGeneral' :
                   submodule.component === 'AlmacenAcopio' ? 'almacenMedio' :
+                  submodule.component === 'AlmacenGeneralAuxiliar' ? 'almacenMedioGeneralAuxiliar' :
+                  submodule.component === 'AlmacenAcopioAuxiliar' ? 'almacenMedioAuxiliar' :
                   submodule.component === 'Movimientos' ? 'movimientos' :
                   submodule.component === 'Conteos' ? 'conteos' :
                   submodule.component === 'Pedidos' ? 'pedidos' :
@@ -167,8 +175,8 @@ const BarraLateralEmpleado = ({
     }
   };
 
-  // Opciones del menú para empleados
-  const EMPLOYEE_MENU_OPTIONS = [
+  // Opciones del menú para empleados con memoización
+  const EMPLOYEE_MENU_OPTIONS = useMemo(() => [
     {
       id: 'dashboard',
       title: 'DASHBOARD',
@@ -187,7 +195,7 @@ const BarraLateralEmpleado = ({
       title: 'FUNCIONES',
       items: availableMainModules.map(mapModuleToMenuOption)
     }
-  ];
+  ], [availableMainModules]);
 
   // Función para cerrar todas las vistas y limpiar el stack de modales
   const closeAllViewsAndClearStack = () => {
@@ -400,13 +408,34 @@ const BarraLateralEmpleado = ({
         {...viewProps}
       />
 
+      <AlmacenGeneralAuxiliar
+        isOpen={activeView === 'almacenMedioGeneralAuxiliar'}
+        setIsOpen={handleCloseView}
+        tipo={viewProps.tipo || 'almacen'}
+        {...viewProps}
+      />
+
+      <AlmacenAcopioAuxiliar
+        isOpen={activeView === 'almacenMedioAuxiliar'}
+        setIsOpen={handleCloseView}
+        tipo={viewProps.tipo || 'almacen'}
+        {...viewProps}
+      />
+
       <PanelMovimientos
         isOpen={activeView === 'movimientos'}
         setIsOpen={handleCloseView}
         tipoMovimiento={viewProps.tipo || 'almacen'}
         {...viewProps}
       />
-
+  
+      <PanelConteos
+        isOpen={activeView === 'conteos'}
+        setIsOpen={handleCloseView}
+        tipoConteo={viewProps.tipo || 'almacen'}
+        {...viewProps}
+      />
+      
       <PanelPedidos
         isOpen={activeView === 'pedidos' && viewProps.tipo !== 'acopio'}
         setIsOpen={handleCloseView}
@@ -454,12 +483,6 @@ const BarraLateralEmpleado = ({
       <Reportes
         isOpen={activeView === 'reportes'}
         setIsOpen={handleCloseView}
-        {...viewProps}
-      />
-      <PanelConteos
-        isOpen={activeView === 'conteos'}
-        setIsOpen={handleCloseView}
-        tipoConteo={viewProps.tipo || 'almacen'}
         {...viewProps}
       />
 

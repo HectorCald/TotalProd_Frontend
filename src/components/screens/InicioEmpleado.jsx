@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { getAvailableMainModules } from '../../constants/modules';
 import AtajoAnuncio from '../common/AtajoAnuncio';
 import InicioEmpleadoPC from './InicioEmpleadoPC';
@@ -6,8 +6,10 @@ import styles from '../../styles/view.module.css';
 import './Inicio.css';
 
 const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
-  // Obtener módulos principales disponibles
-  const availableMainModules = getAvailableMainModules(employee.modules || []);
+  // Obtener módulos principales disponibles con memoización
+  const availableMainModules = useMemo(() => {
+    return getAvailableMainModules(employee.modules || []);
+  }, [employee.modules]);
 
   return (
     <>

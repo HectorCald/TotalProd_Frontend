@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useEmployee } from '../context/EmployeeContext';
 import { useLayout } from '../context/LayoutContext';
 import Nav from '../components/ui/Nav';
@@ -42,6 +42,11 @@ const HomeEmpleado = () => {
     const [currentSubModule, setCurrentSubModule] = useState(null);
     const [isSubModuleOpen, setIsSubModuleOpen] = useState(false);
 
+    // Obtener módulos principales disponibles con memoización
+    const availableMainModules = useMemo(() => {
+        return getAvailableMainModules(employee?.modules || []);
+    }, [employee?.modules]);
+
     if (loading || !employee) {
         return <LoadingSpinner />;
     }
@@ -73,9 +78,6 @@ const HomeEmpleado = () => {
     const handleNavigateFromMenu = (route) => {
         setActiveRoute(route);
     };
-
-    // Obtener módulos principales disponibles
-    const availableMainModules = getAvailableMainModules(employee.modules || []);
 
     // Manejar click en módulo principal (AtajoAnuncio)
     const handleMainModuleClick = (module) => {

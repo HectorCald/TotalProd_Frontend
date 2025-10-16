@@ -12,7 +12,7 @@ import imagenReportes from '../assets/reporte-ia.png';
 import imageImport from '../assets/import-export.png';
 import imageBalance from '../assets/balance.png';
 import imageDamabrava from '../assets/damabrava/damabrava.png';
-import imagenBalance from '../assets/balance.png';
+import imageConteos from '../assets/conteos.png';
 
 export const MODULES = {
     // Módulos principales
@@ -120,7 +120,7 @@ export const MODULES = {
     },
     Conteos: {
         name: 'Conteos',
-        imagen: imagenBalance,
+        imagen: imageConteos,
         descripcion: 'Revisa los conteos físicos registrados.',
         
         conteos_almacen: {
@@ -271,9 +271,23 @@ export const MODULES = {
     },
 };
 
+// Cache para evitar recálculos innecesarios
+const moduleCache = new Map();
+
 // Función para obtener los módulos principales disponibles para un empleado
 export const getAvailableMainModules = (employeeModules) => {
     if (!employeeModules || !Array.isArray(employeeModules)) return [];
+
+    // Crear una clave única para el cache basada en los módulos del empleado
+    const cacheKey = JSON.stringify(employeeModules.map(m => ({ 
+        name: m.name, 
+        modulos: m.modulos?.name 
+    })));
+    
+    // Verificar si ya tenemos el resultado en cache
+    if (moduleCache.has(cacheKey)) {
+        return moduleCache.get(cacheKey);
+    }
 
     // Agrupar submódulos por módulo principal
     const modulesByMainModule = {};
@@ -283,31 +297,23 @@ export const getAvailableMainModules = (employeeModules) => {
             let mainModuleKey = null;
             
             // Mapear nombres de módulos a claves
-            if (module.modulos.name === 'Almacen') {
-                mainModuleKey = 'Almacen';
-            } else if (module.modulos.name === 'Materia') {
-                mainModuleKey = 'Acopio';
-            } else if (module.modulos.name === 'Movimientos') {
-                mainModuleKey = 'Movimientos';
-            } else if (module.modulos.name === 'Pedidos') {
-                mainModuleKey = 'Pedidos';
-            } else if (module.modulos.name === 'Precios') {
-                mainModuleKey = 'Precios';
-            } else if (module.modulos.name === 'Clientes') {
-                mainModuleKey = 'Clientes';
-            } else if (module.modulos.name === 'Proveedores') {
-                mainModuleKey = 'Proveedores';
-            } else if (module.modulos.name === 'Gastos') {
-                mainModuleKey = 'Gastos';
-            } else if (module.modulos.name === 'Deudas') {
-                mainModuleKey = 'Deudas';
-            } else if (module.modulos.name === 'Reportes') {
-                mainModuleKey = 'Reportes';
-            } else if (module.modulos.name === 'Balance') {
-                mainModuleKey = 'Balance';
-            } else if (module.modulos.name === 'Damabrava') {
-                mainModuleKey = 'Damabrava';
-            }
+            const moduleMapping = {
+                'Almacen': 'Almacen',
+                'Materia': 'Acopio',
+                'Movimientos': 'Movimientos',
+                'Conteos': 'Conteos',
+                'Pedidos': 'Pedidos',
+                'Precios': 'Precios',
+                'Clientes': 'Clientes',
+                'Proveedores': 'Proveedores',
+                'Gastos': 'Gastos',
+                'Deudas': 'Deudas',
+                'Reportes': 'Reportes',
+                'Balance': 'Balance',
+                'Damabrava': 'Damabrava'
+            };
+            
+            mainModuleKey = moduleMapping[module.modulos.name];
             
             if (mainModuleKey) {
                 if (!modulesByMainModule[mainModuleKey]) {
@@ -319,51 +325,64 @@ export const getAvailableMainModules = (employeeModules) => {
     });
 
     // Convertir a array con datos completos, incluyendo solo los submódulos asignados
-    return Object.keys(modulesByMainModule).map(moduleKey => {
+    const result = Object.keys(modulesByMainModule).map(moduleKey => {
         const module = MODULES[moduleKey];
         const assignedSubmodules = modulesByMainModule[moduleKey];
         
         // Mapear los submódulos asignados a sus definiciones completas
         const availableSubmodules = assignedSubmodules.map(assignedModule => {
-            console.log('🔍 Procesando submódulo:', assignedModule.name, 'en módulo:', moduleKey);
-            console.log('🔍 Claves disponibles en módulo:', Object.keys(module).filter(key => key !== 'name' && key !== 'imagen' && key !== 'descripcion'));
-            
             // Buscar el submódulo correspondiente en la definición del módulo
             const submoduleKey = Object.keys(module).find(key => {
                 if (key === 'name' || key === 'imagen' || key === 'descripcion') return false;
                 
-                // Mapear nombres de submódulos
-                const nameMapping = {
-                    'Formulario': 'formulario',
-                    'Verificación': 'verificacion', 
-                    'Mi Producción': 'mi_produccion',
-                    'Salida o Venta': 'realizar_salidas',
-                    'Entrada': 'realizar_entradas',
-                    'Nuevo Pedido': 'realizar_pedidos',
-                    'Gestionar': 'gestionar',
-                    'Almacen': 'movimientos_almacen',
-                    'Materia Prima': 'movimientos_materia_prima',
-                    'Almacen': 'pedidos_almacen',
-                    'Materia Prima': 'pedidos_acopio'
-                };
+                // Mapear nombres de submódulos basado en el contexto del módulo
+                let nameMapping = {};
+                
+                if (moduleKey === 'Conteos') {
+                    nameMapping = {
+                        'Almacen': 'conteos_almacen',
+                        'Materia Prima': 'conteos_materia_prima'
+                    };
+                } else if (moduleKey === 'Movimientos') {
+                    nameMapping = {
+                        'Almacen': 'movimientos_almacen',
+                        'Materia Prima': 'movimientos_materia_prima'
+                    };
+                } else if (moduleKey === 'Pedidos') {
+                    nameMapping = {
+                        'Almacen': 'pedidos_almacen',
+                        'Materia Prima': 'pedidos_materia_prima'
+                    };
+                } else if (moduleKey === 'Damabrava') {
+                    nameMapping = {
+                        'Formulario': 'formulario',
+                        'Verificación': 'verificacion', 
+                        'Mi Producción': 'mi_produccion'
+                    };
+                } else {
+                    nameMapping = {
+                        'Salida o Venta': 'realizar_salidas',
+                        'Entrada': 'realizar_entradas',
+                        'Nuevo Pedido': 'realizar_pedidos',
+                        'Gestionar': 'gestionar',
+                        'Conteo': 'realizar_conteo',
+                        'Pesaje': 'realizar_conteo'
+                    };
+                }
                 
                 const mappedKey = nameMapping[assignedModule.name] || assignedModule.name.toLowerCase().replace(/\s+/g, '_');
-                console.log('🔍 Comparando:', key, 'con', mappedKey, 'para', assignedModule.name);
                 return key === mappedKey;
             });
             
             if (submoduleKey && module[submoduleKey]) {
-                const submodule = {
+                return {
                     ...module[submoduleKey],
                     // Mantener información del módulo asignado
                     assignedModule: assignedModule
                 };
-                console.log('✅ Submódulo encontrado:', assignedModule.name, '->', submoduleKey, 'icon:', submodule.icon);
-                return submodule;
             }
             
             // Si no se encuentra el mapeo, crear un submódulo básico
-            console.log('⚠️ Submódulo no encontrado:', assignedModule.name, 'en módulo:', moduleKey);
             return {
                 name: assignedModule.name,
                 description: assignedModule.name,
@@ -381,6 +400,11 @@ export const getAvailableMainModules = (employeeModules) => {
             submodules: availableSubmodules
         };
     });
+
+    // Guardar en cache
+    moduleCache.set(cacheKey, result);
+    
+    return result;
 };
 
 // Función simple para obtener los módulos disponibles para un empleado
