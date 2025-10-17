@@ -675,6 +675,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     onSearchClear={handleSearchClear}
                     searchExpanded={isSearchExpanded}
                     onSearchToggle={handleSearchToggle}
+                    withCart={isCartMode && isLargeScreen}
                 />
                 <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
                     <div className={styles.titleContainer}>

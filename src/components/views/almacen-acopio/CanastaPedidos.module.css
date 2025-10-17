@@ -23,6 +23,7 @@
     font-weight: 600;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     width: 100%;
 }
 .subTitle {
@@ -318,6 +319,8 @@
     background: none;
     display: flex;
     gap: 10px;
+    justify-content: center;
+    align-items: center;
 
     .icon {
         color: var(--primary-color) !important;

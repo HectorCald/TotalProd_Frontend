@@ -10,6 +10,9 @@ import EditarAgregar from '../almacen-acopio/EditarAgregar';
 import CategoriasAcopio from './CategoriasAcopio';
 import MovimientoAcopio from './MovimientoAcopio';
 import CanastaPedidos from './CanastaPedidos';
+import DescargaPedidoBuilder from '../pedidos/DescargaPedidoBuilder';
+import HistorialWhatsapp from './HistorialWhatsapp';
+import Select from '../../common/Select';
 import productsAcopioService from '../../../services/productsAcopioService';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import typeMeasureService from '../../../services/typeMeasureService';
@@ -128,6 +131,17 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     // Estados para canasta de pedidos
     const [productosCanasta, setProductosCanasta] = useState([]);
     const [isCanastaOpen, setIsCanastaOpen] = useState(false);
+    const [isDescargaPedidoOpen, setIsDescargaPedidoOpen] = useState(false);
+    const [pedidoIdParaDescarga, setPedidoIdParaDescarga] = useState(null);
+
+    // Estados para el modal de historial WhatsApp
+    const [isHistorialModalOpen, setIsHistorialModalOpen] = useState(false);
+    const [historialData, setHistorialData] = useState({
+        titulo: '',
+        descripcion: '',
+        tipo: '',
+        datos: null
+    });
 
     // Función para manejar el click en un producto
     const handleRegistro = (producto, tipo) => {
@@ -316,9 +330,38 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         mostrarNotificacion('success', 'Pedido registrado correctamente');
     };
 
+    // Función para manejar cuando se crea un pedido y se quiere descargar
+    const handlePedidoCreadoConDescarga = (pedidoId) => {
+        setPedidoIdParaDescarga(pedidoId);
+        setIsDescargaPedidoOpen(true);
+    };
+
     const getCantidadEnCanasta = (productoId) => {
         const producto = productosCanasta.find(p => p.id === productoId);
         return producto ? producto.cantidad : 0;
+    };
+
+    // Función para manejar el Select de WhatsApp
+    const handleWhatsAppSelect = (value) => {
+        if (value === 'historial') {
+            const historial = JSON.parse(localStorage.getItem('historialPedidosAcopio') || '[]');
+            setHistorialData({
+                titulo: 'Historial de pedidos realizados',
+                descripcion: 'HISTORIAL DE PEDIDOS',
+                tipo: 'historial',
+                datos: historial
+            });
+            setIsHistorialModalOpen(true);
+        } else if (value === 'ultimo-pedido') {
+            const ultimoPedido = JSON.parse(localStorage.getItem('ultimoPedidoAcopio') || 'null');
+            setHistorialData({
+                titulo: 'Detalles del último pedido realizado',
+                descripcion: 'DETALLES DEL ÚLTIMO PEDIDO',
+                tipo: 'ultimo-pedido',
+                datos: ultimoPedido
+            });
+            setIsHistorialModalOpen(true);
+        }
     };
 
     
@@ -408,6 +451,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
                 title={tipo === 'almacen' ? 'Materia Prima' : tipo === 'entrada' ? 'Entradas' : tipo === 'pedido' ? 'Realizar Pedidos' : 'Salidas o Ventas'}
+                withCart={isCartMode && isLargeScreen}
             />
             <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
                 <div className={styles.titleContainer}>
@@ -535,7 +579,19 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 productosCanasta={productosCanasta}
                 setProductosCanasta={setProductosCanasta}
                 onPedidoCreado={handlePedidoCreado}
+                onPedidoCreadoConDescarga={handlePedidoCreadoConDescarga}
                 isCartMode={isCartMode && isLargeScreen}
+            />
+
+            {/* Modal de descarga del pedido generado */}
+            <DescargaPedidoBuilder
+                isOpen={isDescargaPedidoOpen}
+                setIsOpen={setIsDescargaPedidoOpen}
+                pedidoId={pedidoIdParaDescarga}
+                tipo="acopio"
+                nombreArchivoDefault={localStorage.getItem('nombreArchivoPedidos') || `Pedido_Acopio_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`}
+                tituloDocumentoDefault={localStorage.getItem('tituloDocumentoPedidos') || `Pedido de Acopio #${pedidoIdParaDescarga?.slice(-8) || ''}`}
+                esPedido={true}
             />
 
             {/* Carga de datos - solo cuando está abierto */}
@@ -563,6 +619,24 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                     />
                 </>
             )}
+            {/* Botón flotante de WhatsApp */}
+            <div style={{
+                position: 'fixed',
+                bottom: '100px',
+                right: '20px',
+                zIndex: 200
+            }}>
+                <Select
+                    icon="whatsapp"
+                    iconOnly={true}
+                    options={[
+                        { value: 'historial', label: 'Historial', icon: 'history' },
+                        { value: 'ultimo-pedido', label: 'Último pedido', icon: 'time-five' }
+                    ]}
+                    onChange={handleWhatsAppSelect}
+                    dropdownDirection="right"
+                />
+            </div>
         </View>
         {/* Filtro de tipos de medida */}
         <FiltroTipoMedida
@@ -582,6 +656,18 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 isOpen={isOpenOrden}
                 setIsOpen={setOpenOrden}
                 onOrdenamientoSeleccionado={handleOrdenamiento}
+            />
+
+            
+
+            {/* Modal de Historial WhatsApp */}
+            <HistorialWhatsapp
+                isOpen={isHistorialModalOpen}
+                setIsOpen={setIsHistorialModalOpen}
+                titulo={historialData.titulo}
+                descripcion={historialData.descripcion}
+                tipo={historialData.tipo}
+                datos={historialData.datos}
             />
         </>
     );

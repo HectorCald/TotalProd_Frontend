@@ -10,10 +10,10 @@ import excelIcon from '../../assets/xls.png';
 import * as XLSX from 'xlsx';
 import { pdf as pdfRenderer, Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 
-function ModalDescarga({ 
-    isOpen, 
-    setIsOpen, 
-    titulo = "Descargar", 
+function ModalDescarga({
+    isOpen,
+    setIsOpen,
+    titulo = "Descargar",
     subtitulo = "Selecciona el formato que prefieras para descargar.",
     informacionSuperior = {},
     tablaHeaders = [],
@@ -42,7 +42,7 @@ function ModalDescarga({
     // Función para manejar el cambio del nombre del archivo
     const handleNombreArchivoChange = (nuevoNombre) => {
         setNombreArchivoState(nuevoNombre);
-        
+
         // Si recordar nombres está activado, guardar en localStorage
         if (recordarNombres) {
             if (esPedido) {
@@ -56,7 +56,7 @@ function ModalDescarga({
     // Función para manejar el cambio del título del documento
     const handleTituloDocumentoChange = (nuevoTitulo) => {
         setTituloDocumentoState(nuevoTitulo);
-        
+
         // Si recordar nombres está activado, guardar en localStorage
         if (recordarNombres) {
             if (esPedido) {
@@ -70,7 +70,7 @@ function ModalDescarga({
     // Función para manejar el cambio del switch
     const handleRecordarNombresChange = (recordar) => {
         setRecordarNombres(recordar);
-        
+
         if (recordar) {
             // Guardar nombres actuales en localStorage
             if (esPedido) {
@@ -87,21 +87,21 @@ function ModalDescarga({
         try {
             // Crear un nuevo workbook con XLSX (más confiable)
             const workbook = XLSX.utils.book_new();
-            
+
             // Crear datos combinados con formato
             const allData = [];
-            
+
             // 1. TÍTULO PRINCIPAL (centrado)
             allData.push([tituloDocumentoState]);
             allData.push([]); // Línea vacía
-            
+
             // 2. INFORMACIÓN SUPERIOR (en 2 columnas)
             const keys = Object.keys(informacionSuperior);
-            
+
             for (let i = 0; i < keys.length; i += 2) {
                 const row = [];
                 row.push(`${keys[i]}: ${informacionSuperior[keys[i]]}`);
-                
+
                 if (i + 1 < keys.length) {
                     row.push(`${keys[i + 1]}: ${informacionSuperior[keys[i + 1]]}`);
                 } else {
@@ -109,106 +109,106 @@ function ModalDescarga({
                 }
                 allData.push(row);
             }
-            
+
             // 3. Líneas vacías para separar
             allData.push([]);
             allData.push([]);
-            
-             // 4. TABLAS (limpiar unidades de cantidades y precios)
-             if (Array.isArray(tablas) && tablas.length > 0) {
-                 tablas.forEach((seccion, idx) => {
-                     allData.push([]);
-                     if (seccion.titulo) allData.push([seccion.titulo]);
-                     if (seccion.headers && seccion.headers.length > 0) {
-                         allData.push(seccion.headers);
-                     }
-                     if (seccion.valores && seccion.valores.length > 0) {
-                         // Limpiar unidades de los valores
-                         const valoresLimpios = seccion.valores.map(row => 
-                             row.map((cell, index) => {
-                                 if (index === 1) { // Columna de cantidad (segunda columna)
-                                     // Solo quitar unidades de cantidad: "u", "gr", "kg", "ml"
-                                     return cell.toString()
-                                         .replace(/\s*u\s*$/, '') // Quitar "u" al final
-                                         .replace(/\s*gr\s*$/, '') // Quitar "gr" al final
-                                         .replace(/\s*kg\s*$/, '') // Quitar "kg" al final
-                                         .replace(/\s*ml\s*$/, '') // Quitar "ml" al final
-                                         .trim();
-                                 } else if (index === 2) { // Columna de precio unitario (tercera columna)
-                                     // Quitar "Bs." del precio unitario y cambiar punto por coma
-                                     return cell.toString()
-                                         .replace(/Bs\.\s*/, '') // Quitar "Bs." al inicio
-                                         .replace(/\./g, ',') // Cambiar punto por coma
-                                         .trim();
-                                 } else if (index === 3) { // Columna de subtotal (cuarta columna)
-                                     // Cambiar punto por coma en subtotal
-                                     return cell.toString()
-                                         .replace(/\./g, ',') // Cambiar punto por coma
-                                         .trim();
-                                 }
-                                 // Columna de producto (primera) sin cambios
-                                 return cell;
-                             })
-                         );
-                         allData.push(...valoresLimpios);
-                     }
-                     if (idx !== tablas.length - 1) allData.push([]);
-                 });
-             } else if (tablaHeaders.length > 0 && tablaValores.length > 0) {
-                 allData.push(tablaHeaders);
-                 // Limpiar unidades de los valores
-                 const valoresLimpios = tablaValores.map(row => 
-                     row.map((cell, index) => {
-                         if (index === 1) { // Columna de cantidad (segunda columna)
-                             // Solo quitar unidades de cantidad: "u", "gr", "kg", "ml"
-                             return cell.toString()
-                                 .replace(/\s*u\s*$/, '') // Quitar "u" al final
-                                 .replace(/\s*gr\s*$/, '') // Quitar "gr" al final
-                                 .replace(/\s*kg\s*$/, '') // Quitar "kg" al final
-                                 .replace(/\s*ml\s*$/, '') // Quitar "ml" al final
-                                 .trim();
-                         } else if (index === 2) { // Columna de precio unitario (tercera columna)
-                             // Quitar "Bs." del precio unitario y cambiar punto por coma
-                             return cell.toString()
-                                 .replace(/Bs\.\s*/, '') // Quitar "Bs." al inicio
-                                 .replace(/\./g, ',') // Cambiar punto por coma
-                                 .trim();
-                         } else if (index === 3) { // Columna de subtotal (cuarta columna)
-                             // Cambiar punto por coma en subtotal
-                             return cell.toString()
-                                 .replace(/\./g, ',') // Cambiar punto por coma
-                                 .trim();
-                         }
-                         // Columna de producto (primera) sin cambios
-                         return cell;
-                     })
-                 );
-                 allData.push(...valoresLimpios);
-             }
-            
-             // 5. TOTAL (si existe) - mantener "Bs." y cambiar punto por coma
-             if (informacionSuperior && informacionSuperior.Total) {
-                 allData.push([]);
-                 const totalConComa = informacionSuperior.Total.toString()
-                     .replace(/\./g, ',') // Cambiar punto por coma
-                     .trim();
-                 allData.push(['', '', 'Total:', totalConComa]);
-             }
-            
+
+            // 4. TABLAS (limpiar unidades de cantidades y precios)
+            if (Array.isArray(tablas) && tablas.length > 0) {
+                tablas.forEach((seccion, idx) => {
+                    allData.push([]);
+                    if (seccion.titulo) allData.push([seccion.titulo]);
+                    if (seccion.headers && seccion.headers.length > 0) {
+                        allData.push(seccion.headers);
+                    }
+                    if (seccion.valores && seccion.valores.length > 0) {
+                        // Limpiar unidades de los valores
+                        const valoresLimpios = seccion.valores.map(row =>
+                            row.map((cell, index) => {
+                                if (index === 1) { // Columna de cantidad (segunda columna)
+                                    // Solo quitar unidades de cantidad: "u", "gr", "kg", "ml"
+                                    return cell.toString()
+                                        .replace(/\s*u\s*$/, '') // Quitar "u" al final
+                                        .replace(/\s*gr\s*$/, '') // Quitar "gr" al final
+                                        .replace(/\s*kg\s*$/, '') // Quitar "kg" al final
+                                        .replace(/\s*ml\s*$/, '') // Quitar "ml" al final
+                                        .trim();
+                                } else if (index === 2) { // Columna de precio unitario (tercera columna)
+                                    // Quitar "Bs." del precio unitario y cambiar punto por coma
+                                    return cell.toString()
+                                        .replace(/Bs\.\s*/, '') // Quitar "Bs." al inicio
+                                        .replace(/\./g, ',') // Cambiar punto por coma
+                                        .trim();
+                                } else if (index === 3) { // Columna de subtotal (cuarta columna)
+                                    // Cambiar punto por coma en subtotal
+                                    return cell.toString()
+                                        .replace(/\./g, ',') // Cambiar punto por coma
+                                        .trim();
+                                }
+                                // Columna de producto (primera) sin cambios
+                                return cell;
+                            })
+                        );
+                        allData.push(...valoresLimpios);
+                    }
+                    if (idx !== tablas.length - 1) allData.push([]);
+                });
+            } else if (tablaHeaders.length > 0 && tablaValores.length > 0) {
+                allData.push(tablaHeaders);
+                // Limpiar unidades de los valores
+                const valoresLimpios = tablaValores.map(row =>
+                    row.map((cell, index) => {
+                        if (index === 1) { // Columna de cantidad (segunda columna)
+                            // Solo quitar unidades de cantidad: "u", "gr", "kg", "ml"
+                            return cell.toString()
+                                .replace(/\s*u\s*$/, '') // Quitar "u" al final
+                                .replace(/\s*gr\s*$/, '') // Quitar "gr" al final
+                                .replace(/\s*kg\s*$/, '') // Quitar "kg" al final
+                                .replace(/\s*ml\s*$/, '') // Quitar "ml" al final
+                                .trim();
+                        } else if (index === 2) { // Columna de precio unitario (tercera columna)
+                            // Quitar "Bs." del precio unitario y cambiar punto por coma
+                            return cell.toString()
+                                .replace(/Bs\.\s*/, '') // Quitar "Bs." al inicio
+                                .replace(/\./g, ',') // Cambiar punto por coma
+                                .trim();
+                        } else if (index === 3) { // Columna de subtotal (cuarta columna)
+                            // Cambiar punto por coma en subtotal
+                            return cell.toString()
+                                .replace(/\./g, ',') // Cambiar punto por coma
+                                .trim();
+                        }
+                        // Columna de producto (primera) sin cambios
+                        return cell;
+                    })
+                );
+                allData.push(...valoresLimpios);
+            }
+
+            // 5. TOTAL (si existe) - mantener "Bs." y cambiar punto por coma
+            if (informacionSuperior && informacionSuperior.Total) {
+                allData.push([]);
+                const totalConComa = informacionSuperior.Total.toString()
+                    .replace(/\./g, ',') // Cambiar punto por coma
+                    .trim();
+                allData.push(['', '', 'Total:', totalConComa]);
+            }
+
             // Crear worksheet con todos los datos
             const worksheet = XLSX.utils.aoa_to_sheet(allData);
-            
+
             // CONFIGURAR ANCHOS DE COLUMNAS (AUTO-FIT REAL)
             const colWidths = [];
             const maxCols = Math.max(
                 keys.length > 0 ? 2 : 0, // Para información superior
                 tablaHeaders.length // Para tabla
             );
-            
+
             // Calcular ancho automático para cada columna
             for (let i = 0; i < maxCols; i++) {
                 let maxWidth = 10; // Ancho mínimo
-                
+
                 // Revisar todas las filas para encontrar el contenido más largo
                 for (let rowIndex = 0; rowIndex < allData.length; rowIndex++) {
                     const cellValue = allData[rowIndex][i];
@@ -216,35 +216,35 @@ function ModalDescarga({
                         maxWidth = Math.min(cellValue.toString().length + 2, 50); // Máximo 50 caracteres
                     }
                 }
-                
+
                 colWidths.push({ wch: maxWidth });
             }
             worksheet['!cols'] = colWidths;
-            
+
             // APLICAR ESTILOS BÁSICOS
             const range = XLSX.utils.decode_range(worksheet['!ref']);
-            
+
             // Estilo para el título (negrita y centrado)
             if (allData.length > 0) {
                 const titleCellAddress = XLSX.utils.encode_cell({ r: 0, c: 0 });
                 if (!worksheet[titleCellAddress]) worksheet[titleCellAddress] = { v: allData[0][0] };
-                
+
                 worksheet[titleCellAddress].s = {
                     font: { bold: true, size: 16 },
                     alignment: { horizontal: "center" }
                 };
             }
-            
+
             // Estilos para headers de tabla (fondo azul, texto blanco, negrita)
             let headerRowStart = -1;
             for (let row = 0; row < allData.length; row++) {
-                if (allData[row] && allData[row].length > 0 && 
+                if (allData[row] && allData[row].length > 0 &&
                     (allData[row][0] === 'Producto' || allData[row].includes('Producto'))) {
                     headerRowStart = row;
                     break;
                 }
             }
-            
+
             if (headerRowStart >= 0) {
                 for (let col = 0; col < maxCols; col++) {
                     const cellAddress = XLSX.utils.encode_cell({ r: headerRowStart, c: col });
@@ -263,7 +263,7 @@ function ModalDescarga({
                     }
                 }
             }
-            
+
             // Estilos para datos de tabla (bordes)
             if (headerRowStart >= 0) {
                 for (let row = headerRowStart + 1; row < allData.length; row++) {
@@ -279,7 +279,7 @@ function ModalDescarga({
                                         right: { style: "thin", color: { rgb: "000000" } }
                                     }
                                 };
-                                
+
                                 // Alineación derecha para columnas numéricas
                                 if (col > 0) {
                                     worksheet[cellAddress].s.alignment = { horizontal: "right" };
@@ -289,9 +289,9 @@ function ModalDescarga({
                     }
                 }
             }
-            
+
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte');
-            
+
             // Generar y descargar archivo
             XLSX.writeFile(workbook, `${nombreArchivoState.replace(/\s+/g, '_')}.xlsx`);
         } catch (error) {
@@ -326,9 +326,9 @@ function ModalDescarga({
 
             // Ordenar y dividir sin zigzag: primero mitad izquierda, luego mitad derecha
             const preferredOrder = [
-                'Responsable','Tipo','Fecha','Hora','Estado','Sucursal',
-                'Método de Pago','Cliente','Proveedor','Órdenes del Cliente','Órdenes del Proveedor',
-                'Tipo de Precio','Costo','Restar Ingredientes','Observaciones','Venta N°','Entrega N°','Total'
+                'Responsable', 'Tipo', 'Fecha', 'Hora', 'Estado', 'Sucursal',
+                'Método de Pago', 'Cliente', 'Proveedor', 'Órdenes del Cliente', 'Órdenes del Proveedor',
+                'Tipo de Precio', 'Costo', 'Restar Ingredientes', 'Observaciones', 'Venta N°', 'Entrega N°', 'Total'
             ];
             const entriesAll = Object.entries(informacionSuperior || {});
             const entriesSorted = entriesAll.sort((a, b) => {
@@ -445,7 +445,7 @@ function ModalDescarga({
                                 <View style={[styles.contentPad, styles.separator]} />
                                 <View style={[styles.contentPad, styles.row]}>
                                     {(() => {
-                                        const currentWidths = Array.isArray(tablas) && tablas.length > 0 
+                                        const currentWidths = Array.isArray(tablas) && tablas.length > 0
                                             ? getWidthsPct(tablas[tablas.length - 1].headers || [])
                                             : getWidthsPct(tablaHeaders);
                                         return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
@@ -453,21 +453,21 @@ function ModalDescarga({
                                         ));
                                     })()}
                                     {/* Columna de etiqueta (alineada a la derecha) */}
-                                    <View style={{ 
+                                    <View style={{
                                         width: (() => {
-                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0 
+                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0
                                                 ? getWidthsPct(tablas[tablas.length - 1].headers || [])
                                                 : getWidthsPct(tablaHeaders);
                                             return currentWidths[currentWidths.length - 2];
-                                        })(), 
-                                        paddingRight: 6 
+                                        })(),
+                                        paddingRight: 6
                                     }}>
                                         <Text style={styles.totalLabel}>Total:</Text>
                                     </View>
                                     {/* Columna de valor (alineada a la derecha) */}
-                                    <View style={{ 
+                                    <View style={{
                                         width: (() => {
-                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0 
+                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0
                                                 ? getWidthsPct(tablas[tablas.length - 1].headers || [])
                                                 : getWidthsPct(tablaHeaders);
                                             return currentWidths[currentWidths.length - 1];
@@ -496,6 +496,7 @@ function ModalDescarga({
             console.error('Error generando PDF:', error);
         }
     };
+
 
     // Auto-disparar descarga si se solicita desde afuera
     useEffect(() => {
@@ -537,13 +538,15 @@ function ModalDescarga({
                         style={{ width: '300px' }}
                         icon="text"
                     />
-                    <Switch
-                        title="Recordar nombres"
-                        subtitle="Guardar estos nombres para futuras descargas"
-                        checked={recordarNombres}
-                        onChange={handleRecordarNombresChange}
-                        icon="save"
-                    />
+                    <div className={styles.contentModal}>
+                        <Switch
+                            title="Recordar nombres"
+                            subtitle="Guardar estos nombres para futuras descargas"
+                            checked={recordarNombres}
+                            onChange={handleRecordarNombresChange}
+                            icon="save"
+                        />
+                    </div>
                 </div>
 
                 <div className={styles.buttons}>

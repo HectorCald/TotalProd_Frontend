@@ -21,12 +21,13 @@ const medidasPedido = [
     { value: 'cj', label: 'Caja (cj)', icon: 'tag' },
 ];
 
-function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onPedidoCreado, isCartMode = false }) {
+function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onPedidoCreado, isCartMode = false, onPedidoCreadoConDescarga = null }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [animarCantidad, setAnimarCantidad] = useState({});
+    
     
     // Estado para notificaciones
     const [notification, setNotification] = useState({
@@ -159,6 +160,28 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 observaciones: observacionesGenerales
             };
 
+            // Guardar pedido en localStorage antes de enviar al backend
+            const pedidoParaHistorial = {
+                id: Date.now(),
+                fecha: new Date().toLocaleDateString('es-ES'),
+                hora: new Date().toLocaleTimeString('es-ES'),
+                productos: productosCanasta.map(producto => ({
+                    nombre: producto.name,
+                    cantidad: producto.cantidad,
+                    medida: producto.medidaPedido || 'kg'
+                })),
+                observaciones: observacionesGenerales,
+                totalProductos: productosCanasta.length
+            };
+
+            // Guardar como último pedido
+            localStorage.setItem('ultimoPedidoAcopio', JSON.stringify(pedidoParaHistorial));
+
+            // Agregar al historial
+            const historialExistente = JSON.parse(localStorage.getItem('historialPedidosAcopio') || '[]');
+            historialExistente.unshift(pedidoParaHistorial); // Agregar al inicio
+            localStorage.setItem('historialPedidosAcopio', JSON.stringify(historialExistente));
+
             // Enviar el pedido al backend
             const response = await pedidosAcopioService.create(pedidoData);
 
@@ -167,13 +190,18 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
 
-                // Limpiar localStorage
+                // Limpiar localStorage de la canasta
                 localStorage.removeItem('canastaPedidosAcopio');
 
                 // Cerrar la canasta y notificar al padre
                 setIsOpen(false);
                 if (onPedidoCreado) {
                     onPedidoCreado(response.data);
+                }
+
+                // Si hay función para manejar descarga automática, llamarla con el primer pedido creado
+                if (onPedidoCreadoConDescarga && response.data && response.data.length > 0) {
+                    onPedidoCreadoConDescarga(response.data[0].id);
                 }
 
             } else {

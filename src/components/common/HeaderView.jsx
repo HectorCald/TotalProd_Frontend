@@ -13,10 +13,12 @@ const HeaderView = ({
     onSearchChange = () => {},
     onSearchClear = () => {},
     searchExpanded = false,
-    onSearchToggle = () => {}
+    onSearchToggle = () => {},
+    // Prop para ajustar el header cuando hay canasta abierta
+    withCart = false
 }) => {
     return (
-        <div className={styles.headerView}>
+        <div className={`${styles.headerView} ${withCart ? styles.headerViewWithCart : ''}`}>
             <div className={styles.headerLeft}>
                 <button className={styles.headerViewButton} onClick={onBack}>
                     <BoxIcon name='left-arrow-alt' className={styles.icon}/>

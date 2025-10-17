@@ -9,7 +9,8 @@ function Select({
     value, 
     onChange,
     icon,
-    iconOnly = false
+    iconOnly = false,
+    dropdownDirection = 'left'
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
@@ -26,8 +27,20 @@ function Select({
             const optionsHeight = optionsRef.current?.offsetHeight || 200; // valor por defecto si aún no está renderizado
 
             setOpenUpward(spaceBelow < optionsHeight && selectRect.top > spaceBelow);
+            
+            // Para el modo iconOnly, ajustar la posición horizontal según el prop dropdownDirection
+            if (iconOnly && optionsRef.current) {
+                if (dropdownDirection === 'right') {
+                    optionsRef.current.style.left = 'auto';
+                    optionsRef.current.style.right = '0';
+                } else {
+                    // Por defecto 'left'
+                    optionsRef.current.style.left = '0';
+                    optionsRef.current.style.right = 'auto';
+                }
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, iconOnly, dropdownDirection]);
 
     // Cerrar el select cuando se hace click fuera
     useEffect(() => {
