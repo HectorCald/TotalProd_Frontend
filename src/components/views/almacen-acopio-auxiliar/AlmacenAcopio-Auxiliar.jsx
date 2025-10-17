@@ -392,7 +392,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                     }
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
-                                                style={{ borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined }}
+                                                style={{ borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px' }}
                                             />
                                         );
                                     }
@@ -412,6 +412,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                     // no log en tiempo real; resumen se imprime al registrar
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
+                                                style={{ maxWidth: '100%' }}
                                             />
                                         );
                                     }
@@ -511,7 +512,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                 {tipo === 'conteo' ? (
                     <div className={styles.buttonFooter}>
                         <Boton className='btn-original' label='Registrar conteo' onClick={handleRegistrarConteo} loading={isSubmitting} />
-                        <Boton className='btn-gray' label='Restablecer valores' onClick={handleRestablecerValores} disabled={isSubmitting} />
+                        <Boton className='btn-gray' label='Restablecer' onClick={handleRestablecerValores} disabled={isSubmitting} />
                     </div>
                 ) : ''}
 

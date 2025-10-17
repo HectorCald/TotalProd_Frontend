@@ -488,7 +488,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
                                                 style={{
-                                                    borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined
+                                                    borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px'
                                                 }}
                                             />
                                         );
@@ -654,7 +654,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                         />
                         <Boton
                             className='btn-gray'
-                            label='Restablecer valores'
+                            label='Restablecer'
                             onClick={handleRestablecerValores}
                             disabled={isSubmitting}
                         />

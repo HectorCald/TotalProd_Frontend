@@ -460,7 +460,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                         arrow={false}
                                         flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
                                         flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
-                                        gris={true}
+                                        colorIcon={movimiento.type === 'entrada' ? 'verde' : 'rojo'}
                                     />
                                 );
                             })

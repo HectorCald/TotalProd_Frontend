@@ -142,7 +142,7 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                 <div className={styles.titleContainer}>
                     <RefreshIndicator isVisible={showRefreshIndicator} isLoading={isRefreshing} />
                 </div>
-                <div className={styles.content}>
+                <div className={styles.content} style={{ maxHeight: '100%' }}>
                     {isLargeScreen ? (
                         <Table
                             headers={tableHeaders}

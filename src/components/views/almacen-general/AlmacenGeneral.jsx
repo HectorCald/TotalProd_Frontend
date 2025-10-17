@@ -687,7 +687,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     <div className={styles.content}
                         style={{
                             maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido') && isLargeScreen
-                                ? '100%'
+                                ? '100vh'
                                 : ''
                         }}
                     >

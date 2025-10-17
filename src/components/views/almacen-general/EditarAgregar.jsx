@@ -207,7 +207,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       return;
     }
 
-    if (!dataMov.stock || dataMov.stock.toString().trim() === '') {
+    if (!dataMov.stock) {
       mostrarNotificacion('error', 'El stock es obligatorio');
       return;
     }
@@ -236,8 +236,6 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         prices: dataMov.prices,
         receta: hasReceta ? recetaGuardada : null // Incluir receta solo si está marcado el switch
       };
-
-      console.log('Datos del producto a enviar (incluyendo receta):', productData);
 
       if (tipo === 'editar') {
         response = await productsAlmacenService.update(data.id, productData);

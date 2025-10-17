@@ -204,7 +204,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                         isLoading={isRefreshing}
                     />
                 </div>
-                <div className={styles.content}>
+                <div className={styles.content} style={{ maxHeight: 'calc(100% - 90px)' }}>
                     {isLargeScreen ? (
                         // Vista de tabla para pantallas grandes
                         <Table

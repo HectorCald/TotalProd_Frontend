@@ -206,6 +206,11 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>
                         ¿Estás seguro que deseas anular este movimiento? Esta acción no se puede deshacer y si en el movimiento se consumio materia prima se devolvera el peso correspondiente.
+                        {movimiento?.restar_ingredientes && (
+                            <><br /><br />
+                                <strong>Nota:</strong> Este movimiento consumió ingredientes. Al anularlo, se devolverá el peso de los ingredientes consumidos al stock de acopio.
+                            </>
+                        )}
                     </p>
                     <div className={styles.buttons}>
                         <Boton

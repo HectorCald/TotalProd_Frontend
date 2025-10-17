@@ -25,6 +25,31 @@
     font-size: 30px !important;
 }
 
+.iconCustom {
+    color: inherit !important;
+    fill: inherit !important;
+}
+
+.iconRed {
+    color: #ef4444 !important;
+    fill: #ef4444 !important;
+}
+
+.iconGreen {
+    color: #22c55e !important;
+    fill: #22c55e !important;
+}
+
+.iconBlue {
+    color: #3b82f6 !important;
+    fill: #3b82f6 !important;
+}
+
+.iconGrey {
+    color: var(--senary-color) !important;
+    fill: var(--senary-color) !important;
+}
+
 .iconGris {
     color: var(--quinary-color) !important;
 }

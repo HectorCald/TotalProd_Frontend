@@ -292,6 +292,11 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>
                         ¿Estás seguro que deseas anular este movimiento? Esta acción no se puede deshacer y si en el movimiento se consumio materia prima se devolvera el peso correspondiente.
+                        {movimiento?.restar_ingredientes && (
+                            <><br /><br />
+                                <strong>Nota:</strong> Este movimiento consumió ingredientes. Al anularlo, se devolverá el peso de los ingredientes consumidos al stock de acopio.
+                            </>
+                        )}
                         {movimiento?.produccion_damabrava_id && (
                             <><br /><br />
                                 <strong>Nota:</strong> Este movimiento proviene de producción de Damabrava. Al anularlo, se restará la cantidad del registro de producción y se actualizará su estado si es necesario.

@@ -238,7 +238,7 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                     />
                 </div>
                 <div className={styles.content} style={{
-                        maxHeight: 'calc(100% - 185px)',
+                        maxHeight: 'calc(100% - 90px)',
                     }}>
                     {isLargeScreen ? (
                         // Vista de tabla para pantallas grandes

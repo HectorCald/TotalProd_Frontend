@@ -341,7 +341,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
                     className={styles.content}
                     onScroll={handleScroll}
                     style={{
-                        maxHeight: 'calc(100% - 230px)',
+                        maxHeight: 'calc(100% - 130px)',
                     }}
                 >
                     {isLargeScreen ? (

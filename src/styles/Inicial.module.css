@@ -35,7 +35,7 @@
     width: 100%;
     background-color: none;
     overflow-y: auto !important;
-    max-height: calc(100% - 150px);
+    max-height: calc(100% - 130px);
     height: 100%;
 }
 
@@ -130,7 +130,9 @@
     flex-direction: column;
     gap: 15px; 
     overflow-y: auto;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
 }
 .buttons {
     display: flex;

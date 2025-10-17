@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo=true, transparent=true, gris=false, style={} }) => {  
+const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo=true, transparent=true, colorIcon='default', style={} }) => {  
   // Función para generar iniciales del título
   const generateInitials = (title) => {
     if (!title) return '';
@@ -86,6 +86,30 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
     return `rgba(${r}, ${g}, ${b}, 0.3)`;
   };
 
+  // Función para obtener la clase CSS del icono
+  const getIconClass = () => {
+    const classMap = {
+      'rojo': styles.iconRed,
+      'verde': styles.iconGreen, 
+      'azul': styles.iconBlue,
+      'gris': styles.iconGrey,
+      'default': ''
+    };
+    return classMap[colorIcon] || classMap['default'];
+  };
+
+  // Función simple para obtener el color del fondo del icono
+  const getIconBackgroundColor = () => {
+    const backgroundMap = {
+      'rojo': 'rgba(239, 68, 68, 0.2)',
+      'verde': 'rgba(34, 197, 94, 0.2)', 
+      'azul': 'rgba(59, 130, 246, 0.2)',
+      'gris': 'var(--tertiary-color)',
+      'default': 'rgba(40, 180, 152, 0.3)'
+    };
+    return backgroundMap[colorIcon] || backgroundMap['default'];
+  };
+
   // Generar iniciales si no hay icono
   const initials = !icon ? generateInitials(title) : '';
   const initialsColor = initials ? generateInitialsColor(initials.charAt(0)) : '';
@@ -94,14 +118,17 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
   return (
     <div className={styles.itemView} onClick={onClick} style={{ backgroundColor: transparent ? 'transparent' : 'var(--tertiary-color)', borderRadius: transparent ? '0' : '20px', ...style }}>
       {circulo && (
-      <div className={styles.itemViewIcon} style={{ backgroundColor: gris ? 'var(--tertiary-color)' : (icon ? 'rgba(40, 180, 152, 0.3)' : initialsBackgroundColor) }}>
+      <div className={styles.itemViewIcon} style={{ backgroundColor: icon ? getIconBackgroundColor() : initialsBackgroundColor }}>
         {icon ? (
-          <BoxIcon name={icon} className={`${styles.icon} ${gris ? styles.iconGris : ''}`} />
+          <BoxIcon 
+            name={icon} 
+            className={`${styles.icon} ${getIconClass()}`} 
+          />
         ) : (
           <div 
             className={styles.initialsIcon}
             style={{ 
-              color: gris ? 'var(--senary-color)' : initialsColor,
+              color: initialsColor,
             }}
           >
             {initials}
