@@ -3,11 +3,12 @@ import ModalDescarga from '../../ui/ModalDescarga';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 
-function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', pedidoData = null }) {
+function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', pedidoData = null, nombreArchivoDefault = null, tituloDocumentoDefault = null, esPedido = false }) {
     const [informacionSuperior, setInformacionSuperior] = useState({});
     const [tablaHeaders, setTablaHeaders] = useState([]);
     const [tablaValores, setTablaValores] = useState([]);
     const [nombreArchivo, setNombreArchivo] = useState('Descargar Pedido');
+    const [tituloDocumento, setTituloDocumento] = useState('Pedido');
     const [cargando, setCargando] = useState(false);
 
     useEffect(() => {
@@ -40,7 +41,8 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         setInformacionSuperior(infoSup);
                         setTablaHeaders([]);
                         setTablaValores([]);
-                        setNombreArchivo(`Pedido_Acopio_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
+                        setNombreArchivo(nombreArchivoDefault || `Pedido_Acopio_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
+                        setTituloDocumento(tituloDocumentoDefault || `Pedido de Acopio #${pedido.id.slice(-8)}`);
                         return;
                     } else {
                         // Pedido de almacén
@@ -53,6 +55,11 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                             'Fecha': new Date(pedido.fecha || pedido.created_at).toLocaleString(),
                             'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'
                         };
+
+                        // Agregar total de pedidos de la sucursal si está disponible
+                        if (pedido?.sucursal?.total_pedidos !== undefined) {
+                            infoSup['Total de Pedidos de la Sucursal'] = pedido.sucursal.total_pedidos.toString();
+                        }
 
                         // Para pedidos de almacén
                         if (pedido?.precio?.name) {
@@ -103,7 +110,8 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(`Pedido_Almacen_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
+                        setNombreArchivo(nombreArchivoDefault || `Pedido_Almacen_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
+                        setTituloDocumento(tituloDocumentoDefault || `Pedido de Almacén #${pedido.id.slice(-8)}`);
                         return;
                     }
                 }
@@ -138,7 +146,8 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         setInformacionSuperior(infoSup);
                         setTablaHeaders([]);
                         setTablaValores([]);
-                        setNombreArchivo(`Pedido_Acopio_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
+                        setNombreArchivo(nombreArchivoDefault || `Pedido_Acopio_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
+                        setTituloDocumento(tituloDocumentoDefault || `Pedido de Acopio #${pedido.id.slice(-8)}`);
                     }
                 } else {
                     const response = await pedidosAlmacenService.getById(pedidoId);
@@ -152,6 +161,11 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                             'Fecha': new Date(pedido.fecha || pedido.created_at).toLocaleString(),
                             'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'
                         };
+
+                        // Agregar total de pedidos de la sucursal si está disponible
+                        if (pedido?.sucursal?.total_pedidos !== undefined) {
+                            infoSup['Total de Pedidos de la Sucursal'] = pedido.sucursal.total_pedidos.toString();
+                        }
 
                         // Para pedidos de almacén
                         if (pedido?.precio?.name) {
@@ -202,7 +216,8 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(`Pedido_Almacen_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
+                        setNombreArchivo(nombreArchivoDefault || `Pedido_Almacen_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
+                        setTituloDocumento(tituloDocumentoDefault || `Pedido de Almacén #${pedido.id.slice(-8)}`);
                     }
                 }
             } catch (error) {
@@ -222,10 +237,12 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
             titulo="Descargar Pedido"
             subtitulo="Selecciona el formato que prefieras para descargar este pedido."
             nombreArchivo={nombreArchivo}
+            tituloDocumento={tituloDocumento}
             informacionSuperior={informacionSuperior}
             tablaHeaders={tablaHeaders}
             tablaValores={tablaValores}
             loading={cargando}
+            esPedido={esPedido}
         />
     );
 }

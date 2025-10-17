@@ -270,7 +270,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                         value={dataProduccion.microondas}
                         placeholder='Tiempo de Microondas'
                         onChange={(e) => handleChange('microondas', e.target.value)}
-                        icon='microphone'
+                        icon='time'
                         step="1"
                         min="0"
                     />

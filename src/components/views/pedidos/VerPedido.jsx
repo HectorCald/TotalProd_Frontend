@@ -152,10 +152,16 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             if (movimientoId) {
                 const anularResponse = await movimientosAlmacenService.anular(movimientoId, true);
                 if (!anularResponse.success) {
-                    mostrarNotificacion('error', 'Error al anular el movimiento: ' + anularResponse.message);
-                    return;
+                    // Si el error es porque ya está anulado, continuar con el proceso
+                    if (anularResponse.message && anularResponse.message.includes('anulado')) {
+                        console.log('⚠️ Movimiento ya estaba anulado, continuando...');
+                    } else {
+                        mostrarNotificacion('error', 'Error al anular el movimiento: ' + anularResponse.message);
+                        return;
+                    }
+                } else {
+                    console.log('✅ Movimiento anulado correctamente');
                 }
-                console.log('✅ Movimiento anulado correctamente');
             }
 
             console.log('PASO 2: Limpiando campos del pedido...');
@@ -172,10 +178,16 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             if (deudaId) {
                 const eliminarDeudaResponse = await deudasService.delete(deudaId);
                 if (!eliminarDeudaResponse.success) {
-                    mostrarNotificacion('error', 'Error al eliminar la deuda: ' + eliminarDeudaResponse.message);
-                    return;
+                    // Si el error es porque ya no existe, continuar con el proceso
+                    if (eliminarDeudaResponse.message && (eliminarDeudaResponse.message.includes('no encontrado') || eliminarDeudaResponse.message.includes('no existe'))) {
+                        console.log('⚠️ Deuda ya estaba eliminada, continuando...');
+                    } else {
+                        mostrarNotificacion('error', 'Error al eliminar la deuda: ' + eliminarDeudaResponse.message);
+                        return;
+                    }
+                } else {
+                    console.log('✅ Deuda eliminada correctamente');
                 }
-                console.log('✅ Deuda eliminada correctamente');
             }
 
             console.log('PASO 4: Eliminando movimiento...');
@@ -183,10 +195,16 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             if (movimientoId) {
                 const eliminarMovimientoResponse = await movimientosAlmacenService.eliminar(movimientoId);
                 if (!eliminarMovimientoResponse.success) {
-                    mostrarNotificacion('error', 'Error al eliminar el movimiento: ' + eliminarMovimientoResponse.message);
-                    return;
+                    // Si el error es porque ya no existe, continuar con el proceso
+                    if (eliminarMovimientoResponse.message && (eliminarMovimientoResponse.message.includes('no encontrado') || eliminarMovimientoResponse.message.includes('no existe'))) {
+                        console.log('⚠️ Movimiento ya estaba eliminado, continuando...');
+                    } else {
+                        mostrarNotificacion('error', 'Error al eliminar el movimiento: ' + eliminarMovimientoResponse.message);
+                        return;
+                    }
+                } else {
+                    console.log('✅ Movimiento eliminado correctamente');
                 }
-                console.log('✅ Movimiento eliminado correctamente');
             }
 
             console.log('PASO 5: Cambiando estado del pedido a Pendiente...');
@@ -200,13 +218,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
             mostrarNotificacion('success', 'Entrega cancelada correctamente');
 
-            // Actualizar el pedido local y cerrar
-            const pedidoActualizado = {
-                ...pedidoActual,
-                estado: 'Pendiente',
-                movimiento_salida_id: null,
-                deuda_id: null
-            };
+            // Usar la respuesta actualizada del servidor que incluye total_pedidos actualizado
+            const pedidoActualizado = cambiarEstadoResponse.data;
 
             // Actualizar el estado local del pedido
             setPedidoActual(pedidoActualizado);
@@ -237,10 +250,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 const estadoResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, 'Completado');
                 if (estadoResponse.success) {
                     mostrarNotificacion('success', 'Pedido finalizado correctamente');
-                    const pedidoActualizado = {
-                        ...pedidoActual,
-                        estado: 'Completado'
-                    };
+                    // Usar la respuesta del servidor que incluye total_pedidos actualizado
+                    const pedidoActualizado = estadoResponse.data;
                     if (onPedidoActualizado) {
                         onPedidoActualizado(pedidoActualizado);
                     }
@@ -281,11 +292,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 if (estadoResponse.success) {
                     mostrarNotificacion('success', 'Pedido ingresado correctamente');
 
-                    // Actualizar el pedido local
-                    const pedidoActualizado = {
-                        ...pedidoActual,
-                        estado: 'Completado'
-                    };
+                    // Usar la respuesta del servidor que incluye total_pedidos actualizado
+                    const pedidoActualizado = estadoResponse.data;
 
                     if (onPedidoActualizado) {
                         onPedidoActualizado(pedidoActualizado);
@@ -448,6 +456,14 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                     description={pedidoActual.sucursal?.name || 'Sucursal desconocida'}
                     transparent={false}
                 />
+                {pedidoActual.sucursal?.total_pedidos !== undefined && (
+                    <Dato
+                        label="Total de Pedidos de la Sucursal"
+                        value={pedidoActual.sucursal.total_pedidos.toString()}
+                        vertical={false}
+                        especial="blue"
+                    />
+                )}
                 <p className={styles.subTitle}>INFORMACIÓN DEL PEDIDO</p>
                 <ItemView
                     title={`Pedido #${pedidoActual.id.slice(-8)}`}
@@ -586,6 +602,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 pedidoId={pedidoActual?.id}
                 pedidoData={pedidoActual}
                 tipo="almacen"
+                nombreArchivoDefault={localStorage.getItem('nombreArchivoPedidos') || `Pedido_Almacen_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`}
+                tituloDocumentoDefault={localStorage.getItem('tituloDocumentoPedidos') || `Pedido de Almacén #${pedidoActual?.id?.slice(-8) || ''}`}
+                esPedido={true}
             />
 
             {/* Modal de eliminar pedido */}

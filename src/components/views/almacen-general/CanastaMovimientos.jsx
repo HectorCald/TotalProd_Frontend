@@ -451,10 +451,12 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 // 4) Si es entrega: actualizar estado del pedido
                 if (esEntrega) {
                     const deudaId = null; // Se podría obtener del paso anterior si es necesario
+                    let pedidoResponse = null;
+                    
                     try {
-                        const response = await pedidosAlmacenService.updateEstado(pedidoId, 'Entregado', movimientoId, deudaId);
-                        if (!response.success) {
-                            console.error('Error al actualizar estado del pedido:', response.message);
+                        pedidoResponse = await pedidosAlmacenService.updateEstado(pedidoId, 'Entregado', movimientoId, deudaId);
+                        if (!pedidoResponse.success) {
+                            console.error('Error al actualizar estado del pedido:', pedidoResponse.message);
                         }
                     } catch (error) {
                         console.error('Error al actualizar estado del pedido:', error);
@@ -467,12 +469,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     localStorage.removeItem('precioIdEntregando');
 
                     // Notificar al componente padre sobre el cambio de estado del pedido
-                    if (onPedidoActualizado) {
+                    if (onPedidoActualizado && pedidoResponse && pedidoResponse.success) {
+                        // Usar la respuesta del servidor que incluye total_pedidos actualizado
                         const pedidoConEstadoActualizado = {
-                            ...pedidoActualizado.data,
-                            estado: 'Entregado',
-                            movimiento_salida_id: movimientoId,
-                            deuda_id: deudaId,
+                            ...pedidoResponse.data,
                             movimiento_salida: {
                                 id: movimientoId,
                                 metodo_pago: metodoPagoSeleccionado

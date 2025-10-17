@@ -3,11 +3,12 @@ import ModalDescarga from '../../ui/ModalDescarga';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 
-function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'almacen', movimientoData = null }) {
+function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'almacen', movimientoData = null, nombreArchivoDefault = null, tituloDocumentoDefault = null }) {
     const [informacionSuperior, setInformacionSuperior] = useState({});
     const [tablaHeaders, setTablaHeaders] = useState([]);
     const [tablaValores, setTablaValores] = useState([]);
     const [nombreArchivo, setNombreArchivo] = useState('Descargar Movimiento');
+    const [tituloDocumento, setTituloDocumento] = useState('Movimiento');
     const [cargando, setCargando] = useState(false);
 
     useEffect(() => {
@@ -70,7 +71,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(`Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.date).toLocaleDateString().replace(/\//g, '-')}`);
+                        setNombreArchivo(nombreArchivoDefault || `Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.date).toLocaleDateString().replace(/\//g, '-')}`);
+                        setTituloDocumento(tituloDocumentoDefault || `Nota de ${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'} - Acopio`);
                         return;
                     } else {
                         const movimiento = movimientoData;
@@ -115,7 +117,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(`Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`);
+                        setNombreArchivo(nombreArchivoDefault || `Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`);
+                        setTituloDocumento(tituloDocumentoDefault || `Nota de ${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'} - Almacén`);
                         return;
                     }
                 }
@@ -182,7 +185,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(`Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.date).toLocaleDateString().replace(/\//g, '-')}`);
+                        setNombreArchivo(nombreArchivoDefault || `Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.date).toLocaleDateString().replace(/\//g, '-')}`);
+                        setTituloDocumento(tituloDocumentoDefault || `Nota de ${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'} - Acopio`);
                     }
                 } else {
                     const response = await movimientosAlmacenService.getById(movimientoId);
@@ -235,7 +239,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(`Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`);
+                        setNombreArchivo(nombreArchivoDefault || `Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`);
+                        setTituloDocumento(tituloDocumentoDefault || `Nota de ${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'} - Almacén`);
                     }
                 }
             } catch (error) {
@@ -255,10 +260,12 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
             titulo="Descargar Movimiento"
             subtitulo="Selecciona el formato que prefieras para descargar este movimiento."
             nombreArchivo={nombreArchivo}
+            tituloDocumento={tituloDocumento}
             informacionSuperior={informacionSuperior}
             tablaHeaders={tablaHeaders}
             tablaValores={tablaValores}
             loading={cargando}
+            esMovimiento={true}
         />
     );
 }

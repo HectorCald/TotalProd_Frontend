@@ -8,7 +8,6 @@ import VerProduccion from './VerProduccion';
 import Filtros from '../../../common/Filtros';
 import Notification from '../../../common/Notification';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
-import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../../common/RefreshIndicator';
 import { useLayout } from '../../../../context/LayoutContext';
 import Table from '../../../common/Table';
