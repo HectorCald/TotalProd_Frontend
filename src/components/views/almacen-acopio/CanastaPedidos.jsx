@@ -21,7 +21,7 @@ const medidasPedido = [
     { value: 'cj', label: 'Caja (cj)', icon: 'tag' },
 ];
 
-function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onPedidoCreado, isCartMode = false, onPedidoCreadoConDescarga = null }) {
+function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onPedidoCreado, isCartMode = false, onPedidoCreadoConDescarga = null, onWhatsAppSelect = null }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
@@ -223,10 +223,26 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             {!isCartMode && <HeaderView onBack={() => setIsOpen(false)} />}
             <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
                 <h1 className={styles.title}>Canasta de Pedidos
-                    <div className={styles.iconButton}>
-                        <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
-                            <BoxIcon name='trash' className={styles.iconTrash} />
-                        </button>
+                    <div className={styles.titleButtons}>
+                        {isCartMode && onWhatsAppSelect && (
+                            <div className={styles.whatsappButton}>
+                                <Select
+                                    icon="whatsapp"
+                                    iconOnly={true}
+                                    options={[
+                                        { value: 'historial', label: 'Historial', icon: 'history' },
+                                        { value: 'ultimo-pedido', label: 'Último pedido', icon: 'time-five' }
+                                    ]}
+                                    onChange={onWhatsAppSelect}
+                                    dropdownDirection="right"
+                                />
+                            </div>
+                        )}
+                        <div className={styles.iconButton}>
+                            <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
+                                <BoxIcon name='trash' className={styles.iconTrash} />
+                            </button>
+                        </div>
                     </div>
                 </h1>
 

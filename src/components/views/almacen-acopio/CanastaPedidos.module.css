@@ -26,6 +26,18 @@
     align-items: center;
     width: 100%;
 }
+
+.titleButtons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.whatsappButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 .subTitle {
     font-size: 13px;
     font-weight: 400;

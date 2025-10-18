@@ -606,6 +606,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 onPedidoCreado={handlePedidoCreado}
                 onPedidoCreadoConDescarga={handlePedidoCreadoConDescarga}
                 isCartMode={isCartMode && isLargeScreen}
+                onWhatsAppSelect={isCartMode && isLargeScreen ? handleWhatsAppSelect : null}
             />
 
             {/* Modal de descarga del pedido generado */}
@@ -644,8 +645,8 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                     />
                 </>
             )}
-            {/* Botón flotante de WhatsApp */}
-            {tipo === 'pedido' ? (
+            {/* Botón flotante de WhatsApp - solo en móvil */}
+            {tipo === 'pedido' && !(isCartMode && isLargeScreen) ? (
             <div style={{
                 position: 'fixed',
                 bottom: '100px',
