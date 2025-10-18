@@ -127,14 +127,14 @@ export const MODULES = {
             name: 'Almacen',
             description: 'Conteos de almacén.',
             icon: 'calculator',
-            component: 'Conteos',
+            component: 'PanelConteos',
             props: { tipo: 'almacen' }
         },
         conteos_materia_prima: {
             name: 'Materia Prima',
             description: 'Conteos de materia prima.',
             icon: 'calculator',
-            component: 'Conteos',
+            component: 'PanelConteos',
             props: { tipo: 'acopio' }
         }
     },
@@ -555,6 +555,27 @@ export const getAvailableModules = (employeeModules) => {
                     component: submodule.component,
                     props: submodule.props,
                     icon: submodule.imagen
+                };
+            }
+        }
+        if (module.modulos && module.modulos.name === 'Conteos') {
+            // Mapear nombres de submódulos a claves del objeto MODULES
+            const nameMapping = {
+                'Almacen': 'conteos_almacen',
+                'Materia Prima': 'conteos_materia_prima'
+            };
+            
+            const moduleKey = nameMapping[module.name] || module.name.toLowerCase().replace(/\s+/g, '_');
+            const submodule = MODULES.Conteos[moduleKey];
+            
+            if (submodule) {
+                return {
+                    ...module,
+                    name: submodule.name,
+                    description: submodule.description,
+                    component: submodule.component,
+                    props: submodule.props,
+                    icon: submodule.icon
                 };
             }
         }

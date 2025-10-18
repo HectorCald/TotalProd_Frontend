@@ -46,11 +46,16 @@ const BarraLateralEmpleado = ({
 
   // Obtener módulos disponibles para el empleado con memoización
   const availableMainModules = useMemo(() => {
-    return getAvailableMainModules(employee?.modules || []);
+    console.log('🔍 [DEBUG] Employee data:', employee);
+    console.log('🔍 [DEBUG] Employee modules:', employee?.modules);
+    const modules = getAvailableMainModules(employee?.modules || []);
+    console.log('🔍 [DEBUG] Available main modules:', modules);
+    return modules;
   }, [employee?.modules]);
 
   // Función para mapear módulos a opciones del menú
   const mapModuleToMenuOption = (module) => {
+    console.log('🔍 [DEBUG] Mapping module:', module);
     const iconMap = {
       'Almacen': 'package',
       'Acopio': 'leaf',
@@ -114,7 +119,7 @@ const BarraLateralEmpleado = ({
                 submodule.component === 'AlmacenGeneralAuxiliar' ? 'almacenMedioGeneralAuxiliar' :
                 submodule.component === 'AlmacenAcopioAuxiliar' ? 'almacenMedioAuxiliar' :
                 submodule.component === 'Movimientos' ? 'movimientos' :
-                submodule.component === 'Conteos' ? 'conteos' :
+                submodule.component === 'PanelConteos' ? 'conteos' :
                 submodule.component === 'Pedidos' ? 'pedidos' :
                 submodule.component === 'Precios' ? 'precios' :
                 submodule.component === 'Clientes' ? 'clientes' :
@@ -146,7 +151,7 @@ const BarraLateralEmpleado = ({
                   submodule.component === 'AlmacenGeneralAuxiliar' ? 'almacenMedioGeneralAuxiliar' :
                   submodule.component === 'AlmacenAcopioAuxiliar' ? 'almacenMedioAuxiliar' :
                   submodule.component === 'Movimientos' ? 'movimientos' :
-                  submodule.component === 'Conteos' ? 'conteos' :
+                  submodule.component === 'PanelConteos' ? 'conteos' :
                   submodule.component === 'Pedidos' ? 'pedidos' :
                   submodule.component === 'Clientes' ? 'clientes' :
                   submodule.component === 'Proveedores' ? 'proveedores' :
@@ -256,11 +261,15 @@ const BarraLateralEmpleado = ({
   };
 
   const handleSubmenuClick = (subItem) => {
+    console.log('🔍 [DEBUG] Submenu clicked:', subItem);
+    console.log('🔍 [DEBUG] Submenu props:', subItem.props);
+    
     // Marcar como el último elemento clickeado
     setLastClickedItem(subItem);
     
     // Handle different actions
     if (subItem.action === 'openView') {
+      console.log('🔍 [DEBUG] Opening view:', subItem.view, 'with props:', subItem.props);
       handleOpenView(subItem.view, subItem.props);
     }
     
@@ -437,16 +446,9 @@ const BarraLateralEmpleado = ({
       />
       
       <PanelPedidos
-        isOpen={activeView === 'pedidos' && viewProps.tipo !== 'acopio'}
+        isOpen={activeView === 'pedidos'}
         setIsOpen={handleCloseView}
         tipoPedido={viewProps.tipo || 'almacen'}
-        {...viewProps}
-      />
-
-      <AlmacenAcopio
-        isOpen={activeView === 'pedidos' && viewProps.tipo === 'acopio'}
-        setIsOpen={handleCloseView}
-        tipo={viewProps.tipo || 'almacen'}
         {...viewProps}
       />
 

@@ -44,7 +44,11 @@ const HomeEmpleado = () => {
 
     // Obtener módulos principales disponibles con memoización
     const availableMainModules = useMemo(() => {
-        return getAvailableMainModules(employee?.modules || []);
+        console.log('🔍 [DEBUG] HomeEmpleado - Employee data:', employee);
+        console.log('🔍 [DEBUG] HomeEmpleado - Employee modules:', employee?.modules);
+        const modules = getAvailableMainModules(employee?.modules || []);
+        console.log('🔍 [DEBUG] HomeEmpleado - Available main modules:', modules);
+        return modules;
     }, [employee?.modules]);
 
     if (loading || !employee) {
@@ -87,6 +91,10 @@ const HomeEmpleado = () => {
 
     // Manejar click en submodule
     const handleSubModuleClick = (submodule) => {
+        console.log('🔍 [DEBUG] HomeEmpleado - Submodule clicked:', submodule);
+        console.log('🔍 [DEBUG] HomeEmpleado - Submodule component:', submodule.component);
+        console.log('🔍 [DEBUG] HomeEmpleado - Submodule props:', submodule.props);
+        
         if (submodule.component) {
             setCurrentSubModule(submodule);
             setIsSubModuleOpen(true);
@@ -101,6 +109,9 @@ const HomeEmpleado = () => {
     // Función para renderizar el componente del submódulo dinámicamente
     const renderSubModuleComponent = () => {
         if (!currentSubModule || !currentSubModule.component || !isSubModuleOpen) return null;
+
+        console.log('🔍 [DEBUG] HomeEmpleado - Rendering component:', currentSubModule.component);
+        console.log('🔍 [DEBUG] HomeEmpleado - With props:', currentSubModule.props);
 
         switch (currentSubModule.component) {
             case 'AlmacenGeneral':
