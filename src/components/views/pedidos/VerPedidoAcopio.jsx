@@ -175,6 +175,32 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
             gasto_id: pedidoActualizado.gasto_id
         };
 
+        // Guardar datos de entrega en localStorage para WhatsApp
+        const entregaParaHistorial = {
+            id: Date.now(),
+            fecha: new Date().toLocaleDateString('es-ES'),
+            hora: new Date().toLocaleTimeString('es-ES'),
+            productos: [{
+                nombre: pedidoActualizado.producto_acopio?.name || 'Producto desconocido',
+                cantidad_ud: pedidoActualizado.cantidad_entregada_ud || 0,
+                unidad_ud: pedidoActualizado.cantidad_entregada_medida || 'bolsa',
+                estado_entrega: pedidoActualizado.estado_entrega || 'llego'
+            }],
+            observaciones: pedidoActualizado.observaciones_entrega || '',
+            entregado_por: pedidoActualizado.entregado_por || 'Usuario desconocido',
+            proveedor: pedidoActualizado.proveedor?.name || 'Proveedor no especificado',
+            costo: pedidoActualizado.gasto?.valor || 0,
+            metodo_pago: pedidoActualizado.gasto?.metodo_pago || 'No especificado'
+        };
+
+        // Guardar como última entrega
+        localStorage.setItem('ultimaEntregaAcopio', JSON.stringify(entregaParaHistorial));
+
+        // Agregar al historial
+        const historialExistente = JSON.parse(localStorage.getItem('historialEntregasAcopio') || '[]');
+        historialExistente.unshift(entregaParaHistorial); // Agregar al inicio
+        localStorage.setItem('historialEntregasAcopio', JSON.stringify(historialExistente));
+
         // Actualizar el estado local del pedido
         setPedidoActual(pedidoActualizadoParcial);
 
@@ -595,11 +621,11 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             />
                             <Dato
                                 label="Cantidad Entregada"
-                                value={`${pedidoActual.cantidad_entregada || 0} ${pedidoActual.unidad_entregada || 'kg'}`}
+                                value={`${pedidoActual.cantidad_entregada || 0} ${pedidoActual.tipo_medida || 'kg'}`}
                             />
                             <Dato
                                 label="Cantidad en Unidades"
-                                value={`${pedidoActual.cantidad_entregada_ud || 0} ${pedidoActual.unidad_entregada_ud || 'ud'}`}
+                                value={`${pedidoActual.cantidad_entregada_ud || 0} ${pedidoActual.cantidad_entregada_medida || 'bolsa'}`}
                             />
                             <Dato
                                 label="Estado de Entrega"

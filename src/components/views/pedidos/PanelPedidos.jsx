@@ -16,6 +16,8 @@ import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
 import FiltroEstadoPedido from '../../mixed/FiltroEstadoPedido';
+import Select from '../../common/Select';
+import HistorialWhatsapp from './HistorialWhatsapp';
 
 function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const { isLargeScreen } = useLayout();
@@ -53,6 +55,15 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Estados para el modal de historial WhatsApp
+    const [isHistorialModalOpen, setIsHistorialModalOpen] = useState(false);
+    const [historialData, setHistorialData] = useState({
+        titulo: '',
+        descripcion: '',
+        tipo: '',
+        datos: null
+    });
 
 
     // Función para cargar pedidos
@@ -233,7 +244,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             )
         );
         
-        mostrarNotificacion('success', 'Pedido actualizado correctamente');
+        // No mostrar notificación aquí, ya que VerPedidoAcopio maneja las notificaciones específicas
         // No cerrar VerPedido para permitir que se mantenga abierto después de entregas/ediciones
     };
 
@@ -270,6 +281,29 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
     const handleSearchToggle = (isExpanded) => {
         setIsSearchExpanded(isExpanded);
+    };
+
+    // Función para manejar el Select de WhatsApp
+    const handleWhatsAppSelect = (value) => {
+        if (value === 'historial') {
+            const historial = JSON.parse(localStorage.getItem('historialEntregasAcopio') || '[]');
+            setHistorialData({
+                titulo: 'Historial de entregas realizadas',
+                descripcion: 'HISTORIAL DE ENTREGAS',
+                tipo: 'historial',
+                datos: historial
+            });
+            setIsHistorialModalOpen(true);
+        } else if (value === 'ultima-entrega') {
+            const ultimaEntrega = JSON.parse(localStorage.getItem('ultimaEntregaAcopio') || 'null');
+            setHistorialData({
+                titulo: 'Detalles de la última entrega realizada',
+                descripcion: 'DETALLES DE LA ÚLTIMA ENTREGA',
+                tipo: 'ultima-entrega',
+                datos: ultimaEntrega
+            });
+            setIsHistorialModalOpen(true);
+        }
     };
 
     // Función para obtener el nombre del filtro de estado
@@ -519,6 +553,37 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 isVisible={notification.isVisible}
                 type={notification.type}
                 text={notification.text}
+            />
+
+            {/* Botón flotante de WhatsApp - solo para pedidos de acopio */}
+            {tipoPedido === 'acopio' ? (
+            <div style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                zIndex: 200
+            }}>
+                <Select
+                    icon="whatsapp"
+                    iconOnly={true}
+                    options={[
+                        { value: 'historial', label: 'Historial', icon: 'history' },
+                        { value: 'ultima-entrega', label: 'Última entrega', icon: 'time-five' }
+                    ]}
+                    onChange={handleWhatsAppSelect}
+                    dropdownDirection="right"
+                />
+            </div>
+            ) : ''}
+
+            {/* Modal de Historial WhatsApp */}
+            <HistorialWhatsapp
+                isOpen={isHistorialModalOpen}
+                setIsOpen={setIsHistorialModalOpen}
+                titulo={historialData.titulo}
+                descripcion={historialData.descripcion}
+                tipo={historialData.tipo}
+                datos={historialData.datos}
             />
         </View>
     );
