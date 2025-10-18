@@ -467,6 +467,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                         return (
                                             <input
                                                 type="number"
+                                                inputMode="numeric"
                                                 value={valueText}
                                                 onChange={(e) => {
                                                     const text = e.target.value;
@@ -494,6 +495,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                     }
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
+                                                onFocus={(e) => e.target.select()}
                                                 style={{
                                                     borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px'
                                                 }}
@@ -509,6 +511,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                         return (
                                             <input
                                                 type="number"
+                                                inputMode="numeric"
                                                 value={valueText}
                                                 onChange={(e) => {
                                                     const text = e.target.value;
@@ -532,6 +535,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                     }
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
+                                                onFocus={(e) => e.target.select()}
                                                 style={{
                                                     borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px'
                                                 }}
@@ -571,6 +575,8 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                 }
                                             },
                                             inputProps: {
+                                                inputMode: 'numeric',
+                                                onFocus: (e) => e.target.select(),
                                                 onBlur: () => {
                                                     const text = stockInputsText[producto.id];
                                                     if (text === '' || text === undefined) {
@@ -605,6 +611,8 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                     }
                                                 },
                                                 inputProps: {
+                                                    inputMode: 'numeric',
+                                                    onFocus: (e) => e.target.select(),
                                                     onBlur: () => {
                                                         const text = groupInputsText[producto.id];
                                                         if (text === '' || text === undefined) {

@@ -365,6 +365,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                             <input
                                                 type="number"
                                                 step="0.01"
+                                                inputMode="numeric"
                                                 value={valueText}
                                                 onChange={(e) => {
                                                     const text = e.target.value;
@@ -392,6 +393,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                     }
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
+                                                onFocus={(e) => e.target.select()}
                                                 style={{ borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px' }}
                                             />
                                         );
@@ -441,6 +443,8 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                             },
                                             inputProps: {
                                                 step: '0.01',
+                                                inputMode: 'numeric',
+                                                onFocus: (e) => e.target.select(),
                                                 onBlur: () => {
                                                     const text = quantityInputsText[p.id];
                                                     if (text === '' || text === undefined) {
