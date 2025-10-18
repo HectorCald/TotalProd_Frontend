@@ -411,7 +411,12 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     ];
 
     // Headers para la tabla
-    const tableHeaders = [
+    const tableHeaders = tipo === 'pedido' ? [
+        { key: 'name', label: 'Producto', icon: 'package' },
+        { key: 'quantity', label: 'Cantidad', icon: 'bar-chart-alt-2' },
+        { key: 'category_name', label: 'Categoría', icon: 'tag' },
+        { key: 'type_measure_name', label: 'Medida', icon: 'ruler' }
+    ] : [
         { key: 'name', label: 'Producto', icon: 'package' },
         { key: 'description', label: 'Descripción', icon: 'comment' },
         { key: 'quantity', label: 'Cantidad', icon: 'bar-chart-alt-2' },
@@ -420,14 +425,22 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     ];
 
     // Datos para la tabla
-    const tableData = productosFiltrados.map(producto => ({
-        id: producto.id,
-        name: producto.name,
-        description: producto.description || '--',
-        quantity: `${parseFloat(producto.quantity || 0).toFixed(2)} ${producto.type_measure?.code || ''}`,
-        category_name: producto.category_name || '--',
-        type_measure_name: producto.type_measure?.name || '--'
-    }));
+    const tableData = productosFiltrados.map(producto => {
+        const baseData = {
+            id: producto.id,
+            name: producto.name,
+            quantity: `${parseFloat(producto.quantity || 0).toFixed(2)} ${producto.type_measure?.code || ''}`,
+            category_name: producto.category_name || '--',
+            type_measure_name: producto.type_measure?.name || '--'
+        };
+        
+        // Solo incluir descripción en modo no pedido
+        if (tipo !== 'pedido') {
+            baseData.description = producto.description || '--';
+        }
+        
+        return baseData;
+    });
 
     // Función para obtener el badge
     const getBadge = (producto) => {
@@ -480,6 +493,18 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                                 handleRegistro(productoOriginal, tipo);
                             }}
                             getBadge={getBadge}
+                            columnWidths={tipo === 'pedido' ? {
+                                name: '35%',
+                                quantity: '25%',
+                                category_name: '25%',
+                                type_measure_name: '26%'
+                            } : {
+                                name: '25%',
+                                description: '25%',
+                                quantity: '20%',
+                                category_name: '15%',
+                                type_measure_name: '15%'
+                            }}
                         />
                     ) : (
                         // Vista de cards para pantallas pequeñas
@@ -620,6 +645,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 </>
             )}
             {/* Botón flotante de WhatsApp */}
+            {tipo === 'pedido' ? (
             <div style={{
                 position: 'fixed',
                 bottom: '100px',
@@ -637,6 +663,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                     dropdownDirection="right"
                 />
             </div>
+            ) : ''}
         </View>
         {/* Filtro de tipos de medida */}
         <FiltroTipoMedida

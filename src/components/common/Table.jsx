@@ -2,7 +2,7 @@ import React from 'react';
 import { BoxIcon } from 'boxicons-react';
 import styles from './Table.module.css';
 
-const Table = ({ headers = [], data = [], onRowClick = null, getBadge = null, getCellBadge = null, onScroll = null, getRowInputs = null, inputsHeader = 'Valores', renderCell = null }) => {
+const Table = ({ headers = [], data = [], onRowClick = null, getBadge = null, getCellBadge = null, onScroll = null, getRowInputs = null, inputsHeader = 'Valores', renderCell = null, columnWidths = {} }) => {
   if (!data || data.length === 0) {
     return (
       <div className={styles.tableContainer}>
@@ -22,7 +22,11 @@ const Table = ({ headers = [], data = [], onRowClick = null, getBadge = null, ge
           <thead>
             <tr>
               {headers.map((header, index) => (
-                <th key={index} className={styles.header}>
+                <th 
+                  key={index} 
+                  className={styles.header}
+                  style={{ width: columnWidths[header.key] || 'auto' }}
+                >
                   <div className={styles.headerContent}>
                     <div className={styles.headerText}> 
                       <span>{header.label}</span>
@@ -69,7 +73,11 @@ const Table = ({ headers = [], data = [], onRowClick = null, getBadge = null, ge
                       return customContent;
                     })();
                     return (
-                      <td key={cellIndex} className={styles.cell}>
+                      <td 
+                        key={cellIndex} 
+                        className={styles.cell}
+                        style={{ width: columnWidths[header.key] || 'auto' }}
+                      >
                         <div className={isFirstCell ? styles.cellWithBadge : ''}>
                           {cellBadge ? (
                             <span 

@@ -445,6 +445,13 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                 data={tableData}
                                 onRowClick={() => {}}
                                 getBadge={() => null}
+                                columnWidths={{
+                                    name: '25%',
+                                    codigo_barras: '15%',
+                                    stock: '15%',
+                                    stock_grup: '15%',
+                                    category_name: '15%'
+                                }}
                                 renderCell={(row, key) => {
                                     if (tipo !== 'conteo') return null;
                                     if (key !== 'stock' && key !== 'stock_grup') return null;
@@ -526,7 +533,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
                                                 style={{
-                                                    borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined
+                                                    borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px'
                                                 }}
                                             />
                                         );

@@ -186,12 +186,24 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const handleOrdenamiento = (orden) => {
         setOrdenamiento(orden);
     };
-     const productosFiltrados = productosMapeados.filter(producto => {
-        // Filtro de búsqueda
+     // Función para normalizar texto (quitar acentos, espacios, guiones, convertir a minúsculas)
+    const normalizeText = (text) => {
+        if (!text) return '';
+        return text
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+            .replace(/[-\s]/g, '') // Quitar guiones y espacios
+            .trim();
+    };
+
+    const productosFiltrados = productosMapeados.filter(producto => {
+        // Filtro de búsqueda normalizado
+        const searchQueryNormalized = normalizeText(searchQuery);
         const matchesSearch = !searchQuery ||
-            producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(searchQuery.toLowerCase()));
+            normalizeText(producto.name).includes(searchQueryNormalized) ||
+            (producto.description && normalizeText(producto.description).includes(searchQueryNormalized)) ||
+            (producto.codigo_barras && normalizeText(producto.codigo_barras).includes(searchQueryNormalized));
 
         // Filtro de categoría
         const matchesCategoria = categoriaFiltro === null ||
@@ -633,22 +645,35 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
 
     // Headers para la tabla
-    const tableHeaders = [
+    const tableHeaders = tipo === 'almacen' ? [
         { key: 'name', label: 'Producto', icon: 'package' },
         { key: 'codigo_barras', label: 'C. Barras', icon: 'barcode' },
         { key: 'stock', label: 'Stock', icon: 'bar-chart-alt-2' },
         { key: 'stock_grup', label: 'Grup', icon: 'package' },
         { key: 'category_name', label: 'Categoría', icon: 'tag' }
+    ] : [
+        { key: 'name', label: 'Producto', icon: 'package' },
+        { key: 'stock', label: 'Stock', icon: 'bar-chart-alt-2' },
+        { key: 'stock_grup', label: 'Grup', icon: 'package' },
+        { key: 'category_name', label: 'Categoría', icon: 'tag' }
     ];
     // Datos para la tabla
-    const tableData = productosFiltrados.map(producto => ({
-        id: producto.id,
-        name: producto.name,
-        codigo_barras: producto.codigo_barras,
-        stock: `${producto.stock} Ud.`,
-        stock_grup: producto.grup ? Math.floor(producto.stock / producto.grup) + ' Ud.' : '--',
-        category_name: producto.category_name,
-    }));
+    const tableData = productosFiltrados.map(producto => {
+        const baseData = {
+            id: producto.id,
+            name: producto.name,
+            stock: `${producto.stock} Ud.`,
+            stock_grup: producto.grup ? Math.floor(producto.stock / producto.grup) + ' Ud.' : '--',
+            category_name: producto.category_name,
+        };
+        
+        // Solo incluir código de barras en modo almacén
+        if (tipo === 'almacen') {
+            baseData.codigo_barras = producto.codigo_barras;
+        }
+        
+        return baseData;
+    });
 
     // Función para obtener el badge
     const getBadge = (producto) => {
@@ -703,6 +728,13 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                     handleRegistro(productoOriginal, tipo);
                                 }}
                                 getBadge={getBadge}
+                                columnWidths={{
+                                    name: '25%',
+                                    codigo_barras: '15%',
+                                    stock: '15%',
+                                    stock_grup: '15%',
+                                    category_name: '15%'
+                                }}
                             />
                         ) : (
                             // Vista de cards para pantallas pequeñas

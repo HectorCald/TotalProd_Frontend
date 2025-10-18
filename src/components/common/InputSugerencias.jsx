@@ -35,6 +35,17 @@ function InputSugerencias({
         }
     }, [value]);
 
+    // Función para normalizar texto (quitar acentos, espacios, guiones, convertir a minúsculas)
+    const normalizeText = (text) => {
+        if (!text) return '';
+        return text
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+            .replace(/[-\s]/g, '') // Quitar guiones y espacios
+            .trim();
+    };
+
     // Filtrar sugerencias basado en el valor del input
     useEffect(() => {
         if (!value || value.length < minCaracteres || !isFocused) {
@@ -42,7 +53,7 @@ function InputSugerencias({
             return;
         }
 
-        const valorBusqueda = caseSensitive ? value : value.toLowerCase();
+        const valorBusquedaNormalizado = normalizeText(value);
         
         const filtradas = sugerencias.filter(sugerencia => {
             let textoComparar;
@@ -55,16 +66,14 @@ function InputSugerencias({
                 return false;
             }
             
-            if (!caseSensitive) {
-                textoComparar = textoComparar.toLowerCase();
-            }
+            const textoCompararNormalizado = normalizeText(textoComparar);
             
-            return textoComparar.includes(valorBusqueda);
+            return textoCompararNormalizado.includes(valorBusquedaNormalizado);
         }).slice(0, maxSugerencias);
 
         setSugerenciasFiltradas(filtradas);
         setIndiceSugerenciaActiva(-1);
-    }, [value, sugerencias, minCaracteres, caseSensitive, buscarCampo, maxSugerencias, isFocused]);
+    }, [value, sugerencias, minCaracteres, buscarCampo, maxSugerencias, isFocused]);
 
     // Manejar clicks fuera del componente
     useEffect(() => {

@@ -7,7 +7,7 @@
   width: 100%;
   background: var(--primary-color);
   overflow: hidden;
-  z-index: 10;
+  z-index: 999999999;
   border-radius: 0 0 4px 4px;
 }
 

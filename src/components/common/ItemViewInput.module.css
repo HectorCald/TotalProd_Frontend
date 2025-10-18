@@ -1,14 +1,15 @@
 .itemView {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     justify-content: flex-start;
     width: 100%;
-    min-height: 70px;
+    height: auto;
     padding: 15px;
     gap: 10px;
     background: none;
     position: relative;
+    overflow: visible;
 }
 
 .itemViewIcon {
@@ -20,6 +21,8 @@
     color: var(--primary-color);
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    margin-top: 5px;
 }
 
 .icon {
@@ -46,10 +49,10 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: center;
-    gap: 6px;
-    height: 100%;
-    padding: 5px 0;
+    justify-content: flex-start;
+    gap: 8px;
+    height: auto;
+    padding: 0;
     flex: 1;
     min-width: 0;
 }
@@ -62,7 +65,8 @@
 
 /* Inputs area */
 .inputsContainer {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
 }
 
@@ -81,12 +85,13 @@
 
 .inputControl {
     width: 100%;
-    padding: 6px 8px;
+    padding: 8px 10px;
     border-radius: 8px;
     border: 1px solid var(--quinary-color);
     background: transparent;
     color: var(--white-color);
     outline: none;
+    box-sizing: border-box;
 }
 
 .inputControl:focus {
