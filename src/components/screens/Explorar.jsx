@@ -11,6 +11,7 @@ import Notification from '../common/Notification';
 import { EXTRAS as EXTRAS_DAMABRAVA } from '../../constants/damabravaFunctions';
 import FormularioProduccion from '../views/damabrava/produccion/FormularioProduccion';
 import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
+import ImportExport from '../views/exportar-importar/ImportExport';
 import { isDamabrava } from '../../utils/empresaHelper';
 
 const Explorar = () => {
@@ -22,6 +23,7 @@ const Explorar = () => {
   const [isOpenReportes, setIsOpenReportes] = useState(false);
   const [isOpenFormularioProduccion, setIsOpenFormularioProduccion] = useState(false);
   const [isOpenVerificarProduccion, setIsOpenVerificarProduccion] = useState(false);
+  const [isOpenImportExport, setIsOpenImportExport] = useState(false);
   const [notification, setNotification] = useState({
     isVisible: false,
     type: 'info',
@@ -58,6 +60,8 @@ const Explorar = () => {
       setIsOpenFormularioProduccion(true);
     } else if (viewName === 'verificacion') {
       setIsOpenVerificarProduccion(true);
+    } else if (viewName === 'importar-exportar') {
+      setIsOpenImportExport(true);
     } else {
       // Mostrar notificación para módulos no implementados
       mostrarNotificacion('info', `La función "${viewName}" estará disponible próximamente`);
@@ -106,6 +110,7 @@ const Explorar = () => {
           <VerificarProduccion isOpen={isOpenVerificarProduccion} setIsOpen={setIsOpenVerificarProduccion} />
         </>
       )}
+      <ImportExport isOpen={isOpenImportExport} setIsOpen={setIsOpenImportExport} />
       <Notification
         isVisible={notification.isVisible}
         type={notification.type}

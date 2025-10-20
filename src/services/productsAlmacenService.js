@@ -208,9 +208,7 @@ class productsAlmacenService {
     try {
       const response = await fetch(`${API_BASE_URL}/products-almacen/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-        })
+        headers: getAuthHeaders()
       });
       const data = await response.json();
       
@@ -225,6 +223,39 @@ class productsAlmacenService {
         success: false,
         message: error.message || 'Error de conexión con el servidor'
       };
+    }
+  }
+
+  // Actualizar múltiples productos en lote (para importación)
+  static async bulkUpdate(productosData) {
+    try {
+      const empresaId = getEmpresaId();
+      const sucuId = getSucuId();
+      
+      if (!empresaId) {
+        throw new Error('ID de la empresa no encontrado');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/products-almacen/bulk-update`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          productosData,
+          empresa_id: empresaId,
+          sucu_id: sucuId
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al actualizar productos');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error en bulkUpdate:', error);
+      throw error;
     }
   }
 }

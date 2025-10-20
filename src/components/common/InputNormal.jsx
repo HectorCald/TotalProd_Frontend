@@ -7,7 +7,7 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
     const [isFocused, setIsFocused] = useState(false);
     // Actualizar isFocused cuando value cambie
     React.useEffect(() => {
-        if (value && value !== '') {
+        if (value !== '' && value !== null && value !== undefined) {
             setIsFocused(true);
         }
     }, [value]);
@@ -40,10 +40,16 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                 onKeyPress={onKeyPress}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => {
-                    if (value !== '') {
+                    if (value !== '' && value !== null && value !== undefined) {
                         setIsFocused(true);
                     } else {
                         setIsFocused(false);
+                    }
+                }}
+                onWheel={(e) => {
+                    // Prevenir que el scroll cambie el valor en inputs de tipo number
+                    if (tipo === 'number') {
+                        e.target.blur();
                     }
                 }}
                 readOnly={readonly}

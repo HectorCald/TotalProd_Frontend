@@ -392,6 +392,10 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                         }
                                                     }
                                                 }}
+                                                onWheel={(e) => {
+                                                    // Prevenir que el scroll cambie el valor
+                                                    e.target.blur();
+                                                }}
                                                 onClick={(e) => e.stopPropagation()}
                                                 onFocus={(e) => e.target.select()}
                                                 style={{ borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px' }}
@@ -445,6 +449,10 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                 step: '0.01',
                                                 inputMode: 'numeric',
                                                 onFocus: (e) => e.target.select(),
+                                                onWheel: (e) => {
+                                                    // Prevenir que el scroll cambie el valor
+                                                    e.target.blur();
+                                                },
                                                 onBlur: () => {
                                                     const text = quantityInputsText[p.id];
                                                     if (text === '' || text === undefined) {

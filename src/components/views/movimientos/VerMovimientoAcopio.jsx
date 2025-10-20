@@ -49,6 +49,13 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 setIsAnularOpen(false);
                 setIsOpen(false);
 
+                // Mostrar notificación con información del pedido si fue actualizado
+                if (response.pedidoActualizado) {
+                    mostrarNotificacion('success', `Movimiento anulado. Pedido #${response.pedidoActualizado.id.slice(-8)} actualizado de "${response.pedidoActualizado.estadoAnterior}" a "${response.pedidoActualizado.estadoNuevo}"`);
+                } else {
+                    mostrarNotificacion('success', response.message || 'Movimiento anulado correctamente');
+                }
+
                 if (onMovimientoAnulado) {
                     onMovimientoAnulado(movimiento.id);
                 }
@@ -211,6 +218,8 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                                 <strong>Nota:</strong> Este movimiento consumió ingredientes. Al anularlo, se devolverá el peso de los ingredientes consumidos al stock de acopio.
                             </>
                         )}
+                        <br /><br />
+                        <strong>Importante:</strong> Si este movimiento está relacionado con un pedido de acopio, el pedido será actualizado a estado "Entregado" y se podrá hacer un nuevo ingreso.
                     </p>
                     <div className={styles.buttons}>
                         <Boton

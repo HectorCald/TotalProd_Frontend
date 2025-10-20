@@ -26,6 +26,7 @@ import MiProduccion from '../views/damabrava/produccion/MiProduccion';
 import AlmacenGeneralAuxiliar from '../views/almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import AlmacenAcopioAuxiliar from '../views/almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
 import PanelConteos from '../views/conteos/PanelConteos';
+import ImportExport from '../views/exportar-importar/ImportExport';
 
 const BarraLateral = ({ 
   onMenuClick, 
@@ -381,6 +382,11 @@ const BarraLateral = ({
         isOpen={activeView === 'conteos'}
         setIsOpen={handleCloseView}
         tipoConteo={viewProps.tipo || 'almacen'}
+        {...viewProps}
+      />
+      <ImportExport
+        isOpen={activeView === 'importar-exportar'}
+        setIsOpen={handleCloseView}
         {...viewProps}
       />
     </div>

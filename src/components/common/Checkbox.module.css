@@ -9,18 +9,18 @@
 
 .icon {
     font-size: 17px !important;
+    color: var(--white-color) !important;
 }
 
 .text {
     display: flex;
     flex-direction: column;
     gap: 5px;
-
-   
 }
 .title {
     font-size: 15px;
     font-weight: 500;
+    color: var(--white-color);
 }
 
 .subTitle {

@@ -273,6 +273,13 @@ export const MENU_OPTIONS = [
         action: 'openView',
         viewName: 'reportes'
       },
+      {
+        id: 'importar-exportar',
+        title: 'Importar/Exportar',
+        icon: 'import',
+        action: 'openView',
+        viewName: 'importar-exportar'
+      },
     ]
   },
   // Solo incluir sección Damabrava si la empresa es Damabrava

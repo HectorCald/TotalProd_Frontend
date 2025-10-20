@@ -494,6 +494,10 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                         }
                                                     }
                                                 }}
+                                                onWheel={(e) => {
+                                                    // Prevenir que el scroll cambie el valor
+                                                    e.target.blur();
+                                                }}
                                                 onClick={(e) => e.stopPropagation()}
                                                 onFocus={(e) => e.target.select()}
                                                 style={{
@@ -533,6 +537,10 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                         setStockInputs(prev => ({ ...prev, [row.id]: rawStock }));
                                                         setStockInputsText(prev => ({ ...prev, [row.id]: String(rawStock) }));
                                                     }
+                                                }}
+                                                onWheel={(e) => {
+                                                    // Prevenir que el scroll cambie el valor
+                                                    e.target.blur();
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
                                                 onFocus={(e) => e.target.select()}
@@ -577,6 +585,10 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                             inputProps: {
                                                 inputMode: 'numeric',
                                                 onFocus: (e) => e.target.select(),
+                                                onWheel: (e) => {
+                                                    // Prevenir que el scroll cambie el valor
+                                                    e.target.blur();
+                                                },
                                                 onBlur: () => {
                                                     const text = stockInputsText[producto.id];
                                                     if (text === '' || text === undefined) {
@@ -613,6 +625,10 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                 inputProps: {
                                                     inputMode: 'numeric',
                                                     onFocus: (e) => e.target.select(),
+                                                    onWheel: (e) => {
+                                                        // Prevenir que el scroll cambie el valor
+                                                        e.target.blur();
+                                                    },
                                                     onBlur: () => {
                                                         const text = groupInputsText[producto.id];
                                                         if (text === '' || text === undefined) {

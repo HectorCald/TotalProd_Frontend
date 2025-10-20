@@ -84,7 +84,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       setDataMov({
         name: data.name || '',
         description: data.description || '',
-        stock: data.stock || '',
+        stock: data.stock !== undefined && data.stock !== null ? data.stock : '',
         codigo_barras: data.codigo_barras || '',
         category_id: data.category_id || '',
         grup: data.grup || '',
@@ -207,7 +207,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       return;
     }
 
-    if (!dataMov.stock) {
+    if (dataMov.stock === '' || dataMov.stock === null || dataMov.stock === undefined) {
       mostrarNotificacion('error', 'El stock es obligatorio');
       return;
     }
@@ -379,7 +379,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
             style={{ marginTop: 'auto' }}
             onClick={handleSubmit}
             loading={loading}
-            disabled={!dataMov.name.trim() || !dataMov.stock || dataMov.stock.toString().trim() === '' || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
+            disabled={!dataMov.name.trim() || dataMov.stock === '' || dataMov.stock === null || dataMov.stock === undefined || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
           />
 
         </div>

@@ -25,6 +25,21 @@
       window.initMap = function() {
         window.googleMapsLoaded = true;
       };
+
+      // Deshabilitar pull-to-refresh
+      function disablePullToRefresh() {
+        // Solo usar CSS overscroll-behavior
+        document.body.style.overscrollBehavior = 'none';
+        document.documentElement.style.overscrollBehavior = 'none';
+      }
+      
+      // Start checking when the page loads
+      window.addEventListener('load', function() {
+        disablePullToRefresh();
+      });
+      
+      // También ejecutar cuando el DOM esté listo
+      document.addEventListener('DOMContentLoaded', disablePullToRefresh);
     </script>
   </body>
 </html>

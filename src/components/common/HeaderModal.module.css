@@ -5,6 +5,7 @@
     padding-inline: 20px;
     padding-top: 15px;
     padding-bottom: 8px;
+    z-index: 1;
 }
 
 .headerModalTitle {

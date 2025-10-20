@@ -46,4 +46,9 @@ export const EXTRAS = [
         image: imagePrecios,
         view: 'precios'
     },
+    {
+        title: 'Importar/Exportar',
+        image: imageImportExport,
+        view: 'importar-exportar'
+    },
 ];

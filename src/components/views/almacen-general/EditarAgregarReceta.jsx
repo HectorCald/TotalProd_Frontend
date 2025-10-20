@@ -206,7 +206,7 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
         title={recetaData ? "Editar Receta" : "Crear Receta"}
         onClose={() => setIsOpen(false)}
       />
-      <div className={styles.modalContent}>
+      <div className={styles.modalContent} style={{ minHeight: '60vh' }}>
         <MensajeError mensaje={errorMessage} />
         <p className={styles.subTitle}>INFORMACIÓN DE LA RECETA</p>
 

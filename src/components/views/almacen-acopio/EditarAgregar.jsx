@@ -76,7 +76,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       setDataMov({
         name: data.name || '',
         description: data.description || '',
-        quantity: data.quantity || '',
+        quantity: data.quantity !== undefined && data.quantity !== null ? data.quantity : '',
         type_measure_id: data.type_measure_id || '',
         category_id: data.category_id || ''
       });
@@ -160,8 +160,8 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       return;
     }
 
-    if (!dataMov.quantity) {
-      setErrorMessage('La cantidad es obligatoria y debe ser mayor a 0');
+    if (dataMov.quantity === '' || dataMov.quantity === null || dataMov.quantity === undefined) {
+      setErrorMessage('La cantidad es obligatoria');
       setTimeout(() => setErrorMessage(''), 3000);
       return;
     }
@@ -324,7 +324,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
             style={{ marginTop: 'auto' }}
             onClick={handleSubmit}
             loading={loading}
-            disabled={!dataMov.name.trim() || !dataMov.quantity || !dataMov.type_measure_id || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
+            disabled={!dataMov.name.trim() || dataMov.quantity === '' || dataMov.quantity === null || dataMov.quantity === undefined || !dataMov.type_measure_id || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
           />
         </div>
         <Notification
