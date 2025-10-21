@@ -253,6 +253,36 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
         fetchMovimiento();
     }, [isOpen, movimientoId, tipo, movimientoData]);
 
+    // Obtener información del cliente para el switch de "ver número"
+    const getClienteInfo = () => {
+        // Si tenemos datos del movimiento (ya sea pasados como prop o obtenidos por fetch)
+        let movimiento = null;
+        
+        if (movimientoData) {
+            movimiento = movimientoData;
+        } else if (informacionSuperior && informacionSuperior.Cliente) {
+            // Si no tenemos movimientoData pero sí tenemos información del cliente en informacionSuperior
+            // Esto significa que se obtuvo por fetch y ya se procesó
+            const nombreCliente = informacionSuperior.Cliente;
+            const totalOrders = informacionSuperior['Órdenes del Cliente'] || 0;
+            return {
+                nombre: nombreCliente,
+                totalOrders: totalOrders
+            };
+        }
+        
+        if (movimiento && movimiento?.type === 'salida' && movimiento?.cliente?.name && movimiento?.cliente?.total_orders !== undefined) {
+            return {
+                nombre: movimiento.cliente.name,
+                totalOrders: movimiento.cliente.total_orders
+            };
+        }
+        
+        return null;
+    };
+
+    const clienteInfo = getClienteInfo();
+
     return (
         <ModalDescarga
             isOpen={isOpen}
@@ -266,6 +296,7 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
             tablaValores={tablaValores}
             loading={cargando}
             esMovimiento={true}
+            clienteInfo={clienteInfo}
         />
     );
 }

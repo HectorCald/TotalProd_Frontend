@@ -169,6 +169,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     <ItemView
                         title={movimiento?.type === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
                         description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
+                        flot2={movimiento?.type === 'entrada' ? `${movimiento?.proveedor?.total_orders || 0} órdenes` : `${movimiento?.cliente?.total_orders || 0} órdenes`}
                         transparent={false}
                     />
                 )}

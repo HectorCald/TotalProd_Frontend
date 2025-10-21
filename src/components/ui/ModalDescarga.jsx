@@ -27,11 +27,13 @@ function ModalDescarga({
     autoDownloadType = null,
     onAutoDownloadDone,
     esPedido = false,
-    esMovimiento = false
+    esMovimiento = false,
+    clienteInfo = null // { nombre: string, totalOrders: number }
 }) {
     const [nombreArchivoState, setNombreArchivoState] = useState(nombreArchivo);
     const [tituloDocumentoState, setTituloDocumentoState] = useState(tituloDocumento);
     const [recordarNombres, setRecordarNombres] = useState(false);
+    const [verNumero, setVerNumero] = useState(false);
 
     // Actualizar el estado cuando cambien las props
     useEffect(() => {
@@ -80,6 +82,29 @@ function ModalDescarga({
                 localStorage.setItem('nombreArchivoMovimientos', nombreArchivoState);
                 localStorage.setItem('tituloDocumentoMovimientos', tituloDocumentoState);
             }
+        }
+    };
+
+    // Función para manejar el cambio del switch de "ver número"
+    const handleVerNumeroChange = (ver) => {
+        setVerNumero(ver);
+
+        if (ver && clienteInfo) {
+            // Agregar nombre del cliente y número al final
+            const sufijoCliente = ` ${clienteInfo.nombre} Nº ${clienteInfo.totalOrders}`;
+            
+            // Solo agregar si no está ya presente
+            if (!nombreArchivoState.includes(clienteInfo.nombre)) {
+                setNombreArchivoState(prev => prev + sufijoCliente);
+            }
+            if (!tituloDocumentoState.includes(clienteInfo.nombre)) {
+                setTituloDocumentoState(prev => prev + sufijoCliente);
+            }
+        } else if (!ver && clienteInfo) {
+            // Remover el sufijo del cliente si está presente
+            const sufijoCliente = ` ${clienteInfo.nombre} Nº ${clienteInfo.totalOrders}`;
+            setNombreArchivoState(prev => prev.replace(sufijoCliente, ''));
+            setTituloDocumentoState(prev => prev.replace(sufijoCliente, ''));
         }
     };
 
@@ -546,6 +571,15 @@ function ModalDescarga({
                             onChange={handleRecordarNombresChange}
                             icon="save"
                         />
+                        {clienteInfo && (
+                            <Switch
+                                title="Ver número"
+                                subtitle={`Incluir nombre del cliente y número de órdenes (${clienteInfo.nombre} Nº ${clienteInfo.totalOrders})`}
+                                checked={verNumero}
+                                onChange={handleVerNumeroChange}
+                                icon="user"
+                            />
+                        )}
                     </div>
                 </div>
 
