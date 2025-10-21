@@ -297,6 +297,31 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }
     }, [isOpen, tipo, productos]);
 
+    // Efecto para cargar productos del movimiento automáticamente cuando se está repitiendo
+    useEffect(() => {
+        if (isOpen && tipo === 'salida' && localStorage.getItem('productosMovimientoEditando')) {
+            // Si se está repitiendo un movimiento, cargar los productos del movimiento automáticamente
+            if (productos.length > 0) {
+                const productosMovimiento = localStorage.getItem('productosMovimientoEditando');
+                if (productosMovimiento) {
+                    try {
+                        const productosParaRepetir = JSON.parse(productosMovimiento);
+                        // Agregar cada producto a la canasta de salidas con la cantidad específica del movimiento
+                        productosParaRepetir.forEach(productoMovimiento => {
+                            const productoCompleto = productos.find(p => p.id === productoMovimiento.id);
+                            if (productoCompleto) {
+                                handleAgregarACanastaMovimientos(productoCompleto, 'salida', null, productoMovimiento.cantidad);
+                            }
+                        });
+                        // NO limpiar aquí - se limpiará cuando se cierre el modal
+                    } catch (error) {
+                        console.error('Error al cargar productos del movimiento para repetir:', error);
+                    }
+                }
+            }
+        }
+    }, [isOpen, tipo, productos]);
+
     // Funciones para el buscador expandible
     const handleSearchChange = (value) => {
         setSearchQuery(value);
@@ -313,7 +338,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     // Efecto separado para limpiar variables cuando se cierra el modal
     useEffect(() => {
         if (!isOpen) {
-            // Cuando se cierra el modal, limpiar pedidoIdEntregando, precioIdEditando y precioIdEntregando del localStorage
+            // Cuando se cierra el modal, limpiar variables del localStorage según el tipo
             if (tipo === 'pedido') {
                 localStorage.removeItem('pedidoIdEditando');
                 localStorage.removeItem('precioIdEditando');
@@ -323,6 +348,12 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             if (tipo === 'salida') {
                 localStorage.removeItem('pedidoIdEntregando');
                 localStorage.removeItem('precioIdEntregando');
+                localStorage.removeItem('precioIdEditando');
+                localStorage.removeItem('movimientoAgrupadoEditando');
+                localStorage.removeItem('productosMovimientoEditando');
+                localStorage.removeItem('metodoPagoEditando');
+                localStorage.removeItem('clienteIdEditando');
+                localStorage.removeItem('clienteNameEditando');
             }
         }
     }, [isOpen, tipo]);
@@ -689,7 +720,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     return (
         <>
-            <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!pedidoIdEditando && !localStorage.getItem('pedidoIdEntregando')}>
+            <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!pedidoIdEditando && !localStorage.getItem('pedidoIdEntregando') && !localStorage.getItem('productosMovimientoEditando')}>
                 <HeaderView
                     onBack={() => setIsOpen(false)}
                     showSearch={true}

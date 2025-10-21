@@ -469,7 +469,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 `${(precio * cantidad).toFixed(2)} BOB`
             ];
         });
-    }, [pedidoActual?.pedido_almacen_detalle, pedidoActual?.agrupado]);
+    }, [pedidoActual]);
 
     if (!pedidoActual) return null;
     const detalles = getDetallesPedido();

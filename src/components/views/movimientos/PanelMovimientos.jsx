@@ -277,6 +277,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         
         mostrarNotificacion('success', 'Movimiento eliminado correctamente');
     };
+
     // Función para obtener el nombre del tipo de filtro
     const getTipoNombre = () => {
         if (filtroTipo === null) return 'Todos los tipos';
@@ -490,13 +491,13 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     onMovimientoEliminado={handleMovimientoEliminado}
                 />
             ) : (
-                <VerMovimiento
-                    isOpen={isOpenVerMovimiento}
-                    setIsOpen={setIsOpenVerMovimiento}
-                    movimiento={infoMovimiento}
-                    onMovimientoAnulado={handleMovimientoAnulado}
-                    onMovimientoEliminado={handleMovimientoEliminado}
-                />
+        <VerMovimiento
+            isOpen={isOpenVerMovimiento}
+            setIsOpen={setIsOpenVerMovimiento}
+            movimiento={infoMovimiento}
+            onMovimientoAnulado={handleMovimientoAnulado}
+            onMovimientoEliminado={handleMovimientoEliminado}
+        />
             )}
 
             <Notification

@@ -414,6 +414,47 @@ class movimientosAlmacenService {
       };
     }
   }
+
+  // Eliminar productos de un movimiento
+  static async deleteProductos(movimientoId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${movimientoId}/productos`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en deleteProductos:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+  // Crear productos de un movimiento
+  static async createProductos(movimientoId, productosData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${movimientoId}/productos`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(productosData),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en createProductos:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
 }
 
 export default movimientosAlmacenService;

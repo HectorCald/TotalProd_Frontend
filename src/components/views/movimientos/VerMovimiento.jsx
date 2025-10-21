@@ -14,6 +14,7 @@ import Notification from '../../common/Notification';
 import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
 import { useLayout } from '../../../context/LayoutContext';
 import ModalTable from '../../common/ModalTable';
+import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 
 function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
     const { isLargeScreen } = useLayout();
@@ -22,6 +23,16 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
+    const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
+    const [modoAlmacen, setModoAlmacen] = useState('editar'); // 'editar' para editar movimiento
+    
+    // Estado local para el movimiento actual
+    const [movimientoActual, setMovimientoActual] = useState(movimiento);
+
+    // Actualizar el estado local cuando cambie el prop movimiento
+    useEffect(() => {
+        setMovimientoActual(movimiento);
+    }, [movimiento]);
 
     // Estados para notificaciones
     const [notification, setNotification] = useState({
@@ -43,11 +54,11 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     };
 
     // Filas preparadas para ModalTable (para PC)
-    const rowsMemo = useMemo(() => (movimiento?.productos || [])
+    const rowsMemo = useMemo(() => (movimientoActual?.productos || [])
         .map((productoMovimiento) => {
             const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
             const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
-            const esAgrupado = movimiento?.agrupado && grup > 0;
+            const esAgrupado = movimientoActual?.agrupado && grup > 0;
             const precioUnitario = parseFloat(productoMovimiento.precio_unitario) || 0;
             
             let cantidadTexto;
@@ -70,7 +81,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 precioTexto,
                 `${(parseFloat(productoMovimiento.subtotal) || 0).toFixed(2)} BOB`
             ];
-        }), [movimiento?.productos, movimiento?.agrupado]);
+        }), [movimientoActual?.productos, movimientoActual?.agrupado]);
 
 
     // Handle para anular movimiento
@@ -78,8 +89,8 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         setLoading(true);
         try {
             // 1) Si el movimiento tiene deuda_id, limpiar primero el deuda_id del movimiento
-            if (movimiento?.deuda_id) {
-                const updateResponse = await movimientosAlmacenService.update(movimiento.id, { deuda_id: null });
+            if (movimientoActual?.deuda_id) {
+                const updateResponse = await movimientosAlmacenService.update(movimientoActual.id, { deuda_id: null });
                 if (!updateResponse.success) {
                     mostrarNotificacion('error', `Error al limpiar deuda_id del movimiento: ${updateResponse.message}`);
                     setLoading(false);
@@ -88,9 +99,9 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             }
 
             // 2) Si el movimiento tiene gasto_id, limpiar y eliminar gasto antes de anular
-            if (movimiento?.gasto_id) {
+            if (movimientoActual?.gasto_id) {
                 // Limpiar gasto_id en el movimiento
-                const limpiarResp = await movimientosAlmacenService.update(movimiento.id, { gasto_id: null });
+                const limpiarResp = await movimientosAlmacenService.update(movimientoActual.id, { gasto_id: null });
                 if (!limpiarResp.success) {
                     mostrarNotificacion('error', `Error al limpiar gasto_id del movimiento: ${limpiarResp.message}`);
                     setLoading(false);
@@ -98,7 +109,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 }
                 // Eliminar el gasto
                 try {
-                    const gastoResp = await (await import('../../../services/gastosService')).default.delete(movimiento.gasto_id);
+                    const gastoResp = await (await import('../../../services/gastosService')).default.delete(movimientoActual.gasto_id);
                     if (!gastoResp.success) {
                         mostrarNotificacion('error', `Error al eliminar gasto asociado: ${gastoResp.message}`);
                         setLoading(false);
@@ -113,12 +124,12 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             }
 
             // 3) Anular el movimiento normalmente
-            const response = await movimientosAlmacenService.anular(movimiento.id);
+            const response = await movimientosAlmacenService.anular(movimientoActual.id);
 
             if (response.success) {
                 // 4) Si había una deuda, eliminarla después de anular el movimiento
-                if (movimiento?.deuda_id) {
-                    const deudaResponse = await deudasService.delete(movimiento.deuda_id);
+                if (movimientoActual?.deuda_id) {
+                    const deudaResponse = await deudasService.delete(movimientoActual.deuda_id);
                     if (!deudaResponse.success) {
                         console.warn('Error al eliminar la deuda después de anular:', deudaResponse.message);
                         // No mostrar error al usuario ya que el movimiento ya se anuló correctamente
@@ -129,7 +140,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 setIsOpen(false);
 
                 if (onMovimientoAnulado) {
-                    onMovimientoAnulado(movimiento.id);
+                    onMovimientoAnulado(movimientoActual.id);
                 }
                 mostrarNotificacion('success', 'Movimiento anulado correctamente');
             } else {
@@ -148,14 +159,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     const handleEliminar = async () => {
         setLoading(true);
         try {
-            const response = await movimientosAlmacenService.eliminar(movimiento.id);
+            const response = await movimientosAlmacenService.eliminar(movimientoActual.id);
 
             if (response.success) {
                 setIsEliminarOpen(false);
                 setIsOpen(false);
 
                 if (onMovimientoEliminado) {
-                    onMovimientoEliminado(movimiento.id);
+                    onMovimientoEliminado(movimientoActual.id);
                 }
             } else {
                 mostrarNotificacion('error', response.message || 'Error al eliminar el movimiento');
@@ -167,6 +178,59 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             setLoading(false);
         }
     };
+
+    // Handle para repetir movimiento
+    const handleRepetirMovimiento = () => {
+        if (!movimientoActual) {
+            mostrarNotificacion('error', 'No hay movimiento para repetir');
+            return;
+        }
+
+        // Limpiar completamente la canasta de salidas en localStorage
+        localStorage.removeItem('canastaSalidas');
+        localStorage.removeItem('movimientoIdEditando');
+        localStorage.removeItem('precioIdEditando');
+        localStorage.removeItem('movimientoAgrupadoEditando');
+        localStorage.removeItem('clienteIdEditando');
+        localStorage.removeItem('clienteNameEditando');
+        localStorage.removeItem('metodoPagoEditando');
+        localStorage.removeItem('productosMovimientoEditando');
+
+        // Guardar datos del movimiento para repetir (como nueva salida)
+        localStorage.setItem('precioIdEditando', movimientoActual.precio_id || '');
+        localStorage.setItem('movimientoAgrupadoEditando', movimientoActual.agrupado ? 'agrupado' : 'no_agrupado');
+        localStorage.setItem('metodoPagoEditando', movimientoActual.metodo_pago || '');
+        
+        // Guardar información del cliente si existe
+        if (movimientoActual.cliente?.id) {
+            localStorage.setItem('clienteIdEditando', movimientoActual.cliente.id);
+            localStorage.setItem('clienteNameEditando', movimientoActual.cliente.name || '');
+        } else {
+            localStorage.removeItem('clienteIdEditando');
+            localStorage.removeItem('clienteNameEditando');
+        }
+        
+        // Guardar productos del movimiento para cargar automáticamente
+        const productosMovimiento = movimientoActual.productos?.map(productoMovimiento => {
+            let cantidadParaGuardar = productoMovimiento.cantidad;
+            
+            // Si el movimiento es agrupado, convertir la cantidad a grupos
+            if (movimientoActual.agrupado && productoMovimiento.producto?.grup) {
+                cantidadParaGuardar = Math.round(productoMovimiento.cantidad / productoMovimiento.producto.grup);
+            }
+            
+            return {
+                id: productoMovimiento.producto.id,
+                cantidad: cantidadParaGuardar
+            };
+        }) || [];
+        localStorage.setItem('productosMovimientoEditando', JSON.stringify(productosMovimiento));
+
+        // Abrir AlmacenGeneral en modo salida normal
+        setModoAlmacen('salida');
+        setIsAlmacenOpen(true);
+    };
+
 
 
     return (
@@ -186,39 +250,39 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
                 <ItemView
-                    title={movimiento?.user?.name || movimiento?.personal?.name || 'Usuario desconocido'}
+                    title={movimientoActual?.user?.name || movimientoActual?.personal?.name || 'Usuario desconocido'}
                     description="Responsable del movimiento"
                     transparent={false}
                 />
                 <ItemView
-                    title={movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}
-                    description={`Fecha y hora: ${new Date(movimiento?.fecha).toLocaleString()}`}
-                    description2={`Tipo de precio: ${movimiento?.precio?.name || 'Precio desconocido'}`}
+                    title={movimientoActual?.type === 'entrada' ? 'Entrada' : 'Salida'}
+                    description={`Fecha y hora: ${new Date(movimientoActual?.fecha).toLocaleString()}`}
+                    description2={`Tipo de precio: ${movimientoActual?.precio?.name || 'Precio desconocido'}`}
                     transparent={false}
                     circulo={false}
-                    flot6={movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'}
+                    flot6={movimientoActual?.estado === 'anulado' ? 'Anulado' : 'Finalizado'}
                 />
                 <div className={styles.content}>
                     <Dato
                         label="Modalidad"
-                        value={movimiento?.agrupado ? 'Agrupado' : 'Unidades'}
+                        value={movimientoActual?.agrupado ? 'Agrupado' : 'Unidades'}
                         vertical={false}
                     />
                 </div>
-                {(movimiento?.proveedor_id || movimiento?.cliente_id) && (
+                {(movimientoActual?.proveedor_id || movimientoActual?.cliente_id) && (
                     <ItemView
-                        title={movimiento?.type === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
-                        description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
-                        flot2={movimiento?.type === 'entrada' ? `${movimiento?.proveedor?.total_orders || 0} órdenes` : `Orden Nº ${movimiento?.numero_orden || 0}`}
+                        title={movimientoActual?.type === 'entrada' ? movimientoActual?.proveedor?.name || 'Sin proveedor' : movimientoActual?.cliente?.name || 'Sin cliente'}
+                        description={movimientoActual?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
+                        flot2={movimientoActual?.type === 'entrada' ? `${movimientoActual?.proveedor?.total_orders || 0} órdenes` : `Orden Nº ${movimientoActual?.numero_orden || 0}`}
                         transparent={false}
                     />
                 )}
 
                 {/* Botón para ver productos - solo para movimientos con múltiples productos */}
-                {movimiento?.productos && movimiento.productos.length > 0 && (
+                {movimientoActual?.productos && movimientoActual.productos.length > 0 && (
                     <Boton
                         className='btn-gray'
-                        label={`Productos (${movimiento.productos.length})`}
+                        label={`Productos (${movimientoActual.productos.length})`}
                         onClick={() => setIsProductosOpen(true)}
                     />
                 )}
@@ -236,49 +300,61 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     */}
 
                 {/* Observaciones del movimiento */}
-                {movimiento?.observaciones && (
+                {movimientoActual?.observaciones && (
                     <div className={styles.content}>
                         <Dato
                             label="Observaciones"
-                            value={movimiento.observaciones}
+                            value={movimientoActual.observaciones}
                             vertical={true}
                         />
                     </div>
                 )}
-                {movimiento?.metodo_pago && (
+                {movimientoActual?.metodo_pago && (
                     <Dato
                         label="Método de pago"
-                        value={movimiento.metodo_pago}
+                        value={movimientoActual.metodo_pago}
                         vertical={false}
                     />
                 )}
 
 
                 {/* Total calculado para movimientos */}
-                {movimiento?.productos && movimiento.productos.length > 0 && (
+                {movimientoActual?.productos && movimientoActual.productos.length > 0 && (
                     <Dato
                         label="Total del Movimiento"
-                        value={`Bs. ${(movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
+                        value={`Bs. ${(movimientoActual.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
                         vertical={false}
                         especial='green'
                     />
                 )}
                 <div className={styles.buttons}>
-                    {movimiento?.estado === 'anulado' ? (
+                    {movimientoActual?.estado === 'anulado' ? (
                         <Boton
                             className='btn-red'
                             label='Eliminar Movimiento'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(true)}
                         />
-                    ) : !movimiento?.tiene_pedido_relacionado ? (
-                        <Boton
-                            className='btn-red'
-                            label='Anular Movimiento'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsAnularOpen(true)}
-                        />
-                    ) : null}
+                    ) : (
+                        <>
+                            {movimientoActual?.type === 'salida' && (
+                                <Boton
+                                    className='btn-default'
+                                    label='Repetir Movimiento'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={handleRepetirMovimiento}
+                                />
+                            )}
+                            {!movimientoActual?.tiene_pedido_relacionado && (
+                                <Boton
+                                    className='btn-red'
+                                    label='Anular Movimiento'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={() => setIsAnularOpen(true)}
+                                />
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -300,14 +376,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         onClose={() => setIsProductosOpen(false)}
                     />
                     <div className={styles.modalContent}>
-                        {movimiento?.productos && movimiento.productos.length > 0 && (
+                        {movimientoActual?.productos && movimientoActual.productos.length > 0 && (
                             <>
                                 <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
 
-                                {movimiento.productos.map((productoMovimiento, index) => {
+                                {movimientoActual.productos.map((productoMovimiento, index) => {
                                     const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
                                     const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
-                                    const esAgrupado = movimiento?.agrupado && grup > 0;
+                                    const esAgrupado = movimientoActual?.agrupado && grup > 0;
                                     const precioUnitario = parseFloat(productoMovimiento.precio_unitario) || 0;
                                     
                                     let cantidadTexto;
@@ -338,7 +414,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                 <ItemView
                                     title={'TOTAL'}
                                     description={''}
-                                    flot2={`${(movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)} BOB`}
+                                    flot2={`${(movimientoActual.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)} BOB`}
                                 />
 
                             </>
@@ -351,8 +427,8 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             <DescargaMovimientoBuilder
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
-                movimientoId={movimiento?.id}
-                movimientoData={movimiento}
+                movimientoId={movimientoActual?.id}
+                movimientoData={movimientoActual}
                 tipo="almacen"
             />
 
@@ -428,6 +504,13 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 isVisible={notification.isVisible}
                 type={notification.type}
                 text={notification.text}
+            />
+
+            {/* Modal de AlmacenGeneral para editar movimiento */}
+            <AlmacenGeneral
+                isOpen={isAlmacenOpen}
+                setIsOpen={setIsAlmacenOpen}
+                tipo="salida"
             />
         </View>
     );
