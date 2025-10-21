@@ -26,6 +26,14 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     const [isDestacado, setIsDestacado] = useState(false);
     const [productoDetalle, setProductoDetalle] = useState(null);
     const [loadingProducto, setLoadingProducto] = useState(false);
+    
+    // Estado local para el registro actualizado
+    const [registroActual, setRegistroActual] = useState(registro);
+
+    // Actualizar el registro local cuando cambie el prop
+    useEffect(() => {
+        setRegistroActual(registro);
+    }, [registro]);
 
     // Estados para el modal de verificación
     const [cantidadVerificada, setCantidadVerificada] = useState('');
@@ -52,13 +60,13 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
 
     // Función para manejar el destacado
     const handleDestacar = () => {
-        if (!registro?.id) return;
+        if (!registroActual?.id) return;
 
         let registrosDestacados = JSON.parse(localStorage.getItem('RegistrosProduccionDestacados') || '[]');
 
         if (isDestacado) {
             // Quitar de destacados
-            registrosDestacados = registrosDestacados.filter(r => r.id !== registro.id);
+            registrosDestacados = registrosDestacados.filter(r => r.id !== registroActual.id);
             setIsDestacado(false);
         } else {
             // Verificar si ya hay 10 registros destacados
@@ -69,7 +77,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
 
             // Agregar a destacados
             registrosDestacados.push({
-                id: registro.id,
+                id: registroActual.id,
                 tipo: 'produccion'
             });
             setIsDestacado(true);
@@ -79,49 +87,49 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     };
 
     useEffect(() => {
-        if (registro?.id) {
+        if (registroActual?.id) {
             const registrosDestacados = JSON.parse(localStorage.getItem('RegistrosProduccionDestacados') || '[]');
-            const esDestacado = registrosDestacados.some(r => r.id === registro.id);
+            const esDestacado = registrosDestacados.some(r => r.id === registroActual.id);
             setIsDestacado(esDestacado);
         }
-    }, [registro?.id]);
+    }, [registroActual?.id]);
 
     // Función para preparar datos de descarga
     const prepararDatosDescarga = () => {
-        if (!registro) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
+        if (!registroActual) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
 
         // Obtener nombre de la sucursal
-        const nombreSucursal = registro?.sucursal?.name || 'Sucursal no encontrada';
+        const nombreSucursal = registroActual?.sucursal?.name || 'Sucursal no encontrada';
 
         // Información superior
         const informacionSuperior = {
-            'Responsable': registro?.user?.name || registro?.personal?.name || 'Usuario desconocido',
-            'Producto': registro?.producto_almacen?.name || 'Sin producto',
-            'Lote': registro?.lote || '0',
-            'Proceso': registro?.proceso === 'cernido' ? 'Cernido' :
-                registro?.proceso === 'seleccionado' ? 'Seleccionado' :
-                    registro?.proceso === 'ninguno' ? 'Ninguno' : registro?.proceso,
-            'Microondas': `${registro?.microondas || '0'} min`,
-            'Terminados': `${registro?.terminados || '0'} ud`,
-            'Fecha de Registro': new Date(registro?.fecha).toLocaleString(),
-            'Fecha de Vencimiento': new Date(registro?.vencimiento).toLocaleDateString(),
-            'Estado': registro?.estado === 'pendiente' ? 'Pendiente' :
-                registro?.estado === 'verificado' ? 'Verificado' :
-                    registro?.estado === 'Ingresado' ? 'Ingresado' :
-                        registro?.estado === 'anulado' ? 'Anulado' : registro?.estado,
+            'Responsable': registroActual?.user?.name || registroActual?.personal?.name || 'Usuario desconocido',
+            'Producto': registroActual?.producto_almacen?.name || 'Sin producto',
+            'Lote': registroActual?.lote || '0',
+            'Proceso': registroActual?.proceso === 'cernido' ? 'Cernido' :
+                registroActual?.proceso === 'seleccionado' ? 'Seleccionado' :
+                    registroActual?.proceso === 'ninguno' ? 'Ninguno' : registroActual?.proceso,
+            'Microondas': `${registroActual?.microondas || '0'} min`,
+            'Terminados': `${registroActual?.terminados || '0'} ud`,
+            'Fecha de Registro': new Date(registroActual?.fecha).toLocaleString(),
+            'Fecha de Vencimiento': new Date(registroActual?.vencimiento).toLocaleDateString(),
+            'Estado': registroActual?.estado === 'pendiente' ? 'Pendiente' :
+                registroActual?.estado === 'verificado' ? 'Verificado' :
+                    registroActual?.estado === 'Ingresado' ? 'Ingresado' :
+                        registroActual?.estado === 'anulado' ? 'Anulado' : registroActual?.estado,
             'Sucursal': nombreSucursal
         };
 
-        if (registro?.observaciones) {
-            informacionSuperior['Observaciones'] = registro.observaciones;
+        if (registroActual?.observaciones) {
+            informacionSuperior['Observaciones'] = registroActual.observaciones;
         }
 
-        if (registro?.fecha_verificado) {
-            informacionSuperior['Fecha de Verificación'] = new Date(registro.fecha_verificado).toLocaleDateString();
+        if (registroActual?.fecha_verificado) {
+            informacionSuperior['Fecha de Verificación'] = new Date(registroActual.fecha_verificado).toLocaleDateString();
         }
 
-        if (registro?.cantidad_verificada) {
-            informacionSuperior['Cantidad Verificada'] = `${registro.cantidad_verificada} ud`;
+        if (registroActual?.cantidad_verificada) {
+            informacionSuperior['Cantidad Verificada'] = `${registroActual.cantidad_verificada} ud`;
         }
 
         // No hay tabla para registros de producción, solo información
@@ -134,20 +142,21 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     // Handle para anular verificación
     const handleAnular = async () => {
         // Validar que no haya cantidad ingresada
-        if ((registro?.cantidad_ingresada || 0) > 0) {
+        if ((registroActual?.cantidad_ingresada || 0) > 0) {
             mostrarNotificacion('error', 'No se puede anular la verificación porque ya hay cantidad ingresada al almacén');
             return;
         }
 
         setLoading(true);
         try {
-            const response = await registrosProduccionDamabravaService.unverify(registro.id);
+            const response = await registrosProduccionDamabravaService.unverify(registroActual.id);
 
             if (response.success) {
                 setIsAnularOpen(false);
                 setIsOpen(false); // Cerrar el modal principal
 
                 // Actualizar el registro local con los datos devueltos
+                setRegistroActual(response.data);
                 if (onRegistroVerificado) {
                     onRegistroVerificado(response.data);
                 }
@@ -166,14 +175,14 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     const handleEliminar = async () => {
         setLoading(true);
         try {
-            const response = await registrosProduccionDamabravaService.delete(registro.id);
+            const response = await registrosProduccionDamabravaService.delete(registroActual.id);
 
             if (response.success) {
                 setIsEliminarOpen(false);
                 setIsOpen(false);
 
                 if (onRegistroEliminado) {
-                    onRegistroEliminado(registro.id);
+                    onRegistroEliminado(registroActual.id);
                 }
                 mostrarNotificacion('success', 'Registro eliminado correctamente');
             } else {
@@ -202,17 +211,17 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 observaciones: observacionesVerificacion || null
             };
 
-            const response = await registrosProduccionDamabravaService.verify(registro.id, verificacionData);
+            const response = await registrosProduccionDamabravaService.verify(registroActual.id, verificacionData);
 
             if (response.success) {
                 setIsVerificarOpen(false);
-                setIsOpen(false); // Cerrar el modal principal
 
                 // Limpiar campos del modal
                 setCantidadVerificada('');
                 setObservacionesVerificacion('');
 
                 // Actualizar el registro local con los datos devueltos
+                setRegistroActual(response.data);
                 if (onRegistroVerificado) {
                     onRegistroVerificado(response.data);
                 }
@@ -230,21 +239,21 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     // Función para abrir el modal de verificación
     const handleOpenVerificar = () => {
         // Pre-llenar con la cantidad de terminados como sugerencia
-        setCantidadVerificada(registro?.terminados?.toString() || '');
+        setCantidadVerificada(registroActual?.terminados?.toString() || '');
         setObservacionesVerificacion('');
         setIsVerificarOpen(true);
     };
 
     // Función para obtener producto y abrir modal de ingreso
     const handleOpenIngreso = async () => {
-        if (!registro?.producto_almacen?.id) {
+        if (!registroActual?.producto_almacen?.id) {
             mostrarNotificacion('error', 'No se encontró el ID del producto');
             return;
         }
 
         setLoadingProducto(true);
         try {
-            const response = await productsAlmacenService.getById(registro.producto_almacen.id);
+            const response = await productsAlmacenService.getById(registroActual.producto_almacen.id);
 
             if (response.success && response.data) {
                 setProductoDetalle(response.data);
@@ -294,21 +303,21 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL REGISTRO</p>
                 <ItemView
-                    title={registro?.user?.name || registro?.personal?.name || 'Usuario desconocido'}
+                    title={registroActual?.user?.name || registroActual?.personal?.name || 'Usuario desconocido'}
                     description="Responsable del registro"
                     transparent={false}
                 />
                 <ItemView
-                    title={registro?.producto_almacen?.name || 'Sin producto'}
-                    description={`Lote: ${registro?.lote || '0'}`}
-                    description2={`Proceso: ${registro?.proceso === 'cernido' ? 'Cernido' : registro?.proceso === 'seleccionado' ? 'Seleccionado' : registro?.proceso === 'ninguno' ? 'Ninguno' : registro?.proceso}`}
+                    title={registroActual?.producto_almacen?.name || 'Sin producto'}
+                    description={`Lote: ${registroActual?.lote || '0'}`}
+                    description2={`Proceso: ${registroActual?.proceso === 'cernido' ? 'Cernido' : registroActual?.proceso === 'seleccionado' ? 'Seleccionado' : registroActual?.proceso === 'ninguno' ? 'Ninguno' : registroActual?.proceso}`}
                     transparent={false}
                     circulo={false}
                     flot6={
-                        registro?.estado === 'pendiente' ? 'Pendiente' : 
-                        registro?.estado === 'verificado' ? 'Verificado' : 
-                        registro?.estado === 'Ingresado' ? 'Ingresado' : 
-                        registro?.estado || ''
+                        registroActual?.estado === 'pendiente' ? 'Pendiente' : 
+                        registroActual?.estado === 'verificado' ? 'Verificado' : 
+                        registroActual?.estado === 'Ingresado' ? 'Ingresado' : 
+                        registroActual?.estado || ''
                     }
                 />
 
@@ -316,18 +325,18 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 <div className={styles.content}>
                     <Dato
                         label="Tiempo de Microondas"
-                        value={`${registro?.microondas || '0'} segundos`}
+                        value={`${registroActual?.microondas || '0'} segundos`}
                         vertical={false}
                     />
                     <Dato
                         label="Cantidad Terminados"
-                        value={`${registro?.terminados || '0'} unidades`}
+                        value={`${registroActual?.terminados || '0'} unidades`}
                         vertical={false}
                         especial='green'
                     />
                     <Dato
                         label="Fecha de Vencimiento"
-                        value={new Date(registro?.vencimiento).toLocaleDateString('es-ES', {
+                        value={new Date(registroActual?.vencimiento).toLocaleDateString('es-ES', {
                             year: 'numeric',
                             month: '2-digit' // o 'long' si lo quieres con nombre: "octubre"
                           })}
@@ -336,29 +345,29 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     />
                     <Dato
                         label="Fecha de Registro"
-                        value={new Date(registro?.fecha).toLocaleString()}
+                        value={new Date(registroActual?.fecha).toLocaleString()}
                         vertical={false}
                     />
                 </div>
 
                 {/* Información de verificación si existe */}
-                {registro?.fecha_verificado && (
+                {registroActual?.fecha_verificado && (
                     <div className={styles.content}>
                         <Dato
                             label="Fecha de Verificación"
-                            value={new Date(registro.fecha_verificado).toLocaleDateString()}
+                            value={new Date(registroActual.fecha_verificado).toLocaleDateString()}
                             vertical={false}
                         />
 
                         <Dato
                             label="Cantidad Verificada"
-                            value={`${registro.cantidad_verificada} unidades`}
+                            value={`${registroActual.cantidad_verificada} unidades`}
                             vertical={false}
                             especial='blue'
                         />
                         <Dato
                             label="Cantidad Ingresada"
-                            value={`${registro.cantidad_ingresada} unidades`}
+                            value={`${registroActual.cantidad_ingresada} unidades`}
                             vertical={false}
                             especial='green'
                         />
@@ -367,18 +376,18 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 )}
 
                 {/* Observaciones del registro */}
-                {registro?.observaciones && (
+                {registroActual?.observaciones && (
                     <div className={styles.content}>
                         <Dato
                             label="Observaciones"
-                            value={registro.observaciones}
+                            value={registroActual.observaciones}
                             vertical={true}
                         />
                     </div>
                 )}
 
                 <div className={styles.buttons}>
-                    {registro?.estado === 'pendiente' ? (
+                    {registroActual?.estado === 'pendiente' ? (
                         <>
                             <Boton
                                 className='btn-default'
@@ -393,9 +402,9 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                                 onClick={() => setIsEliminarOpen(true)}
                             />
                         </>
-                    ) : registro?.estado === 'verificado' || registro?.estado === 'Ingresado' ? (
+                    ) : registroActual?.estado === 'verificado' || registroActual?.estado === 'Ingresado' ? (
                         <>
-                            {(registro?.cantidad_ingresada || 0) < (registro?.cantidad_verificada || 0) && (
+                            {(registroActual?.cantidad_ingresada || 0) < (registroActual?.cantidad_verificada || 0) && (
                                 <Boton
                                     className='btn-blue'
                                     label='Ingresar Producción'
@@ -404,7 +413,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                                     loading={loadingProducto}
                                 />
                             )}
-                            {(registro?.cantidad_ingresada || 0) === 0 && (
+                            {(registroActual?.cantidad_ingresada || 0) === 0 && (
                                 <Boton
                                     className='btn-red'
                                     label='Anular Verificación'
@@ -423,7 +432,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Registro de Producción"
                 subtitulo="Selecciona el formato que prefieras para descargar este registro."
-                nombreArchivo={`Registro_Produccion_${registro?.lote || '0'}_${new Date(registro?.fecha).toLocaleDateString().replace(/\//g, '-')}`}
+                nombreArchivo={`Registro_Produccion_${registroActual?.lote || '0'}_${new Date(registroActual?.fecha).toLocaleDateString().replace(/\//g, '-')}`}
                 {...prepararDatosDescarga()}
             />
 
@@ -535,15 +544,15 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 isOpen={isIngresoOpen}
                 setIsOpen={setIsIngresoOpen}
                 producto={productoDetalle}
-                cantidadVerificada={registro?.cantidad_verificada || 0}
-                cantidadIngresada={registro?.cantidad_ingresada || 0}
-                registroId={registro?.id}
-                responsable={registro?.user?.name || registro?.personal?.name || 'Usuario desconocido'}
+                cantidadVerificada={registroActual?.cantidad_verificada || 0}
+                cantidadIngresada={registroActual?.cantidad_ingresada || 0}
+                registroId={registroActual?.id}
+                responsable={registroActual?.user?.name || registroActual?.personal?.name || 'Usuario desconocido'}
                 onIngresoRealizado={(datos) => {
                     // Actualizar el registro local con los datos devueltos del backend
                     if (onRegistroVerificado) {
                         const registroActualizado = datos.registroActualizado || {
-                            ...registro,
+                            ...registroActual,
                             cantidad_ingresada: datos.nuevaCantidadIngresadaTotal,
                             estado: datos.nuevoEstado
                         };

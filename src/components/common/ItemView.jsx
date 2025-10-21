@@ -2,13 +2,13 @@ import React from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo=true, transparent=true, colorIcon='default', style={} }) => {  
+const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo = true, transparent = true, colorIcon = 'default', style = {} }) => {
   // Función para generar iniciales del título
   const generateInitials = (title) => {
     if (!title) return '';
-    
+
     const words = title.trim().split(' ').filter(word => word.length > 0);
-    
+
     if (words.length === 1) {
       // Una palabra: primera letra
       return words[0].charAt(0).toUpperCase();
@@ -16,7 +16,7 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
       // Dos o más palabras: primera letra de las dos primeras palabras
       return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
     }
-    
+
     return '';
   };
 
@@ -31,7 +31,7 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
       'U': '#F39C12', 'V': '#8E44AD', 'W': '#3498DB', 'X': '#E67E22',
       'Y': '#9B59B6', 'Z': '#16A085'
     };
-    
+
     const upperLetter = letter.toUpperCase();
     return colors[upperLetter] || '#7F8C8D'; // Color por defecto más oscuro
   };
@@ -39,38 +39,38 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
   // Función para generar color de las iniciales (mismo color que fondo pero más chillón)
   const generateInitialsColor = (letter) => {
     const baseColor = generateColor(letter);
-    
+
     // Convertir hex a RGB
     const hex = baseColor.replace('#', '');
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
-    
+
     // Hacer el color más chillón (aumentar brillo y saturación)
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
-    
+
     // Aumentar el brillo (hacer más claro)
     const brightness = max / 255;
     const newBrightness = Math.min(1, brightness * 1.3); // 30% más brillante
-    
+
     // Aumentar la saturación
     const delta = max - min;
     const saturation = delta === 0 ? 0 : delta / max;
     const newSaturation = Math.min(1, saturation * 1.5); // 50% más saturado
-    
+
     // Aplicar brillo y saturación
     const newMax = Math.round(255 * newBrightness);
     const newR = Math.round(newMax - (newMax - r) * newSaturation);
     const newG = Math.round(newMax - (newMax - g) * newSaturation);
     const newB = Math.round(newMax - (newMax - b) * newSaturation);
-    
+
     // Convertir de vuelta a hex
     const toHex = (n) => {
       const hex = Math.min(255, Math.max(0, n)).toString(16);
       return hex.length === 1 ? '0' + hex : hex;
     };
-    
+
     return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
   };
 
@@ -81,7 +81,7 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
-    
+
     // Retornar el mismo color pero con transparencia (0.3 = 30% opacidad)
     return `rgba(${r}, ${g}, ${b}, 0.3)`;
   };
@@ -90,7 +90,7 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
   const getIconClass = () => {
     const classMap = {
       'rojo': styles.iconRed,
-      'verde': styles.iconGreen, 
+      'verde': styles.iconGreen,
       'azul': styles.iconBlue,
       'gris': styles.iconGrey,
       'default': ''
@@ -102,7 +102,7 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
   const getIconBackgroundColor = () => {
     const backgroundMap = {
       'rojo': 'rgba(239, 68, 68, 0.2)',
-      'verde': 'rgba(34, 197, 94, 0.2)', 
+      'verde': 'rgba(34, 197, 94, 0.2)',
       'azul': 'rgba(59, 130, 246, 0.2)',
       'gris': 'var(--tertiary-color)',
       'default': 'rgba(40, 180, 152, 0.3)'
@@ -118,26 +118,36 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
   return (
     <div className={styles.itemView} onClick={onClick} style={{ backgroundColor: transparent ? 'transparent' : 'var(--tertiary-color)', borderRadius: transparent ? '0' : '20px', ...style }}>
       {circulo && (
-      <div className={styles.itemViewIcon} style={{ backgroundColor: icon ? getIconBackgroundColor() : initialsBackgroundColor }}>
-        {icon ? (
-          <BoxIcon 
-            name={icon} 
-            className={`${styles.icon} ${getIconClass()}`} 
-          />
-        ) : (
-          <div 
-            className={styles.initialsIcon}
-            style={{ 
-              color: initialsColor,
-            }}
-          >
-            {initials}
-          </div>
+        <div className={styles.itemViewIcon} style={{ backgroundColor: icon ? getIconBackgroundColor() : initialsBackgroundColor }}>
+          {icon ? (
+            <BoxIcon
+              name={icon}
+              className={`${styles.icon} ${getIconClass()}`}
+            />
+          ) : (
+            <div
+              className={styles.initialsIcon}
+              style={{
+                color: initialsColor,
+              }}
+            >
+              {initials}
+            </div>
           )}
         </div>
       )}
       <div className={styles.itemViewContent}>
-        <h1 className={styles.title}>{title}</h1>
+        <div className={styles.titleContainer}>
+          <h1 className={styles.title}>{title}</h1>
+          <div className={styles.flot}>
+            {flot1 ? <p className={styles.flot1}>{flot1}</p> : ''}
+            {flot2 ? <p className={styles.flot2}>{flot2}</p> : ''}
+            {flot3 ? <p className={styles.flot3}>{flot3}</p> : ''}
+            {flot4 ? <p className={styles.flot4}>{flot4}</p> : ''}
+            {flot5 ? <p className={styles.flot5}>{flot5}</p> : ''}
+            {flot6 ? <p className={styles.flot6}>{flot6}</p> : ''}
+          </div>
+        </div>
         {description ? <p className={styles.description}>{description}</p> : null}
         {description2 ? <p className={styles.description}>{description2}</p> : null}
       </div>
@@ -148,19 +158,10 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
         </div>
       )}
       {badge && (
-          <div key={`badge-${badge}`} className={styles.badge}>
-            {badge}
-          </div>
-        )}
-        <div className={styles.flot}>
-          {flot1 ? <p className={styles.flot1}>{flot1}</p> : ''}
-          {flot2 ? <p className={styles.flot2}>{flot2}</p> : ''}
-          {flot3 ? <p className={styles.flot3}>{flot3}</p> : ''}
-          {flot4 ? <p className={styles.flot4}>{flot4}</p> : ''}
-          {flot5 ? <p className={styles.flot5}>{flot5}</p> : ''}
-          {flot6 ? <p className={styles.flot6}>{flot6}</p> : ''}
+        <div key={`badge-${badge}`} className={styles.badge}>
+          {badge}
         </div>
-        
+      )}
     </div>
   );
 };

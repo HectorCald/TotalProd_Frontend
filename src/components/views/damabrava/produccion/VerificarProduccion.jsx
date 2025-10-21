@@ -54,7 +54,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         setError(null);
         
         try {
-            const response = await registrosProduccionDamabravaService.getAll(page, 10, estado, orden, search, responsable);
+            const response = await registrosProduccionDamabravaService.getAll(page, 20, estado, orden, search, responsable);
                 
             if (response.success) {
                 setRegistros(response.data);

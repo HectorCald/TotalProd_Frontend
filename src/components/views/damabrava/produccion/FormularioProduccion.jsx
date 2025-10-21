@@ -136,15 +136,6 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
             return;
         }
 
-        if (!dataProduccion.microondas || dataProduccion.microondas.toString().trim() === '') {
-            mostrarNotificacion('error', 'La cantidad de microondas es obligatoria');
-            return;
-        }
-
-        if (isNaN(dataProduccion.microondas) || parseInt(dataProduccion.microondas) < 0) {
-            mostrarNotificacion('error', 'La cantidad de microondas debe ser un número válido mayor o igual a 0');
-            return;
-        }
 
         if (!dataProduccion.terminados || dataProduccion.terminados.toString().trim() === '') {
             mostrarNotificacion('error', 'La cantidad de terminados es obligatoria');
@@ -179,7 +170,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                 producto_almacen_id: productoSeleccionado?.id || null,
                 lote: parseInt(dataProduccion.lote),
                 proceso: dataProduccion.proceso,
-                microondas: parseInt(dataProduccion.microondas),
+                microondas: parseInt(dataProduccion.microondas) || 0,
                 terminados: parseInt(dataProduccion.terminados),
                 vencimiento: dataProduccion.fechaVencimiento
             };
@@ -303,7 +294,6 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                             !dataProduccion.producto.trim() ||
                             !dataProduccion.lote ||
                             !dataProduccion.proceso ||
-                            !dataProduccion.microondas ||
                             !dataProduccion.terminados ||
                             !dataProduccion.fechaVencimiento ||
                             !productoSeleccionado
