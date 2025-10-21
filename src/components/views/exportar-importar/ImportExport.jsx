@@ -56,6 +56,12 @@ function ImportExport({ isOpen, setIsOpen }) {
         { label: 'Importación completada', icon: 'check' }
     ];
 
+    const etapasPlantilla = [
+        { label: 'Preparando plantilla', icon: 'cog' },
+        { label: 'Generando formato', icon: 'file' },
+        { label: 'Descarga completada', icon: 'check' }
+    ];
+
     const handleImportar = () => {
         // Crear input de archivo dinámicamente
         const input = document.createElement('input');
@@ -97,10 +103,20 @@ function ImportExport({ isOpen, setIsOpen }) {
                 setTipoOperacion('');
             }, 2000);
 
-            mostrarNotificacion('success', `Importación completada: ${resultado.actualizados}/${resultado.total} productos actualizados`);
+            const esPlantilla = data.formato?.tipo === 'plantilla';
+            
+            // Mostrar errores específicos si los hay
+            if (resultado.errores && resultado.errores.length > 0) {
+                mostrarNotificacion('error', `Errores: ${resultado.errores.join(', ')}`);
+            } else {
+                const mensaje = esPlantilla 
+                    ? `Importación completada: ${resultado.creados || resultado.total} productos creados`
+                    : `Importación completada: ${resultado.actualizados}/${resultado.total} productos actualizados`;
+                mostrarNotificacion('success', mensaje);
+            }
 
         } catch (error) {
-            mostrarNotificacion('error', 'Error al procesar el archivo');
+            mostrarNotificacion('error', `Error al procesar el archivo: ${error.message}`);
             setMostrarEtapas(false);
             setEtapaActual(-1);
             setTipoOperacion('');
@@ -148,7 +164,15 @@ function ImportExport({ isOpen, setIsOpen }) {
                             }
                         });
                         return producto;
-                    }).filter(producto => producto.ID); // Solo productos con ID
+                    }).filter(producto => {
+                        // Para plantillas, no necesitamos ID, solo nombre (manejar tanto "Nombre" como "Nombre producto")
+                        if (formato?.tipo === 'plantilla') {
+                            const nombreProducto = producto['Nombre producto'] || producto.Nombre;
+                            return nombreProducto && nombreProducto.trim() !== '';
+                        }
+                        // Para actualización, necesitamos ID
+                        return producto.ID;
+                    });
                     
                     resolve({ formato, headers, datos });
                 } catch (error) {
@@ -163,25 +187,32 @@ function ImportExport({ isOpen, setIsOpen }) {
     const importarDatos = async (data) => {
         const { formato, datos } = data;
         
-        if (!formato || formato.tipo !== 'almacen') {
+        if (!formato || (formato.tipo !== 'almacen' && formato.tipo !== 'plantilla')) {
             throw new Error('Formato de archivo no válido');
         }
 
         const opciones = formato.opciones || [];
-        const productosParaActualizar = [];
+        const esPlantilla = formato.tipo === 'plantilla';
+        const productosParaProcesar = [];
 
         for (const producto of datos) {
-            if (!producto.ID) continue;
+            // Para plantillas, no necesitamos ID
+            if (!esPlantilla && !producto.ID) continue;
 
-            // Solo procesar si tiene nombre válido
-            if (!producto.Nombre || producto.Nombre.trim() === '') {
+            // Solo procesar si tiene nombre válido (manejar tanto "Nombre" como "Nombre producto")
+            const nombreProducto = producto['Nombre producto'] || producto.Nombre;
+            if (!nombreProducto || nombreProducto.trim() === '') {
                 continue;
             }
 
             const productoData = { 
-                id: producto.ID,
-                name: producto.Nombre.trim()
+                name: nombreProducto.trim()
             };
+
+            // Solo agregar ID si no es plantilla
+            if (!esPlantilla && producto.ID) {
+                productoData.id = producto.ID;
+            }
 
             // Actualizar según las opciones del formato
             if (opciones.includes('codigo_barras') && producto['Código de Barras']) {
@@ -213,20 +244,35 @@ function ImportExport({ isOpen, setIsOpen }) {
                 }
             }
 
-            productosParaActualizar.push(productoData);
+            productosParaProcesar.push(productoData);
         }
 
-        if (productosParaActualizar.length === 0) {
-            throw new Error('No hay productos válidos para actualizar');
+        if (productosParaProcesar.length === 0) {
+            throw new Error('No hay productos válidos para procesar');
         }
 
-        // Llamar al servicio de actualización masiva
-        const response = await productsAlmacenService.bulkUpdate(productosParaActualizar);
+        let response;
+        if (esPlantilla) {
+            // Crear nuevos productos desde plantilla
+            response = await productsAlmacenService.bulkCreate(productosParaProcesar);
+        } else {
+            // Actualizar productos existentes
+            response = await productsAlmacenService.bulkUpdate(productosParaProcesar);
+        }
+        
+        if (!response.success) {
+            throw new Error(response.message || 'Error en la operación');
+        }
+        
         return response.data;
     };
 
     const handleExportar = async () => {
         await exportarAlmacen();
+    };
+
+    const handlePlantilla = async () => {
+        await exportarPlantilla();
     };
 
     const exportarAlmacen = async () => {
@@ -390,6 +436,124 @@ function ImportExport({ isOpen, setIsOpen }) {
         }
     };
 
+    const exportarPlantilla = async () => {
+        try {
+            setTipoOperacion('plantilla');
+            setLoading(true);
+            setMostrarEtapas(true);
+            setEtapaActual(0);
+            
+            // Etapa 1: Preparando
+            await new Promise(resolve => setTimeout(resolve, 500));
+            setEtapaActual(1);
+            
+            // Etapa 2: Generando formato
+            await new Promise(resolve => setTimeout(resolve, 500));
+            setEtapaActual(2);
+
+            // Obtener precios si está marcado
+            let preciosData = [];
+            if (preciosChecked) {
+                const preciosResponse = await pricesTypesService.getAll();
+                if (preciosResponse.success) {
+                    preciosData = preciosResponse.data;
+                }
+            }
+
+            // Crear el formato de plantilla
+            const opcionesSeleccionadas = [];
+            if (preciosChecked) opcionesSeleccionadas.push('precios');
+            if (codigoBarrasChecked) opcionesSeleccionadas.push('codigo_barras');
+            if (descripcionChecked) opcionesSeleccionadas.push('descripcion');
+
+            const formatoPlantilla = {
+                tipo: 'plantilla',
+                opciones: opcionesSeleccionadas,
+                fecha: new Date().toISOString()
+            };
+
+            // Crear headers dinámicos (sin ID)
+            const headers = ['Nombre producto'];
+            
+            // Agregar headers de precios si está seleccionado
+            if (preciosChecked && preciosData.length > 0) {
+                preciosData.forEach(precio => {
+                    headers.push(`${precio.name} (${precio.id})`);
+                });
+            }
+
+            // Agregar código de barras si está seleccionado
+            if (codigoBarrasChecked) {
+                headers.push('Código de Barras');
+            }
+
+            // Agregar descripción si está seleccionado
+            if (descripcionChecked) {
+                headers.push('Descripción');
+            }
+
+            // Crear workbook
+            const workbook = XLSX.utils.book_new();
+            
+            // Crear datos completos: formato en A1, headers en fila 2, sin datos de productos
+            const formatoRow = [JSON.stringify(formatoPlantilla)];
+            const allData = [
+                formatoRow,  // Fila 1: Formato
+                headers      // Fila 2: Headers (sin datos)
+            ];
+            
+            const worksheet = XLSX.utils.aoa_to_sheet(allData);
+
+            // Configurar anchos de columnas específicos
+            const colWidths = headers.map((header, index) => {
+                if (index === 0) return { wch: 30 }; // Nombre - se ajusta al contenido
+                if (header === 'Código de Barras') return { wch: 25 }; // Código de Barras - ajustado al contenido
+                if (header === 'Descripción') return { wch: 35 }; // Descripción - ajustado al contenido
+                return { wch: 12 }; // Precios - más pequeñas
+            });
+            worksheet['!cols'] = colWidths;
+
+            // Aplicar estilos a los headers (fila 2)
+            const headerRange = XLSX.utils.decode_range(worksheet['!ref']);
+            for (let col = 0; col <= headerRange.e.c; col++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: 1, c: col }); // Fila 2 (índice 1)
+                if (worksheet[cellAddress]) {
+                    worksheet[cellAddress].s = {
+                        font: { bold: true },
+                        fill: { fgColor: { rgb: "366092" } },
+                        alignment: { horizontal: "center" }
+                    };
+                }
+            }
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Plantilla');
+
+            // Descargar archivo
+            const nombreArchivo = `Plantilla_Almacen_${new Date().toISOString().split('T')[0]}`;
+            XLSX.writeFile(workbook, `${nombreArchivo}.xlsx`);
+            
+            // Etapa 3: Completado
+            await new Promise(resolve => setTimeout(resolve, 500));
+            setEtapaActual(3);
+            
+            // Ocultar etapas después de un delay
+            setTimeout(() => {
+                setMostrarEtapas(false);
+                setEtapaActual(-1);
+                setTipoOperacion('');
+            }, 2000);
+
+            mostrarNotificacion('success', 'Plantilla descargada correctamente');
+        } catch (error) {
+            mostrarNotificacion('error', 'Error al generar la plantilla');
+            setMostrarEtapas(false);
+            setEtapaActual(-1);
+            setTipoOperacion('');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderModal
@@ -400,7 +564,11 @@ function ImportExport({ isOpen, setIsOpen }) {
                 <p className={styles.subTitle}>IMPORTA O EXPORTA EN EXCEL EL ALMACÉN GENERAL </p>
 
                 <Etapa 
-                    etapas={tipoOperacion === 'importar' ? etapasImportar : etapasExportar} 
+                    etapas={
+                        tipoOperacion === 'importar' ? etapasImportar : 
+                        tipoOperacion === 'plantilla' ? etapasPlantilla : 
+                        etapasExportar
+                    } 
                     etapaActual={etapaActual} 
                 />
 
@@ -442,7 +610,16 @@ function ImportExport({ isOpen, setIsOpen }) {
                         label='Exportar'
                         icon={xlsIcon}
                         onClick={handleExportar}
-                        loading={loading}
+                        disabled={loading}
+                    />
+                </div>
+                
+                <div className={styles.buttons}>
+                    <Boton
+                        className='btn-default'
+                        label='Plantilla'
+                        icon={xlsIcon}
+                        onClick={handlePlantilla}
                         disabled={loading}
                     />
                 </div>

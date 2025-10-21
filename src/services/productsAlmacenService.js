@@ -233,7 +233,17 @@ class productsAlmacenService {
       const sucuId = getSucuId();
       
       if (!empresaId) {
-        throw new Error('ID de la empresa no encontrado');
+        return {
+          success: false,
+          message: 'ID de la empresa no encontrado'
+        };
+      }
+
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'ID de la sucursal no encontrado'
+        };
       }
 
       const response = await fetch(`${API_BASE_URL}/products-almacen/bulk-update`, {
@@ -249,13 +259,68 @@ class productsAlmacenService {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Error al actualizar productos');
+        return {
+          success: false,
+          message: data.message || 'Error al actualizar productos'
+        };
       }
 
       return data;
     } catch (error) {
       console.error('Error en bulkUpdate:', error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+  // Crear múltiples productos en lote (para plantillas)
+  static async bulkCreate(productosData) {
+    try {
+      const empresaId = getEmpresaId();
+      const sucuId = getSucuId();
+      
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'ID de la empresa no encontrado'
+        };
+      }
+
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'ID de la sucursal no encontrado'
+        };
+      }
+
+      const response = await fetch(`${API_BASE_URL}/products-almacen/bulk-create`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          productosData,
+          empresa_id: empresaId,
+          sucu_id: sucuId
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || 'Error al crear productos'
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error en bulkCreate:', error);
+      return {
+        success: false,
+        message: error.message || 'Error de conexión con el servidor'
+      };
     }
   }
 }
