@@ -302,7 +302,7 @@ function ModalDescarga({
                 infoValue: { fontSize: 10, textAlign: 'right' },
                 headerBox: { borderWidth: 1.2, borderRadius: 8, borderColor: '#000', paddingVertical: 3, paddingHorizontal: 8, marginTop: 6, height: 22, justifyContent: 'center' },
                 headerRow: { flexDirection: 'row', alignItems: 'center' },
-                row: { flexDirection: 'row', marginTop: 6 },
+                row: { flexDirection: 'row', marginTop: 6, borderBottomWidth: 0.5, borderBottomColor: '#CCCCCC', paddingBottom: 4 },
                 headerCell: { fontSize: 9, fontWeight: 700 },
                 headerLast: { paddingLeft: 0 },
                 cellText: { fontSize: 9 },
@@ -310,9 +310,8 @@ function ModalDescarga({
                 separator: { borderTopWidth: 1, borderColor: '#000', marginTop: 6, marginBottom: 4 },
                 totalLabel: { fontSize: 10, fontWeight: 700, textAlign: 'right' },
                 totalValue: { fontSize: 10, fontWeight: 700 },
-                footer: { position: 'absolute', left: 0, right: 0, bottom: 20, alignItems: 'center' },
-                footerLine1: { fontSize: 9, color: '#888', marginBottom: 2, textAlign: 'center' },
-                footerLine2: { fontSize: 9, color: '#888', textAlign: 'center' }
+                footer: { position: 'absolute', left: 0, right: 0, bottom: 10, alignItems: 'center' },
+                footerLine1: { fontSize: 9, color: '#888', textAlign: 'center', fontStyle: 'italic', fontWeight: 300 }
             });
 
             // Ordenar y dividir sin zigzag: primero mitad izquierda, luego mitad derecha
@@ -471,8 +470,7 @@ function ModalDescarga({
                         )}
                         {/* Pie de página fijo */}
                         <View style={styles.footer} fixed>
-                            <Text style={styles.footerLine1}>TotalProd</Text>
-                            <Text style={styles.footerLine2}>Generado por TotalProd - aplicación de gestión de procesos y ventas</Text>
+                            <Text style={styles.footerLine1}>Generado por TotalProd - aplicación de gestión de procesos y ventas</Text>
                         </View>
                     </Page>
                 </Document>

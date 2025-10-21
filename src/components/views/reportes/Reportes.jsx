@@ -3,7 +3,6 @@ import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import Select from '../../common/Select';
 import RefreshIndicator from '../../common/RefreshIndicator';
-import sucursalesService from '../../../services/sucursalesService';
 import ModalDescarga from '../../ui/ModalDescarga';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
@@ -20,7 +19,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   const [fechaInicio, setFechaInicio] = useState(new Date());
   const [fechaFin, setFechaFin] = useState(new Date());
   const [areaSeleccionada, setAreaSeleccionada] = useState('');
-  const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
   const [isDescargaOpen, setIsDescargaOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [datosReporte, setDatosReporte] = useState({});
@@ -32,54 +30,28 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     text: ''
   });
 
-  // Estados para sucursales
-  const [sucursales, setSucursales] = useState([]);
-  const [loadingSucursales, setLoadingSucursales] = useState(false);
-  const [error, setError] = useState(null);
-  const [sucursalesCargadas, setSucursalesCargadas] = useState(false);
   const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Función para cargar sucursales
-  const cargarSucursales = async () => {
-    if (DEBUG_REPORTES) console.group('Sucursal: carga');
-    if (DEBUG_REPORTES) console.log('Iniciando carga de sucursales...');
-    setLoadingSucursales(true);
-    setShowRefreshIndicator(true);
-    setIsRefreshing(true);
-    setError(null);
-
-    try {
-      const response = await sucursalesService.getByEmpresaId();
-      if (DEBUG_REPORTES) console.log('Respuesta sucursales:', response);
-      if (response.success) {
-        setSucursales(response.data);
-        if (DEBUG_REPORTES) console.table(response.data);
-        setSucursalesCargadas(true);
-      } else {
-        setError(response);
-      }
-    } catch (error) {
-      setError(error);
-    } finally {
-      setLoadingSucursales(false);
-      setTimeout(() => {
-        setIsRefreshing(false);
-        setTimeout(() => {
-          setShowRefreshIndicator(false);
-        }, 1000);
-      }, 500);
-      if (DEBUG_REPORTES) console.groupEnd();
+  // Función para obtener sucursal del localStorage (igual que clientService.js)
+  const getSucuId = () => {
+    const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+    if (sucursalSeleccionada) {
+      const parsed = JSON.parse(sucursalSeleccionada);
+      return parsed.id;
     }
+    return null;
   };
 
-  // Cargar sucursales solo la primera vez
-  React.useEffect(() => {
-    if (!sucursalesCargadas && isOpen) {
-      if (DEBUG_REPORTES) console.log('Vista abierta: iniciando carga inicial de sucursales');
-      cargarSucursales();
+  const getSucursalName = () => {
+    const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+    if (sucursalSeleccionada) {
+      const parsed = JSON.parse(sucursalSeleccionada);
+      return parsed.name;
     }
-  }, [sucursalesCargadas, isOpen]);
+    return 'Sucursal no seleccionada';
+  };
+
 
   // Función para mostrar notificaciones
   const mostrarNotificacion = (tipo, texto) => {
@@ -135,27 +107,9 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     { value: 'balance', label: 'Balance', icon: 'transfer' },
   ];
 
-  // Convertir sucursales a formato para el Select
-  const opcionesSucursales = sucursales.map(sucursal => ({
-    value: sucursal.id,
-    label: sucursal.name,
-    icon: 'map'
-  }));
-
   const handleAreaChange = (valor) => {
     setAreaSeleccionada(valor);
     if (DEBUG_REPORTES) console.log('Área seleccionada:', valor);
-  };
-
-  const handleSucursalChange = (valor) => {
-    setSucursalSeleccionada(valor);
-    if (DEBUG_REPORTES) console.log('Sucursal seleccionada:', valor);
-  };
-
-
-  const handleRefresh = async () => {
-    if (DEBUG_REPORTES) console.log('Refrescando sucursales manualmente...');
-    await cargarSucursales();
   };
 
   // Función para generar reporte de ventas (solo salidas de almacén)
@@ -238,7 +192,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       informacionSuperior: {
         'Tipo de Reporte': 'Ventas',
         'Período': periodoConFechas,
-        'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
+        'Sucursal': getSucursalName(),
         'Total': `Bs. ${total.toFixed(2)}`,
         'Cantidad de Movimientos': salidas.length.toString(),
         ...(productoMasVendido ? { 'Más vendido': `${productoMasVendido.nombre} (${productoMasVendido.cantidad})` } : {}),
@@ -349,7 +303,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       informacionSuperior: {
         'Tipo de Reporte': 'Almacén General',
         'Período': periodoConFechas,
-        'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
+        'Sucursal': getSucursalName(),
         'Total Entradas': `Bs. ${totalEntradas.toFixed(2)}`,
         'Total Salidas': `Bs. ${totalSalidas.toFixed(2)}`,
         'Movimientos Entrada': entradas.length.toString(),
@@ -417,7 +371,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       informacionSuperior: {
         'Tipo de Reporte': 'Materia Prima',
         'Período': periodoConFechas,
-        'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
+        'Sucursal': getSucursalName(),
         'Total Costo': `Bs. ${total.toFixed(2)}`,
         'Cantidad de Movimientos': entradas.length.toString()
       },
@@ -486,7 +440,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       informacionSuperior: {
         'Tipo de Reporte': 'Pedidos',
         'Período': periodoConFechas,
-        'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
+        'Sucursal': getSucursalName(),
         'Total': `Bs. ${total.toFixed(2)}`,
         'Cantidad de Pedidos': pedidos.length.toString()
       },
@@ -502,8 +456,9 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
   // Función para generar reporte de balance (ingresos vs gastos)
   const generarReporteBalance = async ({ fechaInicio, fechaFin }) => {
+    const sucuId = getSucuId();
     // 1) Obtener movimientos de almacén (solo salidas = ingresos/ventas)
-    const movimientosResponse = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucursalSeleccionada);
+    const movimientosResponse = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucuId);
     // 2) Obtener gastos (todos) y filtrar por fecha
     const gastosResponse = await gastosService.getAllSinLimite();
 
@@ -577,7 +532,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       informacionSuperior: {
         'Tipo de Reporte': 'Balance',
         'Período': periodoConFechas,
-        'Sucursal': sucursales.find(s => s.id === sucursalSeleccionada)?.name || '',
+        'Sucursal': getSucursalName(),
         'Total Ingresos': `Bs. ${totalIngresos.toFixed(2)}`,
         'Total Gastos': `Bs. ${totalGastos.toFixed(2)}`,
         'Total': `Bs. ${neto.toFixed(2)}`
@@ -588,15 +543,21 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
   // Función principal para generar el reporte
   const handleGenerarReporte = async () => {
-    if (!fechaInicio || !fechaFin || !areaSeleccionada || !sucursalSeleccionada) {
-      mostrarNotificacion('error', 'Por favor selecciona fechas, área y sucursal');
+    if (!fechaInicio || !fechaFin || !areaSeleccionada) {
+      mostrarNotificacion('error', 'Por favor selecciona fechas y área');
+      return;
+    }
+
+    const sucuId = getSucuId();
+    if (!sucuId) {
+      mostrarNotificacion('error', 'No hay sucursal seleccionada');
       return;
     }
 
     // Validar que para materia prima solo se pueda generar reporte de Casa Matriz
     if (areaSeleccionada === 'materia_Prima') {
-      const sucursalSeleccionadaObj = sucursales.find(s => s.id === sucursalSeleccionada);
-      if (sucursalSeleccionadaObj && sucursalSeleccionadaObj.name !== 'Casa Matriz') {
+      const sucursalName = getSucursalName();
+      if (sucursalName !== 'Casa Matriz') {
         mostrarNotificacion('error', 'Los reportes de materia prima solo están disponibles para Casa Matriz');
         return;
       }
@@ -604,7 +565,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
     if (DEBUG_REPORTES) {
       console.group('Generar Reporte: Inicio');
-      console.log('Inputs ->', { fechaInicio, fechaFin, areaSeleccionada, sucursalSeleccionada });
+      console.log('Inputs ->', { fechaInicio, fechaFin, areaSeleccionada, sucuId });
     }
     setIsLoading(true);
     try {
@@ -619,7 +580,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       switch (areaSeleccionada) {
         case 'ventas':
           // Para ventas, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosVentas = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucursalSeleccionada);
+          const movimientosVentas = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucuId);
           if (DEBUG_REPORTES) console.log('API ventas ->', movimientosVentas?.data?.length ?? 0);
           if (movimientosVentas.success && movimientosVentas.data) {
             // Filtrar por fecha en el frontend
@@ -663,7 +624,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
         case 'almacen_general':
           // Para almacén general, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosAlmacen = await movimientosAlmacenService.getAllSinLimite(null, null, 'fecha_desc', sucursalSeleccionada);
+          const movimientosAlmacen = await movimientosAlmacenService.getAllSinLimite(null, null, 'fecha_desc', sucuId);
           if (DEBUG_REPORTES) console.log('API almacén ->', movimientosAlmacen?.data?.length ?? 0);
 
           if (movimientosAlmacen.success && movimientosAlmacen.data) {
@@ -708,7 +669,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
         case 'materia_Prima':
           // Para materia prima, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosAcopio = await movimientosAcopioService.getAllSinLimite('entrada', 'fecha_desc', sucursalSeleccionada);
+          const movimientosAcopio = await movimientosAcopioService.getAllSinLimite('entrada', 'fecha_desc', sucuId);
           if (DEBUG_REPORTES) console.log('API acopio ->', movimientosAcopio?.data?.length ?? 0);
 
           if (movimientosAcopio.success && movimientosAcopio.data) {
@@ -755,7 +716,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
         case 'pedidos':
           // Para pedidos, obtener todos los pedidos y filtrar por fecha en el frontend
-          const pedidos = await pedidosAlmacenService.getAllSinLimite(sucursalSeleccionada);
+          const pedidos = await pedidosAlmacenService.getAllSinLimite(sucuId);
           if (DEBUG_REPORTES) console.log('API pedidos ->', pedidos?.data?.length ?? 0);
 
           if (pedidos.success && pedidos.data) {
@@ -764,14 +725,21 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               const fechaPedido = new Date(pedido.fecha || pedido.created_at);
               const fechaInicioObj = new Date(fechaInicio);
               const fechaFinObj = new Date(fechaFin);
-              const enRango = fechaPedido >= fechaInicioObj && fechaPedido <= fechaFinObj;
+
+              // Normalizar fechas a medianoche para comparación de días
+              const fechaPedidoNormalizada = new Date(fechaPedido.getFullYear(), fechaPedido.getMonth(), fechaPedido.getDate());
+              const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
+              const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
+
+              const enRango = fechaPedidoNormalizada >= fechaInicioNormalizada && fechaPedidoNormalizada <= fechaFinNormalizada;
               if (DEBUG_REPORTES) {
                 console.log('Comparación Pedidos:', {
                   fechaPedido_raw: pedido.fecha || pedido.created_at,
                   fechaPedido_toString: fechaPedido.toString(),
                   fechaPedido_locale_LaPaz: fechaPedido.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-                  fechaInicio: fechaInicioObj.toString(),
-                  fechaFin: fechaFinObj.toString(),
+                  fechaPedidoNormalizada: fechaPedidoNormalizada.toString(),
+                  fechaInicioNormalizada: fechaInicioNormalizada.toString(),
+                  fechaFinNormalizada: fechaFinNormalizada.toString(),
                   enRango
                 });
               }
@@ -844,15 +812,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             />
           </div>
 
-          <div className={styles.content}>
-            <Select
-              placeholder="Sucursal"
-              options={opcionesSucursales}
-              value={sucursalSeleccionada}
-              onChange={handleSucursalChange}
-              icon="map"
-            />
-          </div>
         </div>
 
         <div className={styles.buttons}>
@@ -864,12 +823,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
           />
         </div>
 
-        {/* Mostrar estado de carga o error si es necesario */}
-        {error && (
-          <div className={styles.errorContainer}>
-            <p>Error al cargar sucursales: {error.message}</p>
-          </div>
-        )}
       </div>
 
       {/* Modal de descarga */}

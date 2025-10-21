@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import AtajoAnuncio from '../common/AtajoAnuncio';
 import SalesCard from '../ui/SalesCard';
 import SalesChart from '../ui/SalesChart';
@@ -9,10 +9,6 @@ import pedidosImage from '../../assets/pedidos.png';
 import './InicioPC.css';
 
 const InicioPC = ({ onViewOpen, sucuId = 1 }) => {
-  const renderCount = useRef(0);
-  renderCount.current += 1;
-  
-  console.log(`🔄 [InicioPC] Re-renderizando #${renderCount.current}...`, { sucuId });
   
   return (
     <div className="inicio-pc-container">
