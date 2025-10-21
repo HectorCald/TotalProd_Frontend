@@ -11,6 +11,7 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
     const [tituloDocumento, setTituloDocumento] = useState('Pedido');
     const [cargando, setCargando] = useState(false);
 
+
     useEffect(() => {
         const fetchPedido = async () => {
             if (!isOpen) return;
@@ -41,8 +42,8 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         setInformacionSuperior(infoSup);
                         setTablaHeaders([]);
                         setTablaValores([]);
-                        setNombreArchivo(nombreArchivoDefault || `Pedido_Acopio_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
-                        setTituloDocumento(tituloDocumentoDefault || `Pedido de Acopio #${pedido.id.slice(-8)}`);
+                        setNombreArchivo(nombreArchivoDefault || 'NOTA DE ENTREGA');
+                        setTituloDocumento(tituloDocumentoDefault || 'NOTA DE ENTREGA');
                         return;
                     } else {
                         // Pedido de almacén
@@ -110,8 +111,8 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(nombreArchivoDefault || `Pedido_Almacen_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
-                        setTituloDocumento(tituloDocumentoDefault || `Pedido de Almacén #${pedido.id.slice(-8)}`);
+                        setNombreArchivo(nombreArchivoDefault || 'NOTA DE ENTREGA');
+                        setTituloDocumento(tituloDocumentoDefault || 'NOTA DE ENTREGA');
                         return;
                     }
                 }
@@ -146,8 +147,8 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         setInformacionSuperior(infoSup);
                         setTablaHeaders([]);
                         setTablaValores([]);
-                        setNombreArchivo(nombreArchivoDefault || `Pedido_Acopio_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
-                        setTituloDocumento(tituloDocumentoDefault || `Pedido de Acopio #${pedido.id.slice(-8)}`);
+                        setNombreArchivo(nombreArchivoDefault || 'NOTA DE ENTREGA');
+                        setTituloDocumento(tituloDocumentoDefault || 'NOTA DE ENTREGA');
                     }
                 } else {
                     const response = await pedidosAlmacenService.getById(pedidoId);
@@ -216,8 +217,8 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(nombreArchivoDefault || `Pedido_Almacen_${new Date(pedido?.fecha || pedido?.created_at).toLocaleDateString().replace(/\//g, '-')}`);
-                        setTituloDocumento(tituloDocumentoDefault || `Pedido de Almacén #${pedido.id.slice(-8)}`);
+                        setNombreArchivo(nombreArchivoDefault || 'NOTA DE ENTREGA');
+                        setTituloDocumento(tituloDocumentoDefault || 'NOTA DE ENTREGA');
                     }
                 }
             } catch (error) {

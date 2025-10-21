@@ -169,7 +169,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     <ItemView
                         title={movimiento?.type === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
                         description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
-                        flot2={movimiento?.type === 'entrada' ? `${movimiento?.proveedor?.total_orders || 0} órdenes` : `${movimiento?.cliente?.total_orders || 0} órdenes`}
+                        flot2={movimiento?.type === 'entrada' ? `${movimiento?.proveedor?.total_orders || 0} órdenes` : `Orden Nº ${movimiento?.numero_orden || 0}`}
                         transparent={false}
                     />
                 )}
@@ -257,6 +257,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
 
                             {movimiento.productos.map((productoMovimiento, index) => (
                                 <ItemView
+                                    key={`${productoMovimiento.producto?.id || 'producto'}-${index}`}
                                     title={productoMovimiento.producto?.name || 'Sin nombre'}
                                     description={`${productoMovimiento.cantidad || 0} ud - ${productoMovimiento.precio_unitario || 0} BOB`}
                                     flot2={productoMovimiento.subtotal + ' BOB' || 0}

@@ -71,8 +71,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(nombreArchivoDefault || `Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.date).toLocaleDateString().replace(/\//g, '-')}`);
-                        setTituloDocumento(tituloDocumentoDefault || `Nota de ${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'} - Acopio`);
+                        setNombreArchivo(nombreArchivoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA'));
+                        setTituloDocumento(tituloDocumentoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA'));
                         return;
                     } else {
                         const movimiento = movimientoData;
@@ -90,7 +90,7 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         }
                         if (movimiento?.type === 'salida' && movimiento?.cliente?.name) {
                             infoSup['Cliente'] = movimiento.cliente.name;
-                            infoSup['Órdenes del Cliente'] = (movimiento?.cliente?.total_orders ?? 0);
+                            infoSup['Número de Orden'] = (movimiento?.numero_orden ?? 0);
                         }
                         const orderNumberB = pickOrderNumber(movimiento);
                         if (orderNumberB) {
@@ -117,8 +117,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(nombreArchivoDefault || `Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`);
-                        setTituloDocumento(tituloDocumentoDefault || `Nota de ${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'} - Almacén`);
+                        setNombreArchivo(nombreArchivoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA'));
+                        setTituloDocumento(tituloDocumentoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA'));
                         return;
                     }
                 }
@@ -185,8 +185,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(nombreArchivoDefault || `Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.date).toLocaleDateString().replace(/\//g, '-')}`);
-                        setTituloDocumento(tituloDocumentoDefault || `Nota de ${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'} - Acopio`);
+                        setNombreArchivo(nombreArchivoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA'));
+                        setTituloDocumento(tituloDocumentoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA'));
                     }
                 } else {
                     const response = await movimientosAlmacenService.getById(movimientoId);
@@ -229,7 +229,10 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
 
                         // Cliente/Proveedor y número
                         if (movimiento?.type === 'entrada' && movimiento?.proveedor?.name) infoSup['Proveedor'] = movimiento.proveedor.name;
-                        if (movimiento?.type === 'salida' && movimiento?.cliente?.name) infoSup['Cliente'] = movimiento.cliente.name;
+                        if (movimiento?.type === 'salida' && movimiento?.cliente?.name) {
+                            infoSup['Cliente'] = movimiento.cliente.name;
+                            infoSup['Número de Orden'] = (movimiento?.numero_orden ?? 0);
+                        }
                         const orderNumberB = pickOrderNumber(movimiento);
                         if (orderNumberB) {
                             const etiqueta = movimiento?.type === 'salida' ? 'Venta N°' : 'Entrega N°';
@@ -239,8 +242,9 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
-                        setNombreArchivo(nombreArchivoDefault || `Nota_${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}_${new Date(movimiento?.fecha).toLocaleDateString().replace(/\//g, '-')}`);
-                        setTituloDocumento(tituloDocumentoDefault || `Nota de ${movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'} - Almacén`);
+                        
+                        setNombreArchivo(nombreArchivoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA'));
+                        setTituloDocumento(tituloDocumentoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA'));
                     }
                 }
             } catch (error) {
@@ -264,17 +268,21 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
             // Si no tenemos movimientoData pero sí tenemos información del cliente en informacionSuperior
             // Esto significa que se obtuvo por fetch y ya se procesó
             const nombreCliente = informacionSuperior.Cliente;
-            const totalOrders = informacionSuperior['Órdenes del Cliente'] || 0;
+            const numeroOrden = informacionSuperior['Número de Orden'] || 0;
+            // Obtener solo el primer nombre
+            const primerNombre = nombreCliente.split(' ')[0];
             return {
-                nombre: nombreCliente,
-                totalOrders: totalOrders
+                nombre: primerNombre,
+                numeroOrden: numeroOrden
             };
         }
         
-        if (movimiento && movimiento?.type === 'salida' && movimiento?.cliente?.name && movimiento?.cliente?.total_orders !== undefined) {
+        if (movimiento && movimiento?.type === 'salida' && movimiento?.cliente?.name && movimiento?.numero_orden !== undefined) {
+            // Obtener solo el primer nombre
+            const primerNombre = movimiento.cliente.name.split(' ')[0];
             return {
-                nombre: movimiento.cliente.name,
-                totalOrders: movimiento.cliente.total_orders
+                nombre: primerNombre,
+                numeroOrden: movimiento.numero_orden
             };
         }
         
@@ -282,6 +290,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
     };
 
     const clienteInfo = getClienteInfo();
+
+
 
     return (
         <ModalDescarga

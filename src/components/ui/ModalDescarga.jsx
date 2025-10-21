@@ -28,11 +28,10 @@ function ModalDescarga({
     onAutoDownloadDone,
     esPedido = false,
     esMovimiento = false,
-    clienteInfo = null // { nombre: string, totalOrders: number }
+    clienteInfo = null // { nombre: string, numeroOrden: number }
 }) {
     const [nombreArchivoState, setNombreArchivoState] = useState(nombreArchivo);
     const [tituloDocumentoState, setTituloDocumentoState] = useState(tituloDocumento);
-    const [recordarNombres, setRecordarNombres] = useState(false);
     const [verNumero, setVerNumero] = useState(false);
 
     // Actualizar el estado cuando cambien las props
@@ -44,46 +43,13 @@ function ModalDescarga({
     // Función para manejar el cambio del nombre del archivo
     const handleNombreArchivoChange = (nuevoNombre) => {
         setNombreArchivoState(nuevoNombre);
-
-        // Si recordar nombres está activado, guardar en localStorage
-        if (recordarNombres) {
-            if (esPedido) {
-                localStorage.setItem('nombreArchivoPedidos', nuevoNombre);
-            } else if (esMovimiento) {
-                localStorage.setItem('nombreArchivoMovimientos', nuevoNombre);
-            }
-        }
     };
 
     // Función para manejar el cambio del título del documento
     const handleTituloDocumentoChange = (nuevoTitulo) => {
         setTituloDocumentoState(nuevoTitulo);
-
-        // Si recordar nombres está activado, guardar en localStorage
-        if (recordarNombres) {
-            if (esPedido) {
-                localStorage.setItem('tituloDocumentoPedidos', nuevoTitulo);
-            } else if (esMovimiento) {
-                localStorage.setItem('tituloDocumentoMovimientos', nuevoTitulo);
-            }
-        }
     };
 
-    // Función para manejar el cambio del switch
-    const handleRecordarNombresChange = (recordar) => {
-        setRecordarNombres(recordar);
-
-        if (recordar) {
-            // Guardar nombres actuales en localStorage
-            if (esPedido) {
-                localStorage.setItem('nombreArchivoPedidos', nombreArchivoState);
-                localStorage.setItem('tituloDocumentoPedidos', tituloDocumentoState);
-            } else if (esMovimiento) {
-                localStorage.setItem('nombreArchivoMovimientos', nombreArchivoState);
-                localStorage.setItem('tituloDocumentoMovimientos', tituloDocumentoState);
-            }
-        }
-    };
 
     // Función para manejar el cambio del switch de "ver número"
     const handleVerNumeroChange = (ver) => {
@@ -91,7 +57,7 @@ function ModalDescarga({
 
         if (ver && clienteInfo) {
             // Agregar nombre del cliente y número al final
-            const sufijoCliente = ` ${clienteInfo.nombre} Nº ${clienteInfo.totalOrders}`;
+            const sufijoCliente = ` ${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden}`;
             
             // Solo agregar si no está ya presente
             if (!nombreArchivoState.includes(clienteInfo.nombre)) {
@@ -102,7 +68,7 @@ function ModalDescarga({
             }
         } else if (!ver && clienteInfo) {
             // Remover el sufijo del cliente si está presente
-            const sufijoCliente = ` ${clienteInfo.nombre} Nº ${clienteInfo.totalOrders}`;
+            const sufijoCliente = ` ${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden}`;
             setNombreArchivoState(prev => prev.replace(sufijoCliente, ''));
             setTituloDocumentoState(prev => prev.replace(sufijoCliente, ''));
         }
@@ -551,6 +517,7 @@ function ModalDescarga({
                         label="Nombre del archivo"
                         value={nombreArchivoState}
                         onChange={(e) => handleNombreArchivoChange(e.target.value)}
+                        onBlur={() => {}}
                         placeholder="Ingresa el nombre del archivo"
                         style={{ width: '300px' }}
                         icon="file"
@@ -559,22 +526,16 @@ function ModalDescarga({
                         label="Título del documento"
                         value={tituloDocumentoState}
                         onChange={(e) => handleTituloDocumentoChange(e.target.value)}
+                        onBlur={() => {}}
                         placeholder="Ingresa el título del documento"
                         style={{ width: '300px' }}
                         icon="text"
                     />
                     <div className={styles.contentModal}>
-                        <Switch
-                            title="Recordar nombres"
-                            subtitle="Guardar estos nombres para futuras descargas"
-                            checked={recordarNombres}
-                            onChange={handleRecordarNombresChange}
-                            icon="save"
-                        />
                         {clienteInfo && (
                             <Switch
                                 title="Ver número"
-                                subtitle={`Incluir nombre del cliente y número de órdenes (${clienteInfo.nombre} Nº ${clienteInfo.totalOrders})`}
+                                subtitle={`Incluir nombre del cliente y número de orden (${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden})`}
                                 checked={verNumero}
                                 onChange={handleVerNumeroChange}
                                 icon="user"
