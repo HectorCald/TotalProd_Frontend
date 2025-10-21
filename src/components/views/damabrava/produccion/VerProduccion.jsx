@@ -6,7 +6,6 @@ import ViewModal from '../../../ui/ViewModal';
 import HeaderModal from '../../../common/HeaderModal';
 import Dato from '../../../common/Dato';
 import { BoxIcon } from 'boxicons-react';
-import { FaStar, FaRegStar } from 'react-icons/fa';
 import Boton from '../../../common/Boton';
 import ItemView from '../../../common/ItemView';
 import Notification from '../../../common/Notification';
@@ -23,7 +22,6 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isVerificarOpen, setIsVerificarOpen] = useState(false);
     const [isIngresoOpen, setIsIngresoOpen] = useState(false);
-    const [isDestacado, setIsDestacado] = useState(false);
     const [productoDetalle, setProductoDetalle] = useState(null);
     const [loadingProducto, setLoadingProducto] = useState(false);
     
@@ -58,41 +56,6 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
         }, 3000);
     };
 
-    // Función para manejar el destacado
-    const handleDestacar = () => {
-        if (!registroActual?.id) return;
-
-        let registrosDestacados = JSON.parse(localStorage.getItem('RegistrosProduccionDestacados') || '[]');
-
-        if (isDestacado) {
-            // Quitar de destacados
-            registrosDestacados = registrosDestacados.filter(r => r.id !== registroActual.id);
-            setIsDestacado(false);
-        } else {
-            // Verificar si ya hay 10 registros destacados
-            if (registrosDestacados.length >= 10) {
-                mostrarNotificacion('error', 'Solo puedes destacar máximo 10 registros de producción');
-                return;
-            }
-
-            // Agregar a destacados
-            registrosDestacados.push({
-                id: registroActual.id,
-                tipo: 'produccion'
-            });
-            setIsDestacado(true);
-        }
-
-        localStorage.setItem('RegistrosProduccionDestacados', JSON.stringify(registrosDestacados));
-    };
-
-    useEffect(() => {
-        if (registroActual?.id) {
-            const registrosDestacados = JSON.parse(localStorage.getItem('RegistrosProduccionDestacados') || '[]');
-            const esDestacado = registrosDestacados.some(r => r.id === registroActual.id);
-            setIsDestacado(esDestacado);
-        }
-    }, [registroActual?.id]);
 
     // Función para preparar datos de descarga
     const prepararDatosDescarga = () => {
@@ -276,23 +239,6 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 <h1 className={styles.title}>
                     Detalles de Producción
                     <div className={styles.iconButton}>
-                        <button
-                            className={styles.iconButton}
-                            onClick={handleDestacar}
-                            title={isDestacado ? 'Quitar de destacados' : 'Destacar registro'}
-                        >
-                            {isDestacado ? (
-                                <FaStar
-                                    className={styles.iconStar}
-                                    style={{ color: '#FFD700' }}
-                                />
-                            ) : (
-                                <FaRegStar
-                                    className={styles.iconStar}
-                                    style={{ color: '#666' }}
-                                />
-                            )}
-                        </button>
                         <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
                             <BoxIcon
                                 name='download'
