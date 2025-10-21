@@ -327,6 +327,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.removeItem('precioIdEntregando');
         localStorage.removeItem('pedidoDestinoSucursalId');
         localStorage.removeItem('pedidoDestinoSucursalName');
+        localStorage.removeItem('clienteIdEntregando');
+        localStorage.removeItem('clienteNameEntregando');
 
         // Guardar datos del pedido para entrega
         localStorage.setItem('pedidoIdEntregando', pedidoActual.id);
@@ -334,6 +336,15 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.setItem('pedidoAgrupadoEntregando', pedidoActual.agrupado ? 'agrupado' : 'no_agrupado');
         localStorage.setItem('pedidoDestinoSucursalId', pedidoActual.sucursal_id || '');
         localStorage.setItem('pedidoDestinoSucursalName', pedidoActual.sucursal?.name || '');
+        
+        // Guardar información del cliente si existe
+        if (pedidoActual.cliente?.id) {
+            localStorage.setItem('clienteIdEntregando', pedidoActual.cliente.id);
+            localStorage.setItem('clienteNameEntregando', pedidoActual.cliente.name || '');
+        } else {
+            localStorage.removeItem('clienteIdEntregando');
+            localStorage.removeItem('clienteNameEntregando');
+        }
         
         // Guardar productos del pedido para cargar automáticamente
         const productosPedido = pedidoActual.pedido_almacen_detalle?.map(detalle => {

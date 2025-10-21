@@ -18,6 +18,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
         phone: '',
         direccion: '',
         description: '',
+        total_orders: 0,
         coordenadas: null
     });
 
@@ -66,6 +67,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 phone: usuario.phone || '',
                 direccion: usuario.direccion || '',
                 description: usuario.description || '',
+                total_orders: usuario.total_orders || 0,
                 coordenadas: coordenadasObj
             });
         } else {
@@ -74,6 +76,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 phone: '',
                 direccion: '',
                 description: '',
+                total_orders: 0,
                 coordenadas: null
             });
         }
@@ -93,6 +96,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             phone: dataEdit.phone,
             direccion: dataEdit.direccion,
             description: dataEdit.description,
+            total_orders: dataEdit.total_orders,
             location: dataEdit.coordenadas ? `(${dataEdit.coordenadas.lng},${dataEdit.coordenadas.lat})` : null
         };
         setLoading(true);
@@ -200,6 +204,21 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                     value={dataEdit.description}
                     placeholder='Descripción (opcional)'
                     onChange={(e) => setDataEdit({ ...dataEdit, description: e.target.value })}
+                    disabled={tipo === 'ver'}
+                />
+                <InputNormal
+                    tipo="number"
+                    icon="cart"
+                    value={dataEdit.total_orders === 0 ? '' : dataEdit.total_orders}
+                    placeholder='Total de pedidos'
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '') {
+                            setDataEdit({ ...dataEdit, total_orders: 0 });
+                        } else {
+                            setDataEdit({ ...dataEdit, total_orders: parseInt(value) || 0 });
+                        }
+                    }}
                     disabled={tipo === 'ver'}
                 />
                 <p className={styles.subTitle}>UBICACIÓN</p>

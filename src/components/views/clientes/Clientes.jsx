@@ -213,6 +213,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         { key: 'name', label: 'Cliente', icon: 'user' },
         { key: 'description', label: 'Descripción', icon: 'comment' },
         { key: 'telefono', label: 'Teléfono', icon: 'phone' },
+        { key: 'total_orders', label: 'Total Pedidos', icon: 'shopping-cart' },
     ];
 
     // Datos para la tabla
@@ -221,6 +222,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         name: cliente.name || 'Sin nombre',
         description: cliente.description || '--',
         telefono: cliente.phone || '--',
+        total_orders: cliente.total_orders || '0',
     }));
 
     return (

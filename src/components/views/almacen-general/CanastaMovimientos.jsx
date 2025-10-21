@@ -28,6 +28,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState('');
     const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
     const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
+    
+    // Estados para cliente del pedido (en entregas)
+    const [clientePedidoData, setClientePedidoData] = useState(null);
     // Estado para notificaciones
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -90,6 +93,23 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             const modoPedido = localStorage.getItem('pedidoAgrupadoEntregando');
             if (modoPedido === 'agrupado' || modoPedido === 'no_agrupado') {
                 setModoAgrupacion(modoPedido);
+            }
+        }
+    }, [isOpen, esEntrega]);
+
+    // Cargar información del cliente del pedido cuando es una entrega
+    useEffect(() => {
+        if (isOpen && esEntrega) {
+            const clienteId = localStorage.getItem('clienteIdEntregando');
+            const clienteName = localStorage.getItem('clienteNameEntregando');
+            
+            if (clienteId && clienteName) {
+                setClientePedidoData({
+                    id: clienteId,
+                    name: clienteName
+                });
+            } else {
+                setClientePedidoData(null);
             }
         }
     }, [isOpen, esEntrega]);
@@ -330,6 +350,12 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             return false;
         }
 
+        // Para entregas, validar que el pedido tenga cliente si es crédito
+        if (metodoPagoSeleccionado === 'credito' && esEntrega && !clientePedidoData) {
+            mostrarNotificacion('error', 'El pedido no tiene cliente asignado para venta a crédito');
+            return false;
+        }
+
         return true;
     };
 
@@ -380,7 +406,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 observaciones: observacionesFinales,
                 precio_id: precioSeleccionado,
                 metodo_pago: metodoPagoSeleccionado,
-                cliente_id: esEntrega ? null : (clienteSeleccionado || null),
+                cliente_id: esEntrega ? (clientePedidoData?.id || null) : (clienteSeleccionado || null),
                 proveedor_id: null,
                 restar_ingredientes: false,
                 agrupado: modoAgrupacion === 'agrupado',
@@ -427,7 +453,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             saldo_pendiente: totalMovimiento,
                             concepto: concepto,
                             estado: 'pendiente',
-                            cliente_id: esEntrega ? null : (clienteSeleccionado || null),
+                            cliente_id: esEntrega ? (clientePedidoData?.id || null) : (clienteSeleccionado || null),
                             movimiento_salida_id: movimientoId,
                             destino_sucursal_id: destinoSucursalId
                         };
@@ -666,22 +692,24 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             {/* Controles específicos para salidas */}
                             {(
                                 <>
-                                    {/* Selector de cliente para salidas (oculto en entregas) */}
-                                    {!esEntrega && (
-                                        <div className={styles.content} style={{ padding: '5px 15px', marginTop: 'auto' }}>
-                                            <Boton
-                                                className='btn-transparent'
-                                                label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name :
-                                                    (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)')}
-                                                onClick={() => setIsClientesSeleccionOpen(true)}
-                                                style={{
-                                                    width: '100%',
-                                                    justifyContent: 'flex-start',
-                                                    ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
-                                                }}
-                                            />
-                                        </div>
-                                    )}
+                                    {/* Selector de cliente para salidas */}
+                                    <div className={styles.content} style={{ padding: '5px 15px', marginTop: 'auto' }}>
+                                        <Boton
+                                            className='btn-transparent'
+                                            label={esEntrega 
+                                                ? (clientePedidoData ? `Cliente del Pedido: ${clientePedidoData.name}` : 'Sin cliente asignado')
+                                                : (clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name :
+                                                    (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)'))
+                                            }
+                                            onClick={esEntrega ? () => {} : () => setIsClientesSeleccionOpen(true)}
+                                            style={{
+                                                width: '100%',
+                                                justifyContent: 'flex-start',
+                                                ...(esEntrega ? { cursor: 'default' } : {}),
+                                                ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData && !esEntrega ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
+                                            }}
+                                        />
+                                    </div>
 
                                     {/* Selector de método de pago para salidas */}
                                     <SelectorMetodoPago

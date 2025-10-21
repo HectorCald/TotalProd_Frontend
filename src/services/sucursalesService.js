@@ -192,6 +192,10 @@ const sucursalesService = {
     // Eliminar sucursal
     async delete(id) {
         try {
+            if (!id) {
+                throw new Error('ID de sucursal es requerido');
+            }
+
             const response = await fetch(`${API_BASE_URL}/sucursales/${id}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders()
@@ -204,13 +208,30 @@ const sucursalesService = {
                 if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
                     return data;
                 }
-                throw new Error(data.message || 'Error al eliminar la sucursal');
+                
+                // Manejar diferentes tipos de errores con mensajes específicos
+                let errorMessage = 'Error al eliminar la sucursal';
+                
+                if (response.status === 404) {
+                    errorMessage = 'La sucursal no existe o ya fue eliminada';
+                } else if (response.status === 409) {
+                    errorMessage = data.message || 'No se puede eliminar la sucursal porque tiene registros asociados';
+                } else if (response.status === 400) {
+                    errorMessage = data.message || 'No se puede eliminar esta sucursal';
+                } else if (response.status === 500) {
+                    errorMessage = data.message || 'Error interno del servidor al eliminar la sucursal';
+                } else if (data.message) {
+                    errorMessage = data.message;
+                }
+                
+                throw new Error(errorMessage);
             }
 
             return data;
         } catch (error) {
             console.error('Error en sucursalesService.delete:', error);
-            throw error;
+            // Re-lanzar el error con el mensaje específico
+            throw new Error(error.message || 'Error inesperado al eliminar la sucursal');
         }
     }
 };
