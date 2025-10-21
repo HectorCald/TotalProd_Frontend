@@ -1,0 +1,85 @@
+/* SalesCard - CSS Modules */
+.salesCard {
+    background: var(--tertiary-color);
+    border-radius: 20px;
+    padding: 16px;
+    margin: 8px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.salesCardContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.salesCardTitle {
+    color: var(--white-color);
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+.salesCardNumber {
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.salesCardChart {
+    height: 200px;
+    background: var(--quaternary-color);
+    border-radius: 18px;
+    margin-top: 12px;
+    padding: 8px;
+    position: relative;
+}
+
+.chartContainer {
+    width: 100%;
+    height: 100%;
+}
+
+.chartLoading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--quinary-color);
+    font-size: 0.8rem;
+}
+
+.loadingSpinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--quaternary-color);
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 8px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .salesCard {
+        padding: 12px;
+        margin: 4px 0;
+    }
+    
+    .salesCardNumber {
+        font-size: 2rem;
+    }
+    
+    .salesCardChart {
+        height: 150px;
+    }
+}

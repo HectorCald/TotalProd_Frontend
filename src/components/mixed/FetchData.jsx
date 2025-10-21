@@ -24,7 +24,7 @@ function FetchData({ service, method = 'getAll', methodParams = [], isOpen, onDa
         try {
             const response = await service[method](...methodParams);
             if (response.success) {
-                console.log('✅ Datos obtenidos del backend:', serviceName || service.constructor.name, '-', response.data?.length, 'elementos');
+                console.log('✅ Petición completada:', serviceName || service.constructor.name, '-', response.data?.length, 'elementos');
                 if (onDataLoaded) {
                     onDataLoaded(response.data);
                 }
