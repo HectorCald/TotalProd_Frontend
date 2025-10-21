@@ -10,6 +10,7 @@ import VerBalance from './VerBalance';
 import styles from '../../../styles/view.module.css';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import gastosService from '../../../services/gastosService';
+import deudasService from '../../../services/deudasService';
 
 const Balance = ({ isOpen, setIsOpen }) => {
   const [fechaInicio, setFechaInicio] = useState(new Date());
@@ -23,6 +24,7 @@ const Balance = ({ isOpen, setIsOpen }) => {
   });
   const [gastosData, setGastosData] = useState([]);
   const [movimientosAlmacenData, setMovimientosAlmacenData] = useState([]);
+  const [deudasData, setDeudasData] = useState([]);
   const [datosCargados, setDatosCargados] = useState(false);
   
   // Estados para AlmacenGeneral
@@ -70,15 +72,17 @@ const Balance = ({ isOpen, setIsOpen }) => {
         fechaFinAjustada: fechaFinAjustada.toLocaleString()
       });
       
-      // Hacer las 2 peticiones en paralelo para mejorar el rendimiento
-      const [movimientosAlmacenResponse, gastosResponse] = await Promise.all([
+      // Hacer las 3 peticiones en paralelo para mejorar el rendimiento
+      const [movimientosAlmacenResponse, gastosResponse, deudasResponse] = await Promise.all([
         movimientosAlmacenService.getAllSinLimite(),
-        gastosService.getAllSinLimite()
+        gastosService.getAllSinLimite(),
+        deudasService.getAllSinLimite()
       ]);
 
-      // Filtrar movimientos de almacén (salidas = ingresos/ventas)
+      // Filtrar movimientos de almacén (salidas = ingresos/ventas) - solo no anuladas
       const salidasAlmacen = movimientosAlmacenResponse.data?.filter(mov => 
         mov.type === 'salida' && 
+        mov.estado !== 'anulado' && // Excluir salidas anuladas
         new Date(mov.fecha) >= new Date(fechaInicioFormateada) && 
         new Date(mov.fecha) <= new Date(fechaFinFormateada)
       ) || [];
@@ -93,16 +97,52 @@ const Balance = ({ isOpen, setIsOpen }) => {
         return fechaGasto >= fechaInicioStr && fechaGasto <= fechaFinStr;
       }) || [];
 
+      // Filtrar deudas pendientes del período
+      const deudasPendientes = deudasResponse.data?.filter(deuda => {
+        // Convertir fecha_deuda a formato comparable (solo fecha, sin hora)
+        const fechaDeuda = new Date(deuda.fecha_deuda);
+        const fechaDeudaStr = fechaDeuda.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // Extraer solo la parte de fecha de las fechas de filtro
+        const fechaInicioStr = fechaInicioFormateada.split('T')[0]; // YYYY-MM-DD
+        const fechaFinStr = fechaFinFormateada.split('T')[0]; // YYYY-MM-DD
+        
+        return deuda.estado === 'pendiente' && 
+               fechaDeudaStr >= fechaInicioStr && 
+               fechaDeudaStr <= fechaFinStr;
+      }) || [];
+
       console.log('Datos filtrados:', {
         totalMovimientos: movimientosAlmacenResponse.data?.length || 0,
         salidasAlmacen: salidasAlmacen.length,
         totalGastos: gastosResponse.data?.length || 0,
-        gastosPeriodo: gastosPeriodo.length
+        gastosPeriodo: gastosPeriodo.length,
+        totalDeudas: deudasResponse.data?.length || 0,
+        deudasPendientes: deudasPendientes.length
+      });
+
+      // Debug específico para deudas
+      console.log('Debug deudas:', {
+        fechaInicioStr: fechaInicioFormateada.split('T')[0],
+        fechaFinStr: fechaFinFormateada.split('T')[0],
+        todasLasDeudas: deudasResponse.data?.map(d => ({
+          id: d.id,
+          fecha_deuda: d.fecha_deuda,
+          estado: d.estado,
+          saldo_pendiente: d.saldo_pendiente
+        })) || [],
+        deudasFiltradas: deudasPendientes.map(d => ({
+          id: d.id,
+          fecha_deuda: d.fecha_deuda,
+          estado: d.estado,
+          saldo_pendiente: d.saldo_pendiente
+        }))
       });
 
       // Guardar datos para actualización directa y para VerBalance
       setGastosData(gastosResponse.data || []);
       setMovimientosAlmacenData(movimientosAlmacenResponse.data || []);
+      setDeudasData(deudasResponse.data || []);
 
       // Calcular totales
       const totalIngresos = salidasAlmacen.reduce((sum, mov) => {
@@ -119,10 +159,17 @@ const Balance = ({ isOpen, setIsOpen }) => {
         return sum + (gasto.valor || 0);
       }, 0);
 
+      // Calcular total de deudas pendientes
+      const totalDeudasPendientes = deudasPendientes.reduce((sum, deuda) => {
+        return sum + (deuda.saldo_pendiente || 0);
+      }, 0);
+
+      // Los ingresos reales son las ventas menos las deudas pendientes
+      const ingresosReales = totalIngresos - totalDeudasPendientes;
       const totalEgresos = totalGastos;
 
       setDatosBalance({
-        ingresos: { total: totalIngresos },
+        ingresos: { total: ingresosReales },
         salidas: { total: totalEgresos }
       });
       setDatosCargados(true);
@@ -286,6 +333,7 @@ const Balance = ({ isOpen, setIsOpen }) => {
         datosBalance={datosBalance}
         gastosData={gastosData}
         movimientosAlmacen={movimientosAlmacenData}
+        deudasData={deudasData}
       />
     </View>
   );

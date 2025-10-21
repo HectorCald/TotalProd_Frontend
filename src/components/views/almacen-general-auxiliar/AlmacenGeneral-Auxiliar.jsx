@@ -356,18 +356,16 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             const hasUnitText = stockInputsText[p.id] !== undefined && stockInputsText[p.id] !== '';
 
             let fisicoUnits = rawStock;
-            if (grupVal > 0 && hasGroupText) {
-                const g = Number(groupInputsText[p.id]);
-                fisicoUnits = Number.isFinite(g) ? g * grupVal : rawStock;
-            } else if (hasUnitText) {
-                const u = Number(stockInputsText[p.id]);
+            
+            // Prioridad: Si se editó por unidades, usar el valor de unidades (es lo que realmente ingresó el usuario)
+            if (hasUnitText || stockInputs[p.id] !== undefined) {
+                const u = hasUnitText ? Number(stockInputsText[p.id]) : Number(stockInputs[p.id]);
                 fisicoUnits = Number.isFinite(u) ? u : rawStock;
-            } else if (grupVal > 0 && groupInputs[p.id] !== undefined) {
-                const g = Number(groupInputs[p.id]);
+            } 
+            // Si solo se editó por grupos (sin tocar unidades), usar el valor de grupos
+            else if (grupVal > 0 && (hasGroupText || groupInputs[p.id] !== undefined)) {
+                const g = hasGroupText ? Number(groupInputsText[p.id]) : Number(groupInputs[p.id]);
                 fisicoUnits = Number.isFinite(g) ? g * grupVal : rawStock;
-            } else if (stockInputs[p.id] !== undefined) {
-                const u = Number(stockInputs[p.id]);
-                fisicoUnits = Number.isFinite(u) ? u : rawStock;
             }
 
             return {

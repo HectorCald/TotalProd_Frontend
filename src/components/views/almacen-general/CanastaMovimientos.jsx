@@ -210,7 +210,13 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             const precioTipo = productoActualizado.price_product.find(pp => pp.prices_types?.id === precioSeleccionado);
                             if (precioTipo) {
                                 const precioUnit = precioTipo.valor;
-                                const precioFinal = (modoAgrupacion === 'agrupado' && productoCarrito.grup) ? (precioUnit * (productoCarrito.grup || 1)) : precioUnit;
+                                let precioFinal = (modoAgrupacion === 'agrupado' && productoCarrito.grup) ? (precioUnit * (productoCarrito.grup || 1)) : precioUnit;
+                                
+                                // Aplicar redondeo si está en modo agrupado
+                                if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
+                                    precioFinal = redondearPrecio(precioFinal);
+                                }
+                                
                                 productoModificado.precio = precioFinal;
                                 productoModificado.price_product = productoActualizado.price_product; // Actualizar también la estructura de precios
                             }
@@ -287,12 +293,27 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         setProductosCanasta(prev => prev.map(p => p.id === productoId ? { ...p, precio: parseFloat(nuevoPrecio) || 0 } : p));
     };
 
+    // Función para redondear precios según las reglas especificadas
+    const redondearPrecio = (precio) => {
+        const decimal = precio % 1;
+        if (decimal >= 0.5) {
+            return Math.ceil(precio);
+        } else {
+            return Math.floor(precio);
+        }
+    };
+
     const handleCambiarTipoPrecio = (nuevoTipoPrecio) => {
         setPrecioSeleccionado(nuevoTipoPrecio);
         setProductosCanasta(prev => prev.map(producto => {
             const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
             const precioUnit = precioProducto?.valor || 0;
-            const nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
+            let nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
+            
+            // Aplicar redondeo si está en modo agrupado
+            if (modoAgrupacion === 'agrupado' && producto.grup) {
+                nuevoPrecio = redondearPrecio(nuevoPrecio);
+            }
 
             return {
                 ...producto,
@@ -320,7 +341,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 const cantidadBaseUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
                 const cantidadEnGrupos = Math.max(1, Math.floor(cantidadBaseUnidades / (producto.grup || 1)));
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
-                const precioPorGrupo = precioUnitario * (producto.grup || 1);
+                let precioPorGrupo = precioUnitario * (producto.grup || 1);
+                
+                // Aplicar redondeo al precio por grupo
+                precioPorGrupo = redondearPrecio(precioPorGrupo);
 
                 return {
                     ...producto,
@@ -389,9 +413,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             return false;
         }
 
-        // Para entregas, validar que el pedido tenga cliente si es crédito
-        if (metodoPagoSeleccionado === 'credito' && esEntrega && !clientePedidoData) {
-            mostrarNotificacion('error', 'El pedido no tiene cliente asignado para venta a crédito');
+        // Para entregas, validar que haya un cliente si es crédito (del pedido o seleccionado)
+        if (metodoPagoSeleccionado === 'credito' && esEntrega && !clientePedidoData && !clienteSeleccionadoData) {
+            mostrarNotificacion('error', 'Debe seleccionar un cliente para venta a crédito');
             return false;
         }
 
@@ -448,7 +472,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             observaciones: observacionesFinales,
             precio_id: precioSeleccionado,
             metodo_pago: metodoPagoSeleccionado,
-            cliente_id: esEntrega ? (clientePedidoData?.id || null) : (clienteSeleccionado || null),
+            cliente_id: esEntrega ? (clienteSeleccionadoData?.id || clientePedidoData?.id || null) : (clienteSeleccionado || null),
             proveedor_id: null,
             restar_ingredientes: false,
             agrupado: modoAgrupacion === 'agrupado',
@@ -495,7 +519,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             saldo_pendiente: totalMovimiento,
                             concepto: concepto,
                             estado: 'pendiente',
-                            cliente_id: esEntrega ? (clientePedidoData?.id || null) : (clienteSeleccionado || null),
+                            cliente_id: esEntrega ? (clienteSeleccionadoData?.id || clientePedidoData?.id || null) : (clienteSeleccionado || null),
                             movimiento_salida_id: movimientoId,
                             destino_sucursal_id: destinoSucursalId
                         };
@@ -749,15 +773,14 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                         <Boton
                                             className='btn-transparent'
                                             label={esEntrega 
-                                                ? (clientePedidoData ? `Cliente del Pedido: ${clientePedidoData.name}` : 'Sin cliente asignado')
+                                                ? (clientePedidoData ? `Cliente del Pedido: ${clientePedidoData.name}` : 'Seleccionar Cliente')
                                                 : (clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name :
                                                     (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)'))
                                             }
-                                            onClick={esEntrega ? () => {} : () => setIsClientesSeleccionOpen(true)}
+                                            onClick={() => setIsClientesSeleccionOpen(true)}
                                             style={{
                                                 width: '100%',
                                                 justifyContent: 'flex-start',
-                                                ...(esEntrega ? { cursor: 'default' } : {}),
                                                 ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData && !esEntrega ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
                                             }}
                                         />

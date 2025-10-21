@@ -117,7 +117,12 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                             const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === precioSeleccionadoData.value);
                             const precioUnit = precioProducto?.valor || 0;
                             // Considerar el modo de agrupación al calcular el precio
-                            const nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
+                            let nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
+                            
+                            // Aplicar redondeo si está en modo agrupado
+                            if (modoAgrupacion === 'agrupado' && producto.grup) {
+                                nuevoPrecio = redondearPrecio(nuevoPrecio);
+                            }
 
                             return {
                                 ...producto,
@@ -225,12 +230,28 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         setProductosCanasta(prev => prev.map(p => p.id === productoId ? { ...p, precio: parseFloat(nuevoPrecio) || 0 } : p));
     };
 
+    // Función para redondear precios según las reglas especificadas
+    const redondearPrecio = (precio) => {
+        const decimal = precio % 1;
+        if (decimal >= 0.5) {
+            return Math.ceil(precio);
+        } else {
+            return Math.floor(precio);
+        }
+    };
+
     const handleCambiarTipoPrecio = (nuevoTipoPrecio) => {
         setPrecioSeleccionado(nuevoTipoPrecio);
         setProductosCanasta(prev => prev.map(producto => {
             const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
             const precioUnit = precioProducto?.valor || 0;
-            const nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
+            let nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
+            
+            // Aplicar redondeo si está en modo agrupado
+            if (modoAgrupacion === 'agrupado' && producto.grup) {
+                nuevoPrecio = redondearPrecio(nuevoPrecio);
+            }
+            
             return { ...producto, precio: nuevoPrecio };
         }));
     };
@@ -245,7 +266,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 const cantidadBaseUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
                 const cantidadEnGrupos = Math.max(1, Math.floor(cantidadBaseUnidades / (producto.grup || 1)));
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
-                const precioPorGrupo = precioUnitario * (producto.grup || 1);
+                let precioPorGrupo = precioUnitario * (producto.grup || 1);
+                
+                // Aplicar redondeo al precio por grupo
+                precioPorGrupo = redondearPrecio(precioPorGrupo);
+                
                 return { ...producto, cantidad: cantidadEnGrupos || 1, precio: precioPorGrupo, stock: stockEnGrupos, stockOriginal: stockOriginalEnUnidades };
             } else {
                 const cantidadEnUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
