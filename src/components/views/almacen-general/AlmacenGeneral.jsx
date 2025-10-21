@@ -462,17 +462,17 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             ));
         } else {
             // Si no existe, agregarlo nuevo con el precio correcto
-            // Determinar si la canasta de pedidos está en modo agrupado
-            let esAgrupado = false;
-            if (window.getModoAgrupacionCanastaPedidos) {
-                esAgrupado = window.getModoAgrupacionCanastaPedidos() === 'agrupado';
-            }
-
+            // Obtener el modo de agrupación desde la canasta de pedidos
             let cantidadInicial = cantidadEspecifica !== null ? cantidadEspecifica : 1;
             let precioFinal = precioProducto;
             let stockMostrado = producto.stock;
 
-            if (esAgrupado && producto.grup) {
+            let modoAgrupacionActual = null;
+            if (window.getModoAgrupacionCanastaPedidos) {
+                modoAgrupacionActual = window.getModoAgrupacionCanastaPedidos();
+            }
+            
+            if (modoAgrupacionActual === 'agrupado' && producto.grup) {
                 if (cantidadEspecifica === null) {
                     cantidadInicial = 1; // 1 grupo
                 }

@@ -115,7 +115,9 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         // Solo actualizar si el producto no tiene precio o tiene precio 0
                         if (!producto.precio || producto.precio === 0) {
                             const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === precioSeleccionadoData.value);
-                            const nuevoPrecio = precioProducto?.valor || 0;
+                            const precioUnit = precioProducto?.valor || 0;
+                            // Considerar el modo de agrupación al calcular el precio
+                            const nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
 
                             return {
                                 ...producto,
@@ -127,7 +129,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 }
             }
         }
-    }, [precioSeleccionado, preciosTipos, productosCanasta.length]);
+    }, [precioSeleccionado, preciosTipos, productosCanasta.length, modoAgrupacion]);
 
     // Guardar en localStorage cuando cambie la canasta
     useEffect(() => {
@@ -177,8 +179,10 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         // Si los precios cambiaron, actualizar el precio en el carrito según el tipo seleccionado
                         if (productoActualizado.price_product && precioSeleccionado) {
                             const precioTipo = productoActualizado.price_product.find(pp => pp.prices_types?.id === precioSeleccionado);
-                            if (precioTipo && precioTipo.valor !== productoCarrito.precio) {
-                                productoModificado.precio = precioTipo.valor;
+                            if (precioTipo) {
+                                const precioUnit = precioTipo.valor;
+                                const precioFinal = (modoAgrupacion === 'agrupado' && productoCarrito.grup) ? (precioUnit * (productoCarrito.grup || 1)) : precioUnit;
+                                productoModificado.precio = precioFinal;
                                 productoModificado.price_product = productoActualizado.price_product; // Actualizar también la estructura de precios
                             }
                         }
