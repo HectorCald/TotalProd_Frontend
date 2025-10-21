@@ -327,12 +327,10 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
 
     // Exponer las funciones para que AlmacenGeneral pueda acceder al precio seleccionado y modo de agrupación
     useEffect(() => {
-        if (isCartMode) {
-            // Guardar las referencias a las funciones en el window para acceso global
-            window.getPrecioSeleccionadoCanastaMovimientosEntrada = () => precioSeleccionado;
-            window.getModoAgrupacionCanastaMovimientosEntrada = () => modoAgrupacion;
-        }
-    }, [isCartMode, precioSeleccionado, modoAgrupacion]);
+        // Guardar las referencias a las funciones en el window para acceso global
+        window.getPrecioSeleccionadoCanastaMovimientosEntrada = () => precioSeleccionado;
+        window.getModoAgrupacionCanastaMovimientosEntrada = () => modoAgrupacion;
+    }, [precioSeleccionado, modoAgrupacion]);
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
