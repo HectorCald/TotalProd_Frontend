@@ -193,7 +193,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 });
             });
         }
-    }, [productosActualizados, precioSeleccionado]);
+    }, [productosActualizados, precioSeleccionado, modoAgrupacion]);
 
 
 
@@ -405,12 +405,10 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
     // Exponer funciones para que AlmacenGeneral pueda acceder al precio y modo seleccionados
     useEffect(() => {
-        if (isCartMode) {
-            // Guardar la referencia a las funciones en el window para acceso global
-            window.getPrecioSeleccionadoCanastaPedidos = () => precioSeleccionado;
-            window.getModoAgrupacionCanastaPedidos = () => modoAgrupacion;
-        }
-    }, [isCartMode, precioSeleccionado, modoAgrupacion]);
+        // Guardar la referencia a las funciones en el window para acceso global
+        window.getPrecioSeleccionadoCanastaPedidos = () => precioSeleccionado;
+        window.getModoAgrupacionCanastaPedidos = () => modoAgrupacion;
+    }, [precioSeleccionado, modoAgrupacion]);
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
