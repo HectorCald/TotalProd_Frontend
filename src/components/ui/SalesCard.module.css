@@ -30,7 +30,7 @@
 }
 
 .salesCardChart {
-    height: 200px;
+    height: 280px;
     background: var(--quaternary-color);
     border-radius: 18px;
     margin-top: 12px;
@@ -80,6 +80,6 @@
     }
     
     .salesCardChart {
-        height: 150px;
+        height: 220px;
     }
 }
