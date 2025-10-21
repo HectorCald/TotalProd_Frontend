@@ -10,10 +10,11 @@ import EditarAgregar from './EditarAgregar';
 import Notification from '../../common/Notification';
 import FetchData from '../../mixed/FetchData';
 import clientService from '../../../services/clientService';
-import movimientosAcopioService from '../../../services/movimientosAcopioService';
+import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import ItemLine from '../../common/ItemLine';
 import ItemView from '../../common/ItemView';
 import MapaModal from './MapaModal';
+import VerMovimiento from '../movimientos/VerMovimiento';
 import { useUser } from '../../../context/UserContext';
 
 function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdated }) {
@@ -23,6 +24,8 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
+    const [isVerMovimientoOpen, setIsVerMovimientoOpen] = useState(false);
+    const [movimientoSeleccionado, setMovimientoSeleccionado] = useState(null);
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
@@ -90,6 +93,12 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
         }
     }
 
+    // Función para manejar el click en un movimiento
+    const handleMovimientoClick = (movimiento) => {
+        setMovimientoSeleccionado(movimiento);
+        setIsVerMovimientoOpen(true);
+    }
+
     // Callbacks para FetchData
     const handleMovimientosLoaded = useCallback((data) => {
         // Limitar a los últimos 10 movimientos
@@ -100,6 +109,13 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
     const handleLoading = useCallback((isLoading) => {
         setLoadingMovimientosList(isLoading);
     }, []);
+
+    // Limpiar movimientos cuando se cierra el modal
+    useEffect(() => {
+        if (!isMovimientosOpen) {
+            setMovimientos([]);
+        }
+    }, [isMovimientosOpen]);
 
 
     return (
@@ -126,7 +142,7 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 {/* Botón para ver movimientos */}
                 <Boton
                     className='btn-gray'
-                    label={`Movimientos (${movimientos.length})`}
+                    label='Movimientos'
                     onClick={() => setIsMovimientosOpen(true)}
                 />
 
@@ -205,18 +221,19 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                             {movimientos.map((movimiento, index) => (
                                 <ItemView
                                     key={movimiento.id || index}
-                                    title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${movimiento.quantity} ${movimiento.product?.type_measure?.code || ''}`}
-                                    description={
-                                        <div>
-                                            <div>{movimiento.observations || 'Sin observaciones'}</div>
-                                            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                                {new Date(movimiento.date).toLocaleDateString()}
-                                                {movimiento.product?.name && ` • ${movimiento.product.name}`}
-                                            </div>
-                                        </div>
+                                    title={movimiento.productos && movimiento.productos.length > 0
+                                        ? movimiento.productos.length === 1
+                                            ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'} - ${movimiento.productos[0]?.cantidad || '0'} ud`
+                                            : `${movimiento.productos.length} productos`
+                                        : 'Sin productos'
                                     }
+                                    description={`${movimiento.observaciones || 'Sin observaciones'} • ${new Date(movimiento.fecha).toLocaleDateString()}`}
                                     icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                                    onClick={() => handleMovimientoClick(movimiento)}
                                     arrow={false}
+                                    flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
+                                    flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
+                                    colorIcon={movimiento.type === 'entrada' ? 'verde' : 'rojo'}
                                 />
                             ))}
                         </>
@@ -228,19 +245,26 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 </div>
             </ViewModal>
 
-            {/* FetchData para movimientos */}
-            {isOpen && usuario?.id && (
+            {/* FetchData para movimientos - solo cuando se abre el modal */}
+            {isMovimientosOpen && usuario?.id && (
                 <FetchData
-                    service={movimientosAcopioService}
-                    serviceName="movimientosAcopioService"
+                    service={movimientosAlmacenService}
+                    serviceName="movimientosAlmacenService"
                     method="getByCliente"
                     methodParams={[usuario.id]}
-                    isOpen={isOpen}
+                    isOpen={isMovimientosOpen}
                     onDataLoaded={handleMovimientosLoaded}
                     onLoadingStart={() => handleLoading(true)}
                     onLoadingEnd={() => handleLoading(false)}
                 />
             )}
+
+            {/* Modal de Ver Movimiento */}
+            <VerMovimiento
+                isOpen={isVerMovimientoOpen}
+                setIsOpen={setIsVerMovimientoOpen}
+                movimiento={movimientoSeleccionado}
+            />
 
             {/* Modal de Notificación*/}
             <Notification

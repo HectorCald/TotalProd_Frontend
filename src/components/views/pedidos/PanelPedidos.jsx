@@ -244,6 +244,11 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             )
         );
         
+        // Actualizar también infoPedido si es el mismo pedido que se está viendo
+        if (infoPedido && infoPedido.id === pedidoActualizado.id) {
+            setInfoPedido(pedidoActualizado);
+        }
+        
         // No mostrar notificación aquí, ya que VerPedidoAcopio maneja las notificaciones específicas
         // No cerrar VerPedido para permitir que se mantenga abierto después de entregas/ediciones
     };

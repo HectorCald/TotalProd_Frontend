@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -12,8 +12,11 @@ import deudasService from '../../../services/deudasService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
+import { useLayout } from '../../../context/LayoutContext';
+import ModalTable from '../../common/ModalTable';
 
 function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
+    const { isLargeScreen } = useLayout();
     const [loading, setLoading] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
@@ -38,6 +41,36 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 3000);
     };
+
+    // Filas preparadas para ModalTable (para PC)
+    const rowsMemo = useMemo(() => (movimiento?.productos || [])
+        .map((productoMovimiento) => {
+            const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
+            const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
+            const esAgrupado = movimiento?.agrupado && grup > 0;
+            const precioUnitario = parseFloat(productoMovimiento.precio_unitario) || 0;
+            
+            let cantidadTexto;
+            let precioTexto;
+            
+            if (esAgrupado) {
+                const grupos = Math.floor(cantidad / grup);
+                const unidades = cantidad % grup;
+                cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+                // Precio unitario multiplicado por la cantidad de agrupación
+                precioTexto = `${(precioUnitario * grup).toFixed(2)} BOB`;
+            } else {
+                cantidadTexto = `${cantidad} ud`;
+                precioTexto = `${precioUnitario.toFixed(2)} BOB`;
+            }
+            
+            return [
+                productoMovimiento.producto?.name || 'Sin nombre',
+                cantidadTexto,
+                precioTexto,
+                `${(parseFloat(productoMovimiento.subtotal) || 0).toFixed(2)} BOB`
+            ];
+        }), [movimiento?.productos, movimiento?.agrupado]);
 
 
     // Handle para anular movimiento
@@ -165,6 +198,13 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     circulo={false}
                     flot6={movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'}
                 />
+                <div className={styles.content}>
+                    <Dato
+                        label="Modalidad"
+                        value={movimiento?.agrupado ? 'Agrupado' : 'Unidades'}
+                        vertical={false}
+                    />
+                </div>
                 {(movimiento?.proveedor_id || movimiento?.cliente_id) && (
                     <ItemView
                         title={movimiento?.type === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
@@ -245,36 +285,67 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
 
 
             {/* Modal de productos */}
-            <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
-                <HeaderModal
+            {isLargeScreen ? (
+                <ModalTable
+                    isOpen={isProductosOpen}
                     title="Productos del Movimiento"
+                    headers={['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal']}
+                    rows={rowsMemo}
                     onClose={() => setIsProductosOpen(false)}
                 />
-                <div className={styles.modalContent}>
-                    {movimiento?.productos && movimiento.productos.length > 0 && (
-                        <>
-                            <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
+            ) : (
+                <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
+                    <HeaderModal
+                        title="Productos del Movimiento"
+                        onClose={() => setIsProductosOpen(false)}
+                    />
+                    <div className={styles.modalContent}>
+                        {movimiento?.productos && movimiento.productos.length > 0 && (
+                            <>
+                                <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
 
-                            {movimiento.productos.map((productoMovimiento, index) => (
+                                {movimiento.productos.map((productoMovimiento, index) => {
+                                    const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
+                                    const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
+                                    const esAgrupado = movimiento?.agrupado && grup > 0;
+                                    const precioUnitario = parseFloat(productoMovimiento.precio_unitario) || 0;
+                                    
+                                    let cantidadTexto;
+                                    let precioTexto;
+                                    
+                                    if (esAgrupado) {
+                                        const grupos = Math.floor(cantidad / grup);
+                                        const unidades = cantidad % grup;
+                                        cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+                                        // Precio unitario multiplicado por la cantidad de agrupación
+                                        precioTexto = `${(precioUnitario * grup).toFixed(2)} BOB`;
+                                    } else {
+                                        cantidadTexto = `${cantidad} ud`;
+                                        precioTexto = `${precioUnitario.toFixed(2)} BOB`;
+                                    }
+                                    
+                                    return (
+                                        <ItemView
+                                            key={`${productoMovimiento.producto?.id || 'producto'}-${index}`}
+                                            title={productoMovimiento.producto?.name || 'Sin nombre'}
+                                            description={`${cantidadTexto} - ${precioTexto}`}
+                                            flot2={`${(parseFloat(productoMovimiento.subtotal) || 0).toFixed(2)} BOB`}
+                                        />
+                                    );
+                                })}
+
+                                {/* Total al final de la lista */}
                                 <ItemView
-                                    key={`${productoMovimiento.producto?.id || 'producto'}-${index}`}
-                                    title={productoMovimiento.producto?.name || 'Sin nombre'}
-                                    description={`${productoMovimiento.cantidad || 0} ud - ${productoMovimiento.precio_unitario || 0} BOB`}
-                                    flot2={productoMovimiento.subtotal + ' BOB' || 0}
+                                    title={'TOTAL'}
+                                    description={''}
+                                    flot2={`${(movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)} BOB`}
                                 />
-                            ))}
 
-                            {/* Total al final de la lista */}
-                            <ItemView
-                                title={'TOTAL'}
-                                description={''}
-                                flot2={`${(movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)} BOB`}
-                            />
-
-                        </>
-                    )}
-                </div>
-            </ViewModal>
+                            </>
+                        )}
+                    </div>
+                </ViewModal>
+            )}
 
             {/* Modal de descarga */}
             <DescargaMovimientoBuilder

@@ -942,6 +942,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                             // Si es una entrega, llamar a la función de entrega
                             if (onEntregaConfirmada && localStorage.getItem('pedidoIdEntregando')) {
                                 onEntregaConfirmada(productosActualizados, precioId, movimientoId, pedidoActualizadoData);
+                                // Para entregas, NO cerrar la canasta automáticamente en PC (modo carrito)
+                                // Solo cerrar en móvil (cuando no es modo carrito)
+                                if (!(isCartMode && isLargeScreen)) {
+                                    setIsCanastaMovimientosOpen(false);
+                                }
                             } else {
                                 // Para movimientos normales, cerrar la canasta y mostrar notificación
                                 setIsCanastaMovimientosOpen(false);

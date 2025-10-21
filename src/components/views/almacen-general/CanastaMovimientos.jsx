@@ -397,8 +397,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             // 2) Crear movimiento de salida (lógica común)
             const observacionesFinales = esEntrega
                 ? (observacionesGenerales
-                    ? `Entrega del pedido #${pedidoId.slice(-8)} - ${observacionesGenerales}`
-                    : `Entrega del pedido #${pedidoId.slice(-8)}`)
+                    ? `Entrega del pedido #${pedidoId?.slice(-8) || 'N/A'} - ${observacionesGenerales}`
+                    : `Entrega del pedido #${pedidoId?.slice(-8) || 'N/A'}`)
                 : (observacionesGenerales || null);
 
             const movimientoData = {
@@ -488,11 +488,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         console.error('Error al actualizar estado del pedido:', error);
                     }
 
-                    // Limpiar localStorage específico de entregas
+                    // Limpiar localStorage específico de entregas (excepto pedidoIdEntregando que se mantiene hasta cerrar el almacén)
                     localStorage.removeItem('pedidoDestinoSucursalId');
                     localStorage.removeItem('pedidoDestinoSucursalName');
-                    localStorage.removeItem('pedidoIdEntregando');
                     localStorage.removeItem('precioIdEntregando');
+                    // NO limpiar pedidoIdEntregando aquí - se limpiará cuando se cierre el almacén manualmente
 
                     // Notificar al componente padre sobre el cambio de estado del pedido
                     if (onPedidoActualizado && pedidoResponse && pedidoResponse.success) {
@@ -514,7 +514,12 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 setClienteSeleccionado('');
                 setMetodoPagoSeleccionado('');
                 localStorage.removeItem('canastaSalidas');
-                setIsOpen(false);
+                
+                // Solo cerrar la canasta en móvil, no en PC (modo carrito)
+                // En PC (isCartMode && isLargeScreen), mantener abierto para mostrar modal de descarga
+                if (!isCartMode) {
+                    setIsOpen(false);
+                }
 
                 if (onCerrarCanasta) {
                     onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId, pedidoActualizado);

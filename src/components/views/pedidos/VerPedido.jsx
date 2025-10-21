@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -12,12 +12,15 @@ import Notification from '../../common/Notification';
 import DescargaPedidoBuilder from './DescargaPedidoBuilder';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import { useUser } from '../../../context/UserContext';
+import { useLayout } from '../../../context/LayoutContext';
+import ModalTable from '../../common/ModalTable';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import deudasService from '../../../services/deudasService';
 
 function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, onPedidoActualizado }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
+    const { isLargeScreen } = useLayout();
     const [loading, setLoading] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
@@ -33,6 +36,17 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         setPedidoActual(pedido);
     }, [pedido]);
 
+    // Efecto para sincronizar información cuando se cierra el almacén
+    useEffect(() => {
+        if (!isAlmacenOpen && modoAlmacen === 'entregar') {
+            // Cuando se cierra el almacén después de una entrega, 
+            // asegurar que la información esté sincronizada
+            if (onPedidoActualizado && pedidoActual) {
+                onPedidoActualizado(pedidoActual);
+            }
+        }
+    }, [isAlmacenOpen, modoAlmacen, onPedidoActualizado, pedidoActual]);
+
     // Función para manejar cuando se actualiza un pedido
     const handlePedidoActualizado = (pedidoActualizado) => {
         // Actualizar el estado local del pedido
@@ -41,8 +55,12 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         if (onPedidoActualizado) {
             onPedidoActualizado(pedidoActualizado);
         }
-        // Cerrar AlmacenGeneral cuando se actualiza el pedido
-        setIsAlmacenOpen(false);
+        
+        // NO cerrar AlmacenGeneral automáticamente para entregas
+        // Solo cerrar para ediciones de pedidos (modo 'pedido')
+        if (modoAlmacen === 'pedido') {
+            setIsAlmacenOpen(false);
+        }
     };
     // Función para eliminar pedido
     const handleEliminarPedido = async () => {
@@ -130,8 +148,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             onPedidoActualizado(pedidoActualizadoData);
         }
 
-        // Cerrar AlmacenGeneral pero mantener VerPedido abierto
-        setIsAlmacenOpen(false);
+        // NO cerrar AlmacenGeneral automáticamente para permitir que se muestre el modal de descarga
+        // El almacén se cerrará cuando el usuario cierre el modal de descarga o cierre VerPedido
         
         // Mostrar notificación de éxito
         mostrarNotificacion('success', 'Pedido entregado correctamente');
@@ -278,7 +296,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             // Crear el movimiento de entrada usando el MVC de movimientos
             const movimientoData = {
                 type: 'entrada',
-                observaciones: `Ingreso automático del pedido #${pedidoActual.id.slice(-8)}`,
+                observaciones: `Ingreso automático del pedido #${pedidoActual.id?.slice(-8) || 'N/A'}`,
                 productos: productosParaIngreso,
                 precio_id: pedidoActual.precio_id
             };
@@ -419,6 +437,40 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         });
     };
 
+    // Filas preparadas para ModalTable (para PC)
+    const rowsMemo = useMemo(() => {
+        if (!pedidoActual || !pedidoActual.pedido_almacen_detalle) return [];
+        
+        return pedidoActual.pedido_almacen_detalle.map((detalle) => {
+            const producto = detalle.producto_almacen || {};
+            const cantidad = parseFloat(detalle.cantidad) || 0;
+            const grup = parseFloat(producto.grup) || 0;
+            const esAgrupado = pedidoActual?.agrupado && grup > 0;
+            const precio = parseFloat(detalle.precio) || 0;
+            
+            let cantidadTexto;
+            let precioTexto;
+            
+            if (esAgrupado) {
+                const grupos = Math.floor(cantidad / grup);
+                const unidades = cantidad % grup;
+                cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+                // Precio unitario multiplicado por la cantidad de agrupación
+                precioTexto = `${(precio * grup).toFixed(2)} BOB`;
+            } else {
+                cantidadTexto = `${cantidad} ud`;
+                precioTexto = `${precio.toFixed(2)} BOB`;
+            }
+            
+            return [
+                producto.name || 'Sin nombre',
+                cantidadTexto,
+                precioTexto,
+                `${(precio * cantidad).toFixed(2)} BOB`
+            ];
+        });
+    }, [pedidoActual?.pedido_almacen_detalle, pedidoActual?.agrupado]);
+
     if (!pedidoActual) return null;
     const detalles = getDetallesPedido();
 
@@ -477,7 +529,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 )}
                 <p className={styles.subTitle}>INFORMACIÓN DEL PEDIDO</p>
                 <ItemView
-                    title={`Pedido #${pedidoActual.id.slice(-8)}`}
+                    title={`Pedido #${pedidoActual.id?.slice(-8) || 'N/A'}`}
                     description={`Fecha y hora: ${new Date(pedidoActual.fecha || pedidoActual.created_at).toLocaleDateString('es-ES', {
                         year: 'numeric',
                         month: '2-digit',
@@ -582,29 +634,61 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             </div>
 
             {/* Modal de productos */}
-            <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
-                <HeaderModal
+            {isLargeScreen ? (
+                <ModalTable
+                    isOpen={isProductosOpen}
                     title="Productos del Pedido"
+                    headers={['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal']}
+                    rows={rowsMemo}
                     onClose={() => setIsProductosOpen(false)}
                 />
-                <div className={styles.modalContent}>
-                    {detalles.length > 0 && (
-                        <>
-                            <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
-                            {detalles.map((producto, index) => (
-                                <ItemView
-                                    key={producto.id || index}
-                                    title={producto.nombre}
-                                    description={`Bs. ${producto.precio.toFixed(2)}`}
-                                    description2={`Subtotal: Bs. ${producto.subtotal.toFixed(2)}`}
-                                    flot2={`${producto.cantidad} ${producto.medida}`}
-                                    icon='package'
-                                />
-                            ))}
-                        </>
-                    )}
-                </div>
-            </ViewModal>
+            ) : (
+                <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
+                    <HeaderModal
+                        title="Productos del Pedido"
+                        onClose={() => setIsProductosOpen(false)}
+                    />
+                    <div className={styles.modalContent}>
+                        {detalles.length > 0 && (
+                            <>
+                                <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
+                                {detalles.map((producto, index) => {
+                                    const detalle = pedidoActual.pedido_almacen_detalle[index];
+                                    const productoDetalle = detalle?.producto_almacen || {};
+                                    const cantidad = parseFloat(detalle?.cantidad) || 0;
+                                    const grup = parseFloat(productoDetalle.grup) || 0;
+                                    const esAgrupado = pedidoActual?.agrupado && grup > 0;
+                                    const precio = parseFloat(detalle?.precio) || 0;
+                                    
+                                    let cantidadTexto;
+                                    let precioTexto;
+                                    
+                                    if (esAgrupado) {
+                                        const grupos = Math.floor(cantidad / grup);
+                                        const unidades = cantidad % grup;
+                                        cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+                                        // Precio unitario multiplicado por la cantidad de agrupación
+                                        precioTexto = `${(precio * grup).toFixed(2)} BOB`;
+                                    } else {
+                                        cantidadTexto = `${cantidad} ud`;
+                                        precioTexto = `${precio.toFixed(2)} BOB`;
+                                    }
+                                    
+                                    return (
+                                        <ItemView
+                                            key={producto.id || index}
+                                            title={producto.nombre}
+                                            description={`${cantidadTexto} - ${precioTexto}`}
+                                            flot2={`${(precio * cantidad).toFixed(2)} BOB`}
+                                            icon='package'
+                                        />
+                                    );
+                                })}
+                            </>
+                        )}
+                    </div>
+                </ViewModal>
+            )}
 
             {/* Modal de descarga */}
             <DescargaPedidoBuilder
