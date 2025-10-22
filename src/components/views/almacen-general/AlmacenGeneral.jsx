@@ -91,6 +91,12 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         setShowRefreshIndicator(isLoading);
         setIsRefreshing(isLoading);
     }, []);
+
+    // Función específica para manejar la carga de productos
+    const handleProductosLoading = useCallback((isLoading) => {
+        setShowRefreshIndicator(isLoading);
+        setIsRefreshing(isLoading);
+    }, []);
     useEffect(() => {
         if (!isOpen) {
             setShowRefreshIndicator(false);
@@ -880,16 +886,16 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                             serviceName="productsAlmacenService"
                             isOpen={isOpen}
                             onDataLoaded={handleProductosLoaded}
-                            onLoadingStart={() => handleLoading(true)}
-                            onLoadingEnd={() => handleLoading(false)}
+                            onLoadingStart={() => handleProductosLoading(true)}
+                            onLoadingEnd={() => handleProductosLoading(false)}
                         />
                         <FetchData
                             service={pricesTypesService}
                             serviceName="pricesTypesService"
                             isOpen={isOpen}
                             onDataLoaded={handlePreciosLoaded}
-                            onLoadingStart={() => handleLoading(true)}
-                            onLoadingEnd={() => handleLoading(false)}
+                            onLoadingStart={() => {}}
+                            onLoadingEnd={() => {}}
                         />
                         <FetchData
                             service={sucursalesService}
@@ -897,8 +903,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                             method="getByEmpresaId"
                             isOpen={isOpen}
                             onDataLoaded={handleSucursalesLoaded}
-                            onLoadingStart={() => handleLoading(true)}
-                            onLoadingEnd={() => handleLoading(false)}
+                            onLoadingStart={() => {}}
+                            onLoadingEnd={() => {}}
                         />
                     </>
                 )}
