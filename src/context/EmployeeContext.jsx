@@ -94,10 +94,24 @@ export const EmployeeProvider = ({ children }) => {
         return { success: true, data: employeeData.data };
       } else {
         console.error('No se pudo obtener el empleado:', employeeData.error);
+        
+        // Si hay error al obtener el empleado, limpiar localStorage y redirigir
+        if (employeeData.status === 400 || employeeData.status === 500 || !employeeData.success) {
+          console.log('❌ Error al obtener empleado, limpiando sesión y redirigiendo...');
+          clearEmployee();
+          window.location.href = '/login';
+          return { success: false, error: employeeData.error };
+        }
+        
         return { success: false, error: employeeData.error };
       }
     } catch (error) {
       console.error('Error al cargar datos del empleado:', error);
+      
+      // Si hay error de conexión o cualquier otro error, limpiar y redirigir
+      console.log('❌ Error de conexión al obtener empleado, limpiando sesión y redirigiendo...');
+      clearEmployee();
+      window.location.href = '/login';
       return { success: false, error: error.message };
     }
   };
