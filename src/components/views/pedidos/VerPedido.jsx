@@ -27,7 +27,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [modoAlmacen, setModoAlmacen] = useState('pedido'); // 'pedido' o 'entregar'
-    
+
     // Estado local para el pedido actual
     const [pedidoActual, setPedidoActual] = useState(pedido);
 
@@ -51,11 +51,11 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     const handlePedidoActualizado = (pedidoActualizado) => {
         // Actualizar el estado local del pedido
         setPedidoActual(pedidoActualizado);
-        
+
         if (onPedidoActualizado) {
             onPedidoActualizado(pedidoActualizado);
         }
-        
+
         // NO cerrar AlmacenGeneral automáticamente para entregas
         // Solo cerrar para ediciones de pedidos (modo 'pedido')
         if (modoAlmacen === 'pedido') {
@@ -106,16 +106,16 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.setItem('pedidoIdEditando', pedidoActual.id);
         localStorage.setItem('precioIdEditando', pedidoActual.precio_id || '');
         localStorage.setItem('pedidoAgrupadoEditando', pedidoActual.agrupado ? 'agrupado' : 'no_agrupado');
-        
+
         // Guardar productos del pedido para cargar automáticamente (solo ID y cantidad)
         const productosPedido = pedidoActual.pedido_almacen_detalle?.map(detalle => {
             let cantidadParaGuardar = detalle.cantidad;
-            
+
             // Si el pedido es agrupado, convertir la cantidad a grupos
             if (pedidoActual.agrupado && detalle.producto_almacen?.grup) {
                 cantidadParaGuardar = Math.round(detalle.cantidad / detalle.producto_almacen.grup);
             }
-            
+
             return {
                 id: detalle.producto_almacen.id,
                 cantidad: cantidadParaGuardar
@@ -150,7 +150,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
         // NO cerrar AlmacenGeneral automáticamente para permitir que se muestre el modal de descarga
         // El almacén se cerrará cuando el usuario cierre el modal de descarga o cierre VerPedido
-        
+
         // Mostrar notificación de éxito
         mostrarNotificacion('success', 'Pedido entregado correctamente');
     };
@@ -354,7 +354,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         localStorage.setItem('pedidoAgrupadoEntregando', pedidoActual.agrupado ? 'agrupado' : 'no_agrupado');
         localStorage.setItem('pedidoDestinoSucursalId', pedidoActual.sucursal_id || '');
         localStorage.setItem('pedidoDestinoSucursalName', pedidoActual.sucursal?.name || '');
-        
+
         // Guardar información del cliente si existe
         if (pedidoActual.cliente?.id) {
             localStorage.setItem('clienteIdEntregando', pedidoActual.cliente.id);
@@ -363,16 +363,16 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             localStorage.removeItem('clienteIdEntregando');
             localStorage.removeItem('clienteNameEntregando');
         }
-        
+
         // Guardar productos del pedido para cargar automáticamente
         const productosPedido = pedidoActual.pedido_almacen_detalle?.map(detalle => {
             let cantidadParaGuardar = detalle.cantidad;
-            
+
             // Si el pedido es agrupado, convertir la cantidad a grupos
             if (pedidoActual.agrupado && detalle.producto_almacen?.grup) {
                 cantidadParaGuardar = Math.round(detalle.cantidad / detalle.producto_almacen.grup);
             }
-            
+
             return {
                 id: detalle.producto_almacen.id,
                 cantidad: cantidadParaGuardar
@@ -413,19 +413,19 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         const detalles = pedidoActual.pedido_almacen_detalle || [];
         return detalles.map(detalle => {
             const producto = detalle.producto_almacen || {};
-            
+
             // Si el pedido es agrupado, mostrar la cantidad visual (agrupada)
             // Si no es agrupado, mostrar la cantidad real (unidades)
             let cantidadVisual = detalle.cantidad || 0;
             let medidaVisual = detalle.medida || producto.type_measure?.code || 'u';
-            
+
             if (pedidoActual.agrupado && producto.grup) {
                 // Calcular cantidad agrupada: cantidad real / factor de agrupación
                 const factorAgrupacion = producto.grup || 1;
                 cantidadVisual = Math.round((detalle.cantidad || 0) / factorAgrupacion);
                 medidaVisual = 'grp';
             }
-            
+
             return {
                 id: detalle.id,
                 nombre: producto.name || 'Producto no encontrado',
@@ -440,17 +440,17 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     // Filas preparadas para ModalTable (para PC)
     const rowsMemo = useMemo(() => {
         if (!pedidoActual || !pedidoActual.pedido_almacen_detalle) return [];
-        
+
         return pedidoActual.pedido_almacen_detalle.map((detalle) => {
             const producto = detalle.producto_almacen || {};
             const cantidad = parseFloat(detalle.cantidad) || 0;
             const grup = parseFloat(producto.grup) || 0;
             const esAgrupado = pedidoActual?.agrupado && grup > 0;
             const precio = parseFloat(detalle.precio) || 0;
-            
+
             let cantidadTexto;
             let precioTexto;
-            
+
             if (esAgrupado) {
                 const grupos = Math.floor(cantidad / grup);
                 const unidades = cantidad % grup;
@@ -461,7 +461,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 cantidadTexto = `${cantidad} ud`;
                 precioTexto = `${precio.toFixed(2)} BOB`;
             }
-            
+
             return [
                 producto.name || 'Sin nombre',
                 cantidadTexto,
@@ -519,36 +519,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                     description={pedidoActual.sucursal?.name || 'Sucursal desconocida'}
                     transparent={false}
                 />
-                {pedidoActual.sucursal?.total_pedidos !== undefined && (
-                    <Dato
-                        label="Total de Pedidos de la Sucursal"
-                        value={pedidoActual.sucursal.total_pedidos.toString()}
-                        vertical={false}
-                        especial="blue"
-                    />
-                )}
+
                 <p className={styles.subTitle}>INFORMACIÓN DEL PEDIDO</p>
-                <ItemView
-                    title={`Pedido #${pedidoActual.id?.slice(-8) || 'N/A'}`}
-                    description={`Fecha y hora: ${new Date(pedidoActual.fecha || pedidoActual.created_at).toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })}`}
-                    description2={`Tipo de precio: ${pedidoActual.precio?.name || 'Precio desconocido'}`}
-                    flot3={pedidoActual.estado === 'Pendiente' ? 'Pendiente' : ''}
-                    flot5={pedidoActual.estado === 'Completado' ? 'Completado' : ''}
-                    flot2={pedidoActual.estado === 'Entregado' ? 'Entregado' : ''}
-                    circulo={false}
-                    transparent={false}
-                />
-                <ItemView
-                    title={pedidoActual.agrupado ? 'Agrupado' : 'Unidades'}
-                    description="Modalidad de pedido"
-                    transparent={false}
-                />
                 {pedidoActual?.cliente?.name && (
                     <ItemView
                         title={pedidoActual.cliente.name}
@@ -556,6 +528,54 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         transparent={false}
                     />
                 )}
+                <div className={styles.content}>
+                    <Dato
+                        label="Tipo de precio"
+                        value={pedidoActual.precio?.name || 'Precio desconocido'}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Fecha y hora"
+                        value={`${new Date(pedidoActual.fecha || pedidoActual.created_at).toLocaleString()}`}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Modalidad"
+                        value={pedidoActual.agrupado ? 'Agrupado' : 'Unidades'}
+                        vertical={false}
+                    />
+                    {pedidoActual.sucursal?.total_pedidos !== undefined && (
+                        <Dato
+                            label="Total de Pedidos de la Sucursal"
+                            value={pedidoActual.sucursal.total_pedidos.toString()}
+                            vertical={false}
+                        />
+                    )}
+                    <Dato
+                        label="Estado"
+                        value={pedidoActual.estado}
+                        vertical={false}
+                        especial={pedidoActual.estado === 'Pendiente' ? 'red' : pedidoActual.estado === 'Completado' ? 'blue' : pedidoActual.estado === 'Entregado' ? 'orange' : 'gray'}
+                    />
+
+                    {(pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && (
+                        <Dato
+                            label="Método de Pago"
+                            value={pedidoActual.movimiento_salida?.metodo_pago || 'No especificado'}
+                            vertical={false}
+                        />
+                    )}
+                    <Dato
+                        label="Total"
+                        value={`Bs. ${(pedidoActual.pedido_almacen_detalle || []).reduce((total, detalle) => {
+                            const precio = detalle.precio || 0;
+                            const cantidad = detalle.cantidad || 0;
+                            return total + (precio * cantidad);
+                        }, 0).toFixed(2)}`}
+                        especial='green'
+                        vertical={false}
+                    />
+                </div>
                 {/* Botón para ver productos */}
                 {detalles.length > 0 && (
                     <Boton
@@ -564,33 +584,17 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         onClick={() => setIsProductosOpen(true)}
                     />
                 )}
-
-                <Dato
-                    label="Total"
-                    value={`Bs. ${(pedidoActual.pedido_almacen_detalle || []).reduce((total, detalle) => {
-                        const precio = detalle.precio || 0;
-                        const cantidad = detalle.cantidad || 0;
-                        return total + (precio * cantidad);
-                    }, 0).toFixed(2)}`}
-                    especial='green'
-                    vertical={false}
-                />
-                <Dato
-                    label="Observaciones"
-                    value={pedidoActual.observaciones || 'Sin observaciones'}
-                    vertical={false}
-                />
-                
-                {/* Mostrar método de pago si el pedido está entregado */}
-                {pedidoActual.estado === 'Entregado' && pedidoActual?.movimiento_salida?.metodo_pago && (
-                    <Dato
-                        label="Método de Pago"
-                        value={pedidoActual.movimiento_salida.metodo_pago}
-                        vertical={false}
-                        especial="green"
-                    />
+                {pedidoActual.observaciones && (
+                    <>
+                        <p className={styles.subTitle}>OBSERVACIONES</p>
+                        <div className={styles.content}>
+                            <Dato
+                                label="Observaciones"
+                                value={pedidoActual.observaciones || 'Sin observaciones'}
+                            />
+                        </div>
+                    </>
                 )}
-
 
                 <div className={styles.buttons}>
                     {puedeEliminarPedido() && (
@@ -659,10 +663,10 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                                     const grup = parseFloat(productoDetalle.grup) || 0;
                                     const esAgrupado = pedidoActual?.agrupado && grup > 0;
                                     const precio = parseFloat(detalle?.precio) || 0;
-                                    
+
                                     let cantidadTexto;
                                     let precioTexto;
-                                    
+
                                     if (esAgrupado) {
                                         const grupos = Math.floor(cantidad / grup);
                                         const unidades = cantidad % grup;
@@ -673,7 +677,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                                         cantidadTexto = `${cantidad} ud`;
                                         precioTexto = `${precio.toFixed(2)} BOB`;
                                     }
-                                    
+
                                     return (
                                         <ItemView
                                             key={producto.id || index}

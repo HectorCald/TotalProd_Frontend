@@ -24,7 +24,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     const [isIngresoOpen, setIsIngresoOpen] = useState(false);
     const [productoDetalle, setProductoDetalle] = useState(null);
     const [loadingProducto, setLoadingProducto] = useState(false);
-    
+
     // Estado local para el registro actualizado
     const [registroActual, setRegistroActual] = useState(registro);
 
@@ -253,18 +253,16 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     description="Responsable del registro"
                     transparent={false}
                 />
+                <p className={styles.subTitle}>INFORMACIÓN DE LA PRODUCCIÓN</p>
                 <ItemView
                     title={registroActual?.producto_almacen?.name || 'Sin producto'}
                     description={`Lote: ${registroActual?.lote || '0'}`}
                     description2={`Proceso: ${registroActual?.proceso === 'cernido' ? 'Cernido' : registroActual?.proceso === 'seleccionado' ? 'Seleccionado' : registroActual?.proceso === 'ninguno' ? 'Ninguno' : registroActual?.proceso}`}
                     transparent={false}
-                    circulo={false}
-                    flot6={
-                        registroActual?.estado === 'pendiente' ? 'Pendiente' : 
-                        registroActual?.estado === 'verificado' ? 'Verificado' : 
-                        registroActual?.estado === 'Ingresado' ? 'Ingresado' : 
-                        registroActual?.estado || ''
-                    }
+                    icon='package'
+                    flot3={registroActual?.estado === 'pendiente' ? 'Pendiente' : ''}
+                    flot2={registroActual?.estado === 'verificado' ? 'Verificado' : ''}
+                    flot5={registroActual?.estado === 'Ingresado' ? 'Ingresado' : ''}
                 />
 
                 {/* Información de producción */}
@@ -278,15 +276,14 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         label="Cantidad Terminados"
                         value={`${registroActual?.terminados || '0'} unidades`}
                         vertical={false}
-                        especial='green'
                     />
                     <Dato
                         label="Fecha de Vencimiento"
                         value={new Date(registroActual?.vencimiento).toLocaleDateString('es-ES', {
                             year: 'numeric',
                             month: '2-digit' // o 'long' si lo quieres con nombre: "octubre"
-                          })}
-                          
+                        })}
+
                         vertical={false}
                     />
                     <Dato
@@ -298,38 +295,44 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
 
                 {/* Información de verificación si existe */}
                 {registroActual?.fecha_verificado && (
-                    <div className={styles.content}>
-                        <Dato
-                            label="Fecha de Verificación"
-                            value={new Date(registroActual.fecha_verificado).toLocaleDateString()}
-                            vertical={false}
-                        />
+                    <>
+                        <p className={styles.subTitle}>INFORMACIÓN DE VERIFICACIÓN</p>
+                        <div className={styles.content}>
+                            <Dato
+                                label="Fecha de Verificación"
+                                value={new Date(registroActual.fecha_verificado).toLocaleDateString()}
+                                vertical={false}
+                            />
 
-                        <Dato
-                            label="Cantidad Verificada"
-                            value={`${registroActual.cantidad_verificada} unidades`}
-                            vertical={false}
-                            especial='blue'
-                        />
-                        <Dato
-                            label="Cantidad Ingresada"
-                            value={`${registroActual.cantidad_ingresada} unidades`}
-                            vertical={false}
-                            especial='green'
-                        />
+                            <Dato
+                                label="Cantidad Verificada"
+                                value={`${registroActual.cantidad_verificada} unidades`}
+                                vertical={false}
+                                especial='blue'
+                            />
+                            <Dato
+                                label="Cantidad Ingresada"
+                                value={`${registroActual.cantidad_ingresada} unidades`}
+                                vertical={false}
+                                especial='green'
+                            />
 
-                    </div>
+                        </div>
+                    </>
                 )}
 
                 {/* Observaciones del registro */}
                 {registroActual?.observaciones && (
-                    <div className={styles.content}>
-                        <Dato
-                            label="Observaciones"
-                            value={registroActual.observaciones}
-                            vertical={true}
-                        />
-                    </div>
+                    <>
+                        <p className={styles.subTitle}>OBSERVACIONES</p>
+                        <div className={styles.content}>
+                            <Dato
+                                label="Observaciones"
+                                value={registroActual.observaciones}
+                                vertical={true}
+                            />
+                        </div>
+                    </>
                 )}
 
                 <div className={styles.buttons}>
@@ -404,7 +407,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
 
                     <InputNormal
                         tipo="textarea"
-                        placeholder="Observaciones sobre la verificación... (Opcional)"
+                        placeholder="Observaciones (Opcional)"
                         value={observacionesVerificacion}
                         onChange={(e) => setObservacionesVerificacion(e.target.value)}
                         icon="comment"
@@ -504,7 +507,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         };
                         onRegistroVerificado(registroActualizado);
                     }
-                    
+
                     // Cerrar el modal de VerProduccion
                     setIsOpen(false);
                 }}

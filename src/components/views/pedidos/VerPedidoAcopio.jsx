@@ -36,7 +36,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
     const [isVerEntradaOpen, setIsVerEntradaOpen] = useState(false);
     const [movimientoEntrada, setMovimientoEntrada] = useState(null);
     const [loadingVerEntrada, setLoadingVerEntrada] = useState(false);
-    
+
     // Estado local para el pedido actual
     const [pedidoActual, setPedidoActual] = useState(pedido);
 
@@ -356,7 +356,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         try {
             setLoadingVerEntrada(true);
             const response = await movimientosAcopioService.getById(pedidoActual.movimiento_entrada_id);
-            
+
             if (response.success) {
                 setMovimientoEntrada(response.data);
                 setIsVerEntradaOpen(true);
@@ -411,27 +411,29 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                 />
                 <p className={styles.subTitle}>INFORMACIÓN DEL PEDIDO</p>
                 <ItemView
-                    title={`Pedido #${pedidoActual.id.slice(-8)}`}
-                    description={`Fecha y hora: ${new Date(pedidoActual.fecha || pedidoActual.created_at).toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })}`}
-                    flot3={pedidoActual.estado === 'Pendiente' ? 'Pendiente' : ''}
-                    flot5={pedidoActual.estado === 'Completado' ? 'Completado' : ''}
-                    flot2={pedidoActual.estado === 'Entregado' ? 'Entregado' : ''}
-                    circulo={false}
-                    transparent={false}
-                />
-
-                <ItemView
                     title={pedidoActual.producto_acopio?.name || 'Producto no encontrado'}
                     description={`Cantidad solicitada: ${pedidoActual.cantidad} ${pedidoActual.tipo_medida}`}
                     icon='package'
                     transparent={false}
                 />
+                <div className={styles.content}>
+                    <Dato
+                        label="Fecha y hora"
+                        value={`${new Date(pedidoActual.fecha || pedidoActual.created_at).toLocaleString()}`}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Estado"
+                        value={pedidoActual.estado}
+                        vertical={false}
+                        especial={pedidoActual.estado === 'Pendiente' ? 'red' : pedidoActual.estado === 'Completado' ? 'blue' : pedidoActual.estado === 'Entregado' ? 'orange' : 'gray'}
+                    />
+                    <Dato
+                        label="Cantidad solicitada"
+                        value={`${pedidoActual.cantidad} ${pedidoActual.tipo_medida}`}
+                        vertical={false}
+                    />
+                </div>
                 {/* Mostrar detalles de entrega si el pedido está entregado */}
                 {(pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && (
                     <>

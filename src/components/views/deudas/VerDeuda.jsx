@@ -167,31 +167,20 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                     </div>
                 </h1>
 
-                <p className={styles.subTitle}>INFORMACIÓN DE LA DEUDA</p>
+                <p className={styles.subTitle}>RESPONSABLE DE LA DEUDA</p>
                 <ItemView
                     title={deuda?.user?.name || deuda?.personal?.name || 'Usuario desconocido'}
-                    description="Responsable de la deuda"
+                    description="Registro de la deuda"
                     transparent={false}
                 />
-                <ItemView
-                    title={deuda?.concepto || 'Sin concepto'}
-                    description={`Fecha: ${new Date(deuda?.fecha_deuda).toLocaleDateString()}`}
-                    description2={`Vencimiento: ${new Date(deuda?.fecha_vencimiento).toLocaleDateString()}`}
-                    transparent={false}
-                    circulo={false}
-                    flot3={deuda?.estado === 'pendiente' ? deuda?.estado : ''}
-                    flot4={deuda?.estado === 'pagada' ? deuda?.estado : ''}
-
-
-                    style={isVencida ? { borderLeft: '4px solid #e74c3c' } : {}}
-                />
-
+                <p className={styles.subTitle}>INFORMACIÓN DE LA DEUDA</p>
                 {/* Mostrar cliente o sucursal destino según corresponda */}
                 {deuda?.destino_sucursal_id ? (
                     <ItemView
                         title={deuda.sucursal_destino?.name || 'Sucursal no encontrada'}
                         description="Sucursal Destino"
                         transparent={false}
+                        icon='store'
                     />
                 ) : (
                     deuda?.cliente?.name && (
@@ -202,9 +191,49 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                         />
                     )
                 )}
+                <div className={styles.content}>
+                    <Dato
+                        label="Concepto"
+                        value={deuda?.concepto || 'Sin concepto'}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Fecha de deuda"
+                        value={`${new Date(deuda?.fecha_deuda).toLocaleDateString()}`}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Fecha de vencimiento"
+                        value={`${new Date(deuda?.fecha_vencimiento).toLocaleDateString()}`}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Estado"
+                        value={deuda?.estado}
+                        vertical={false}
+                        especial={deuda?.estado === 'pendiente' ? 'red' : deuda?.estado === 'pagada' ? 'blue' : 'gray'}
+                    />
+                    <Dato
+                        label="Sucursal deuda"
+                        value={deuda?.sucursal?.name || 'No especificada'}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Monto Total"
+                        value={`Bs. ${(parseFloat(deuda?.monto_total) || 0).toFixed(2)}`}
+                        vertical={false}
+                        especial='blue'
+                    />
 
+                    <Dato
+                        label="Saldo Pendiente"
+                        value={`Bs. ${(parseFloat(deuda?.saldo_pendiente) || 0).toFixed(2)}`}
+                        vertical={false}
+                        especial={deuda?.saldo_pendiente > 0 ? 'red' : 'green'}
+                    />
+                </div>
                 {/* Botón Ver Detalle del Movimiento */}
-                 {deuda?.movimiento_salida_id && (
+                {deuda?.movimiento_salida_id && (
                     <Boton
                         className='btn-gray'
                         label='Ver Detalle'
@@ -213,45 +242,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                     />
 
                 )}
-                <Dato
-                        label="Sucursal deuda"
-                        value={deuda?.sucursal?.name || 'No especificada'}
-                        vertical={false}
-                    />
-                <Dato
-                    label="Monto Total"
-                    value={`Bs. ${(parseFloat(deuda?.monto_total) || 0).toFixed(2)}`}
-                    vertical={false}
-                    especial='blue'
-                />
 
-                <Dato
-                    label="Saldo Pendiente"
-                    value={`Bs. ${(parseFloat(deuda?.saldo_pendiente) || 0).toFixed(2)}`}
-                    vertical={false}
-                    especial={deuda?.saldo_pendiente > 0 ? 'red' : 'green'}
-                />
-
-                {/* Botones de acciones rápidas */}
-                {deuda?.estado === 'pendiente' && (
-
-                    <>
-                        <Boton
-                            className='btn-original'
-                            label='Marcar como Pagada'
-                            onClick={handleMarcarComoPagada}
-                            loading={loading}
-                        />
-                        {isVencida && (
-                            <Boton
-                                className='btn-red'
-                                label='Marcar como Vencida'
-                                onClick={handleMarcarComoVencida}
-                                loading={loading}
-                            />
-                        )}
-                    </>
-                )}
 
                 <div className={styles.buttons}>
                     {/* Solo mostrar botones de eliminar y editar si NO tiene movimiento_salida_id */}
@@ -268,6 +259,26 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                                 label='Editar Deuda'
                                 onClick={() => setIsEditarOpen(true)}
                             />
+                        </>
+                    )}
+                    {/* Botones de acciones rápidas */}
+                    {deuda?.estado === 'pendiente' && (
+
+                        <>
+                            <Boton
+                                className='btn-original'
+                                label='Marcar como Pagada'
+                                onClick={handleMarcarComoPagada}
+                                loading={loading}
+                            />
+                            {isVencida && (
+                                <Boton
+                                    className='btn-red'
+                                    label='Marcar como Vencida'
+                                    onClick={handleMarcarComoVencida}
+                                    loading={loading}
+                                />
+                            )}
                         </>
                     )}
                 </div>

@@ -25,7 +25,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [modoAlmacen, setModoAlmacen] = useState('editar'); // 'editar' para editar movimiento
-    
+
     // Estado local para el movimiento actual
     const [movimientoActual, setMovimientoActual] = useState(movimiento);
 
@@ -60,10 +60,10 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
             const esAgrupado = movimientoActual?.agrupado && grup > 0;
             const precioUnitario = parseFloat(productoMovimiento.precio_unitario) || 0;
-            
+
             let cantidadTexto;
             let precioTexto;
-            
+
             if (esAgrupado) {
                 const grupos = Math.floor(cantidad / grup);
                 const unidades = cantidad % grup;
@@ -74,7 +74,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 cantidadTexto = `${cantidad} ud`;
                 precioTexto = `${precioUnitario.toFixed(2)} BOB`;
             }
-            
+
             return [
                 productoMovimiento.producto?.name || 'Sin nombre',
                 cantidadTexto,
@@ -138,7 +138,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
 
                 // Usar la respuesta del servidor que incluye el movimiento actualizado
                 const movimientoActualizado = response.data;
-                
+
                 // Actualizar el estado local del movimiento
                 setMovimientoActual(movimientoActualizado);
 
@@ -212,7 +212,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         localStorage.setItem('precioIdEditando', movimientoActual.precio_id || '');
         localStorage.setItem('movimientoAgrupadoEditando', movimientoActual.agrupado ? 'agrupado' : 'no_agrupado');
         localStorage.setItem('metodoPagoEditando', movimientoActual.metodo_pago || '');
-        
+
         // Guardar información del cliente si existe
         if (movimientoActual.cliente?.id) {
             localStorage.setItem('clienteIdEditando', movimientoActual.cliente.id);
@@ -221,16 +221,16 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             localStorage.removeItem('clienteIdEditando');
             localStorage.removeItem('clienteNameEditando');
         }
-        
+
         // Guardar productos del movimiento para cargar automáticamente
         const productosMovimiento = movimientoActual.productos?.map(productoMovimiento => {
             let cantidadParaGuardar = productoMovimiento.cantidad;
-            
+
             // Si el movimiento es agrupado, convertir la cantidad a grupos
             if (movimientoActual.agrupado && productoMovimiento.producto?.grup) {
                 cantidadParaGuardar = Math.round(productoMovimiento.cantidad / productoMovimiento.producto.grup);
             }
-            
+
             return {
                 id: productoMovimiento.producto.id,
                 cantidad: cantidadParaGuardar
@@ -244,6 +244,8 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     };
 
 
+
+    if (!movimientoActual) return null;
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -260,27 +262,13 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         </button>
                     </div>
                 </h1>
-                <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
+                <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
                 <ItemView
                     title={movimientoActual?.user?.name || movimientoActual?.personal?.name || 'Usuario desconocido'}
                     description="Responsable del movimiento"
                     transparent={false}
                 />
-                <ItemView
-                    title={movimientoActual?.type === 'entrada' ? 'Entrada' : 'Salida'}
-                    description={`Fecha y hora: ${new Date(movimientoActual?.fecha).toLocaleString()}`}
-                    description2={`Tipo de precio: ${movimientoActual?.precio?.name || 'Precio desconocido'}`}
-                    transparent={false}
-                    circulo={false}
-                    flot6={movimientoActual?.estado === 'anulado' ? 'Anulado' : 'Finalizado'}
-                />
-                <div className={styles.content}>
-                    <Dato
-                        label="Modalidad"
-                        value={movimientoActual?.agrupado ? 'Agrupado' : 'Unidades'}
-                        vertical={false}
-                    />
-                </div>
+                <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
                 {(movimientoActual?.proveedor_id || movimientoActual?.cliente_id) && (
                     <ItemView
                         title={movimientoActual?.type === 'entrada' ? movimientoActual?.proveedor?.name || 'Sin proveedor' : movimientoActual?.cliente?.name || 'Sin cliente'}
@@ -289,6 +277,52 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         transparent={false}
                     />
                 )}
+                <div className={styles.content}>
+                    <Dato
+                        label="Tipo de movimiento"
+                        value={movimientoActual?.type === 'entrada' ? 'Entrada' : 'Salida'}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Fecha y hora"
+                        value={`${new Date(movimientoActual?.fecha).toLocaleString()}`}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Tipo de precio"
+                        value={movimientoActual?.precio?.name || 'Precio desconocido'}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Modalidad"
+                        value={movimientoActual?.agrupado ? 'Agrupado' : 'Unidades'}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Estado"
+                        value={movimientoActual.estado === 'anulado' ? 'Anulado' : 'Finalizado'}
+                        vertical={false}
+                        especial={movimientoActual.estado === 'anulado' ? 'red' : 'blue'}
+                    />
+                    {movimientoActual?.metodo_pago && (
+                        <Dato
+                            label="Método de pago"
+                            value={movimientoActual.metodo_pago}
+                            vertical={false}
+                        />
+                    )}
+
+                    {/* Total calculado para movimientos */}
+                    {movimientoActual?.productos && movimientoActual.productos.length > 0 && (
+                        <Dato
+                            label="Total del Movimiento"
+                            value={`Bs. ${(movimientoActual.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
+                            vertical={false}
+                            especial='green'
+                        />
+                    )}
+                </div>
+
 
                 {/* Botón para ver productos - solo para movimientos con múltiples productos */}
                 {movimientoActual?.productos && movimientoActual.productos.length > 0 && (
@@ -313,32 +347,18 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
 
                 {/* Observaciones del movimiento */}
                 {movimientoActual?.observaciones && (
-                    <div className={styles.content}>
-                        <Dato
-                            label="Observaciones"
-                            value={movimientoActual.observaciones}
-                            vertical={true}
-                        />
-                    </div>
-                )}
-                {movimientoActual?.metodo_pago && (
-                    <Dato
-                        label="Método de pago"
-                        value={movimientoActual.metodo_pago}
-                        vertical={false}
-                    />
+                    <>
+                        <p className={styles.subTitle}>OBSERVACIONES</p>
+                        <div className={styles.content}>
+                            <Dato
+                                label="Observaciones"
+                                value={movimientoActual.observaciones}
+                                vertical={true}
+                            />
+                        </div>
+                    </>
                 )}
 
-
-                {/* Total calculado para movimientos */}
-                {movimientoActual?.productos && movimientoActual.productos.length > 0 && (
-                    <Dato
-                        label="Total del Movimiento"
-                        value={`Bs. ${(movimientoActual.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
-                        vertical={false}
-                        especial='green'
-                    />
-                )}
                 <div className={styles.buttons}>
                     {movimientoActual?.estado === 'anulado' ? (
                         <Boton
@@ -397,10 +417,10 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                     const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
                                     const esAgrupado = movimientoActual?.agrupado && grup > 0;
                                     const precioUnitario = parseFloat(productoMovimiento.precio_unitario) || 0;
-                                    
+
                                     let cantidadTexto;
                                     let precioTexto;
-                                    
+
                                     if (esAgrupado) {
                                         const grupos = Math.floor(cantidad / grup);
                                         const unidades = cantidad % grup;
@@ -411,7 +431,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                         cantidadTexto = `${cantidad} ud`;
                                         precioTexto = `${precioUnitario.toFixed(2)} BOB`;
                                     }
-                                    
+
                                     return (
                                         <ItemView
                                             key={`${productoMovimiento.producto?.id || 'producto'}-${index}`}
@@ -421,14 +441,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                         />
                                     );
                                 })}
-
-                                {/* Total al final de la lista */}
-                                <ItemView
-                                    title={'TOTAL'}
-                                    description={''}
-                                    flot2={`${(movimientoActual.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)} BOB`}
-                                />
-
                             </>
                         )}
                     </div>

@@ -118,25 +118,36 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 />
                 <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
                 <ItemView
-                    title={movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}
-                    description={`Fecha y hora: ${new Date(movimiento?.date).toLocaleString()}`}
-                    transparent={false}
-                    circulo={false}
-                    flot6={movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'}
-                />
-                <ItemView
-                    title={movimiento?.type === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
-                    description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
-                    transparent={false}
-                />
-                <p className={styles.subTitle}>PRODUCTO</p>
-                <ItemView
                     title={movimiento?.product?.name || 'Sin producto'}
                     description={`${movimiento?.quantity || '0'} ${movimiento?.product?.type_measure?.code || ''}`}
                     transparent={false}
                     icon='package'
+                    flot5={movimiento?.estado === 'finalizado' ? 'Finalizado' : ''}
+                    flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
                 />
+                {(movimiento?.cliente_id || movimiento?.proveedor_id) && (
+                    <ItemView
+                        title={movimiento?.type === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
+                        description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
+                        transparent={false}
+                    />
 
+                )}
+                <div className={styles.content}>
+                    <Dato
+                        label="Tipo de movimiento"
+                        value={movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}
+                    />
+                    <Dato
+                        label="Fecha y hora"
+                        value={`${new Date(movimiento?.date).toLocaleString()}`}
+                    />
+                    <Dato
+                        label="Cantidad"
+                        value={`${movimiento?.quantity || 0} ${movimiento?.product?.type_measure?.code || ''}`}
+                    />
+                </div>
+                <p className={styles.subTitle}>OTROS DATOS</p>
                 {/* Mostrar costo solo para movimientos de entrada */}
                 {movimiento?.type === 'entrada' && (
                     <div className={styles.content}>
@@ -145,18 +156,13 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                             value={`Bs. ${(movimiento?.costo || 0).toFixed(2)}`}
                             vertical={false}
                         />
-                    </div>
-                )}
-
-                {/* Mostrar restar_ingredientes para movimientos de entrada */}
-                {movimiento?.type === 'entrada' && (
-                    <div className={styles.content}>
                         <Dato
                             label="Restar Ingredientes"
                             value={movimiento?.restar_ingredientes ? 'Sí' : 'No'}
                             vertical={false}
                         />
                     </div>
+           
                 )}
                 {movimiento?.metodo_pago && (
                     <Dato
