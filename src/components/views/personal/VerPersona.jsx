@@ -16,6 +16,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
     // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
 
     // Estado para la notificación
     const [notification, setNotification] = useState({
@@ -93,6 +94,31 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
         }
     };
 
+    // Función para resetear contraseña
+    const handleResetPassword = async () => {
+        if (!usuario.id) {
+            mostrarNotificacion('error', 'ID del personal no válido');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const response = await personalService.resetPassword(usuario.id);
+
+            if (response.success) {
+                setIsResetPasswordOpen(false);
+                mostrarNotificacion('success', 'Contraseña reseteada correctamente. El empleado deberá establecer una nueva contraseña.');
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al resetear la contraseña');
+            }
+        } catch (error) {
+            console.error('Error al resetear contraseña:', error);
+            mostrarNotificacion('error', 'Error de conexión con el servidor');
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -138,6 +164,11 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 )}
                 <div className={styles.buttons}>
                     <Boton
+                        className='btn-orange'
+                        label='Resetear Contraseña'
+                        onClick={() => setIsResetPasswordOpen(true)}
+                    />
+                    <Boton
                         className='btn-red'
                         label='Eliminar Persona'
                         onClick={() => setIsDeleteOpen(true)}
@@ -182,6 +213,33 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsDeleteOpen(false)}
                         />
+                    </div>
+                </div>
+            </ViewModal>
+
+            {/* Modal de Resetear Contraseña*/}
+            <ViewModal isOpen={isResetPasswordOpen} setIsOpen={setIsResetPasswordOpen}>
+                <HeaderModal
+                    title="Resetear Contraseña"
+                    onClose={() => setIsResetPasswordOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>¿Resetear la contraseña del personal {usuario?.first_name} {usuario?.last_name}? Se borrará la contraseña actual y el empleado podrá establecer una nueva ingresando con su código.</p>
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsResetPasswordOpen(false)}
+                        />
+                        <Boton
+                            className='btn-orange'
+                            label='Si, restablecer'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleResetPassword}
+                            loading={loading}
+                        />
+                        
                     </div>
                 </div>
             </ViewModal>

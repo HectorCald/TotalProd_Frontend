@@ -391,6 +391,40 @@ const personalService = {
                 message: 'Error de conexión con el servidor'
             };
         }
+    },
+
+    // Resetear contraseña de empleado
+    async resetPassword(personalId) {
+        try {
+            if (!personalId) {
+                return {
+                    success: false,
+                    message: 'ID del personal es requerido'
+                };
+            }
+
+            const response = await fetch(`${API_BASE_URL}/personal/${personalId}/reset-password`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return {
+                    success: false,
+                    message: data.message || 'Error del servidor'
+                };
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error en personalService.resetPassword:', error);
+            return {
+                success: false,
+                message: 'Error de conexión con el servidor'
+            };
+        }
     }
 };
 
