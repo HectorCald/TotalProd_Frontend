@@ -1,8 +1,58 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
+import useAutoFitText from '../../hooks/useAutoFitText';
 
 const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo = true, transparent = true, colorIcon = 'default', style = {} }) => {
+  // Hook para ajuste automático de texto
+  const titleContainerRef = useRef(null);
+  const [availableWidth, setAvailableWidth] = useState(200); // Ancho por defecto
+  
+  // Calcular el ancho disponible para el título
+  useEffect(() => {
+    const updateAvailableWidth = () => {
+      if (titleContainerRef.current) {
+        const containerWidth = titleContainerRef.current.offsetWidth;
+        
+        // Calcular el espacio ocupado por elementos flot de forma más precisa
+        let flotSpace = 0;
+        const hasFlots = flot1 || flot2 || flot3 || flot4 || flot5 || flot6;
+        
+        if (hasFlots) {
+          // Contar cuántos elementos flot hay para estimar el espacio
+          const flotCount = [flot1, flot2, flot3, flot4, flot5, flot6].filter(Boolean).length;
+          // Cada elemento flot ocupa aproximadamente 50-60px
+          flotSpace = flotCount * 55;
+        }
+        
+        // Calcular el espacio disponible
+        const availableSpace = containerWidth - flotSpace - 20; // 20px de margen de seguridad
+        
+        // Asegurar un mínimo razonable
+        setAvailableWidth(Math.max(100, availableSpace));
+      }
+    };
+
+    // Delay para asegurar que el layout esté estable
+    const timeoutId = setTimeout(updateAvailableWidth, 50);
+    window.addEventListener('resize', updateAvailableWidth);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', updateAvailableWidth);
+    };
+  }, [flot1, flot2, flot3, flot4, flot5, flot6]);
+
+  // Usar el hook de ajuste automático de texto
+  const { fontSize, textRef } = useAutoFitText(title, availableWidth, 11, 14);
+
+  // Debug temporal - remover después
+  useEffect(() => {
+    if (title && availableWidth > 0) {
+      console.log(`Título: "${title}" | Ancho disponible: ${availableWidth}px | Tamaño fuente: ${fontSize}px`);
+    }
+  }, [title, availableWidth, fontSize]);
+
   // Función para generar iniciales del título
   const generateInitials = (title) => {
     if (!title) return '';
@@ -137,8 +187,14 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
         </div>
       )}
       <div className={styles.itemViewContent}>
-        <div className={styles.titleContainer}>
-          <h1 className={styles.title}>{title}</h1>
+        <div className={styles.titleContainer} ref={titleContainerRef}>
+          <h1 
+            ref={textRef}
+            className={styles.title}
+            style={{ fontSize: `${fontSize}px` }}
+          >
+            {title}
+          </h1>
           <div className={styles.flot}>
             {flot1 ? <p className={styles.flot1}>{flot1}</p> : ''}
             {flot2 ? <p className={styles.flot2}>{flot2}</p> : ''}

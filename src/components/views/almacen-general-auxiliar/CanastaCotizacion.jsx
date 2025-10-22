@@ -549,7 +549,6 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                                 />
 
                                 {/* Fecha de vencimiento de la cotización (opcional) */}
-                                <div className={styles.content} style={{ padding: '5px 15px' }}>
                                     <p className={styles.subTitle}>Fecha de Vencimiento (opcional):</p>
                                     <InputNormal
                                         tipo="date"
@@ -558,7 +557,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                                         icon="calendar"
                                         placeholder="Seleccionar fecha de vencimiento"
                                     />
-                                </div>
+                            
 
                             </>
                         </div>
