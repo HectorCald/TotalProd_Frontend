@@ -89,6 +89,34 @@ function PlanInfo({ isOpen, setIsOpen }) {
         // Usar timeUpdate para forzar re-render
         const _ = timeUpdate;
         
+        // Debug: mostrar valores recibidos
+        console.log('PlanInfo Debug:', {
+            planStartDate,
+            planEndDate,
+            planEndDateType: typeof planEndDate,
+            planEndDateValue: planEndDate
+        });
+        
+        // Verificar si el plan es infinito (sin fecha de fin o fecha muy lejana)
+        const isInfinitePlan = !planEndDate || 
+                              planEndDate === '9999-12-31' || 
+                              planEndDate === '9999-12-31T23:59:59.999Z' ||
+                              planEndDate === null ||
+                              planEndDate === undefined ||
+                              planEndDate === '' ||
+                              new Date(planEndDate).getTime() > new Date('2099-12-31').getTime();
+        
+        console.log('isInfinitePlan:', isInfinitePlan);
+        
+        if (isInfinitePlan) {
+            return (
+                <div className={styles.infinitePlan}>
+                    <div className={styles.infiniteText}>Infinito</div>
+                    <div className={styles.infiniteSubtext}>Sin límite de tiempo</div>
+                </div>
+            );
+        }
+        
         // Calcular tiempo restante para este plan específico
         const now = new Date().getTime();
         const start = new Date(planStartDate).getTime();
@@ -118,6 +146,11 @@ function PlanInfo({ isOpen, setIsOpen }) {
 
     // Función para calcular componentes de tiempo
     const calculateTimeComponents = (milliseconds) => {
+        // Verificar si el valor es válido
+        if (!milliseconds || isNaN(milliseconds) || milliseconds < 0) {
+            return null; // Retornar null para indicar que es infinito
+        }
+        
         const seconds = Math.floor(milliseconds / 1000);
         const minutes = Math.floor(seconds / 60);
         const hours = Math.floor(minutes / 60);
@@ -162,7 +195,14 @@ function PlanInfo({ isOpen, setIsOpen }) {
 
     // Función para renderizar la visualización del tiempo
     const renderTimeDisplay = (timeLeft) => {
-        if (!timeLeft) return null;
+        if (!timeLeft) {
+            return (
+                <div className={styles.infinitePlan}>
+                    <div className={styles.infiniteText}>Infinito</div>
+                    <div className={styles.infiniteSubtext}>Sin límite de tiempo</div>
+                </div>
+            );
+        }
 
         const { months, days, hours, seconds, display } = timeLeft;
 

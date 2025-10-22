@@ -613,7 +613,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                     )}
                     {puedeEntregarPedido() && (
                         <Boton
-                            className='btn-green'
+                            className='btn-default'
                             label='Entregar Pedido'
                             onClick={handleEntregarPedido}
                         />

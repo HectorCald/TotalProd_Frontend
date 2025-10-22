@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -28,6 +28,7 @@ ChartJS.register(
 
 const SalesChart = ({ sucuId }) => {
     const { data: movimientos, loading, error } = useMovimientosData();
+    const [hoveredData, setHoveredData] = useState(null);
 
     // Procesar datos para el gráfico de ventas por mes
     const procesarDatosParaGraficoVentas = (movimientos) => {
@@ -105,6 +106,19 @@ const SalesChart = ({ sucuId }) => {
     const opcionesGrafico = {
         responsive: true,
         maintainAspectRatio: false,
+        onHover: (event, activeElements) => {
+            if (activeElements && activeElements.length > 0) {
+                const dataIndex = activeElements[0].index;
+                const datosHovereado = obtenerDatosMesHovereado(dataIndex);
+                setHoveredData(datosHovereado);
+            } else {
+                setHoveredData(null);
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
         plugins: {
             legend: {
                 display: false
@@ -117,6 +131,7 @@ const SalesChart = ({ sucuId }) => {
                 borderWidth: 1,
                 cornerRadius: 8,
                 displayColors: false,
+                animation: false,
                 callbacks: {
                     title: function(context) {
                         const mesesCompletos = [
@@ -127,7 +142,7 @@ const SalesChart = ({ sucuId }) => {
                         return mesesCompletos[mesIndex];
                     },
                     label: function(context) {
-                        return `Bs. ${context.parsed.y.toLocaleString()}`;
+                        return `Bs. ${context.parsed.y.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     }
                 }
             }
@@ -156,7 +171,7 @@ const SalesChart = ({ sucuId }) => {
                         size: 12
                     },
                     callback: function(value) {
-                        return `Bs. ${value.toLocaleString()}`;
+                        return `Bs. ${value.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     }
                 }
             }
@@ -166,6 +181,76 @@ const SalesChart = ({ sucuId }) => {
                 hoverBackgroundColor: 'rgb(34, 197, 94)'
             }
         }
+    };
+
+    // Calcular total de ventas del mes actual
+    const calcularVentasMesActual = (movimientos) => {
+        if (!movimientos || movimientos.length === 0) {
+            return 0;
+        }
+
+        const ahora = new Date();
+        const añoActual = ahora.getFullYear();
+        const mesActual = ahora.getMonth() + 1;
+
+        let totalVentasMesActual = 0;
+
+        movimientos.forEach(movimiento => {
+            const fechaMovimiento = new Date(movimiento.fecha);
+            const añoMovimiento = fechaMovimiento.getFullYear();
+            const mesMovimiento = fechaMovimiento.getMonth() + 1;
+
+            if (añoMovimiento === añoActual && mesMovimiento === mesActual && movimiento.type === 'salida' && movimiento.estado !== 'anulado') {
+                if (movimiento.productos && movimiento.productos.length > 0) {
+                    const totalVenta = movimiento.productos.reduce((sum, producto) => {
+                        return sum + (producto.cantidad * producto.precio_unitario);
+                    }, 0);
+                    totalVentasMesActual += totalVenta;
+                }
+            }
+        });
+
+        return totalVentasMesActual;
+    };
+
+    // Obtener nombre del mes actual
+    const obtenerMesActual = () => {
+        const ahora = new Date();
+        const meses = [
+            'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+            'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+        ];
+        return meses[ahora.getMonth()];
+    };
+
+    // Obtener datos del mes actual por defecto
+    const obtenerDatosMesActual = () => {
+        const ahora = new Date();
+        const mesActual = ahora.getMonth() + 1;
+        const datosPorMes = procesarDatosParaGraficoVentas(movimientos);
+        const datosMesActual = datosPorMes.find(item => item.mes === mesActual);
+        
+        return {
+            mes: mesActual,
+            ventas: datosMesActual ? datosMesActual.ventas : 0,
+            nombreMes: obtenerMesActual()
+        };
+    };
+
+    // Obtener datos del mes hovereado
+    const obtenerDatosMesHovereado = (mesIndex) => {
+        const meses = [
+            'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+            'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+        ];
+        const datosPorMes = procesarDatosParaGraficoVentas(movimientos);
+        const datosMes = datosPorMes[mesIndex];
+        
+        return {
+            mes: datosMes ? datosMes.mes : mesIndex + 1,
+            ventas: datosMes ? datosMes.ventas : 0,
+            nombreMes: meses[mesIndex]
+        };
     };
 
     // Procesar datos para el gráfico
@@ -178,13 +263,38 @@ const SalesChart = ({ sucuId }) => {
         return configurarGrafico(datosPorMes);
     }, [movimientos]);
 
+    // Calcular total de ventas del mes actual
+    const totalVentasMesActual = React.useMemo(() => {
+        return calcularVentasMesActual(movimientos);
+    }, [movimientos]);
+
+    // Efecto para limpiar el hover cuando el mouse sale del gráfico
+    useEffect(() => {
+        const handleMouseLeave = () => {
+            setHoveredData(null);
+        };
+
+        const chartContainer = document.querySelector(`#ventas-chart-container`);
+        if (chartContainer) {
+            chartContainer.addEventListener('mouseleave', handleMouseLeave);
+            return () => {
+                chartContainer.removeEventListener('mouseleave', handleMouseLeave);
+            };
+        }
+    }, []);
+
+    // Obtener datos a mostrar (hovereado o mes actual)
+    const datosAMostrar = hoveredData || obtenerDatosMesActual();
+
     return (
         <div className={styles.salesCard}>
             <div className={styles.salesCardHeader}>
                 <div className={styles.salesCardTitle}>Ventas</div>
+                <div className={styles.salesCardValue}>Bs. {datosAMostrar.ventas.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                <div className={styles.salesCardMonth}>{datosAMostrar.nombreMes}</div>
             </div>
             
-            <div className={styles.salesCardChart}>
+            <div className={styles.salesCardChart} id="ventas-chart-container">
                 {loading ? (
                     <div className={styles.chartLoading}>
                         <div className={styles.loadingSpinner}></div>

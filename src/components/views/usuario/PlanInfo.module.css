@@ -161,6 +161,31 @@
     border-radius: 10px;
 }
 
+/* Estilos para plan infinito */
+.infinitePlan {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.infiniteText {
+    font-size: 32px;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+}
+
+.infiniteSubtext {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
 .planDescription {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.9);

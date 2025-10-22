@@ -37,11 +37,17 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
     // Callbacks para FetchData
     const handleProveedoresLoaded = useCallback((data) => {
         setProveedores(data || []);
+        setError(null); // Limpiar error cuando se cargan datos exitosamente
     }, []);
 
     const handleLoading = useCallback((isLoading) => {
         setShowRefreshIndicator(isLoading);
         setIsRefreshing(isLoading);
+    }, []);
+
+    // Función para manejar errores de FetchData
+    const handleError = useCallback((error) => {
+        setError(error);
     }, []);
 
     // Limpiar indicador cuando se cierra el modal
@@ -161,10 +167,13 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
             setModalConfig({
                 isOpen: true,
                 type: 'info',
-                title: 'Plan Insuficiente',
+                title: 'Modulo no incluido',
                 description: `${errorMessage}`,
                 showButton: true
             });
+        } else if (!error || error.status !== 403) {
+            // Si no hay error o el error no es 403, cerrar el modal
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
         }
     }, [error, isOpen]);
 
@@ -316,6 +325,7 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                     onDataLoaded={handleProveedoresLoaded}
                     onLoadingStart={() => handleLoading(true)}
                     onLoadingEnd={() => handleLoading(false)}
+                    onError={handleError}
                 />
             )}
 

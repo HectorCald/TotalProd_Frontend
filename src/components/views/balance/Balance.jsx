@@ -276,7 +276,7 @@ const Balance = ({ isOpen, setIsOpen }) => {
           {/* Balance Total */}
           <div className={styles.balanceTotalSimple}>
             <span className={`${styles.balanceTotalTexto} ${balance < 0 ? styles.negativo : ''}`}>
-              Bs. {balance.toFixed(2)}
+              Bs. {balance.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
 
@@ -285,13 +285,13 @@ const Balance = ({ isOpen, setIsOpen }) => {
             {/* Ingresos */}
             <div className={styles.ingresosSimple}>
               <div className={styles.iconoIngresos}>↗ <span className={styles.textoIngresos}>Ingresos</span></div>
-              <div className={styles.valorIngresos}>Bs. {datosBalance.ingresos.total.toFixed(2)}</div>
+              <div className={styles.valorIngresos}>Bs. {datosBalance.ingresos.total.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             </div>
 
             {/* Salidas */}
             <div className={styles.salidasSimple}>
               <div className={styles.iconoSalidas}>↙ <span className={styles.textoSalidas}>Egresos</span></div>
-              <div className={styles.valorSalidas}>-Bs. {datosBalance.salidas.total.toFixed(2)}</div>
+              <div className={styles.valorSalidas}>-Bs. {datosBalance.salidas.total.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             </div>
           </div>
           <span className={styles.verMas} onClick={handleVerMas}>Ver detalles</span>

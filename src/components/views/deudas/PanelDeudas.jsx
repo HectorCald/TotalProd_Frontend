@@ -17,6 +17,7 @@ import Table from '../../common/Table';
 import FetchData from '../../mixed/FetchData';
 import FiltroEstadoDeuda from '../../mixed/FiltroEstadoDeuda';
 import FiltroOrdenamientoDeudas from '../../mixed/FiltroOrdenamientoDeudas';
+import InfoModal from '../../common/InfoModal';
 
 function PanelDeudas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -55,12 +56,18 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     // Callback para manejar las deudas cargadas
     const handleDeudasLoaded = useCallback((data) => {
         setDeudas(data);
+        setError(null); // Limpiar error cuando se cargan datos exitosamente
     }, []);
 
     // Callback para manejar el estado de carga
     const handleLoading = useCallback((isLoading) => {
         setShowRefreshIndicator(isLoading);
         setIsRefreshing(isLoading);
+    }, []);
+
+    // Función para manejar errores de FetchData
+    const handleError = useCallback((error) => {
+        setError(error);
     }, []);
 
     // Acumular datos de todas las páginas cuando llegan nuevas deudas
@@ -217,12 +224,34 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         }
     }, [debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento]);
 
-    // Efecto para manejar errores
+    // Estados y configuraciones para el modal de información
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        type: 'info',
+        title: '',
+        description: '',
+        showButton: false
+    });
+
+    // Manejar error 403 con useEffect para evitar bucle infinito
     useEffect(() => {
-        if (error) {
-            console.error('Error obteniendo deudas:', error);
+        if (error && error.status === 403 && isOpen) {
+            const errorMessage = error.message || 'No tienes acceso a este módulo';
+            const currentPlan = error.currentPlan || 'Plan actual';
+            const requiredModule = error.requiredModule || 'Deudas';
+            
+            setModalConfig({
+                isOpen: true,
+                type: 'info',
+                title: 'Modulo no incluido',
+                description: `${errorMessage}`,
+                showButton: true
+            });
+        } else if (!error || error.status !== 403) {
+            // Si no hay error o el error no es 403, cerrar el modal
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
         }
-    }, [error]);
+    }, [error, isOpen]);
 
     // Función para manejar cuando se elimina una deuda
     const handleDeudaEliminada = (deudaId) => {
@@ -472,8 +501,21 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                     onDataLoaded={handleDeudasLoaded}
                     onLoadingStart={() => handleLoading(true)}
                     onLoadingEnd={() => handleLoading(false)}
+                    onError={handleError}
                 />
             )}
+
+            {/* Modal de Información */}
+            <InfoModal
+                isOpen={modalConfig.isOpen}
+                setIsOpen={(isOpen) => setModalConfig(prev => ({ ...prev, isOpen }))}
+                type={modalConfig.type}
+                title={modalConfig.title}
+                description={modalConfig.description}
+                showButton={modalConfig.showButton}
+                buttonText="Aceptar"
+                onButtonClick={() => setIsOpen(false)}
+            />
 
             {/* Componentes de filtros */}
             <FiltroEstadoDeuda

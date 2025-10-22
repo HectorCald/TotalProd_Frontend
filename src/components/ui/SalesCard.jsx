@@ -28,6 +28,7 @@ ChartJS.register(
 
 const SalesCard = ({ sucuId }) => {
     const { data: movimientos, loading, error } = useMovimientosData();
+    const [hoveredData, setHoveredData] = useState(null);
 
 
     // Procesar datos para el gráfico por mes
@@ -100,6 +101,19 @@ const SalesCard = ({ sucuId }) => {
     const opcionesGrafico = {
         responsive: true,
         maintainAspectRatio: false,
+        onHover: (event, activeElements) => {
+            if (activeElements && activeElements.length > 0) {
+                const dataIndex = activeElements[0].index;
+                const datosHovereado = obtenerDatosMesHovereado(dataIndex);
+                setHoveredData(datosHovereado);
+            } else {
+                setHoveredData(null);
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
         plugins: {
             legend: {
                 display: false
@@ -112,6 +126,7 @@ const SalesCard = ({ sucuId }) => {
                 borderWidth: 1,
                 cornerRadius: 8,
                 displayColors: false,
+                animation: false,
                 callbacks: {
                     title: function(context) {
                         const mesesCompletos = [
@@ -160,6 +175,71 @@ const SalesCard = ({ sucuId }) => {
         }
     };
 
+    // Calcular total del mes actual
+    const calcularTotalMesActual = (movimientos) => {
+        if (!movimientos || movimientos.length === 0) {
+            return 0;
+        }
+
+        const ahora = new Date();
+        const añoActual = ahora.getFullYear();
+        const mesActual = ahora.getMonth() + 1;
+
+        let totalMesActual = 0;
+
+        movimientos.forEach(movimiento => {
+            const fechaMovimiento = new Date(movimiento.fecha);
+            const añoMovimiento = fechaMovimiento.getFullYear();
+            const mesMovimiento = fechaMovimiento.getMonth() + 1;
+
+            if (añoMovimiento === añoActual && mesMovimiento === mesActual) {
+                totalMesActual++;
+            }
+        });
+
+        return totalMesActual;
+    };
+
+    // Obtener nombre del mes actual
+    const obtenerMesActual = () => {
+        const ahora = new Date();
+        const meses = [
+            'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+            'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+        ];
+        return meses[ahora.getMonth()];
+    };
+
+    // Obtener datos del mes actual por defecto
+    const obtenerDatosMesActual = () => {
+        const ahora = new Date();
+        const mesActual = ahora.getMonth() + 1;
+        const datosPorMes = procesarDatosParaGrafico(movimientos);
+        const datosMesActual = datosPorMes.find(item => item.mes === mesActual);
+        
+        return {
+            mes: mesActual,
+            cantidad: datosMesActual ? datosMesActual.cantidad : 0,
+            nombreMes: obtenerMesActual()
+        };
+    };
+
+    // Obtener datos del mes hovereado
+    const obtenerDatosMesHovereado = (mesIndex) => {
+        const meses = [
+            'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+            'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+        ];
+        const datosPorMes = procesarDatosParaGrafico(movimientos);
+        const datosMes = datosPorMes[mesIndex];
+        
+        return {
+            mes: datosMes ? datosMes.mes : mesIndex + 1,
+            cantidad: datosMes ? datosMes.cantidad : 0,
+            nombreMes: meses[mesIndex]
+        };
+    };
+
     // Procesar datos para el gráfico
     const datosGrafico = React.useMemo(() => {
         if (!movimientos || movimientos.length === 0) {
@@ -170,13 +250,38 @@ const SalesCard = ({ sucuId }) => {
         return configurarGrafico(datosPorMes);
     }, [movimientos]);
 
+    // Calcular total del mes actual
+    const totalMesActual = React.useMemo(() => {
+        return calcularTotalMesActual(movimientos);
+    }, [movimientos]);
+
+    // Efecto para limpiar el hover cuando el mouse sale del gráfico
+    useEffect(() => {
+        const handleMouseLeave = () => {
+            setHoveredData(null);
+        };
+
+        const chartContainer = document.querySelector(`#movimientos-chart-container`);
+        if (chartContainer) {
+            chartContainer.addEventListener('mouseleave', handleMouseLeave);
+            return () => {
+                chartContainer.removeEventListener('mouseleave', handleMouseLeave);
+            };
+        }
+    }, []);
+
+    // Obtener datos a mostrar (hovereado o mes actual)
+    const datosAMostrar = hoveredData || obtenerDatosMesActual();
+
     return (
         <div className={styles.salesCard}>
             <div className={styles.salesCardHeader}>
                 <div className={styles.salesCardTitle}>Movimientos</div>
+                <div className={styles.salesCardValue}>{datosAMostrar.cantidad}</div>
+                <div className={styles.salesCardMonth}>{datosAMostrar.nombreMes}</div>
             </div>
             
-            <div className={styles.salesCardChart}>
+            <div className={styles.salesCardChart} id="movimientos-chart-container">
                 {loading ? (
                     <div className={styles.chartLoading}>
                         <div className={styles.loadingSpinner}></div>

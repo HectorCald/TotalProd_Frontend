@@ -47,6 +47,12 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     // Función para manejar cuando se cargan los clientes
     const handleClientesLoaded = useCallback((data) => {
         setClientes(data);
+        setError(null); // Limpiar error cuando se cargan datos exitosamente
+    }, []);
+
+    // Función para manejar errores de FetchData
+    const handleError = useCallback((error) => {
+        setError(error);
     }, []);
 
     
@@ -100,10 +106,13 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
             setModalConfig({
                 isOpen: true,
                 type: 'info',
-                title: 'Plan Insuficiente',
+                title: 'Modulo no incluido',
                 description: `${errorMessage}`,
                 showButton: true
             });
+        } else if (!error || error.status !== 403) {
+            // Si no hay error o el error no es 403, cerrar el modal
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
         }
     }, [error, isOpen]);
 
@@ -336,6 +345,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                     onDataLoaded={handleClientesLoaded}
                     onLoadingStart={() => handleLoading(true)}
                     onLoadingEnd={() => handleLoading(false)}
+                    onError={handleError}
                 />
             )}
         </View>

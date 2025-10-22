@@ -82,12 +82,21 @@ class gastosService {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener los gastos');
+                const error = new Error(data.message || 'Error al obtener los gastos');
+                error.status = response.status;
+                error.code = data.code;
+                error.currentPlan = data.currentPlan;
+                error.requiredModule = data.requiredModule;
+                throw error;
             }
 
             return data;
         } catch (error) {
             console.error('Error obteniendo gastos:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al obtener los gastos'

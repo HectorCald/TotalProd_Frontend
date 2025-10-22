@@ -55,7 +55,7 @@ const VerBalance = ({ isOpen, setIsOpen, datosBalance, gastosData, movimientosAl
   const detallesEgresos = calcularDetallesEgresos();
 
   return (
-    <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
+    <View isOpen={isOpen} setIsOpen={setIsOpen}>
         <HeaderView onBack={() => setIsOpen(false)} />
       <div className={styles.container}>
        <h1 className={styles.title}>
@@ -68,17 +68,17 @@ const VerBalance = ({ isOpen, setIsOpen, datosBalance, gastosData, movimientosAl
          <div className={styles.content}>
            <Dato 
              label="Total Ingresos" 
-             value={`Bs. ${datosBalance.ingresos.total.toFixed(2)}`}
+             value={`Bs. ${datosBalance.ingresos.total.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
              icon="trending-up"
            />
            <Dato 
              label="Total Egresos" 
-             value={`Bs. ${datosBalance.salidas.total.toFixed(2)}`}
+             value={`Bs. ${datosBalance.salidas.total.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
              icon="trending-down"
            />
            <Dato 
              label="Balance" 
-             value={`Bs. ${(datosBalance.ingresos.total - datosBalance.salidas.total).toFixed(2)}`}
+             value={`Bs. ${(datosBalance.ingresos.total - datosBalance.salidas.total).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
              icon="wallet"
              especial={datosBalance.ingresos.total - datosBalance.salidas.total < 0 ? "red" : "green"}
            />
@@ -94,12 +94,12 @@ const VerBalance = ({ isOpen, setIsOpen, datosBalance, gastosData, movimientosAl
             />
             <Dato 
               label="Total Efectivo" 
-              value={`Bs. ${detallesIngresos.totalEfectivo.toFixed(2)}`}
+              value={`Bs. ${detallesIngresos.totalEfectivo.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               icon="money"
             />
             <Dato 
               label="Total Otros" 
-              value={`Bs. ${detallesIngresos.totalOtros.toFixed(2)}`}
+              value={`Bs. ${detallesIngresos.totalOtros.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               icon="credit-card"
             />
           </div>
@@ -116,12 +116,12 @@ const VerBalance = ({ isOpen, setIsOpen, datosBalance, gastosData, movimientosAl
             />
             <Dato 
               label="Total Efectivo" 
-              value={`Bs. ${detallesEgresos.totalEfectivo.toFixed(2)}`}
+              value={`Bs. ${detallesEgresos.totalEfectivo.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               icon="money"
             />
             <Dato 
               label="Total Otros" 
-              value={`Bs. ${detallesEgresos.totalOtros.toFixed(2)}`}
+              value={`Bs. ${detallesEgresos.totalOtros.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               icon="credit-card"
             />
           </div>

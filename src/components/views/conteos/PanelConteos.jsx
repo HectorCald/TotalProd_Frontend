@@ -9,6 +9,7 @@ import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import conteosService from '../../../services/conteosService';
 import VerConteo from './VerConteo';
+import InfoModal from '../../common/InfoModal';
 
 function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     const { isLargeScreen } = useLayout();
@@ -21,6 +22,7 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
 
     const [conteos, setConteos] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -52,11 +54,16 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                 const data = resp.data || [];
                 const filteredByTipo = tipo ? data.filter(c => ((c.tipo || '').toString().trim().toLowerCase() === (tipo || '').toString().trim().toLowerCase())) : data;
                 setConteos(filteredByTipo);
+                setError(null); // Limpiar error cuando se cargan datos exitosamente
             } else {
                 throw new Error(resp.message || 'Error al obtener conteos');
             }
         } catch (e) {
-            mostrarNotificacion('error', e.message || 'Error al obtener conteos');
+            setError(e);
+            // Solo mostrar notificación si NO es un error 403
+            if (e.status !== 403) {
+                mostrarNotificacion('error', e.message || 'Error al obtener conteos');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -125,6 +132,35 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     const [isOpenVerConteo, setIsOpenVerConteo] = useState(false);
     const [selectedConteo, setSelectedConteo] = useState(null);
 
+    // Estados y configuraciones para el modal de información
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        type: 'info',
+        title: '',
+        description: '',
+        showButton: false
+    });
+
+    // Manejar error 403 con useEffect para evitar bucle infinito
+    useEffect(() => {
+        if (error && error.status === 403 && isOpen) {
+            const errorMessage = error.message || 'No tienes acceso a este módulo';
+            const currentPlan = error.currentPlan || 'Plan actual';
+            const requiredModule = error.requiredModule || 'Conteos';
+            
+            setModalConfig({
+                isOpen: true,
+                type: 'info',
+                title: 'Modulo no incluido',
+                description: `${errorMessage}`,
+                showButton: true
+            });
+        } else if (!error || error.status !== 403) {
+            // Si no hay error o el error no es 403, cerrar el modal
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
+        }
+    }, [error, isOpen]);
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
             <HeaderView
@@ -178,6 +214,18 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                 isVisible={notification.isVisible}
                 type={notification.type}
                 text={notification.text}
+            />
+
+            {/* Modal de Información */}
+            <InfoModal
+                isOpen={modalConfig.isOpen}
+                setIsOpen={(isOpen) => setModalConfig(prev => ({ ...prev, isOpen }))}
+                type={modalConfig.type}
+                title={modalConfig.title}
+                description={modalConfig.description}
+                showButton={modalConfig.showButton}
+                buttonText="Aceptar"
+                onButtonClick={() => setIsOpen(false)}
             />
 
             {/* Modal de ver conteo */}

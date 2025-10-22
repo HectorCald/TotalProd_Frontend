@@ -49,6 +49,11 @@ function Sucursales({ isOpen, setIsOpen }) {
         setIsRefreshing(isLoading);
     }, []);
 
+    // Función para manejar errores de FetchData
+    const handleError = useCallback((error) => {
+        setError(error);
+    }, []);
+
 
 
     // Estados para la notificación
@@ -108,19 +113,22 @@ function Sucursales({ isOpen, setIsOpen }) {
         }
     };
 
-    // Efecto para manejar errores
+    // Manejar error 403 con useEffect para evitar bucle infinito
     useEffect(() => {
-        if (error) {
-            console.error('Error obteniendo sucursales:', error);
+        if (error && error.status === 403 && isOpen) {
+            const errorMessage = error.message || 'No tienes acceso a este módulo';
+            const currentPlan = error.currentPlan || 'Plan actual';
+            const requiredModule = error.requiredModule || 'Sucursales';
+            
             setModalConfig({
                 isOpen: true,
-                type: 'error',
-                title: 'Error de Acceso',
-                description: 'No tienes permisos para acceder a esta función.',
+                type: 'info',
+                title: 'Modulo no incluido',
+                description: `${errorMessage}`,
                 showButton: true
             });
         }
-    }, [error]);
+    }, [error, isOpen]);
 
     // Funciones para el buscador expandible
     const handleSearchChange = (value) => {
@@ -290,6 +298,7 @@ function Sucursales({ isOpen, setIsOpen }) {
                     onDataLoaded={handleSucursalesLoaded}
                     onLoadingStart={() => handleLoading(true)}
                     onLoadingEnd={() => handleLoading(false)}
+                    onError={handleError}
                 />
             )}
 

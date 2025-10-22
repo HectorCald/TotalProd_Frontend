@@ -45,6 +45,11 @@ function Precios({ isOpen, setIsOpen }) {
         setIsRefreshing(isLoading);
     }, []);
 
+    // Función para manejar errores de FetchData
+    const handleError = useCallback((error) => {
+        setError(error);
+    }, []);
+
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
         if (!isOpen) {
@@ -140,7 +145,7 @@ function Precios({ isOpen, setIsOpen }) {
             setModalConfig({
                 isOpen: true,
                 type: 'info',
-                title: 'Plan Insuficiente',
+                title: 'Modulo no incluido',
                 description: `${errorMessage}`,
                 showButton: true
             });
@@ -300,6 +305,7 @@ function Precios({ isOpen, setIsOpen }) {
                     onDataLoaded={handlePreciosLoaded}
                     onLoadingStart={() => handleLoading(true)}
                     onLoadingEnd={() => handleLoading(false)}
+                    onError={handleError}
                 />
             )}
 

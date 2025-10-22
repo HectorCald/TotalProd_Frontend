@@ -82,12 +82,21 @@ class deudasService {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener las deudas');
+                const error = new Error(data.message || 'Error al obtener las deudas');
+                error.status = response.status;
+                error.code = data.code;
+                error.currentPlan = data.currentPlan;
+                error.requiredModule = data.requiredModule;
+                throw error;
             }
 
             return data;
         } catch (error) {
             console.error('Error obteniendo deudas:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al obtener las deudas'
@@ -119,12 +128,21 @@ class deudasService {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener las deudas');
+                const error = new Error(data.message || 'Error al obtener las deudas');
+                error.status = response.status;
+                error.code = data.code;
+                error.currentPlan = data.currentPlan;
+                error.requiredModule = data.requiredModule;
+                throw error;
             }
 
             return data;
         } catch (error) {
             console.error('Error obteniendo deudas sin límite:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al obtener las deudas'
@@ -149,6 +167,10 @@ class deudasService {
             return data;
         } catch (error) {
             console.error('Error obteniendo deuda por ID:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al obtener la deuda'
@@ -191,6 +213,10 @@ class deudasService {
             return data;
         } catch (error) {
             console.error('Error creando deuda:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al crear la deuda'
@@ -219,6 +245,10 @@ class deudasService {
             return data;
         } catch (error) {
             console.error('Error actualizando deuda:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al actualizar la deuda'
@@ -243,6 +273,10 @@ class deudasService {
             return data;
         } catch (error) {
             console.error('Error eliminando deuda:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al eliminar la deuda'
@@ -267,6 +301,10 @@ class deudasService {
             return data;
         } catch (error) {
             console.error('Error eliminando deudas por movimiento_salida_id:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al eliminar las deudas asociadas al movimiento'
@@ -299,12 +337,21 @@ class deudasService {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener las deudas');
+                const error = new Error(data.message || 'Error al obtener las deudas');
+                error.status = response.status;
+                error.code = data.code;
+                error.currentPlan = data.currentPlan;
+                error.requiredModule = data.requiredModule;
+                throw error;
             }
 
             return data;
         } catch (error) {
             console.error('Error obteniendo deudas por fechas:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al obtener las deudas'
@@ -338,6 +385,10 @@ class deudasService {
             return data;
         } catch (error) {
             console.error('Error actualizando estado de deuda:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al actualizar el estado de la deuda'
@@ -374,6 +425,10 @@ class deudasService {
             return data;
         } catch (error) {
             console.error('Error obteniendo deudas vencidas:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al obtener las deudas vencidas'

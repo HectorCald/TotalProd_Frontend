@@ -10,6 +10,16 @@ const getAuthHeaders = () => {
   };
 };
 
+// Función helper para obtener empresa_id
+const getEmpresaId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.empresas?.id;
+  }
+  return null;
+};
+
 const getSucuId = () => {
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {
@@ -23,13 +33,20 @@ class conteosService {
   static async create({ tipo, observaciones = null, detalles }) {
     try {
       const sucuId = getSucuId();
+      const empresaId = getEmpresaId();
+      
       if (!sucuId) {
         return { success: false, message: 'No hay sucursal seleccionada' };
+      }
+      
+      if (!empresaId) {
+        return { success: false, message: 'No hay empresa seleccionada' };
       }
 
       const payload = {
         tipo,
         sucursal_id: sucuId,
+        empresa_id: empresaId,
         observaciones: observaciones || null,
         detalles
       };
@@ -53,20 +70,38 @@ class conteosService {
   static async getAll({ tipo = null } = {}) {
     try {
       const sucuId = getSucuId();
+      const empresaId = getEmpresaId();
+      
       if (!sucuId) {
         return { success: false, message: 'No hay sucursal seleccionada' };
       }
-      const params = new URLSearchParams({ sucu_id: sucuId });
+      
+      if (!empresaId) {
+        return { success: false, message: 'No hay empresa seleccionada' };
+      }
+      
+      const params = new URLSearchParams({ sucu_id: sucuId, empresa_id: empresaId });
       if (tipo) params.append('tipo', tipo);
       const resp = await fetch(`${API_BASE_URL}/conteos?${params}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
       const data = await resp.json();
-      if (!resp.ok) throw new Error(data.message || 'Error al obtener conteos');
+      if (!resp.ok) {
+        const error = new Error(data.message || 'Error al obtener conteos');
+        error.status = resp.status;
+        error.code = data.code;
+        error.currentPlan = data.currentPlan;
+        error.requiredModule = data.requiredModule;
+        throw error;
+      }
       return data; // { success, data }
     } catch (error) {
       console.error('Error obteniendo conteos:', error);
+      // Si es un error 403, relanzarlo para que llegue al componente
+      if (error.status === 403) {
+        throw error;
+      }
       return { success: false, message: error.message || 'Error al obtener conteos' };
     }
   }

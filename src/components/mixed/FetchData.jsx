@@ -3,7 +3,7 @@ import React, {useEffect} from 'react';
 // Cache global con expiración de 1 segundo
 const fetchCache = new Map();
 
-function FetchData({ service, method = 'getAll', methodParams = [], isOpen, onDataLoaded, onLoadingStart, onLoadingEnd, serviceName }) {
+function FetchData({ service, method = 'getAll', methodParams = [], isOpen, onDataLoaded, onLoadingStart, onLoadingEnd, onError, serviceName }) {
     const cacheKey = `${serviceName || service.constructor.name}-${method}-${JSON.stringify(methodParams)}`;
 
     useEffect(() => {
@@ -31,6 +31,9 @@ function FetchData({ service, method = 'getAll', methodParams = [], isOpen, onDa
             }
         } catch (error) {
             console.log('❌ Error obteniendo datos:', serviceName || service.constructor.name, error);
+            if (onError) {
+                onError(error);
+            }
         } finally {
             if (onLoadingEnd) onLoadingEnd();
         }

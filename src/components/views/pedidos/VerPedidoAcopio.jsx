@@ -371,6 +371,11 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         }
     };
 
+    // Función para mostrar historial de entregas
+    const handleVerUltimasEntregas = () => {
+        mostrarNotificacion('info', 'El producto no tiene historial de entregas');
+    };
+
     // Efecto para limpiar el producto completo cuando se cierre el modal de movimiento
     useEffect(() => {
         if (!isMovimientoOpen) {
@@ -434,6 +439,11 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                         vertical={false}
                     />
                 </div>
+                <Boton
+                    className='btn-gray'
+                    label='Ultimas entregas'
+                    onClick={handleVerUltimasEntregas}
+                />
                 {/* Mostrar detalles de entrega si el pedido está entregado */}
                 {(pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && (
                     <>
@@ -476,7 +486,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                     )}
                     {puedeEntregarPedidoAcopio() && (
                         <Boton
-                            className='btn-green'
+                            className='btn-default'
                             label='Entregar Pedido'
                             onClick={handleEntregarPedidoAcopio}
                         />

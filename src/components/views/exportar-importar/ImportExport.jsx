@@ -6,6 +6,7 @@ import Boton from '../../common/Boton';
 import Checkbox from '../../common/Checkbox';
 import Notification from '../../common/Notification';
 import Etapa from '../../common/Etapa';
+import InfoModal from '../../common/InfoModal';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import pricesTypesService from '../../../services/pricesTypesService';
 import * as XLSX from 'xlsx';
@@ -21,6 +22,7 @@ function ImportExport({ isOpen, setIsOpen }) {
     const [productos, setProductos] = useState([]);
     const [preciosData, setPreciosData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     // Estados para etapas (siempre visible)
     const [etapaActual, setEtapaActual] = useState(-1); // -1 = ninguna etapa activa
@@ -41,6 +43,32 @@ function ImportExport({ isOpen, setIsOpen }) {
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 3000);
     };
+
+    // Estados y configuraciones para el modal de información
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        type: 'info',
+        title: '',
+        description: '',
+        showButton: false
+    });
+
+    // Manejar error 403 con useEffect para evitar bucle infinito
+    useEffect(() => {
+        if (error && error.status === 403 && isOpen) {
+            const errorMessage = error.message || 'No tienes acceso a este módulo';
+            const currentPlan = error.currentPlan || 'Plan actual';
+            const requiredModule = error.requiredModule || 'Importar/Exportar';
+            
+            setModalConfig({
+                isOpen: true,
+                type: 'info',
+                title: 'Modulo no incluido',
+                description: `${errorMessage}`,
+                showButton: true
+            });
+        }
+    }, [error, isOpen]);
 
     const etapasExportar = [
         { label: 'Preparando datos', icon: 'cog' },
@@ -116,6 +144,7 @@ function ImportExport({ isOpen, setIsOpen }) {
             }
 
         } catch (error) {
+            setError(error);
             mostrarNotificacion('error', `Error al procesar el archivo: ${error.message}`);
             setMostrarEtapas(false);
             setEtapaActual(-1);
@@ -427,6 +456,7 @@ function ImportExport({ isOpen, setIsOpen }) {
 
             mostrarNotificacion('success', 'Archivo exportado correctamente');
         } catch (error) {
+            setError(error);
             mostrarNotificacion('error', 'Error al exportar el archivo');
             setMostrarEtapas(false);
             setEtapaActual(-1);
@@ -545,6 +575,7 @@ function ImportExport({ isOpen, setIsOpen }) {
 
             mostrarNotificacion('success', 'Plantilla descargada correctamente');
         } catch (error) {
+            setError(error);
             mostrarNotificacion('error', 'Error al generar la plantilla');
             setMostrarEtapas(false);
             setEtapaActual(-1);
@@ -630,6 +661,18 @@ function ImportExport({ isOpen, setIsOpen }) {
                 isVisible={notification.isVisible}
                 type={notification.type}
                 text={notification.text}
+            />
+
+            {/* Modal de Información */}
+            <InfoModal
+                isOpen={modalConfig.isOpen}
+                setIsOpen={(isOpen) => setModalConfig(prev => ({ ...prev, isOpen }))}
+                type={modalConfig.type}
+                title={modalConfig.title}
+                description={modalConfig.description}
+                showButton={modalConfig.showButton}
+                buttonText="Aceptar"
+                onButtonClick={() => setIsOpen(false)}
             />
         </ViewModal>
     );
