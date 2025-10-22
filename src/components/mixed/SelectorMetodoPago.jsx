@@ -2,7 +2,7 @@ import React from 'react';
 import Select from '../common/Select';
 import styles from '../views/almacen-general/CanastaMovimientos.module.css';
 
-function SelectorMetodoPago({ value, onChange, disabled = false }) {
+function SelectorMetodoPago({ value, onChange, disabled = false, placeholder = 'Método de pago (obligatorio)' }) {
     // Opciones de métodos de pago
     const metodosPago = [
         { value: 'qr', label: 'QR', icon: 'qr-scan' },
@@ -18,7 +18,7 @@ function SelectorMetodoPago({ value, onChange, disabled = false }) {
                 value={value}
                 onChange={onChange}
                 options={metodosPago}
-                placeholder='Método de pago (obligatorio)'
+                placeholder={placeholder}
                 disabled={disabled}
                 icon='credit-card'
             />

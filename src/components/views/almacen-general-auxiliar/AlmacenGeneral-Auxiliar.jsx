@@ -19,10 +19,15 @@ import FiltroDiferenciaConteo from '../../mixed/FiltroDiferenciaConteo';
 import Boton from '../../common/Boton';
 import Notification from '../../common/Notification';
 import conteosService from '../../../services/conteosService';
+import CanastaCotizacion from './CanastaCotizacion';
+import DescargaCotizacionBuilder from '../cotizaciones/DescargaCotizacionBuilder';
 
 function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
     const { isLargeScreen } = useLayout();
+
+    // Determinar si es modo carrito (para panel lateral)
+    const isCartMode = tipo === 'cotizar' && isLargeScreen;
 
     // Estados para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
@@ -49,6 +54,12 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const [productos, setProductos] = useState([]);
     const [preciosData, setPreciosData] = useState([]);
     const [sucursalesData, setSucursalesData] = useState([]);
+
+    // Estados para canasta de cotizaciones
+    const [productosCanastaCotizaciones, setProductosCanastaCotizaciones] = useState([]);
+    const [isCanastaCotizacionesOpen, setIsCanastaCotizacionesOpen] = useState(false);
+    const [isDescargaCotizacionOpen, setIsDescargaCotizacionOpen] = useState(false);
+    const [cotizacionIdParaDescarga, setCotizacionIdParaDescarga] = useState(null);
 
     // Estados locales para inputs de conteo (solo UI)
     const [stockInputs, setStockInputs] = useState({}); // { [productoId]: number }
@@ -198,8 +209,9 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                 setStockInputsText({});
                 setGroupInputsText({});
             }
+
         }
-    }, [isOpen, tipo, loadFromLocalStorage]);
+    }, [isOpen, tipo, loadFromLocalStorage, isLargeScreen]);
 
     // Efecto para guardar cambios en localStorage (solo en modo conteo)
     useEffect(() => {
@@ -301,7 +313,12 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     ];
 
     // Headers y datos para la tabla
-    const tableHeaders = [
+    const tableHeaders = tipo === 'cotizar' ? [
+        { key: 'name', label: 'Producto', icon: 'package' },
+        { key: 'stock', label: 'Stock', icon: 'bar-chart-alt-2' },
+        { key: 'stock_grup', label: 'Grup', icon: 'package' },
+        { key: 'category_name', label: 'Categoría', icon: 'tag' }
+    ] : [
         { key: 'name', label: 'Producto', icon: 'package' },
         { key: 'codigo_barras', label: 'C. Barras', icon: 'barcode' },
         { key: 'stock', label: 'Stock', icon: 'bar-chart-alt-2' },
@@ -325,6 +342,15 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         return 'igual';
     };
 
+    // Función para obtener el badge
+    const getBadge = (producto) => {
+        if (tipo === 'cotizar') {
+            const cantidadEnCanasta = getCantidadEnCanastaCotizaciones(producto.id);
+            return cantidadEnCanasta > 0 ? cantidadEnCanasta : null;
+        }
+        return null;
+    };
+
     const productosFiltradosPorDiferencia = productosFiltrados.filter(producto => {
         if (tipo !== 'conteo' || filtroDiferencia === 'todos') return true;
         const rawStock = Number(producto.stock || 0);
@@ -338,14 +364,22 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     });
 
     const tableData = productosFiltradosPorDiferencia
-        .map(producto => ({
-        id: producto.id,
-        name: producto.name,
-        codigo_barras: producto.codigo_barras,
-        stock: `${producto.stock} Ud.`,
-        stock_grup: producto.grup ? Math.floor(producto.stock / producto.grup) + ' Ud.' : '--',
-        category_name: producto.category_name,
-    }));
+        .map(producto => {
+            const baseData = {
+                id: producto.id,
+                name: producto.name,
+                stock: `${producto.stock} Ud.`,
+                stock_grup: producto.grup ? Math.floor(producto.stock / producto.grup) + ' Ud.' : '--',
+                category_name: producto.category_name,
+            };
+            
+            // Solo incluir código de barras si no es modo cotizar
+            if (tipo !== 'cotizar') {
+                baseData.codigo_barras = producto.codigo_barras;
+            }
+            
+            return baseData;
+        });
 
     const handleRegistrarConteo = async () => {
         const resultados = productos.map((p) => {
@@ -414,6 +448,77 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 2500);
     };
 
+    // Función para manejar el click en un producto (solo para modo cotizar)
+    const handleProductoClick = (producto) => {
+        if (tipo === 'cotizar') {
+            handleAgregarACanastaCotizaciones(producto);
+        }
+    };
+
+    // Función para agregar producto a la canasta de cotizaciones
+    const handleAgregarACanastaCotizaciones = (producto) => {
+        const productoExistente = productosCanastaCotizaciones.find(p => p.id === producto.id);
+
+        // Obtener el precio correcto según el tipo seleccionado
+        let precioProducto = 0;
+        let precioActual = null;
+
+        // Intentar obtener el precio seleccionado de la canasta de cotizaciones
+        if (window.getPrecioSeleccionadoCanastaCotizaciones) {
+            precioActual = window.getPrecioSeleccionadoCanastaCotizaciones();
+        }
+
+        if (precioActual && producto.price_product && producto.price_product.length > 0) {
+            // Buscar el precio del tipo seleccionado
+            const precioTipo = producto.price_product.find(pp => pp.prices_types?.id === precioActual);
+            precioProducto = precioTipo ? precioTipo.valor : (producto.price_product[0]?.valor || 0);
+        } else {
+            // Si no hay precio seleccionado, usar el primer precio
+            precioProducto = producto.price_product && producto.price_product.length > 0
+                ? producto.price_product[0].valor
+                : 0;
+        }
+
+        if (productoExistente) {
+            // Si ya existe, aumentar la cantidad
+            setProductosCanastaCotizaciones(prev => prev.map(p =>
+                p.id === producto.id
+                    ? { ...p, cantidad: p.cantidad + 1 }
+                    : p
+            ));
+        } else {
+            // Si no existe, agregarlo nuevo con el precio correcto
+            // Obtener el modo de agrupación desde la canasta de cotizaciones
+            let cantidadInicial = 1;
+            let precioFinal = precioProducto;
+            let stockMostrado = producto.stock;
+
+            let modoAgrupacionActual = null;
+            if (window.getModoAgrupacionCanastaCotizaciones) {
+                modoAgrupacionActual = window.getModoAgrupacionCanastaCotizaciones();
+            }
+            
+            if (modoAgrupacionActual === 'agrupado' && producto.grup) {
+                cantidadInicial = 1; // 1 grupo
+                precioFinal = precioProducto * (producto.grup || 1); // precio por grupo
+                stockMostrado = Math.floor((producto.stock || 0) / (producto.grup || 1)); // stock en grupos
+            }
+
+            setProductosCanastaCotizaciones(prev => [...prev, {
+                ...producto,
+                cantidad: cantidadInicial,
+                precio: precioFinal,
+                stock: stockMostrado,
+                stockOriginal: producto.stock
+            }]);
+        }
+    };
+
+    const getCantidadEnCanastaCotizaciones = (productoId) => {
+        const producto = productosCanastaCotizaciones.find(p => p.id === productoId);
+        return producto ? producto.cantidad : 0;
+    };
+
     return (
         <>
             <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!isRepeatingConteo}>
@@ -421,14 +526,15 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                     onBack={() => setIsOpen(false)}
                     showSearch={true}
                     searchPlaceholder="Buscar producto"
-                    title={tipo === 'conteo' ? 'Conteo de Inventario' : 'Almacén'}
+                    title={tipo === 'conteo' ? 'Conteo de Inventario' : tipo === 'cotizar' ? 'Cotizar' : 'Almacén'}
                     searchValue={searchQuery}
                     onSearchChange={handleSearchChange}
                     onSearchClear={handleSearchClear}
                     searchExpanded={isSearchExpanded}
                     onSearchToggle={handleSearchToggle}
+                    withCart={isCartMode && isLargeScreen}
                 />
-                <div className={`${styles.container}`}>
+                <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
                     <div className={styles.titleContainer}>
                         <RefreshIndicator
                             isVisible={showRefreshIndicator}
@@ -436,14 +542,28 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                         />
                     </div>
                     <Filtros options={opciones} />
-                    <div className={styles.content}>
+                    <div className={styles.content}
+                    style={{
+                        maxHeight: (tipo === 'conteo' || tipo === 'cotizar') && isLargeScreen
+                            ? '100%'
+                            : ''
+                    }}>
                         {isLargeScreen ? (
                             <Table
                                 headers={tableHeaders}
                                 data={tableData}
-                                onRowClick={() => {}}
-                                getBadge={() => null}
-                                columnWidths={{
+                                onRowClick={(producto) => {
+                                    // Buscar el producto original sin formatear
+                                    const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
+                                    handleProductoClick(productoOriginal);
+                                }}
+                                getBadge={getBadge}
+                                columnWidths={tipo === 'cotizar' ? {
+                                    name: '40%',
+                                    stock: '20%',
+                                    stock_grup: '20%',
+                                    category_name: '20%'
+                                } : {
                                     name: '25%',
                                     codigo_barras: '15%',
                                     stock: '15%',
@@ -658,10 +778,11 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                             title={producto.name || 'Sin nombre'}
                                             description={producto.description || 'Sin descripción'}
                                             icon="box"
-                                            onClick={() => {}}
+                                            onClick={() => handleProductoClick(producto)}
                                             entrada={false}
                                             entradaData={[]}
                                             flot1={producto.stock + ' Ud.'}
+                                            badge={getBadge(producto)}
                                         />
                                     );
                                 })
@@ -686,6 +807,16 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                             label='Restablecer'
                             onClick={handleRestablecerValores}
                             disabled={isSubmitting}
+                        />
+                    </div>
+                ) : ''}
+                {tipo === 'cotizar' && !isCartMode ? (
+                    <div className={styles.buttonFooter}>
+                        <Boton
+                            className='btn-original'
+                            label={`Canasta (${productosCanastaCotizaciones.length})`}
+                            onClick={() => setIsCanastaCotizacionesOpen(true)}
+                            disabled={productosCanastaCotizaciones.length === 0}
                         />
                     </div>
                 ) : ''}
@@ -719,6 +850,37 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                         />
                     </>
                 )}
+                {/* Canasta de Cotizaciones */}
+                {tipo === 'cotizar' && (
+                    <CanastaCotizacion
+                        isOpen={isCartMode && isLargeScreen ? true : isCanastaCotizacionesOpen}
+                        setIsOpen={setIsCanastaCotizacionesOpen}
+                        productosCanasta={productosCanastaCotizaciones}
+                        setProductosCanasta={setProductosCanastaCotizaciones}
+                        onCerrarCanasta={(cotizacionData) => {
+                            setIsCanastaCotizacionesOpen(false);
+                            const numeroCotizacion = cotizacionData?.numero_cotizacion || '';
+                            const cotizacionId = cotizacionData?.id;
+                            
+                            setNotif({ 
+                                visible: true, 
+                                text: `Cotización #${numeroCotizacion} creada correctamente`, 
+                                type: 'success' 
+                            });
+                            setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 2500);
+                            
+                            // Abrir modal de descarga si hay ID de cotización
+                            if (cotizacionId) {
+                                setCotizacionIdParaDescarga(cotizacionId);
+                                setIsDescargaCotizacionOpen(true);
+                            }
+                        }}
+                        preciosTipos={preciosTipos}
+                        loadingPrecios={false}
+                        productosActualizados={productos}
+                        isCartMode={isCartMode && isLargeScreen}
+                    />
+                )}
             </View>
 
             {/* Filtro de categorías */}
@@ -745,6 +907,13 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                 setIsOpen={setOpenDiferencia}
                 onDiferenciaSeleccionada={(op) => setFiltroDiferencia(op)}
             />
+            {/* Modal de descarga de la cotización generada */}
+            <DescargaCotizacionBuilder
+                isOpen={isDescargaCotizacionOpen}
+                setIsOpen={setIsDescargaCotizacionOpen}
+                cotizacionId={cotizacionIdParaDescarga}
+            />
+
             <Notification type={notif.type} text={notif.text} isVisible={notif.visible} onClose={() => setNotif(prev => ({ ...prev, visible: false }))} />
         </>
     );

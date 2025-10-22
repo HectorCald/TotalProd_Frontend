@@ -13,6 +13,7 @@ import imageImport from '../assets/import-export.png';
 import imageBalance from '../assets/balance.png';
 import imageDamabrava from '../assets/damabrava/damabrava.png';
 import imageConteos from '../assets/conteos.png';
+import imageCotizaciones from '../assets/cotizaciones.png';
 
 export const MODULES = {
     // Módulos principales
@@ -55,6 +56,13 @@ export const MODULES = {
             icon: 'calculator',
             component: 'AlmacenGeneralAuxiliar',
             props: { tipo: 'conteo' }
+        },
+        cotizar: {
+            name: 'Cotizar',
+            description: 'Realizar cotización de productos',
+            icon: 'file',
+            component: 'AlmacenGeneralAuxiliar',
+            props: { tipo: 'cotizar' }
         },
     },
     Acopio: {
@@ -269,6 +277,19 @@ export const MODULES = {
             props: {}
         },
     },
+    Cotizaciones: {
+        name: 'Cotizaciones',
+        imagen: imageCotizaciones,
+        descripcion: 'Administra tus cotizaciones de productos, realiza entradas y salidas.',
+
+        gestionar: {
+            name: 'Cotizaciones',
+            description: 'Administra tus cotizaciones de productos.',
+            icon: 'file',
+            component: 'PanelCotizaciones',
+            props: {}
+        },
+    },
 };
 
 // Cache para evitar recálculos innecesarios
@@ -310,7 +331,8 @@ export const getAvailableMainModules = (employeeModules) => {
                 'Deudas': 'Deudas',
                 'Reportes': 'Reportes',
                 'Balance': 'Balance',
-                'Damabrava': 'Damabrava'
+                'Damabrava': 'Damabrava',
+                'Cotizaciones': 'Cotizaciones'
             };
             
             mainModuleKey = moduleMapping[module.modulos.name];
@@ -358,6 +380,10 @@ export const getAvailableMainModules = (employeeModules) => {
                         'Formulario': 'formulario',
                         'Verificación': 'verificacion', 
                         'Mi Producción': 'mi_produccion'
+                    };
+                } else if (moduleKey === 'Cotizaciones') {
+                    nameMapping = {
+                        'Cotizaciones': 'gestionar'
                     };
                 } else {
                     nameMapping = {
@@ -598,6 +624,19 @@ export const getAvailableModules = (employeeModules) => {
                     component: submodule.component,
                     props: submodule.props,
                     icon: submodule.icon
+                };
+            }
+        }
+        if (module.modulos && module.modulos.name === 'Cotizaciones') {
+            const submodule = MODULES.Cotizaciones[module.name];
+            if (submodule) {
+                return {
+                    ...module,
+                    name: submodule.name,
+                    description: submodule.description,
+                    component: submodule.component,
+                    props: submodule.props,
+                    icon: submodule.image
                 };
             }
         }

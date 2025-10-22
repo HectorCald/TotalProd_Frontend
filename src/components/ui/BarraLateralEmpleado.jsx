@@ -23,6 +23,7 @@ import FormularioProduccion from '../views/damabrava/produccion/FormularioProduc
 import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
 import MiProduccion from '../views/damabrava/produccion/MiProduccion';
 import PanelConteos from '../views/conteos/PanelConteos';
+import PanelCotizaciones from '../views/cotizaciones/PanelCotizaciones';
 
 const BarraLateralEmpleado = ({ 
   onMenuClick, 
@@ -46,16 +47,12 @@ const BarraLateralEmpleado = ({
 
   // Obtener módulos disponibles para el empleado con memoización
   const availableMainModules = useMemo(() => {
-    console.log('🔍 [DEBUG] Employee data:', employee);
-    console.log('🔍 [DEBUG] Employee modules:', employee?.modules);
     const modules = getAvailableMainModules(employee?.modules || []);
-    console.log('🔍 [DEBUG] Available main modules:', modules);
     return modules;
   }, [employee?.modules]);
 
   // Función para mapear módulos a opciones del menú
   const mapModuleToMenuOption = (module) => {
-    console.log('🔍 [DEBUG] Mapping module:', module);
     const iconMap = {
       'Almacen': 'package',
       'Acopio': 'leaf',
@@ -85,7 +82,8 @@ const BarraLateralEmpleado = ({
       'Deudas': 'deudas',
       'Reportes': 'reportes',
       'Balance': 'balance',
-      'Damabrava': 'mi_produccion'
+      'Damabrava': 'mi_produccion',
+      'Cotizaciones': 'cotizaciones'
     };
 
     const propsMap = {
@@ -101,7 +99,8 @@ const BarraLateralEmpleado = ({
       'Deudas': { tipo: 'almacen' },
       'Reportes': { tipo: 'almacen' },
       'Balance': { tipo: 'almacen' },
-      'Damabrava': { tipo: 'almacen' }
+      'Damabrava': { tipo: 'almacen' },
+      'Cotizaciones': { tipo: 'almacen' }
     };
 
     // Si el módulo tiene submodules
@@ -120,6 +119,7 @@ const BarraLateralEmpleado = ({
                 submodule.component === 'AlmacenAcopioAuxiliar' ? 'almacenMedioAuxiliar' :
                 submodule.component === 'Movimientos' ? 'movimientos' :
                 submodule.component === 'PanelConteos' ? 'conteos' :
+                submodule.component === 'PanelCotizaciones' ? 'cotizaciones' :
                 submodule.component === 'Pedidos' ? 'pedidos' :
                 submodule.component === 'Precios' ? 'precios' :
                 submodule.component === 'Clientes' ? 'clientes' :
@@ -131,7 +131,8 @@ const BarraLateralEmpleado = ({
                 submodule.component === 'FormularioProduccion' ? 'formulario' :
                 submodule.component === 'VerificarProduccion' ? 'verificacion' :
                 submodule.component === 'MiProduccion' ? 'mi_produccion' :
-                submodule.component === 'Damabrava' ? 'mi_produccion' : 'verificar_produccion',
+                submodule.component === 'Damabrava' ? 'mi_produccion' :
+                submodule.component === 'PanelCotizaciones' ? 'cotizaciones' : 'verificar_produccion',
           props: submodule.props || propsMap[module.key] || { tipo: 'almacen' }
         };
       } else {
@@ -152,6 +153,7 @@ const BarraLateralEmpleado = ({
                   submodule.component === 'AlmacenAcopioAuxiliar' ? 'almacenMedioAuxiliar' :
                   submodule.component === 'Movimientos' ? 'movimientos' :
                   submodule.component === 'PanelConteos' ? 'conteos' :
+                  submodule.component === 'PanelCotizaciones' ? 'cotizaciones' :
                   submodule.component === 'Pedidos' ? 'pedidos' :
                   submodule.component === 'Clientes' ? 'clientes' :
                   submodule.component === 'Proveedores' ? 'proveedores' :
@@ -261,15 +263,12 @@ const BarraLateralEmpleado = ({
   };
 
   const handleSubmenuClick = (subItem) => {
-    console.log('🔍 [DEBUG] Submenu clicked:', subItem);
-    console.log('🔍 [DEBUG] Submenu props:', subItem.props);
     
     // Marcar como el último elemento clickeado
     setLastClickedItem(subItem);
     
     // Handle different actions
     if (subItem.action === 'openView') {
-      console.log('🔍 [DEBUG] Opening view:', subItem.view, 'with props:', subItem.props);
       handleOpenView(subItem.view, subItem.props);
     }
     
@@ -442,6 +441,12 @@ const BarraLateralEmpleado = ({
         isOpen={activeView === 'conteos'}
         setIsOpen={handleCloseView}
         tipoConteo={viewProps.tipo || 'almacen'}
+        {...viewProps}
+      />
+      
+      <PanelCotizaciones
+        isOpen={activeView === 'cotizaciones'}
+        setIsOpen={handleCloseView}
         {...viewProps}
       />
       

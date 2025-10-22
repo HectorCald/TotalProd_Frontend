@@ -58,7 +58,7 @@ function ModalDescarga({
         if (ver && clienteInfo) {
             // Agregar nombre del cliente y número al final
             const sufijoCliente = ` ${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden}`;
-            
+
             // Solo agregar si no está ya presente
             if (!nombreArchivoState.includes(clienteInfo.nombre)) {
                 setNombreArchivoState(prev => prev + sufijoCliente);
@@ -515,7 +515,7 @@ function ModalDescarga({
                         label="Nombre del archivo"
                         value={nombreArchivoState}
                         onChange={(e) => handleNombreArchivoChange(e.target.value)}
-                        onBlur={() => {}}
+                        onBlur={() => { }}
                         placeholder="Ingresa el nombre del archivo"
                         style={{ width: '300px' }}
                         icon="file"
@@ -524,13 +524,14 @@ function ModalDescarga({
                         label="Título del documento"
                         value={tituloDocumentoState}
                         onChange={(e) => handleTituloDocumentoChange(e.target.value)}
-                        onBlur={() => {}}
+                        onBlur={() => { }}
                         placeholder="Ingresa el título del documento"
                         style={{ width: '300px' }}
                         icon="text"
                     />
-                    <div className={styles.contentModal}>
-                        {clienteInfo && (
+
+                    {clienteInfo && (
+                        <div className={styles.contentModal}>
                             <Switch
                                 title="Ver número"
                                 subtitle={`Incluir nombre del cliente y número de orden (${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden})`}
@@ -538,8 +539,9 @@ function ModalDescarga({
                                 onChange={handleVerNumeroChange}
                                 icon="user"
                             />
-                        )}
-                    </div>
+                        </div>
+                    )}
+
                 </div>
 
                 <div className={styles.buttons}>

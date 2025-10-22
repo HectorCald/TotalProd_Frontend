@@ -30,6 +30,7 @@ import Balance from '../components/views/balance/Balance';
 import Reportes from '../components/views/reportes/Reportes';
 import Deudas from '../components/views/deudas/PanelDeudas';
 import PanelConteos from '../components/views/conteos/PanelConteos';
+import PanelCotizaciones from '../components/views/cotizaciones/PanelCotizaciones';
 
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, refreshEmployeeData } = useEmployee();
@@ -41,15 +42,6 @@ const HomeEmpleado = () => {
     const [selectedModule, setSelectedModule] = useState(null);
     const [currentSubModule, setCurrentSubModule] = useState(null);
     const [isSubModuleOpen, setIsSubModuleOpen] = useState(false);
-
-    // Obtener módulos principales disponibles con memoización
-    const availableMainModules = useMemo(() => {
-        console.log('🔍 [DEBUG] HomeEmpleado - Employee data:', employee);
-        console.log('🔍 [DEBUG] HomeEmpleado - Employee modules:', employee?.modules);
-        const modules = getAvailableMainModules(employee?.modules || []);
-        console.log('🔍 [DEBUG] HomeEmpleado - Available main modules:', modules);
-        return modules;
-    }, [employee?.modules]);
 
     // Mostrar loading hasta que se cargue completamente el empleado con sus módulos
     if (loading || !employee || !employee.modules) {
@@ -92,9 +84,6 @@ const HomeEmpleado = () => {
 
     // Manejar click en submodule
     const handleSubModuleClick = (submodule) => {
-        console.log('🔍 [DEBUG] HomeEmpleado - Submodule clicked:', submodule);
-        console.log('🔍 [DEBUG] HomeEmpleado - Submodule component:', submodule.component);
-        console.log('🔍 [DEBUG] HomeEmpleado - Submodule props:', submodule.props);
         
         if (submodule.component) {
             setCurrentSubModule(submodule);
@@ -110,9 +99,6 @@ const HomeEmpleado = () => {
     // Función para renderizar el componente del submódulo dinámicamente
     const renderSubModuleComponent = () => {
         if (!currentSubModule || !currentSubModule.component || !isSubModuleOpen) return null;
-
-        console.log('🔍 [DEBUG] HomeEmpleado - Rendering component:', currentSubModule.component);
-        console.log('🔍 [DEBUG] HomeEmpleado - With props:', currentSubModule.props);
 
         switch (currentSubModule.component) {
             case 'AlmacenGeneral':
@@ -145,10 +131,12 @@ const HomeEmpleado = () => {
                 return <Reportes isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Deudas':
                 return <Deudas isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
-            case 'Conteos':
+            case 'PanelConteos':
                 return <PanelConteos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoConteo={currentSubModule.props?.tipo || 'almacen'} />;
             case 'MiProduccion':
                 return <MiProduccion isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'PanelCotizaciones':
+                return <PanelCotizaciones isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             default:
                 console.log('⚠️ Componente no encontrado:', currentSubModule.component);
                 return null;

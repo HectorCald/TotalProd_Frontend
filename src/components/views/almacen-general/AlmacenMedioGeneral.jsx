@@ -16,9 +16,9 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
         // Cerrar el modal del medio
         setIsOpen(false);
         // Abrir la vista correcta según el tipo
-        if (tipo === 'conteo') {
+        if (tipo === 'conteo' || tipo === 'cotizar') {
             setIsAlmacenAuxiliarOpen(true);
-            setType('conteo');
+            setType(tipo);
         } else {
             setIsAlmcenOpen(true);
             setType(tipo);
@@ -77,7 +77,13 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
                         arrow={true}
                         onClick={() => handleTypeAlmacen('almacen')}
                     />
-
+                    <ItemView
+                        title='Cotizar'
+                        description='Ver y gestionar cotizaciones de productos'
+                        icon='file'
+                        arrow={true}
+                        onClick={() => handleTypeAlmacen('cotizar')}
+                    />
                 </div>
 
             </ViewModal >

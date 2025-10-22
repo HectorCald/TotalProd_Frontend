@@ -69,6 +69,14 @@ export const MENU_OPTIONS = [
             action: 'openView',
             viewName: 'almacenGeneralAuxiliar',
             props: { tipo: 'conteo' }
+          },
+          {
+            id: 'almacen-cotizar',
+            title: 'Cotizar',
+            icon: 'file',
+            action: 'openView',
+            viewName: 'almacenGeneralAuxiliar',
+            props: { tipo: 'cotizar' }
           }
         ]
       },
@@ -195,6 +203,13 @@ export const MENU_OPTIONS = [
             props: { tipo: 'acopio' }
           }
         ]
+      },
+      {
+        id: 'cotizaciones',
+        title: 'Cotizaciones',
+        icon: 'file',
+        action: 'openView',
+        viewName: 'cotizaciones'
       },
     ]
   },
