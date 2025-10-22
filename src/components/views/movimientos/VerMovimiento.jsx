@@ -426,18 +426,20 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                         const unidades = cantidad % grup;
                                         cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
                                         // Precio unitario multiplicado por la cantidad de agrupación
-                                        precioTexto = `${(precioUnitario * grup).toFixed(2)} BOB`;
+                                        precioTexto = `Bs. ${(precioUnitario * grup).toFixed(2)}`;
                                     } else {
                                         cantidadTexto = `${cantidad} ud`;
-                                        precioTexto = `${precioUnitario.toFixed(2)} BOB`;
+                                        precioTexto = `Bs. ${precioUnitario.toFixed(2)}`;
                                     }
 
                                     return (
                                         <ItemView
                                             key={`${productoMovimiento.producto?.id || 'producto'}-${index}`}
                                             title={productoMovimiento.producto?.name || 'Sin nombre'}
-                                            description={`${cantidadTexto} - ${precioTexto}`}
-                                            flot2={`${(parseFloat(productoMovimiento.subtotal) || 0).toFixed(2)} BOB`}
+                                            description={`Precio Unitario: ${precioTexto}`}
+                                            flot2={cantidadTexto}
+                                            icon='package'
+                                            circulo={false}
                                         />
                                     );
                                 })}

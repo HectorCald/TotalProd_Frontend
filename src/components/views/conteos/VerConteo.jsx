@@ -374,16 +374,27 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                                     title={nombreProducto}
                                     description={isAlmacen
                                         ? (() => {
-                                            if (grup <= 0) return `Sistema: ${sistema} ud • Físico: ${fisico} ud`;
+                                            if (grup <= 0) return `Sistema: ${sistema} ud`;
                                             const sysG = Math.floor(sistema / grup);
                                             const sysU = sistema % grup;
+                                            const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
+                                            return `Sistema: ${sistema} ud • Grup sist.: ${fmt(sysG, sysU)}`;
+                                        })()
+                                        : `Sistema: ${sistema}${medidaCode ? ` ${medidaCode}` : ''}`}
+                                    description2={isAlmacen
+                                        ? (() => {
+                                            if (grup <= 0) return `Físico: ${fisico} ud`;
                                             const fisG = Math.floor(fisico / grup);
                                             const fisU = fisico % grup;
                                             const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
-                                            return `Sistema: ${sistema} ud • Físico: ${fisico} ud • Grup sist.: ${fmt(sysG, sysU)} • Grup fís.: ${fmt(fisG, fisU)}`;
+                                            return `Físico: ${fisico} ud • Grup fís.: ${fmt(fisG, fisU)}`;
                                         })()
-                                        : `Sistema: ${sistema}${medidaCode ? ` ${medidaCode}` : ''} • Físico: ${fisico}${medidaCode ? ` ${medidaCode}` : ''}`}
-                                    description2={!isAlmacen && d.justificacion ? d.justificacion : undefined}
+                                        : (d.justificacion ? d.justificacion : undefined)}
+                                    {...(() => {
+                                        if (fisico === sistema) return { flot1: '=' };
+                                        if (fisico > sistema) return { flot4: '+' };
+                                        return { flot3: '-' };
+                                    })()}
                                     icon='box'
                                 />
                             );

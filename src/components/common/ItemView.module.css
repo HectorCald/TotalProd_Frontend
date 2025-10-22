@@ -12,8 +12,8 @@
 }
 
 .itemViewIcon {
-    min-width: 50px;
-    min-height: 50px;
+    min-width: 40px;
+    min-height: 40px;
     border-radius:50%;
     background-color: var(--secondary-color);
     display: flex;
@@ -22,7 +22,7 @@
     justify-content: center;
 }
 .icon {
-    font-size: 30px !important;
+    font-size: 20px !important;
 }
 
 .iconCustom {
@@ -83,12 +83,13 @@
 .title {
     font-size: 14px;
     font-weight: 500;
-    width: 100%;
-    line-height: 1.2;
     flex: 1;
     min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
+    line-height: 1.2;
+    max-width: 100%;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 .titleContainer {
     display: flex;
@@ -164,11 +165,11 @@
     margin-left: 1px;
 }
 .flot1 {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
     color: var(--info-color);
     background-color: #1f74fe3a;
-    padding: 5px 8px;
+    padding: 5px 7px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -177,11 +178,11 @@
     white-space: nowrap;
 }
 .flot2 {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
     color: var(--warning-color);
     background-color: #fb87133a;
-    padding: 5px 8px;
+    padding: 5px 7px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -190,38 +191,38 @@
     white-space: nowrap;
 }
 .flot3 {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
     color: var(--error-color);
     background-color: #e74c3c3a;
-    padding: 5px 8px;
+    padding: 5px 7px;
     border-radius: 8px;
     white-space: nowrap;
 }
 .flot4 {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
     color: var(--success-color);
     background-color: #2ecc713a;
-    padding: 5px 8px;
+    padding: 5px 7px;
     border-radius: 8px;
     white-space: nowrap;
 }
 .flot5 {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
     color: var(--info-color);
     background-color: #3482ff3a;
-    padding: 5px 8px;
+    padding: 5px 7px;
     border-radius: 8px;
     white-space: nowrap;
 }
 .flot6 {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
     color: gray;
     background-color: #cccccc20;
-    padding: 5px 8px;
+    padding: 5px 7px;
     border-radius: 8px;
     white-space: nowrap;
 }

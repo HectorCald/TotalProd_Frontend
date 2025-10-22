@@ -44,8 +44,8 @@ const useAutoFitText = (text, maxWidth, minFontSize = 10, maxFontSize = 14) => {
       }
 
       // Si el texto es más ancho que el contenedor, necesitamos reducir
-      // Usar un margen de tolerancia más pequeño (2%) para ser más preciso
-      const tolerance = maxWidth * 0.02;
+      // Usar un margen de tolerancia más agresivo (10%) para evitar que se salga
+      const tolerance = maxWidth * 0.10;
       const targetWidth = maxWidth - tolerance;
 
       // Búsqueda binaria para encontrar el tamaño óptimo

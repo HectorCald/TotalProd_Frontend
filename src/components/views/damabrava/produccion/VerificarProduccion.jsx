@@ -488,7 +488,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                                         key={registro.id || index}
                                         title={registro.producto_almacen?.name || 'Sin producto'}
                                         description={`${registro.terminados || '0'} terminados • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
-                                        icon="package"
+                                        icon="file"
                                         onClick={() => handleRegistro(registro)}
                                         arrow={false}
                                         flot1={registro?.estado === 'verificado' ? 'Verificado' : registro?.estado === 'Ingresado' ? 'Ingresado' : ''}  

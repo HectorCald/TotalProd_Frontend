@@ -672,19 +672,20 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                                         const unidades = cantidad % grup;
                                         cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
                                         // Precio unitario multiplicado por la cantidad de agrupación
-                                        precioTexto = `${(precio * grup).toFixed(2)} BOB`;
+                                        precioTexto = `Bs. ${(precio * grup).toFixed(2)}`;
                                     } else {
                                         cantidadTexto = `${cantidad} ud`;
-                                        precioTexto = `${precio.toFixed(2)} BOB`;
+                                        precioTexto = `Bs. ${precio.toFixed(2)}`;
                                     }
 
                                     return (
                                         <ItemView
                                             key={producto.id || index}
                                             title={producto.nombre}
-                                            description={`${cantidadTexto} - ${precioTexto}`}
-                                            flot2={`${(precio * cantidad).toFixed(2)} BOB`}
+                                            description={`Precio Unitario: ${precioTexto}`}
+                                            flot2={cantidadTexto}
                                             icon='package'
+                                            circulo={false}
                                         />
                                     );
                                 })}

@@ -1,57 +1,45 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
-import useAutoFitText from '../../hooks/useAutoFitText';
 
 const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo = true, transparent = true, colorIcon = 'default', style = {} }) => {
-  // Hook para ajuste automático de texto
-  const titleContainerRef = useRef(null);
-  const [availableWidth, setAvailableWidth] = useState(200); // Ancho por defecto
-  
-  // Calcular el ancho disponible para el título
+  const [fontSize, setFontSize] = useState(14);
+  const titleRef = useRef(null);
+  const hasFlots = flot1 || flot2 || flot3 || flot4 || flot5 || flot6;
+
+  // Verificar si el texto se pasa a segunda línea
   useEffect(() => {
-    const updateAvailableWidth = () => {
-      if (titleContainerRef.current) {
-        const containerWidth = titleContainerRef.current.offsetWidth;
-        
-        // Calcular el espacio ocupado por elementos flot de forma más precisa
-        let flotSpace = 0;
-        const hasFlots = flot1 || flot2 || flot3 || flot4 || flot5 || flot6;
-        
-        if (hasFlots) {
-          // Contar cuántos elementos flot hay para estimar el espacio
-          const flotCount = [flot1, flot2, flot3, flot4, flot5, flot6].filter(Boolean).length;
-          // Cada elemento flot ocupa aproximadamente 50-60px
-          flotSpace = flotCount * 55;
-        }
-        
-        // Calcular el espacio disponible
-        const availableSpace = containerWidth - flotSpace - 20; // 20px de margen de seguridad
-        
-        // Asegurar un mínimo razonable
-        setAvailableWidth(Math.max(100, availableSpace));
+    if (!hasFlots || !titleRef.current) {
+      setFontSize(14);
+      return;
+    }
+
+    const checkOverflow = () => {
+      const element = titleRef.current;
+      if (!element) return;
+
+      // Obtener la altura actual del elemento
+      const currentHeight = element.offsetHeight;
+      
+      // Calcular la altura esperada para una línea (aproximadamente 1.2 * fontSize)
+      const expectedSingleLineHeight = 14 * 1.2; // 16.8px aproximadamente
+      
+      // Si la altura actual es significativamente mayor que la esperada, tiene múltiples líneas
+      const hasMultipleLines = currentHeight > expectedSingleLineHeight + 2; // +2px de tolerancia
+      
+      if (hasMultipleLines) {
+        setFontSize(12); // Reducir 2px si tiene múltiples líneas
+      } else {
+        setFontSize(14); // Mantener tamaño normal si es una sola línea
       }
     };
 
-    // Delay para asegurar que el layout esté estable
-    const timeoutId = setTimeout(updateAvailableWidth, 50);
-    window.addEventListener('resize', updateAvailableWidth);
+    // Delay para que el elemento se renderice completamente
+    const timeoutId = setTimeout(checkOverflow, 100);
     
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('resize', updateAvailableWidth);
-    };
-  }, [flot1, flot2, flot3, flot4, flot5, flot6]);
+    return () => clearTimeout(timeoutId);
+  }, [title, hasFlots]);
 
-  // Usar el hook de ajuste automático de texto
-  const { fontSize, textRef } = useAutoFitText(title, availableWidth, 11, 14);
-
-  // Debug temporal - remover después
-  useEffect(() => {
-    if (title && availableWidth > 0) {
-      console.log(`Título: "${title}" | Ancho disponible: ${availableWidth}px | Tamaño fuente: ${fontSize}px`);
-    }
-  }, [title, availableWidth, fontSize]);
 
   // Función para generar iniciales del título
   const generateInitials = (title) => {
@@ -166,7 +154,16 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
   const initialsBackgroundColor = initials ? generateLighterColor(generateColor(initials.charAt(0))) : '';
 
   return (
-    <div className={styles.itemView} onClick={onClick} style={{ backgroundColor: transparent ? 'transparent' : 'var(--tertiary-color)', borderRadius: transparent ? '0' : '20px', ...style }}>
+    <div 
+      className={styles.itemView} 
+      onClick={onClick} 
+      style={{ 
+        backgroundColor: transparent ? 'transparent' : 'var(--tertiary-color)', 
+        borderRadius: transparent ? '0' : '20px',
+        borderLeft: !circulo ? '5px solid var(--primary-color)' : 'none',
+        ...style 
+      }}
+    >
       {circulo && (
         <div className={styles.itemViewIcon} style={{ backgroundColor: icon ? getIconBackgroundColor() : initialsBackgroundColor }}>
           {icon ? (
@@ -187,9 +184,9 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
         </div>
       )}
       <div className={styles.itemViewContent}>
-        <div className={styles.titleContainer} ref={titleContainerRef}>
+        <div className={styles.titleContainer}>
           <h1 
-            ref={textRef}
+            ref={titleRef}
             className={styles.title}
             style={{ fontSize: `${fontSize}px` }}
           >
