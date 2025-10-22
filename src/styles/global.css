@@ -17,7 +17,7 @@
 }
 /* Scrollbar personalizado para pantallas grandes */
 *::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 *::-webkit-scrollbar-track {
@@ -27,6 +27,14 @@
 *::-webkit-scrollbar-thumb {
   background: var(--quinary-color);
   border-radius: 2px;
+  min-height: 20px;
+}
+
+*::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:active {
+  background: var(--senary-color);
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px var(--tertiary-color);
 }
 
 body, html {
