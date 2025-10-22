@@ -42,6 +42,7 @@ function Personal({ isOpen, setIsOpen }) {
     // Callbacks para FetchData
     const handlePersonalLoaded = useCallback((data) => {
         setPersonal(data || []);
+        setError(null); // Limpiar error cuando se cargan datos exitosamente
     }, []);
 
     const handleSucursalesLoaded = useCallback((data) => {
@@ -51,6 +52,11 @@ function Personal({ isOpen, setIsOpen }) {
     const handleLoading = useCallback((isLoading) => {
         setShowRefreshIndicator(isLoading);
         setIsRefreshing(isLoading);
+    }, []);
+
+    // Función para manejar errores de FetchData
+    const handleError = useCallback((error) => {
+        setError(error);
     }, []);
 
     // Limpiar indicador cuando se cierra el modal
@@ -155,19 +161,25 @@ function Personal({ isOpen, setIsOpen }) {
         (persona.codigo && persona.codigo.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    // Efecto para manejar errores de SWR
+    // Manejar error 403 con useEffect para evitar bucle infinito
     useEffect(() => {
-        if (error) {
-            console.error('Error obteniendo personal:', error);
+        if (error && error.status === 403 && isOpen) {
+            const errorMessage = error.message || 'No tienes acceso a este módulo';
+            const currentPlan = error.currentPlan || 'Plan actual';
+            const requiredModule = error.requiredModule || 'Personal';
+            
             setModalConfig({
                 isOpen: true,
-                type: 'error',
-                title: 'Error de Acceso',
-                description: 'No tienes permisos para acceder a esta función.',
+                type: 'info',
+                title: 'Modulo no incluido',
+                description: `${errorMessage}`,
                 showButton: true
             });
+        } else if (!error || error.status !== 403) {
+            // Si no hay error o el error no es 403, cerrar el modal
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
         }
-    }, [error]);
+    }, [error, isOpen]);
 
     // Función para manejar cuando se crea un nuevo personal
     const handlePersonalCreated = (newPersonal) => {
@@ -320,6 +332,7 @@ function Personal({ isOpen, setIsOpen }) {
                     onDataLoaded={handlePersonalLoaded}
                     onLoadingStart={() => handleLoading(true)}
                     onLoadingEnd={() => handleLoading(false)}
+                    onError={handleError}
                 />
             )}
 

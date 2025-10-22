@@ -45,6 +45,16 @@ const personalService = {
             const data = await response.json();
 
             if (!response.ok) {
+                // Si es un error 403, crear un error con toda la información para el modal
+                if (response.status === 403) {
+                    const error = new Error(data.message || 'Error en la petición');
+                    error.status = response.status;
+                    error.code = data.code;
+                    error.currentPlan = data.currentPlan;
+                    error.requiredModule = data.requiredModule;
+                    throw error;
+                }
+                
                 return {
                     success: false,
                     message: data.message || 'Error del servidor'
@@ -54,10 +64,8 @@ const personalService = {
             return data;
         } catch (error) {
             console.error('Error en personalService.getAll:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+            // Re-lanzar el error para que FetchData lo capture correctamente
+            throw error;
         }
     },
 
@@ -121,6 +129,16 @@ const personalService = {
             const data = await response.json();
 
             if (!response.ok) {
+                // Si es un error 403, crear un error con toda la información para el modal
+                if (response.status === 403) {
+                    const error = new Error(data.message || 'Error en la petición');
+                    error.status = response.status;
+                    error.code = data.code;
+                    error.currentPlan = data.currentPlan;
+                    error.requiredModule = data.requiredModule;
+                    throw error;
+                }
+                
                 return {
                     success: false,
                     message: data.message || 'Error del servidor'
@@ -130,10 +148,8 @@ const personalService = {
             return data;
         } catch (error) {
             console.error('Error en personalService.create:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+            // Re-lanzar el error para que el componente lo capture correctamente
+            throw error;
         }
     },
 
