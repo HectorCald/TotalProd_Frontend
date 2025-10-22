@@ -477,7 +477,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 <div
                     className={styles.content}
                     style={{
-                        maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido') && isLargeScreen
+                        maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido')
                             ? '100%'
                             : ''
                     }}
