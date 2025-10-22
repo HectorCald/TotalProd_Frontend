@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -23,6 +23,7 @@ import { useUser } from '../../../context/UserContext';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import DescargaMovimientoBuilder from '../movimientos/DescargaMovimientoBuilder';
+import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 
 function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null }) {
@@ -105,31 +106,33 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     }, [isOpen]);
 
     // Mapear Información
-    const productosMapeados = productos.map(producto => ({
-        // Información básica
-        id: producto.id,
-        name: producto.name || '',
-        codigo_barras: producto.codigo_barras || '',
-        description: producto.description || '',
-        stock: producto.stock || 0,
-        grup: producto.grup || 0,
-        created_at: producto.created_at,
-        empresa_id: producto.empresa_id,
+    const productosMapeados = useMemo(() => {
+        return productos.map(producto => ({
+            // Información básica
+            id: producto.id,
+            name: producto.name || '',
+            codigo_barras: producto.codigo_barras || '',
+            description: producto.description || '',
+            stock: producto.stock || 0,
+            grup: producto.grup || 0,
+            created_at: producto.created_at,
+            empresa_id: producto.empresa_id,
 
-        // Información de categoría
-        category_id: producto.category_id || '',
-        category_name: producto.category_name || 'Sin categoría',
-        category_almacen: producto.category_almacen || null,
+            // Información de categoría
+            category_id: producto.category_id || '',
+            category_name: producto.category_name || 'Sin categoría',
+            category_almacen: producto.category_almacen || null,
 
-        // Información de precios
-        price_product: producto.price_product || [],
+            // Información de precios
+            price_product: producto.price_product || [],
 
-        // Información de recetas
-        recetas: producto.recetas || [],
+            // Información de recetas
+            recetas: producto.recetas || [],
 
-        // Información de sucursales
-        productos_sucursal: producto.productos_sucursal || []
-    }));
+            // Información de sucursales
+            productos_sucursal: producto.productos_sucursal || []
+        }));
+    }, [productos]);
     const preciosTipos = preciosData.map(precio => ({
         value: precio.id,
         label: precio.name,
@@ -203,34 +206,39 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             .trim();
     };
 
-    const productosFiltrados = productosMapeados.filter(producto => {
-        // Filtro de búsqueda normalizado
-        const searchQueryNormalized = normalizeText(searchQuery);
-        const matchesSearch = !searchQuery ||
-            normalizeText(producto.name).includes(searchQueryNormalized) ||
-            (producto.description && normalizeText(producto.description).includes(searchQueryNormalized)) ||
-            (producto.codigo_barras && normalizeText(producto.codigo_barras).includes(searchQueryNormalized));
+    const productosFiltrados = useMemo(() => {
+        return productosMapeados.filter(producto => {
+            // Filtro de búsqueda normalizado
+            const searchQueryNormalized = normalizeText(searchQuery);
+            const matchesSearch = !searchQuery ||
+                normalizeText(producto.name).includes(searchQueryNormalized) ||
+                (producto.description && normalizeText(producto.description).includes(searchQueryNormalized)) ||
+                (producto.codigo_barras && normalizeText(producto.codigo_barras).includes(searchQueryNormalized));
 
-        // Filtro de categoría
-        const matchesCategoria = categoriaFiltro === null ||
-            (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
+            // Filtro de categoría
+            const matchesCategoria = categoriaFiltro === null ||
+                (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
 
-        return matchesSearch && matchesCategoria;
-    }).sort((a, b) => {
-        // Ordenamiento
-        switch (ordenamiento) {
-            case 'nombre_asc':
-                return a.name.localeCompare(b.name);
-            case 'nombre_desc':
-                return b.name.localeCompare(a.name);
-            case 'stock_asc':
-                return (a.stock || 0) - (b.stock || 0);
-            case 'stock_desc':
-                return (b.stock || 0) - (a.stock || 0);
-            default:
-                return a.name.localeCompare(b.name);
-        }
-    });
+            return matchesSearch && matchesCategoria;
+        }).sort((a, b) => {
+            // Ordenamiento
+            switch (ordenamiento) {
+                case 'nombre_asc':
+                    return a.name.localeCompare(b.name);
+                case 'nombre_desc':
+                    return b.name.localeCompare(a.name);
+                case 'stock_asc':
+                    return (a.stock || 0) - (b.stock || 0);
+                case 'stock_desc':
+                    return (b.stock || 0) - (a.stock || 0);
+                default:
+                    return a.name.localeCompare(b.name);
+            }
+        });
+    }, [productosMapeados, searchQuery, categoriaFiltro, ordenamiento]);
+
+    // Paginación virtual - mostrar solo 20 elementos inicialmente
+    const { visibleItems, hasMore, handleScroll } = useVirtualPagination(productosFiltrados, 20);
 
 
 
@@ -695,7 +703,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         { key: 'category_name', label: 'Categoría', icon: 'tag' }
     ];
     // Datos para la tabla
-    const tableData = productosFiltrados.map(producto => {
+    const tableData = visibleItems.map(producto => {
         const baseData = {
             id: producto.id,
             name: producto.name,
@@ -747,11 +755,14 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         />
                     </div>
                     <Filtros options={opciones} />
-                    <div className={styles.content}
+                    <div 
+                        className={styles.content}
+                        onScroll={handleScroll}
                         style={{
                             maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido') && isLargeScreen
                                 ? '100vh'
-                                : ''
+                                : '',
+                            overflowY: 'auto'
                         }}
                     >
                         {isLargeScreen ? (
@@ -765,6 +776,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                     handleRegistro(productoOriginal, tipo);
                                 }}
                                 getBadge={getBadge}
+                                onScroll={handleScroll}
                                 columnWidths={{
                                     name: '25%',
                                     codigo_barras: '15%',
@@ -775,8 +787,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                             />
                         ) : (
                             // Vista de cards para pantallas pequeñas
-                            productosFiltrados.length > 0 ? (
-                                productosFiltrados.map((producto, index) => {
+                            visibleItems.length > 0 ? (
+                                visibleItems.map((producto, index) => {
                                     const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
                                     const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida')
                                         ? getCantidadEnCanastaMovimientos(producto.id, tipo)

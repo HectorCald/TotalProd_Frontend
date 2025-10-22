@@ -225,3 +225,16 @@
     border-radius: 8px;
     white-space: nowrap;
 }
+
+.loadingMore {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: var(--tertiary-color);
+    font-size: 14px;
+    font-weight: 500;
+    background-color: rgba(40, 180, 152, 0.1);
+    border-radius: 8px;
+    margin: 10px 0;
+}

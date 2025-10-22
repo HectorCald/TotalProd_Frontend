@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -21,6 +21,7 @@ import Notification from '../../common/Notification';
 import conteosService from '../../../services/conteosService';
 import CanastaCotizacion from './CanastaCotizacion';
 import DescargaCotizacionBuilder from '../cotizaciones/DescargaCotizacionBuilder';
+import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
@@ -141,22 +142,24 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     }, [isOpen]);
 
     // Mapear Información
-    const productosMapeados = productos.map(producto => ({
-        id: producto.id,
-        name: producto.name || '',
-        codigo_barras: producto.codigo_barras || '',
-        description: producto.description || '',
-        stock: producto.stock || 0,
-        grup: producto.grup || 0,
-        created_at: producto.created_at,
-        empresa_id: producto.empresa_id,
-        category_id: producto.category_id || '',
-        category_name: producto.category_name || 'Sin categoría',
-        category_almacen: producto.category_almacen || null,
-        price_product: producto.price_product || [],
-        recetas: producto.recetas || [],
-        productos_sucursal: producto.productos_sucursal || []
-    }));
+    const productosMapeados = useMemo(() => {
+        return productos.map(producto => ({
+            id: producto.id,
+            name: producto.name || '',
+            codigo_barras: producto.codigo_barras || '',
+            description: producto.description || '',
+            stock: producto.stock || 0,
+            grup: producto.grup || 0,
+            created_at: producto.created_at,
+            empresa_id: producto.empresa_id,
+            category_id: producto.category_id || '',
+            category_name: producto.category_name || 'Sin categoría',
+            category_almacen: producto.category_almacen || null,
+            price_product: producto.price_product || [],
+            recetas: producto.recetas || [],
+            productos_sucursal: producto.productos_sucursal || []
+        }));
+    }, [productos]);
 
     const preciosTipos = preciosData.map(precio => ({
         value: precio.id,
@@ -252,28 +255,30 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         setOrdenamiento(orden);
     };
 
-    const productosFiltrados = productosMapeados.filter(producto => {
-        const matchesSearch = !searchQuery ||
-            producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(searchQuery.toLowerCase()));
-        const matchesCategoria = categoriaFiltro === null ||
-            (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
-        return matchesSearch && matchesCategoria;
-    }).sort((a, b) => {
-        switch (ordenamiento) {
-            case 'nombre_asc':
-                return a.name.localeCompare(b.name);
-            case 'nombre_desc':
-                return b.name.localeCompare(a.name);
-            case 'stock_asc':
-                return (a.stock || 0) - (b.stock || 0);
-            case 'stock_desc':
-                return (b.stock || 0) - (a.stock || 0);
-            default:
-                return a.name.localeCompare(b.name);
-        }
-    });
+    const productosFiltrados = useMemo(() => {
+        return productosMapeados.filter(producto => {
+            const matchesSearch = !searchQuery ||
+                producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(searchQuery.toLowerCase()));
+            const matchesCategoria = categoriaFiltro === null ||
+                (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
+            return matchesSearch && matchesCategoria;
+        }).sort((a, b) => {
+            switch (ordenamiento) {
+                case 'nombre_asc':
+                    return a.name.localeCompare(b.name);
+                case 'nombre_desc':
+                    return b.name.localeCompare(a.name);
+                case 'stock_asc':
+                    return (a.stock || 0) - (b.stock || 0);
+                case 'stock_desc':
+                    return (b.stock || 0) - (a.stock || 0);
+                default:
+                    return a.name.localeCompare(b.name);
+            }
+        });
+    }, [productosMapeados, searchQuery, categoriaFiltro, ordenamiento]);
 
     const getCategoriaNombre = () => {
         if (categoriaFiltro === null) return 'Categorías';
@@ -369,7 +374,10 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         return true;
     });
 
-    const tableData = productosFiltradosPorDiferencia
+    // Paginación virtual - mostrar solo 20 elementos inicialmente
+    const { visibleItems, hasMore, handleScroll } = useVirtualPagination(productosFiltradosPorDiferencia, 20);
+
+    const tableData = visibleItems
         .map(producto => {
             const baseData = {
                 id: producto.id,
@@ -548,12 +556,16 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                         />
                     </div>
                     <Filtros options={opciones} />
-                    <div className={styles.content}
-                    style={{
-                        maxHeight: (tipo === 'conteo' || tipo === 'cotizar') && isLargeScreen
-                            ? '100%'
-                            : ''
-                    }}>
+                    <div 
+                        className={styles.content}
+                        onScroll={handleScroll}
+                        style={{
+                            maxHeight: (tipo === 'conteo' || tipo === 'cotizar') && isLargeScreen
+                                ? '100%'
+                                : '',
+                            overflowY: 'auto'
+                        }}
+                    >
                         {isLargeScreen ? (
                             <Table
                                 headers={tableHeaders}
@@ -564,6 +576,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                     handleProductoClick(productoOriginal);
                                 }}
                                 getBadge={getBadge}
+                                onScroll={handleScroll}
                                 columnWidths={tipo === 'cotizar' ? {
                                     name: '40%',
                                     stock: '20%',
@@ -678,8 +691,8 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                 }}
                             />
                         ) : (
-                            productosFiltradosPorDiferencia.length > 0 ? (
-                                productosFiltradosPorDiferencia.map((producto, index) => {
+                            visibleItems.length > 0 ? (
+                                visibleItems.map((producto, index) => {
                                     if (tipo === 'conteo') {
                                         const rawStock = Number(producto.stock || 0);
                                         const grupVal = Number(producto.grup || 0);
