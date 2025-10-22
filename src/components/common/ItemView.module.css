@@ -169,6 +169,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+    white-space: nowrap;
 }
 .flot2 {
     font-size: 12px;
@@ -181,6 +182,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+    white-space: nowrap;
 }
 .flot3 {
     font-size: 12px;
@@ -189,6 +191,7 @@
     background-color: #e74c3c3a;
     padding: 5px 8px;
     border-radius: 8px;
+    white-space: nowrap;
 }
 .flot4 {
     font-size: 12px;
@@ -197,6 +200,7 @@
     background-color: #2ecc713a;
     padding: 5px 8px;
     border-radius: 8px;
+    white-space: nowrap;
 }
 .flot5 {
     font-size: 12px;
@@ -205,6 +209,7 @@
     background-color: #3482ff3a;
     padding: 5px 8px;
     border-radius: 8px;
+    white-space: nowrap;
 }
 .flot6 {
     font-size: 12px;
@@ -213,4 +218,5 @@
     background-color: #cccccc20;
     padding: 5px 8px;
     border-radius: 8px;
+    white-space: nowrap;
 }

@@ -309,18 +309,32 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         { key: 'saldo_pendiente', label: 'Saldo Pendiente', icon: 'money' }
     ];
 
-    // Función para obtener el color del estado
-    const getEstadoColor = (estado) => {
-        switch (estado) {
-            case 'pendiente':
-                return '#f39c12'; // Naranja
-            case 'pagada':
-                return '#27ae60'; // Verde
-            case 'vencida':
-                return '#e74c3c'; // Rojo
-            default:
-                return '#95a5a6'; // Gris
+    // Función para obtener el badge de estado
+    const getCellBadge = (item, headerKey) => {
+        if (headerKey === 'estado') {
+            const estado = item.estado;
+            const badgeConfig = {
+                'pendiente': {
+                    text: 'Pendiente',
+                    className: 'warning' // naranja
+                },
+                'pagada': {
+                    text: 'Pagada',
+                    className: 'success' // verde
+                },
+                'vencida': {
+                    text: 'Vencida',
+                    className: 'error' // rojo
+                },
+            };
+            
+            return badgeConfig[estado] || {
+                text: estado,
+                className: 'default'
+            };
         }
+        
+        return null;
     };
 
     // Datos para la tabla
@@ -330,15 +344,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         fecha_deuda: new Date(deuda.fecha_deuda).toLocaleDateString(),
         fecha_vencimiento: new Date(deuda.fecha_vencimiento).toLocaleDateString(),
         cliente: deuda.cliente?.name || '--',
-        estado: (
-            <span style={{ 
-                color: getEstadoColor(deuda.estado),
-                fontWeight: 'bold',
-                textTransform: 'capitalize'
-            }}>
-                {deuda.estado}
-            </span>
-        ),
+        estado: deuda.estado,
         monto_total: `Bs. ${(deuda.monto_total || 0).toFixed(2)}`,
         saldo_pendiente: `Bs. ${(deuda.saldo_pendiente || 0).toFixed(2)}`
     }));
@@ -380,6 +386,16 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                 // Buscar la deuda original sin formatear
                                 const deudaOriginal = allDeudas.find(d => d.id === deuda.id);
                                 handleDeuda(deudaOriginal);
+                            }}
+                            getCellBadge={getCellBadge}
+                            columnWidths={{
+                                concepto: '25%',
+                                fecha_deuda: '15%',
+                                fecha_vencimiento: '15%',
+                                cliente: '20%',
+                                estado: '15%',
+                                monto_total: '15%',
+                                saldo_pendiente: '15%'
                             }}
                         />
                     ) : (

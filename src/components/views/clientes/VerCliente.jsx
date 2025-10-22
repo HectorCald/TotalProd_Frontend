@@ -96,6 +96,8 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
     // Función para manejar el click en un movimiento
     const handleMovimientoClick = (movimiento) => {
         setMovimientoSeleccionado(movimiento);
+        // Cerrar el modal de movimientos para que VerMovimiento quede visible al frente
+        setIsMovimientosOpen(false);
         setIsVerMovimientoOpen(true);
     }
 

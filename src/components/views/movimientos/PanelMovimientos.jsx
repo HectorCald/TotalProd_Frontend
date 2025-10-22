@@ -329,6 +329,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         { key: 'tipo', label: 'Tipo', icon: 'transfer' },
         { key: 'cantidad', label: 'Cantidad', icon: 'bar-chart-alt-2' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
+        { key: 'cliente_proveedor', label: tipoMovimiento === 'acopio' ? 'Proveedor' : 'Cliente', icon: 'user' },
         { key: 'estado', label: 'Estado', icon: 'check-circle' }
     ];
 
@@ -351,6 +352,9 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     : `${movimiento.productos.length} productos`
                 : '0 ud',
         fecha: new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString(),
+        cliente_proveedor: tipoMovimiento === 'acopio' 
+            ? (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--'))
+            : (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--')),
         estado: movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'
     }));
 
@@ -439,6 +443,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                             }}
                             getCellBadge={getCellBadge}
                             onScroll={handleScroll}
+                            columnWidths={{
+                                producto: '25%',
+                                tipo: '10%',
+                                cantidad: '10%',
+                                fecha: '10%',
+                                cliente_proveedor: '20%',
+                                estado: '15%'
+                            }}
                         />
                     ) : (
                         // Vista de cards para pantallas pequeñas
@@ -451,7 +463,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                             ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
                                             : movimiento.productos && movimiento.productos.length > 0
                                                 ? movimiento.productos.length === 1
-                                                    ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'} - ${movimiento.productos[0]?.cantidad || '0'} ud`
+                                                    ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
                                                     : `${movimiento.productos.length} productos`
                                                 : 'Sin productos'
                                         }

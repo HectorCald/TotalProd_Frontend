@@ -16,7 +16,7 @@ import { useLayout } from '../../../context/LayoutContext';
 import ModalTable from '../../common/ModalTable';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 
-function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
+function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado, onMovimientoActualizado }) {
     const { isLargeScreen } = useLayout();
     const [loading, setLoading] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
@@ -136,12 +136,24 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     }
                 }
 
-                setIsAnularOpen(false);
-                setIsOpen(false);
+                // Usar la respuesta del servidor que incluye el movimiento actualizado
+                const movimientoActualizado = response.data;
+                
+                // Actualizar el estado local del movimiento
+                setMovimientoActual(movimientoActualizado);
 
+                // Notificar al componente padre del cambio
+                if (onMovimientoActualizado) {
+                    onMovimientoActualizado(movimientoActualizado);
+                }
+
+                // También llamar al callback original para mantener compatibilidad
                 if (onMovimientoAnulado) {
                     onMovimientoAnulado(movimientoActual.id);
                 }
+
+                setIsAnularOpen(false);
+                // NO cerrar VerMovimiento, solo actualizar el estado
                 mostrarNotificacion('success', 'Movimiento anulado correctamente');
             } else {
                 const msg = response.message || 'Error al anular el movimiento';

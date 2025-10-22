@@ -408,15 +408,15 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             const badgeConfig = {
                 'Cernido': {
                     text: 'Cernido',
-                    className: 'info' // azul
+                    className: 'warning' // azul
                 },
                 'Seleccionado': {
                     text: 'Seleccionado',
-                    className: 'info' // verde
+                    className: 'warning' // verde
                 },
                 'Ninguno': {
                     text: 'Ninguno',
-                    className: 'info' // gris
+                    className: 'warning' // gris
                 },
             };
             
@@ -469,6 +469,15 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                             }}
                             getCellBadge={getCellBadge}
                             onScroll={handleScroll}
+                            columnWidths={{
+                                producto: '25%',
+                                responsable: '20%',
+                                lote: '10%',
+                                proceso: '15%',
+                                terminados: '15%',
+                                fecha: '10%',
+                                estado: '15%'
+                            }}
                         />
                     ) : (
                         // Vista de cards para pantallas pequeñas
