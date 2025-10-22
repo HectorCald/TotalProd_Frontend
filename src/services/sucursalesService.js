@@ -21,15 +21,6 @@ const getEmpresaId = () => {
     return null;
 };
 
-// Función helper para obtener sucu_id (id de sucursal actual)
-const getSucuId = () => {
-    const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-    if (sucursalSeleccionada) {
-        const parsed = JSON.parse(sucursalSeleccionada);
-        return parsed.id;
-    }
-    return null;
-};
 
 // Función helper para obtener el id de la sucursal "Casa Matriz" de la empresa
 const getCasaMatrizId = async (empresaId) => {

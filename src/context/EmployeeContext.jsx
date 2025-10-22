@@ -17,17 +17,43 @@ export const EmployeeProvider = ({ children }) => {
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Cargar sucursal seleccionada al inicializar
+  // Cargar datos del empleado y sucursal al inicializar
   useEffect(() => {
-    const sucursalGuardada = localStorage.getItem('sucursalSeleccionada');
-    if (sucursalGuardada) {
-      try {
-        setSucursalSeleccionada(JSON.parse(sucursalGuardada));
-      } catch (error) {
-        console.error('Error al cargar sucursal seleccionada:', error);
-        localStorage.removeItem('sucursalSeleccionada');
+    const cargarDatosIniciales = async () => {
+      // Cargar sucursal seleccionada
+      const sucursalGuardada = localStorage.getItem('sucursalSeleccionada');
+      if (sucursalGuardada) {
+        try {
+          setSucursalSeleccionada(JSON.parse(sucursalGuardada));
+        } catch (error) {
+          console.error('Error al cargar sucursal seleccionada:', error);
+          localStorage.removeItem('sucursalSeleccionada');
+        }
       }
-    }
+
+      // Cargar datos del empleado si existen
+      const employeeData = localStorage.getItem('employeeData');
+      if (employeeData) {
+        try {
+          const parsedEmployeeData = JSON.parse(employeeData);
+          setEmployee(parsedEmployeeData);
+          
+          // Si el empleado tiene sucursal_id, cargar la sucursal
+          if (parsedEmployeeData.personal && parsedEmployeeData.personal.sucursal_id) {
+            const sucursalData = await sucursalesService.getById(parsedEmployeeData.personal.sucursal_id);
+            if (sucursalData.success) {
+              setSucursalSeleccionada(sucursalData.data);
+              localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursalData.data));
+            }
+          }
+        } catch (error) {
+          console.error('Error al cargar datos del empleado:', error);
+          localStorage.removeItem('employeeData');
+        }
+      }
+    };
+
+    cargarDatosIniciales();
   }, []);
 
   // Función para limpiar empleado (logout)
@@ -36,7 +62,7 @@ export const EmployeeProvider = ({ children }) => {
     setSucursalSeleccionada(null);
     
     // Limpiar solo los datos específicos del empleado, no todo el localStorage
-    const keysToRemove = ['employee', 'token', 'sucursalSeleccionada', 'employeeData'];
+    const keysToRemove = ['employee', 'token', 'sucursalSeleccionada', 'employeeData', 'empresa_id'];
     keysToRemove.forEach(key => {
       localStorage.removeItem(key);
     });

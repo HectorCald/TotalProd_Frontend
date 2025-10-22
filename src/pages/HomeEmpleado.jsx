@@ -51,8 +51,9 @@ const HomeEmpleado = () => {
         return modules;
     }, [employee?.modules]);
 
-    if (loading || !employee) {
-        return <LoadingSpinner />;
+    // Mostrar loading hasta que se cargue completamente el empleado con sus módulos
+    if (loading || !employee || !employee.modules) {
+        return <LoadingSpinner fullScreen={true} text="Cargando empleado..." />;
     }
 
     const handleScreenChange = (screenId) => {

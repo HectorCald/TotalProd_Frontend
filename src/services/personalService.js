@@ -24,7 +24,13 @@ const personalService = {
     // Obtener todo el personal de una empresa
     async getAll() {
         try {
-            const empresaId = getEmpresaId();
+            // Primero intentar obtener empresa_id del localStorage (para empleados)
+            let empresaId = localStorage.getItem('empresa_id');
+            
+            // Si no hay empresa_id en localStorage, usar la función getEmpresaId (para usuarios normales)
+            if (!empresaId) {
+                empresaId = getEmpresaId();
+            }
 
             if (!empresaId) {
                 return {
@@ -79,7 +85,14 @@ const personalService = {
                 };
             }
 
-            const response = await fetch(`${API_BASE_URL}/personal/${id}`, {
+            // Obtener empresa_id del localStorage
+            const empresaId = localStorage.getItem('empresa_id');
+            const params = new URLSearchParams();
+            if (empresaId) {
+                params.append('empresa_id', empresaId);
+            }
+
+            const response = await fetch(`${API_BASE_URL}/personal/${id}?${params}`, {
                 method: 'GET',
                 headers: getAuthHeaders()
             });

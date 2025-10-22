@@ -266,6 +266,14 @@ const Login = () => {
     }
 
     const handleEmployeeLoginSuccess = (employeeData) => {
+        // Guardar datos del empleado en localStorage para que el contexto los pueda cargar
+        localStorage.setItem('employeeData', JSON.stringify(employeeData));
+        
+        // Guardar empresa_id por separado para que esté disponible inmediatamente
+        if (employeeData.personal && employeeData.personal.empresa_id) {
+            localStorage.setItem('empresa_id', employeeData.personal.empresa_id);
+        }
+        
         // Redirigir a Home y recargar la página
         window.location.href = '/';
     }
