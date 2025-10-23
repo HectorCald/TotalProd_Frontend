@@ -13,6 +13,7 @@ import Notification from '../../common/Notification';
 import { useLayout } from '../../../context/LayoutContext';
 import ModalTable from '../../common/ModalTable';
 import DescargaCotizacionBuilder from './DescargaCotizacionBuilder';
+import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 
 function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onCotizacionEliminada, onCotizacionActualizada }) {
     const { isLargeScreen } = useLayout();
@@ -21,6 +22,8 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
+    const [isAprobarOpen, setIsAprobarOpen] = useState(false);
+    const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
 
     // Estado local para la cotización actual
     const [cotizacionActual, setCotizacionActual] = useState(cotizacion);
@@ -140,6 +143,72 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
         } finally {
             setLoading(false);
         }
+    };
+
+    // Handle para aprobar cotización
+    const handleAprobar = async () => {
+        setLoading(true);
+        try {
+            const response = await cotizacionesService.aprobar(cotizacionActual.id);
+
+            if (response.success) {
+                // Usar la respuesta del servidor que incluye la cotización actualizada
+                const cotizacionActualizada = response.data;
+
+                // Actualizar el estado local de la cotización
+                setCotizacionActual(cotizacionActualizada);
+
+                // Notificar al componente padre del cambio
+                if (onCotizacionActualizada) {
+                    onCotizacionActualizada(cotizacionActualizada);
+                }
+
+                setIsAprobarOpen(false);
+                mostrarNotificacion('success', 'Cotización aprobada correctamente');
+            } else {
+                const msg = response.message || 'Error al aprobar la cotización';
+                mostrarNotificacion('error', msg);
+            }
+        } catch (error) {
+            console.error('Error aprobando cotización:', error);
+            mostrarNotificacion('error', 'Error al aprobar la cotización');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle para realizar venta
+    const handleRealizarVenta = () => {
+        if (!cotizacionActual?.productos || cotizacionActual.productos.length === 0) {
+            mostrarNotificacion('error', 'No hay productos en la cotización para realizar la venta');
+            return;
+        }
+
+        // Preparar datos de la cotización para la venta
+        const productosParaVenta = cotizacionActual.productos.map(productoCotizacion => ({
+            id: productoCotizacion.producto?.id,
+            name: productoCotizacion.producto?.name,
+            description: productoCotizacion.producto?.description,
+            stock: productoCotizacion.producto?.stock || 0,
+            grup: productoCotizacion.producto?.grup || 0,
+            price_product: productoCotizacion.producto?.price_product || [],
+            cantidad: productoCotizacion.cantidad,
+            precio: productoCotizacion.precio_unitario
+        }));
+
+        // Guardar datos en localStorage para que AlmacenGeneral los cargue
+        localStorage.setItem('productosCotizacionVendiendo', JSON.stringify(productosParaVenta));
+        localStorage.setItem('precioIdCotizacionVendiendo', cotizacionActual.precio_id);
+        localStorage.setItem('cotizacionAgrupadoVendiendo', cotizacionActual.agrupado ? 'agrupado' : 'no_agrupado');
+        
+        // Si hay cliente, guardarlo también
+        if (cotizacionActual.cliente_id) {
+            localStorage.setItem('clienteIdCotizacionVendiendo', cotizacionActual.cliente_id);
+            localStorage.setItem('clienteNameCotizacionVendiendo', cotizacionActual.cliente?.name || 'Cliente');
+        }
+
+        // Abrir AlmacenGeneral en modo salida
+        setIsAlmacenOpen(true);
     };
 
     if (!cotizacionActual) return null;
@@ -265,8 +334,33 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(true)}
                         />
+                    ) : cotizacionActual?.estado === 'aprobada' ? (
+                        <>
+                            <Boton
+                                className='btn-green'
+                                label='Realizar Venta'
+                                style={{ marginTop: 'auto' }}
+                                onClick={handleRealizarVenta}
+                            />
+                            {!cotizacionActual?.tiene_pedido_relacionado && (
+                                <Boton
+                                    className='btn-red'
+                                    label='Anular Cotización'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={() => setIsAnularOpen(true)}
+                                />
+                            )}
+                        </>
                     ) : (
                         <>
+                            {cotizacionActual?.estado === 'pendiente' && (
+                                <Boton
+                                    className='btn-default'
+                                    label='Aprobar Cotización'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={() => setIsAprobarOpen(true)}
+                                />
+                            )}
                             {!cotizacionActual?.tiene_pedido_relacionado && (
                                 <Boton
                                     className='btn-red'
@@ -398,6 +492,35 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 </div>
             </ViewModal>
 
+            {/* Modal de aprobar cotización */}
+            <ViewModal isOpen={isAprobarOpen} setIsOpen={setIsAprobarOpen}>
+                <HeaderModal
+                    title="Aprobar Cotización"
+                    onClose={() => setIsAprobarOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>
+                        ¿Estás seguro que deseas aprobar esta cotización? Una vez aprobada, podrás realizar la venta de manera directa.
+                    </p>
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsAprobarOpen(false)}
+                        />
+                        <Boton
+                            className='btn-green'
+                            label='Sí, aprobar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleAprobar}
+                            loading={loading}
+                        />
+
+                    </div>
+                </div>
+            </ViewModal>
+
             {/* Modal de descarga */}
             <DescargaCotizacionBuilder
                 isOpen={isDescargaOpen}
@@ -410,6 +533,21 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 isVisible={notification.isVisible}
                 type={notification.type}
                 text={notification.text}
+            />
+
+            {/* Modal de AlmacenGeneral para realizar venta */}
+            <AlmacenGeneral
+                isOpen={isAlmacenOpen}
+                setIsOpen={setIsAlmacenOpen}
+                tipo="salida"
+                onCerrarCanasta={() => {
+                    // Limpiar localStorage cuando se cierre
+                    localStorage.removeItem('productosCotizacionVendiendo');
+                    localStorage.removeItem('precioIdCotizacionVendiendo');
+                    localStorage.removeItem('cotizacionAgrupadoVendiendo');
+                    localStorage.removeItem('clienteIdCotizacionVendiendo');
+                    localStorage.removeItem('clienteNameCotizacionVendiendo');
+                }}
             />
         </View>
     );

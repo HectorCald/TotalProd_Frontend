@@ -172,18 +172,16 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         }
     }, [error, isOpen]);
 
-    // Función para manejar cuando se anula una cotización
+    // Función para manejar cuando se anula una cotización (mantener para compatibilidad)
     const handleCotizacionAnulada = (cotizacionId) => {
-        // Actualizar el estado local acumulado
-        setAllCotizaciones(prevCotizaciones => 
-            prevCotizaciones.map(cotizacion => 
-                cotizacion.id === cotizacionId 
-                    ? { ...cotizacion, estado: 'anulado' }
-                    : cotizacion
-            )
-        );
-        
-        mostrarNotificacion('success', 'Cotización anulada correctamente');
+        // Buscar la cotización y actualizarla
+        const cotizacionActualizada = allCotizaciones.find(c => c.id === cotizacionId);
+        if (cotizacionActualizada) {
+            handleCotizacionActualizada({
+                ...cotizacionActualizada,
+                estado: 'anulado'
+            });
+        }
     };
 
     // Función para manejar cuando se elimina una cotización
@@ -194,6 +192,25 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         );
         
         mostrarNotificacion('success', 'Cotización eliminada correctamente');
+    };
+
+    // Función para manejar cuando se actualiza una cotización (anular, aprobar, etc.)
+    const handleCotizacionActualizada = (cotizacionActualizada) => {
+        // Actualizar el estado local acumulado con la cotización actualizada
+        setAllCotizaciones(prevCotizaciones => 
+            prevCotizaciones.map(cotizacion => 
+                cotizacion.id === cotizacionActualizada.id 
+                    ? cotizacionActualizada
+                    : cotizacion
+            )
+        );
+        
+        // Mostrar notificación según el estado
+        if (cotizacionActualizada.estado === 'aprobada') {
+            mostrarNotificacion('success', 'Cotización aprobada correctamente');
+        } else if (cotizacionActualizada.estado === 'anulado') {
+            mostrarNotificacion('success', 'Cotización anulada correctamente');
+        }
     };
 
     // Función para obtener el nombre del filtro de estado
@@ -415,6 +432,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 cotizacion={infoCotizacion}
                 onCotizacionAnulada={handleCotizacionAnulada}
                 onCotizacionEliminada={handleCotizacionEliminada}
+                onCotizacionActualizada={handleCotizacionActualizada}
             />
 
             <Notification

@@ -99,18 +99,42 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         }
                         if (movimiento?.precio?.name) infoSup['Tipo de Precio'] = movimiento.precio.name;
                         if (movimiento?.metodo_pago) infoSup['Método de Pago'] = movimiento.metodo_pago;
+                        if (movimiento?.agrupado !== undefined) infoSup['Modalidad'] = movimiento.agrupado ? 'Agrupado' : 'Unidades';
                         if (movimiento?.productos && movimiento.productos.length > 0) {
                             const total = movimiento.productos.reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
                             infoSup['Total'] = `Bs. ${total.toFixed(2)}`;
                         }
                         if (movimiento?.observaciones) infoSup['Observaciones'] = movimiento.observaciones;
                         const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-                        const valores = (movimiento?.productos || []).map(p => [
-                            p?.producto?.name || 'Sin producto',
-                            p?.cantidad || '0',
-                            `Bs. ${(parseFloat(p?.precio_unitario) || 0).toFixed(2)}`,
-                            `Bs. ${(parseFloat(p?.subtotal) || 0).toFixed(2)}`
-                        ]);
+                        const valores = (movimiento?.productos || []).map(p => {
+                            const cantidad = parseFloat(p?.cantidad) || 0;
+                            const grup = parseFloat(p?.producto?.grup) || 0;
+                            const esAgrupado = movimiento?.agrupado && grup > 0;
+                            const precioUnitario = parseFloat(p?.precio_unitario) || 0;
+
+                            let cantidadTexto;
+                            let precioTexto;
+
+                            if (esAgrupado) {
+                                const grupos = Math.floor(cantidad / grup);
+                                const unidades = cantidad % grup;
+                                // Solo números, sin "grup" ni "ud"
+                                cantidadTexto = unidades > 0 ? `${grupos}.${unidades}` : `${grupos}`;
+                                // Precio unitario multiplicado por la cantidad de agrupación
+                                precioTexto = `Bs. ${(precioUnitario * grup).toFixed(2)}`;
+                            } else {
+                                // Solo números, sin "ud"
+                                cantidadTexto = `${cantidad}`;
+                                precioTexto = `Bs. ${precioUnitario.toFixed(2)}`;
+                            }
+
+                            return [
+                                p?.producto?.name || 'Sin producto',
+                                cantidadTexto,
+                                precioTexto,
+                                `Bs. ${(parseFloat(p?.subtotal) || 0).toFixed(2)}`
+                            ];
+                        });
                         // Fila de total al final
                         const totalFila = (movimiento?.productos || []).reduce((sum, p) => sum + (parseFloat(p?.subtotal) || 0), 0);
                         valores.push(['TOTAL', '', '', `Bs. ${totalFila.toFixed(2)}`]);
@@ -209,6 +233,9 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         if (movimiento?.metodo_pago) {
                             infoSup['Método de Pago'] = movimiento.metodo_pago;
                         }
+                        if (movimiento?.agrupado !== undefined) {
+                            infoSup['Modalidad'] = movimiento.agrupado ? 'Agrupado' : 'Unidades';
+                        }
                         if (movimiento?.productos && movimiento.productos.length > 0) {
                             const total = movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
                             infoSup['Total'] = `Bs. ${total.toFixed(2)}`;
@@ -218,12 +245,35 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         }
 
                         const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-                        const valores = (movimiento?.productos || []).map(producto => [
-                            producto?.producto?.name || 'Sin producto',
-                            producto?.cantidad || '0',
-                            `Bs. ${(parseFloat(producto?.precio_unitario) || 0).toFixed(2)}`,
-                            `Bs. ${(parseFloat(producto?.subtotal) || 0).toFixed(2)}`
-                        ]);
+                        const valores = (movimiento?.productos || []).map(producto => {
+                            const cantidad = parseFloat(producto?.cantidad) || 0;
+                            const grup = parseFloat(producto?.producto?.grup) || 0;
+                            const esAgrupado = movimiento?.agrupado && grup > 0;
+                            const precioUnitario = parseFloat(producto?.precio_unitario) || 0;
+
+                            let cantidadTexto;
+                            let precioTexto;
+
+                            if (esAgrupado) {
+                                const grupos = Math.floor(cantidad / grup);
+                                const unidades = cantidad % grup;
+                                // Solo números, sin "grup" ni "ud"
+                                cantidadTexto = unidades > 0 ? `${grupos}.${unidades}` : `${grupos}`;
+                                // Precio unitario multiplicado por la cantidad de agrupación
+                                precioTexto = `Bs. ${(precioUnitario * grup).toFixed(2)}`;
+                            } else {
+                                // Solo números, sin "ud"
+                                cantidadTexto = `${cantidad}`;
+                                precioTexto = `Bs. ${precioUnitario.toFixed(2)}`;
+                            }
+
+                            return [
+                                producto?.producto?.name || 'Sin producto',
+                                cantidadTexto,
+                                precioTexto,
+                                `Bs. ${(parseFloat(producto?.subtotal) || 0).toFixed(2)}`
+                            ];
+                        });
                         const totalFila = (movimiento?.productos || []).reduce((sum, p) => sum + (parseFloat(p?.subtotal) || 0), 0);
                         valores.push(['TOTAL', '', '', `Bs. ${totalFila.toFixed(2)}`]);
 

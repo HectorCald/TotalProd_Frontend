@@ -189,6 +189,33 @@ class cotizacionesService {
     }
   }
 
+  // Aprobar una cotización
+  static async aprobar(cotizacionId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cotizaciones/${cotizacionId}/aprobar`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al aprobar la cotización');
+      }
+
+      return {
+        success: true,
+        data: data.data
+      };
+    } catch (error) {
+      console.error('Error aprobando cotización:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al aprobar la cotización'
+      };
+    }
+  }
+
   // Eliminar una cotización
   static async eliminar(cotizacionId) {
     try {

@@ -153,6 +153,34 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
     }, [isOpen]);
 
+    // Cargar datos de cotización cuando se está realizando una venta
+    useEffect(() => {
+        if (isOpen && localStorage.getItem('productosCotizacionVendiendo')) {
+            // Cargar precio de la cotización
+            const precioIdCotizacion = localStorage.getItem('precioIdCotizacionVendiendo');
+            if (precioIdCotizacion) {
+                setPrecioSeleccionado(precioIdCotizacion);
+            }
+
+            // Cargar modalidad de la cotización
+            const modalidadCotizacion = localStorage.getItem('cotizacionAgrupadoVendiendo');
+            if (modalidadCotizacion === 'agrupado' || modalidadCotizacion === 'no_agrupado') {
+                setModoAgrupacion(modalidadCotizacion);
+            }
+
+            // Cargar cliente de la cotización
+            const clienteIdCotizacion = localStorage.getItem('clienteIdCotizacionVendiendo');
+            const clienteNameCotizacion = localStorage.getItem('clienteNameCotizacionVendiendo');
+            if (clienteIdCotizacion && clienteNameCotizacion) {
+                setClienteSeleccionadoData({
+                    id: clienteIdCotizacion,
+                    name: clienteNameCotizacion
+                });
+                setClienteSeleccionado(clienteIdCotizacion);
+            }
+        }
+    }, [isOpen]);
+
     // Guardar en localStorage cuando cambie la canasta (solo salidas)
     useEffect(() => {
         if (productosCanasta.length > 0) {

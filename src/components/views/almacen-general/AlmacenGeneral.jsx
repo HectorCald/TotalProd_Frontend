@@ -337,6 +337,36 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }
     }, [isOpen, tipo, productos]);
 
+    // Efecto para cargar productos de cotización automáticamente cuando se está realizando una venta
+    useEffect(() => {
+        if (isOpen && tipo === 'salida' && localStorage.getItem('productosCotizacionVendiendo')) {
+            // Si se está realizando una venta desde una cotización, cargar los productos de la cotización automáticamente
+            if (productos.length > 0) {
+                const productosCotizacion = localStorage.getItem('productosCotizacionVendiendo');
+                if (productosCotizacion) {
+                    try {
+                        const productosParaVender = JSON.parse(productosCotizacion);
+                        // Agregar cada producto a la canasta de salidas con la cantidad específica de la cotización
+                        productosParaVender.forEach(productoCotizacion => {
+                            const productoCompleto = productos.find(p => p.id === productoCotizacion.id);
+                            if (productoCompleto) {
+                                // Usar el precio de la cotización y la cantidad específica
+                                const productoConPrecio = {
+                                    ...productoCompleto,
+                                    precio: productoCotizacion.precio || productoCompleto.precio
+                                };
+                                handleAgregarACanastaMovimientos(productoConPrecio, 'salida', null, productoCotizacion.cantidad);
+                            }
+                        });
+                        // NO limpiar aquí - se limpiará cuando se cierre el modal
+                    } catch (error) {
+                        console.error('Error al cargar productos de la cotización para vender:', error);
+                    }
+                }
+            }
+        }
+    }, [isOpen, tipo, productos]);
+
     // Funciones para el buscador expandible
     const handleSearchChange = (value) => {
         setSearchQuery(value);
@@ -369,6 +399,12 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 localStorage.removeItem('metodoPagoEditando');
                 localStorage.removeItem('clienteIdEditando');
                 localStorage.removeItem('clienteNameEditando');
+                // Limpiar variables de cotización
+                localStorage.removeItem('productosCotizacionVendiendo');
+                localStorage.removeItem('precioIdCotizacionVendiendo');
+                localStorage.removeItem('cotizacionAgrupadoVendiendo');
+                localStorage.removeItem('clienteIdCotizacionVendiendo');
+                localStorage.removeItem('clienteNameCotizacionVendiendo');
             }
         }
     }, [isOpen, tipo]);
