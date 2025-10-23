@@ -206,19 +206,16 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
             }
             if (nuevoModo === 'agrupado' && producto.grup) {
                 const stockEnGrupos = Math.floor(stockOriginalEnUnidades / producto.grup);
-                const cantidadBaseUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
-                const cantidadEnGrupos = Math.max(1, Math.floor(cantidadBaseUnidades / (producto.grup || 1)));
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
                 let precioPorGrupo = precioUnitario * (producto.grup || 1);
                 
                 // Aplicar redondeo al precio por grupo
                 precioPorGrupo = redondearPrecio(precioPorGrupo);
                 
-                return { ...producto, cantidad: cantidadEnGrupos || 1, precio: precioPorGrupo, stock: stockEnGrupos, stockOriginal: stockOriginalEnUnidades };
+                return { ...producto, cantidad: producto.cantidad, precio: precioPorGrupo, stock: stockEnGrupos, stockOriginal: stockOriginalEnUnidades };
             } else {
-                const cantidadEnUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
-                return { ...producto, cantidad: cantidadEnUnidades, precio: precioUnitario, stock: stockOriginalEnUnidades, stockOriginal: stockOriginalEnUnidades };
+                return { ...producto, cantidad: producto.cantidad, precio: precioUnitario, stock: stockOriginalEnUnidades, stockOriginal: stockOriginalEnUnidades };
             }
         }));
     };
