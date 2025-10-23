@@ -14,6 +14,7 @@ import Table from '../../../common/Table';
 import FiltroOrdenamiento from '../../../mixed/FiltroOrdenamiento';
 import FiltroResponsable from '../../../mixed/FiltroResponsable';
 import FiltroEstados from '../../../mixed/FiltroEstados';
+import LoadingSpinner from '../../../common/LoadingSpinner';
 
 function VerificarProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -54,7 +55,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         setError(null);
         
         try {
-            const response = await registrosProduccionDamabravaService.getAll(page, 20, estado, orden, search, responsable);
+            const response = await registrosProduccionDamabravaService.getAll(page, 30, estado, orden, search, responsable);
                 
             if (response.success) {
                 setRegistros(response.data);
@@ -506,9 +507,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
 
                     {/* Indicador de carga para más elementos */}
                     {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más registros...</p>
-                        </div>
+                        <LoadingSpinner />
                     )}
                 </div>
             </div>

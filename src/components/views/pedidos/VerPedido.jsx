@@ -656,39 +656,41 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         {detalles.length > 0 && (
                             <>
                                 <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
-                                {detalles.map((producto, index) => {
-                                    const detalle = pedidoActual.pedido_almacen_detalle[index];
-                                    const productoDetalle = detalle?.producto_almacen || {};
-                                    const cantidad = parseFloat(detalle?.cantidad) || 0;
-                                    const grup = parseFloat(productoDetalle.grup) || 0;
-                                    const esAgrupado = pedidoActual?.agrupado && grup > 0;
-                                    const precio = parseFloat(detalle?.precio) || 0;
+                                {detalles
+                                    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+                                    .map((producto, index) => {
+                                        const detalle = pedidoActual.pedido_almacen_detalle.find(d => d.producto_almacen?.name === producto.nombre);
+                                        const productoDetalle = detalle?.producto_almacen || {};
+                                        const cantidad = parseFloat(detalle?.cantidad) || 0;
+                                        const grup = parseFloat(productoDetalle.grup) || 0;
+                                        const esAgrupado = pedidoActual?.agrupado && grup > 0;
+                                        const precio = parseFloat(detalle?.precio) || 0;
 
-                                    let cantidadTexto;
-                                    let precioTexto;
+                                        let cantidadTexto;
+                                        let precioTexto;
 
-                                    if (esAgrupado) {
-                                        const grupos = Math.floor(cantidad / grup);
-                                        const unidades = cantidad % grup;
-                                        cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                                        // Precio unitario multiplicado por la cantidad de agrupación
-                                        precioTexto = `Bs. ${(precio * grup).toFixed(2)}`;
-                                    } else {
-                                        cantidadTexto = `${cantidad} ud`;
-                                        precioTexto = `Bs. ${precio.toFixed(2)}`;
-                                    }
+                                        if (esAgrupado) {
+                                            const grupos = Math.floor(cantidad / grup);
+                                            const unidades = cantidad % grup;
+                                            cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+                                            // Precio unitario multiplicado por la cantidad de agrupación
+                                            precioTexto = `Bs. ${(precio * grup).toFixed(2)}`;
+                                        } else {
+                                            cantidadTexto = `${cantidad} ud`;
+                                            precioTexto = `Bs. ${precio.toFixed(2)}`;
+                                        }
 
-                                    return (
-                                        <ItemView
-                                            key={producto.id || index}
-                                            title={producto.nombre}
-                                            description={`Precio Unitario: ${precioTexto}`}
-                                            flot2={cantidadTexto}
-                                            icon='package'
-                                            circulo={false}
-                                        />
-                                    );
-                                })}
+                                        return (
+                                            <ItemView
+                                                key={producto.id || index}
+                                                title={producto.nombre}
+                                                description={`Precio Unitario: ${precioTexto}`}
+                                                flot2={cantidadTexto}
+                                                icon='package'
+                                                circulo={false}
+                                            />
+                                        );
+                                    })}
                             </>
                         )}
                     </div>

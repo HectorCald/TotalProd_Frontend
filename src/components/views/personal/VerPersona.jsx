@@ -9,6 +9,7 @@ import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import Notification from '../../common/Notification';
 import personalService from '../../../services/personalService';
+import NoData from '../../common/NoData';
 
 
 function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated, sucursales = [] }) {
@@ -266,9 +267,13 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                             </div>
                         </>
                     ) : (
-                        <div className={styles.noData}>
-                            <p>No hay módulos asignados</p>
-                        </div>
+                        <NoData 
+                            icon="grid-alt"
+                            title="Sin módulos"
+                            detail="Este usuario no tiene módulos asignados aún"
+                            transparent={false}
+                            minHeight="150px"
+                        />
                     )}
                 </div>
             </ViewModal>
@@ -307,9 +312,13 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                             </div>
                         </>
                     ) : (
-                        <div className={styles.noData}>
-                            <p>No hay permisos configurados</p>
-                        </div>
+                        <NoData 
+                            icon="shield"
+                            title="Sin permisos"
+                            detail="Este usuario no tiene permisos configurados aún"
+                            transparent={false}
+                            minHeight="150px"
+                        />
                     )}
                 </div>
             </ViewModal>

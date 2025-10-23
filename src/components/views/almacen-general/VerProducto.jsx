@@ -13,6 +13,7 @@ import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import FetchData from '../../mixed/FetchData';
+import NoData from '../../common/NoData';
 function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductDeleted, preciosTipos = [], loadingPrecios = false }) {
 
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -309,9 +310,13 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 />
                 <div className={styles.modalContent}>
                     {loadingMovimientosList ? (
-                        <div className={styles.noData}>
-                            <p>Cargando movimientos...</p>
-                        </div>
+                        <NoData 
+                            icon="loader-alt"
+                            title="Cargando movimientos..."
+                            detail="Obteniendo el historial completo de movimientos del producto"
+                            transparent={true}
+                            minHeight="150px"
+                        />
                     ) : movimientos.length > 0 ? (
                         <>
                             <p className={styles.subTitle}>HISTORIAL DE MOVIMIENTOS</p>
@@ -348,9 +353,13 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                             ))}
                         </>
                     ) : (
-                        <div className={styles.noData}>
-                            <p>No hay movimientos registrados</p>
-                        </div>
+                        <NoData 
+                            icon="history"
+                            title="No hay movimientos"
+                            detail="Este producto no tiene historial de movimientos registrado aún"
+                            transparent={false}
+                            minHeight="150px"
+                        />
                     )}
                 </div>
             </ViewModal>
@@ -374,9 +383,13 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                             ))}
                         </div>
                     ) : (
-                        <div className={styles.noData}>
-                            <p>No hay precios configurados para este producto</p>
-                        </div>
+                        <NoData 
+                            icon="dollar"
+                            title="No hay precios"
+                            detail="Este producto no tiene precios configurados. Configura los precios para poder vender este producto"
+                            transparent={false}
+                            minHeight="150px"
+                        />
                     )}
                 </div>
             </ViewModal>

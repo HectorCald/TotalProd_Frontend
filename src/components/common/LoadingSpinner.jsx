@@ -1,14 +1,25 @@
 import React from 'react';
+import { BoxIcon } from 'boxicons-react';
 import styles from './LoadingSpinner.module.css';
 
 const LoadingSpinner = ({ 
     text = null,
-    fullScreen = false
+    fullScreen = false,
+    icon = null
 }) => {
     if (fullScreen) {
         return (
             <div className={styles.fullScreenContainer}>
-                <div className={styles.spinner}></div>
+                {icon && (
+                    <div className={styles.iconContainer}>
+                        <BoxIcon name={icon} className={styles.icon} />
+                    </div>
+                )}
+                <div className={styles.dots}>
+                    <div className={styles.dot}></div>
+                    <div className={styles.dot}></div>
+                    <div className={styles.dot}></div>
+                </div>
                 {text && <p className={styles.text}>{text}</p>}
             </div>
         );
@@ -16,7 +27,16 @@ const LoadingSpinner = ({
 
     return (
         <div className={styles.container}>
-            <div className={styles.spinner}></div>
+            {icon && (
+                <div className={styles.iconContainer}>
+                    <BoxIcon name={icon} className={styles.icon} />
+                </div>
+            )}
+            <div className={styles.dots}>
+                <div className={styles.dot}></div>
+                <div className={styles.dot}></div>
+                <div className={styles.dot}></div>
+            </div>
             {text && <p className={styles.text}>{text}</p>}
         </div>
     );

@@ -14,9 +14,20 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
+import NoData from '../../common/NoData';
 import FiltroTipoMovimiento from '../../mixed/FiltroTipoMovimiento';
 import FiltroEstadoMovimiento from '../../mixed/FiltroEstadoMovimiento';
+import LoadingSpinner from '../../common/LoadingSpinner';
 
+// Función helper para normalizar texto (quitar acentos)
+const normalizeText = (text) => {
+    if (!text) return '';
+    return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+        .trim();
+};
 
 function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const { isLargeScreen } = useLayout();
@@ -57,10 +68,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setIsLoading(true);
         setError(null);
         
+        // Normalizar el texto de búsqueda (quitar acentos)
+        const normalizedSearch = normalizeText(search);
+        
+        
         try {
             const response = tipoMovimiento === 'acopio' 
-                ? await movimientosAcopioService.getAll(page, 20, filtro, estado, orden, null, search)
-                : await movimientosAlmacenService.getAll(page, 20, filtro, estado, orden, null, search);
+                ? await movimientosAcopioService.getAll(page, 30, filtro, estado, orden, null, normalizedSearch)
+                : await movimientosAlmacenService.getAll(page, 30, filtro, estado, orden, null, normalizedSearch);
                 
             if (response.success) {
                 const newData = response.data || [];
@@ -122,12 +137,12 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     }, [isOpen]);
 
-    // Cargar movimientos cuando cambian los parámetros
+    // Cargar movimientos cuando cambia la página (para paginación)
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && currentPage > 1) {
             cargarMovimientos(currentPage, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
         }
-    }, [currentPage, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento]);
+    }, [currentPage]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -167,30 +182,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setIsOpenVerMovimiento(true);
     };
 
-    // Función para manejar refresh con indicador
-    const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
-        // Limpiar estado acumulado y resetear página
-        setAllMovimientos([]);
-        setCurrentPage(1);
-        
-        try {
-            await cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
-    };
 
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
@@ -244,6 +235,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         if (isOpen) {
             setAllMovimientos([]);
             setCurrentPage(1);
+            // Cargar movimientos inmediatamente después de limpiar
+            cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
         }
     }, [debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento]);
 
@@ -478,17 +471,19 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                 );
                             })
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron movimientos' : 'No hay movimientos registrados'}</p>
-                            </div>
+                            <NoData 
+                                icon="transfer"
+                                title={searchQuery ? 'Sin resultados' : 'No hay movimientos'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los movimientos que necesitas' : 'Realiza movimientos de inventario para comenzar a gestionar tu stock'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
 
                     {/* Indicador de carga para más elementos */}
                     {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más movimientos...</p>
-                        </div>
+                        <LoadingSpinner />
                     )}
                 </div>
             </div>

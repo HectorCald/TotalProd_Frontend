@@ -12,6 +12,7 @@ import pricesTypesService from '../../../services/pricesTypesService';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import Notification from '../../common/Notification';
 import FetchData from '../../mixed/FetchData';
+import NoData from '../../common/NoData';
 
 function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated }) {
     const [isEditarOpen, setIsEditarOpen] = useState(false);
@@ -168,9 +169,13 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                 />
                 <div className={styles.modalContent}>
                     {loadingProducts ? (
-                        <div className={styles.noData}>
-                            <p>Cargando productos...</p>
-                        </div>
+                        <NoData 
+                            icon="loader-alt"
+                            title="Cargando productos..."
+                            detail="Obteniendo productos con este tipo de precio"
+                            transparent={true}
+                            minHeight="150px"
+                        />
                     ) : products.length > 0 ? (
                         <>
                             <p className={styles.subTitle}>PRODUCTOS CON ESTE TIPO DE PRECIO</p>
@@ -193,9 +198,13 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                             })}
                         </>
                     ) : (
-                        <div className={styles.noData}>
-                            <p>No hay productos con este tipo de precio</p>
-                        </div>
+                        <NoData 
+                            icon="box"
+                            title="Sin productos"
+                            detail="No hay productos con este tipo de precio configurado"
+                            transparent={false}
+                            minHeight="150px"
+                        />
                     )}
                 </div>
             </ViewModal>

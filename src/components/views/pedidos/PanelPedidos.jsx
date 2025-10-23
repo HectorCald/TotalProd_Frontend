@@ -15,9 +15,11 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
+import NoData from '../../common/NoData';
 import FiltroEstadoPedido from '../../mixed/FiltroEstadoPedido';
 import Select from '../../common/Select';
 import HistorialWhatsapp from './HistorialWhatsapp';
+import LoadingSpinner from '../../common/LoadingSpinner';
 
 function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const { isLargeScreen } = useLayout();
@@ -73,8 +75,8 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         
         try {
             const response = tipoPedido === 'acopio' 
-                ? await pedidosAcopioService.getAll(page, 20, search, estado, orden)
-                : await pedidosAlmacenService.getAll(page, 20, search, estado, orden);
+                ? await pedidosAcopioService.getAll(page, 30, search, estado, orden)
+                : await pedidosAlmacenService.getAll(page, 30, search, estado, orden);
                 
             if (response.success) {
                 const newData = response.data || [];
@@ -504,17 +506,19 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                 );
                             })
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron pedidos' : 'No hay pedidos registrados'}</p>
-                            </div>
+                            <NoData 
+                                icon="shopping-bag"
+                                title={searchQuery ? 'Sin resultados' : 'No hay pedidos'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los pedidos que necesitas' : 'Crea pedidos para comenzar a gestionar tus ventas'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
 
                     {/* Indicador de carga para más elementos */}
                     {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más pedidos...</p>
-                        </div>
+                        <LoadingSpinner />
                     )}
                 </div>
             </div>

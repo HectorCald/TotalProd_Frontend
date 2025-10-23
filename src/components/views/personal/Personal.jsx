@@ -15,6 +15,7 @@ import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
+import NoData from '../../common/NoData';
 
 
 function Personal({ isOpen, setIsOpen }) {
@@ -280,9 +281,13 @@ function Personal({ isOpen, setIsOpen }) {
                                 />
                             ))
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontró personal' : 'No hay personal registrado'}</p>
-                            </div>
+                            <NoData 
+                                icon="user-check"
+                                title={searchQuery ? 'Sin resultados' : 'No hay personal'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar el personal que necesitas' : 'Registra personal para comenzar a gestionar tu equipo de trabajo'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
                 </div>

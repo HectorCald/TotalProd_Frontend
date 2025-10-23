@@ -412,37 +412,39 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                             <>
                                 <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
 
-                                {movimientoActual.productos.map((productoMovimiento, index) => {
-                                    const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
-                                    const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
-                                    const esAgrupado = movimientoActual?.agrupado && grup > 0;
-                                    const precioUnitario = parseFloat(productoMovimiento.precio_unitario) || 0;
+                                {movimientoActual.productos
+                                    .sort((a, b) => (a.producto?.name || '').localeCompare(b.producto?.name || ''))
+                                    .map((productoMovimiento, index) => {
+                                        const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
+                                        const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
+                                        const esAgrupado = movimientoActual?.agrupado && grup > 0;
+                                        const precioUnitario = parseFloat(productoMovimiento.precio_unitario) || 0;
 
-                                    let cantidadTexto;
-                                    let precioTexto;
+                                        let cantidadTexto;
+                                        let precioTexto;
 
-                                    if (esAgrupado) {
-                                        const grupos = Math.floor(cantidad / grup);
-                                        const unidades = cantidad % grup;
-                                        cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                                        // Precio unitario multiplicado por la cantidad de agrupación
-                                        precioTexto = `Bs. ${(precioUnitario * grup).toFixed(2)}`;
-                                    } else {
-                                        cantidadTexto = `${cantidad} ud`;
-                                        precioTexto = `Bs. ${precioUnitario.toFixed(2)}`;
-                                    }
+                                        if (esAgrupado) {
+                                            const grupos = Math.floor(cantidad / grup);
+                                            const unidades = cantidad % grup;
+                                            cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+                                            // Precio unitario multiplicado por la cantidad de agrupación
+                                            precioTexto = `Bs. ${(precioUnitario * grup).toFixed(2)}`;
+                                        } else {
+                                            cantidadTexto = `${cantidad} ud`;
+                                            precioTexto = `Bs. ${precioUnitario.toFixed(2)}`;
+                                        }
 
-                                    return (
-                                        <ItemView
-                                            key={`${productoMovimiento.producto?.id || 'producto'}-${index}`}
-                                            title={productoMovimiento.producto?.name || 'Sin nombre'}
-                                            description={`Precio Unitario: ${precioTexto}`}
-                                            flot2={cantidadTexto}
-                                            icon='package'
-                                            circulo={false}
-                                        />
-                                    );
-                                })}
+                                        return (
+                                            <ItemView
+                                                key={`${productoMovimiento.producto?.id || 'producto'}-${index}`}
+                                                title={productoMovimiento.producto?.name || 'Sin nombre'}
+                                                description={`Precio Unitario: ${precioTexto}`}
+                                                flot2={cantidadTexto}
+                                                icon='package'
+                                                circulo={false}
+                                            />
+                                        );
+                                    })}
                             </>
                         )}
                     </div>

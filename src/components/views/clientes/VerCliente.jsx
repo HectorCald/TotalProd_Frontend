@@ -16,6 +16,7 @@ import ItemView from '../../common/ItemView';
 import MapaModal from './MapaModal';
 import VerMovimiento from '../movimientos/VerMovimiento';
 import { useUser } from '../../../context/UserContext';
+import NoData from '../../common/NoData';
 
 function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdated }) {
     const { sucursalSeleccionada } = useUser();
@@ -214,9 +215,13 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 />
                 <div className={styles.modalContent}>
                     {loadingMovimientosList ? (
-                        <div className={styles.noData}>
-                            <p>Cargando movimientos...</p>
-                        </div>
+                        <NoData 
+                            icon="loader-alt"
+                            title="Cargando movimientos..."
+                            detail="Obteniendo el historial de movimientos del cliente"
+                            transparent={true}
+                            minHeight="150px"
+                        />
                     ) : movimientos.length > 0 ? (
                         <>
                             <p className={styles.subTitle}>HISTORIAL DE MOVIMIENTOS</p>
@@ -240,9 +245,13 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                             ))}
                         </>
                     ) : (
-                        <div className={styles.noData}>
-                            <p>No hay movimientos registrados</p>
-                        </div>
+                        <NoData 
+                            icon="history"
+                            title="No hay movimientos"
+                            detail="Este cliente no tiene movimientos registrados aún"
+                            transparent={false}
+                            minHeight="150px"
+                        />
                     )}
                 </div>
             </ViewModal>

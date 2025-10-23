@@ -14,6 +14,7 @@ import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
+import NoData from '../../common/NoData';
 import FetchData from '../../mixed/FetchData';
 
 function Sucursales({ isOpen, setIsOpen }) {
@@ -243,9 +244,13 @@ function Sucursales({ isOpen, setIsOpen }) {
                                 />
                             ))
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron sucursales' : 'No hay sucursales registradas'}</p>
-                            </div>
+                            <NoData 
+                                icon="store"
+                                title={searchQuery ? 'Sin resultados' : 'No hay sucursales'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar las sucursales que necesitas' : 'Registra sucursales para comenzar a gestionar tus ubicaciones'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
                 </div>

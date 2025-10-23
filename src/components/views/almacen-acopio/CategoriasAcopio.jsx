@@ -13,6 +13,7 @@ import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
+import NoData from '../../common/NoData';
 
 function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategoriaSeleccionada }) {
     const { isLargeScreen } = useLayout();
@@ -232,9 +233,13 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                                 />
                             ))
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron categorías' : 'No hay categorías registradas'}</p>
-                            </div>
+                            <NoData 
+                                icon="category"
+                                title={searchQuery ? 'Sin resultados' : 'No hay categorías registradas'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda' : 'Crea categorías para organizar tus productos'}
+                                transparent={true}
+                                minHeight="200px"
+                            />
                         )
                     )}
                 </div>

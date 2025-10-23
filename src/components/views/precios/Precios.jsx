@@ -14,6 +14,7 @@ import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
+import NoData from '../../common/NoData';
 
 function Precios({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -252,9 +253,13 @@ function Precios({ isOpen, setIsOpen }) {
                                 />
                             ))
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron tipos de precio' : 'No hay tipos de precio registrados'}</p>
-                            </div>
+                            <NoData 
+                                icon="dollar"
+                                title={searchQuery ? 'Sin resultados' : 'No hay precios'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los tipos de precio que necesitas' : 'Crea tipos de precio para comenzar a gestionar tus precios'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
                 </div>

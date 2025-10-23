@@ -3,7 +3,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 10px;
+    width: 100%;
+    padding: 20px;
+    min-height: 100px;
 }
 
 /* Contenedor pantalla completa */
@@ -22,14 +26,47 @@
     z-index: 9999;
 }
 
-/* Spinner normal */
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--quaternary-color);
-    border-top: 4px solid var(--primary-color);
+/* Contenedor del icono */
+.iconContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.icon {
+    font-size: 24px;
+    color: var(--primary-color);
+}
+
+/* Contenedor de dots */
+.dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Dot individual */
+.dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--primary-color);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: wave 1.4s ease-in-out infinite;
+}
+
+/* Animación de ola para cada dot */
+.dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+    animation-delay: 0.4s;
 }
 
 /* Texto */
@@ -38,10 +75,17 @@
     color: var(--white-color);
     font-size: 14px;
     font-weight: 500;
+    margin-top: 10px;
 }
 
-/* Animación de giro */
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+/* Animación de ola */
+@keyframes wave {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-10px);
+        opacity: 1;
+    }
 }

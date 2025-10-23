@@ -8,6 +8,7 @@ import Select from '../../common/Select';
 import productsAcopioService from '../../../services/productsAcopioService';
 import MensajeError from '../../common/MensajeError';
 import { BoxIcon } from 'boxicons-react';
+import NoData from '../../common/NoData';
 
 function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData = null, onRecetaCreated, onRecetaUpdated }) {
   const [dataReceta, setDataReceta] = useState({
@@ -219,9 +220,13 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
         />
         
         {loadingProductos ? (
-          <div className={styles.noData}>
-            <p>Cargando productos...</p>
-          </div>
+          <NoData 
+            icon="loader-alt"
+            title="Cargando productos..."
+            detail="Obteniendo productos de materia prima disponibles para la receta"
+            transparent={true}
+            minHeight="150px"
+          />
         ) : (
           <>
             <Boton
@@ -281,9 +286,13 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
         ))}
 
         {dataReceta.productos.length === 0 && (
-          <div className={styles.noData}>
-            <p>No hay productos agregados. Presiona "Agregar Producto" para comenzar.</p>
-          </div>
+          <NoData 
+            icon="plus"
+            title="Sin productos"
+            detail="No hay productos agregados a la receta. Presiona 'Agregar Producto' para comenzar a configurar los ingredientes necesarios"
+            transparent={false}
+            minHeight="150px"
+          />
         )}
 
 

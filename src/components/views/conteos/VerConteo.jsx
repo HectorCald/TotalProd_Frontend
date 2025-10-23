@@ -13,6 +13,8 @@ import conteosService from '../../../services/conteosService';
 import Notification from '../../common/Notification';
 import AlmacenGeneralAuxiliar from '../almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import AlmacenAcopioAuxiliar from '../almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
+import Select from '../../common/Select';
+import NoData from '../../common/NoData';
 
 function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplaced }) {
     const { isLargeScreen } = useLayout();
@@ -24,6 +26,9 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     // Filtros de modal (desktop)
     const [filtroFisico, setFiltroFisico] = useState('todos'); // igual | mayor | menor | todos
+    
+    // Filtros para móvil
+    const [filtroMovil, setFiltroMovil] = useState('todos'); // igual | mayor | menor | todos
     
     // Estados para eliminación y reemplazo
     const [isDeleting, setIsDeleting] = useState(false);
@@ -110,6 +115,30 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
             2: { value: filtroFisico, onChange: setFiltroFisico, options: opts }
         };
     }, [filtroFisico]);
+
+    // Opciones para el Select de móvil
+    const filtroOptions = [
+        { value: 'todos', label: 'Todos' },
+        { value: 'igual', label: 'Azul' },
+        { value: 'mayor', label: 'Verde' },
+        { value: 'menor', label: 'Rojo' }
+    ];
+
+    // Función para filtrar detalles en móvil
+    const detallesFiltrados = useMemo(() => {
+        if (filtroMovil === 'todos') return detalles;
+        
+        return detalles.filter(detalle => {
+            const sistema = Number(detalle.sistema ?? 0);
+            const fisico = Number(detalle.fisico ?? 0);
+            
+            if (filtroMovil === 'igual') return fisico === sistema;
+            if (filtroMovil === 'mayor') return fisico > sistema;
+            if (filtroMovil === 'menor') return fisico < sistema;
+            
+            return true;
+        });
+    }, [detalles, filtroMovil]);
 
     const handleDeleteConteo = async () => {
         if (!conteo?.id) return;
@@ -361,46 +390,70 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                         onClose={() => setIsProductosOpen(false)}
                     />
                     <div className={styles.modalContent}>
-                        {detalles.length > 0 ? detalles.map((d, idx) => {
-                            const isAlmacen = conteo?.tipo === 'almacen';
-                            const nombreProducto = isAlmacen ? (d.producto_almacen?.name || 'Producto') : (d.producto_acopio?.name || 'Producto');
-                            const grup = isAlmacen ? (d.producto_almacen?.grup || 0) : 0;
-                            const medidaCode = !isAlmacen ? (d.producto_acopio?.type_measure?.code || '') : '';
-                            const sistema = Number(d.sistema ?? 0);
-                            const fisico = Number(d.fisico ?? 0);
-                            return (
-                                <ItemView
-                                    key={d.id || idx}
-                                    title={nombreProducto}
-                                    description={isAlmacen
-                                        ? (() => {
-                                            if (grup <= 0) return `Sistema: ${sistema} ud`;
-                                            const sysG = Math.floor(sistema / grup);
-                                            const sysU = sistema % grup;
-                                            const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
-                                            return `Sistema: ${sistema} ud • Grup sist.: ${fmt(sysG, sysU)}`;
-                                        })()
-                                        : `Sistema: ${sistema}${medidaCode ? ` ${medidaCode}` : ''}`}
-                                    description2={isAlmacen
-                                        ? (() => {
-                                            if (grup <= 0) return `Físico: ${fisico} ud`;
-                                            const fisG = Math.floor(fisico / grup);
-                                            const fisU = fisico % grup;
-                                            const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
-                                            return `Físico: ${fisico} ud • Grup fís.: ${fmt(fisG, fisU)}`;
-                                        })()
-                                        : (d.justificacion ? d.justificacion : undefined)}
-                                    {...(() => {
-                                        if (fisico === sistema) return { flot1: '=' };
-                                        if (fisico > sistema) return { flot4: '+' };
-                                        return { flot3: '-' };
-                                    })()}
-                                    icon='box'
+                        {/* Select de filtro para móvil */}
+                        <div className={styles.content}>
+                            <Select
+                                placeholder="Filtrar productos"
+                                options={filtroOptions}
+                                value={filtroMovil}
+                                onChange={setFiltroMovil}
+                                icon="filter"
+                            />
+                        </div>
+                        
+                        {detallesFiltrados.length > 0 ? detallesFiltrados
+                            .sort((a, b) => {
+                                const isAlmacen = conteo?.tipo === 'almacen';
+                                const nombreA = isAlmacen ? (a.producto_almacen?.name || '') : (a.producto_acopio?.name || '');
+                                const nombreB = isAlmacen ? (b.producto_almacen?.name || '') : (b.producto_acopio?.name || '');
+                                return nombreA.localeCompare(nombreB);
+                            })
+                            .map((d, idx) => {
+                                const isAlmacen = conteo?.tipo === 'almacen';
+                                const nombreProducto = isAlmacen ? (d.producto_almacen?.name || 'Producto') : (d.producto_acopio?.name || 'Producto');
+                                const grup = isAlmacen ? (d.producto_almacen?.grup || 0) : 0;
+                                const medidaCode = !isAlmacen ? (d.producto_acopio?.type_measure?.code || '') : '';
+                                const sistema = Number(d.sistema ?? 0);
+                                const fisico = Number(d.fisico ?? 0);
+                                return (
+                                    <ItemView
+                                        key={d.id || idx}
+                                        title={nombreProducto}
+                                        description={isAlmacen
+                                            ? (() => {
+                                                if (grup <= 0) return `Sistema: ${sistema} ud`;
+                                                const sysG = Math.floor(sistema / grup);
+                                                const sysU = sistema % grup;
+                                                const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
+                                                return `Sistema: ${sistema} ud • Grup sist.: ${fmt(sysG, sysU)}`;
+                                            })()
+                                            : `Sistema: ${sistema}${medidaCode ? ` ${medidaCode}` : ''}`}
+                                        description2={isAlmacen
+                                            ? (() => {
+                                                if (grup <= 0) return `Físico: ${fisico} ud`;
+                                                const fisG = Math.floor(fisico / grup);
+                                                const fisU = fisico % grup;
+                                                const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
+                                                return `Físico: ${fisico} ud • Grup fís.: ${fmt(fisG, fisU)}`;
+                                            })()
+                                            : (d.justificacion ? d.justificacion : undefined)}
+                                        {...(() => {
+                                            if (fisico === sistema) return { flot1: '=' };
+                                            if (fisico > sistema) return { flot4: '+' };
+                                            return { flot3: '-' };
+                                        })()}
+                                        icon='box'
+                                    />
+                                );
+                            }) : (
+                                <NoData 
+                                    icon="box"
+                                    title="No hay productos"
+                                    detail="No hay productos registrados en este conteo"
+                                    transparent={false}
+                                    minHeight="200px"
                                 />
-                            );
-                        }) : (
-                            <p>No hay productos</p>
-                        )}
+                            )}
                     </div>
                 </ViewModal>
             )}

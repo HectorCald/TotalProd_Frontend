@@ -9,6 +9,7 @@ import EditarAgregarReceta from './EditarAgregarReceta';
 import Switch from '../../common/Switch';
 import Notification from '../../common/Notification';
 import CategoriasAlmacen from './CategoriasAlmacen';
+import NoData from '../../common/NoData';
 
 function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, preciosTipos = [], loadingPrecios = false }) {
 
@@ -324,9 +325,13 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
           {/* Sección de Precios */}
           <p className={styles.subTitle}>PRECIOS</p>
           {loadingPrecios ? (
-            <div className={styles.noData}>
-              <p>Cargando precios...</p>
-            </div>
+            <NoData 
+              icon="loader-alt"
+              title="Cargando precios..."
+              detail="Obteniendo tipos de precios disponibles para configurar"
+              transparent={true}
+              minHeight="150px"
+            />
           ) : (
             preciosTipos.map(priceType => (
               <InputNormal

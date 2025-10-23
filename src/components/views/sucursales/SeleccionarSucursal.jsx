@@ -5,6 +5,7 @@ import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
 import sucursalesService from '../../../services/sucursalesService';
 import { useUser } from '../../../context/UserContext';
+import NoData from '../../common/NoData';
 
 function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccionada, canClose = true }) {
     const { seleccionarSucursal } = useUser();
@@ -60,9 +61,13 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
             />
             <div className={styles.modalContent}>
                 {loading ? (
-                    <div className={styles.noData}>
-                        <p>Cargando sucursales...</p>
-                    </div>
+                    <NoData 
+                        icon="loader-alt"
+                        title="Cargando sucursales..."
+                        detail="Obteniendo todas las sucursales disponibles"
+                        transparent={true}
+                        minHeight="150px"
+                    />
                 ) : error ? (
                     <div className={styles.errorContainer}>
                         <p className={styles.errorText}>{error}</p>
@@ -74,9 +79,13 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
                         </button>
                     </div>
                 ) : sucursales.length === 0 ? (
-                    <div className={styles.noData}>
-                        <p>No hay sucursales disponibles</p>
-                    </div>
+                    <NoData 
+                        icon="store"
+                        title="Sin sucursales"
+                        detail="No hay sucursales disponibles para seleccionar"
+                        transparent={false}
+                        minHeight="150px"
+                    />
                 ) : (
                     <div className={styles.sucursalesList}>
                         {sucursales.map((sucursal) => (

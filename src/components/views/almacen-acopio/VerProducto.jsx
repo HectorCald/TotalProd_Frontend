@@ -13,6 +13,7 @@ import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import FetchData from '../../mixed/FetchData';
+import NoData from '../../common/NoData';
 
 
 function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductDeleted, typeMeasures = [] }) {
@@ -279,9 +280,13 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>HISTORIAL DE MOVIMIENTOS</p>
                     {loadingMovimientosList ? (
-                        <div className={styles.noData}>
-                            <p>Cargando movimientos...</p>
-                        </div>
+                        <NoData 
+                            icon="loader-alt"
+                            title="Cargando movimientos..."
+                            detail="Obteniendo el historial de movimientos"
+                            transparent={false}
+                            minHeight="150px"
+                        />
                     ) : movimientos.length > 0 ? (
                         <>
 
@@ -310,9 +315,13 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                             ))}
                         </>
                     ) : (
-                        <div className={styles.noData}>
-                            <p>No hay movimientos registrados</p>
-                        </div>
+                        <NoData 
+                            icon="history"
+                            title="No hay movimientos registrados"
+                            detail="Este producto no tiene historial de movimientos aún"
+                            transparent={false}
+                            minHeight="150px"
+                        />
                     )}
                 </div>
             </ViewModal>

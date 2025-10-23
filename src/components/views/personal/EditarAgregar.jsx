@@ -12,6 +12,7 @@ import Switch from '../../common/Switch';
 import Select from '../../common/Select';
 import Notification from '../../common/Notification';
 import { isDamabrava } from '../../../utils/empresaHelper';
+import NoData from '../../common/NoData';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated, sucursales = [] }) {
 
@@ -434,9 +435,13 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                     />
                     <p className={styles.subTitle}>MÓDULOS {isDamabrava() ? '(TODOS)' : '(GENERALES)'}</p>
                     {loadingModules ? (
-                        <div className={styles.noData}>
-                            <p>Cargando módulos...</p>
-                        </div>
+                        <NoData 
+                            icon="loader-alt"
+                            title="Cargando módulos..."
+                            detail="Obteniendo módulos disponibles para asignar"
+                            transparent={true}
+                            minHeight="150px"
+                        />
                     ) : modules.filter(module => module.sub_modulos && module.sub_modulos.length > 0).length > 0 ? (
                         <Carousel>
                             {modules
@@ -456,9 +461,13 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                                 ))}
                         </Carousel>
                     ) : (
-                        <div className={styles.noData}>
-                            <p>No hay módulos con submódulos disponibles</p>
-                        </div>
+                        <NoData 
+                            icon="grid-alt"
+                            title="Sin módulos"
+                            detail="No hay módulos con submódulos disponibles para asignar"
+                            transparent={false}
+                            minHeight="150px"
+                        />
                     )}
                     <Boton
                         className='btn-original'

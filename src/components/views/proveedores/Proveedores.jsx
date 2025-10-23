@@ -13,6 +13,7 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import InfoModal from '../../common/InfoModal';
+import NoData from '../../common/NoData';
 import Notification from '../../common/Notification';
 
 function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSeleccionado }) {
@@ -273,9 +274,13 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                                 />
                             ))
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron proveedores' : 'No hay proveedores registrados'}</p>
-                            </div>
+                            <NoData 
+                                icon="store"
+                                title={searchQuery ? 'Sin resultados' : 'No hay proveedores'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los proveedores que necesitas' : 'Registra proveedores para comenzar a gestionar tu base de datos de proveedores'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
                 </div>

@@ -14,6 +14,7 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FetchData from '../../mixed/FetchData';
+import NoData from '../../common/NoData';
     
 function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategoriaSeleccionada }) {
     const { isLargeScreen } = useLayout();
@@ -229,9 +230,13 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                                 />
                             ))
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron categorías' : 'No hay categorías registradas'}</p>
-                            </div>
+                            <NoData 
+                                icon="category"
+                                title={searchQuery ? 'Sin resultados' : 'No hay categorías'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar las categorías que necesitas' : 'Crea categorías para organizar mejor tus productos del almacén'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
                 </div>

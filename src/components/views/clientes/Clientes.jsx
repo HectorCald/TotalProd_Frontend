@@ -14,6 +14,7 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FetchData from '../../mixed/FetchData';
+import NoData from '../../common/NoData';
 
 
 function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccionado }) {
@@ -285,9 +286,13 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                                 />
                             ))
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}</p>
-                            </div>
+                            <NoData 
+                                icon="user"
+                                title={searchQuery ? 'Sin resultados' : 'No hay clientes'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los clientes que necesitas' : 'Registra clientes para comenzar a gestionar tu base de datos de clientes'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
                 </div>

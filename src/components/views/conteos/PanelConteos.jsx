@@ -8,6 +8,7 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import conteosService from '../../../services/conteosService';
+import NoData from '../../common/NoData';
 import VerConteo from './VerConteo';
 import InfoModal from '../../common/InfoModal';
 
@@ -202,9 +203,13 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                                 />
                             ))
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron conteos' : 'No hay conteos registrados'}</p>
-                            </div>
+                            <NoData 
+                                icon="calculator"
+                                title={searchQuery ? 'Sin resultados' : 'No hay conteos'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los conteos que necesitas' : 'Realiza conteos de inventario para comenzar a gestionar tu stock'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
                 </div>

@@ -15,6 +15,7 @@ import Boton from '../../common/Boton';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FetchData from '../../mixed/FetchData';
+import NoData from '../../common/NoData';
 import FiltroEstadoDeuda from '../../mixed/FiltroEstadoDeuda';
 import FiltroOrdenamientoDeudas from '../../mixed/FiltroOrdenamientoDeudas';
 import InfoModal from '../../common/InfoModal';
@@ -447,9 +448,13 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                 );
                             })
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron deudas' : 'No hay deudas registradas'}</p>
-                            </div>
+                            <NoData 
+                                icon="credit-card"
+                                title={searchQuery ? 'Sin resultados' : 'No hay deudas'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar las deudas que necesitas' : 'Registra deudas para comenzar a gestionar tus cuentas por cobrar'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
                     {/* Indicador de carga para más elementos */}

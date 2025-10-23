@@ -3,6 +3,7 @@ import styles from './HistorialPersona.module.css';
 import HeaderModal from '../../common/HeaderModal';
 import ViewModal from '../../ui/ViewModal';
 import ItemTiempo from '../../common/ItemTiempo';
+import NoData from '../../common/NoData';
 
 const historialData = [
     {
@@ -163,7 +164,13 @@ function HistoriaPersona({ isOpen, setIsOpen, usuario }) {
                             </div>
                         ))
                 ) : (
-                    <p className={styles.noData}>No hay registros de actividad para este usuario</p>
+                    <NoData 
+                        icon="history"
+                        title="Sin actividad"
+                        detail="No hay registros de actividad para este usuario"
+                        transparent={false}
+                        minHeight="150px"
+                    />
                 )}
             </div>
         </ViewModal>

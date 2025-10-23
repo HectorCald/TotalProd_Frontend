@@ -1,15 +1,19 @@
 import React from 'react';
 import { BoxIcon } from 'boxicons-react';
 import styles from './Table.module.css';
+import NoData from './NoData';
 
 const Table = ({ headers = [], data = [], onRowClick = null, getBadge = null, getCellBadge = null, onScroll = null, getRowInputs = null, inputsHeader = 'Valores', renderCell = null, columnWidths = {} }) => {
   if (!data || data.length === 0) {
     return (
       <div className={styles.tableContainer}>
-        <div className={styles.emptyState}>
-          <BoxIcon name="inbox" size="48px" />
-          <p>No hay datos disponibles</p>
-        </div>
+        <NoData 
+          icon="inbox"
+          title="No hay información"
+          detail="No se encontraron datos para mostrar"
+          transparent={true}
+          minHeight="200px"
+        />
       </div>
     );
   }

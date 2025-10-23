@@ -302,35 +302,38 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                             <>
                                 <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
 
-                                {cotizacionActual.productos.map((productoCotizacion, index) => {
-                                    const cantidad = parseFloat(productoCotizacion.cantidad) || 0;
-                                    const grup = parseFloat(productoCotizacion.producto?.grup) || 0;
-                                    const esAgrupado = cotizacionActual?.agrupado && grup > 0;
-                                    const precioUnitario = parseFloat(productoCotizacion.precio_unitario) || 0;
+                                {cotizacionActual.productos
+                                    .sort((a, b) => (a.producto?.name || '').localeCompare(b.producto?.name || ''))
+                                    .map((productoCotizacion, index) => {
+                                        const cantidad = parseFloat(productoCotizacion.cantidad) || 0;
+                                        const grup = parseFloat(productoCotizacion.producto?.grup) || 0;
+                                        const esAgrupado = cotizacionActual?.agrupado && grup > 0;
+                                        const precioUnitario = parseFloat(productoCotizacion.precio_unitario) || 0;
 
-                                    let cantidadTexto;
-                                    let precioTexto;
+                                        let cantidadTexto;
+                                        let precioTexto;
 
-                                    if (esAgrupado) {
-                                        const grupos = Math.floor(cantidad / grup);
-                                        const unidades = cantidad % grup;
-                                        cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                                        // Precio unitario multiplicado por la cantidad de agrupación
-                                        precioTexto = `${(precioUnitario * grup).toFixed(2)} BOB`;
-                                    } else {
-                                        cantidadTexto = `${cantidad} ud`;
-                                        precioTexto = `${precioUnitario.toFixed(2)} BOB`;
-                                    }
+                                        if (esAgrupado) {
+                                            const grupos = Math.floor(cantidad / grup);
+                                            const unidades = cantidad % grup;
+                                            cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+                                            // Precio unitario multiplicado por la cantidad de agrupación
+                                            precioTexto = `Bs. ${(precioUnitario * grup).toFixed(2)}`;
+                                        } else {
+                                            cantidadTexto = `${cantidad} ud`;
+                                            precioTexto = `Bs. ${precioUnitario.toFixed(2)}`;
+                                        }
 
-                                    return (
-                                        <ItemView
-                                            key={`${productoCotizacion.producto?.id || 'producto'}-${index}`}
-                                            title={productoCotizacion.producto?.name || 'Sin nombre'}
-                                            description={`${cantidadTexto} - ${precioTexto}`}
-                                            flot2={`${(parseFloat(productoCotizacion.subtotal) || 0).toFixed(2)} BOB`}
-                                        />
-                                    );
-                                })}
+                                        return (
+                                            <ItemView
+                                                key={`${productoCotizacion.producto?.id || 'producto'}-${index}`}
+                                                title={productoCotizacion.producto?.name || 'Sin nombre'}
+                                                description={`Precio Unitario: ${precioTexto}`}
+                                                flot2={cantidadTexto}
+                                                circulo={false}
+                                            />
+                                        );
+                                    })}
                             </>
                         )}
                     </div>

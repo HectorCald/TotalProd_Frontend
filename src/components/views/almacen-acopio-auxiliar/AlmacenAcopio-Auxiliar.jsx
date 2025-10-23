@@ -13,6 +13,7 @@ import FiltroTipoMedida from '../../mixed/FiltroTipoMedida';
 import FiltroOrdenamientoAcopio from '../../mixed/FiltroOrdenamientoAcopio';
 import FiltroDiferenciaConteo from '../../mixed/FiltroDiferenciaConteo';
 import FetchData from '../../mixed/FetchData';
+import NoData from '../../common/NoData';
 import productsAcopioService from '../../../services/productsAcopioService';
 import categoryAcopioService from '../../..//services/categoryAcopioService';
 import typeMeasureService from '../../..//services/typeMeasureService';
@@ -514,9 +515,13 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                     );
                                 })
                             ) : (
-                                <div className={styles.noData}>
-                                    <p>{searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
-                                </div>
+                                <NoData 
+                                    icon="box"
+                                    title={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
+                                    detail={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos de materia prima para comenzar a gestionar tu inventario de acopio'}
+                                    transparent={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null}
+                                    minHeight="200px"
+                                />
                             )
                         )}
                     </div>

@@ -11,6 +11,7 @@ import ItemView from '../../common/ItemView';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import productsAcopioService from '../../../services/productsAcopioService';
 import Notification from '../../common/Notification';
+import NoData from '../../common/NoData';
 
 function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCategoriaDeleted }) {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -160,9 +161,13 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                 />
                 <div className={styles.modalContent}>
                     {loadingProducts ? (
-                        <div className={styles.noData}>
-                            <p>Cargando productos...</p>
-                        </div>
+                        <NoData 
+                            icon="loader-alt"
+                            title="Cargando productos..."
+                            detail="Obteniendo productos de esta categoría"
+                            transparent={true}
+                            minHeight="150px"
+                        />
                     ) : products.length > 0 ? (
                         <>
                             <p className={styles.subTitle}>PRODUCTOS EN ESTA CATEGORÍA</p>
@@ -177,9 +182,13 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                             ))}
                         </>
                     ) : (
-                        <div className={styles.noData}>
-                            <p>No hay productos en esta categoría</p>
-                        </div>
+                        <NoData 
+                            icon="box"
+                            title="No hay productos"
+                            detail="Esta categoría no tiene productos asociados aún"
+                            transparent={false}
+                            minHeight="150px"
+                        />
                     )}
                 </div>
             </ViewModal>

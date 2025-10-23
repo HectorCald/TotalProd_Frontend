@@ -13,6 +13,7 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroEstadoCotizacion from '../../mixed/FiltroEstadoCotizacion';
+import NoData from '../../common/NoData';
 
 
 function PanelCotizaciones({ isOpen, setIsOpen }) {
@@ -271,10 +272,28 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     const cotizacionesFiltradas = allCotizaciones.filter(cotizacion => {
         // Filtro de búsqueda normalizado
         const searchQueryNormalized = normalizeText(searchQuery);
+        
+        // Debug: Log de búsqueda si hay query
+        if (searchQuery && searchQuery.trim()) {
+            console.log('[PanelCotizaciones] Buscando:', {
+                query: searchQuery,
+                normalized: searchQueryNormalized,
+                cotizacionId: cotizacion.id,
+                numero: cotizacion.numero_cotizacion,
+                cliente: cotizacion.cliente?.name,
+                productos: cotizacion.productos?.length || 0
+            });
+        }
+        
         const matchesSearch = !searchQuery ||
             normalizeText(cotizacion.numero_cotizacion?.toString() || '').includes(searchQueryNormalized) ||
             normalizeText(cotizacion.cliente?.name || '').includes(searchQueryNormalized) ||
-            normalizeText(cotizacion.observaciones || '').includes(searchQueryNormalized);
+            normalizeText(cotizacion.observaciones || '').includes(searchQueryNormalized) ||
+            // Buscar en productos de la cotización
+            (cotizacion.productos && cotizacion.productos.some(producto => 
+                normalizeText(producto.producto?.name || '').includes(searchQueryNormalized) ||
+                normalizeText(producto.producto?.description || '').includes(searchQueryNormalized)
+            ));
 
         // Filtro de estado
         const matchesEstado = filtroEstado === null || cotizacion.estado === filtroEstado;
@@ -351,7 +370,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             <HeaderView 
                 onBack={() => setIsOpen(false)}
                 showSearch={true}
-                searchPlaceholder="Buscar cotizaciones..."
+                searchPlaceholder="Buscar por número, cliente o productos..."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
                 onSearchClear={handleSearchClear}
@@ -413,9 +432,13 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                                 );
                             })
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery || filtroEstado !== null ? 'No se encontraron cotizaciones' : 'No hay cotizaciones registradas'}</p>
-                            </div>
+                            <NoData 
+                                icon="file-text"
+                                title={searchQuery || filtroEstado !== null ? 'Sin resultados' : 'No hay cotizaciones'}
+                                detail={searchQuery || filtroEstado !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar las cotizaciones que necesitas' : 'Crea cotizaciones para comenzar a gestionar tus presupuestos'}
+                                transparent={searchQuery || filtroEstado !== null}
+                                minHeight="200px"
+                            />
                         )
                     )}
 

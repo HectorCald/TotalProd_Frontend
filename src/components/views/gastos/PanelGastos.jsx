@@ -15,6 +15,7 @@ import Boton from '../../common/Boton';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FetchData from '../../mixed/FetchData';
+import NoData from '../../common/NoData';
 import FiltroMetodoPago from '../../mixed/FiltroMetodoPago';
 import FiltroOrdenamientoGastos from '../../mixed/FiltroOrdenamientoGastos';
 import InfoModal from '../../common/InfoModal';
@@ -401,9 +402,13 @@ function PanelGastos({ isOpen, setIsOpen }) {
                                 );
                             })
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron gastos' : 'No hay gastos registrados'}</p>
-                            </div>
+                            <NoData 
+                                icon="receipt"
+                                title={searchQuery ? 'Sin resultados' : 'No hay gastos'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los gastos que necesitas' : 'Registra gastos para comenzar a gestionar tus finanzas'}
+                                transparent={searchQuery}
+                                minHeight="200px"
+                            />
                         )
                     )}
                     {/* Indicador de carga para más elementos */}

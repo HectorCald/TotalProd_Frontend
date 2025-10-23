@@ -22,6 +22,7 @@ import conteosService from '../../../services/conteosService';
 import CanastaCotizacion from './CanastaCotizacion';
 import DescargaCotizacionBuilder from '../cotizaciones/DescargaCotizacionBuilder';
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
+import NoData from '../../common/NoData';
 
 function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
@@ -806,9 +807,13 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                     );
                                 })
                             ) : (
-                                <div className={styles.noData}>
-                                    <p>{searchQuery || categoriaFiltro !== null ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
-                                </div>
+                                <NoData 
+                                    icon="box"
+                                    title={searchQuery || categoriaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
+                                    detail={searchQuery || categoriaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
+                                    transparent={searchQuery || categoriaFiltro !== null}
+                                    minHeight="200px"
+                                />
                             )
                         )}
                     </div>
