@@ -87,7 +87,11 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
 
                         // Tabla para almacén (múltiples productos)
                         const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-                        const valores = (pedido?.pedido_almacen_detalle || []).map(detalle => {
+                        // Ordenar productos alfabéticamente por nombre
+                        const detallesOrdenados = (pedido?.pedido_almacen_detalle || []).sort((a, b) => 
+                            (a?.producto_almacen?.name || '').localeCompare(b?.producto_almacen?.name || '', 'es', { sensitivity: 'base' })
+                        );
+                        const valores = detallesOrdenados.map(detalle => {
                             // Si el pedido es agrupado, mostrar la cantidad visual (agrupada)
                             // Si no es agrupado, mostrar la cantidad real (unidades)
                             let cantidadVisual = detalle?.cantidad || 0;
@@ -193,7 +197,11 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
 
                         // Tabla para almacén (múltiples productos)
                         const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-                        const valores = (pedido?.pedido_almacen_detalle || []).map(detalle => {
+                        // Ordenar productos alfabéticamente por nombre
+                        const detallesOrdenados = (pedido?.pedido_almacen_detalle || []).sort((a, b) => 
+                            (a?.producto_almacen?.name || '').localeCompare(b?.producto_almacen?.name || '', 'es', { sensitivity: 'base' })
+                        );
+                        const valores = detallesOrdenados.map(detalle => {
                             // Si el pedido es agrupado, mostrar la cantidad visual (agrupada)
                             // Si no es agrupado, mostrar la cantidad real (unidades)
                             let cantidadVisual = detalle?.cantidad || 0;

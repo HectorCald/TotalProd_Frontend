@@ -60,6 +60,12 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
 
     // Filas preparadas para ModalTable (siempre calculadas para no violar reglas de hooks)
     const rowsMemo = useMemo(() => (detalles || [])
+        .sort((a, b) => {
+            const isAlmacen = conteo?.tipo === 'almacen';
+            const nombreA = isAlmacen ? (a.producto_almacen?.name || '') : (a.producto_acopio?.name || '');
+            const nombreB = isAlmacen ? (b.producto_almacen?.name || '') : (b.producto_acopio?.name || '');
+            return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+        })
         .map((d) => {
             const isAlmacen = conteo?.tipo === 'almacen';
             const nombreProducto = isAlmacen ? (d.producto_almacen?.name || 'Producto') : (d.producto_acopio?.name || 'Producto');
@@ -406,7 +412,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                                 const isAlmacen = conteo?.tipo === 'almacen';
                                 const nombreA = isAlmacen ? (a.producto_almacen?.name || '') : (a.producto_acopio?.name || '');
                                 const nombreB = isAlmacen ? (b.producto_almacen?.name || '') : (b.producto_acopio?.name || '');
-                                return nombreA.localeCompare(nombreB);
+                                return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
                             })
                             .map((d, idx) => {
                                 const isAlmacen = conteo?.tipo === 'almacen';

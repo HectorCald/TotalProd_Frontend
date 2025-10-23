@@ -54,6 +54,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
 
     // Filas preparadas para ModalTable (para PC)
     const rowsMemo = useMemo(() => (cotizacionActual?.productos || [])
+        .sort((a, b) => (a?.producto?.name || '').localeCompare(b?.producto?.name || '', 'es', { sensitivity: 'base' }))
         .map((productoCotizacion) => {
             const cantidad = parseFloat(productoCotizacion.cantidad) || 0;
             const grup = parseFloat(productoCotizacion.producto?.grup) || 0;
@@ -401,7 +402,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                 <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
 
                                 {cotizacionActual.productos
-                                    .sort((a, b) => (a.producto?.name || '').localeCompare(b.producto?.name || ''))
+                                    .sort((a, b) => (a.producto?.name || '').localeCompare(b.producto?.name || '', 'es', { sensitivity: 'base' }))
                                     .map((productoCotizacion, index) => {
                                         const cantidad = parseFloat(productoCotizacion.cantidad) || 0;
                                         const grup = parseFloat(productoCotizacion.producto?.grup) || 0;

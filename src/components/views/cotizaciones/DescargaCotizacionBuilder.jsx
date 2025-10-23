@@ -57,7 +57,11 @@ function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacion
                     }
 
                     const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-                    const valores = (cotizacion?.productos || []).map(producto => {
+                    // Ordenar productos alfabéticamente por nombre
+                    const productosOrdenados = (cotizacion?.productos || []).sort((a, b) => 
+                        (a?.producto?.name || '').localeCompare(b?.producto?.name || '', 'es', { sensitivity: 'base' })
+                    );
+                    const valores = productosOrdenados.map(producto => {
                         const cantidad = parseFloat(producto.cantidad) || 0;
                         const grup = parseFloat(producto.producto?.grup) || 0;
                         const esAgrupado = cotizacion?.agrupado && grup > 0;
@@ -143,7 +147,11 @@ function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacion
                     }
 
                     const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-                    const valores = (cotizacion?.productos || []).map(producto => {
+                    // Ordenar productos alfabéticamente por nombre
+                    const productosOrdenados = (cotizacion?.productos || []).sort((a, b) => 
+                        (a?.producto?.name || '').localeCompare(b?.producto?.name || '', 'es', { sensitivity: 'base' })
+                    );
+                    const valores = productosOrdenados.map(producto => {
                         const cantidad = parseFloat(producto.cantidad) || 0;
                         const grup = parseFloat(producto.producto?.grup) || 0;
                         const esAgrupado = cotizacion?.agrupado && grup > 0;

@@ -106,7 +106,11 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         }
                         if (movimiento?.observaciones) infoSup['Observaciones'] = movimiento.observaciones;
                         const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-                        const valores = (movimiento?.productos || []).map(p => {
+                        // Ordenar productos alfabéticamente por nombre
+                        const productosOrdenados = (movimiento?.productos || []).sort((a, b) => 
+                            (a?.producto?.name || '').localeCompare(b?.producto?.name || '', 'es', { sensitivity: 'base' })
+                        );
+                        const valores = productosOrdenados.map(p => {
                             const cantidad = parseFloat(p?.cantidad) || 0;
                             const grup = parseFloat(p?.producto?.grup) || 0;
                             const esAgrupado = movimiento?.agrupado && grup > 0;
@@ -245,7 +249,11 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         }
 
                         const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-                        const valores = (movimiento?.productos || []).map(producto => {
+                        // Ordenar productos alfabéticamente por nombre
+                        const productosOrdenados = (movimiento?.productos || []).sort((a, b) => 
+                            (a?.producto?.name || '').localeCompare(b?.producto?.name || '', 'es', { sensitivity: 'base' })
+                        );
+                        const valores = productosOrdenados.map(producto => {
                             const cantidad = parseFloat(producto?.cantidad) || 0;
                             const grup = parseFloat(producto?.producto?.grup) || 0;
                             const esAgrupado = movimiento?.agrupado && grup > 0;

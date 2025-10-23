@@ -441,7 +441,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     const rowsMemo = useMemo(() => {
         if (!pedidoActual || !pedidoActual.pedido_almacen_detalle) return [];
 
-        return pedidoActual.pedido_almacen_detalle.map((detalle) => {
+        return pedidoActual.pedido_almacen_detalle
+            .sort((a, b) => (a?.producto_almacen?.name || '').localeCompare(b?.producto_almacen?.name || '', 'es', { sensitivity: 'base' }))
+            .map((detalle) => {
             const producto = detalle.producto_almacen || {};
             const cantidad = parseFloat(detalle.cantidad) || 0;
             const grup = parseFloat(producto.grup) || 0;
@@ -657,7 +659,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                             <>
                                 <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
                                 {detalles
-                                    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+                                    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
                                     .map((producto, index) => {
                                         const detalle = pedidoActual.pedido_almacen_detalle.find(d => d.producto_almacen?.name === producto.nombre);
                                         const productoDetalle = detalle?.producto_almacen || {};

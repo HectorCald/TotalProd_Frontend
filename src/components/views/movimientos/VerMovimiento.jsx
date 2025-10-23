@@ -55,6 +55,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
 
     // Filas preparadas para ModalTable (para PC)
     const rowsMemo = useMemo(() => (movimientoActual?.productos || [])
+        .sort((a, b) => (a?.producto?.name || '').localeCompare(b?.producto?.name || '', 'es', { sensitivity: 'base' }))
         .map((productoMovimiento) => {
             const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
             const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
@@ -423,7 +424,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                 <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
 
                                 {movimientoActual.productos
-                                    .sort((a, b) => (a.producto?.name || '').localeCompare(b.producto?.name || ''))
+                                    .sort((a, b) => (a.producto?.name || '').localeCompare(b.producto?.name || '', 'es', { sensitivity: 'base' }))
                                     .map((productoMovimiento, index) => {
                                         const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
                                         const grup = parseFloat(productoMovimiento.producto?.grup) || 0;

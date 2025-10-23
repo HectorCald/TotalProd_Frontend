@@ -158,23 +158,25 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
     const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
     const productosArray = Object.values(productosAgrupados);
-    const tablaValores = productosArray.map(producto => [
+    // Ordenar productos alfabéticamente por nombre
+    const productosOrdenados = productosArray.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+    const tablaValores = productosOrdenados.map(producto => [
       producto.nombre,
       producto.cantidad.toString(),
       `Bs. ${parseFloat(producto.precioUnitario).toFixed(2)}`,
       `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
     ]);
 
-    const total = productosArray.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    const total = productosOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
     // No agregar fila TOTAL en la tabla
 
     // Calcular producto más y menos vendido por cantidad
     let productoMasVendido = null;
     let productoMenosVendido = null;
-    if (productosArray.length > 0) {
-      productoMasVendido = productosArray.reduce((a, b) => (a.cantidad >= b.cantidad ? a : b));
-      productoMenosVendido = productosArray.reduce((a, b) => (a.cantidad <= b.cantidad ? a : b));
+    if (productosOrdenados.length > 0) {
+      productoMasVendido = productosOrdenados.reduce((a, b) => (a.cantidad >= b.cantidad ? a : b));
+      productoMenosVendido = productosOrdenados.reduce((a, b) => (a.cantidad <= b.cantidad ? a : b));
     }
 
     // Formatear período con fechas específicas
@@ -263,8 +265,18 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     const tablaHeaders = ['Tipo', 'Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
     const tablaValores = [];
 
+    // Ordenar productos de entradas alfabéticamente
+    const productosEntradasOrdenados = Object.values(productosEntradas).sort((a, b) => 
+      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    );
+    
+    // Ordenar productos de salidas alfabéticamente
+    const productosSalidasOrdenados = Object.values(productosSalidas).sort((a, b) => 
+      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    );
+
     // Agregar entradas
-    Object.values(productosEntradas).forEach(producto => {
+    productosEntradasOrdenados.forEach(producto => {
       tablaValores.push([
         'Entrada',
         producto.nombre,
@@ -275,7 +287,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     });
 
     // Agregar salidas
-    Object.values(productosSalidas).forEach(producto => {
+    productosSalidasOrdenados.forEach(producto => {
       tablaValores.push([
         'Salida',
         producto.nombre,
@@ -285,8 +297,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       ]);
     });
 
-    const totalEntradas = Object.values(productosEntradas).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
-    const totalSalidas = Object.values(productosSalidas).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    const totalEntradas = productosEntradasOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    const totalSalidas = productosSalidasOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
     // Formatear período con fechas específicas
     const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
@@ -344,7 +356,11 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     if (DEBUG_REPORTES) console.log('🌾 Productos agrupados:', productosAgrupados);
 
     const tablaHeaders = ['Producto', 'Cantidad', 'Costo', 'Subtotal'];
-    const tablaValores = Object.values(productosAgrupados).map(producto => [
+    // Ordenar productos alfabéticamente por nombre
+    const productosOrdenados = Object.values(productosAgrupados).sort((a, b) => 
+      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    );
+    const tablaValores = productosOrdenados.map(producto => [
       producto.nombre,
       producto.cantidad.toString(),
       `Bs. ${parseFloat(producto.costo).toFixed(2)}`,
@@ -354,7 +370,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     if (DEBUG_REPORTES) console.log('🌾 Tabla headers:', tablaHeaders);
     if (DEBUG_REPORTES) console.log('🌾 Tabla valores:', tablaValores);
 
-    const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    const total = productosOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
     // Formatear período con fechas específicas
     const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
@@ -414,14 +430,18 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     });
 
     const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
-    const tablaValores = Object.values(productosAgrupados).map(producto => [
+    // Ordenar productos alfabéticamente por nombre
+    const productosOrdenados = Object.values(productosAgrupados).sort((a, b) => 
+      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    );
+    const tablaValores = productosOrdenados.map(producto => [
       producto.nombre,
       producto.cantidad.toString(),
       `Bs. ${parseFloat(producto.precioUnitario).toFixed(2)}`,
       `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
     ]);
 
-    const total = Object.values(productosAgrupados).reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    const total = productosOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
 
     // No agregar fila TOTAL en la tabla
 
@@ -489,6 +509,9 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         `Bs. ${subtotal.toFixed(2)}`
       ]);
     });
+    
+    // Ordenar ingresos alfabéticamente por cliente/detalle
+    valoresIngresos.sort((a, b) => a[1].localeCompare(b[1], 'es', { sensitivity: 'base' }));
 
     // Tabla de gastos
     const headersGastos = ['Fecha', 'Concepto', 'Valor'];
@@ -506,6 +529,9 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         ]);
       }
     });
+    
+    // Ordenar gastos alfabéticamente por concepto
+    valoresGastos.sort((a, b) => a[1].localeCompare(b[1], 'es', { sensitivity: 'base' }));
 
     const neto = totalIngresos - totalGastos;
 
