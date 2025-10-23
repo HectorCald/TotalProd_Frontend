@@ -205,7 +205,18 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
 
         } catch (error) {
             console.error('Error al registrar producción:', error);
-            mostrarNotificacion('error', error.message || 'Error de conexión con el servidor');
+            
+            // Manejar errores específicos de stock insuficiente
+            if (error.response?.data?.ingredientesConStockInsuficiente) {
+                const ingredientes = error.response.data.ingredientesConStockInsuficiente;
+                let mensajeError = 'Stock insuficiente de ingredientes:\n';
+                ingredientes.forEach(ing => {
+                    mensajeError += `• ${ing.ingrediente}: Necesitas ${ing.cantidadNecesaria}, tienes ${ing.stockActual} (faltan ${ing.faltante})\n`;
+                });
+                mostrarNotificacion('error', mensajeError);
+            } else {
+                mostrarNotificacion('error', error.message || 'Error de conexión con el servidor');
+            }
         } finally {
             setLoading(false);
         }
