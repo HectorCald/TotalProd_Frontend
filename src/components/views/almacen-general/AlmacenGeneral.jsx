@@ -390,34 +390,35 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Función para limpiar variables del localStorage (solo variables, NO productos)
     const limpiarLocalStorage = () => {
+        // Variables de edición de pedidos
+        localStorage.removeItem('pedidoIdEditando');
+        localStorage.removeItem('precioIdEditando');
+        localStorage.removeItem('pedidoAgrupadoEditando');
+        localStorage.removeItem('productosPedidoEditando');
 
-            localStorage.removeItem('pedidoIdEditando');
-            localStorage.removeItem('precioIdEditando');
-            localStorage.removeItem('pedidoAgrupadoEditando');
-            localStorage.removeItem('productosPedidoEditando');
+        // Variables de entregas
+        localStorage.removeItem('pedidoAgrupadoEntregando');
+        localStorage.removeItem('pedidoDestinoSucursalId');
+        localStorage.removeItem('pedidoDestinoSucursalName');
+        localStorage.removeItem('clienteIdEntregando');
+        localStorage.removeItem('clienteNameEntregando');
+        localStorage.removeItem('pedidoIdEntregando');
+        localStorage.removeItem('precioIdEntregando');
 
-            localStorage.removeItem('pedidoAgrupadoEntregando');
-            localStorage.removeItem('pedidoDestinoSucursalId');
-            localStorage.removeItem('pedidoDestinoSucursalName');
-            localStorage.removeItem('clienteIdEntregando');
-            localStorage.removeItem('clienteNameEntregando');
-            localStorage.removeItem('pedidoIdEntregando');
-            localStorage.removeItem('precioIdEntregando');
-            localStorage.removeItem('precioIdEditando');
-            localStorage.removeItem('movimientoAgrupadoEditando');
-            localStorage.removeItem('metodoPagoEditando');
-            localStorage.removeItem('clienteIdEditando');
-            localStorage.removeItem('clienteNameEditando');
-            // Limpiar variables de cotización
-            localStorage.removeItem('productosCotizacionVendiendo');
-            localStorage.removeItem('precioIdCotizacionVendiendo');
-            localStorage.removeItem('cotizacionAgrupadoVendiendo');
-            localStorage.removeItem('clienteIdCotizacionVendiendo');
-            localStorage.removeItem('clienteNameCotizacionVendiendo');
+        // Variables de repetición de movimientos
+        localStorage.removeItem('movimientoAgrupadoEditando');
+        localStorage.removeItem('metodoPagoEditando');
+        localStorage.removeItem('clienteIdEditando');
+        localStorage.removeItem('clienteNameEditando');
+        localStorage.removeItem('productosMovimientoEditando');
 
-            localStorage.removeItem('productosMovimientoEditando');
-            // Limpiar variable de venta de cotización
-            localStorage.removeItem('isVentaCotizacion');
+        // Variables de venta de cotización
+        localStorage.removeItem('productosCotizacionVendiendo');
+        localStorage.removeItem('precioIdCotizacionVendiendo');
+        localStorage.removeItem('cotizacionAgrupadoVendiendo');
+        localStorage.removeItem('clienteIdCotizacionVendiendo');
+        localStorage.removeItem('clienteNameCotizacionVendiendo');
+        localStorage.removeItem('isVentaCotizacion');
     };
 
 

@@ -79,8 +79,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     setPrecioSeleccionado(preciosTipos[0].value);
                 }
             } else {
-                // Para otros casos, seleccionar el primer precio por defecto
-                if (preciosTipos.length > 0) {
+                // Para repeticiones de movimientos, verificar precioIdEditando
+                const precioIdEditando = localStorage.getItem('precioIdEditando');
+                if (precioIdEditando && preciosTipos.find(p => p.value === precioIdEditando)) {
+                    setPrecioSeleccionado(precioIdEditando);
+                } else if (preciosTipos.length > 0) {
                     setPrecioSeleccionado(preciosTipos[0].value);
                 }
             }
