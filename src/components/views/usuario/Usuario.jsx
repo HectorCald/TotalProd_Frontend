@@ -21,7 +21,6 @@ import { useEmployee } from '../../../context/EmployeeContext';
 import { useNavigate } from 'react-router-dom';
 import PlanInfo from './PlanInfo';
 import Comentarios from '../comentarios/Comentarios';
-import NotificacionEstatica from '../../common/NotificacionEstatica';
 
 
 const Usuario = ({ isOpen, setIsOpen }) => {
@@ -55,45 +54,14 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const handleLogout = () => {
         setIsLogoutOpen(true);
     };
-    const { user: userInfo, clearUser, sucursalSeleccionada: userSucursal, isOfflineMode: userOfflineMode, activateOfflineMode: userActivateOffline, deactivateOfflineMode: userDeactivateOffline } = useUser();
-    const { employee: employeeInfo, clearEmployee, sucursalSeleccionada: employeeSucursal, isOfflineMode: employeeOfflineMode, activateOfflineMode: employeeActivateOffline, deactivateOfflineMode: employeeDeactivateOffline } = useEmployee();
+    const { user: userInfo, clearUser, sucursalSeleccionada: userSucursal } = useUser();
+    const { employee: employeeInfo, clearEmployee, sucursalSeleccionada: employeeSucursal } = useEmployee();
     const navigate = useNavigate();
 
     // Determinar si es usuario normal o empleado
-    // Primero verificar si hay datos offline para determinar el tipo correcto
-    const offlineData = localStorage.getItem('offlineData');
-    let isEmployee = !!employeeInfo;
-    let currentUser = isEmployee ? employeeInfo : userInfo;
-    let sucursal = isEmployee ? employeeSucursal : userSucursal;
-    let isOfflineMode = isEmployee ? employeeOfflineMode : userOfflineMode;
-
-    // Si hay datos offline, usar esos datos y el tipo correcto
-    if (offlineData) {
-        try {
-            const parsedOfflineData = JSON.parse(offlineData);
-            console.log('📦 DATOS OFFLINE DETECTADOS:', parsedOfflineData);
-            console.log('🏷️ TIPO DE USUARIO:', parsedOfflineData.type);
-            
-            if (parsedOfflineData.type === 'employee') {
-                isEmployee = true;
-                currentUser = parsedOfflineData.user;
-                sucursal = parsedOfflineData.sucursal;
-                isOfflineMode = employeeOfflineMode;
-                console.log('👤 USUARIO DETECTADO COMO EMPLEADO');
-            } else if (parsedOfflineData.type === 'user') {
-                isEmployee = false;
-                currentUser = parsedOfflineData.user;
-                sucursal = parsedOfflineData.sucursal;
-                isOfflineMode = userOfflineMode;
-                console.log('👤 USUARIO DETECTADO COMO USUARIO NORMAL');
-            }
-            
-            console.log('👤 USUARIO ACTUAL:', currentUser);
-            console.log('🏢 SUCURSAL ACTUAL:', sucursal);
-        } catch (error) {
-            console.error('Error al parsear datos offline:', error);
-        }
-    }
+    const isEmployee = !!employeeInfo;
+    const currentUser = isEmployee ? employeeInfo : userInfo;
+    const sucursal = isEmployee ? employeeSucursal : userSucursal;
 
     // Función para aplicar el tema
     const applyTheme = (theme) => {
@@ -107,43 +75,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
         applyTheme(isDark ? 'dark' : 'light');
     };
 
-    // Función para cambiar modo offline
-    const handleOfflineModeChange = (isOffline) => {
-        if (isOffline) {
-            console.log('🚫 ACTIVANDO MODO OFFLINE');
-            
-            // Preparar datos para guardar
-            const offlineData = {
-                user: currentUser,
-                sucursal: sucursal,
-                timestamp: new Date().toISOString(),
-                type: isEmployee ? 'employee' : 'user'
-            };
-            
-            // Si es empleado, agregar módulos y submódulos
-            if (isEmployee && currentUser.modules) {
-                offlineData.modules = currentUser.modules;
-                offlineData.submodules = currentUser.submodules || [];
-            }
-            
-            // Activar modo offline usando el contexto
-            if (isEmployee) {
-                employeeActivateOffline(offlineData);
-            } else {
-                userActivateOffline(offlineData);
-            }
-            
-        } else {
-            console.log('✅ DESACTIVANDO MODO OFFLINE');
-            
-            // Desactivar modo offline usando el contexto
-            if (isEmployee) {
-                employeeDeactivateOffline();
-            } else {
-                userDeactivateOffline();
-            }
-        }
-    };
 
     // Cargar tema guardado al iniciar
     useEffect(() => {
@@ -177,15 +108,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
         <View isOpen={isOpen} setIsOpen={setIsOpen} >
             <HeaderView onBack={handleClose} title={isEmployee ? 'Perfil de Empleado' : 'Perfil'} />
             
-            {/* Notificación de modo offline */}
-            {isOfflineMode && (
-                <NotificacionEstatica
-                    titulo="MODO OFFLINE ACTIVADO"
-                    descripcion="Internet completamente bloqueado"
-                    icono="wifi-off"
-                    tipo="error"
-                />
-            )}
             
             <div className={styles.container}>
 
@@ -217,14 +139,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         type="switch"
                         checked={isDarkMode}
                         onChange={handleThemeChange}
-                    />
-                    <ComponenteFull
-                        title="Modo Offline"
-                        subtitle={isOfflineMode ? "Activado - Funciona sin conexión" : "Desactivado - Requiere conexión"}
-                        icon={isOfflineMode ? "wifi-off" : "wifi"}
-                        type="switch"
-                        checked={isOfflineMode}
-                        onChange={handleOfflineModeChange}
                     />
                 </div>
                 <p className={styles.subTitle}>CUENTA</p>
