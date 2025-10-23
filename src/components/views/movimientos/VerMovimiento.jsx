@@ -361,12 +361,22 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
 
                 <div className={styles.buttons}>
                     {movimientoActual?.estado === 'anulado' ? (
-                        <Boton
-                            className='btn-red'
-                            label='Eliminar Movimiento'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsEliminarOpen(true)}
-                        />
+                        <>
+                            {movimientoActual?.type === 'salida' && (
+                                <Boton
+                                    className='btn-default'
+                                    label='Repetir Movimiento'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={handleRepetirMovimiento}
+                                />
+                            )}
+                            <Boton
+                                className='btn-red'
+                                label='Eliminar Movimiento'
+                                style={{ marginTop: 'auto' }}
+                                onClick={() => setIsEliminarOpen(true)}
+                            />
+                        </>
                     ) : (
                         <>
                             {movimientoActual?.type === 'salida' && (
