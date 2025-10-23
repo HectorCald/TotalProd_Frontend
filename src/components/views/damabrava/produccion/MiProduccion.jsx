@@ -8,12 +8,12 @@ import VerMiProduccion from './VerMiProduccion';
 import Filtros from '../../../common/Filtros';
 import Notification from '../../../common/Notification';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
-import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../../common/RefreshIndicator';
 import { useLayout } from '../../../../context/LayoutContext';
 import Table from '../../../common/Table';
 import FiltroOrdenamiento from '../../../mixed/FiltroOrdenamiento';
 import FiltroEstados from '../../../mixed/FiltroEstados';
+import NoData from '../../../common/NoData';
 
 function MiProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -399,9 +399,13 @@ function MiProduccion({ isOpen, setIsOpen }) {
                                 );
                             })
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron registros de producción' : 'No tienes registros de producción'}</p>
-                            </div>
+                            <NoData 
+                                icon="file"
+                                title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
+                                transparent={true}
+                                minHeight="200px"
+                            />
                         )
                     )}
 

@@ -406,7 +406,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
                                 icon="receipt"
                                 title={searchQuery ? 'Sin resultados' : 'No hay gastos'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los gastos que necesitas' : 'Registra gastos para comenzar a gestionar tus finanzas'}
-                                transparent={searchQuery}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )

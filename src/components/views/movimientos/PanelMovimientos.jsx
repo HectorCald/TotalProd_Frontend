@@ -475,7 +475,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                 icon="transfer"
                                 title={searchQuery ? 'Sin resultados' : 'No hay movimientos'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los movimientos que necesitas' : 'Realiza movimientos de inventario para comenzar a gestionar tu stock'}
-                                transparent={searchQuery}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )

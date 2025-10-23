@@ -248,7 +248,7 @@ function Sucursales({ isOpen, setIsOpen }) {
                                 icon="store"
                                 title={searchQuery ? 'Sin resultados' : 'No hay sucursales'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar las sucursales que necesitas' : 'Registra sucursales para comenzar a gestionar tus ubicaciones'}
-                                transparent={searchQuery}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )

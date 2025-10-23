@@ -207,7 +207,7 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                                 icon="calculator"
                                 title={searchQuery ? 'Sin resultados' : 'No hay conteos'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los conteos que necesitas' : 'Realiza conteos de inventario para comenzar a gestionar tu stock'}
-                                transparent={searchQuery}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )

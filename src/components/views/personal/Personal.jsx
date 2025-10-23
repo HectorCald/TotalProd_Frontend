@@ -285,7 +285,7 @@ function Personal({ isOpen, setIsOpen }) {
                                 icon="user-check"
                                 title={searchQuery ? 'Sin resultados' : 'No hay personal'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar el personal que necesitas' : 'Registra personal para comenzar a gestionar tu equipo de trabajo'}
-                                transparent={searchQuery}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )

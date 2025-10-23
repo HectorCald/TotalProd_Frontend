@@ -510,7 +510,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                 icon="shopping-bag"
                                 title={searchQuery ? 'Sin resultados' : 'No hay pedidos'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los pedidos que necesitas' : 'Crea pedidos para comenzar a gestionar tus ventas'}
-                                transparent={searchQuery}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )

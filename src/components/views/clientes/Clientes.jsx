@@ -290,7 +290,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                                 icon="user"
                                 title={searchQuery ? 'Sin resultados' : 'No hay clientes'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los clientes que necesitas' : 'Registra clientes para comenzar a gestionar tu base de datos de clientes'}
-                                transparent={searchQuery}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )

@@ -452,7 +452,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                 icon="credit-card"
                                 title={searchQuery ? 'Sin resultados' : 'No hay deudas'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar las deudas que necesitas' : 'Registra deudas para comenzar a gestionar tus cuentas por cobrar'}
-                                transparent={searchQuery}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )

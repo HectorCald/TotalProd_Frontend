@@ -278,7 +278,7 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                                 icon="store"
                                 title={searchQuery ? 'Sin resultados' : 'No hay proveedores'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los proveedores que necesitas' : 'Registra proveedores para comenzar a gestionar tu base de datos de proveedores'}
-                                transparent={searchQuery}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )

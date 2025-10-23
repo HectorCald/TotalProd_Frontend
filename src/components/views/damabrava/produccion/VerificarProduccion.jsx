@@ -15,6 +15,7 @@ import FiltroOrdenamiento from '../../../mixed/FiltroOrdenamiento';
 import FiltroResponsable from '../../../mixed/FiltroResponsable';
 import FiltroEstados from '../../../mixed/FiltroEstados';
 import LoadingSpinner from '../../../common/LoadingSpinner';
+import NoData from '../../../common/NoData';
 
 function VerificarProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -499,9 +500,13 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                                 );
                             })
                         ) : (
-                            <div className={styles.noData}>
-                                <p>{searchQuery ? 'No se encontraron registros de producción' : 'No hay registros de producción'}</p>
-                            </div>
+                            <NoData 
+                                icon="file"
+                                title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
+                                transparent={true}
+                                minHeight="200px"
+                            />
                         )
                     )}
 

@@ -436,7 +436,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                                 icon="file-text"
                                 title={searchQuery || filtroEstado !== null ? 'Sin resultados' : 'No hay cotizaciones'}
                                 detail={searchQuery || filtroEstado !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar las cotizaciones que necesitas' : 'Crea cotizaciones para comenzar a gestionar tus presupuestos'}
-                                transparent={searchQuery || filtroEstado !== null}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )

@@ -257,7 +257,7 @@ function Precios({ isOpen, setIsOpen }) {
                                 icon="dollar"
                                 title={searchQuery ? 'Sin resultados' : 'No hay precios'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los tipos de precio que necesitas' : 'Crea tipos de precio para comenzar a gestionar tus precios'}
-                                transparent={searchQuery}
+                                transparent={true}
                                 minHeight="200px"
                             />
                         )
