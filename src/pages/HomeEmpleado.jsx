@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useEmployee } from '../context/EmployeeContext';
 import { useLayout } from '../context/LayoutContext';
 import Nav from '../components/ui/Nav';
@@ -13,6 +13,7 @@ import styles from '../styles/view.module.css';
 import ItemView from '../components/common/ItemView';
 import ViewModal from '../components/ui/ViewModal';
 import HeaderModal from '../components/common/HeaderModal';
+import ModalOffline from '../components/views/offline/ModalOffline';
 import AlmacenGeneral from '../components/views/almacen-general/AlmacenGeneral';
 import AlmacenAcopio from '../components/views/almacen-acopio/AlmacenAcopio';
 import AlmacenGeneralAuxiliar from '../components/views/almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
@@ -42,6 +43,48 @@ const HomeEmpleado = () => {
     const [selectedModule, setSelectedModule] = useState(null);
     const [currentSubModule, setCurrentSubModule] = useState(null);
     const [isSubModuleOpen, setIsSubModuleOpen] = useState(false);
+    const [isOffline, setIsOffline] = useState(false);
+    const [showOfflineModal, setShowOfflineModal] = useState(false);
+
+    // Detectar cambios en la conexión
+    useEffect(() => {
+        const handleOnline = () => {
+            setIsOffline(false);
+            setShowOfflineModal(false);
+        };
+
+        const handleOffline = () => {
+            setIsOffline(true);
+            setShowOfflineModal(true);
+        };
+
+        // Verificar estado inicial
+        if (!navigator.onLine) {
+            setIsOffline(true);
+            setShowOfflineModal(true);
+        }
+
+        // Agregar listeners
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+    const handleRetryConnection = () => {
+        // Verificar conexión nuevamente
+        if (navigator.onLine) {
+            setIsOffline(false);
+            setShowOfflineModal(false);
+        } else {
+            // Mantener modal abierto si sigue sin conexión
+            setShowOfflineModal(true);
+        }
+    };
 
     // Mostrar loading hasta que se cargue completamente el empleado con sus módulos
     if (loading || !employee || !employee.modules) {
@@ -215,6 +258,13 @@ const HomeEmpleado = () => {
                     )}
                 </>
             )}
+
+            {/* Modal de conexión offline */}
+            <ModalOffline
+                isOpen={showOfflineModal}
+                setIsOpen={setShowOfflineModal}
+                onRetry={handleRetryConnection}
+            />
         </div>
     );
 };

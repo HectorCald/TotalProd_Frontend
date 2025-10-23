@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/Home.css';
 import Nav from '../components/ui/Nav';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
@@ -7,6 +7,7 @@ import { useLayout } from '../context/LayoutContext';
 import Inicio from '../components/screens/Inicio';
 import InicioPC from '../components/screens/InicioPC';
 import Explorar from '../components/screens/Explorar';
+import ModalOffline from '../components/views/offline/ModalOffline';
 
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
 import AlmacenMedioGeneral from '../components/views/almacen-general/AlmacenMedioGeneral';
@@ -23,6 +24,48 @@ const Home = () => {
   const { isLargeScreen } = useLayout();
   const [activeView, setActiveView] = useState(null);
   const [activeRoute, setActiveRoute] = useState('/dashboard/default');
+  const [isOffline, setIsOffline] = useState(false);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+
+  // Detectar cambios en la conexión
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      setShowOfflineModal(false);
+    };
+
+    const handleOffline = () => {
+      setIsOffline(true);
+      setShowOfflineModal(true);
+    };
+
+    // Verificar estado inicial
+    if (!navigator.onLine) {
+      setIsOffline(true);
+      setShowOfflineModal(true);
+    }
+
+    // Agregar listeners
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const handleRetryConnection = () => {
+    // Verificar conexión nuevamente
+    if (navigator.onLine) {
+      setIsOffline(false);
+      setShowOfflineModal(false);
+    } else {
+      // Mantener modal abierto si sigue sin conexión
+      setShowOfflineModal(true);
+    }
+  };
 
   const handleViewOpen = (viewName) => {
     console.log('handleViewOpen llamado con:', viewName);
@@ -198,6 +241,13 @@ const Home = () => {
           />
         </>
       )}
+
+      {/* Modal de conexión offline */}
+      <ModalOffline
+        isOpen={showOfflineModal}
+        setIsOpen={setShowOfflineModal}
+        onRetry={handleRetryConnection}
+      />
     </div>
   );
 };
