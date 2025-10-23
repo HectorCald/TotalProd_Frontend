@@ -44,13 +44,13 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(request)
       .then(response => {
-        // Si está en caché, devolverlo
+        // Si está en caché, devolverlo inmediatamente
         if (response) {
           console.log('📦 Sirviendo desde caché:', url.pathname);
           return response;
         }
         
-        // Si no está en caché, buscar en red y guardar
+        // Si no está en caché, intentar fetch
         return fetch(request)
           .then(response => {
             // Cachear respuestas exitosas
@@ -60,16 +60,14 @@ self.addEventListener('fetch', event => {
                 .then(cache => {
                   cache.put(request, responseToCache);
                   console.log('💾 Guardando en caché:', url.pathname);
-                })
-                .catch(cacheError => {
-                  console.warn('⚠️ Error guardando en caché:', cacheError);
                 });
             }
             return response;
           })
           .catch(error => {
-            console.warn('❌ Error en fetch:', url.pathname, error);
-            return fetch(request); // Intentar fetch normal como fallback
+            console.warn('❌ Sin internet, buscando en caché:', url.pathname);
+            // Si no hay internet, buscar en caché como fallback
+            return caches.match(request);
           });
       })
   );
