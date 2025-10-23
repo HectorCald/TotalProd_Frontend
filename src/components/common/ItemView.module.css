@@ -102,15 +102,13 @@
     font-size: 12px;
     color: gray;
     font-weight: 400;
-    line-height: 1.2;
+    width: 100%;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    /* Máximo 2 líneas */
-    -webkit-box-orient: vertical;
-    width: 100%;
-    min-height: 14px;
+    white-space: nowrap;
+    text-align: left;
+    min-height: fit-content;
 }
 .itemViewArrow {
     margin-left: auto;

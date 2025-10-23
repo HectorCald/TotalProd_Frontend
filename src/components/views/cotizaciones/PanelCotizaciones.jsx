@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
@@ -14,6 +14,7 @@ import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroEstadoCotizacion from '../../mixed/FiltroEstadoCotizacion';
 import NoData from '../../common/NoData';
+import FetchData from '../../mixed/FetchData';
 
 
 function PanelCotizaciones({ isOpen, setIsOpen }) {
@@ -43,7 +44,6 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
 
     // Estados para cotizaciones
     const [cotizaciones, setCotizaciones] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
     // Estados y configuraciones para el modal de información
@@ -56,54 +56,17 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     });
 
 
-    // Función para cargar cotizaciones
-    const cargarCotizaciones = async () => {
-        setIsLoading(true);
-        setError(null);
-        
-        try {
-            const response = await cotizacionesService.getAll();
-                
-            if (response.success) {
-                const newData = response.data || [];
-                setCotizaciones(newData);
-                setAllCotizaciones(newData);
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // Función para manejar cuando se cargan las cotizaciones
+    const handleCotizacionesLoaded = useCallback((data) => {
+        setCotizaciones(data);
+        setAllCotizaciones(data);
+    }, []);
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    }, [isLoading, isOpen, showRefreshIndicator]);
-
-    // Cargar cotizaciones cuando se abre el modal
-    useEffect(() => {
-        if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-            // Cargar cotizaciones
-            cargarCotizaciones();
-        }
-    }, [isOpen]);
+    // Función para manejar el loading de cotizaciones
+    const handleCotizacionesLoading = useCallback((isLoading) => {
+        setShowRefreshIndicator(isLoading);
+        setIsRefreshing(isLoading);
+    }, []);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -433,7 +396,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                             })
                         ) : (
                             <NoData 
-                                icon="file-text"
+                                icon="file"
                                 title={searchQuery || filtroEstado !== null ? 'Sin resultados' : 'No hay cotizaciones'}
                                 detail={searchQuery || filtroEstado !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar las cotizaciones que necesitas' : 'Crea cotizaciones para comenzar a gestionar tus presupuestos'}
                                 transparent={true}
@@ -442,12 +405,6 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                         )
                     )}
 
-                    {/* Indicador de carga */}
-                    {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando cotizaciones...</p>
-                        </div>
-                    )}
                 </div>
             </div>
             
@@ -484,6 +441,18 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 buttonText="Aceptar"
                 onButtonClick={() => setIsOpen(false)}
             />
+
+            {/* Carga de datos - solo cuando está abierto */}
+            {isOpen && (
+                <FetchData
+                    service={cotizacionesService}
+                    serviceName="cotizacionesService"
+                    isOpen={isOpen}
+                    onDataLoaded={handleCotizacionesLoaded}
+                    onLoadingStart={() => handleCotizacionesLoading(true)}
+                    onLoadingEnd={() => handleCotizacionesLoading(false)}
+                />
+            )}
 
         </View>
 

@@ -821,7 +821,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                     icon="box"
                                     title={searchQuery || categoriaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
                                     detail={searchQuery || categoriaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
-                                    transparent={searchQuery || categoriaFiltro !== null}
+                                    transparent={true}
                                     minHeight="200px"
                                 />
                             )

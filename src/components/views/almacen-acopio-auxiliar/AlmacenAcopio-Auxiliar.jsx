@@ -519,7 +519,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                     icon="box"
                                     title={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
                                     detail={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos de materia prima para comenzar a gestionar tu inventario de acopio'}
-                                    transparent={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null}
+                                    transparent={true}
                                     minHeight="200px"
                                 />
                             )

@@ -143,8 +143,8 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
 
       return {
         nombre: detalle.products_acopio?.name || 'Producto desconocido',
-        cantidad: cantidadFinal,
-        cantidadCalculada: cantidadCalculada,
+        cantidad: parseFloat(cantidadFinal.toFixed(3)),
+        cantidadCalculada: parseFloat(cantidadCalculada.toFixed(3)),
         unidad: detalle.products_acopio?.type_measure?.code || '',
         cantidadOriginal: detalle.cantidad,
         productoId: detalle.products_acopio?.id,
@@ -418,7 +418,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
                 <div key={index} className={styles.content}>
                   <Dato
                     label={ingrediente.nombre}
-                    value={`${ingrediente.cantidad.toFixed(2)} ${ingrediente.unidad}`}
+                    value={`${ingrediente.cantidad.toFixed(3)} ${ingrediente.unidad}`}
                     icon={ingredienteEditando === index ? "x" : "edit"}
                     onClick={() => {
                       if (ingredienteEditando === index) {
