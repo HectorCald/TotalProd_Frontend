@@ -470,6 +470,16 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         }
     };
 
+    // Función para redondear precios según las reglas especificadas
+    const redondearPrecio = (precio) => {
+        const decimal = precio % 1;
+        if (decimal >= 0.5) {
+            return Math.ceil(precio);
+        } else {
+            return Math.floor(precio);
+        }
+    };
+
     // Función para agregar producto a la canasta de cotizaciones
     const handleAgregarACanastaCotizaciones = (producto) => {
         const productoExistente = productosCanastaCotizaciones.find(p => p.id === producto.id);
@@ -516,6 +526,8 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             if (modoAgrupacionActual === 'agrupado' && producto.grup) {
                 cantidadInicial = 1; // 1 grupo
                 precioFinal = precioProducto * (producto.grup || 1); // precio por grupo
+                // Aplicar redondeo al precio por grupo
+                precioFinal = redondearPrecio(precioFinal);
                 stockMostrado = Math.floor((producto.stock || 0) / (producto.grup || 1)); // stock en grupos
             }
 

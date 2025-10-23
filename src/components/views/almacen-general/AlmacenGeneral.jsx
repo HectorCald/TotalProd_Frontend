@@ -33,6 +33,9 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Determinar si es modo carrito (para panel lateral)
     const isCartMode = tipo === 'pedido' || tipo === 'entrada' || tipo === 'salida';
+    
+    // Verificar si es venta de cotización (no es vista principal)
+    const isVentaCotizacion = localStorage.getItem('isVentaCotizacion') === 'true';
 
     // Estados para los modales
     const [isOpenVerProducto, setIsOpenVerProducto] = useState(false);
@@ -405,6 +408,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 localStorage.removeItem('cotizacionAgrupadoVendiendo');
                 localStorage.removeItem('clienteIdCotizacionVendiendo');
                 localStorage.removeItem('clienteNameCotizacionVendiendo');
+                // Limpiar variable de venta de cotización
+                localStorage.removeItem('isVentaCotizacion');
             }
         }
     }, [isOpen, tipo]);
@@ -501,6 +506,16 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }
     };
 
+    // Función para redondear precios según las reglas especificadas
+    const redondearPrecio = (precio) => {
+        const decimal = precio % 1;
+        if (decimal >= 0.5) {
+            return Math.ceil(precio);
+        } else {
+            return Math.floor(precio);
+        }
+    };
+
     // Función para manejar la canasta de pedidos
     const handleAgregarACanasta = (producto, cantidadEspecifica = null) => {
         const productoExistente = productosCanasta.find(p => p.id === producto.id);
@@ -559,6 +574,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     cantidadInicial = 1; // 1 grupo
                 }
                 precioFinal = precioProducto * (producto.grup || 1); // precio por grupo
+                // Aplicar redondeo al precio por grupo
+                precioFinal = redondearPrecio(precioFinal);
                 stockMostrado = Math.floor((producto.stock || 0) / (producto.grup || 1)); // stock en grupos
             }
 
@@ -674,6 +691,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     cantidadInicial = 1;
                 }
                 precioFinal = precioProducto * (producto.grup || 1);
+                // Aplicar redondeo al precio por grupo
+                precioFinal = redondearPrecio(precioFinal);
                 stockMostrado = Math.floor((producto.stock || 0) / (producto.grup || 1));
             }
 
@@ -771,7 +790,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     return (
         <>
-            <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!pedidoIdEditando && !localStorage.getItem('pedidoIdEntregando') && !localStorage.getItem('productosMovimientoEditando')}>
+            <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!pedidoIdEditando && !localStorage.getItem('pedidoIdEntregando') && !localStorage.getItem('productosMovimientoEditando') && !isVentaCotizacion}>
                 <HeaderView
                     onBack={() => setIsOpen(false)}
                     showSearch={true}

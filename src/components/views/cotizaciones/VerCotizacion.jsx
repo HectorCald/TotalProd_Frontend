@@ -196,10 +196,14 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
             precio: productoCotizacion.precio_unitario
         }));
 
+        // LIMPIAR LA CANASTA ANTES DE ABRIR EL MODAL
+        localStorage.removeItem('canastaSalidas');
+        
         // Guardar datos en localStorage para que AlmacenGeneral los cargue
         localStorage.setItem('productosCotizacionVendiendo', JSON.stringify(productosParaVenta));
         localStorage.setItem('precioIdCotizacionVendiendo', cotizacionActual.precio_id);
         localStorage.setItem('cotizacionAgrupadoVendiendo', cotizacionActual.agrupado ? 'agrupado' : 'no_agrupado');
+        localStorage.setItem('isVentaCotizacion', 'true'); // Marcar como venta de cotización
         
         // Si hay cliente, guardarlo también
         if (cotizacionActual.cliente_id) {
@@ -547,6 +551,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                     localStorage.removeItem('cotizacionAgrupadoVendiendo');
                     localStorage.removeItem('clienteIdCotizacionVendiendo');
                     localStorage.removeItem('clienteNameCotizacionVendiendo');
+                    localStorage.removeItem('isVentaCotizacion');
                 }}
             />
         </View>
