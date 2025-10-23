@@ -17,7 +17,7 @@
     padding: 12px 16px;
     border-radius: 10px;
     border: 1px solid;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.164);
     animation: slideDown 0.3s ease-out;
     max-width: 90%;
     min-width: 200px;

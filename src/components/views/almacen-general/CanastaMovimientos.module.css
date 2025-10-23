@@ -19,7 +19,7 @@
 }
 
 .title {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
     display: flex;
     justify-content: space-between;
@@ -91,14 +91,14 @@
     gap: 10px;
 }
 .productoItem {
-    background: none;
-    padding:5px;
+    background: var(--tertiary-color);
+    padding:10px;
     width: 100%;
     gap: 10px;
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
-    border-bottom: 1px solid var(--quinary-color);
+    border-radius: 10px;
 }
 
 .productoItem.eliminando {
@@ -124,8 +124,8 @@
 }
 
 .productoNombre {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
     color: var(--white-color);
     margin: 0 0 4px 0;
     width: 100%;
@@ -144,6 +144,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.2;
 }
 
 .stockInfo {
@@ -156,6 +157,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.2;
 }
 
 .productoControles {
@@ -171,7 +173,7 @@
     display: flex;
     gap: 4px;
     background: var(--tertiary-color);
-    padding: 8px 10px;
+    padding-left: 5px;
     border-radius: 8px;
     min-width: 120px;
     justify-content: center;
@@ -194,6 +196,11 @@
     font-size: 14px;
     text-align: center;
     width: 80px;
+    padding: 5px;
+}
+.precioInput:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
 }
 
 .precioInput::-webkit-outer-spin-button,
@@ -413,19 +420,6 @@
     color: var(--error-color) !important;
     cursor: pointer;
 }
-
-/* Estilos para modales */
-.modalContent {
-    padding: 20px;
-    padding-top: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 15px; 
-    overflow-y: auto;
-    height: 100%;
-    max-height: 90vh;
-}
-
 .content {
     display: flex;
     flex-direction: column;
@@ -442,28 +436,13 @@
     display: flex;
     gap: 7px;
 }
-
-.totalResumen {
-    width: 100%;
-    padding: 12px;
-    background: none;
-    border-top: 1px solid var(--tertiary-color);
-}
-
-.totalResumenContent {
+.modalContent {
+    padding: 20px;
+    padding-top: 0;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.totalResumenLabel {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--primary-color);
-}
-
-.totalResumenValue {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--white-color);
+    flex-direction: column;
+    gap: 15px; 
+    height: 100%;
+    max-height: 83vh;
+    overflow-y: auto;
 }

@@ -19,7 +19,7 @@
 }
 
 .title {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
     display: flex;
     justify-content: space-between;
@@ -112,14 +112,14 @@
     gap: 10px;
 }
 .productoItem {
-    background: none;
-    padding:10px 5px;
+    background: var(--tertiary-color);
+    padding:10px;
     width: 100%;
     gap: 10px;
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
-    border-bottom: 1px solid var(--quinary-color);
+    border-radius: 10px;
 }
 
 .productoItem.eliminando {
@@ -145,7 +145,7 @@
 }
 
 .productoNombre {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--white-color);
     margin: 0 0 4px 0;
