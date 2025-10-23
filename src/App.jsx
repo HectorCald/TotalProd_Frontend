@@ -18,6 +18,26 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Limpiar Service Worker anterior si existe
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.unregister();
+        });
+      });
+    }
+    
+    // Registrar Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+          console.log('✅ Service Worker registrado:', registration);
+        })
+        .catch(error => {
+          console.error('❌ Error registrando Service Worker:', error);
+        });
+    }
+    
     // Limpiar datos residuales de pedidos al iniciar la aplicación
         localStorage.removeItem('pedidoIdEditando');
         localStorage.removeItem('pedidoIdEntregando');
