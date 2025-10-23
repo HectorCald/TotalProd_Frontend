@@ -14,8 +14,8 @@ function Version() {
                 const totalprodCache = cacheNames.find(name => name.startsWith('totalprod-cache-v'));
                 
                 if (totalprodCache) {
-                    // Extraer solo el número de la versión
-                    const versionMatch = totalprodCache.match(/totalprod-cache-v(\d+)/);
+                    // Extraer todo lo que vaya después de 'v'
+                    const versionMatch = totalprodCache.match(/totalprod-cache-v(.+)/);
                     if (versionMatch) {
                         setCacheVersion(versionMatch[1]);
                     }
