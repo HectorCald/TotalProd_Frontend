@@ -1,12 +1,11 @@
-const CACHE_NAME = 'totalprod-cache-v5';
+const CACHE_NAME = 'totalprod-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icon-192x192.png',
   '/icon-512x512.png',
-  '/icon.png',
-  '/offline.html'
+  '/icon.png'
 ];
 
 self.addEventListener('install', event => {
@@ -70,13 +69,7 @@ self.addEventListener('fetch', event => {
           })
           .catch(error => {
             console.warn('❌ Error en fetch:', url.pathname, error);
-            // Si es una navegación (HTML), servir página offline
-            if (request.mode === 'navigate') {
-              console.log('🌐 Sirviendo página offline para:', url.pathname);
-              return caches.match('/offline.html');
-            }
-            // Para otros recursos, intentar fetch normal como fallback
-            return fetch(request);
+            return fetch(request); // Intentar fetch normal como fallback
           });
       })
   );
