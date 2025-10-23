@@ -125,8 +125,8 @@
 
 .badge {
     position: absolute;
-    bottom: 15px;
-    right: 15px;
+    top: 10px;
+    left: 38px;
     background-color: #28b574;
     color: white;
     border-radius: 50%;

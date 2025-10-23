@@ -263,19 +263,23 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             const stockOriginalEnUnidades = producto.stockOriginal || producto.stock;
             if (nuevoModo === 'agrupado' && producto.grup) {
                 const stockEnGrupos = Math.floor(stockOriginalEnUnidades / producto.grup);
-                const cantidadBaseUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
-                const cantidadEnGrupos = Math.max(1, Math.floor(cantidadBaseUnidades / (producto.grup || 1)));
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
                 let precioPorGrupo = precioUnitario * (producto.grup || 1);
                 
                 // Aplicar redondeo al precio por grupo
                 precioPorGrupo = redondearPrecio(precioPorGrupo);
+
+                // Si la cantidad actual excede el stock disponible en grupos, ajustar al máximo
+                let cantidadFinal = producto.cantidad;
+                if (producto.cantidad > stockEnGrupos) {
+                    cantidadFinal = stockEnGrupos;
+                    mostrarNotificacion('warning', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${stockEnGrupos} grupos`);
+                }
                 
-                return { ...producto, cantidad: cantidadEnGrupos || 1, precio: precioPorGrupo, stock: stockEnGrupos, stockOriginal: stockOriginalEnUnidades };
+                return { ...producto, cantidad: cantidadFinal, precio: precioPorGrupo, stock: stockEnGrupos, stockOriginal: stockOriginalEnUnidades };
             } else {
-                const cantidadEnUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
-                return { ...producto, cantidad: cantidadEnUnidades, precio: precioUnitario, stock: stockOriginalEnUnidades, stockOriginal: stockOriginalEnUnidades };
+                return { ...producto, cantidad: producto.cantidad, precio: precioUnitario, stock: stockOriginalEnUnidades, stockOriginal: stockOriginalEnUnidades };
             }
         }));
     };

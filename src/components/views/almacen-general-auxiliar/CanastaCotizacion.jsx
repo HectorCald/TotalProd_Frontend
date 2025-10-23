@@ -244,7 +244,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         if (nuevoModo === modoAgrupacion) return;
         setModoAgrupacion(nuevoModo);
 
-        // Actualizar productos según el nuevo modo
+        // Actualizar productos según el nuevo modo - SOLO cambiar precio y stock, NO la cantidad
         setProductosCanasta(prev => prev.map(producto => {
             // Usar stockOriginal si existe, sino usar stock
             // Si no hay stockOriginal, establecerlo ahora
@@ -256,29 +256,33 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
             if (nuevoModo === 'agrupado' && producto.grup) {
                 // Cambiar a modo agrupado
                 const stockEnGrupos = Math.floor(stockOriginalEnUnidades / producto.grup);
-                const cantidadBaseUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
-                const cantidadEnGrupos = Math.max(1, Math.floor(cantidadBaseUnidades / (producto.grup || 1)));
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
                 let precioPorGrupo = precioUnitario * (producto.grup || 1);
 
                 // Aplicar redondeo al precio por grupo
                 precioPorGrupo = redondearPrecio(precioPorGrupo);
 
+                // Si la cantidad actual excede el stock disponible en grupos, ajustar al máximo
+                let cantidadFinal = producto.cantidad;
+                if (producto.cantidad > stockEnGrupos) {
+                    cantidadFinal = stockEnGrupos;
+                    mostrarNotificacion('warning', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${stockEnGrupos} grupos`);
+                }
+
                 return {
                     ...producto,
-                    cantidad: cantidadEnGrupos || 1, // Mínimo 1 grupo
+                    cantidad: cantidadFinal,
                     precio: precioPorGrupo,
                     stock: stockEnGrupos,
                     stockOriginal: stockOriginalEnUnidades // Mantener el stock original
                 };
             } else {
-                // Cambiar a modo no agrupado
-                const cantidadEnUnidades = (modoAgrupacion === 'agrupado' ? (producto.cantidad || 1) * (producto.grup || 1) : (producto.cantidad || 1));
+                // Cambiar a modo no agrupado - SOLO cambiar precio y stock, NO la cantidad
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
 
                 return {
                     ...producto,
-                    cantidad: cantidadEnUnidades,
+                    cantidad: producto.cantidad, // NO CAMBIAR LA CANTIDAD
                     precio: precioUnitario,
                     stock: stockOriginalEnUnidades, // Stock original en unidades
                     stockOriginal: stockOriginalEnUnidades // Mantener el stock original
