@@ -547,8 +547,15 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             {/* Modal de AlmacenGeneral para editar movimiento */}
             <AlmacenGeneral
                 isOpen={isAlmacenOpen}
-                setIsOpen={setIsAlmacenOpen}
+                setIsOpen={(isOpen) => {
+                    setIsAlmacenOpen(isOpen);
+                    // Limpiar productos del movimiento cuando se cierra AlmacenGeneral
+                    if (!isOpen) {
+                        localStorage.removeItem('productosMovimientoEditando');
+                    }
+                }}
                 tipo="salida"
+                isRepitiendoMovimiento={modoAlmacen === 'salida'}
             />
         </View>
     );

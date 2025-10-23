@@ -27,7 +27,7 @@ import useVirtualPagination from '../../../hooks/useVirtualPagination';
 import NoData from '../../common/NoData';
 
 
-function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null }) {
+function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null, isRepitiendoMovimiento = false, isVentaCotizacionProp = false }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
     const { isLargeScreen } = useLayout();
 
@@ -254,10 +254,15 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             setCategoriaFiltroNombre('Categorías');
             setOrdenamiento('nombre_asc');
 
+            // Si no se pasan los props específicos, no se está repitiendo un movimiento y no es venta de cotización, limpiar localStorage
+            if (!onPedidoActualizado && !onEntregaConfirmada && !pedidoIdEditando && !isRepitiendoMovimiento && !isVentaCotizacionProp) {
+                limpiarLocalStorage();
+            }
+
             // Cargar canastas desde localStorage
             cargarCanastasDesdeLocalStorage();
         }
-    }, [isOpen]);
+    }, [isOpen, onPedidoActualizado, onEntregaConfirmada, pedidoIdEditando, isRepitiendoMovimiento, isVentaCotizacionProp]);
 
     // Efecto para cargar productos del pedido automáticamente cuando es una entrega
     useEffect(() => {
@@ -383,36 +388,38 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         setIsSearchExpanded(isExpanded);
     };
 
-    // Efecto separado para limpiar variables cuando se cierra el modal
-    useEffect(() => {
-        if (!isOpen) {
-            // Cuando se cierra el modal, limpiar variables del localStorage según el tipo
-            if (tipo === 'pedido') {
-                localStorage.removeItem('pedidoIdEditando');
-                localStorage.removeItem('precioIdEditando');
-                localStorage.removeItem('pedidoAgrupadoEditando');
-                localStorage.removeItem('productosPedidoEditando');
-            }
-            if (tipo === 'salida') {
-                localStorage.removeItem('pedidoIdEntregando');
-                localStorage.removeItem('precioIdEntregando');
-                localStorage.removeItem('precioIdEditando');
-                localStorage.removeItem('movimientoAgrupadoEditando');
-                localStorage.removeItem('productosMovimientoEditando');
-                localStorage.removeItem('metodoPagoEditando');
-                localStorage.removeItem('clienteIdEditando');
-                localStorage.removeItem('clienteNameEditando');
-                // Limpiar variables de cotización
-                localStorage.removeItem('productosCotizacionVendiendo');
-                localStorage.removeItem('precioIdCotizacionVendiendo');
-                localStorage.removeItem('cotizacionAgrupadoVendiendo');
-                localStorage.removeItem('clienteIdCotizacionVendiendo');
-                localStorage.removeItem('clienteNameCotizacionVendiendo');
-                // Limpiar variable de venta de cotización
-                localStorage.removeItem('isVentaCotizacion');
-            }
-        }
-    }, [isOpen, tipo]);
+    // Función para limpiar variables del localStorage (solo variables, NO productos)
+    const limpiarLocalStorage = () => {
+
+            localStorage.removeItem('pedidoIdEditando');
+            localStorage.removeItem('precioIdEditando');
+            localStorage.removeItem('pedidoAgrupadoEditando');
+            localStorage.removeItem('productosPedidoEditando');
+
+            localStorage.removeItem('pedidoAgrupadoEntregando');
+            localStorage.removeItem('pedidoDestinoSucursalId');
+            localStorage.removeItem('pedidoDestinoSucursalName');
+            localStorage.removeItem('clienteIdEntregando');
+            localStorage.removeItem('clienteNameEntregando');
+            localStorage.removeItem('pedidoIdEntregando');
+            localStorage.removeItem('precioIdEntregando');
+            localStorage.removeItem('precioIdEditando');
+            localStorage.removeItem('movimientoAgrupadoEditando');
+            localStorage.removeItem('metodoPagoEditando');
+            localStorage.removeItem('clienteIdEditando');
+            localStorage.removeItem('clienteNameEditando');
+            // Limpiar variables de cotización
+            localStorage.removeItem('productosCotizacionVendiendo');
+            localStorage.removeItem('precioIdCotizacionVendiendo');
+            localStorage.removeItem('cotizacionAgrupadoVendiendo');
+            localStorage.removeItem('clienteIdCotizacionVendiendo');
+            localStorage.removeItem('clienteNameCotizacionVendiendo');
+
+            localStorage.removeItem('productosMovimientoEditando');
+            // Limpiar variable de venta de cotización
+            localStorage.removeItem('isVentaCotizacion');
+    };
+
 
    
 
@@ -792,7 +799,13 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         <>
             <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!pedidoIdEditando && !localStorage.getItem('pedidoIdEntregando') && !localStorage.getItem('productosMovimientoEditando') && !isVentaCotizacion}>
                 <HeaderView
-                    onBack={() => setIsOpen(false)}
+                    onBack={() => {
+                        limpiarLocalStorage();
+                        // Pequeño delay para asegurar que la limpieza se complete
+                        setTimeout(() => {
+                            setIsOpen(false);
+                        }, 100);
+                    }}
                     showSearch={true}
                     searchPlaceholder="Buscar producto"
                     title={tipo === 'almacen' ? 'Almacén' : tipo === 'entrada' ? 'Entradas' : tipo === 'pedido' ? 'Realizar Pedidos' : 'Salidas o Ventas'}

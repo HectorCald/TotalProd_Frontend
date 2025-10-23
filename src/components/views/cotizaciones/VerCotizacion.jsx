@@ -544,6 +544,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 isOpen={isAlmacenOpen}
                 setIsOpen={setIsAlmacenOpen}
                 tipo="salida"
+                isVentaCotizacionProp={true}
                 onCerrarCanasta={() => {
                     // Limpiar localStorage cuando se cierre
                     localStorage.removeItem('productosCotizacionVendiendo');
