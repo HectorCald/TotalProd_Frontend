@@ -116,7 +116,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
 
             if (response.success) {
                 setIsAnularOpen(false);
-                setIsOpen(false); // Cerrar el modal principal
+                // NO cerrar el modal principal, solo actualizar la información
 
                 // Actualizar el registro local con los datos devueltos
                 setRegistroActual(response.data);

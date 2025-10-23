@@ -119,8 +119,8 @@ function IngresoProduccion({ isOpen, setIsOpen, producto, cantidadVerificada, ca
 
         setLoading(true);
         try {
-            // Verificar si el producto tiene recetas para restar ingredientes
-            const tieneRecetas = producto.recetas && producto.recetas.length > 0;
+            // NO restar ingredientes porque ya se restaron al registrar la producción
+            // Los ingredientes ya fueron consumidos al crear el registro de producción
 
             // Preparar datos del movimiento de entrada
             const movimientoData = {
@@ -130,7 +130,7 @@ function IngresoProduccion({ isOpen, setIsOpen, producto, cantidadVerificada, ca
                 metodo_pago: null,
                 cliente_id: null,
                 proveedor_id: null,
-                restar_ingredientes: tieneRecetas,
+                restar_ingredientes: false, // NO restar ingredientes (ya se restaron al registrar)
                 produccion_damabrava_id: registroId, // ID del registro de producción de Damabrava
                 productos: [{
                     id: producto.id,
