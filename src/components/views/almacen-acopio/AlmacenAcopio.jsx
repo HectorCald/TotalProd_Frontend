@@ -91,18 +91,20 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
-        setIsLoading(false);
         // Decrementar contador de peticiones activas
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
-            // Ocultar RefreshIndicator cuando no hay peticiones activas
-            if (newCount === 0 && isLargeScreen) {
-                setTimeout(() => {
-                    setIsRefreshing(false);
+            // Solo ocultar loading y RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0) {
+                setIsLoading(false);
+                if (isLargeScreen) {
                     setTimeout(() => {
-                        setShowRefreshIndicator(false);
-                    }, 500);
-                }, 300);
+                        setIsRefreshing(false);
+                        setTimeout(() => {
+                            setShowRefreshIndicator(false);
+                        }, 500);
+                    }, 300);
+                }
             }
             return newCount;
         });

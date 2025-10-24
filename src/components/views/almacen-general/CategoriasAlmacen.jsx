@@ -15,6 +15,8 @@ import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
+import PullToRefresh from '../../common/PullToRefresh';
+import LoadingSpinner from '../../common/LoadingSpinner';
     
 function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategoriaSeleccionada }) {
     const { isLargeScreen } = useLayout();
@@ -26,6 +28,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
     
     // Estados para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
@@ -33,17 +36,49 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
 
     // Estados para categorías
     const [categorias, setCategorias] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Función para manejar cuando se cargan las categorías
     const handleCategoriasLoaded = useCallback((data) => {
         setCategorias(data);
     }, []);
 
-    // Función simple para manejar el indicador de carga
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (categorias.length === 0) {
+            setIsLoading(true);
+        }
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [categorias.length, isLargeScreen]);
+
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -88,11 +123,8 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
         }
     };
 
-    // Función para manejar refresh con indicador
+    // Función para manejar refresh
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-
         try {
             const response = await categoryAlmacenService.getAll();
             if (response.success) {
@@ -100,14 +132,6 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
             }
         } catch (error) {
             console.error('Error al refrescar categorías:', error);
-        } finally {
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
         }
     };
 
@@ -200,14 +224,13 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                         isVisible={showRefreshIndicator}
                         isLoading={isRefreshing}
                     />
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
                 </div>
-                <div className={styles.content} style={{ maxHeight: 'calc(100% - 90px)' }}>
-                    {isLargeScreen ? (
+                {isLoading ? (
+                        // Mostrar LoadingSpinner cuando está cargando
+                        <LoadingSpinner />
+                    ) : isLargeScreen ? (
                         // Vista de tabla para pantallas grandes
+                        <div className={styles.content} style={{ maxHeight: 'calc(100% - 90px)' }}>
                         <Table
                             headers={tableHeaders}
                             data={tableData}
@@ -217,29 +240,39 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                                 handleCategoria(categoriaOriginal);
                             }}
                         />
+                        </div>
                     ) : (
-                        // Vista de cards para pantallas pequeñas
-                        categoriasFiltradas.length > 0 ? (
-                            categoriasFiltradas.map((categoria, index) => (
-                                <ItemView
-                                    key={categoria.id || index}
-                                    title={categoria.name || 'Sin nombre'}
+                        // Vista de cards para pantallas pequeñas con PullToRefresh
+                        <PullToRefresh
+                            onRefresh={handleRefresh}
+                            screenName="Categorías"
+                            containerStyle={{
+                                maxHeight: 'calc(100% - 80px)',
+                                minHeight: 'calc(100% - 80px)'
+                            }}
+                        >
+                            {categoriasFiltradas.length > 0 ? (
+                                categoriasFiltradas.map((categoria, index) => (
+                                    <ItemView
+                                        key={categoria.id || index}
+                                        title={categoria.name || 'Sin nombre'}
+                                        icon="category"
+                                        arrow={true}
+                                        onClick={() => handleCategoria(categoria)}
+                                    />
+                                ))
+                            ) : (
+                                <NoData 
                                     icon="category"
-                                    arrow={true}
-                                    onClick={() => handleCategoria(categoria)}
+                                    title={searchQuery ? 'Sin resultados' : 'No hay categorías'}
+                                    detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar las categorías que necesitas' : 'Crea categorías para organizar mejor tus productos del almacén'}
+                                    transparent={searchQuery}
+                                    minHeight="200px"
                                 />
-                            ))
-                        ) : (
-                            <NoData 
-                                icon="category"
-                                title={searchQuery ? 'Sin resultados' : 'No hay categorías'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar las categorías que necesitas' : 'Crea categorías para organizar mejor tus productos del almacén'}
-                                transparent={searchQuery}
-                                minHeight="200px"
-                            />
-                        )
+                            )}
+                        </PullToRefresh>
                     )}
-                </div>
+                
             </div>
 
             <div className={styles.buttonFooter}>
@@ -281,8 +314,8 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                     serviceName="categoryAlmacenService"
                     isOpen={isOpen}
                     onDataLoaded={handleCategoriasLoaded}
-                    onLoadingStart={() => handleLoading(true)}
-                    onLoadingEnd={() => handleLoading(false)}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
                 />
             )}
         </View>

@@ -14,6 +14,8 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import NoData from '../../common/NoData';
+import PullToRefresh from '../../common/PullToRefresh';
+import LoadingSpinner from '../../common/LoadingSpinner';
 
 function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategoriaSeleccionada }) {
     const { isLargeScreen } = useLayout();
@@ -25,7 +27,8 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    
+    const [activeRequests, setActiveRequests] = useState(0);
+
     // Estados para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -38,10 +41,19 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     // Función para cargar categorías
     const cargarCategorias = async () => {
         setIsLoading(true);
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
         setError(null);
-        
+
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+
         try {
             const response = await categoryAcopioService.getAll();
             if (response.success) {
@@ -53,13 +65,20 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
             setError(error);
         } finally {
             setIsLoading(false);
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
+            // Decrementar contador de peticiones activas
+            setActiveRequests(prev => {
+                const newCount = Math.max(0, prev - 1);
+                // Ocultar RefreshIndicator cuando no hay peticiones activas
+                if (newCount === 0 && isLargeScreen) {
+                    setTimeout(() => {
+                        setIsRefreshing(false);
+                        setTimeout(() => {
+                            setShowRefreshIndicator(false);
+                        }, 500);
+                    }, 300);
+                }
+                return newCount;
+            });
         }
     };
 
@@ -139,7 +158,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     }, [isOpen]);
 
     // Filtrar categorías localmente basado en la búsqueda
-    const categoriasFiltradas = categorias.filter(categoria => 
+    const categoriasFiltradas = categorias.filter(categoria =>
         categoria.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -159,7 +178,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     const handleCategoriaCreated = (newCategoria) => {
         // Actualizar el estado local con la categoría que devuelve el servidor
         setCategorias(prevCategorias => [newCategoria, ...prevCategorias]);
-        
+
         // Cerrar el modal
         setIsAgregarOpen(false);
         mostrarNotificacion('success', 'Categoría agregada correctamente');
@@ -169,7 +188,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     const handleCategoriaDeleted = (deletedId) => {
         // Actualizar el estado local removiendo la categoría eliminada
         setCategorias(prevCategorias => prevCategorias.filter(categoria => categoria.id !== deletedId));
-        
+
         // Cerrar el modal de ver categoría
         setIsOpenVerCategoria(false);
         mostrarNotificacion('success', 'Categoría eliminada correctamente');
@@ -178,10 +197,10 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     // Función para manejar cuando se actualiza una categoría
     const handleCategoriaUpdated = (updatedCategoria) => {
         // Actualizar el estado local con la categoría actualizada que devuelve el servidor
-        setCategorias(prevCategorias => prevCategorias.map(categoria => 
+        setCategorias(prevCategorias => prevCategorias.map(categoria =>
             categoria.id === updatedCategoria.id ? updatedCategoria : categoria
         ));
-        
+
         // Cerrar el modal de ver categoría
         setIsOpenVerCategoria(false);
         mostrarNotificacion('success', 'Categoría actualizada correctamente');
@@ -190,8 +209,8 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView 
-                onBack={() => setIsOpen(false)} 
+            <HeaderView
+                onBack={() => setIsOpen(false)}
                 title={modoSeleccion ? 'Seleccionar Categoría' : 'Categorías de Acopio'}
                 showSearch={true}
                 searchPlaceholder="Buscar categoría"
@@ -208,9 +227,12 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                         isLoading={isRefreshing}
                     />
                 </div>
-                <div className={styles.content}>
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando
+                    <LoadingSpinner />
+                ) : isLargeScreen ? (
+                    // Vista de tabla para pantallas grandes
+                    <div className={styles.content} style={{ maxHeight: 'calc(100% - 90px)' }}>
                         <Table
                             headers={tableHeaders}
                             data={tableData}
@@ -220,9 +242,18 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                                 handleCategoria(categoriaOriginal);
                             }}
                         />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas
-                        categoriasFiltradas.length > 0 ? (
+                    </div>
+                ) : (
+                    // Vista de cards para pantallas pequeñas con PullToRefresh
+                    <PullToRefresh
+                        onRefresh={handleRefresh}
+                        screenName="Categorías de Acopio"
+                        containerStyle={{
+                            maxHeight: 'calc(100% - 80px)',
+                            minHeight: 'calc(100% - 80px)'
+                        }}
+                    >
+                        {categoriasFiltradas.length > 0 ? (
                             categoriasFiltradas.map((categoria, index) => (
                                 <ItemView
                                     key={categoria.id || index}
@@ -233,16 +264,17 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                                 />
                             ))
                         ) : (
-                            <NoData 
+                            <NoData
                                 icon="category"
                                 title={searchQuery ? 'Sin resultados' : 'No hay categorías registradas'}
                                 detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda' : 'Crea categorías para organizar tus productos'}
                                 transparent={true}
                                 minHeight="200px"
                             />
-                        )
-                    )}
-                </div>
+                        )}
+                    </PullToRefresh>
+                )}
+
             </div>
 
             <div className={styles.buttonFooter}>
@@ -255,9 +287,9 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
 
             {/* Modal de ver categoría - solo en modo normal */}
             {!modoSeleccion && (
-                <VerCategoria 
-                    isOpen={isOpenVerCategoria} 
-                    setIsOpen={setIsOpenVerCategoria} 
+                <VerCategoria
+                    isOpen={isOpenVerCategoria}
+                    setIsOpen={setIsOpenVerCategoria}
                     categoria={infoCategoria}
                     onCategoriaDeleted={handleCategoriaDeleted}
                     onCategoriaUpdated={handleCategoriaUpdated}
@@ -265,9 +297,9 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
             )}
 
             {/* Modal de agregar categoría */}
-            <EditarAgregarCategoria 
-                isOpen={isAgregarOpen} 
-                setIsOpen={setIsAgregarOpen} 
+            <EditarAgregarCategoria
+                isOpen={isAgregarOpen}
+                setIsOpen={setIsAgregarOpen}
                 tipo='agregar'
                 onCategoriaCreated={handleCategoriaCreated}
             />
