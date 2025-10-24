@@ -20,7 +20,7 @@ import PullToRefresh from '../../common/PullToRefresh';
 
 function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccionado }) {
     const { isLargeScreen } = useLayout();
-    
+
     // Estados para los modales
     const [isOpenVerCliente, setIsOpenVerCliente] = useState(false);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
@@ -29,7 +29,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    
+
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -57,7 +57,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         setError(error);
     }, []);
 
-    
+
 
 
 
@@ -104,7 +104,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
             const errorMessage = error.message || 'No tienes acceso a este módulo';
             const currentPlan = error.currentPlan || 'Plan actual';
             const requiredModule = error.requiredModule || 'Clientes';
-            
+
             setModalConfig({
                 isOpen: true,
                 type: 'info',
@@ -179,7 +179,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     };
 
     // Filtrar clientes localmente basado en la búsqueda
-    const clientesFiltrados = clientes.filter(cliente => 
+    const clientesFiltrados = clientes.filter(cliente =>
         cliente.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (cliente.phone && cliente.phone.includes(searchQuery))
     );
@@ -189,7 +189,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     const handleClientCreated = (newClient) => {
         // Actualizar el estado local con el cliente que devuelve el servidor
         setClientes(prevClientes => [newClient, ...prevClientes]);
-        
+
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
         mostrarNotificacion('success', 'Cliente agregado correctamente')
@@ -200,7 +200,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     const handleClientDeleted = (deletedId) => {
         // Actualizar el estado local removiendo el cliente eliminado
         setClientes(prevClientes => prevClientes.filter(cliente => cliente.id !== deletedId));
-        
+
         // Cerrar el modal de ver cliente
         setIsOpenVerCliente(false);
         mostrarNotificacion('success', 'Cliente eliminado correctamente')
@@ -210,10 +210,10 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     // Función para manejar cuando se actualiza un cliente
     const handleClientUpdated = (updatedClient) => {
         // Actualizar el estado local con el cliente actualizado que devuelve el servidor
-        setClientes(prevClientes => prevClientes.map(cliente => 
+        setClientes(prevClientes => prevClientes.map(cliente =>
             cliente.id === updatedClient.id ? updatedClient : cliente
         ));
-        
+
         // Cerrar el modal de ver cliente
         setIsOpenVerCliente(false);
         mostrarNotificacion('success', 'Cliente actualizado correctamente')
@@ -237,12 +237,12 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     }));
 
     return (
-        <View 
-            isOpen={isOpen} 
+        <View
+            isOpen={isOpen}
             setIsOpen={setIsOpen}
             isMainView={!modoSeleccion}
         >
-            <HeaderView 
+            <HeaderView
                 onBack={() => setIsOpen(false)}
                 showSearch={true}
                 searchPlaceholder="Buscar por nombre o teléfono..."
@@ -275,35 +275,31 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                     </div>
                 ) : (
                     // Vista de cards para pantallas pequeñas con PullToRefresh
-                    <PullToRefresh 
+                    <PullToRefresh
                         onRefresh={handleRefresh}
                         screenName="Clientes"
                     >
-                        <div className={styles.content} style={{
-                            maxHeight: 'calc(100vh - 50px)',
-                            minHeight: 'calc(100vh - 50px)',
-                            overflowY: 'auto'
-                        }}>
-                            {clientesFiltrados.length > 0 ? (
-                                clientesFiltrados.map((cliente, index) => (
-                                    <ItemView
-                                        key={cliente.id || index}
-                                        title={cliente.name || 'Sin nombre'}
-                                        description={cliente.description || 'Sin descripción'}
-                                        arrow={true}
-                                        onClick={() => handleCliente(cliente)}
-                                    />
-                                ))
-                            ) : (
-                                <NoData 
-                                    icon="user"
-                                    title={searchQuery ? 'Sin resultados' : 'No hay clientes'}
-                                    detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los clientes que necesitas' : 'Registra clientes para comenzar a gestionar tu base de datos de clientes'}
-                                    transparent={true}
-                                    minHeight="200px"
+
+                        {clientesFiltrados.length > 0 ? (
+                            clientesFiltrados.map((cliente, index) => (
+                                <ItemView
+                                    key={cliente.id || index}
+                                    title={cliente.name || 'Sin nombre'}
+                                    description={cliente.description || 'Sin descripción'}
+                                    arrow={true}
+                                    onClick={() => handleCliente(cliente)}
                                 />
-                            )}
-                        </div>
+                            ))
+                        ) : (
+                            <NoData
+                                icon="user"
+                                title={searchQuery ? 'Sin resultados' : 'No hay clientes'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los clientes que necesitas' : 'Registra clientes para comenzar a gestionar tu base de datos de clientes'}
+                                transparent={true}
+                                minHeight="200px"
+                            />
+                        )}
+
                     </PullToRefresh>
                 )}
                 <div className={styles.buttonFooter}>

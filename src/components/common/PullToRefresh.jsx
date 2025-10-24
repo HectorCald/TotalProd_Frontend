@@ -239,6 +239,7 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
           transform: isPulling ? `translateY(${Math.min(pullDistance * 0.3, 50)}px)` : 'translateY(0)',
           transition: isPulling ? 'none' : 'transform 0.3s ease'
         }}
+        className={styles.containerContent}
       >
         {children}
       </div>
