@@ -31,7 +31,7 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 
 function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const { isLargeScreen } = useLayout();
-    
+
     // Determinar si es modo carrito (para panel lateral)
     const isCartMode = tipo === 'pedido';
 
@@ -49,14 +49,14 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     // Estados para los datos
     const [categorias, setCategorias] = useState([]);
     const [tiposMedida, setTiposMedida] = useState([]);
-    
+
     // Estados para rastrear qué datos se han cargado
     const [productosLoaded, setProductosLoaded] = useState(false);
     const [categoriasLoaded, setCategoriasLoaded] = useState(false);
     const [tiposMedidaLoaded, setTiposMedidaLoaded] = useState(false);
     // Estados para productos
     const [isLoading, setIsLoading] = useState(false);
-    
+
     // Estados para RefreshIndicator (solo PC)
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -139,16 +139,16 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         quantity: producto.quantity || 0,
         created_at: producto.created_at,
         empresa_id: producto.empresa_id,
-        
+
         // Información de categoría
         category_id: producto.category_id || '',
         category_name: producto.category?.name || 'Sin categoría',
         category: producto.category || null,
-        
+
         // Información de tipo de medida
         type_measure_id: producto.type_measure_id || '',
         type_measure: producto.type_measure || null,
-        
+
         // Información de recetas
         recetas_acopio: producto.recetas_acopio || []
     }));
@@ -226,12 +226,12 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
             setCategoriaFiltro(null);
             setTipoMedidaFiltro(null);
             setOrdenamiento('nombre_asc');
-            
+
             // Resetear estados de carga
             setProductosLoaded(false);
             setCategoriasLoaded(false);
             setTiposMedidaLoaded(false);
-            
+
             // Cargar canastas desde localStorage
             cargarCanastasDesdeLocalStorage();
         }
@@ -253,16 +253,16 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     // Filtrar y ordenar productos localmente
     const productosFiltrados = productosMapeados.filter(producto => {
         // Filtro de búsqueda
-        const matchesSearch = !searchQuery || 
+        const matchesSearch = !searchQuery ||
             producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
         // Filtro de categoría
-        const matchesCategoria = categoriaFiltro === null || 
+        const matchesCategoria = categoriaFiltro === null ||
             (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
 
         // Filtro de tipo de medida
-        const matchesTipoMedida = tipoMedidaFiltro === null || 
+        const matchesTipoMedida = tipoMedidaFiltro === null ||
             (tipoMedidaFiltro === '' ? !producto.type_measure_id : producto.type_measure_id === tipoMedidaFiltro);
 
         return matchesSearch && matchesCategoria && matchesTipoMedida;
@@ -420,7 +420,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         }
     };
 
-    
+
     // Funciones para obtener nombres de filtros (funcionan pero no afectan el resultado)
     const getCategoriaNombre = () => {
         if (categoriaFiltro === null) return 'Categorías';
@@ -489,12 +489,12 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
             category_name: producto.category_name || '--',
             type_measure_name: producto.type_measure?.name || '--'
         };
-        
+
         // Solo incluir descripción en modo no pedido
         if (tipo !== 'pedido') {
             baseData.description = producto.description || '--';
         }
-        
+
         return baseData;
     });
 
@@ -509,77 +509,84 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     return (
         <>
-        <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-            <HeaderView 
-                onBack={() => setIsOpen(false)}
-                showSearch={true}
-                searchPlaceholder="Buscar producto"
-                searchValue={searchQuery}
-                onSearchChange={handleSearchChange}
-                onSearchClear={handleSearchClear}
-                searchExpanded={isSearchExpanded}
-                onSearchToggle={handleSearchToggle}
-                title={tipo === 'almacen' ? 'Materia Prima' : tipo === 'entrada' ? 'Entradas' : tipo === 'pedido' ? 'Realizar Pedidos' : 'Salidas o Ventas'}
-                withCart={isCartMode && isLargeScreen}
-            />
-            <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
-                {isLoading ? (
-                    // Mostrar LoadingSpinner cuando está cargando
-                    <LoadingSpinner />
-                ) : (
-                    <>
-                        {isLargeScreen && (
-                            <div className={styles.titleContainer}>
-                                <RefreshIndicator
-                                    isVisible={showRefreshIndicator}
-                                    isLoading={isRefreshing}
-                                />
-                            </div>
-                        )}
-                        <Filtros options={opciones} />
-                        {isLargeScreen ? (
-                            // Vista de tabla para pantallas grandes
-                            <div
-                                className={styles.content}
-                                style={{
-                                    maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido')
-                                        ? '100%'
-                                        : ''
-                                }}
-                            >
-                                <Table
-                                    headers={tableHeaders}
-                                    data={tableData}
-                                    onRowClick={(producto) => {
-                                        // Buscar el producto original sin formatear
-                                        const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
-                                        handleRegistro(productoOriginal, tipo);
+            <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
+                <HeaderView
+                    onBack={() => setIsOpen(false)}
+                    showSearch={true}
+                    searchPlaceholder="Buscar producto"
+                    searchValue={searchQuery}
+                    onSearchChange={handleSearchChange}
+                    onSearchClear={handleSearchClear}
+                    searchExpanded={isSearchExpanded}
+                    onSearchToggle={handleSearchToggle}
+                    title={tipo === 'almacen' ? 'Materia Prima' : tipo === 'entrada' ? 'Entradas' : tipo === 'pedido' ? 'Realizar Pedidos' : 'Salidas o Ventas'}
+                    withCart={isCartMode && isLargeScreen}
+                />
+                <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
+                    {isLoading ? (
+                        // Mostrar LoadingSpinner cuando está cargando
+                        <LoadingSpinner />
+                    ) : (
+                        <>
+                            {isLargeScreen && (
+                                <div className={styles.titleContainer}>
+                                    <RefreshIndicator
+                                        isVisible={showRefreshIndicator}
+                                        isLoading={isRefreshing}
+                                    />
+                                </div>
+                            )}
+                            <Filtros options={opciones} />
+                            {isLargeScreen ? (
+                                // Vista de tabla para pantallas grandes
+                                <div
+                                    className={styles.content}
+                                    style={{
+                                        maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido')
+                                            ? '100%'
+                                            : ''
                                     }}
-                                    getBadge={getBadge}
-                                    columnWidths={tipo === 'pedido' ? {
-                                        name: '35%',
-                                        quantity: '25%',
-                                        category_name: '25%',
-                                        type_measure_name: '26%'
-                                    } : {
-                                        name: '25%',
-                                        description: '25%',
-                                        quantity: '20%',
-                                        category_name: '15%',
-                                        type_measure_name: '15%'
-                                    }}
-                                />
-                            </div>
-                        ) : (
-                            // Vista de cards para pantallas pequeñas con PullToRefresh
-                            <PullToRefresh
-                                onRefresh={handleRefresh}
-                                screenName="Almacén"
-                                containerStyle={{
-                                    maxHeight: 'calc(100% - 80px)',
-                                    minHeight: 'calc(100% - 80px)'
-                                }}
-                            >
+                                >
+                                    <Table
+                                        headers={tableHeaders}
+                                        data={tableData}
+                                        onRowClick={(producto) => {
+                                            // Buscar el producto original sin formatear
+                                            const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
+                                            handleRegistro(productoOriginal, tipo);
+                                        }}
+                                        getBadge={getBadge}
+                                        columnWidths={tipo === 'pedido' ? {
+                                            name: '35%',
+                                            quantity: '25%',
+                                            category_name: '25%',
+                                            type_measure_name: '26%'
+                                        } : {
+                                            name: '25%',
+                                            description: '25%',
+                                            quantity: '20%',
+                                            category_name: '15%',
+                                            type_measure_name: '15%'
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                // Vista de cards para pantallas pequeñas con PullToRefresh
+                                <PullToRefresh
+                                    onRefresh={handleRefresh}
+                                    screenName="Almacén"
+                                    containerStyle={
+                                        tipo === 'salida' || tipo === 'entrada' ? {
+                                            maxHeight: '100%',
+                                            minHeight: '100%'
+                                        } : {
+                                            maxHeight: 'calc(100% - 80px)',
+                                            minHeight: 'calc(100% - 80px)'
+                                        }
+                                    }
+                                >
+
+
 
                                     {productosFiltrados.length > 0 ? (
                                         productosFiltrados.map((producto, index) => {
@@ -602,7 +609,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                                             );
                                         })
                                     ) : (
-                                        <NoData 
+                                        <NoData
                                             icon="box"
                                             title={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
                                             detail={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda' : ' Agrega productos para comenzar a gestionar tu inventario'}
@@ -610,153 +617,153 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                                             minHeight="200px"
                                         />
                                     )}
-                            </PullToRefresh>
-                        )}
+                                </PullToRefresh>
+                            )}
+                        </>
+                    )}
+                </div>
+                {tipo === 'almacen' ?
+                    <div className={styles.buttonFooter}>
+                        <Boton
+                            className='btn-default'
+                            label='Categorias'
+                            onClick={() => { setIsCategoriasOpen(true); }}
+                        />
+                        <Boton
+                            className='btn-original'
+                            label='Nuevo producto'
+                            onClick={() => { setIsAgregarOpen(true); }}
+                        />
+                    </div> : ''}
+                {tipo === 'pedido' && !(isCartMode && isLargeScreen) ?
+                    <div className={styles.buttonFooter}>
+                        <Boton
+                            className='btn-original'
+                            label={`Canasta (${productosCanasta.length})`}
+                            onClick={() => setIsCanastaOpen(true)}
+                            disabled={productosCanasta.length === 0}
+                        />
+                    </div> : ''}
+                {/* Modal de ver registro*/}
+                <VerProducto
+                    isOpen={isOpenVerProducto}
+                    setIsOpen={setIsOpenVerProducto}
+                    registro={infoPersona}
+                    onProductDeleted={handleProductDeleted}
+                    onProductUpdated={handleProductUpdated}
+                    typeMeasures={tiposMedida}
+                />
+
+                {/* Modal de editar*/}
+                <EditarAgregar
+                    isOpen={isAgregarOpen}
+                    setIsOpen={setIsAgregarOpen}
+                    tipo='agregar'
+                    onProductCreated={handleProductCreated}
+                    typeMeasures={tiposMedida}
+                />
+
+                <Notification
+                    isVisible={notification.isVisible}
+                    type={notification.type}
+                    text={notification.text}
+                />
+
+                {/* Modal de categorías de acopio*/}
+                <CategoriasAcopio
+                    isOpen={isCategoriasOpen}
+                    setIsOpen={setIsCategoriasOpen}
+                />
+
+                {/* Modal de movimiento (entrada/salida) */}
+                <MovimientoAcopio
+                    isOpen={isMovimientoOpen}
+                    setIsOpen={setIsMovimientoOpen}
+                    producto={infoPersona}
+                    tipo={tipo}
+                    onMovimientoCreated={handleMovimientoCreated}
+                />
+                {/* View de canasta de pedidos */}
+                <CanastaPedidos
+                    isOpen={isCartMode && isLargeScreen ? true : isCanastaOpen}
+                    setIsOpen={setIsCanastaOpen}
+                    productosCanasta={productosCanasta}
+                    setProductosCanasta={setProductosCanasta}
+                    onPedidoCreado={handlePedidoCreado}
+                    onPedidoCreadoConDescarga={handlePedidoCreadoConDescarga}
+                    isCartMode={isCartMode && isLargeScreen}
+                    onWhatsAppSelect={isCartMode && isLargeScreen ? handleWhatsAppSelect : null}
+                />
+
+                {/* Modal de descarga del pedido generado */}
+                <DescargaPedidoBuilder
+                    isOpen={isDescargaPedidoOpen}
+                    setIsOpen={setIsDescargaPedidoOpen}
+                    pedidoId={pedidoIdParaDescarga}
+                    tipo="acopio"
+                    nombreArchivoDefault={localStorage.getItem('nombreArchivoPedidos') || `Pedido_Acopio_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`}
+                    tituloDocumentoDefault={localStorage.getItem('tituloDocumentoPedidos') || `Pedido de Acopio #${pedidoIdParaDescarga?.slice(-8) || ''}`}
+                    esPedido={true}
+                />
+
+                {/* Carga de datos - solo cuando está abierto */}
+                {isOpen && (
+                    <>
+                        <FetchData
+                            service={productsAcopioService}
+                            serviceName="productsAcopioService"
+                            isOpen={isOpen}
+                            onDataLoaded={handleProductosLoaded}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
+                        />
+                        <FetchData
+                            service={categoryAcopioService}
+                            serviceName="categoryAcopioService"
+                            isOpen={isOpen}
+                            onDataLoaded={(data) => {
+                                setCategorias(data);
+                                setCategoriasLoaded(true);
+                            }}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
+                        />
+                        <FetchData
+                            service={typeMeasureService}
+                            serviceName="typeMeasureService"
+                            isOpen={isOpen}
+                            onDataLoaded={(data) => {
+                                setTiposMedida(data);
+                                setTiposMedidaLoaded(true);
+                            }}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
+                        />
                     </>
                 )}
-            </div>
-            {tipo === 'almacen' ?
-                <div className={styles.buttonFooter}>
-                    <Boton
-                        className='btn-default'
-                        label='Categorias'
-                        onClick={() => { setIsCategoriasOpen(true); }}
-                    />
-                    <Boton
-                        className='btn-original'
-                        label='Nuevo producto'
-                        onClick={() => { setIsAgregarOpen(true); }}
-                    />
-                </div> : ''}
-            {tipo === 'pedido' && !(isCartMode && isLargeScreen) ?
-                <div className={styles.buttonFooter}>
-                    <Boton
-                        className='btn-original'
-                        label={`Canasta (${productosCanasta.length})`}
-                        onClick={() => setIsCanastaOpen(true)}
-                        disabled={productosCanasta.length === 0}
-                    />
-                </div> : ''}
-            {/* Modal de ver registro*/}
-            <VerProducto
-                isOpen={isOpenVerProducto}
-                setIsOpen={setIsOpenVerProducto}
-                registro={infoPersona}
-                onProductDeleted={handleProductDeleted}
-                onProductUpdated={handleProductUpdated}
-                typeMeasures={tiposMedida}
-            />
-
-            {/* Modal de editar*/}
-            <EditarAgregar
-                isOpen={isAgregarOpen}
-                setIsOpen={setIsAgregarOpen}
-                tipo='agregar'
-                onProductCreated={handleProductCreated}
-                typeMeasures={tiposMedida}
-            />
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
-
-            {/* Modal de categorías de acopio*/}
-            <CategoriasAcopio
-                isOpen={isCategoriasOpen}
-                setIsOpen={setIsCategoriasOpen}
-            />
-
-            {/* Modal de movimiento (entrada/salida) */}
-            <MovimientoAcopio
-                isOpen={isMovimientoOpen}
-                setIsOpen={setIsMovimientoOpen}
-                producto={infoPersona}
-                tipo={tipo}
-                onMovimientoCreated={handleMovimientoCreated}
-            />
-            {/* View de canasta de pedidos */}
-            <CanastaPedidos
-                isOpen={isCartMode && isLargeScreen ? true : isCanastaOpen}
-                setIsOpen={setIsCanastaOpen}
-                productosCanasta={productosCanasta}
-                setProductosCanasta={setProductosCanasta}
-                onPedidoCreado={handlePedidoCreado}
-                onPedidoCreadoConDescarga={handlePedidoCreadoConDescarga}
-                isCartMode={isCartMode && isLargeScreen}
-                onWhatsAppSelect={isCartMode && isLargeScreen ? handleWhatsAppSelect : null}
-            />
-
-            {/* Modal de descarga del pedido generado */}
-            <DescargaPedidoBuilder
-                isOpen={isDescargaPedidoOpen}
-                setIsOpen={setIsDescargaPedidoOpen}
-                pedidoId={pedidoIdParaDescarga}
-                tipo="acopio"
-                nombreArchivoDefault={localStorage.getItem('nombreArchivoPedidos') || `Pedido_Acopio_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`}
-                tituloDocumentoDefault={localStorage.getItem('tituloDocumentoPedidos') || `Pedido de Acopio #${pedidoIdParaDescarga?.slice(-8) || ''}`}
-                esPedido={true}
-            />
-
-            {/* Carga de datos - solo cuando está abierto */}
-            {isOpen && (
-                <>
-                    <FetchData
-                        service={productsAcopioService}
-                        serviceName="productsAcopioService"
-                        isOpen={isOpen}
-                        onDataLoaded={handleProductosLoaded}
-                        onLoadingStart={handleLoadingStart}
-                        onLoadingEnd={handleLoadingEnd}
-                    />
-                    <FetchData
-                        service={categoryAcopioService}
-                        serviceName="categoryAcopioService"
-                        isOpen={isOpen}
-                        onDataLoaded={(data) => {
-                            setCategorias(data);
-                            setCategoriasLoaded(true);
-                        }}
-                        onLoadingStart={handleLoadingStart}
-                        onLoadingEnd={handleLoadingEnd}
-                    />
-                    <FetchData
-                        service={typeMeasureService}
-                        serviceName="typeMeasureService"
-                        isOpen={isOpen}
-                        onDataLoaded={(data) => {
-                            setTiposMedida(data);
-                            setTiposMedidaLoaded(true);
-                        }}
-                        onLoadingStart={handleLoadingStart}
-                        onLoadingEnd={handleLoadingEnd}
-                    />
-                </>
-            )}
-            {/* Botón flotante de WhatsApp - solo en móvil */}
-            {tipo === 'pedido' && !(isCartMode && isLargeScreen) ? (
-            <div style={{
-                position: 'fixed',
-                bottom: '100px',
-                right: '20px',
-                zIndex: 200
-            }}>
-                <Select
-                    icon="whatsapp"
-                    iconOnly={true}
-                    options={[
-                        { value: 'historial', label: 'Historial', icon: 'history' },
-                        { value: 'ultimo-pedido', label: 'Último pedido', icon: 'time-five' }
-                    ]}
-                    onChange={handleWhatsAppSelect}
-                    dropdownDirection="right"
-                />
-            </div>
-            ) : ''}
-        </View>
-        {/* Filtro de tipos de medida */}
-        <FiltroTipoMedida
+                {/* Botón flotante de WhatsApp - solo en móvil */}
+                {tipo === 'pedido' && !(isCartMode && isLargeScreen) ? (
+                    <div style={{
+                        position: 'fixed',
+                        bottom: '100px',
+                        right: '20px',
+                        zIndex: 200
+                    }}>
+                        <Select
+                            icon="whatsapp"
+                            iconOnly={true}
+                            options={[
+                                { value: 'historial', label: 'Historial', icon: 'history' },
+                                { value: 'ultimo-pedido', label: 'Último pedido', icon: 'time-five' }
+                            ]}
+                            onChange={handleWhatsAppSelect}
+                            dropdownDirection="right"
+                        />
+                    </div>
+                ) : ''}
+            </View>
+            {/* Filtro de tipos de medida */}
+            <FiltroTipoMedida
                 isOpen={isOpenTipoMedida}
                 setIsOpen={setOpenTipoMedida}
                 onTipoMedidaSeleccionado={handleTipoMedidaFilter}
@@ -775,7 +782,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 onOrdenamientoSeleccionado={handleOrdenamiento}
             />
 
-            
+
 
             {/* Modal de Historial WhatsApp */}
             <HistorialWhatsapp

@@ -194,9 +194,8 @@ function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull
         return 'user';
       case 'proveedores':
         return 'truck';
-      case 'almacen':
       case 'almacén':
-        return 'package';
+        return 'store';
       case 'movimientos':
         return 'transfer';
       case 'pedidos':
@@ -212,14 +211,9 @@ function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull
       case 'sucursales':
         return 'store';
       case 'conteos':
-      case 'conteo':
         return 'calculator';
       case 'cotizaciones':
         return 'file';
-      case 'reportes':
-        return 'bar-chart-alt-2';
-      case 'balance':
-        return 'trending-up';
       default:
         return 'refresh';
     }
