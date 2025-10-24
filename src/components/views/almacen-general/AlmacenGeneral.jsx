@@ -18,13 +18,15 @@ import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
 import FetchData from '../../mixed/FetchData';
 import pricesTypesService from '../../../services/pricesTypesService';
 import sucursalesService from '../../../services/sucursalesService';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import { useUser } from '../../../context/UserContext';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import DescargaMovimientoBuilder from '../movimientos/DescargaMovimientoBuilder';
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
 import NoData from '../../common/NoData';
+import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 
 function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null, isRepitiendoMovimiento = false, isVentaCotizacionProp = false }) {
@@ -46,9 +48,13 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
-    // Estados para RefreshIndicator
+    // Estados para productos
+    const [isLoading, setIsLoading] = useState(false);
+    
+    // Estados para RefreshIndicator (solo PC)
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
 
     // Estados para filtros locales
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
@@ -75,6 +81,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [productos, setProductos] = useState([]);
     const [preciosData, setPreciosData] = useState([])
     const [sucursalesData, setSucursalesData] = useState([]);
+    
+    // Estados para rastrear qué datos se han cargado
+    const [productosLoaded, setProductosLoaded] = useState(false);
+    const [preciosLoaded, setPreciosLoaded] = useState(false);
+    const [sucursalesLoaded, setSucursalesLoaded] = useState(false);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({ isVisible: false, type: 'success', text: '' });
@@ -91,23 +102,54 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }, 3000);
     };
 
-    // Función simple para manejar el indicador de carga
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
-
-    // Función específica para manejar la carga de productos
-    const handleProductosLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
-    useEffect(() => {
-        if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (productos.length === 0) {
+            setIsLoading(true);
         }
-    }, [isOpen]);
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [productos.length, isLargeScreen]);
+
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
+
+    // Función para manejar cuando se cargan los precios
+    const handlePreciosLoaded = useCallback((data) => {
+        setPreciosData(data);
+        setPreciosLoaded(true);
+    }, []);
+    
+    // Función para manejar cuando se cargan las sucursales
+    const handleSucursalesLoaded = useCallback((data) => {
+        setSucursalesData(data);
+        setSucursalesLoaded(true);
+    }, []);
 
     // Mapear Información
     const productosMapeados = useMemo(() => {
@@ -158,15 +200,20 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     // Función para manejar cuando se cargan los productos
     const handleProductosLoaded = useCallback((data) => {
         setProductos(data);
+        setProductosLoaded(true);
     }, []);
-    // Función para manejar cuando se cargan los precios
-    const handlePreciosLoaded = useCallback((data) => {
-        setPreciosData(data);
-    }, []);
-    // Función para manejar cuando se cargan las sucursales
-    const handleSucursalesLoaded = useCallback((data) => {
-        setSucursalesData(data);
-    }, []);
+
+    // Función para manejar refresh
+    const handleRefresh = async () => {
+        try {
+            const response = await productsAlmacenService.getAll();
+            if (response.success) {
+                setProductos(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar productos:', error);
+        }
+    };
 
 
 
@@ -253,6 +300,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             setCategoriaFiltro(null);
             setCategoriaFiltroNombre('Categorías');
             setOrdenamiento('nombre_asc');
+            
+            // Resetear estados de carga
+            setProductosLoaded(false);
+            setPreciosLoaded(false);
+            setSucursalesLoaded(false);
 
             // Si no se pasan los props específicos, no se está repitiendo un movimiento y no es venta de cotización, limpiar localStorage
             if (!onPedidoActualizado && !onEntregaConfirmada && !pedidoIdEditando && !isRepitiendoMovimiento && !isVentaCotizacionProp) {
@@ -819,84 +871,103 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     withCart={isCartMode && isLargeScreen}
                 />
                 <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
-                    <div className={styles.titleContainer}>
-                        <RefreshIndicator
-                            isVisible={showRefreshIndicator}
-                            isLoading={isRefreshing}
-                        />
-                    </div>
-                    <Filtros options={opciones} />
-                    <div 
-                        className={styles.content}
-                        onScroll={handleScroll}
-                        style={{
-                            maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido') && isLargeScreen
-                                ? '100vh'
-                                : '',
-                            overflowY: 'auto'
-                        }}
-                    >
-                        {isLargeScreen ? (
-                            // Vista de tabla para pantallas grandes
-                            <Table
-                                headers={tableHeaders}
-                                data={tableData}
-                                onRowClick={(producto) => {
-                                    // Buscar el producto original sin formatear
-                                    const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
-                                    handleRegistro(productoOriginal, tipo);
-                                }}
-                                getBadge={getBadge}
-                                onScroll={handleScroll}
-                                columnWidths={{
-                                    name: '25%',
-                                    codigo_barras: '15%',
-                                    stock: '15%',
-                                    stock_grup: '15%',
-                                    category_name: '15%'
-                                }}
-                            />
-                        ) : (
-                            // Vista de cards para pantallas pequeñas
-                            visibleItems.length > 0 ? (
-                                visibleItems.map((producto, index) => {
-                                    const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
-                                    const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida')
-                                        ? getCantidadEnCanastaMovimientos(producto.id, tipo)
-                                        : 0;
-                                    return (
-                                        <ItemView
-                                            key={producto.id || index}
-                                            title={producto.name || 'Sin nombre'}
-                                            description={producto.description || 'Sin descripción'}
-                                            icon="box"
-                                            onClick={() => handleRegistro(producto, tipo)}
-                                            entrada={tipo === 'pesaje' ? true : false}
-                                            entradaData={[
-                                                { name: "Prima", value: 0 },
-                                                { name: "Bruta", value: 0 },
-                                            ]}
-                                            badge={
-                                                (tipo === 'pedido' && cantidadEnCanasta > 0) ||
-                                                    ((tipo === 'entrada' || tipo === 'salida') && cantidadEnCanastaMovimientos > 0)
-                                                    ? (tipo === 'pedido' ? cantidadEnCanasta : cantidadEnCanastaMovimientos)
-                                                    : null
-                                            }
-                                            flot1={producto.stock + ' Ud.'}
-                                        />
-                                    );
-                                })
+                    {isLoading ? (
+                        // Mostrar LoadingSpinner cuando está cargando
+                        <LoadingSpinner />
+                    ) : (
+                        <>
+                            {isLargeScreen && (
+                                <div className={styles.titleContainer}>
+                                    <RefreshIndicator
+                                        isVisible={showRefreshIndicator}
+                                        isLoading={isRefreshing}
+                                    />
+                                </div>
+                            )}
+                            <Filtros options={opciones} />
+                            {isLargeScreen ? (
+                                // Vista de tabla para pantallas grandes
+                                <div 
+                                    className={styles.content}
+                                    onScroll={handleScroll}
+                                    style={{
+                                        maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido') && isLargeScreen
+                                            ? '100vh'
+                                            : '',
+                                        overflowY: 'auto'
+                                    }}
+                                >
+                                    <Table
+                                        headers={tableHeaders}
+                                        data={tableData}
+                                        onRowClick={(producto) => {
+                                            // Buscar el producto original sin formatear
+                                            const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
+                                            handleRegistro(productoOriginal, tipo);
+                                        }}
+                                        getBadge={getBadge}
+                                        onScroll={handleScroll}
+                                        columnWidths={{
+                                            name: '25%',
+                                            codigo_barras: '15%',
+                                            stock: '15%',
+                                            stock_grup: '15%',
+                                            category_name: '15%'
+                                        }}
+                                    />
+                                </div>
                             ) : (
-                                <NoData 
-                                    icon="box"
-                                    title={searchQuery || categoriaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
-                                    detail={searchQuery || categoriaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
-                                    transparent={true}
-                                    minHeight="200px"
-                                />
-                            )
-                        )}
-                    </div>
+                                // Vista de cards para pantallas pequeñas con PullToRefresh
+                                <PullToRefresh
+                                    onRefresh={handleRefresh}
+                                    screenName="Almacén"
+                                    containerStyle={{
+                                        maxHeight: 'calc(100% - 80px)',
+                                        minHeight: 'calc(100% - 80px)'
+                                    }}
+                                >
+                                        {visibleItems.length > 0 ? (
+                                            visibleItems.map((producto, index) => {
+                                                const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
+                                                const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida')
+                                                    ? getCantidadEnCanastaMovimientos(producto.id, tipo)
+                                                    : 0;
+                                                return (
+                                                    <ItemView
+                                                        key={producto.id || index}
+                                                        title={producto.name || 'Sin nombre'}
+                                                        description={producto.description || 'Sin descripción'}
+                                                        icon="box"
+                                                        onClick={() => handleRegistro(producto, tipo)}
+                                                        entrada={tipo === 'pesaje' ? true : false}
+                                                        entradaData={[
+                                                            { name: "Prima", value: 0 },
+                                                            { name: "Bruta", value: 0 },
+                                                        ]}
+                                                        badge={
+                                                            (tipo === 'pedido' && cantidadEnCanasta > 0) ||
+                                                                ((tipo === 'entrada' || tipo === 'salida') && cantidadEnCanastaMovimientos > 0)
+                                                                ? (tipo === 'pedido' ? cantidadEnCanasta : cantidadEnCanastaMovimientos)
+                                                                : null
+                                                        }
+                                                        flot1={producto.stock + ' Ud.'}
+                                                    />
+                                                );
+                                            })
+                                        ) : (
+                                            <NoData 
+                                                icon="box"
+                                                title={searchQuery || categoriaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
+                                                detail={searchQuery || categoriaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
+                                                transparent={true}
+                                                minHeight="200px"
+                                            />
+                                        )}
+                                 
+                                </PullToRefresh>
+                            )}
+                        </>
+                    )}
                 </div>
                 {tipo === 'almacen' ?
                     <div className={styles.buttonFooter}>
@@ -973,16 +1044,16 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                             serviceName="productsAlmacenService"
                             isOpen={isOpen}
                             onDataLoaded={handleProductosLoaded}
-                            onLoadingStart={() => handleProductosLoading(true)}
-                            onLoadingEnd={() => handleProductosLoading(false)}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
                         />
                         <FetchData
                             service={pricesTypesService}
                             serviceName="pricesTypesService"
                             isOpen={isOpen}
                             onDataLoaded={handlePreciosLoaded}
-                            onLoadingStart={() => {}}
-                            onLoadingEnd={() => {}}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
                         />
                         <FetchData
                             service={sucursalesService}
@@ -990,8 +1061,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                             method="getByEmpresaId"
                             isOpen={isOpen}
                             onDataLoaded={handleSucursalesLoaded}
-                            onLoadingStart={() => {}}
-                            onLoadingEnd={() => {}}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
                         />
                     </>
                 )}

@@ -8,6 +8,8 @@
     width: 100%;
     min-height: 30px;
     padding-inline: 15px;
+    padding-bottom: 10px;
+    min-height: 40px;
 }
 
 .container::-webkit-scrollbar {

@@ -11,7 +11,7 @@ import Notification from '../../common/Notification';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import { BoxIcon } from 'boxicons-react';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
@@ -19,7 +19,8 @@ import NoData from '../../common/NoData';
 import FiltroEstadoPedido from '../../mixed/FiltroEstadoPedido';
 import Select from '../../common/Select';
 import HistorialWhatsapp from './HistorialWhatsapp';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const { isLargeScreen } = useLayout();
@@ -33,9 +34,13 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     
-    // Estados para RefreshIndicator
+    // Estados para loading
+    const [isLoadingPedidos, setIsLoadingPedidos] = useState(false);
+    
+    // Estados para RefreshIndicator (solo PC)
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
     
 
     // Estado para acumular todos los pedidos de todas las páginas
@@ -72,6 +77,17 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const cargarPedidos = async (page = 1, search = '', estado = null, orden = 'fecha_desc') => {
         setIsLoading(true);
         setError(null);
+
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
         
         try {
             const response = tipoPedido === 'acopio' 
@@ -106,34 +122,26 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setError(error);
         } finally {
             setIsLoading(false);
+            // Decrementar contador de peticiones activas
+            setActiveRequests(prev => {
+                const newCount = Math.max(0, prev - 1);
+                // Ocultar RefreshIndicator cuando no hay peticiones activas
+                if (newCount === 0 && isLargeScreen) {
+                    setTimeout(() => {
+                        setIsRefreshing(false);
+                        setTimeout(() => {
+                            setShowRefreshIndicator(false);
+                        }, 500);
+                    }, 300);
+                }
+                return newCount;
+            });
         }
     };
-
-    // Nota: el reemplazo/acumulación se maneja al finalizar el fetch dentro de cargarPedidos
-
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    }, [isLoading, isOpen, showRefreshIndicator]);
-
 
     // Cargar pedidos cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
             // Cargar primera página
             cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
@@ -154,6 +162,16 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     }, [isOpen]);
 
+    // Función para manejar refresh
+    const handleRefresh = async () => {
+        // Limpiar estado acumulado y resetear página
+        setAllPedidos([]);
+        setCurrentPage(1);
+        
+        // La función cargarPedidos ya maneja el RefreshIndicator
+        await cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
+    };
+
     // Estados para la notificación
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -171,30 +189,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }, 3000);
     };
 
-    // Función para manejar refresh con indicador
-    const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
-        // Limpiar estado acumulado y resetear página
-        setAllPedidos([]);
-        setCurrentPage(1);
-        
-        try {
-            await cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
-    };
 
     // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
@@ -203,6 +197,19 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setCurrentPage(1);
         }
     }, [isOpen, tipoPedido]);
+
+    // Efecto para limpiar datos cuando cambia el tipo de pedido
+    useEffect(() => {
+        setAllPedidos([]);
+        setCurrentPage(1);
+        setFiltroEstado(null);
+        setOrdenamiento('fecha_desc');
+        setSearchQuery('');
+        // Cargar datos del nuevo tipo si el panel está abierto
+        if (isOpen) {
+            cargarPedidos(1, '', null, 'fecha_desc');
+        }
+    }, [tipoPedido]);
 
     // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
     useEffect(() => {
@@ -446,8 +453,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                     />
                 </div>
                 <Filtros options={opciones} />
-
-                {/* Lista de pedidos */}
                 <div
                     className={styles.content}
                     onScroll={!isLargeScreen ? handleScroll : undefined}
@@ -471,49 +476,59 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                             onScroll={handleScroll}
                         />
                     ) : (
-                        // Vista de cards para pantallas pequeñas
-                        allPedidos.length > 0 ? (
-                            allPedidos.map((pedido, index) => {
-                                return (
-                                    <ItemView
-                                        key={pedido.id || index}
-                                        title={tipoPedido === 'acopio' 
-                                            ? (pedido.producto_acopio?.name || 'Producto desconocido')
-                                            : (pedido.user?.name || pedido.personal?.name || 'Usuario desconocido')
-                                        }
-                                        description={tipoPedido === 'acopio'
-                                            ? `${pedido.cantidad || 0} ${pedido.tipo_medida || ''} - ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-                                                year: 'numeric',
-                                                month: '2-digit',
-                                                day: '2-digit',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}`
-                                            : new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-                                                year: 'numeric',
-                                                month: '2-digit',
-                                                day: '2-digit',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })
-                                        }
-                                        icon="file"
-                                        onClick={() => handleVerPedido(pedido)}
-                                        flot1={pedido.estado === 'Completado' ? 'Completado' :''}
-                                        flot2={pedido.estado === 'Entregado' ? 'Entregado' :''}
-                                        flot3={pedido.estado === 'Pendiente' ? 'Pendiente' :''}
-                                    />
-                                );
-                            })
-                        ) : (
-                            <NoData 
-                                icon="shopping-bag"
-                                title={searchQuery ? 'Sin resultados' : 'No hay pedidos'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los pedidos que necesitas' : 'Crea pedidos para comenzar a gestionar tus ventas'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
-                        )
+                        // Vista de cards para pantallas pequeñas con PullToRefresh
+                        <PullToRefresh
+                            onRefresh={handleRefresh}
+                            screenName="Pedidos"
+                            containerStyle={{
+                                maxHeight: '100vh',
+                                minHeight: '100vh'
+                            }}
+                            onScroll={handleScroll}
+                        >
+                            {allPedidos.length > 0 ? (
+                                allPedidos.map((pedido, index) => {
+                                    return (
+                                        <ItemView
+                                            key={pedido.id || index}
+                                            title={tipoPedido === 'acopio' 
+                                                ? (pedido.producto_acopio?.name || 'Producto desconocido')
+                                                : (pedido.user?.name || pedido.personal?.name || 'Usuario desconocido')
+                                            }
+                                            description={tipoPedido === 'acopio'
+                                                ? `${pedido.cantidad || 0} ${pedido.tipo_medida || ''} - ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}`
+                                                : new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })
+                                            }
+                                            icon="file"
+                                            onClick={() => handleVerPedido(pedido)}
+                                            flot1={pedido.estado === 'Completado' ? 'Completado' :''}
+                                            flot2={pedido.estado === 'Entregado' ? 'Entregado' :''}
+                                            flot3={pedido.estado === 'Pendiente' ? 'Pendiente' :''}
+                                        />
+                                    );
+                                })
+                            ) : (
+                                <NoData 
+                                    icon="shopping-bag"
+                                    title={searchQuery ? 'Sin resultados' : 'No hay pedidos'}
+                                    detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los pedidos que necesitas' : 'Crea pedidos para comenzar a gestionar tus ventas'}
+                                    transparent={true}
+                                    minHeight="200px"
+                                />
+                            )}
+                        </PullToRefresh>
                     )}
 
                     {/* Indicador de carga para más elementos */}

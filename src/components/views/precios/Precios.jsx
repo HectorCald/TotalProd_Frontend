@@ -16,6 +16,7 @@ import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function Precios({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -29,6 +30,11 @@ function Precios({ isOpen, setIsOpen }) {
     const [precios, setPrecios] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Estados para RefreshIndicator (solo PC)
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
 
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
@@ -50,12 +56,36 @@ function Precios({ isOpen, setIsOpen }) {
         if (precios.length === 0) {
             setIsLoading(true);
         }
-    }, [precios.length]);
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [precios.length, isLargeScreen]);
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
         setIsLoading(false);
-    }, []);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -102,6 +132,7 @@ function Precios({ isOpen, setIsOpen }) {
             console.error('Error al refrescar precios:', error);
         }
     };
+
 
     // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
@@ -210,20 +241,28 @@ function Precios({ isOpen, setIsOpen }) {
                     <LoadingSpinner />
                 ) : isLargeScreen ? (
                     // Vista de tabla para pantallas grandes
-                    <div className={styles.content} style={{
-                        maxHeight: 'calc(100% - 80px)',
-                        minHeight: 'calc(100% - 80px)'
-                    }}>
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(precio) => {
-                                // Buscar el precio original sin formatear
-                                const precioOriginal = preciosFiltrados.find(p => p.id === precio.id);
-                                handlePrecio(precioOriginal);
-                            }}
-                        />
-                    </div>
+                    <>
+                        <div className={styles.titleContainer}>
+                            <RefreshIndicator
+                                isVisible={showRefreshIndicator}
+                                isLoading={isRefreshing}
+                            />
+                        </div>
+                        <div className={styles.content} style={{
+                            maxHeight: 'calc(100% - 80px)',
+                            minHeight: 'calc(100% - 80px)'
+                        }}>
+                            <Table
+                                headers={tableHeaders}
+                                data={tableData}
+                                onRowClick={(precio) => {
+                                    // Buscar el precio original sin formatear
+                                    const precioOriginal = preciosFiltrados.find(p => p.id === precio.id);
+                                    handlePrecio(precioOriginal);
+                                }}
+                            />
+                        </div>
+                    </>
                 ) : (
                     // Vista de cards para pantallas pequeñas con PullToRefresh
                     <PullToRefresh
@@ -304,6 +343,7 @@ function Precios({ isOpen, setIsOpen }) {
                     onLoadingStart={handleLoadingStart}
                     onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
+                    onRefresh={isLargeScreen ? handleRefresh : undefined}
                 />
             )}
 

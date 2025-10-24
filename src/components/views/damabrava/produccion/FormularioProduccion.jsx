@@ -246,6 +246,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                         showIcon={true}
                         iconName="box"
                         disabled={loadingProductos}
+                        loading={loadingProductos}
                     />
 
                     <InputNormal

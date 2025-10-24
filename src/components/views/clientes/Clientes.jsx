@@ -16,6 +16,7 @@ import Table from '../../common/Table';
 import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 
 function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccionado }) {
@@ -30,6 +31,11 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     const [clientes, setClientes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Estados para RefreshIndicator (solo PC)
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
 
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
@@ -53,12 +59,36 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         if (clientes.length === 0) {
             setIsLoading(true);
         }
-    }, [clientes.length]);
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [clientes.length, isLargeScreen]);
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
         setIsLoading(false);
-    }, []);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
 
 
 
@@ -142,6 +172,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
             console.error('Error al refrescar clientes:', error);
         }
     };
+
 
     // Efecto para resetear búsqueda cuando se abre
     useEffect(() => {
@@ -244,23 +275,31 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                     <LoadingSpinner />
                 ) : isLargeScreen ? (
                     // Vista de tabla para pantallas grandes
-                    <div className={styles.content}
-                    style={
-                        {
-                            maxHeight: 'calc(100% - 80px)',
-                            minHeight: 'calc(100% - 80px)'
-                        }
-                    }>
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(cliente) => {
-                                // Buscar el cliente original sin formatear
-                                const clienteOriginal = clientesFiltrados.find(c => c.id === cliente.id);
-                                handleCliente(clienteOriginal);
-                            }}
-                        />
-                    </div>
+                    <>
+                        <div className={styles.titleContainer}>
+                            <RefreshIndicator
+                                isVisible={showRefreshIndicator}
+                                isLoading={isRefreshing}
+                            />
+                        </div>
+                        <div className={styles.content}
+                        style={
+                            {
+                                maxHeight: 'calc(100% - 80px)',
+                                minHeight: 'calc(100% - 80px)'
+                            }
+                        }>
+                            <Table
+                                headers={tableHeaders}
+                                data={tableData}
+                                onRowClick={(cliente) => {
+                                    // Buscar el cliente original sin formatear
+                                    const clienteOriginal = clientesFiltrados.find(c => c.id === cliente.id);
+                                    handleCliente(clienteOriginal);
+                                }}
+                            />
+                        </div>
+                    </>
                 ) : (
                     // Vista de cards para pantallas pequeñas con PullToRefresh
                     <PullToRefresh
@@ -347,6 +386,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                     onLoadingStart={handleLoadingStart}
                     onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
+                    onRefresh={isLargeScreen ? handleRefresh : undefined}
                 />
             )}
         </View>

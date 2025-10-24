@@ -14,6 +14,8 @@ import Table from '../../../common/Table';
 import FiltroOrdenamiento from '../../../mixed/FiltroOrdenamiento';
 import FiltroEstados from '../../../mixed/FiltroEstados';
 import NoData from '../../../common/NoData';
+import LoadingSpinner from '../../../common/LoadingSpinner';
+import PullToRefresh from '../../../common/PullToRefresh';
 
 function MiProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -30,6 +32,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
     
     // Estado para acumular todos los registros de todas las páginas
     const [allRegistros, setAllRegistros] = useState([]);
@@ -45,12 +48,24 @@ function MiProduccion({ isOpen, setIsOpen }) {
     const [registros, setRegistros] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingRegistros, setIsLoadingRegistros] = useState(false);
     const [error, setError] = useState(null);
 
     // Función para cargar registros
     const cargarRegistros = async (page = 1, search = '', estado = null, orden = 'fecha_desc') => {
         setIsLoading(true);
         setError(null);
+
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
         
         try {
             const response = await registrosProduccionDamabravaService.getByUser(page, 10, estado, orden, search);
@@ -83,32 +98,27 @@ function MiProduccion({ isOpen, setIsOpen }) {
             setError(error);
         } finally {
             setIsLoading(false);
+            // Decrementar contador de peticiones activas
+            setActiveRequests(prev => {
+                const newCount = Math.max(0, prev - 1);
+                // Ocultar RefreshIndicator cuando no hay peticiones activas
+                if (newCount === 0 && isLargeScreen) {
+                    setTimeout(() => {
+                        setIsRefreshing(false);
+                        setTimeout(() => {
+                            setShowRefreshIndicator(false);
+                        }, 500);
+                    }, 300);
+                }
+                return newCount;
+            });
         }
     };
 
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    }, [isLoading, isOpen, showRefreshIndicator]);
-
     // Cargar registros cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
             // Cargar primera página
             cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
@@ -158,29 +168,14 @@ function MiProduccion({ isOpen, setIsOpen }) {
         setIsOpenVerMiProduccion(true);
     };
 
-    // Función para manejar refresh con indicador
+    // Función para manejar refresh
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
         // Limpiar estado acumulado y resetear página
         setAllRegistros([]);
         setCurrentPage(1);
         
-        try {
-            await cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
+        // La función cargarRegistros ya maneja el RefreshIndicator
+        await cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
     };
 
     // Función para manejar scroll infinito
@@ -347,7 +342,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
             <HeaderView 
                 onBack={() => setIsOpen(false)}
                 showSearch={true}
-                searchPlaceholder="Buscar mis registros de producción..."
+                searchPlaceholder="Buscar mis registros..."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
                 onSearchClear={handleSearchClear}
@@ -384,39 +379,47 @@ function MiProduccion({ isOpen, setIsOpen }) {
                             onScroll={handleScroll}
                         />
                     ) : (
-                        // Vista de cards para pantallas pequeñas
-                        allRegistros.length > 0 ? (
-                            allRegistros.map((registro, index) => {
-                                return (
-                                    <ItemView
-                                        key={registro.id || index}
-                                        title={registro.producto_almacen?.name || 'Sin producto'}
-                                        description={`${registro.terminados || '0'} terminados • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
-                                        icon="package"
-                                        onClick={() => handleRegistro(registro)}
-                                        arrow={false}
-                                        flot1={registro?.estado === 'verificado' ? 'Verificado' : registro?.estado === 'Ingresado' ? 'Ingresado' : ''}  
-                                        flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
-                                        gris={true}
-                                    />
-                                );
-                            })
-                        ) : (
-                            <NoData 
-                                icon="file"
-                                title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
-                        )
+                        // Vista de cards para pantallas pequeñas con PullToRefresh
+                        <PullToRefresh
+                            onRefresh={handleRefresh}
+                            screenName="Mi Producción"
+                            containerStyle={{
+                                maxHeight: '100%',
+                                minHeight: '100%'
+                            }}
+                            onScroll={handleScroll}
+                        >
+                            {allRegistros.length > 0 ? (
+                                allRegistros.map((registro, index) => {
+                                    return (
+                                        <ItemView
+                                            key={registro.id || index}
+                                            title={registro.producto_almacen?.name || 'Sin producto'}
+                                            description={`${registro.terminados || '0'} terminados • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
+                                            icon="package"
+                                            onClick={() => handleRegistro(registro)}
+                                            arrow={false}
+                                            flot1={registro?.estado === 'verificado' ? 'Verificado' : registro?.estado === 'Ingresado' ? 'Ingresado' : ''}  
+                                            flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
+                                            gris={true}
+                                        />
+                                    );
+                                })
+                            ) : (
+                                <NoData 
+                                    icon="file"
+                                    title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
+                                    detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
+                                    transparent={true}
+                                    minHeight="200px"
+                                />
+                            )}
+                        </PullToRefresh>
                     )}
 
                     {/* Indicador de carga para más elementos */}
                     {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más registros...</p>
-                        </div>
+                        <LoadingSpinner />
                     )}
                 </div>
             </div>

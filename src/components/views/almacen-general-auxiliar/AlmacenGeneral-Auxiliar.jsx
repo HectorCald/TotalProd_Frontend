@@ -11,7 +11,7 @@ import FetchData from '../../mixed/FetchData';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import pricesTypesService from '../../../services/pricesTypesService';
 import sucursalesService from '../../../services/sucursalesService';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import { useUser } from '../../../context/UserContext';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
@@ -23,6 +23,8 @@ import CanastaCotizacion from './CanastaCotizacion';
 import DescargaCotizacionBuilder from '../cotizaciones/DescargaCotizacionBuilder';
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
 import NoData from '../../common/NoData';
+import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
@@ -35,9 +37,13 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
-    // Estados para indicador de carga
+    // Estados para productos
+    const [isLoading, setIsLoading] = useState(false);
+    
+    // Estados para RefreshIndicator (solo PC)
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
 
     // UI envío y notificación
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,6 +62,11 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const [productos, setProductos] = useState([]);
     const [preciosData, setPreciosData] = useState([]);
     const [sucursalesData, setSucursalesData] = useState([]);
+    
+    // Estados para rastrear qué datos se han cargado
+    const [productosLoaded, setProductosLoaded] = useState(false);
+    const [preciosLoaded, setPreciosLoaded] = useState(false);
+    const [sucursalesLoaded, setSucursalesLoaded] = useState(false);
 
     // Estados para canasta de cotizaciones
     const [productosCanastaCotizaciones, setProductosCanastaCotizaciones] = useState([]);
@@ -122,21 +133,46 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         }
     }, []);
 
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (productos.length === 0) {
+            setIsLoading(true);
+        }
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [productos.length, isLargeScreen]);
 
-    // Función específica para manejar la carga de productos
-    const handleProductosLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
+
 
     useEffect(() => {
         if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
             // Limpiar la variable de repetición cuando se cierre
             localStorage.removeItem('isRepeatingConteo');
         }
@@ -182,12 +218,27 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     // Handlers de carga de datos
     const handleProductosLoaded = useCallback((data) => {
         setProductos(data);
+        setProductosLoaded(true);
     }, []);
+
+    // Función para manejar refresh
+    const handleRefresh = async () => {
+        try {
+            const response = await productsAlmacenService.getAll();
+            if (response.success) {
+                setProductos(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar productos:', error);
+        }
+    };
     const handlePreciosLoaded = useCallback((data) => {
         setPreciosData(data);
+        setPreciosLoaded(true);
     }, []);
     const handleSucursalesLoaded = useCallback((data) => {
         setSucursalesData(data);
+        setSucursalesLoaded(true);
     }, []);
 
     // Efecto para resetear búsqueda y filtros cuando se abre
@@ -197,6 +248,11 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             setCategoriaFiltro(null);
             setCategoriaFiltroNombre('Categorías');
             setOrdenamiento('nombre_asc');
+            
+            // Resetear estados de carga
+            setProductosLoaded(false);
+            setPreciosLoaded(false);
+            setSucursalesLoaded(false);
             
             // Verificar si se está repitiendo un conteo
             const isRepeating = localStorage.getItem('isRepeatingConteo') === 'true';
@@ -562,273 +618,294 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                     withCart={isCartMode && isLargeScreen}
                 />
                 <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
-                    <div className={styles.titleContainer}>
-                        <RefreshIndicator
-                            isVisible={showRefreshIndicator}
-                            isLoading={isRefreshing}
-                        />
-                    </div>
-                    <Filtros options={opciones} />
-                    <div 
-                        className={styles.content}
-                        onScroll={handleScroll}
-                        style={{
-                            maxHeight: (tipo === 'conteo' || tipo === 'cotizar') && isLargeScreen
-                                ? '100%'
-                                : '',
-                            overflowY: 'auto'
-                        }}
-                    >
-                        {isLargeScreen ? (
-                            <Table
-                                headers={tableHeaders}
-                                data={tableData}
-                                onRowClick={(producto) => {
-                                    // Buscar el producto original sin formatear
-                                    const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
-                                    handleProductoClick(productoOriginal);
-                                }}
-                                getBadge={getBadge}
-                                onScroll={handleScroll}
-                                columnWidths={tipo === 'cotizar' ? {
-                                    name: '40%',
-                                    stock: '20%',
-                                    stock_grup: '20%',
-                                    category_name: '20%'
-                                } : {
-                                    name: '25%',
-                                    codigo_barras: '15%',
-                                    stock: '15%',
-                                    stock_grup: '15%',
-                                    category_name: '15%'
-                                }}
-                                renderCell={(row, key) => {
-                                    if (tipo !== 'conteo') return null;
-                                    if (key !== 'stock' && key !== 'stock_grup') return null;
-                                    const original = productosFiltrados.find(p => p.id === row.id);
-                                    if (!original) return null;
-                                    const rawStock = Number(original.stock || 0);
-                                    const grupVal = Number(original.grup || 0);
-                                    const rawGroups = grupVal > 0 ? Math.floor(rawStock / grupVal) : 0;
+                    {isLoading ? (
+                        // Mostrar LoadingSpinner cuando está cargando
+                        <LoadingSpinner />
+                    ) : (
+                        <>
+                            {isLargeScreen && (
+                                <div className={styles.titleContainer}>
+                                    <RefreshIndicator
+                                        isVisible={showRefreshIndicator}
+                                        isLoading={isRefreshing}
+                                    />
+                                </div>
+                            )}
+                            <Filtros options={opciones} />
+                            {isLargeScreen ? (
+                                // Vista de tabla para pantallas grandes
+                                <div 
+                                    className={styles.content}
+                                    onScroll={handleScroll}
+                                    style={{
+                                        maxHeight: (tipo === 'conteo' || tipo === 'cotizar') && isLargeScreen
+                                            ? '100%'
+                                            : '',
+                                        overflowY: 'auto'
+                                    }}
+                                >
+                                    <Table
+                                        headers={tableHeaders}
+                                        data={tableData}
+                                        onRowClick={(producto) => {
+                                            // Buscar el producto original sin formatear
+                                            const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
+                                            handleProductoClick(productoOriginal);
+                                        }}
+                                        getBadge={getBadge}
+                                        onScroll={handleScroll}
+                                        columnWidths={tipo === 'cotizar' ? {
+                                            name: '40%',
+                                            stock: '20%',
+                                            stock_grup: '20%',
+                                            category_name: '20%'
+                                        } : {
+                                            name: '25%',
+                                            codigo_barras: '15%',
+                                            stock: '15%',
+                                            stock_grup: '15%',
+                                            category_name: '15%'
+                                        }}
+                                        renderCell={(row, key) => {
+                                            if (tipo !== 'conteo') return null;
+                                            if (key !== 'stock' && key !== 'stock_grup') return null;
+                                            const original = productosFiltrados.find(p => p.id === row.id);
+                                            if (!original) return null;
+                                            const rawStock = Number(original.stock || 0);
+                                            const grupVal = Number(original.grup || 0);
+                                            const rawGroups = grupVal > 0 ? Math.floor(rawStock / grupVal) : 0;
 
-                                    if (key === 'stock') {
-                                        const valueText = stockInputsText[row.id] !== undefined ? stockInputsText[row.id] : String(stockInputs[row.id] !== undefined ? stockInputs[row.id] : rawStock);
-                                        const state = getDiffState(row.id, rawStock, rawGroups, grupVal);
-                                        return (
-                                            <input
-                                                type="number"
-                                                inputMode="numeric"
-                                                value={valueText}
-                                                onChange={(e) => {
-                                                    const text = e.target.value;
-                                                    setStockInputsText(prev => ({ ...prev, [row.id]: text }));
-                                                    if (text === '') return; // permitir vacío mientras edita
-                                                    const nextUnits = Number(text);
-                                                    if (Number.isFinite(nextUnits)) {
-                                                        setStockInputs(prev => ({ ...prev, [row.id]: nextUnits }));
-                                                        if (grupVal > 0) {
-                                                            const nextGroups = Math.floor(nextUnits / grupVal);
-                                                            setGroupInputs(prev => ({ ...prev, [row.id]: nextGroups }));
-                                                            setGroupInputsText(prev => ({ ...prev, [row.id]: String(nextGroups) }));
-                                                        }
-                                                    }
-                                                }}
-                                                onBlur={() => {
-                                                    const text = stockInputsText[row.id];
-                                                    if (text === '' || text === undefined) {
-                                                        setStockInputs(prev => ({ ...prev, [row.id]: rawStock }));
-                                                        setStockInputsText(prev => ({ ...prev, [row.id]: String(rawStock) }));
-                                                        if (grupVal > 0) {
-                                                            setGroupInputs(prev => ({ ...prev, [row.id]: rawGroups }));
-                                                            setGroupInputsText(prev => ({ ...prev, [row.id]: String(rawGroups) }));
-                                                        }
-                                                    }
-                                                }}
-                                                onWheel={(e) => {
-                                                    // Prevenir que el scroll cambie el valor
-                                                    e.target.blur();
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                                onFocus={(e) => e.target.select()}
-                                                style={{
-                                                    borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px'
-                                                }}
-                                            />
-                                        );
-                                    }
-                                    if (key === 'stock_grup') {
-                                        if (grupVal <= 0) {
-                                            return null; // dejar contenido por defecto si no se agrupa
-                                        }
-                                        const valueText = groupInputsText[row.id] !== undefined ? groupInputsText[row.id] : String(groupInputs[row.id] !== undefined ? groupInputs[row.id] : rawGroups);
-                                        const state = getDiffState(row.id, rawStock, rawGroups, grupVal);
-                                        return (
-                                            <input
-                                                type="number"
-                                                inputMode="numeric"
-                                                value={valueText}
-                                                onChange={(e) => {
-                                                    const text = e.target.value;
-                                                    setGroupInputsText(prev => ({ ...prev, [row.id]: text }));
-                                                    if (text === '') return; // permitir vacío
-                                                    const nextGroups = Number(text);
-                                                    if (Number.isFinite(nextGroups)) {
-                                                        setGroupInputs(prev => ({ ...prev, [row.id]: nextGroups }));
-                                                        const nextUnits = Math.max(0, nextGroups * grupVal);
-                                                        setStockInputs(prev => ({ ...prev, [row.id]: nextUnits }));
-                                                        setStockInputsText(prev => ({ ...prev, [row.id]: String(nextUnits) }));
-                                                    }
-                                                }}
-                                                onBlur={() => {
-                                                    const text = groupInputsText[row.id];
-                                                    if (text === '' || text === undefined) {
-                                                        setGroupInputs(prev => ({ ...prev, [row.id]: rawGroups }));
-                                                        setGroupInputsText(prev => ({ ...prev, [row.id]: String(rawGroups) }));
-                                                        setStockInputs(prev => ({ ...prev, [row.id]: rawStock }));
-                                                        setStockInputsText(prev => ({ ...prev, [row.id]: String(rawStock) }));
-                                                    }
-                                                }}
-                                                onWheel={(e) => {
-                                                    // Prevenir que el scroll cambie el valor
-                                                    e.target.blur();
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                                onFocus={(e) => e.target.select()}
-                                                style={{
-                                                    borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px'
-                                                }}
-                                            />
-                                        );
-                                    }
-                                    return null;
-                                }}
-                            />
-                        ) : (
-                            visibleItems.length > 0 ? (
-                                visibleItems.map((producto, index) => {
-                                    if (tipo === 'conteo') {
-                                        const rawStock = Number(producto.stock || 0);
-                                        const grupVal = Number(producto.grup || 0);
-                                        const rawGroups = grupVal > 0 ? Math.floor(rawStock / grupVal) : 0;
-                                        const state = getDiffState(producto.id, rawStock, rawGroups, grupVal);
-                                        const inputs = [];
-                                        // Unidades input
-                                        inputs.push({
-                                            name: `units-${producto.id}`,
-                                            label: 'Unidades',
-                                            type: 'number',
-                                            value: stockInputsText[producto.id] !== undefined ? stockInputsText[producto.id] : String(stockInputs[producto.id] !== undefined ? stockInputs[producto.id] : rawStock),
-                                            onChange: (e) => {
-                                                const text = e.target.value;
-                                                setStockInputsText(prev => ({ ...prev, [producto.id]: text }));
-                                                if (text === '') return;
-                                                const nextUnits = Number(text);
-                                                if (Number.isFinite(nextUnits)) {
-                                                    setStockInputs(prev => ({ ...prev, [producto.id]: nextUnits }));
-                                                    if (grupVal > 0) {
-                                                        const nextGroups = Math.floor(nextUnits / grupVal);
-                                                        setGroupInputs(prev => ({ ...prev, [producto.id]: nextGroups }));
-                                                        setGroupInputsText(prev => ({ ...prev, [producto.id]: String(nextGroups) }));
-                                                    }
-                                                }
-                                            },
-                                            inputProps: {
-                                                inputMode: 'numeric',
-                                                onFocus: (e) => e.target.select(),
-                                                onWheel: (e) => {
-                                                    // Prevenir que el scroll cambie el valor
-                                                    e.target.blur();
-                                                },
-                                                onBlur: () => {
-                                                    const text = stockInputsText[producto.id];
-                                                    if (text === '' || text === undefined) {
-                                                        setStockInputs(prev => ({ ...prev, [producto.id]: rawStock }));
-                                                        setStockInputsText(prev => ({ ...prev, [producto.id]: String(rawStock) }));
-                                                        if (grupVal > 0) {
-                                                            setGroupInputs(prev => ({ ...prev, [producto.id]: rawGroups }));
-                                                            setGroupInputsText(prev => ({ ...prev, [producto.id]: String(rawGroups) }));
-                                                        }
-                                                    }
-                                                },
-                                                style: { borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined }
+                                            if (key === 'stock') {
+                                                const valueText = stockInputsText[row.id] !== undefined ? stockInputsText[row.id] : String(stockInputs[row.id] !== undefined ? stockInputs[row.id] : rawStock);
+                                                const state = getDiffState(row.id, rawStock, rawGroups, grupVal);
+                                                return (
+                                                    <input
+                                                        type="number"
+                                                        inputMode="numeric"
+                                                        value={valueText}
+                                                        onChange={(e) => {
+                                                            const text = e.target.value;
+                                                            setStockInputsText(prev => ({ ...prev, [row.id]: text }));
+                                                            if (text === '') return; // permitir vacío mientras edita
+                                                            const nextUnits = Number(text);
+                                                            if (Number.isFinite(nextUnits)) {
+                                                                setStockInputs(prev => ({ ...prev, [row.id]: nextUnits }));
+                                                                if (grupVal > 0) {
+                                                                    const nextGroups = Math.floor(nextUnits / grupVal);
+                                                                    setGroupInputs(prev => ({ ...prev, [row.id]: nextGroups }));
+                                                                    setGroupInputsText(prev => ({ ...prev, [row.id]: String(nextGroups) }));
+                                                                }
+                                                            }
+                                                        }}
+                                                        onBlur={() => {
+                                                            const text = stockInputsText[row.id];
+                                                            if (text === '' || text === undefined) {
+                                                                setStockInputs(prev => ({ ...prev, [row.id]: rawStock }));
+                                                                setStockInputsText(prev => ({ ...prev, [row.id]: String(rawStock) }));
+                                                                if (grupVal > 0) {
+                                                                    setGroupInputs(prev => ({ ...prev, [row.id]: rawGroups }));
+                                                                    setGroupInputsText(prev => ({ ...prev, [row.id]: String(rawGroups) }));
+                                                                }
+                                                            }
+                                                        }}
+                                                        onWheel={(e) => {
+                                                            // Prevenir que el scroll cambie el valor
+                                                            e.target.blur();
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onFocus={(e) => e.target.select()}
+                                                        style={{
+                                                            borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px'
+                                                        }}
+                                                    />
+                                                );
                                             }
-                                        });
-                                        // Grupos input (solo si aplica)
-                                        if (grupVal > 0) {
-                                            inputs.push({
-                                                name: `groups-${producto.id}`,
-                                                label: 'Grup',
-                                                type: 'number',
-                                                value: groupInputsText[producto.id] !== undefined ? groupInputsText[producto.id] : String(groupInputs[producto.id] !== undefined ? groupInputs[producto.id] : rawGroups),
-                                                onChange: (e) => {
-                                                    const text = e.target.value;
-                                                    setGroupInputsText(prev => ({ ...prev, [producto.id]: text }));
-                                                    if (text === '') return;
-                                                    const nextGroups = Number(text);
-                                                    if (Number.isFinite(nextGroups)) {
-                                                        setGroupInputs(prev => ({ ...prev, [producto.id]: nextGroups }));
-                                                        const nextUnits = Math.max(0, nextGroups * grupVal);
-                                                        setStockInputs(prev => ({ ...prev, [producto.id]: nextUnits }));
-                                                        setStockInputsText(prev => ({ ...prev, [producto.id]: String(nextUnits) }));
-                                                    }
-                                                },
-                                                inputProps: {
-                                                    inputMode: 'numeric',
-                                                    onFocus: (e) => e.target.select(),
-                                                    onWheel: (e) => {
-                                                        // Prevenir que el scroll cambie el valor
-                                                        e.target.blur();
-                                                    },
-                                                    onBlur: () => {
-                                                        const text = groupInputsText[producto.id];
-                                                        if (text === '' || text === undefined) {
-                                                            setGroupInputs(prev => ({ ...prev, [producto.id]: rawGroups }));
-                                                            setGroupInputsText(prev => ({ ...prev, [producto.id]: String(rawGroups) }));
-                                                            setStockInputs(prev => ({ ...prev, [producto.id]: rawStock }));
-                                                            setStockInputsText(prev => ({ ...prev, [producto.id]: String(rawStock) }));
-                                                        }
-                                                    },
-                                                    style: { borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined }
+                                            if (key === 'stock_grup') {
+                                                if (grupVal <= 0) {
+                                                    return null; // dejar contenido por defecto si no se agrupa
                                                 }
-                                            });
-                                        }
-                                        return (
-                                            <ItemViewInput
-                                                key={producto.id || index}
-                                                title={producto.name || 'Sin nombre'}
-                                                icon="box"
-                                                inputs={inputs}
-                                                flot1={`${producto.stock} Ud.`}
-                                                flot2={grupVal > 0 ? `${Math.floor(producto.stock / grupVal)} Grup` : ''}
-                                            />
-                                        );
-                                    }
-                                    // No conteo: fallback original
-                                    return (
-                                        <ItemView
-                                            key={producto.id || index}
-                                            title={producto.name || 'Sin nombre'}
-                                            description={producto.description || 'Sin descripción'}
-                                            icon="box"
-                                            onClick={() => handleProductoClick(producto)}
-                                            entrada={false}
-                                            entradaData={[]}
-                                            flot1={producto.stock + ' Ud.'}
-                                            badge={getBadge(producto)}
-                                        />
-                                    );
-                                })
+                                                const valueText = groupInputsText[row.id] !== undefined ? groupInputsText[row.id] : String(groupInputs[row.id] !== undefined ? groupInputs[row.id] : rawGroups);
+                                                const state = getDiffState(row.id, rawStock, rawGroups, grupVal);
+                                                return (
+                                                    <input
+                                                        type="number"
+                                                        inputMode="numeric"
+                                                        value={valueText}
+                                                        onChange={(e) => {
+                                                            const text = e.target.value;
+                                                            setGroupInputsText(prev => ({ ...prev, [row.id]: text }));
+                                                            if (text === '') return; // permitir vacío
+                                                            const nextGroups = Number(text);
+                                                            if (Number.isFinite(nextGroups)) {
+                                                                setGroupInputs(prev => ({ ...prev, [row.id]: nextGroups }));
+                                                                const nextUnits = Math.max(0, nextGroups * grupVal);
+                                                                setStockInputs(prev => ({ ...prev, [row.id]: nextUnits }));
+                                                                setStockInputsText(prev => ({ ...prev, [row.id]: String(nextUnits) }));
+                                                            }
+                                                        }}
+                                                        onBlur={() => {
+                                                            const text = groupInputsText[row.id];
+                                                            if (text === '' || text === undefined) {
+                                                                setGroupInputs(prev => ({ ...prev, [row.id]: rawGroups }));
+                                                                setGroupInputsText(prev => ({ ...prev, [row.id]: String(rawGroups) }));
+                                                                setStockInputs(prev => ({ ...prev, [row.id]: rawStock }));
+                                                                setStockInputsText(prev => ({ ...prev, [row.id]: String(rawStock) }));
+                                                            }
+                                                        }}
+                                                        onWheel={(e) => {
+                                                            // Prevenir que el scroll cambie el valor
+                                                            e.target.blur();
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onFocus={(e) => e.target.select()}
+                                                        style={{
+                                                            borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px'
+                                                        }}
+                                                    />
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                </div>
                             ) : (
-                                <NoData 
-                                    icon="box"
-                                    title={searchQuery || categoriaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
-                                    detail={searchQuery || categoriaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
-                                    transparent={true}
-                                    minHeight="200px"
-                                />
-                            )
-                        )}
-                    </div>
+                                // Vista de cards para pantallas pequeñas con PullToRefresh
+                                <PullToRefresh
+                                    onRefresh={handleRefresh}
+                                    screenName="Almacén"
+                                    containerStyle={{
+                                        maxHeight: 'calc(100% - 80px)',
+                                        minHeight: 'calc(100% - 80px)'
+                                    }}
+                                >
+                                        {visibleItems.length > 0 ? (
+                                            visibleItems.map((producto, index) => {
+                                                if (tipo === 'conteo') {
+                                                    const rawStock = Number(producto.stock || 0);
+                                                    const grupVal = Number(producto.grup || 0);
+                                                    const rawGroups = grupVal > 0 ? Math.floor(rawStock / grupVal) : 0;
+                                                    const state = getDiffState(producto.id, rawStock, rawGroups, grupVal);
+                                                    const inputs = [];
+                                                    // Unidades input
+                                                    inputs.push({
+                                                        name: `units-${producto.id}`,
+                                                        label: 'Unidades',
+                                                        type: 'number',
+                                                        value: stockInputsText[producto.id] !== undefined ? stockInputsText[producto.id] : String(stockInputs[producto.id] !== undefined ? stockInputs[producto.id] : rawStock),
+                                                        onChange: (e) => {
+                                                            const text = e.target.value;
+                                                            setStockInputsText(prev => ({ ...prev, [producto.id]: text }));
+                                                            if (text === '') return;
+                                                            const nextUnits = Number(text);
+                                                            if (Number.isFinite(nextUnits)) {
+                                                                setStockInputs(prev => ({ ...prev, [producto.id]: nextUnits }));
+                                                                if (grupVal > 0) {
+                                                                    const nextGroups = Math.floor(nextUnits / grupVal);
+                                                                    setGroupInputs(prev => ({ ...prev, [producto.id]: nextGroups }));
+                                                                    setGroupInputsText(prev => ({ ...prev, [producto.id]: String(nextGroups) }));
+                                                                }
+                                                            }
+                                                        },
+                                                        inputProps: {
+                                                            inputMode: 'numeric',
+                                                            onFocus: (e) => e.target.select(),
+                                                            onWheel: (e) => {
+                                                                // Prevenir que el scroll cambie el valor
+                                                                e.target.blur();
+                                                            },
+                                                            onBlur: () => {
+                                                                const text = stockInputsText[producto.id];
+                                                                if (text === '' || text === undefined) {
+                                                                    setStockInputs(prev => ({ ...prev, [producto.id]: rawStock }));
+                                                                    setStockInputsText(prev => ({ ...prev, [producto.id]: String(rawStock) }));
+                                                                    if (grupVal > 0) {
+                                                                        setGroupInputs(prev => ({ ...prev, [producto.id]: rawGroups }));
+                                                                        setGroupInputsText(prev => ({ ...prev, [producto.id]: String(rawGroups) }));
+                                                                    }
+                                                                }
+                                                            },
+                                                            style: { borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined }
+                                                        }
+                                                    });
+                                                    // Grupos input (solo si aplica)
+                                                    if (grupVal > 0) {
+                                                        inputs.push({
+                                                            name: `groups-${producto.id}`,
+                                                            label: 'Grup',
+                                                            type: 'number',
+                                                            value: groupInputsText[producto.id] !== undefined ? groupInputsText[producto.id] : String(groupInputs[producto.id] !== undefined ? groupInputs[producto.id] : rawGroups),
+                                                            onChange: (e) => {
+                                                                const text = e.target.value;
+                                                                setGroupInputsText(prev => ({ ...prev, [producto.id]: text }));
+                                                                if (text === '') return;
+                                                                const nextGroups = Number(text);
+                                                                if (Number.isFinite(nextGroups)) {
+                                                                    setGroupInputs(prev => ({ ...prev, [producto.id]: nextGroups }));
+                                                                    const nextUnits = Math.max(0, nextGroups * grupVal);
+                                                                    setStockInputs(prev => ({ ...prev, [producto.id]: nextUnits }));
+                                                                    setStockInputsText(prev => ({ ...prev, [producto.id]: String(nextUnits) }));
+                                                                }
+                                                            },
+                                                            inputProps: {
+                                                                inputMode: 'numeric',
+                                                                onFocus: (e) => e.target.select(),
+                                                                onWheel: (e) => {
+                                                                    // Prevenir que el scroll cambie el valor
+                                                                    e.target.blur();
+                                                                },
+                                                                onBlur: () => {
+                                                                    const text = groupInputsText[producto.id];
+                                                                    if (text === '' || text === undefined) {
+                                                                        setGroupInputs(prev => ({ ...prev, [producto.id]: rawGroups }));
+                                                                        setGroupInputsText(prev => ({ ...prev, [producto.id]: String(rawGroups) }));
+                                                                        setStockInputs(prev => ({ ...prev, [producto.id]: rawStock }));
+                                                                        setStockInputsText(prev => ({ ...prev, [producto.id]: String(rawStock) }));
+                                                                    }
+                                                                },
+                                                                style: { borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined }
+                                                            }
+                                                        });
+                                                    }
+                                                    return (
+                                                        <ItemViewInput
+                                                            key={producto.id || index}
+                                                            title={producto.name || 'Sin nombre'}
+                                                            icon="box"
+                                                            inputs={inputs}
+                                                            flot1={`${producto.stock} Ud.`}
+                                                            flot2={grupVal > 0 ? `${Math.floor(producto.stock / grupVal)} Grup` : ''}
+                                                        />
+                                                    );
+                                                }
+                                                // No conteo: fallback original
+                                                return (
+                                                    <ItemView
+                                                        key={producto.id || index}
+                                                        title={producto.name || 'Sin nombre'}
+                                                        description={producto.description || 'Sin descripción'}
+                                                        icon="box"
+                                                        onClick={() => handleProductoClick(producto)}
+                                                        entrada={false}
+                                                        entradaData={[]}
+                                                        flot1={producto.stock + ' Ud.'}
+                                                        badge={getBadge(producto)}
+                                                    />
+                                                );
+                                            })
+                                        ) : (
+                                            <NoData 
+                                                icon="box"
+                                                title={searchQuery || categoriaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
+                                                detail={searchQuery || categoriaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
+                                                transparent={true}
+                                                minHeight="200px"
+                                            />
+                                        )}
+                                 
+                                </PullToRefresh>
+                            )}
+                        </>
+                    )}
                 </div>
                 {tipo === 'conteo' ? (
                     <div className={styles.buttonFooter}>
@@ -864,16 +941,16 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                             serviceName="productsAlmacenService"
                             isOpen={isOpen}
                             onDataLoaded={handleProductosLoaded}
-                            onLoadingStart={() => handleProductosLoading(true)}
-                            onLoadingEnd={() => handleProductosLoading(false)}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
                         />
                         <FetchData
                             service={pricesTypesService}
                             serviceName="pricesTypesService"
                             isOpen={isOpen}
                             onDataLoaded={handlePreciosLoaded}
-                            onLoadingStart={() => {}}
-                            onLoadingEnd={() => {}}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
                         />
                         <FetchData
                             service={sucursalesService}
@@ -881,8 +958,8 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                             method="getByEmpresaId"
                             isOpen={isOpen}
                             onDataLoaded={handleSucursalesLoaded}
-                            onLoadingStart={() => {}}
-                            onLoadingEnd={() => {}}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
                         />
                     </>
                 )}

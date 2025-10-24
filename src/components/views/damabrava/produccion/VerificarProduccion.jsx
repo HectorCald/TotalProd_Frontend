@@ -16,6 +16,7 @@ import FiltroResponsable from '../../../mixed/FiltroResponsable';
 import FiltroEstados from '../../../mixed/FiltroEstados';
 import LoadingSpinner from '../../../common/LoadingSpinner';
 import NoData from '../../../common/NoData';
+import PullToRefresh from '../../../common/PullToRefresh';
 
 function VerificarProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -32,6 +33,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
     
     // Estado para acumular todos los registros de todas las páginas
     const [allRegistros, setAllRegistros] = useState([]);
@@ -48,19 +50,49 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     const [registros, setRegistros] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingRegistros, setIsLoadingRegistros] = useState(false);
     const [error, setError] = useState(null);
 
     // Función para cargar registros
     const cargarRegistros = async (page = 1, search = '', estado = null, orden = 'fecha_desc', responsable = null) => {
         setIsLoading(true);
         setError(null);
+
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
         
         try {
             const response = await registrosProduccionDamabravaService.getAll(page, 30, estado, orden, search, responsable);
                 
             if (response.success) {
-                setRegistros(response.data);
+                const newData = response.data || [];
+                setRegistros(newData);
                 setHasMorePages(response.pagination?.hasNextPage || false);
+
+                // Reemplazar o acumular SOLO después de que llega la data
+                if (page === 1) {
+                    // Si no llegó nada, limpiar; si llegó, reemplazar
+                    setAllRegistros(newData.length > 0 ? newData : []);
+                } else {
+                    // Paginación: acumular sin borrar lo anterior
+                    setAllRegistros(prev => {
+                        // Evitar duplicados por id
+                        const existingIds = new Set(prev.map(r => r.id));
+                        const merged = [...prev];
+                        newData.forEach(item => {
+                            if (!existingIds.has(item.id)) merged.push(item);
+                        });
+                        return merged;
+                    });
+                }
             } else {
                 setError(response);
             }
@@ -68,49 +100,27 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             setError(error);
         } finally {
             setIsLoading(false);
+            // Decrementar contador de peticiones activas
+            setActiveRequests(prev => {
+                const newCount = Math.max(0, prev - 1);
+                // Ocultar RefreshIndicator cuando no hay peticiones activas
+                if (newCount === 0 && isLargeScreen) {
+                    setTimeout(() => {
+                        setIsRefreshing(false);
+                        setTimeout(() => {
+                            setShowRefreshIndicator(false);
+                        }, 500);
+                    }, 300);
+                }
+                return newCount;
+            });
         }
     };
 
-    // Acumular datos de todas las páginas cuando llegan nuevos registros
-    useEffect(() => {
-        if (registros && registros.length > 0 && isOpen) {
-            if (currentPage === 1) {
-                // Si es la primera página, tomar todos los registros que vienen del servicio
-                setAllRegistros(registros);
-            } else {
-                // Si es una página posterior, acumular los datos
-                setAllRegistros(prevRegistros => {
-                    // Evitar duplicados por si acaso
-                    const existingIds = new Set(prevRegistros.map(r => r.id));
-                    const newRegistros = registros.filter(r => !existingIds.has(r.id));
-                    return [...prevRegistros, ...newRegistros];
-                });
-            }
-        }
-    }, [registros, currentPage, isOpen]);
-
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    }, [isLoading, isOpen, showRefreshIndicator]);
 
     // Cargar registros cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
-            // Mostrar indicador inmediatamente al abrir
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
             // Cargar primera página
             cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable);
         }
@@ -161,29 +171,14 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         setIsOpenVerProduccion(true);
     };
 
-    // Función para manejar refresh con indicador
+    // Función para manejar refresh
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
         // Limpiar estado acumulado y resetear página
         setAllRegistros([]);
         setCurrentPage(1);
         
-        try {
-            await cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable);
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        } catch (error) {
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
-        }
+        // La función cargarRegistros ya maneja el RefreshIndicator
+        await cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable);
     };
 
     // Función para manejar scroll infinito
@@ -482,32 +477,42 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                             }}
                         />
                     ) : (
-                        // Vista de cards para pantallas pequeñas
-                        allRegistros.length > 0 ? (
-                            allRegistros.map((registro, index) => {
-                                return (
-                                    <ItemView
-                                        key={registro.id || index}
-                                        title={registro.producto_almacen?.name || 'Sin producto'}
-                                        description={`${registro.terminados || '0'} terminados • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
-                                        icon="file"
-                                        onClick={() => handleRegistro(registro)}
-                                        arrow={false}
-                                        flot1={registro?.estado === 'verificado' ? 'Verificado' : registro?.estado === 'Ingresado' ? 'Ingresado' : ''}  
-                                        flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
-                                        gris={true}
-                                    />
-                                );
-                            })
-                        ) : (
-                            <NoData 
-                                icon="file"
-                                title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
-                        )
+                        // Vista de cards para pantallas pequeñas con PullToRefresh
+                        <PullToRefresh
+                            onRefresh={handleRefresh}
+                            screenName="Producción"
+                            containerStyle={{
+                                maxHeight: '100%',
+                                minHeight: '100%'
+                            }}
+                            onScroll={handleScroll}
+                        >
+                            {allRegistros.length > 0 ? (
+                                allRegistros.map((registro, index) => {
+                                    return (
+                                        <ItemView
+                                            key={registro.id || index}
+                                            title={registro.producto_almacen?.name || 'Sin producto'}
+                                            description={`${registro.terminados || '0'} terminados • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
+                                            icon="file"
+                                            onClick={() => handleRegistro(registro)}
+                                            arrow={false}
+                                            flot1={registro?.estado === 'verificado' ? 'Verificado' : registro?.estado === 'Ingresado' ? 'Ingresado' : ''}  
+                                            flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
+                                            gris={true}
+                                        />
+                                    );
+                                })
+                            ) : (
+                                <NoData 
+                                    icon="file"
+                                    title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
+                                    detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
+                                    transparent={true}
+                                    minHeight="200px"
+                                />
+                            )}
+                        </PullToRefresh>
                     )}
 
                     {/* Indicador de carga para más elementos */}

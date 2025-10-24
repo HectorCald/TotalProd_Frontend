@@ -20,6 +20,7 @@ import FiltroMetodoPago from '../../mixed/FiltroMetodoPago';
 import FiltroOrdenamientoGastos from '../../mixed/FiltroOrdenamientoGastos';
 import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function PanelGastos({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -51,6 +52,11 @@ function PanelGastos({ isOpen, setIsOpen }) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // Estados para RefreshIndicator (solo PC)
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
+
     // Callback para manejar los gastos cargados
     const handleGastosLoaded = useCallback((data) => {
         setGastos(data);
@@ -68,12 +74,36 @@ function PanelGastos({ isOpen, setIsOpen }) {
         if (allGastos.length === 0) {
             setIsLoading(true);
         }
-    }, [allGastos.length]);
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [allGastos.length, isLargeScreen]);
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
         setIsLoading(false);
-    }, []);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
 
     // Acumular datos de todas las páginas cuando llegan nuevos gastos
     useEffect(() => {
@@ -136,6 +166,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
             console.error('Error al refrescar gastos:', error);
         }
     };
+
 
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
@@ -335,29 +366,37 @@ function PanelGastos({ isOpen, setIsOpen }) {
                         <Filtros options={opciones} />
                         {isLargeScreen ? (
                             // Vista de tabla para pantallas grandes
-                            <div
-                                className={styles.content}
-                                onScroll={handleScroll}
-                                style={{
-                                    maxHeight: 'calc(100% - 130px)',
-                                }}
-                            >
-                                <Table
-                                    headers={tableHeaders}
-                                    data={tableData}
-                                    onRowClick={(gasto) => {
-                                        // Buscar el gasto original sin formatear
-                                        const gastoOriginal = allGastos.find(g => g.id === gasto.id);
-                                        handleGasto(gastoOriginal);
+                            <>
+                                <div className={styles.titleContainer}>
+                                    <RefreshIndicator
+                                        isVisible={showRefreshIndicator}
+                                        isLoading={isRefreshing}
+                                    />
+                                </div>
+                                <div
+                                    className={styles.content}
+                                    onScroll={handleScroll}
+                                    style={{
+                                        maxHeight: 'calc(100% - 130px)',
                                     }}
-                                />
-                                {/* Indicador de carga para más elementos */}
-                                {isLoading && (
-                                    <div className={styles.loadingMore}>
-                                        <p>Cargando más gastos...</p>
-                                    </div>
-                                )}
-                            </div>
+                                >
+                                    <Table
+                                        headers={tableHeaders}
+                                        data={tableData}
+                                        onRowClick={(gasto) => {
+                                            // Buscar el gasto original sin formatear
+                                            const gastoOriginal = allGastos.find(g => g.id === gasto.id);
+                                            handleGasto(gastoOriginal);
+                                        }}
+                                    />
+                                    {/* Indicador de carga para más elementos */}
+                                    {isLoading && (
+                                        <div className={styles.loadingMore}>
+                                            <p>Cargando más gastos...</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         ) : (
                             // Vista de cards para pantallas pequeñas con PullToRefresh
                             <PullToRefresh
@@ -445,6 +484,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
                     onLoadingStart={handleLoadingStart}
                     onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
+                    onRefresh={isLargeScreen ? handleRefresh : undefined}
                 />
             )}
 

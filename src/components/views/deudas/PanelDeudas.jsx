@@ -20,6 +20,7 @@ import FiltroEstadoDeuda from '../../mixed/FiltroEstadoDeuda';
 import FiltroOrdenamientoDeudas from '../../mixed/FiltroOrdenamientoDeudas';
 import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function PanelDeudas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -51,6 +52,11 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // Estados para RefreshIndicator (solo PC)
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
+
     // Callback para manejar las deudas cargadas
     const handleDeudasLoaded = useCallback((data) => {
         setDeudas(data);
@@ -68,12 +74,36 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         if (allDeudas.length === 0) {
             setIsLoading(true);
         }
-    }, [allDeudas.length]);
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [allDeudas.length, isLargeScreen]);
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
         setIsLoading(false);
-    }, []);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
 
     // Acumular datos de todas las páginas cuando llegan nuevas deudas
     useEffect(() => {
@@ -136,6 +166,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
             console.error('Error al refrescar deudas:', error);
         }
     };
+
 
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
@@ -368,39 +399,47 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                         <Filtros options={opciones} />
                         {isLargeScreen ? (
                             // Vista de tabla para pantallas grandes
-                            <div
-                                className={styles.content}
-                                onScroll={handleScroll}
-                                style={{
-                                    maxHeight: 'calc(100% - 130px)',
-                                }}
-                            >
-                                <Table
-                                    headers={tableHeaders}
-                                    data={tableData}
-                                    onRowClick={(deuda) => {
-                                        // Buscar la deuda original sin formatear
-                                        const deudaOriginal = allDeudas.find(d => d.id === deuda.id);
-                                        handleDeuda(deudaOriginal);
+                            <>
+                                <div className={styles.titleContainer}>
+                                    <RefreshIndicator
+                                        isVisible={showRefreshIndicator}
+                                        isLoading={isRefreshing}
+                                    />
+                                </div>
+                                <div
+                                    className={styles.content}
+                                    onScroll={handleScroll}
+                                    style={{
+                                        maxHeight: 'calc(100% - 130px)',
                                     }}
-                                    getCellBadge={getCellBadge}
-                                    columnWidths={{
-                                        concepto: '25%',
-                                        fecha_deuda: '15%',
-                                        fecha_vencimiento: '15%',
-                                        cliente: '20%',
-                                        estado: '15%',
-                                        monto_total: '15%',
-                                        saldo_pendiente: '15%'
-                                    }}
-                                />
-                                {/* Indicador de carga para más elementos */}
-                                {isLoading && (
-                                    <div className={styles.loadingMore}>
-                                        <p>Cargando más deudas...</p>
-                                    </div>
-                                )}
-                            </div>
+                                >
+                                    <Table
+                                        headers={tableHeaders}
+                                        data={tableData}
+                                        onRowClick={(deuda) => {
+                                            // Buscar la deuda original sin formatear
+                                            const deudaOriginal = allDeudas.find(d => d.id === deuda.id);
+                                            handleDeuda(deudaOriginal);
+                                        }}
+                                        getCellBadge={getCellBadge}
+                                        columnWidths={{
+                                            concepto: '25%',
+                                            fecha_deuda: '15%',
+                                            fecha_vencimiento: '15%',
+                                            cliente: '20%',
+                                            estado: '15%',
+                                            monto_total: '15%',
+                                            saldo_pendiente: '15%'
+                                        }}
+                                    />
+                                    {/* Indicador de carga para más elementos */}
+                                    {isLoading && (
+                                        <div className={styles.loadingMore}>
+                                            <p>Cargando más deudas...</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         ) : (
                             // Vista de cards para pantallas pequeñas con PullToRefresh
                             <PullToRefresh
@@ -491,6 +530,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                     onLoadingStart={handleLoadingStart}
                     onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
+                    onRefresh={isLargeScreen ? handleRefresh : undefined}
                 />
             )}
 

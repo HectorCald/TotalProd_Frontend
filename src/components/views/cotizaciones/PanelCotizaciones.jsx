@@ -9,12 +9,14 @@ import Filtros from '../../common/Filtros';
 import Notification from '../../common/Notification';
 import InfoModal from '../../common/InfoModal';
 import cotizacionesService from '../../../services/cotizacionesService';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroEstadoCotizacion from '../../mixed/FiltroEstadoCotizacion';
 import NoData from '../../common/NoData';
 import FetchData from '../../mixed/FetchData';
+import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 
 function PanelCotizaciones({ isOpen, setIsOpen }) {
@@ -28,9 +30,13 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     
-    // Estados para RefreshIndicator
+    // Estados para loading
+    const [isLoadingCotizaciones, setIsLoadingCotizaciones] = useState(false);
+    
+    // Estados para RefreshIndicator (solo PC)
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
     
     // Estado para acumular o reemplazar las cotizaciones mostradas
     const [allCotizaciones, setAllCotizaciones] = useState([]);
@@ -60,21 +66,63 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     const handleCotizacionesLoaded = useCallback((data) => {
         setCotizaciones(data);
         setAllCotizaciones(data);
+        setError(null); // Limpiar error cuando se cargan datos exitosamente
     }, []);
 
-    // Función para manejar el loading de cotizaciones
-    const handleCotizacionesLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
+    // Función para manejar errores de FetchData
+    const handleError = useCallback((error) => {
+        setError(error);
     }, []);
 
-    // Limpiar indicador cuando se cierra el modal
-    useEffect(() => {
-        if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (allCotizaciones.length === 0) {
+            setIsLoadingCotizaciones(true);
         }
-    }, [isOpen]);
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [allCotizaciones.length, isLargeScreen]);
+
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoadingCotizaciones(false);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
+
+    // Función para manejar refresh
+    const handleRefresh = async () => {
+        try {
+            const response = await cotizacionesService.getAll();
+            if (response.success) {
+                setCotizaciones(response.data);
+                setAllCotizaciones(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar cotizaciones:', error);
+        }
+    };
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -359,70 +407,87 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 title="Cotizaciones"
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                <Filtros options={opciones} />
-                <div
-                    className={styles.content}
-                    style={{
-                        maxHeight: '100%'
-                    }}
-                >
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(cotizacion) => {
-                                // Buscar la cotización original sin formatear
-                                const cotizacionOriginal = cotizacionesFiltradas.find(c => c.id === cotizacion.id);
-                                handleRegistro(cotizacionOriginal);
-                            }}
-                            getCellBadge={getCellBadge}
-                            columnWidths={{
-                                numero_cotizacion: '5%',
-                                cliente: '25%',
-                                total: '15%',
-                                fecha: '15%',
-                                estado: '15%',
-                                metodo_pago: '15%'
-                            }}
-                        />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas
-                        cotizacionesFiltradas.length > 0 ? (
-                            cotizacionesFiltradas.map((cotizacion, index) => {
-                                return (
-                                    <ItemView
-                                        key={cotizacion.id || index}
-                                        title={`Cotización #${cotizacion.numero_cotizacion || 'Sin número'} - ${cotizacion.cliente?.name || 'Sin cliente'}`}
-                                        description={`Total: Bs. ${(parseFloat(cotizacion.total) || 0).toFixed(2)} • ${new Date(cotizacion.fecha).toLocaleDateString()}${cotizacion.metodo_pago ? ` • ${cotizacion.metodo_pago}` : ''}`}
-                                        icon='file'
-                                        onClick={() => handleRegistro(cotizacion)}
-                                        arrow={false}
-                                        flot3={cotizacion?.estado === 'anulado' ? 'Anulado' : ''}
-                                        flot4={cotizacion?.estado === 'aprobada' ? 'Aprobada' : ''}
-                                        flot2={cotizacion?.estado === 'pendiente' ? 'Pendiente' : ''}
-                                        colorIcon='azul'
-                                    />
-                                );
-                            })
+                {isLoadingCotizaciones ? (
+                    // Mostrar LoadingSpinner cuando está cargando
+                    <LoadingSpinner />
+                ) : (
+                    <>
+                        {isLargeScreen && (
+                            <div className={styles.titleContainer}>
+                                <RefreshIndicator
+                                    isVisible={showRefreshIndicator}
+                                    isLoading={isRefreshing}
+                                />
+                            </div>
+                        )}
+                        <Filtros options={opciones} />
+                        {isLargeScreen ? (
+                            // Vista de tabla para pantallas grandes
+                            <div
+                                className={styles.content}
+                                style={{
+                                    maxHeight: '100%'
+                                }}
+                            >
+                                <Table
+                                    headers={tableHeaders}
+                                    data={tableData}
+                                    onRowClick={(cotizacion) => {
+                                        // Buscar la cotización original sin formatear
+                                        const cotizacionOriginal = cotizacionesFiltradas.find(c => c.id === cotizacion.id);
+                                        handleRegistro(cotizacionOriginal);
+                                    }}
+                                    getCellBadge={getCellBadge}
+                                    columnWidths={{
+                                        numero_cotizacion: '5%',
+                                        cliente: '25%',
+                                        total: '15%',
+                                        fecha: '15%',
+                                        estado: '15%',
+                                        metodo_pago: '15%'
+                                    }}
+                                />
+                            </div>
                         ) : (
-                            <NoData 
-                                icon="file"
-                                title={searchQuery || filtroEstado !== null ? 'Sin resultados' : 'No hay cotizaciones'}
-                                detail={searchQuery || filtroEstado !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar las cotizaciones que necesitas' : 'Crea cotizaciones para comenzar a gestionar tus presupuestos'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
-                        )
-                    )}
-
-                </div>
+                            // Vista de cards para pantallas pequeñas con PullToRefresh
+                            <PullToRefresh
+                                onRefresh={handleRefresh}
+                                screenName="Cotizaciones"
+                                containerStyle={{
+                                    maxHeight: 'calc(100% - 80px)',
+                                    minHeight: 'calc(100% - 80px)'
+                                }}
+                            >
+                                {cotizacionesFiltradas.length > 0 ? (
+                                    cotizacionesFiltradas.map((cotizacion, index) => {
+                                        return (
+                                            <ItemView
+                                                key={cotizacion.id || index}
+                                                title={`Cotización #${cotizacion.numero_cotizacion || 'Sin número'} - ${cotizacion.cliente?.name || 'Sin cliente'}`}
+                                                description={`Total: Bs. ${(parseFloat(cotizacion.total) || 0).toFixed(2)} • ${new Date(cotizacion.fecha).toLocaleDateString()}${cotizacion.metodo_pago ? ` • ${cotizacion.metodo_pago}` : ''}`}
+                                                icon='file'
+                                                onClick={() => handleRegistro(cotizacion)}
+                                                arrow={false}
+                                                flot3={cotizacion?.estado === 'anulado' ? 'Anulado' : ''}
+                                                flot4={cotizacion?.estado === 'aprobada' ? 'Aprobada' : ''}
+                                                flot2={cotizacion?.estado === 'pendiente' ? 'Pendiente' : ''}
+                                                colorIcon='azul'
+                                            />
+                                        );
+                                    })
+                                ) : (
+                                    <NoData 
+                                        icon="file"
+                                        title={searchQuery || filtroEstado !== null ? 'Sin resultados' : 'No hay cotizaciones'}
+                                        detail={searchQuery || filtroEstado !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar las cotizaciones que necesitas' : 'Crea cotizaciones para comenzar a gestionar tus presupuestos'}
+                                        transparent={true}
+                                        minHeight="200px"
+                                    />
+                                )}
+                            </PullToRefresh>
+                        )}
+                    </>
+                )}
             </div>
             
             {/* Modal de ver cotización*/}
@@ -467,8 +532,9 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                     serviceName="cotizacionesService"
                     isOpen={isOpen}
                     onDataLoaded={handleCotizacionesLoaded}
-                    onLoadingStart={() => handleCotizacionesLoading(true)}
-                    onLoadingEnd={() => handleCotizacionesLoading(false)}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
+                    onError={handleError}
                 />
             )}
 

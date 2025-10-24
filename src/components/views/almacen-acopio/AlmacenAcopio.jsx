@@ -17,7 +17,7 @@ import productsAcopioService from '../../../services/productsAcopioService';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import typeMeasureService from '../../../services/typeMeasureService';
 import { BoxIcon } from 'boxicons-react';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
@@ -26,6 +26,8 @@ import FiltroTipoMedida from '../../mixed/FiltroTipoMedida';
 import FiltroOrdenamientoAcopio from '../../mixed/FiltroOrdenamientoAcopio';
 import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
+import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const { isLargeScreen } = useLayout();
@@ -47,9 +49,18 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     // Estados para los datos
     const [categorias, setCategorias] = useState([]);
     const [tiposMedida, setTiposMedida] = useState([]);
-    // Estados para RefreshIndicator
+    
+    // Estados para rastrear qué datos se han cargado
+    const [productosLoaded, setProductosLoaded] = useState(false);
+    const [categoriasLoaded, setCategoriasLoaded] = useState(false);
+    const [tiposMedidaLoaded, setTiposMedidaLoaded] = useState(false);
+    // Estados para productos
+    const [isLoading, setIsLoading] = useState(false);
+    
+    // Estados para RefreshIndicator (solo PC)
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
 
     // Estados para filtros locales
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
@@ -60,18 +71,61 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const [productos, setProductos] = useState([]);
     const [error, setError] = useState(null);
 
-    // Función simple para manejar el indicador de carga
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (productos.length === 0) {
+            setIsLoading(true);
+        }
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [productos.length, isLargeScreen]);
 
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
 
 
     // Función para manejar cuando se cargan los productos
     const handleProductosLoaded = useCallback((data) => {
         setProductos(data);
+        setProductosLoaded(true);
     }, []);
+
+    // Función para manejar refresh
+    const handleRefresh = async () => {
+        try {
+            const response = await productsAcopioService.getAll();
+            if (response.success) {
+                setProductos(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar productos:', error);
+        }
+    };
 
 
     // Mapear Información de productos
@@ -97,13 +151,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         recetas_acopio: producto.recetas_acopio || []
     }));
 
-    // Limpiar indicador cuando se cierra el modal
-    useEffect(() => {
-        if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
-        }
-    }, [isOpen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -177,6 +224,11 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
             setCategoriaFiltro(null);
             setTipoMedidaFiltro(null);
             setOrdenamiento('nombre_asc');
+            
+            // Resetear estados de carga
+            setProductosLoaded(false);
+            setCategoriasLoaded(false);
+            setTiposMedidaLoaded(false);
             
             // Cargar canastas desde localStorage
             cargarCanastasDesdeLocalStorage();
@@ -469,78 +521,97 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                 withCart={isCartMode && isLargeScreen}
             />
             <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                <Filtros options={opciones} />
-                <div
-                    className={styles.content}
-                    style={{
-                        maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido')
-                            ? '100%'
-                            : ''
-                    }}
-                >
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(producto) => {
-                                // Buscar el producto original sin formatear
-                                const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
-                                handleRegistro(productoOriginal, tipo);
-                            }}
-                            getBadge={getBadge}
-                            columnWidths={tipo === 'pedido' ? {
-                                name: '35%',
-                                quantity: '25%',
-                                category_name: '25%',
-                                type_measure_name: '26%'
-                            } : {
-                                name: '25%',
-                                description: '25%',
-                                quantity: '20%',
-                                category_name: '15%',
-                                type_measure_name: '15%'
-                            }}
-                        />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas
-                        productosFiltrados.length > 0 ? (
-                            productosFiltrados.map((producto, index) => {
-                                const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
-                                return (
-                                    <ItemView
-                                        key={producto.id || index}
-                                        title={producto.name || 'Sin nombre'}
-                                        description={producto.description || 'Sin descripción'}
-                                        icon="box"
-                                        onClick={() => handleRegistro(producto, tipo)}
-                                        entrada={tipo === 'pesaje' ? true : false}
-                                        entradaData={[
-                                            { name: "Prima", value: 0 },
-                                            { name: "Bruta", value: 0 },
-                                        ]}
-                                        badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
-                                        flot1={parseFloat(producto.quantity || 0).toFixed(2) + ' ' + producto.type_measure.code}
-                                    />
-                                );
-                            })
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando
+                    <LoadingSpinner />
+                ) : (
+                    <>
+                        {isLargeScreen && (
+                            <div className={styles.titleContainer}>
+                                <RefreshIndicator
+                                    isVisible={showRefreshIndicator}
+                                    isLoading={isRefreshing}
+                                />
+                            </div>
+                        )}
+                        <Filtros options={opciones} />
+                        {isLargeScreen ? (
+                            // Vista de tabla para pantallas grandes
+                            <div
+                                className={styles.content}
+                                style={{
+                                    maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido')
+                                        ? '100%'
+                                        : ''
+                                }}
+                            >
+                                <Table
+                                    headers={tableHeaders}
+                                    data={tableData}
+                                    onRowClick={(producto) => {
+                                        // Buscar el producto original sin formatear
+                                        const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
+                                        handleRegistro(productoOriginal, tipo);
+                                    }}
+                                    getBadge={getBadge}
+                                    columnWidths={tipo === 'pedido' ? {
+                                        name: '35%',
+                                        quantity: '25%',
+                                        category_name: '25%',
+                                        type_measure_name: '26%'
+                                    } : {
+                                        name: '25%',
+                                        description: '25%',
+                                        quantity: '20%',
+                                        category_name: '15%',
+                                        type_measure_name: '15%'
+                                    }}
+                                />
+                            </div>
                         ) : (
-                            <NoData 
-                                icon="box"
-                                title={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
-                                detail={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda' : ' Agrega productos para comenzar a gestionar tu inventario'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
-                        )
-                    )}
-                </div>
+                            // Vista de cards para pantallas pequeñas con PullToRefresh
+                            <PullToRefresh
+                                onRefresh={handleRefresh}
+                                screenName="Almacén"
+                                containerStyle={{
+                                    maxHeight: 'calc(100% - 80px)',
+                                    minHeight: 'calc(100% - 80px)'
+                                }}
+                            >
+
+                                    {productosFiltrados.length > 0 ? (
+                                        productosFiltrados.map((producto, index) => {
+                                            const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
+                                            return (
+                                                <ItemView
+                                                    key={producto.id || index}
+                                                    title={producto.name || 'Sin nombre'}
+                                                    description={producto.description || 'Sin descripción'}
+                                                    icon="box"
+                                                    onClick={() => handleRegistro(producto, tipo)}
+                                                    entrada={tipo === 'pesaje' ? true : false}
+                                                    entradaData={[
+                                                        { name: "Prima", value: 0 },
+                                                        { name: "Bruta", value: 0 },
+                                                    ]}
+                                                    badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
+                                                    flot1={parseFloat(producto.quantity || 0).toFixed(2) + ' ' + producto.type_measure.code}
+                                                />
+                                            );
+                                        })
+                                    ) : (
+                                        <NoData 
+                                            icon="box"
+                                            title={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
+                                            detail={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda' : ' Agrega productos para comenzar a gestionar tu inventario'}
+                                            transparent={true}
+                                            minHeight="200px"
+                                        />
+                                    )}
+                            </PullToRefresh>
+                        )}
+                    </>
+                )}
             </div>
             {tipo === 'almacen' ?
                 <div className={styles.buttonFooter}>
@@ -634,20 +705,30 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                         serviceName="productsAcopioService"
                         isOpen={isOpen}
                         onDataLoaded={handleProductosLoaded}
-                        onLoadingStart={() => handleLoading(true)}
-                        onLoadingEnd={() => handleLoading(false)}
+                        onLoadingStart={handleLoadingStart}
+                        onLoadingEnd={handleLoadingEnd}
                     />
                     <FetchData
                         service={categoryAcopioService}
                         serviceName="categoryAcopioService"
                         isOpen={isOpen}
-                        onDataLoaded={setCategorias}
+                        onDataLoaded={(data) => {
+                            setCategorias(data);
+                            setCategoriasLoaded(true);
+                        }}
+                        onLoadingStart={handleLoadingStart}
+                        onLoadingEnd={handleLoadingEnd}
                     />
                     <FetchData
                         service={typeMeasureService}
                         serviceName="typeMeasureService"
                         isOpen={isOpen}
-                        onDataLoaded={setTiposMedida}
+                        onDataLoaded={(data) => {
+                            setTiposMedida(data);
+                            setTiposMedidaLoaded(true);
+                        }}
+                        onLoadingStart={handleLoadingStart}
+                        onLoadingEnd={handleLoadingEnd}
                     />
                 </>
             )}

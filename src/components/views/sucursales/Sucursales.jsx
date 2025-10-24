@@ -17,6 +17,7 @@ import Table from '../../common/Table';
 import NoData from '../../common/NoData';
 import FetchData from '../../mixed/FetchData';
 import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function Sucursales({ isOpen, setIsOpen }) {
     const { user, sucursalSeleccionada } = useUser();
@@ -31,6 +32,11 @@ function Sucursales({ isOpen, setIsOpen }) {
     const [sucursales, setSucursales] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Estados para RefreshIndicator (solo PC)
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
     
     // Estados para el buscador expandible
     const [searchQuery, setSearchQuery] = useState('');
@@ -52,12 +58,36 @@ function Sucursales({ isOpen, setIsOpen }) {
         if (sucursales.length === 0) {
             setIsLoading(true);
         }
-    }, [sucursales.length]);
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [sucursales.length, isLargeScreen]);
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
         setIsLoading(false);
-    }, []);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
 
 
 
@@ -106,6 +136,7 @@ function Sucursales({ isOpen, setIsOpen }) {
             console.error('Error al refrescar sucursales:', error);
         }
     };
+
 
     // Manejar error 403 con useEffect para evitar bucle infinito
     useEffect(() => {
@@ -208,20 +239,28 @@ function Sucursales({ isOpen, setIsOpen }) {
                     <LoadingSpinner />
                 ) : isLargeScreen ? (
                     // Vista de tabla para pantallas grandes
-                    <div className={styles.content} style={{
-                        maxHeight: 'calc(100% - 80px)',
-                        minHeight: 'calc(100% - 80px)'
-                    }}>
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(sucursal) => {
-                                // Buscar la sucursal original sin formatear
-                                const sucursalOriginal = sucursalesFiltradas.find(s => s.id === sucursal.id);
-                                handleSucursal(sucursalOriginal);
-                            }}
-                        />
-                    </div>
+                    <>
+                        <div className={styles.titleContainer}>
+                            <RefreshIndicator
+                                isVisible={showRefreshIndicator}
+                                isLoading={isRefreshing}
+                            />
+                        </div>
+                        <div className={styles.content} style={{
+                            maxHeight: 'calc(100% - 80px)',
+                            minHeight: 'calc(100% - 80px)'
+                        }}>
+                            <Table
+                                headers={tableHeaders}
+                                data={tableData}
+                                onRowClick={(sucursal) => {
+                                    // Buscar la sucursal original sin formatear
+                                    const sucursalOriginal = sucursalesFiltradas.find(s => s.id === sucursal.id);
+                                    handleSucursal(sucursalOriginal);
+                                }}
+                            />
+                        </div>
+                    </>
                 ) : (
                     // Vista de cards para pantallas pequeñas con PullToRefresh
                     <PullToRefresh
@@ -304,6 +343,7 @@ function Sucursales({ isOpen, setIsOpen }) {
                     onLoadingStart={handleLoadingStart}
                     onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
+                    onRefresh={isLargeScreen ? handleRefresh : undefined}
                 />
             )}
 

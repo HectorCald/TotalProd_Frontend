@@ -18,7 +18,8 @@ function InputSugerencias({
     caseSensitive = false, // Si la búsqueda es sensible a mayúsculas
     showIcon = false, // Mostrar icono de búsqueda
     iconName = 'search', // Nombre del icono
-    disabled = false
+    disabled = false,
+    loading = false // Estado de carga para mostrar indicador
 }) {
     const [isFocused, setIsFocused] = useState(false);
     const [sugerenciasFiltradas, setSugerenciasFiltradas] = useState([]);
@@ -219,7 +220,13 @@ function InputSugerencias({
                             color: (isFocused || (value && value !== '')) ? 'var(--primary-color)' : ''
                         }}
                     >
-                        <BoxIcon name={iconName} />
+                        {loading ? (
+                            <div className={styles.loadingSpinner}>
+                                <div className={styles.spinner}></div>
+                            </div>
+                        ) : (
+                            <BoxIcon name={iconName} />
+                        )}
                     </span>
                 )}
             </div>

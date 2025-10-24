@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BoxIcon } from 'boxicons-react';
 import styles from './PullToRefresh.module.css';
 
-function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, screenName = 'pantalla', containerStyle = {} }) {
+function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull = 180, screenName = 'pantalla', containerStyle = {} }) {
   const [isPulling, setIsPulling] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
@@ -35,8 +35,13 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
     let isAtTop = true;
 
     // Listener para detectar cambios en el scroll
-    const handleScroll = () => {
+    const handleScroll = (e) => {
       isAtTop = scrollContainer.scrollTop === 0;
+      
+      // Llamar al onScroll del componente padre si existe
+      if (onScroll) {
+        onScroll(e);
+      }
     };
 
     // Handlers para touch (móvil)
@@ -190,17 +195,27 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       case 'proveedores':
         return 'truck';
       case 'almacen':
+      case 'almacén':
         return 'package';
       case 'movimientos':
         return 'transfer';
       case 'pedidos':
-        return 'shopping-bag';
+        return 'cart';
       case 'precios':
         return 'dollar';
       case 'gastos':
         return 'receipt';
       case 'deudas':
-        return 'receipt';
+        return 'credit-card';
+      case 'personal':
+        return 'user-check';
+      case 'sucursales':
+        return 'store';
+      case 'conteos':
+      case 'conteo':
+        return 'calculator';
+      case 'cotizaciones':
+        return 'file';
       case 'reportes':
         return 'bar-chart-alt-2';
       case 'balance':

@@ -5,7 +5,7 @@ import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import ItemViewInput from '../../common/ItemViewInput';
 import Filtros from '../../common/Filtros';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroCategoriasAcopio from '../../mixed/FiltroCategoriasAcopio';
@@ -20,6 +20,8 @@ import typeMeasureService from '../../..//services/typeMeasureService';
 import Boton from '../../common/Boton';
 import Notification from '../../common/Notification';
 import conteosService from '../../../services/conteosService';
+import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const { isLargeScreen } = useLayout();
@@ -27,8 +29,12 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     // Estados: búsqueda y loading
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    
+    // Estados para RefreshIndicator (solo PC)
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
 
     // UI: envío y notificación
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,6 +44,11 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const [productos, setProductos] = useState([]);
     const [categorias, setCategorias] = useState([]);
     const [tiposMedida, setTiposMedida] = useState([]);
+    
+    // Estados para rastrear qué datos se han cargado
+    const [productosLoaded, setProductosLoaded] = useState(false);
+    const [categoriasLoaded, setCategoriasLoaded] = useState(false);
+    const [tiposMedidaLoaded, setTiposMedidaLoaded] = useState(false);
 
     // Filtros
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
@@ -105,15 +116,46 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         }
     }, []);
 
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (productos.length === 0) {
+            setIsLoading(true);
+        }
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+    }, [productos.length, isLargeScreen]);
+
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
+        // Decrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            // Ocultar RefreshIndicator cuando no hay peticiones activas
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
+
 
     useEffect(() => {
         if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
             // Limpiar la variable de repetición cuando se cierre
             localStorage.removeItem('isRepeatingConteo');
         }
@@ -122,7 +164,20 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     // Carga de datos
     const handleProductosLoaded = useCallback((data) => {
         setProductos(data);
+        setProductosLoaded(true);
     }, []);
+
+    // Función para manejar refresh
+    const handleRefresh = async () => {
+        try {
+            const response = await productsAcopioService.getAll();
+            if (response.success) {
+                setProductos(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar productos:', error);
+        }
+    };
 
     // Mapeo de productos
     const productosMapeados = productos.map(producto => ({
@@ -147,6 +202,11 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             setCategoriaFiltro(null);
             setTipoMedidaFiltro(null);
             setOrdenamiento('nombre_asc');
+            
+            // Resetear estados de carga
+            setProductosLoaded(false);
+            setCategoriasLoaded(false);
+            setTiposMedidaLoaded(false);
             
             // Verificar si se está repitiendo un conteo
             const isRepeating = localStorage.getItem('isRepeatingConteo') === 'true';
@@ -342,189 +402,212 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                     onSearchToggle={handleSearchToggle}
                 />
                 <div className={`${styles.container}`}>
-                    <div className={styles.titleContainer}>
-                        <RefreshIndicator isVisible={showRefreshIndicator} isLoading={isRefreshing} />
-                    </div>
-                    <Filtros options={opciones} />
-                    <div className={styles.content}>
-                        {isLargeScreen ? (
-                            <Table
-                                headers={tableHeaders}
-                                data={tableData}
-                                onRowClick={() => {}}
-                                getBadge={() => null}
-                                renderCell={(row, key) => {
-                                    if (tipo !== 'conteo') return null;
-                                    if (key !== 'quantity' && key !== 'justificacion') return null;
-                                    const original = productosFiltrados.find(p => p.id === row.id);
-                                    if (!original) return null;
-                                    const rawQty = parseFloat(original.quantity || 0);
-                                    if (key === 'quantity') {
-                                        const valueText = quantityInputsText[row.id] !== undefined ? quantityInputsText[row.id] : String(quantityInputs[row.id] !== undefined ? quantityInputs[row.id] : rawQty.toFixed(2));
-                                        const state = getDiffState(row.id, rawQty);
-                                        return (
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                inputMode="numeric"
-                                                value={valueText}
-                                                onChange={(e) => {
-                                                    const text = e.target.value;
-                                                    setQuantityInputsText(prev => ({ ...prev, [row.id]: text }));
-                                                    if (text === '') return;
-                                                    const next = parseFloat(text);
-                                                    if (Number.isFinite(next)) {
-                                                        const fixed = parseFloat(next.toFixed(2));
-                                                        setQuantityInputs(prev => ({ ...prev, [row.id]: fixed }));
-                                                    }
-                                                }}
-                                                onBlur={() => {
-                                                    const text = quantityInputsText[row.id];
-                                                    if (text === '' || text === undefined) {
-                                                        const raw = parseFloat(rawQty.toFixed(2));
-                                                        setQuantityInputs(prev => ({ ...prev, [row.id]: raw }));
-                                                        setQuantityInputsText(prev => ({ ...prev, [row.id]: raw.toFixed(2) }));
-                                                    } else {
-                                                        const next = parseFloat(text);
-                                                        if (Number.isFinite(next)) {
-                                                            const fixed = parseFloat(next.toFixed(2));
-                                                            setQuantityInputs(prev => ({ ...prev, [row.id]: fixed }));
-                                                            setQuantityInputsText(prev => ({ ...prev, [row.id]: fixed.toFixed(2) }));
-                                                        }
-                                                    }
-                                                }}
-                                                onWheel={(e) => {
-                                                    // Prevenir que el scroll cambie el valor
-                                                    e.target.blur();
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                                onFocus={(e) => e.target.select()}
-                                                style={{ borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px' }}
-                                            />
-                                        );
-                                    }
-                                    if (key === 'justificacion') {
-                                        const value = justificationInputsText[row.id] || '';
-                                        return (
-                                            <input
-                                                type="text"
-                                                value={value}
-                                                placeholder="Motivo del ajuste"
-                                                onChange={(e) => {
-                                                    const text = e.target.value;
-                                                    setJustificationInputsText(prev => ({ ...prev, [row.id]: text }));
-                                                }}
-                                                onBlur={() => {
-                                                    const text = justificationInputsText[row.id] || '';
-                                                    // no log en tiempo real; resumen se imprime al registrar
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                                style={{ maxWidth: '100%' }}
-                                            />
-                                        );
-                                    }
-                                    return null;
-                                }}
-                            />
-                        ) : (
-                            productosFiltradosPorDiferencia.length > 0 ? (
-                                productosFiltradosPorDiferencia.map((p, index) => {
-                                    if (tipo === 'conteo') {
-                                        const rawQty = parseFloat(p.quantity || 0);
-                                        const state = getDiffState(p.id, rawQty);
-                                        const inputs = [{
-                                            name: `qty-${p.id}`,
-                                            label: 'Cantidad',
-                                            type: 'number',
-                                            value: quantityInputsText[p.id] !== undefined ? quantityInputsText[p.id] : String(quantityInputs[p.id] !== undefined ? quantityInputs[p.id] : rawQty.toFixed(2)),
-                                            onChange: (e) => {
-                                                const text = e.target.value;
-                                                setQuantityInputsText(prev => ({ ...prev, [p.id]: text }));
-                                                if (text === '') return;
-                                                const next = parseFloat(text);
-                                                if (Number.isFinite(next)) {
-                                                    setQuantityInputs(prev => ({ ...prev, [p.id]: parseFloat(next.toFixed(2)) }));
-                                                }
-                                            },
-                                            inputProps: {
-                                                step: '0.01',
-                                                inputMode: 'numeric',
-                                                onFocus: (e) => e.target.select(),
-                                                onWheel: (e) => {
-                                                    // Prevenir que el scroll cambie el valor
-                                                    e.target.blur();
-                                                },
-                                                onBlur: () => {
-                                                    const text = quantityInputsText[p.id];
-                                                    if (text === '' || text === undefined) {
-                                                        setQuantityInputs(prev => ({ ...prev, [p.id]: parseFloat(rawQty.toFixed(2)) }));
-                                                        setQuantityInputsText(prev => ({ ...prev, [p.id]: rawQty.toFixed(2) }));
-                                                    } else {
-                                                        const next = parseFloat(text);
-                                                        if (Number.isFinite(next)) {
-                                                            const fixed = parseFloat(next.toFixed(2));
-                                                            setQuantityInputs(prev => ({ ...prev, [p.id]: fixed }));
-                                                            setQuantityInputsText(prev => ({ ...prev, [p.id]: fixed.toFixed(2) }));
-                                                            console.log('[JUSTIFICACION:QTY]', { id: p.id, quantity_fisico: fixed });
-                                                        }
-                                                    }
-                                                },
-                                                style: { borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined }
+                    {isLoading ? (
+                        // Mostrar LoadingSpinner cuando está cargando
+                        <LoadingSpinner />
+                    ) : (
+                        <>
+                            {isLargeScreen && (
+                                <div className={styles.titleContainer}>
+                                    <RefreshIndicator
+                                        isVisible={showRefreshIndicator}
+                                        isLoading={isRefreshing}
+                                    />
+                                </div>
+                            )}
+                            <Filtros options={opciones} />
+                            {isLargeScreen ? (
+                                // Vista de tabla para pantallas grandes
+                                <div className={styles.content}>
+                                    <Table
+                                        headers={tableHeaders}
+                                        data={tableData}
+                                        onRowClick={() => {}}
+                                        getBadge={() => null}
+                                        renderCell={(row, key) => {
+                                            if (tipo !== 'conteo') return null;
+                                            if (key !== 'quantity' && key !== 'justificacion') return null;
+                                            const original = productosFiltrados.find(p => p.id === row.id);
+                                            if (!original) return null;
+                                            const rawQty = parseFloat(original.quantity || 0);
+                                            if (key === 'quantity') {
+                                                const valueText = quantityInputsText[row.id] !== undefined ? quantityInputsText[row.id] : String(quantityInputs[row.id] !== undefined ? quantityInputs[row.id] : rawQty.toFixed(2));
+                                                const state = getDiffState(row.id, rawQty);
+                                                return (
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        inputMode="numeric"
+                                                        value={valueText}
+                                                        onChange={(e) => {
+                                                            const text = e.target.value;
+                                                            setQuantityInputsText(prev => ({ ...prev, [row.id]: text }));
+                                                            if (text === '') return;
+                                                            const next = parseFloat(text);
+                                                            if (Number.isFinite(next)) {
+                                                                const fixed = parseFloat(next.toFixed(2));
+                                                                setQuantityInputs(prev => ({ ...prev, [row.id]: fixed }));
+                                                            }
+                                                        }}
+                                                        onBlur={() => {
+                                                            const text = quantityInputsText[row.id];
+                                                            if (text === '' || text === undefined) {
+                                                                const raw = parseFloat(rawQty.toFixed(2));
+                                                                setQuantityInputs(prev => ({ ...prev, [row.id]: raw }));
+                                                                setQuantityInputsText(prev => ({ ...prev, [row.id]: raw.toFixed(2) }));
+                                                            } else {
+                                                                const next = parseFloat(text);
+                                                                if (Number.isFinite(next)) {
+                                                                    const fixed = parseFloat(next.toFixed(2));
+                                                                    setQuantityInputs(prev => ({ ...prev, [row.id]: fixed }));
+                                                                    setQuantityInputsText(prev => ({ ...prev, [row.id]: fixed.toFixed(2) }));
+                                                                }
+                                                            }
+                                                        }}
+                                                        onWheel={(e) => {
+                                                            // Prevenir que el scroll cambie el valor
+                                                            e.target.blur();
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onFocus={(e) => e.target.select()}
+                                                        style={{ borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined, maxWidth: '100px' }}
+                                                    />
+                                                );
                                             }
-                                        },
-                                        {
-                                            name: `jus-${p.id}`,
-                                            label: 'Justificación',
-                                            type: 'text',
-                                            value: justificationInputsText[p.id] || '',
-                                            onChange: (e) => {
-                                                const text = e.target.value;
-                                                setJustificationInputsText(prev => ({ ...prev, [p.id]: text }));
-                                            },
-                                            inputProps: {
-                                                placeholder: 'Motivo del ajuste',
-                                                onBlur: () => {
-                                                    const text = justificationInputsText[p.id] || '';
-                                                    if (text.trim() !== '') {
-                                                        console.log('[JUSTIFICACION]', { id: p.id, justificacion: text });
-                                                    }
-                                                }
+                                            if (key === 'justificacion') {
+                                                const value = justificationInputsText[row.id] || '';
+                                                return (
+                                                    <input
+                                                        type="text"
+                                                        value={value}
+                                                        placeholder="Motivo del ajuste"
+                                                        onChange={(e) => {
+                                                            const text = e.target.value;
+                                                            setJustificationInputsText(prev => ({ ...prev, [row.id]: text }));
+                                                        }}
+                                                        onBlur={() => {
+                                                            const text = justificationInputsText[row.id] || '';
+                                                            // no log en tiempo real; resumen se imprime al registrar
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{ maxWidth: '100%' }}
+                                                    />
+                                                );
                                             }
-                                        }];
-                                        return (
-                                            <ItemViewInput
-                                                key={p.id || index}
-                                                title={p.name || 'Sin nombre'}
-                                                icon="box"
-                                                inputs={inputs}
-                                                flot1={`${parseFloat(p.quantity || 0).toFixed(2)} ${p.type_measure?.code || ''}`}
-                                            />
-                                        );
-                                    }
-                                    return (
-                                        <ItemView
-                                            key={p.id || index}
-                                            title={p.name || 'Sin nombre'}
-                                            description={p.description || 'Sin descripción'}
-                                            icon="box"
-                                            onClick={() => {}}
-                                            entrada={false}
-                                            entradaData={[]}
-                                            flot1={`${parseFloat(p.quantity || 0).toFixed(2)} ${p.type_measure?.code || ''}`}
-                                        />
-                                    );
-                                })
+                                            return null;
+                                        }}
+                                    />
+                                </div>
                             ) : (
-                                <NoData 
-                                    icon="box"
-                                    title={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
-                                    detail={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos de materia prima para comenzar a gestionar tu inventario de acopio'}
-                                    transparent={true}
-                                    minHeight="200px"
-                                />
-                            )
-                        )}
-                    </div>
+                                // Vista de cards para pantallas pequeñas con PullToRefresh
+                                <PullToRefresh
+                                    onRefresh={handleRefresh}
+                                    screenName="Almacén"
+                                    containerStyle={{
+                                        maxHeight: 'calc(100% - 80px)',
+                                        minHeight: 'calc(100% - 80px)'
+                                    }}
+                                >
+                                        {productosFiltradosPorDiferencia.length > 0 ? (
+                                            productosFiltradosPorDiferencia.map((p, index) => {
+                                                if (tipo === 'conteo') {
+                                                    const rawQty = parseFloat(p.quantity || 0);
+                                                    const state = getDiffState(p.id, rawQty);
+                                                    const inputs = [{
+                                                        name: `qty-${p.id}`,
+                                                        label: 'Cantidad',
+                                                        type: 'number',
+                                                        value: quantityInputsText[p.id] !== undefined ? quantityInputsText[p.id] : String(quantityInputs[p.id] !== undefined ? quantityInputs[p.id] : rawQty.toFixed(2)),
+                                                        onChange: (e) => {
+                                                            const text = e.target.value;
+                                                            setQuantityInputsText(prev => ({ ...prev, [p.id]: text }));
+                                                            if (text === '') return;
+                                                            const next = parseFloat(text);
+                                                            if (Number.isFinite(next)) {
+                                                                setQuantityInputs(prev => ({ ...prev, [p.id]: parseFloat(next.toFixed(2)) }));
+                                                            }
+                                                        },
+                                                        inputProps: {
+                                                            step: '0.01',
+                                                            inputMode: 'numeric',
+                                                            onFocus: (e) => e.target.select(),
+                                                            onWheel: (e) => {
+                                                                // Prevenir que el scroll cambie el valor
+                                                                e.target.blur();
+                                                            },
+                                                            onBlur: () => {
+                                                                const text = quantityInputsText[p.id];
+                                                                if (text === '' || text === undefined) {
+                                                                    setQuantityInputs(prev => ({ ...prev, [p.id]: parseFloat(rawQty.toFixed(2)) }));
+                                                                    setQuantityInputsText(prev => ({ ...prev, [p.id]: rawQty.toFixed(2) }));
+                                                                } else {
+                                                                    const next = parseFloat(text);
+                                                                    if (Number.isFinite(next)) {
+                                                                        const fixed = parseFloat(next.toFixed(2));
+                                                                        setQuantityInputs(prev => ({ ...prev, [p.id]: fixed }));
+                                                                        setQuantityInputsText(prev => ({ ...prev, [p.id]: fixed.toFixed(2) }));
+                                                                        console.log('[JUSTIFICACION:QTY]', { id: p.id, quantity_fisico: fixed });
+                                                                    }
+                                                                }
+                                                            },
+                                                            style: { borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined }
+                                                        }
+                                                    },
+                                                    {
+                                                        name: `jus-${p.id}`,
+                                                        label: 'Justificación',
+                                                        type: 'text',
+                                                        value: justificationInputsText[p.id] || '',
+                                                        onChange: (e) => {
+                                                            const text = e.target.value;
+                                                            setJustificationInputsText(prev => ({ ...prev, [p.id]: text }));
+                                                        },
+                                                        inputProps: {
+                                                            placeholder: 'Motivo del ajuste',
+                                                            onBlur: () => {
+                                                                const text = justificationInputsText[p.id] || '';
+                                                                if (text.trim() !== '') {
+                                                                    console.log('[JUSTIFICACION]', { id: p.id, justificacion: text });
+                                                                }
+                                                            }
+                                                        }
+                                                    }];
+                                                    return (
+                                                        <ItemViewInput
+                                                            key={p.id || index}
+                                                            title={p.name || 'Sin nombre'}
+                                                            icon="box"
+                                                            inputs={inputs}
+                                                            flot1={`${parseFloat(p.quantity || 0).toFixed(2)} ${p.type_measure?.code || ''}`}
+                                                        />
+                                                    );
+                                                }
+                                                return (
+                                                    <ItemView
+                                                        key={p.id || index}
+                                                        title={p.name || 'Sin nombre'}
+                                                        description={p.description || 'Sin descripción'}
+                                                        icon="box"
+                                                        onClick={() => {}}
+                                                        entrada={false}
+                                                        entradaData={[]}
+                                                        flot1={`${parseFloat(p.quantity || 0).toFixed(2)} ${p.type_measure?.code || ''}`}
+                                                    />
+                                                );
+                                            })
+                                        ) : (
+                                            <NoData 
+                                                icon="box"
+                                                title={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
+                                                detail={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos de materia prima para comenzar a gestionar tu inventario de acopio'}
+                                                transparent={true}
+                                                minHeight="200px"
+                                            />
+                                        )}
+                                </PullToRefresh>
+                            )}
+                        </>
+                    )}
                 </div>
                 {tipo === 'conteo' ? (
                     <div className={styles.buttonFooter}>
@@ -540,20 +623,30 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                             serviceName="productsAcopioService"
                             isOpen={isOpen}
                             onDataLoaded={handleProductosLoaded}
-                            onLoadingStart={() => handleLoading(true)}
-                            onLoadingEnd={() => handleLoading(false)}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
                         />
                         <FetchData
                             service={categoryAcopioService}
                             serviceName="categoryAcopioService"
                             isOpen={isOpen}
-                            onDataLoaded={setCategorias}
+                            onDataLoaded={(data) => {
+                                setCategorias(data);
+                                setCategoriasLoaded(true);
+                            }}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
                         />
                         <FetchData
                             service={typeMeasureService}
                             serviceName="typeMeasureService"
                             isOpen={isOpen}
-                            onDataLoaded={setTiposMedida}
+                            onDataLoaded={(data) => {
+                                setTiposMedida(data);
+                                setTiposMedidaLoaded(true);
+                            }}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
                         />
                     </>
                 )}

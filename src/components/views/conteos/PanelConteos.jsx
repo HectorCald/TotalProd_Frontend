@@ -4,13 +4,15 @@ import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import conteosService from '../../../services/conteosService';
 import NoData from '../../common/NoData';
 import VerConteo from './VerConteo';
 import InfoModal from '../../common/InfoModal';
+import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 
 function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     const { isLargeScreen } = useLayout();
@@ -18,12 +20,15 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
-    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-
     const [conteos, setConteos] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingConteos, setIsLoadingConteos] = useState(false);
     const [error, setError] = useState(null);
+    
+    // Estados para RefreshIndicator (solo PC)
+    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [activeRequests, setActiveRequests] = useState(0);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -47,6 +52,19 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
 
     const cargarConteos = async () => {
         setIsLoading(true);
+        setIsLoadingConteos(true);
+        
+        // Incrementar contador de peticiones activas
+        setActiveRequests(prev => {
+            const newCount = prev + 1;
+            // Mostrar RefreshIndicator solo cuando hay peticiones activas
+            if (isLargeScreen && newCount > 0) {
+                setShowRefreshIndicator(true);
+                setIsRefreshing(true);
+            }
+            return newCount;
+        });
+        
         try {
             // Mapeo directo según BD: 'almacen' | 'acopio'
             const tipo = tipoConteo === 'almacen' ? 'almacen' : tipoConteo === 'acopio' ? 'acopio' : null;
@@ -67,28 +85,57 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
             }
         } finally {
             setIsLoading(false);
+            setIsLoadingConteos(false);
+            
+            // Decrementar contador de peticiones activas
+            setActiveRequests(prev => {
+                const newCount = Math.max(0, prev - 1);
+                // Ocultar RefreshIndicator cuando no hay peticiones activas
+                if (newCount === 0 && isLargeScreen) {
+                    setTimeout(() => {
+                        setIsRefreshing(false);
+                        setTimeout(() => {
+                            setShowRefreshIndicator(false);
+                        }, 500);
+                    }, 300);
+                }
+                return newCount;
+            });
         }
     };
 
     useEffect(() => {
         if (isOpen) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-            cargarConteos().finally(() => {
-                setTimeout(() => {
-                    setIsRefreshing(false);
-                    setTimeout(() => setShowRefreshIndicator(false), 800);
-                }, 400);
-            });
+            // Solo mostrar loading si no hay datos cargados
+            if (conteos.length === 0) {
+                setIsLoadingConteos(true);
+            }
+            // Solo cargar si no hay datos
+            if (conteos.length === 0) {
+                cargarConteos();
+            }
         }
     }, [isOpen]);
 
     // tipoConteo controla el dataset
     useEffect(() => {
+        // Limpiar datos cuando cambia el tipo
+        setConteos([]);
+        setSearchQuery('');
+        // Cargar datos del nuevo tipo si el panel está abierto
         if (isOpen) {
             cargarConteos();
         }
     }, [tipoConteo]);
+
+    // Función para manejar refresh
+    const handleRefresh = async () => {
+        try {
+            await cargarConteos();
+        } catch (error) {
+            console.error('Error al refrescar conteos:', error);
+        }
+    };
 
     const filtered = conteos.filter(c => {
         if (!searchQuery) return true;
@@ -176,43 +223,66 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                 title={tipoConteo === 'acopio' ? 'Conteos Materia Prima' : tipoConteo === 'almacen' ? 'Conteos Almacén' : 'Conteos'}
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator isVisible={showRefreshIndicator} isLoading={isRefreshing} />
-                </div>
-                <div className={styles.content} style={{ maxHeight: '100%' }}>
-                    {isLargeScreen ? (
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(row) => {
-                                const original = filtered.find(c => c.id === row.id);
-                                handleRegistro(original);
-                            }}
-                            getBadge={() => null}
-                        />
-                    ) : (
-                        filtered.length > 0 ? (
-                            filtered.map((c, idx) => (
-                                <ItemView
-                                    key={c.id || idx}
-                                    title={`${c.tipo === 'almacen' ? 'Almacén' : 'Materia Prima'} - ${new Date(c.fecha).toLocaleDateString()}`}
-                                    description={c.observaciones || 'Sin observaciones'}
-                                    icon='list-check'
-                                    onClick={() => handleRegistro(c)}
-                                    flot1={`${(c.detalles || []).length} ítems`}
+                {isLoadingConteos ? (
+                    // Mostrar LoadingSpinner cuando está cargando
+                    <LoadingSpinner />
+                ) : (
+                    <>
+                        {isLargeScreen ? (
+                            // Vista de tabla para pantallas grandes
+                            <>
+                                <div className={styles.titleContainer}>
+                                    <RefreshIndicator
+                                        isVisible={showRefreshIndicator}
+                                        isLoading={isRefreshing}
+                                    />
+                                </div>
+                                <div className={styles.content} style={{ maxHeight: '100%' }}>
+                                <Table
+                                    headers={tableHeaders}
+                                    data={tableData}
+                                    onRowClick={(row) => {
+                                        const original = filtered.find(c => c.id === row.id);
+                                        handleRegistro(original);
+                                    }}
+                                    getBadge={() => null}
                                 />
-                            ))
+                                </div>
+                            </>
                         ) : (
-                            <NoData 
-                                icon="calculator"
-                                title={searchQuery ? 'Sin resultados' : 'No hay conteos'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los conteos que necesitas' : 'Realiza conteos de inventario para comenzar a gestionar tu stock'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
-                        )
-                    )}
-                </div>
+                            // Vista de cards para pantallas pequeñas con PullToRefresh
+                            <PullToRefresh
+                                onRefresh={handleRefresh}
+                                screenName="Conteos"
+                                containerStyle={{
+                                    maxHeight: 'calc(100% - 80px)',
+                                    minHeight: 'calc(100% - 80px)'
+                                }}
+                            >
+                                {filtered.length > 0 ? (
+                                    filtered.map((c, idx) => (
+                                        <ItemView
+                                            key={c.id || idx}
+                                            title={`${c.tipo === 'almacen' ? 'Almacén' : 'Materia Prima'} - ${new Date(c.fecha).toLocaleDateString()}`}
+                                            description={c.observaciones || 'Sin observaciones'}
+                                            icon='list-check'
+                                            onClick={() => handleRegistro(c)}
+                                            flot1={`${(c.detalles || []).length} ítems`}
+                                        />
+                                    ))
+                                ) : (
+                                    <NoData 
+                                        icon="calculator"
+                                        title={searchQuery ? 'Sin resultados' : 'No hay conteos'}
+                                        detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los conteos que necesitas' : 'Realiza conteos de inventario para comenzar a gestionar tu stock'}
+                                        transparent={true}
+                                        minHeight="200px"
+                                    />
+                                )}
+                            </PullToRefresh>
+                        )}
+                    </>
+                )}
             </div>
 
             <Notification
