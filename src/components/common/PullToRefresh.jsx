@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BoxIcon } from 'boxicons-react';
 import styles from './PullToRefresh.module.css';
 
-function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, screenName = 'pantalla' }) {
+function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, screenName = 'pantalla', containerStyle = {} }) {
   const [isPulling, setIsPulling] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
@@ -80,16 +80,19 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       if (isPullingDown.current && pullDistance >= threshold && onRefresh) {
         setIsRefreshing(true);
         
-        // Llamar función de refresh
+        // Llamar función de refresh y mantener visible hasta que termine
         onRefresh().finally(() => {
           setIsRefreshing(false);
+          setIsPulling(false);
+          setPullDistance(0);
+          isPullingDown.current = false;
         });
+      } else {
+        // Solo resetear si no se activó el refresh
+        setIsPulling(false);
+        setPullDistance(0);
+        isPullingDown.current = false;
       }
-      
-      // Reset
-      setIsPulling(false);
-      setPullDistance(0);
-      isPullingDown.current = false;
     };
 
     // Handlers para mouse (desktop)
@@ -133,16 +136,19 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       if (isPullingDown.current && pullDistance >= threshold && onRefresh) {
         setIsRefreshing(true);
         
-        // Llamar función de refresh
+        // Llamar función de refresh y mantener visible hasta que termine
         onRefresh().finally(() => {
           setIsRefreshing(false);
+          setIsPulling(false);
+          setPullDistance(0);
+          isPullingDown.current = false;
         });
+      } else {
+        // Solo resetear si no se activó el refresh
+        setIsPulling(false);
+        setPullDistance(0);
+        isPullingDown.current = false;
       }
-      
-      // Reset
-      setIsPulling(false);
-      setPullDistance(0);
-      isPullingDown.current = false;
     };
 
     // Event listeners para scroll
@@ -216,12 +222,12 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
         }}
       >
         <div className={styles.pullContent}>
-          {isRefreshing ? (
-            <>
-              <BoxIcon name="refresh" style={{ animation: 'spin 1s linear infinite' }} className={styles.pullIcon}></BoxIcon>
-              <span>Recargando {screenName}...</span>
-            </>
-          ) : pullDistance >= threshold ? (
+           {isRefreshing ? (
+             <>
+               <BoxIcon name="refresh" className={`${styles.pullIcon} ${styles.spinning}`}></BoxIcon>
+               <span>Recargando {screenName}...</span>
+             </>
+           ) : pullDistance >= threshold ? (
             <>
               <BoxIcon name={getScreenIcon()} className={styles.pullIcon} />
               <span>Suelta para recargar {screenName}</span>
@@ -235,11 +241,12 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       {/* Contenido */}
       <div 
         ref={containerRef}
+        className={styles.containerContent}
         style={{ 
           transform: isPulling ? `translateY(${Math.min(pullDistance * 0.3, 50)}px)` : 'translateY(0)',
-          transition: isPulling ? 'none' : 'transform 0.3s ease'
+          transition: isPulling ? 'none' : 'transform 0.3s ease',
+          ...containerStyle
         }}
-        className={styles.containerContent}
       >
         {children}
       </div>

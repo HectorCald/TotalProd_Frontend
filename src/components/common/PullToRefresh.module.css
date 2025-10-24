@@ -10,7 +10,6 @@
   height: 100%;
   overflow-y: auto;
   padding-inline: 15px;
-  padding-bottom: 15px;
 }
 .pullArea {
   position: absolute;
@@ -54,4 +53,8 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
 }

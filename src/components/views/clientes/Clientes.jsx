@@ -10,7 +10,7 @@ import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 import clientService from '../../../services/clientService';
 import { BoxIcon } from 'boxicons-react';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FetchData from '../../mixed/FetchData';
@@ -26,25 +26,15 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
     const [infoPersona, setInfoPersona] = useState(null);
 
-    // Estados para RefreshIndicator
-    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-
-    // Estado para búsqueda local
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-
     // Estados para clientes
     const [clientes, setClientes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // Estado para búsqueda local
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
-    // Función simple para manejar el indicador de carga
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
 
     // Función para manejar cuando se cargan los clientes
     const handleClientesLoaded = useCallback((data) => {
@@ -57,17 +47,23 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         setError(error);
     }, []);
 
-
-
-
-
-    // Limpiar indicador cuando se cierra el modal
-    useEffect(() => {
-        if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (clientes.length === 0) {
+            setIsLoading(true);
         }
-    }, [isOpen]);
+    }, [clientes.length]);
+
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
+    }, []);
+
+
+
+
+
 
 
     // Estado para la notificación
@@ -135,11 +131,8 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     };
 
 
-    // Función para manejar refresh con indicador
+    // Función para manejar refresh
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-
         try {
             const response = await clientService.getAll();
             if (response.success) {
@@ -147,14 +140,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
             }
         } catch (error) {
             console.error('Error al refrescar clientes:', error);
-        } finally {
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
         }
     };
 
@@ -254,13 +239,10 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                 title={modoSeleccion ? 'Seleccionar Cliente' : 'Clientes'}
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                {isLargeScreen ? (
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando
+                    <LoadingSpinner />
+                ) : isLargeScreen ? (
                     // Vista de tabla para pantallas grandes
                     <div className={styles.content}>
                         <Table
@@ -278,8 +260,10 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                     <PullToRefresh
                         onRefresh={handleRefresh}
                         screenName="Clientes"
+                        containerStyle={{
+                            paddingBottom: '90px'
+                        }}
                     >
-
                         {clientesFiltrados.length > 0 ? (
                             clientesFiltrados.map((cliente, index) => (
                                 <ItemView
@@ -299,7 +283,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                                 minHeight="200px"
                             />
                         )}
-
                     </PullToRefresh>
                 )}
                 <div className={styles.buttonFooter}>
@@ -354,8 +337,8 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                     serviceName="clientService"
                     isOpen={isOpen}
                     onDataLoaded={handleClientesLoaded}
-                    onLoadingStart={() => handleLoading(true)}
-                    onLoadingEnd={() => handleLoading(false)}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
                 />
             )}
