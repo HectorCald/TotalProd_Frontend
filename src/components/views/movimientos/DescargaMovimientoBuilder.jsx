@@ -100,9 +100,18 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         if (movimiento?.precio?.name) infoSup['Tipo de Precio'] = movimiento.precio.name;
                         if (movimiento?.metodo_pago) infoSup['Método de Pago'] = movimiento.metodo_pago;
                         if (movimiento?.agrupado !== undefined) infoSup['Modalidad'] = movimiento.agrupado ? 'Agrupado' : 'Unidades';
+                        if (movimiento?.descuento && movimiento.descuento > 0) {
+                            infoSup['Descuento'] = `Bs. ${parseFloat(movimiento.descuento).toFixed(2)}`;
+                        }
+                        if (movimiento?.aumento && movimiento.aumento > 0) {
+                            infoSup['Aumento'] = `Bs. ${parseFloat(movimiento.aumento).toFixed(2)}`;
+                        }
                         if (movimiento?.productos && movimiento.productos.length > 0) {
-                            const total = movimiento.productos.reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
-                            infoSup['Total'] = `Bs. ${total.toFixed(2)}`;
+                            const subtotal = movimiento.productos.reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
+                            const descuento = parseFloat(movimiento.descuento) || 0;
+                            const aumento = parseFloat(movimiento.aumento) || 0;
+                            const totalFinal = subtotal - descuento + aumento;
+                            infoSup['Total'] = `Bs. ${totalFinal.toFixed(2)}`;
                         }
                         if (movimiento?.observaciones) infoSup['Observaciones'] = movimiento.observaciones;
                         const headers = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
@@ -139,9 +148,7 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                                 `Bs. ${(parseFloat(p?.subtotal) || 0).toFixed(2)}`
                             ];
                         });
-                        // Fila de total al final
-                        const totalFila = (movimiento?.productos || []).reduce((sum, p) => sum + (parseFloat(p?.subtotal) || 0), 0);
-                        valores.push(['TOTAL', '', '', `Bs. ${totalFila.toFixed(2)}`]);
+                        // No agregar fila de total aquí - se maneja en ModalDescarga
                         setInformacionSuperior(infoSup);
                         setTablaHeaders(headers);
                         setTablaValores(valores);
@@ -240,9 +247,18 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         if (movimiento?.agrupado !== undefined) {
                             infoSup['Modalidad'] = movimiento.agrupado ? 'Agrupado' : 'Unidades';
                         }
+                        if (movimiento?.descuento && movimiento.descuento > 0) {
+                            infoSup['Descuento'] = `Bs. ${parseFloat(movimiento.descuento).toFixed(2)}`;
+                        }
+                        if (movimiento?.aumento && movimiento.aumento > 0) {
+                            infoSup['Aumento'] = `Bs. ${parseFloat(movimiento.aumento).toFixed(2)}`;
+                        }
                         if (movimiento?.productos && movimiento.productos.length > 0) {
-                            const total = movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
-                            infoSup['Total'] = `Bs. ${total.toFixed(2)}`;
+                            const subtotal = movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
+                            const descuento = parseFloat(movimiento.descuento) || 0;
+                            const aumento = parseFloat(movimiento.aumento) || 0;
+                            const totalFinal = subtotal - descuento + aumento;
+                            infoSup['Total'] = `Bs. ${totalFinal.toFixed(2)}`;
                         }
                         if (movimiento?.observaciones) {
                             infoSup['Observaciones'] = movimiento.observaciones;
@@ -282,8 +298,7 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                                 `Bs. ${(parseFloat(producto?.subtotal) || 0).toFixed(2)}`
                             ];
                         });
-                        const totalFila = (movimiento?.productos || []).reduce((sum, p) => sum + (parseFloat(p?.subtotal) || 0), 0);
-                        valores.push(['TOTAL', '', '', `Bs. ${totalFila.toFixed(2)}`]);
+                        // No agregar fila de total aquí - se maneja en ModalDescarga
 
                         // Cliente/Proveedor y número
                         if (movimiento?.type === 'entrada' && movimiento?.proveedor?.name) infoSup['Proveedor'] = movimiento.proveedor.name;

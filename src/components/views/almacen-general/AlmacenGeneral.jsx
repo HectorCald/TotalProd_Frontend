@@ -155,31 +155,34 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Mapear Información
     const productosMapeados = useMemo(() => {
-        return productos.map(producto => ({
-            // Información básica
-            id: producto.id,
-            name: producto.name || '',
-            codigo_barras: producto.codigo_barras || '',
-            description: producto.description || '',
-            stock: producto.stock || 0,
-            grup: producto.grup || 0,
-            created_at: producto.created_at,
-            empresa_id: producto.empresa_id,
+        return productos.map(producto => {
+            return {
+                // Información básica
+                id: producto.id,
+                name: producto.name || '',
+                codigo_barras: producto.codigo_barras || '',
+                description: producto.description || '',
+                stock: producto.stock || 0,
+                grup: producto.grup || 0,
+                stock_minimo: producto.stock_minimo || 0,
+                created_at: producto.created_at,
+                empresa_id: producto.empresa_id,
 
-            // Información de categoría
-            category_id: producto.category_id || '',
-            category_name: producto.category_name || 'Sin categoría',
-            category_almacen: producto.category_almacen || null,
+                // Información de categoría
+                category_id: producto.category_id || '',
+                category_name: producto.category_name || 'Sin categoría',
+                category_almacen: producto.category_almacen || null,
 
-            // Información de precios
-            price_product: producto.price_product || [],
+                // Información de precios
+                price_product: producto.price_product || [],
 
-            // Información de recetas
-            recetas: producto.recetas || [],
+                // Información de recetas
+                recetas: producto.recetas || [],
 
-            // Información de sucursales
-            productos_sucursal: producto.productos_sucursal || []
-        }));
+                // Información de sucursales
+                productos_sucursal: producto.productos_sucursal || []
+            };
+        });
     }, [productos]);
     const preciosTipos = preciosData.map(precio => ({
         value: precio.id,
@@ -829,6 +832,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             stock: `${producto.stock} Ud.`,
             stock_grup: producto.grup ? Math.floor(producto.stock / producto.grup) + ' Ud.' : '--',
             category_name: producto.category_name,
+            stock_minimo: producto.stock_minimo, // AGREGAR stock_minimo
         };
         
         // Solo incluir código de barras en modo almacén
@@ -849,6 +853,85 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             return cantidadEnCanasta > 0 ? cantidadEnCanasta : null;
         }
         return null;
+    };
+
+    // Función para obtener el badge de celda (COPIADO EXACTO de PanelMovimientos.jsx)
+    const getCellBadge = (item, headerKey) => {
+        if (headerKey === 'stock') {
+            const stock = parseFloat(item.stock || 0);
+            const stockMinimo = parseFloat(item.stock_minimo || 0);
+            
+            // Solo mostrar azul si stock_minimo es null/undefined (no definido)
+            if (item.stock_minimo === null || item.stock_minimo === undefined) {
+                return {
+                    text: `${stock} Ud.`,
+                    className: 'info' // azul
+                };
+            }
+            
+            const diferencia = stock - stockMinimo;
+            let className = 'info'; // azul por defecto
+            
+            if (diferencia >= 20) {
+                className = 'info'; // azul - Stock OK
+            } else if (diferencia >= 5) {
+                className = 'warning'; // naranja - Stock Bajo
+            } else {
+                className = 'error'; // rojo - Stock Crítico (incluye cuando stock = stock_minimo)
+            }
+            
+            return {
+                text: `${stock} Ud.`,
+                className: className
+            };
+        }
+        return null;
+    };
+
+    // Función para obtener el flot del stock en ItemView (móvil)
+    const getStockFlot = (producto) => {
+        const stock = parseFloat(producto.stock || 0);
+        const stockMinimo = parseFloat(producto.stock_minimo || 0);
+        const grup = parseFloat(producto.grup || 0);
+        
+        // Determinar qué mostrar: grupos si está agrupado, unidades si no
+        const stockDisplay = grup > 0 
+            ? `${Math.floor(stock / grup)} g.`
+            : `${stock} Ud.`;
+        
+        // Solo usar flot1 (azul) si stock_minimo es null/undefined (no definido)
+        if (producto.stock_minimo === null || producto.stock_minimo === undefined) {
+            return {
+                flot1: stockDisplay,
+                flot2: null,
+                flot3: null
+            };
+        }
+        
+        const diferencia = stock - stockMinimo;
+        
+        if (diferencia >= 20) {
+            // Stock OK - flot1 (azul)
+            return {
+                flot1: stockDisplay,
+                flot2: null,
+                flot3: null
+            };
+        } else if (diferencia >= 5) {
+            // Stock Bajo - flot2 (naranja)
+            return {
+                flot1: null,
+                flot2: stockDisplay,
+                flot3: null
+            };
+        } else {
+            // Stock Crítico - flot3 (rojo) - incluye cuando stock = stock_minimo
+            return {
+                flot1: null,
+                flot2: null,
+                flot3: stockDisplay
+            };
+        }
     };
 
     return (
@@ -908,6 +991,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                             handleRegistro(productoOriginal, tipo);
                                         }}
                                         getBadge={getBadge}
+                                        getCellBadge={getCellBadge}
                                         onScroll={handleScroll}
                                         columnWidths={{
                                             name: '25%',
@@ -935,6 +1019,10 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                                 const cantidadEnCanastaMovimientos = (tipo === 'entrada' || tipo === 'salida')
                                                     ? getCantidadEnCanastaMovimientos(producto.id, tipo)
                                                     : 0;
+                                                
+                                                // Obtener el flot del stock con colores dinámicos
+                                                const stockFlot = getStockFlot(producto);
+                                                
                                                 return (
                                                     <ItemView
                                                         key={producto.id || index}
@@ -953,7 +1041,9 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                                                 ? (tipo === 'pedido' ? cantidadEnCanasta : cantidadEnCanastaMovimientos)
                                                                 : null
                                                         }
-                                                        flot1={producto.stock + ' Ud.'}
+                                                        flot1={stockFlot.flot1}
+                                                        flot2={stockFlot.flot2}
+                                                        flot3={stockFlot.flot3}
                                                     />
                                                 );
                                             })

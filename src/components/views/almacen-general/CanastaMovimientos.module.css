@@ -447,3 +447,7 @@
     max-height: 83vh;
     overflow-y: auto;
 }
+.horizontal{
+    display: flex;
+    gap:7px;
+}

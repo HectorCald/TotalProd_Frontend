@@ -19,7 +19,8 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
     description: '',
     quantity: '',
     type_measure_id: '',
-    category_id: ''
+    category_id: '',
+    stock_minimo: ''
   });
 
   const [errorMessage, setErrorMessage] = useState('');
@@ -78,7 +79,8 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         description: data.description || '',
         quantity: data.quantity !== undefined && data.quantity !== null ? data.quantity : '',
         type_measure_id: data.type_measure_id || '',
-        category_id: data.category_id || ''
+        category_id: data.category_id || '',
+        stock_minimo: data.stock_minimo !== undefined && data.stock_minimo !== null ? data.stock_minimo : ''
       });
 
       // Establecer la categoría seleccionada si existe
@@ -95,7 +97,8 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         description: '',
         quantity: '',
         type_measure_id: '',
-        category_id: ''
+        category_id: '',
+        stock_minimo: ''
       });
       setHasReceta(false);
       setRecetaGuardada(null);
@@ -181,6 +184,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         quantity: parseFloat(dataMov.quantity) || 0,
         type_measure_id: dataMov.type_measure_id,
         category_id: dataMov.category_id,
+        stock_minimo: dataMov.stock_minimo ? parseFloat(dataMov.stock_minimo) : 0,
         receta: hasReceta ? recetaGuardada : null // Incluir receta solo si está marcado el switch
       };
 
@@ -250,6 +254,16 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
             placeholder='Cantidad'
             onChange={(e) => handleChange('quantity', e.target.value)}
             icon='calculator'
+          />
+
+          <InputNormal
+            tipo="number"
+            value={dataMov.stock_minimo}
+            placeholder='Stock mínimo (opcional)'
+            onChange={(e) => handleChange('stock_minimo', e.target.value)}
+            icon='error'
+            step="0.01"
+            min="0"
           />
           <div className={styles.content} style={{ padding: '10px 15px' }}>
             <Select

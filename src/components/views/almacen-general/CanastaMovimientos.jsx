@@ -13,6 +13,7 @@ import Notification from '../../common/Notification';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import deudasService from '../../../services/deudasService';
+import InputNormal from '../../common/InputNormal';
 
 function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
@@ -28,7 +29,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState('');
     const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
     const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
-    
+    const [descuento, setDescuento] = useState('');
+    const [aumento, setAumento] = useState('');
     // Estados para cliente del pedido (en entregas)
     const [clientePedidoData, setClientePedidoData] = useState(null);
     // Estado para notificaciones
@@ -115,7 +117,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         if (isOpen && esEntrega) {
             const clienteId = localStorage.getItem('clienteIdEntregando');
             const clienteName = localStorage.getItem('clienteNameEntregando');
-            
+
             if (clienteId && clienteName) {
                 setClientePedidoData({
                     id: clienteId,
@@ -132,7 +134,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         if (isOpen) {
             const clienteId = localStorage.getItem('clienteIdEditando');
             const clienteName = localStorage.getItem('clienteNameEditando');
-            
+
             if (clienteId && clienteName) {
                 setClienteSeleccionadoData({
                     id: clienteId,
@@ -221,14 +223,14 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         if (productoActualizado.stock !== productoCarrito.stockOriginal) {
                             // Actualizar el stockOriginal con el nuevo stock del backend
                             productoModificado.stockOriginal = productoActualizado.stock;
-                            
+
                             // Recalcular el stock mostrado según el modo de agrupación actual
                             if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
                                 productoModificado.stock = Math.floor(productoActualizado.stock / productoCarrito.grup);
                             } else {
                                 productoModificado.stock = productoActualizado.stock;
                             }
-                            
+
                             // Si la cantidad en el carrito excede el nuevo stock, ajustar
                             if (productoCarrito.cantidad > productoModificado.stock) {
                                 mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoModificado.stock}`);
@@ -242,12 +244,12 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             if (precioTipo) {
                                 const precioUnit = precioTipo.valor;
                                 let precioFinal = (modoAgrupacion === 'agrupado' && productoCarrito.grup) ? (precioUnit * (productoCarrito.grup || 1)) : precioUnit;
-                                
+
                                 // Aplicar redondeo si está en modo agrupado
                                 if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
                                     precioFinal = redondearPrecio(precioFinal);
                                 }
-                                
+
                                 productoModificado.precio = precioFinal;
                                 productoModificado.price_product = productoActualizado.price_product; // Actualizar también la estructura de precios
                             }
@@ -340,7 +342,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
             const precioUnit = precioProducto?.valor || 0;
             let nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
-            
+
             // Aplicar redondeo si está en modo agrupado
             if (modoAgrupacion === 'agrupado' && producto.grup) {
                 nuevoPrecio = redondearPrecio(nuevoPrecio);
@@ -371,7 +373,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 const stockEnGrupos = Math.floor(stockOriginalEnUnidades / producto.grup);
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
                 let precioPorGrupo = precioUnitario * (producto.grup || 1);
-                
+
                 // Aplicar redondeo al precio por grupo
                 precioPorGrupo = redondearPrecio(precioPorGrupo);
 
@@ -501,50 +503,55 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     : `Entrega del pedido #${pedidoId?.slice(-8) || 'N/A'}`)
                 : (observacionesGenerales || null);
 
-        // Crear nuevo movimiento
-        const movimientoData = {
-            type: 'salida',
-            observaciones: observacionesFinales,
-            precio_id: precioSeleccionado,
-            metodo_pago: metodoPagoSeleccionado,
-            cliente_id: esEntrega ? (clienteSeleccionadoData?.id || clientePedidoData?.id || null) : (clienteSeleccionado || null),
-            proveedor_id: null,
-            restar_ingredientes: false,
-            agrupado: modoAgrupacion === 'agrupado',
-            productos: prepararProductos()
-        };
-        const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
-        movimientoId = (movimientoResponse && movimientoResponse.success) ? movimientoResponse.data?.id : null;
+            // Crear nuevo movimiento
+            const movimientoData = {
+                type: 'salida',
+                observaciones: observacionesFinales,
+                precio_id: precioSeleccionado,
+                metodo_pago: metodoPagoSeleccionado,
+                cliente_id: esEntrega ? (clienteSeleccionadoData?.id || clientePedidoData?.id || null) : (clienteSeleccionado || null),
+                proveedor_id: null,
+                restar_ingredientes: false,
+                agrupado: modoAgrupacion === 'agrupado',
+                descuento: parseFloat(descuento) || 0,
+                aumento: parseFloat(aumento) || 0,
+                productos: prepararProductos()
+            };
+            const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
+            movimientoId = (movimientoResponse && movimientoResponse.success) ? movimientoResponse.data?.id : null;
 
-        if (movimientoId) {
-            // Actualizar stock EN FRONT
-            const productosEnUnidades = prepararProductos();
-            const productosStockActualizados = productosEnUnidades.map(pu => {
-                const prodActual = (productosActualizados || []).find(p => p.id === pu.id);
-                const stockBase = prodActual ? (prodActual.stock || 0) : 0;
-                const nuevoStock = Math.max(0, stockBase - pu.cantidad); // salida resta stock
-                return { id: pu.id, stock: nuevoStock };
-            });
-            if (onProductosUpdated) {
-                onProductosUpdated(productosStockActualizados);
-            }
+            if (movimientoId) {
+                // Actualizar stock EN FRONT
+                const productosEnUnidades = prepararProductos();
+                const productosStockActualizados = productosEnUnidades.map(pu => {
+                    const prodActual = (productosActualizados || []).find(p => p.id === pu.id);
+                    const stockBase = prodActual ? (prodActual.stock || 0) : 0;
+                    const nuevoStock = Math.max(0, stockBase - pu.cantidad); // salida resta stock
+                    return { id: pu.id, stock: nuevoStock };
+                });
+                if (onProductosUpdated) {
+                    onProductosUpdated(productosStockActualizados);
+                }
 
-            // 3) Si es crédito: crear o actualizar deuda
-            if (metodoPagoSeleccionado === 'credito') {
-                try {
-                    const totalMovimiento = productosCanasta.reduce((total, producto) => {
-                        const valorProducto = (producto.precio || 0) * producto.cantidad;
-                        return total + valorProducto;
-                    }, 0);
-                    let concepto = 'Venta a crédito';
-                    let destinoSucursalId = null;
+                // 3) Si es crédito: crear o actualizar deuda
+                if (metodoPagoSeleccionado === 'credito') {
+                    try {
+                        const subtotalMovimiento = productosCanasta.reduce((total, producto) => {
+                            const valorProducto = (producto.precio || 0) * producto.cantidad;
+                            return total + valorProducto;
+                        }, 0);
+                        const descuentoValue = parseFloat(descuento) || 0;
+                        const aumentoValue = parseFloat(aumento) || 0;
+                        const totalMovimiento = subtotalMovimiento - descuentoValue + aumentoValue;
+                        let concepto = 'Venta a crédito';
+                        let destinoSucursalId = null;
 
-                    // Si es entrega, usar datos del pedido
-                    if (esEntrega) {
-                        const sucursalOrigenName = localStorage.getItem('pedidoDestinoSucursalName');
-                        concepto = sucursalOrigenName ? `Pedido - ${sucursalOrigenName}` : 'Pedido';
-                        destinoSucursalId = localStorage.getItem('pedidoDestinoSucursalId');
-                    }
+                        // Si es entrega, usar datos del pedido
+                        if (esEntrega) {
+                            const sucursalOrigenName = localStorage.getItem('pedidoDestinoSucursalName');
+                            concepto = sucursalOrigenName ? `Pedido - ${sucursalOrigenName}` : 'Pedido';
+                            destinoSucursalId = localStorage.getItem('pedidoDestinoSucursalId');
+                        }
 
                         // Crear nueva deuda
                         const deudaData = {
@@ -565,8 +572,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             try {
                                 await movimientosAlmacenService.update(movimientoId, { deuda_id: deudaResponse.data.id });
                             } catch (updateError) {
-                                    console.warn('Error al actualizar movimiento con deuda_id:', updateError);
-                                }
+                                console.warn('Error al actualizar movimiento con deuda_id:', updateError);
+                            }
                         } else {
                             mostrarNotificacion('warning', `Movimiento creado, pero error al registrar deuda: ${deudaResponse.message}`);
                         }
@@ -575,21 +582,21 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     }
                 }
 
-            // 4) Si es entrega: actualizar estado del pedido
-            if (esEntrega) {
-                const deudaId = null; // Se podría obtener del paso anterior si es necesario
-                let pedidoResponse = null;
-                
-                try {
-                    pedidoResponse = await pedidosAlmacenService.updateEstado(pedidoId, 'Entregado', movimientoId, deudaId);
-                    if (!pedidoResponse.success) {
-                        console.error('Error al actualizar estado del pedido:', pedidoResponse.message);
-                    }
-                } catch (error) {
-                    console.error('Error al actualizar estado del pedido:', error);
-                }
+                // 4) Si es entrega: actualizar estado del pedido
+                if (esEntrega) {
+                    const deudaId = null; // Se podría obtener del paso anterior si es necesario
+                    let pedidoResponse = null;
 
-                // Limpiar localStorage específico de entregas (excepto pedidoIdEntregando que se mantiene hasta cerrar el almacén)
+                    try {
+                        pedidoResponse = await pedidosAlmacenService.updateEstado(pedidoId, 'Entregado', movimientoId, deudaId);
+                        if (!pedidoResponse.success) {
+                            console.error('Error al actualizar estado del pedido:', pedidoResponse.message);
+                        }
+                    } catch (error) {
+                        console.error('Error al actualizar estado del pedido:', error);
+                    }
+
+                    // Limpiar localStorage específico de entregas (excepto pedidoIdEntregando que se mantiene hasta cerrar el almacén)
                     localStorage.removeItem('pedidoDestinoSucursalId');
                     localStorage.removeItem('pedidoDestinoSucursalName');
                     localStorage.removeItem('precioIdEntregando');
@@ -615,14 +622,14 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 setClienteSeleccionado('');
                 setMetodoPagoSeleccionado('');
                 localStorage.removeItem('canastaSalidas');
-                
+
                 // Limpiar variables específicas de repetición (excepto productosMovimientoEditando que se limpia al cerrar el almacén)
                 localStorage.removeItem('precioIdEditando');
                 localStorage.removeItem('movimientoAgrupadoEditando');
                 localStorage.removeItem('clienteIdEditando');
                 localStorage.removeItem('clienteNameEditando');
                 localStorage.removeItem('metodoPagoEditando');
-                
+
                 // Solo cerrar la canasta en móvil, no en PC (modo carrito)
                 // En PC (isCartMode && isLargeScreen), mantener abierto para mostrar modal de descarga
                 if (!isCartMode) {
@@ -632,8 +639,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 if (onCerrarCanasta) {
                     onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId, pedidoActualizado);
                 }
-
-                mostrarNotificacion('success', esEntrega ? 'Pedido entregado correctamente' : 'Salidas confirmadas correctamente');
             } else {
                 mostrarNotificacion('error', 'Error al crear el movimiento');
             }
@@ -807,7 +812,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                     <div className={styles.content} style={{ padding: '5px 15px', marginTop: 'auto' }}>
                                         <Boton
                                             className='btn-transparent'
-                                            label={esEntrega 
+                                            label={esEntrega
                                                 ? (clientePedidoData ? `Cliente del Pedido: ${clientePedidoData.name}` : 'Seleccionar Cliente')
                                                 : (clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name :
                                                     (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)'))
@@ -820,12 +825,32 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                             }}
                                         />
                                     </div>
+                                    <div className={styles.horizontal}>
+                                        <InputNormal
+                                            placeholder="Descuento (Bs.)"
+                                            tipo="number"
+                                            step="0.01" min="0"
+                                            value={descuento}
+                                            onChange={(e) => setDescuento(e.target.value)}
+                                            icon='trending-down'
+                                        />
+                                        <InputNormal
+                                            placeholder="Aumento (Bs.)"
+                                            tipo="number"
+                                            step="0.01" min="0"
+                                            value={aumento}
+                                            onChange={(e) => setAumento(e.target.value)}
+                                            icon='trending-up'
+                                        />
+                                    </div>
 
                                     {/* Selector de método de pago para salidas */}
                                     <SelectorMetodoPago
                                         value={metodoPagoSeleccionado}
                                         onChange={setMetodoPagoSeleccionado}
                                     />
+                                    
+
                                 </>
                             )}
                         </div>
@@ -834,10 +859,16 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         <div className={styles.totalGeneral}>
                             <div className={styles.totalGeneralContent}>
                                 <span className={styles.totalGeneralLabel}>Total:</span>
-                                <span className={styles.totalGeneralValue}>Bs. {productosCanasta.reduce((total, producto) => {
-                                    const valorProducto = (producto.precio || 0) * producto.cantidad;
-                                    return total + valorProducto;
-                                }, 0).toFixed(2)}</span>
+                                <span className={styles.totalGeneralValue}>Bs. {(() => {
+                                    const subtotal = productosCanasta.reduce((total, producto) => {
+                                        const valorProducto = (producto.precio || 0) * producto.cantidad;
+                                        return total + valorProducto;
+                                    }, 0);
+                                    const descuentoValue = parseFloat(descuento) || 0;
+                                    const aumentoValue = parseFloat(aumento) || 0;
+                                    const total = subtotal - descuentoValue + aumentoValue;
+                                    return total.toFixed(2);
+                                })()}</span>
                             </div>
                         </div>
 

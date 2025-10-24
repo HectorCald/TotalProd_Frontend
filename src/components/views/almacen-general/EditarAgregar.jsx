@@ -20,6 +20,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
     codigo_barras: '',
     category_id: '',
     grup: '',
+    stock_minimo: '',
     prices: {} // Objeto para almacenar los precios por tipo
   });
 
@@ -89,6 +90,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         codigo_barras: data.codigo_barras || '',
         category_id: data.category_id || '',
         grup: data.grup || '',
+        stock_minimo: data.stock_minimo !== undefined && data.stock_minimo !== null ? data.stock_minimo : '',
         prices: prices
       });
 
@@ -120,6 +122,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         codigo_barras: '',
         category_id: '',
         grup: '',
+        stock_minimo: '',
         prices: {}
       });
       setHasReceta(false);
@@ -234,6 +237,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         codigo_barras: dataMov.codigo_barras,
         category_id: dataMov.category_id,
         grup: dataMov.grup ? parseInt(dataMov.grup) : null,
+        stock_minimo: dataMov.stock_minimo ? parseFloat(dataMov.stock_minimo) : 0,
         prices: dataMov.prices,
         receta: hasReceta ? recetaGuardada : null // Incluir receta solo si está marcado el switch
       };
@@ -295,6 +299,16 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
             placeholder='Stock'
             onChange={(e) => handleChange('stock', e.target.value)}
             icon='calculator'
+          />
+
+          <InputNormal
+            tipo="number"
+            value={dataMov.stock_minimo}
+            placeholder='Stock mínimo (opcional)'
+            onChange={(e) => handleChange('stock_minimo', e.target.value)}
+            icon='error'
+            step="0.01"
+            min="0"
           />
 
           <InputNormal

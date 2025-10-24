@@ -194,6 +194,14 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                         label="Categoría"
                         value={productoActual?.category?.name || 'Sin categoría'}
                     />
+                    <Dato
+                        label="Stock mínimo"
+                        value={productoActual?.stock_minimo !== undefined && productoActual?.stock_minimo !== null 
+                            ? (productoActual?.grup 
+                                ? `${productoActual.stock_minimo} ${productoActual?.type_measure?.code || ''} (${Math.floor(productoActual.stock_minimo / productoActual.grup)} grupos + ${productoActual.stock_minimo % productoActual.grup} ${productoActual?.type_measure?.code || ''})`
+                                : `${productoActual?.stock_minimo} ${productoActual?.type_measure?.code || ''}`)
+                            : 'No establecido'}
+                    />
                 </div>
 
                 {/* Botones de acciones */}

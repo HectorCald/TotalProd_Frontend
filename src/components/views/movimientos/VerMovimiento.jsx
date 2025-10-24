@@ -313,11 +313,52 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         />
                     )}
 
+                    {/* Descuento y Aumento si existen */}
+                    {(() => {
+                        const descuento = parseFloat(movimientoActual?.descuento) || 0;
+                        const aumento = parseFloat(movimientoActual?.aumento) || 0;
+                        
+                        // Debug: mostrar valores en consola
+                        console.log('Debug VerMovimiento:', {
+                            descuento: movimientoActual?.descuento,
+                            descuentoParsed: descuento,
+                            aumento: movimientoActual?.aumento,
+                            aumentoParsed: aumento
+                        });
+                        
+                        return (
+                            <>
+                                {descuento > 0 && (
+                                    <Dato
+                                        label="Descuento"
+                                        value={`Bs. ${descuento.toFixed(2)}`}
+                                        vertical={false}
+                                        especial='red'
+                                    />
+                                )}
+                                {aumento > 0 && (
+                                    <Dato
+                                        label="Aumento"
+                                        value={`Bs. ${aumento.toFixed(2)}`}
+                                        vertical={false}
+                                        especial='green'
+                                    />
+                                )}
+                            </>
+                        );
+                    })()}
+
                     {/* Total calculado para movimientos */}
                     {movimientoActual?.productos && movimientoActual.productos.length > 0 && (
                         <Dato
                             label="Total del Movimiento"
-                            value={`Bs. ${(movimientoActual.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
+                            value={`Bs. ${(() => {
+                                const subtotal = movimientoActual.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
+                                const descuento = parseFloat(movimientoActual.descuento) || 0;
+                                const aumento = parseFloat(movimientoActual.aumento) || 0;
+                                const total = subtotal - descuento + aumento;
+                                return total.toFixed(2);
+                            })()}`}
                             vertical={false}
                             especial='green'
                         />

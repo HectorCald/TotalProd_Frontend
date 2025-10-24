@@ -213,6 +213,14 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                         label="Categoría"
                         value={productoActual.category_name || '--'}
                     />
+                    <Dato
+                        label="Stock mínimo"
+                        value={productoActual.stock_minimo !== undefined && productoActual.stock_minimo !== null 
+                            ? (productoActual.grup 
+                                ? `${productoActual.stock_minimo} unidades (${Math.floor(productoActual.stock_minimo / productoActual.grup)} grupos + ${productoActual.stock_minimo % productoActual.grup} unidades)`
+                                : `${productoActual.stock_minimo} unidades`)
+                            : 'No establecido'}
+                    />
                 </div>
 
 

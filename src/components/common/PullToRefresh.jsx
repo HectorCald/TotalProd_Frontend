@@ -36,7 +36,7 @@ function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull
 
     // Listener para detectar cambios en el scroll
     const handleScroll = (e) => {
-      isAtTop = scrollContainer.scrollTop === 0;
+      isAtTop = scrollContainer.scrollTop <= 5; // Tolerancia de 5px para evitar problemas de precisión
       
       // Llamar al onScroll del componente padre si existe
       if (onScroll) {
@@ -49,8 +49,25 @@ function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull
       startY.current = e.touches[0].clientY;
       isPullingDown.current = false;
       
-      // Solo permitir si estamos en el tope
+      // Solo permitir si estamos en el tope Y no hay elementos interactivos bajo el touch
       if (!isAtTop) {
+        return;
+      }
+      
+      // Verificar si el touch está sobre un elemento interactivo
+      const target = e.target;
+      const isInteractiveElement = target.tagName === 'BUTTON' || 
+                                  target.tagName === 'INPUT' || 
+                                  target.tagName === 'SELECT' || 
+                                  target.tagName === 'TEXTAREA' ||
+                                  target.closest('button') ||
+                                  target.closest('input') ||
+                                  target.closest('select') ||
+                                  target.closest('textarea') ||
+                                  target.closest('[role="button"]') ||
+                                  target.closest('[onclick]');
+      
+      if (isInteractiveElement) {
         return;
       }
     };
@@ -58,8 +75,11 @@ function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull
     const handleTouchMove = (e) => {
       currentY.current = e.touches[0].clientY;
       
+      // Verificar nuevamente si estamos en el tope (por si cambió durante el movimiento)
+      const currentlyAtTop = scrollContainer.scrollTop <= 5;
+      
       // Solo activar pull to refresh si estamos en el tope Y moviéndose hacia abajo
-      if (isAtTop && currentY.current > startY.current) {
+      if (currentlyAtTop && currentY.current > startY.current) {
         // Establecer que estamos haciendo pull down
         if (!isPullingDown.current) {
           isPullingDown.current = true;
@@ -105,8 +125,25 @@ function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull
       startY.current = e.clientY;
       isPullingDown.current = false;
       
-      // Solo permitir si estamos en el tope
+      // Solo permitir si estamos en el tope Y no hay elementos interactivos bajo el mouse
       if (!isAtTop) {
+        return;
+      }
+      
+      // Verificar si el mouse está sobre un elemento interactivo
+      const target = e.target;
+      const isInteractiveElement = target.tagName === 'BUTTON' || 
+                                  target.tagName === 'INPUT' || 
+                                  target.tagName === 'SELECT' || 
+                                  target.tagName === 'TEXTAREA' ||
+                                  target.closest('button') ||
+                                  target.closest('input') ||
+                                  target.closest('select') ||
+                                  target.closest('textarea') ||
+                                  target.closest('[role="button"]') ||
+                                  target.closest('[onclick]');
+      
+      if (isInteractiveElement) {
         return;
       }
     };
@@ -114,8 +151,11 @@ function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull
     const handleMouseMove = (e) => {
       currentY.current = e.clientY;
       
+      // Verificar nuevamente si estamos en el tope (por si cambió durante el movimiento)
+      const currentlyAtTop = scrollContainer.scrollTop <= 5;
+      
       // Solo activar pull to refresh si estamos en el tope Y moviéndose hacia abajo
-      if (isAtTop && currentY.current > startY.current) {
+      if (currentlyAtTop && currentY.current > startY.current) {
         // Establecer que estamos haciendo pull down
         if (!isPullingDown.current) {
           isPullingDown.current = true;

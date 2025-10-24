@@ -187,6 +187,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         name: producto.name || '',
         description: producto.description || '',
         quantity: producto.quantity || 0,
+        stock_minimo: producto.stock_minimo || 0,
         created_at: producto.created_at,
         empresa_id: producto.empresa_id,
         category_id: producto.category_id || '',

@@ -33,6 +33,7 @@ function ModalDescarga({
     const [nombreArchivoState, setNombreArchivoState] = useState(nombreArchivo);
     const [tituloDocumentoState, setTituloDocumentoState] = useState(tituloDocumento);
     const [verNumero, setVerNumero] = useState(false);
+    const [incluirFirmas, setIncluirFirmas] = useState(false);
 
     // Actualizar el estado cuando cambien las props
     useEffect(() => {
@@ -72,6 +73,11 @@ function ModalDescarga({
             setNombreArchivoState(prev => prev.replace(sufijoCliente, ''));
             setTituloDocumentoState(prev => prev.replace(sufijoCliente, ''));
         }
+    };
+
+    // Función para manejar el cambio del switch de "firmas"
+    const handleIncluirFirmasChange = (incluir) => {
+        setIncluirFirmas(incluir);
     };
 
     const handleDescargaExcel = () => {
@@ -177,13 +183,60 @@ function ModalDescarga({
                 allData.push(...valoresLimpios);
             }
 
-            // 5. TOTAL (si existe) - mantener "Bs." y cambiar punto por coma
-            if (informacionSuperior && informacionSuperior.Total) {
+            // 5. TOTALES (desglose solo si hay aumento o descuento)
+            if (tablaValores.length > 0) {
                 allData.push([]);
-                const totalConComa = informacionSuperior.Total.toString()
-                    .replace(/\./g, ',') // Cambiar punto por coma
-                    .trim();
-                allData.push(['', '', 'Total:', totalConComa]);
+                
+                const tieneAumento = informacionSuperior && informacionSuperior.Aumento;
+                const tieneDescuento = informacionSuperior && informacionSuperior.Descuento;
+                
+                // Si hay aumento o descuento, mostrar desglose completo
+                if (tieneAumento || tieneDescuento) {
+                    // Calcular solo la suma de subtotales de productos
+                    const subtotalProductos = tablaValores.reduce((sum, row) => {
+                        // Obtener el valor de la última columna (subtotal)
+                        const subtotalStr = row[row.length - 1]?.toString() || '0';
+                        // Extraer solo el número, removiendo "Bs." y otros caracteres
+                        const cleanStr = subtotalStr.replace(/Bs\.\s*/, '').trim();
+                        const subtotalNum = parseFloat(cleanStr) || 0;
+                        return sum + subtotalNum;
+                    }, 0);
+                    const subtotalConComa = `Bs. ${subtotalProductos.toFixed(2).replace(/\./g, ',')}`;
+                    allData.push(['', '', 'Subtotal:', subtotalConComa]);
+                    
+                    // AUMENTO (si aplica)
+                    if (tieneAumento) {
+                        const aumentoConComa = informacionSuperior.Aumento.toString()
+                            .replace(/\./g, ',') // Cambiar punto por coma
+                            .trim();
+                        allData.push(['', '', 'Aumento:', aumentoConComa]);
+                    }
+                    
+                    // DESCUENTO (si aplica)
+                    if (tieneDescuento) {
+                        const descuentoConComa = informacionSuperior.Descuento.toString()
+                            .replace(/\./g, ',') // Cambiar punto por coma
+                            .trim();
+                        allData.push(['', '', 'Descuento:', descuentoConComa]);
+                    }
+                }
+                
+                // TOTAL FINAL (siempre se muestra)
+                if (informacionSuperior && informacionSuperior.Total) {
+                    const totalConComa = informacionSuperior.Total.toString()
+                        .replace(/\./g, ',') // Cambiar punto por coma
+                        .trim();
+                    allData.push(['', '', 'Total:', totalConComa]);
+                }
+            }
+
+            // 6. FIRMAS (si está activado)
+            if (incluirFirmas) {
+                allData.push([]); // Línea vacía
+                allData.push([]); // Línea vacía
+                allData.push(['', '', 'Entregado por:', '']); // Espacio para firma
+                allData.push([]); // Línea vacía
+                allData.push(['', '', 'Recibido por:', '']); // Espacio para firma
             }
 
             // Crear worksheet con todos los datos
@@ -430,44 +483,202 @@ function ModalDescarga({
                             </>
                         )}
 
-                        {informacionSuperior && informacionSuperior.Total && (
+                        {/* TOTALES (desglose solo si hay aumento o descuento) */}
+                        {tablaValores.length > 0 && (
                             <>
                                 <View style={[styles.contentPad, styles.separator]} />
-                                <View style={[styles.contentPad, styles.row]}>
-                                    {(() => {
-                                        const currentWidths = Array.isArray(tablas) && tablas.length > 0
-                                            ? getWidthsPct(tablas[tablas.length - 1].headers || [])
-                                            : getWidthsPct(tablaHeaders);
-                                        return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
-                                            <View key={i} style={{ width: w }} />
-                                        ));
-                                    })()}
-                                    {/* Columna de etiqueta (alineada a la derecha) */}
-                                    <View style={{
-                                        width: (() => {
+                                
+                                {(() => {
+                                    const tieneAumento = informacionSuperior && informacionSuperior.Aumento;
+                                    const tieneDescuento = informacionSuperior && informacionSuperior.Descuento;
+                                    
+                                    // Si hay aumento o descuento, mostrar desglose completo
+                                    if (tieneAumento || tieneDescuento) {
+                                        return (
+                                            <>
+                                                {/* Subtotal (solo productos) */}
+                                                <View style={[styles.contentPad, styles.row]}>
+                                                    {(() => {
+                                                        const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                            ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                            : getWidthsPct(tablaHeaders);
+                                                        return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
+                                                            <View key={i} style={{ width: w }} />
+                                                        ));
+                                                    })()}
+                                                    {/* Columna de etiqueta (alineada a la derecha) */}
+                                                    <View style={{
+                                                        width: (() => {
+                                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                                ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                                : getWidthsPct(tablaHeaders);
+                                                            return currentWidths[currentWidths.length - 2];
+                                                        })(),
+                                                        paddingRight: 6
+                                                    }}>
+                                                        <Text style={styles.totalLabel}>Subtotal:</Text>
+                                                    </View>
+                                                    {/* Columna de valor (alineada a la derecha) */}
+                                                    <View style={{
+                                                        width: (() => {
+                                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                                ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                                : getWidthsPct(tablaHeaders);
+                                                            return currentWidths[currentWidths.length - 1];
+                                                        })()
+                                                    }}>
+                                                        <Text style={styles.totalValue}>
+                                                            {(() => {
+                                                                const subtotalProductos = tablaValores.reduce((sum, row) => {
+                                                                    // Obtener el valor de la última columna (subtotal)
+                                                                    const subtotalStr = row[row.length - 1]?.toString() || '0';
+                                                                    // Extraer solo el número, removiendo "Bs." y otros caracteres
+                                                                    const cleanStr = subtotalStr.replace(/Bs\.\s*/, '').trim();
+                                                                    const subtotalNum = parseFloat(cleanStr) || 0;
+                                                                    return sum + subtotalNum;
+                                                                }, 0);
+                                                                return `Bs. ${subtotalProductos.toFixed(2)}`;
+                                                            })()}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+
+                                                {/* Aumento (si aplica) */}
+                                                {tieneAumento && (
+                                                    <View style={[styles.contentPad, styles.row]}>
+                                                        {(() => {
+                                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                                ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                                : getWidthsPct(tablaHeaders);
+                                                            return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
+                                                                <View key={i} style={{ width: w }} />
+                                                            ));
+                                                        })()}
+                                                        {/* Columna de etiqueta (alineada a la derecha) */}
+                                                        <View style={{
+                                                            width: (() => {
+                                                                const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                                    ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                                    : getWidthsPct(tablaHeaders);
+                                                                return currentWidths[currentWidths.length - 2];
+                                                            })(),
+                                                            paddingRight: 6
+                                                        }}>
+                                                            <Text style={styles.totalLabel}>Aumento:</Text>
+                                                        </View>
+                                                        {/* Columna de valor (alineada a la derecha) */}
+                                                        <View style={{
+                                                            width: (() => {
+                                                                const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                                    ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                                    : getWidthsPct(tablaHeaders);
+                                                                return currentWidths[currentWidths.length - 1];
+                                                            })()
+                                                        }}>
+                                                            <Text style={styles.totalValue}>{String(informacionSuperior.Aumento)}</Text>
+                                                        </View>
+                                                    </View>
+                                                )}
+
+                                                {/* Descuento (si aplica) */}
+                                                {tieneDescuento && (
+                                                    <View style={[styles.contentPad, styles.row]}>
+                                                        {(() => {
+                                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                                ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                                : getWidthsPct(tablaHeaders);
+                                                            return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
+                                                                <View key={i} style={{ width: w }} />
+                                                            ));
+                                                        })()}
+                                                        {/* Columna de etiqueta (alineada a la derecha) */}
+                                                        <View style={{
+                                                            width: (() => {
+                                                                const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                                    ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                                    : getWidthsPct(tablaHeaders);
+                                                                return currentWidths[currentWidths.length - 2];
+                                                            })(),
+                                                            paddingRight: 6
+                                                        }}>
+                                                            <Text style={styles.totalLabel}>Descuento:</Text>
+                                                        </View>
+                                                        {/* Columna de valor (alineada a la derecha) */}
+                                                        <View style={{
+                                                            width: (() => {
+                                                                const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                                    ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                                    : getWidthsPct(tablaHeaders);
+                                                                return currentWidths[currentWidths.length - 1];
+                                                            })()
+                                                        }}>
+                                                            <Text style={styles.totalValue}>{String(informacionSuperior.Descuento)}</Text>
+                                                        </View>
+                                                    </View>
+                                                )}
+                                            </>
+                                        );
+                                    }
+                                    return null;
+                                })()}
+
+                                {/* Total Final (siempre se muestra) */}
+                                {informacionSuperior && informacionSuperior.Total && (
+                                    <View style={[styles.contentPad, styles.row]}>
+                                        {(() => {
                                             const currentWidths = Array.isArray(tablas) && tablas.length > 0
                                                 ? getWidthsPct(tablas[tablas.length - 1].headers || [])
                                                 : getWidthsPct(tablaHeaders);
-                                            return currentWidths[currentWidths.length - 2];
-                                        })(),
-                                        paddingRight: 6
-                                    }}>
-                                        <Text style={styles.totalLabel}>Total:</Text>
+                                            return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
+                                                <View key={i} style={{ width: w }} />
+                                            ));
+                                        })()}
+                                        {/* Columna de etiqueta (alineada a la derecha) */}
+                                        <View style={{
+                                            width: (() => {
+                                                const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                    ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                    : getWidthsPct(tablaHeaders);
+                                                return currentWidths[currentWidths.length - 2];
+                                            })(),
+                                            paddingRight: 6
+                                        }}>
+                                            <Text style={styles.totalLabel}>Total:</Text>
+                                        </View>
+                                        {/* Columna de valor (alineada a la derecha) */}
+                                        <View style={{
+                                            width: (() => {
+                                                const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                    ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                    : getWidthsPct(tablaHeaders);
+                                                return currentWidths[currentWidths.length - 1];
+                                            })()
+                                        }}>
+                                            <Text style={styles.totalValue}>{String(informacionSuperior.Total)}</Text>
+                                        </View>
                                     </View>
-                                    {/* Columna de valor (alineada a la derecha) */}
-                                    <View style={{
-                                        width: (() => {
-                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0
-                                                ? getWidthsPct(tablas[tablas.length - 1].headers || [])
-                                                : getWidthsPct(tablaHeaders);
-                                            return currentWidths[currentWidths.length - 1];
-                                        })()
-                                    }}>
-                                        <Text style={styles.totalValue}>{String(informacionSuperior.Total)}</Text>
+                                )}
+                            </>
+                        )}
+
+                        {/* FIRMAS (si está activado) */}
+                        {incluirFirmas && (
+                            <>
+                                <View style={[styles.contentPad, { marginTop: 20 }]}>
+                                    <View style={[styles.row, { marginTop: 20 }]}>
+                                        <View style={{ width: '50%', paddingRight: 20 }}>
+                                            <Text style={[styles.totalLabel, { textAlign: 'left', marginBottom: 20 }]}>Entregado por:</Text>
+                                            <View style={{ borderBottomWidth: 1, borderBottomColor: '#000', height: 30 }} />
+                                        </View>
+                                        <View style={{ width: '50%', paddingLeft: 20 }}>
+                                            <Text style={[styles.totalLabel, { textAlign: 'left', marginBottom: 20 }]}>Recibido por:</Text>
+                                            <View style={{ borderBottomWidth: 1, borderBottomColor: '#000', height: 30 }} />
+                                        </View>
                                     </View>
                                 </View>
                             </>
                         )}
+
                         {/* Pie de página fijo */}
                         <View style={styles.footer} fixed>
                             <Text style={styles.footerLine1}>Generado por TotalProd - aplicación de gestión de procesos y ventas</Text>
@@ -541,6 +752,16 @@ function ModalDescarga({
                             />
                         </div>
                     )}
+
+                    <div className={styles.contentModal}>
+                        <Switch
+                            title="Firmas"
+                            subtitle="Incluir espacios para firmas de 'Entregado por' y 'Recibido por' al final del documento"
+                            checked={incluirFirmas}
+                            onChange={handleIncluirFirmasChange}
+                            icon="edit"
+                        />
+                    </div>
 
                 </div>
 
