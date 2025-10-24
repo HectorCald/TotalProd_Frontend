@@ -36,9 +36,9 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       startY.current = e.touches[0].clientY;
       isPullingDown.current = false;
       
-      // Verificar si estamos en la parte superior al iniciar el touch
+      // Verificar si estamos EXACTAMENTE en la parte superior
       const scrollTop = scrollContainer.scrollTop;
-      if (scrollTop > 5) {
+      if (scrollTop > 0) {
         // Si no estamos en la parte superior, no permitir pull-to-refresh
         return;
       }
@@ -48,10 +48,14 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       currentY.current = e.touches[0].clientY;
       const scrollTop = scrollContainer.scrollTop;
       
-      // Solo activar pull to refresh si estamos en la parte superior (con tolerancia de 5px)
-      if (scrollTop <= 5 && currentY.current > startY.current) {
+      // Solo activar pull to refresh si estamos EXACTAMENTE en la parte superior Y moviéndose hacia abajo
+      if (scrollTop === 0 && currentY.current > startY.current) {
+        // Establecer que estamos haciendo pull down
+        if (!isPullingDown.current) {
+          isPullingDown.current = true;
+        }
+        
         e.preventDefault();
-        isPullingDown.current = true;
         
         const distance = Math.min(currentY.current - startY.current, maxPull);
         setPullDistance(distance);
@@ -59,8 +63,8 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
         if (distance > 20) {
           setIsPulling(true);
         }
-      } else if (scrollTop > 5) {
-        // Si no estamos en la parte superior, resetear el estado
+      } else if (scrollTop > 0 || currentY.current <= startY.current) {
+        // Si no estamos en la parte superior o no nos movemos hacia abajo, resetear
         setIsPulling(false);
         setPullDistance(0);
         isPullingDown.current = false;
@@ -88,9 +92,9 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       startY.current = e.clientY;
       isPullingDown.current = false;
       
-      // Verificar si estamos en la parte superior al iniciar el mouse
+      // Verificar si estamos EXACTAMENTE en la parte superior
       const scrollTop = scrollContainer.scrollTop;
-      if (scrollTop > 5) {
+      if (scrollTop > 0) {
         // Si no estamos en la parte superior, no permitir pull-to-refresh
         return;
       }
@@ -100,10 +104,14 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       currentY.current = e.clientY;
       const scrollTop = scrollContainer.scrollTop;
       
-      // Solo activar pull to refresh si estamos en la parte superior (con tolerancia de 5px)
-      if (scrollTop <= 5 && currentY.current > startY.current) {
+      // Solo activar pull to refresh si estamos EXACTAMENTE en la parte superior Y moviéndose hacia abajo
+      if (scrollTop === 0 && currentY.current > startY.current) {
+        // Establecer que estamos haciendo pull down
+        if (!isPullingDown.current) {
+          isPullingDown.current = true;
+        }
+        
         e.preventDefault();
-        isPullingDown.current = true;
         
         const distance = Math.min(currentY.current - startY.current, maxPull);
         setPullDistance(distance);
@@ -111,8 +119,8 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
         if (distance > 20) {
           setIsPulling(true);
         }
-      } else if (scrollTop > 5) {
-        // Si no estamos en la parte superior, resetear el estado
+      } else if (scrollTop > 0 || currentY.current <= startY.current) {
+        // Si no estamos en la parte superior o no nos movemos hacia abajo, resetear
         setIsPulling(false);
         setPullDistance(0);
         isPullingDown.current = false;

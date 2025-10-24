@@ -35,7 +35,7 @@
     overflow-y: auto !important;
     max-height: calc(100% - 130px);
     padding-inline: 15px;
-    padding-bottom: 10px;
+    padding-bottom: 15px;
 }
 .contentModal {
     display: flex;
@@ -129,6 +129,7 @@
     left: 0;
     border-top: 1px solid var(--tertiary-color);
     gap: 10px;
+    padding-bottom: 15px;
 }
 
 
