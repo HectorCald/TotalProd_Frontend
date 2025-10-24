@@ -290,8 +290,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         });
     }, [productosMapeados, searchQuery, categoriaFiltro, ordenamiento]);
 
-    // Paginación virtual - mostrar solo 20 elementos inicialmente
-    const { visibleItems, hasMore, handleScroll } = useVirtualPagination(productosFiltrados, 20);
+    // Paginación virtual - mostrar solo 30 elementos inicialmente
+    const { visibleItems, hasMore, handleScroll } = useVirtualPagination(productosFiltrados, 30);
 
 
 
@@ -927,6 +927,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                         maxHeight: 'calc(100% - 80px)',
                                         minHeight: 'calc(100% - 80px)'
                                     }}
+                                    onScroll={handleScroll}
                                 >
                                         {visibleItems.length > 0 ? (
                                             visibleItems.map((producto, index) => {

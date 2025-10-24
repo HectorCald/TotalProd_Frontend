@@ -433,8 +433,8 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         return true;
     });
 
-    // Paginación virtual - mostrar solo 20 elementos inicialmente
-    const { visibleItems, hasMore, handleScroll } = useVirtualPagination(productosFiltradosPorDiferencia, 20);
+    // Paginación virtual - mostrar solo 30 elementos inicialmente
+    const { visibleItems, hasMore, handleScroll } = useVirtualPagination(productosFiltradosPorDiferencia, 30);
 
     const tableData = visibleItems
         .map(producto => {
@@ -779,6 +779,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                         maxHeight: 'calc(100% - 80px)',
                                         minHeight: 'calc(100% - 80px)'
                                     }}
+                                    onScroll={handleScroll}
                                 >
                                         {visibleItems.length > 0 ? (
                                             visibleItems.map((producto, index) => {
