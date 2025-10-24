@@ -6,9 +6,8 @@
     scrollbar-width: none;
     -ms-overflow-style: none;
     width: 100%;
-    min-height: 30px;
     padding: 10px 15px;
-    min-height: 40px;
+    min-height: 50px;
 }
 
 .container::-webkit-scrollbar {

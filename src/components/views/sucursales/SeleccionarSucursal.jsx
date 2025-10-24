@@ -5,10 +5,12 @@ import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
 import sucursalesService from '../../../services/sucursalesService';
 import { useUser } from '../../../context/UserContext';
+import { useLayout } from '../../../context/LayoutContext';
 import NoData from '../../common/NoData';
 
 function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccionada, canClose = true }) {
     const { seleccionarSucursal } = useUser();
+    const { isLargeScreen } = useLayout();
     const [sucursales, setSucursales] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -49,6 +51,11 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
         
         // Cerrar modal
         setIsOpen(false);
+        
+        // Solo en PC: recargar la página después de seleccionar sucursal
+        if (isLargeScreen) {
+            window.location.reload();
+        }
     };
 
     if (!isOpen) return null;

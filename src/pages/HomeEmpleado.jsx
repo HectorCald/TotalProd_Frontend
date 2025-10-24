@@ -179,7 +179,7 @@ const HomeEmpleado = () => {
 
     // Función para renderizar el componente del submódulo dinámicamente
     const renderSubModuleComponent = () => {
-        if (!currentSubModule || !currentSubModule.component || !isSubModuleOpen) return null;
+        if (!currentSubModule || !currentSubModule.component) return null;
 
         switch (currentSubModule.component) {
             case 'AlmacenGeneral':
