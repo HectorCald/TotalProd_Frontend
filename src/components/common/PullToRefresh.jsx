@@ -30,26 +30,31 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
     };
 
     const scrollContainer = getScrollContainer();
+    
+    // Variable para rastrear si estamos en el tope
+    let isAtTop = true;
+
+    // Listener para detectar cambios en el scroll
+    const handleScroll = () => {
+      isAtTop = scrollContainer.scrollTop === 0;
+    };
 
     // Handlers para touch (móvil)
     const handleTouchStart = (e) => {
       startY.current = e.touches[0].clientY;
       isPullingDown.current = false;
       
-      // Verificar si estamos EXACTAMENTE en la parte superior
-      const scrollTop = scrollContainer.scrollTop;
-      if (scrollTop > 0) {
-        // Si no estamos en la parte superior, no permitir pull-to-refresh
+      // Solo permitir si estamos en el tope
+      if (!isAtTop) {
         return;
       }
     };
 
     const handleTouchMove = (e) => {
       currentY.current = e.touches[0].clientY;
-      const scrollTop = scrollContainer.scrollTop;
       
-      // Solo activar pull to refresh si estamos EXACTAMENTE en la parte superior Y moviéndose hacia abajo
-      if (scrollTop === 0 && currentY.current > startY.current) {
+      // Solo activar pull to refresh si estamos en el tope Y moviéndose hacia abajo
+      if (isAtTop && currentY.current > startY.current) {
         // Establecer que estamos haciendo pull down
         if (!isPullingDown.current) {
           isPullingDown.current = true;
@@ -63,8 +68,8 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
         if (distance > 20) {
           setIsPulling(true);
         }
-      } else if (scrollTop > 0 || currentY.current <= startY.current) {
-        // Si no estamos en la parte superior o no nos movemos hacia abajo, resetear
+      } else {
+        // Si no estamos en el tope o no nos movemos hacia abajo, resetear
         setIsPulling(false);
         setPullDistance(0);
         isPullingDown.current = false;
@@ -92,20 +97,17 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       startY.current = e.clientY;
       isPullingDown.current = false;
       
-      // Verificar si estamos EXACTAMENTE en la parte superior
-      const scrollTop = scrollContainer.scrollTop;
-      if (scrollTop > 0) {
-        // Si no estamos en la parte superior, no permitir pull-to-refresh
+      // Solo permitir si estamos en el tope
+      if (!isAtTop) {
         return;
       }
     };
 
     const handleMouseMove = (e) => {
       currentY.current = e.clientY;
-      const scrollTop = scrollContainer.scrollTop;
       
-      // Solo activar pull to refresh si estamos EXACTAMENTE en la parte superior Y moviéndose hacia abajo
-      if (scrollTop === 0 && currentY.current > startY.current) {
+      // Solo activar pull to refresh si estamos en el tope Y moviéndose hacia abajo
+      if (isAtTop && currentY.current > startY.current) {
         // Establecer que estamos haciendo pull down
         if (!isPullingDown.current) {
           isPullingDown.current = true;
@@ -119,8 +121,8 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
         if (distance > 20) {
           setIsPulling(true);
         }
-      } else if (scrollTop > 0 || currentY.current <= startY.current) {
-        // Si no estamos en la parte superior o no nos movemos hacia abajo, resetear
+      } else {
+        // Si no estamos en el tope o no nos movemos hacia abajo, resetear
         setIsPulling(false);
         setPullDistance(0);
         isPullingDown.current = false;
@@ -143,6 +145,9 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       isPullingDown.current = false;
     };
 
+    // Event listeners para scroll
+    scrollContainer.addEventListener('scroll', handleScroll);
+
     // Event listeners para touch
     container.addEventListener('touchstart', handleTouchStart, { passive: false });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -154,6 +159,9 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
     container.addEventListener('mouseup', handleMouseUp);
 
     return () => {
+      // Cleanup scroll events
+      scrollContainer.removeEventListener('scroll', handleScroll);
+      
       // Cleanup touch events
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
