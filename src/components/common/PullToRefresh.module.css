@@ -28,7 +28,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--primary-color);
   font-size: 12px;
   font-weight: 400;
   text-align: center;
@@ -37,12 +37,12 @@
 
 .pullIcon {
   font-size: 20px !important;
-  color: white;
+  color: var(--primary-color) !important;
 }
 
 .pullIconArrow {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--primary-color) !important;
 }
 
 /* Animación de spin para el icono de refresh */

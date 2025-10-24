@@ -11,11 +11,12 @@ import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
 import { BoxIcon } from 'boxicons-react';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import NoData from '../../common/NoData';
 import FetchData from '../../mixed/FetchData';
+import PullToRefresh from '../../common/PullToRefresh';
 
 function Sucursales({ isOpen, setIsOpen }) {
     const { user, sucursalSeleccionada } = useUser();
@@ -25,10 +26,6 @@ function Sucursales({ isOpen, setIsOpen }) {
     const [isOpenVerSucursal, setIsOpenVerSucursal] = useState(false);
     const [infoSucursal, setInfoSucursal] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
-
-    // Estados para RefreshIndicator
-    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Estados para sucursales
     const [sucursales, setSucursales] = useState([]);
@@ -44,15 +41,22 @@ function Sucursales({ isOpen, setIsOpen }) {
         setSucursales(data);
     }, []);
 
-    // Callback para manejar el estado de carga
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
-
     // Función para manejar errores de FetchData
     const handleError = useCallback((error) => {
         setError(error);
+    }, []);
+
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (sucursales.length === 0) {
+            setIsLoading(true);
+        }
+    }, [sucursales.length]);
+
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
     }, []);
 
 
@@ -91,11 +95,8 @@ function Sucursales({ isOpen, setIsOpen }) {
         setIsOpenVerSucursal(true);
     };
 
-    // Función para manejar refresh con indicador
+    // Función para manejar refresh
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-
         try {
             const response = await sucursalesService.getByEmpresaId();
             if (response.success) {
@@ -103,14 +104,6 @@ function Sucursales({ isOpen, setIsOpen }) {
             }
         } catch (error) {
             console.error('Error al refrescar sucursales:', error);
-        } finally {
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
         }
     };
 
@@ -210,17 +203,15 @@ function Sucursales({ isOpen, setIsOpen }) {
                 title='Sucursales'
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                <div className={styles.content} style={{
-                    maxHeight: 'calc(100% - 90px)',
-                }}>
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando
+                    <LoadingSpinner />
+                ) : isLargeScreen ? (
+                    // Vista de tabla para pantallas grandes
+                    <div className={styles.content} style={{
+                        maxHeight: 'calc(100% - 80px)',
+                        minHeight: 'calc(100% - 80px)'
+                    }}>
                         <Table
                             headers={tableHeaders}
                             data={tableData}
@@ -230,9 +221,18 @@ function Sucursales({ isOpen, setIsOpen }) {
                                 handleSucursal(sucursalOriginal);
                             }}
                         />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas
-                        sucursalesFiltradas.length > 0 ? (
+                    </div>
+                ) : (
+                    // Vista de cards para pantallas pequeñas con PullToRefresh
+                    <PullToRefresh
+                        onRefresh={handleRefresh}
+                        screenName="Sucursales"
+                        containerStyle={{
+                            maxHeight: 'calc(100% - 80px)',
+                            minHeight: 'calc(100% - 80px)'
+                        }}
+                    >
+                        {sucursalesFiltradas.length > 0 ? (
                             sucursalesFiltradas.map((sucursal, index) => (
                                 <ItemView
                                     key={sucursal.id || index}
@@ -251,9 +251,9 @@ function Sucursales({ isOpen, setIsOpen }) {
                                 transparent={true}
                                 minHeight="200px"
                             />
-                        )
-                    )}
-                </div>
+                        )}
+                    </PullToRefresh>
+                )}
             </div>
 
             <div className={styles.buttonFooter}>
@@ -301,8 +301,8 @@ function Sucursales({ isOpen, setIsOpen }) {
                     method="getByEmpresaId"
                     isOpen={isOpen}
                     onDataLoaded={handleSucursalesLoaded}
-                    onLoadingStart={() => handleLoading(true)}
-                    onLoadingEnd={() => handleLoading(false)}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
                 />
             )}

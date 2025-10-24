@@ -11,10 +11,11 @@ import pricesTypesService from '../../../services/pricesTypesService';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 import { BoxIcon } from 'boxicons-react';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import NoData from '../../common/NoData';
+import PullToRefresh from '../../common/PullToRefresh';
 
 function Precios({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -24,26 +25,18 @@ function Precios({ isOpen, setIsOpen }) {
     const [infoPrecio, setInfoPrecio] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
 
-    // Estados para RefreshIndicator
-    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    // Estados para precios
+    const [precios, setPrecios] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
-    // Estados para precios
-    const [precios, setPrecios] = useState([]);
-    const [error, setError] = useState(null);
-
     // Callbacks para FetchData
     const handlePreciosLoaded = useCallback((data) => {
         setPrecios(data || []);
-    }, []);
-
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
     }, []);
 
     // Función para manejar errores de FetchData
@@ -51,13 +44,18 @@ function Precios({ isOpen, setIsOpen }) {
         setError(error);
     }, []);
 
-    // Limpiar indicador cuando se cierra el modal
-    useEffect(() => {
-        if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (precios.length === 0) {
+            setIsLoading(true);
         }
-    }, [isOpen]);
+    }, [precios.length]);
+
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
+    }, []);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -93,11 +91,8 @@ function Precios({ isOpen, setIsOpen }) {
         setIsOpenVerPrecio(true);
     };
 
-    // Función para manejar refresh con indicador
+    // Función para manejar refresh
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-
         try {
             const response = await pricesTypesService.getAll();
             if (response.success) {
@@ -105,14 +100,6 @@ function Precios({ isOpen, setIsOpen }) {
             }
         } catch (error) {
             console.error('Error al refrescar precios:', error);
-        } finally {
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
         }
     };
 
@@ -218,18 +205,15 @@ function Precios({ isOpen, setIsOpen }) {
                 title='Tipos de Precios'
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                <div className={styles.content}
-                    style={{
-                        maxHeight: 'calc(100% - 90px)',
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando
+                    <LoadingSpinner />
+                ) : isLargeScreen ? (
+                    // Vista de tabla para pantallas grandes
+                    <div className={styles.content} style={{
+                        maxHeight: 'calc(100% - 80px)',
+                        minHeight: 'calc(100% - 80px)'
                     }}>
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
                         <Table
                             headers={tableHeaders}
                             data={tableData}
@@ -239,9 +223,18 @@ function Precios({ isOpen, setIsOpen }) {
                                 handlePrecio(precioOriginal);
                             }}
                         />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas
-                        preciosFiltrados.length > 0 ? (
+                    </div>
+                ) : (
+                    // Vista de cards para pantallas pequeñas con PullToRefresh
+                    <PullToRefresh
+                        onRefresh={handleRefresh}
+                        screenName="Precios"
+                        containerStyle={{
+                            maxHeight: 'calc(100% - 80px)',
+                            minHeight: 'calc(100% - 80px)'
+                        }}
+                    >
+                        {preciosFiltrados.length > 0 ? (
                             preciosFiltrados.map((precio, index) => (
                                 <ItemView
                                     key={precio.id || index}
@@ -260,9 +253,9 @@ function Precios({ isOpen, setIsOpen }) {
                                 transparent={true}
                                 minHeight="200px"
                             />
-                        )
-                    )}
-                </div>
+                        )}
+                    </PullToRefresh>
+                )}
             </div>
 
             <div className={styles.buttonFooter}>
@@ -308,8 +301,8 @@ function Precios({ isOpen, setIsOpen }) {
                     serviceName="pricesTypesService"
                     isOpen={isOpen}
                     onDataLoaded={handlePreciosLoaded}
-                    onLoadingStart={() => handleLoading(true)}
-                    onLoadingEnd={() => handleLoading(false)}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
                 />
             )}

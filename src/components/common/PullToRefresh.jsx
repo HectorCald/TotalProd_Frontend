@@ -216,7 +216,7 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
       <div 
         className={styles.pullArea}
         style={{ 
-          height: isPulling ? `${Math.min(pullDistance * 0.5, 70)}px` : '0px',
+          height: isPulling ? `${Math.min(pullDistance * 0.5, 40)}px` : '0px',
           opacity: isPulling ? 1 : 0,
           transition: isPulling ? 'none' : 'height 0.3s ease, opacity 0.3s ease'
         }}
@@ -243,7 +243,7 @@ function PullToRefresh({ children, onRefresh, threshold = 120, maxPull = 180, sc
         ref={containerRef}
         className={styles.containerContent}
         style={{ 
-          transform: isPulling ? `translateY(${Math.min(pullDistance * 0.3, 50)}px)` : 'translateY(0)',
+          transform: isPulling ? `translateY(${Math.min(pullDistance * 0.3, 30)}px)` : 'translateY(0)',
           transition: isPulling ? 'none' : 'transform 0.3s ease',
           ...containerStyle
         }}

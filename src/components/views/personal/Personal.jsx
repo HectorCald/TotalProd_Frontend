@@ -10,12 +10,13 @@ import FetchData from '../../mixed/FetchData';
 import personalService from '../../../services/personalService';
 import sucursalesService from '../../../services/sucursalesService';
 import { BoxIcon } from 'boxicons-react';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
 import Notification from '../../common/Notification';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import NoData from '../../common/NoData';
+import PullToRefresh from '../../common/PullToRefresh';
 
 
 function Personal({ isOpen, setIsOpen }) {
@@ -25,17 +26,14 @@ function Personal({ isOpen, setIsOpen }) {
     const [infoPersona, setInfoPersona] = useState(null);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
 
-    // Estados para RefreshIndicator
-    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    
+    // Estados para personal
+    const [personal, setPersonal] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+
     // Estado para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-
-    // Estados para personal
-    const [personal, setPersonal] = useState([]);
-    const [error, setError] = useState(null);
 
     // Estados para sucursales
     const [sucursales, setSucursales] = useState([]);
@@ -50,23 +48,23 @@ function Personal({ isOpen, setIsOpen }) {
         setSucursales(data || []);
     }, []);
 
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
-
     // Función para manejar errores de FetchData
     const handleError = useCallback((error) => {
         setError(error);
     }, []);
 
-    // Limpiar indicador cuando se cierra el modal
-    useEffect(() => {
-        if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (personal.length === 0) {
+            setIsLoading(true);
         }
-    }, [isOpen]);
+    }, [personal.length]);
+
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
+    }, []);
 
 
 
@@ -106,11 +104,8 @@ function Personal({ isOpen, setIsOpen }) {
     };
 
 
-    // Función para manejar refresh con indicador
+    // Función para manejar refresh
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-
         try {
             // Cargar personal
             const personalResponse = await personalService.getAll();
@@ -125,14 +120,6 @@ function Personal({ isOpen, setIsOpen }) {
             }
         } catch (error) {
             console.error('Error al refrescar datos:', error);
-        } finally {
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
         }
     };
 
@@ -247,17 +234,15 @@ function Personal({ isOpen, setIsOpen }) {
                 title='Personal'
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                <div className={styles.content} style={{
-                        maxHeight: 'calc(100% - 90px)',
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando
+                    <LoadingSpinner />
+                ) : isLargeScreen ? (
+                    // Vista de tabla para pantallas grandes
+                    <div className={styles.content} style={{
+                        maxHeight: 'calc(100% - 80px)',
+                        minHeight: 'calc(100% - 80px)'
                     }}>
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
                         <Table
                             headers={tableHeaders}
                             data={tableData}
@@ -267,9 +252,18 @@ function Personal({ isOpen, setIsOpen }) {
                                 handlePersonal(personaOriginal);
                             }}
                         />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas
-                        personalFiltrado.length > 0 ? (
+                    </div>
+                ) : (
+                    // Vista de cards para pantallas pequeñas con PullToRefresh
+                    <PullToRefresh
+                        onRefresh={handleRefresh}
+                        screenName="Personal"
+                        containerStyle={{
+                            maxHeight: 'calc(100% - 80px)',
+                            minHeight: 'calc(100% - 80px)'
+                        }}
+                    >
+                        {personalFiltrado.length > 0 ? (
                             personalFiltrado.map((persona, index) => (
                                 <ItemView
                                     key={persona.id || index}
@@ -288,9 +282,9 @@ function Personal({ isOpen, setIsOpen }) {
                                 transparent={true}
                                 minHeight="200px"
                             />
-                        )
-                    )}
-                </div>
+                        )}
+                    </PullToRefresh>
+                )}
                 <div className={styles.buttonFooter}>
                     <Boton
                         className='btn-original'
@@ -335,8 +329,8 @@ function Personal({ isOpen, setIsOpen }) {
                     serviceName="personalService"
                     isOpen={isOpen}
                     onDataLoaded={handlePersonalLoaded}
-                    onLoadingStart={() => handleLoading(true)}
-                    onLoadingEnd={() => handleLoading(false)}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
                 />
             )}

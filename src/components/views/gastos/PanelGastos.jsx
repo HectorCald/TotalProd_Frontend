@@ -10,7 +10,7 @@ import Filtros from '../../common/Filtros';
 import Notification from '../../common/Notification';
 import gastosService from '../../../services/gastosService';
 import { BoxIcon } from 'boxicons-react';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import Boton from '../../common/Boton';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
@@ -19,10 +19,11 @@ import NoData from '../../common/NoData';
 import FiltroMetodoPago from '../../mixed/FiltroMetodoPago';
 import FiltroOrdenamientoGastos from '../../mixed/FiltroOrdenamientoGastos';
 import InfoModal from '../../common/InfoModal';
+import PullToRefresh from '../../common/PullToRefresh';
 
 function PanelGastos({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
-    
+
     // Estados para los modales
     const [isOpenVerGasto, setIsOpenVerGasto] = useState(false);
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
@@ -32,14 +33,10 @@ function PanelGastos({ isOpen, setIsOpen }) {
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-    
-    // Estados para RefreshIndicator
-    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    
+
     // Estado para acumular todos los gastos de todas las páginas
     const [allGastos, setAllGastos] = useState([]);
-    
+
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
@@ -60,15 +57,22 @@ function PanelGastos({ isOpen, setIsOpen }) {
         setError(null); // Limpiar error cuando se cargan datos exitosamente
     }, []);
 
-    // Callback para manejar el estado de carga
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
-
     // Función para manejar errores de FetchData
     const handleError = useCallback((error) => {
         setError(error);
+    }, []);
+
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (allGastos.length === 0) {
+            setIsLoading(true);
+        }
+    }, [allGastos.length]);
+
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
     }, []);
 
     // Acumular datos de todas las páginas cuando llegan nuevos gastos
@@ -89,30 +93,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
         }
     }, [gastos, currentPage, isOpen]);
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    }, [isLoading, isOpen, showRefreshIndicator]);
-
-
-    // Limpiar indicador cuando se cierra el modal
-    useEffect(() => {
-        if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
-        }
-    }, [isOpen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -144,29 +124,16 @@ function PanelGastos({ isOpen, setIsOpen }) {
         setIsOpenVerGasto(true);
     };
 
-    // Función para manejar refresh con indicador
+    // Función para manejar refresh
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
         try {
             const response = await gastosService.getAll(currentPage, 10, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento);
             if (response.success) {
                 setGastos(response.data);
                 setHasMorePages(response.pagination?.hasNextPage || false);
             }
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
         } catch (error) {
             console.error('Error al refrescar gastos:', error);
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
         }
     };
 
@@ -240,7 +207,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
             const errorMessage = error.message || 'No tienes acceso a este módulo';
             const currentPlan = error.currentPlan || 'Plan actual';
             const requiredModule = error.requiredModule || 'Gastos';
-            
+
             setModalConfig({
                 isOpen: true,
                 type: 'info',
@@ -257,22 +224,22 @@ function PanelGastos({ isOpen, setIsOpen }) {
     // Función para manejar cuando se elimina un gasto
     const handleGastoEliminado = (gastoId) => {
         // Actualizar el estado local acumulado
-        setAllGastos(prevGastos => 
+        setAllGastos(prevGastos =>
             prevGastos.filter(gasto => gasto.id !== gastoId)
         );
-        
+
         mostrarNotificacion('success', 'Gasto eliminado correctamente');
     };
 
     // Función para manejar cuando se actualiza un gasto
     const handleGastoActualizado = (gastoActualizado) => {
         // Actualizar el estado local acumulado
-        setAllGastos(prevGastos => 
-            prevGastos.map(gasto => 
+        setAllGastos(prevGastos =>
+            prevGastos.map(gasto =>
                 gasto.id === gastoActualizado.id ? gastoActualizado : gasto
             )
         );
-        
+
         mostrarNotificacion('success', 'Gasto actualizado correctamente');
     };
 
@@ -280,7 +247,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
     const handleGastoCreated = (newGasto) => {
         // Actualizar el estado local con el gasto que devuelve el servidor
         setAllGastos(prevGastos => [newGasto, ...prevGastos]);
-        
+
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
         mostrarNotificacion('success', 'Gasto agregado correctamente');
@@ -289,14 +256,14 @@ function PanelGastos({ isOpen, setIsOpen }) {
     // Función para obtener el nombre del método de pago
     const getMetodoPagoNombre = () => {
         if (filtroMetodoPago === null) return 'Todos los métodos';
-        
+
         const metodosPago = [
             { value: 'qr', label: 'QR' },
             { value: 'transferencia', label: 'Transferencia' },
             { value: 'tarjeta', label: 'Tarjeta' },
             { value: 'efectivo', label: 'Efectivo' }
         ];
-        
+
         const metodo = metodosPago.find(m => m.value === filtroMetodoPago);
         return metodo ? metodo.label : 'Todos los métodos';
     };
@@ -348,7 +315,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-            <HeaderView 
+            <HeaderView
                 onBack={() => setIsOpen(false)}
                 showSearch={true}
                 searchPlaceholder="Buscar gasto por concepto..."
@@ -360,64 +327,81 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 title='Gastos'
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                <Filtros options={opciones} />
-                <div
-                    className={styles.content}
-                    onScroll={handleScroll}
-                    style={{
-                        maxHeight: 'calc(100% - 130px)',
-                    }}
-                >
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(gasto) => {
-                                // Buscar el gasto original sin formatear
-                                const gastoOriginal = allGastos.find(g => g.id === gasto.id);
-                                handleGasto(gastoOriginal);
-                            }}
-                        />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas
-                        allGastos.length > 0 ? (
-                            allGastos.map((gasto, index) => {
-                                return (
-                                    <ItemView
-                                        key={gasto.id || index}
-                                        title={gasto.concepto || 'Sin concepto'}
-                                        description={`${new Date(gasto.fecha_gasto).toLocaleDateString()} • ${gasto.metodo_pago || 'Sin método de pago'}${gasto.proveedor?.name ? ` • ${gasto.proveedor.name}` : ''}`}
-                                        icon='money'
-                                        onClick={() => handleGasto(gasto)}
-                                        arrow={false}
-                                        flot3={`Bs. ${(gasto.valor || 0).toFixed(2)}`}
-                                    />
-                                );
-                            })
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando
+                    <LoadingSpinner />
+                ) : (
+                    <>
+                        <Filtros options={opciones} />
+                        {isLargeScreen ? (
+                            // Vista de tabla para pantallas grandes
+                            <div
+                                className={styles.content}
+                                onScroll={handleScroll}
+                                style={{
+                                    maxHeight: 'calc(100% - 130px)',
+                                }}
+                            >
+                                <Table
+                                    headers={tableHeaders}
+                                    data={tableData}
+                                    onRowClick={(gasto) => {
+                                        // Buscar el gasto original sin formatear
+                                        const gastoOriginal = allGastos.find(g => g.id === gasto.id);
+                                        handleGasto(gastoOriginal);
+                                    }}
+                                />
+                                {/* Indicador de carga para más elementos */}
+                                {isLoading && (
+                                    <div className={styles.loadingMore}>
+                                        <p>Cargando más gastos...</p>
+                                    </div>
+                                )}
+                            </div>
                         ) : (
-                            <NoData 
-                                icon="receipt"
-                                title={searchQuery ? 'Sin resultados' : 'No hay gastos'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los gastos que necesitas' : 'Registra gastos para comenzar a gestionar tus finanzas'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
-                        )
-                    )}
-                    {/* Indicador de carga para más elementos */}
-                    {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más gastos...</p>
-                        </div>
-                    )}
-                </div>
+                            // Vista de cards para pantallas pequeñas con PullToRefresh
+                            <PullToRefresh
+                                onRefresh={handleRefresh}
+                                screenName="Gastos"
+                                containerStyle={{
+                                    maxHeight: 'calc(100% - 80px)',
+                                    minHeight: 'calc(100% - 80px)'
+                                }}
+                            >
+                                {allGastos.length > 0 ? (
+                                    allGastos.map((gasto, index) => {
+                                        return (
+                                            <ItemView
+                                                key={gasto.id || index}
+                                                title={gasto.concepto || 'Sin concepto'}
+                                                description={`${new Date(gasto.fecha_gasto).toLocaleDateString()} • ${gasto.metodo_pago || 'Sin método de pago'}${gasto.proveedor?.name ? ` • ${gasto.proveedor.name}` : ''}`}
+                                                icon='money'
+                                                onClick={() => handleGasto(gasto)}
+                                                arrow={false}
+                                                flot3={`Bs. ${(gasto.valor || 0).toFixed(2)}`}
+                                            />
+                                        );
+                                    })
+                                ) : (
+                                    <NoData
+                                        icon="receipt"
+                                        title={searchQuery ? 'Sin resultados' : 'No hay gastos'}
+                                        detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los gastos que necesitas' : 'Registra gastos para comenzar a gestionar tus finanzas'}
+                                        transparent={true}
+                                        minHeight="200px"
+                                    />
+                                )}
+                                {/* Indicador de carga para más elementos */}
+                                {isLoading && (
+                                    <div className={styles.loadingMore}>
+                                        <p>Cargando más gastos...</p>
+                                    </div>
+                                )}
+
+                            </PullToRefresh>
+                        )}
+                    </>
+                )}
                 <div className={styles.buttonFooter}>
                     <Boton
                         className='btn-original'
@@ -426,7 +410,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
                     />
                 </div>
             </div>
-            
+
             {/* Modal de ver gasto*/}
             <VerGasto
                 isOpen={isOpenVerGasto}
@@ -458,8 +442,8 @@ function PanelGastos({ isOpen, setIsOpen }) {
                     methodParams={[currentPage, 10, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]}
                     isOpen={isOpen}
                     onDataLoaded={handleGastosLoaded}
-                    onLoadingStart={() => handleLoading(true)}
-                    onLoadingEnd={() => handleLoading(false)}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
                 />
             )}

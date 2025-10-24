@@ -244,7 +244,13 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                     <LoadingSpinner />
                 ) : isLargeScreen ? (
                     // Vista de tabla para pantallas grandes
-                    <div className={styles.content}>
+                    <div className={styles.content}
+                    style={
+                        {
+                            maxHeight: 'calc(100% - 80px)',
+                            minHeight: 'calc(100% - 80px)'
+                        }
+                    }>
                         <Table
                             headers={tableHeaders}
                             data={tableData}
@@ -261,7 +267,8 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                         onRefresh={handleRefresh}
                         screenName="Clientes"
                         containerStyle={{
-                            paddingBottom: '90px'
+                            maxHeight: 'calc(100% - 80px)',
+                            minHeight: 'calc(100% - 80px)'
                         }}
                     >
                         {clientesFiltrados.length > 0 ? (

@@ -10,7 +10,7 @@ import Filtros from '../../common/Filtros';
 import Notification from '../../common/Notification';
 import deudasService from '../../../services/deudasService';
 import { BoxIcon } from 'boxicons-react';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import Boton from '../../common/Boton';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
@@ -19,6 +19,7 @@ import NoData from '../../common/NoData';
 import FiltroEstadoDeuda from '../../mixed/FiltroEstadoDeuda';
 import FiltroOrdenamientoDeudas from '../../mixed/FiltroOrdenamientoDeudas';
 import InfoModal from '../../common/InfoModal';
+import PullToRefresh from '../../common/PullToRefresh';
 
 function PanelDeudas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -32,10 +33,6 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-    
-    // Estados para RefreshIndicator
-    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
     
     // Estado para acumular todas las deudas de todas las páginas
     const [allDeudas, setAllDeudas] = useState([]);
@@ -60,15 +57,22 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         setError(null); // Limpiar error cuando se cargan datos exitosamente
     }, []);
 
-    // Callback para manejar el estado de carga
-    const handleLoading = useCallback((isLoading) => {
-        setShowRefreshIndicator(isLoading);
-        setIsRefreshing(isLoading);
-    }, []);
-
     // Función para manejar errores de FetchData
     const handleError = useCallback((error) => {
         setError(error);
+    }, []);
+
+    // Función para manejar cuando inicia la carga
+    const handleLoadingStart = useCallback(() => {
+        // Solo mostrar loading si no hay datos cargados
+        if (allDeudas.length === 0) {
+            setIsLoading(true);
+        }
+    }, [allDeudas.length]);
+
+    // Función para manejar cuando termina la carga
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
     }, []);
 
     // Acumular datos de todas las páginas cuando llegan nuevas deudas
@@ -89,30 +93,6 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         }
     }, [deudas, currentPage, isOpen]);
 
-    // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
-    useEffect(() => {
-        if (isLoading && isOpen && !showRefreshIndicator) {
-            setShowRefreshIndicator(true);
-            setIsRefreshing(true);
-        } else if (!isLoading && showRefreshIndicator && isOpen) {
-            // Cuando termina de cargar, mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
-        }
-    }, [isLoading, isOpen, showRefreshIndicator]);
-
-
-    // Limpiar indicador cuando se cierra el modal
-    useEffect(() => {
-        if (!isOpen) {
-            setShowRefreshIndicator(false);
-            setIsRefreshing(false);
-        }
-    }, [isOpen]);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -144,29 +124,16 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         setIsOpenVerDeuda(true);
     };
 
-    // Función para manejar refresh con indicador
+    // Función para manejar refresh
     const handleRefresh = async () => {
-        setShowRefreshIndicator(true);
-        setIsRefreshing(true);
-        
         try {
             const response = await deudasService.getAll(currentPage, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento);
             if (response.success) {
                 setDeudas(response.data);
                 setHasMorePages(response.pagination?.hasNextPage || false);
             }
-            
-            // Mostrar "Actualizado" por 1 segundo
-            setTimeout(() => {
-                setIsRefreshing(false);
-                setTimeout(() => {
-                    setShowRefreshIndicator(false);
-                }, 1000);
-            }, 500);
         } catch (error) {
             console.error('Error al refrescar deudas:', error);
-            setIsRefreshing(false);
-            setShowRefreshIndicator(false);
         }
     };
 
@@ -393,77 +360,94 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                 title='Deudas'
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                <Filtros options={opciones} />
-                <div
-                    className={styles.content}
-                    onScroll={handleScroll}
-                    style={{
-                        maxHeight: 'calc(100% - 130px)',
-                    }}
-                >
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(deuda) => {
-                                // Buscar la deuda original sin formatear
-                                const deudaOriginal = allDeudas.find(d => d.id === deuda.id);
-                                handleDeuda(deudaOriginal);
-                            }}
-                            getCellBadge={getCellBadge}
-                            columnWidths={{
-                                concepto: '25%',
-                                fecha_deuda: '15%',
-                                fecha_vencimiento: '15%',
-                                cliente: '20%',
-                                estado: '15%',
-                                monto_total: '15%',
-                                saldo_pendiente: '15%'
-                            }}
-                        />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas
-                        allDeudas.length > 0 ? (
-                            allDeudas.map((deuda, index) => {
-                                const isVencida = new Date(deuda.fecha_vencimiento) < new Date() && deuda.estado === 'pendiente';
-                                return (
-                                    <ItemView
-                                        key={deuda.id || index}
-                                        title={deuda.concepto || 'Sin concepto'}
-                                        description={`${new Date(deuda.fecha_deuda).toLocaleDateString()}`}
-                                        icon='receipt'
-                                        onClick={() => handleDeuda(deuda)}
-                                        arrow={false}
-                                        flot6={`Bs. ${(deuda.monto_total || 0).toFixed(2)}`}
-                                        flot3={deuda.estado === 'pendiente' ? 'Pendiente' : ''}
-                                        flot1={deuda.estado === 'pagada' ? 'Pagada' : ''}
-                                    />
-                                );
-                            })
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando
+                    <LoadingSpinner />
+                ) : (
+                    <>
+                        <Filtros options={opciones} />
+                        {isLargeScreen ? (
+                            // Vista de tabla para pantallas grandes
+                            <div
+                                className={styles.content}
+                                onScroll={handleScroll}
+                                style={{
+                                    maxHeight: 'calc(100% - 130px)',
+                                }}
+                            >
+                                <Table
+                                    headers={tableHeaders}
+                                    data={tableData}
+                                    onRowClick={(deuda) => {
+                                        // Buscar la deuda original sin formatear
+                                        const deudaOriginal = allDeudas.find(d => d.id === deuda.id);
+                                        handleDeuda(deudaOriginal);
+                                    }}
+                                    getCellBadge={getCellBadge}
+                                    columnWidths={{
+                                        concepto: '25%',
+                                        fecha_deuda: '15%',
+                                        fecha_vencimiento: '15%',
+                                        cliente: '20%',
+                                        estado: '15%',
+                                        monto_total: '15%',
+                                        saldo_pendiente: '15%'
+                                    }}
+                                />
+                                {/* Indicador de carga para más elementos */}
+                                {isLoading && (
+                                    <div className={styles.loadingMore}>
+                                        <p>Cargando más deudas...</p>
+                                    </div>
+                                )}
+                            </div>
                         ) : (
-                            <NoData 
-                                icon="credit-card"
-                                title={searchQuery ? 'Sin resultados' : 'No hay deudas'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar las deudas que necesitas' : 'Registra deudas para comenzar a gestionar tus cuentas por cobrar'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
-                        )
-                    )}
-                    {/* Indicador de carga para más elementos */}
-                    {isLoading && (
-                        <div className={styles.loadingMore}>
-                            <p>Cargando más deudas...</p>
-                        </div>
-                    )}
-                </div>
+                            // Vista de cards para pantallas pequeñas con PullToRefresh
+                            <PullToRefresh
+                                onRefresh={handleRefresh}
+                                screenName="Deudas"
+                                containerStyle={{
+                                    maxHeight: 'calc(100% - 80px)',
+                                    minHeight: 'calc(100% - 80px)'
+                                }}
+                            >
+                                    {allDeudas.length > 0 ? (
+                                        allDeudas.map((deuda, index) => {
+                                            const isVencida = new Date(deuda.fecha_vencimiento) < new Date() && deuda.estado === 'pendiente';
+                                            return (
+                                                <ItemView
+                                                    key={deuda.id || index}
+                                                    title={deuda.concepto || 'Sin concepto'}
+                                                    description={`${new Date(deuda.fecha_deuda).toLocaleDateString()}`}
+                                                    icon='receipt'
+                                                    onClick={() => handleDeuda(deuda)}
+                                                    arrow={false}
+                                                    flot6={`Bs. ${(deuda.monto_total || 0).toFixed(2)}`}
+                                                    flot3={deuda.estado === 'pendiente' ? 'Pendiente' : ''}
+                                                    flot1={deuda.estado === 'pagada' ? 'Pagada' : ''}
+                                                />
+                                            );
+                                        })
+                                    ) : (
+                                        <NoData 
+                                            icon="credit-card"
+                                            title={searchQuery ? 'Sin resultados' : 'No hay deudas'}
+                                            detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar las deudas que necesitas' : 'Registra deudas para comenzar a gestionar tus cuentas por cobrar'}
+                                            transparent={true}
+                                            minHeight="200px"
+                                        />
+                                    )}
+                                    {/* Indicador de carga para más elementos */}
+                                    {isLoading && (
+                                        <div className={styles.loadingMore}>
+                                            <p>Cargando más deudas...</p>
+                                        </div>
+                                    )}
+                             
+                            </PullToRefresh>
+                        )}
+                    </>
+                )}
                 <div className={styles.buttonFooter}>
                     <Boton
                         className='btn-original'
@@ -504,8 +488,8 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                     methodParams={[currentPage, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento]}
                     isOpen={isOpen}
                     onDataLoaded={handleDeudasLoaded}
-                    onLoadingStart={() => handleLoading(true)}
-                    onLoadingEnd={() => handleLoading(false)}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
                 />
             )}

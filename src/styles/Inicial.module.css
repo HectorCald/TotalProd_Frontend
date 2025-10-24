@@ -35,7 +35,6 @@
     overflow-y: auto !important;
     max-height: calc(100% - 130px);
     padding-inline: 15px;
-    padding-bottom: 15px;
 }
 .contentModal {
     display: flex;
