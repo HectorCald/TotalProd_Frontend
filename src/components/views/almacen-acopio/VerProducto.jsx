@@ -26,6 +26,14 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
     const [movimientos, setMovimientos] = useState([]);
     const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
 
+    // Estado local para el producto actual
+    const [productoActual, setProductoActual] = useState(registro);
+
+    // Actualizar el estado local cuando cambie el prop registro
+    useEffect(() => {
+        setProductoActual(registro);
+    }, [registro]);
+
     // Agrupar movimientos por fecha usando useMemo
     const groupedMovements = useMemo(() => {
         if (!movimientos || movimientos.length === 0) return [];
@@ -82,6 +90,22 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         setMovimientos(limitedMovements);
     }, []);
 
+    // Función para manejar la actualización del producto localmente
+    const handleProductUpdatedLocal = (updatedProduct) => {
+        // Actualizar el estado local del producto
+        setProductoActual(updatedProduct);
+        
+        // Llamar al callback del componente padre para actualizar la lista
+        if (onProductUpdated) {
+            onProductUpdated(updatedProduct);
+        }
+        
+        // Cerrar el modal de editar
+        setIsEditarOpen(false);
+        
+        // La notificación se maneja en AlmacenAcopio.jsx
+    };
+
     const [notification, setNotification] = useState({
         isVisible: false,
         type: 'success',
@@ -105,11 +129,11 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         setLoading(true);
         try {
             // Verificar si tiene movimientos
-            const movimientosResponse = await movimientosAcopioService.getByProduct(registro.id);
+            const movimientosResponse = await movimientosAcopioService.getByProduct(productoActual.id);
             const tieneMovimientos = movimientosResponse.success && movimientosResponse.data && movimientosResponse.data.length > 0;
 
             // Verificar si tiene pedidos
-            const pedidosResponse = await pedidosAcopioService.verificarProductoEnPedidos(registro.id);
+            const pedidosResponse = await pedidosAcopioService.verificarProductoEnPedidos(productoActual.id);
             const tienePedidos = pedidosResponse.success && pedidosResponse.data && pedidosResponse.data.tienePedidos;
 
             if (tieneMovimientos) {
@@ -125,9 +149,9 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
             }
 
             // Si no tiene movimientos ni pedidos, proceder con la eliminación
-            const response = await productsAcopioService.delete(registro.id);
+            const response = await productsAcopioService.delete(productoActual.id);
             if (response.success) {
-                onProductDeleted(registro.id);
+                onProductDeleted(productoActual.id);
                 setIsDeleteOpen(false);
                 setIsOpen(false);
                 mostrarNotificacion('success', 'Producto eliminado correctamente');
@@ -148,7 +172,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>
-                    {registro?.name}
+                    {productoActual?.name}
                     <div className={styles.iconButton} >
                     </div>
                 </h1>
@@ -156,25 +180,25 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 <div className={styles.content}>
                     <Dato
                         label="Descripción"
-                        value={registro?.description || 'Sin descripción'}
+                        value={productoActual?.description || 'Sin descripción'}
                     />
                     <Dato
                         label="Cantidad"
-                        value={`${parseFloat(registro?.quantity || 0).toFixed(2)} ${registro?.type_measure?.code || ''}`}
+                        value={`${parseFloat(productoActual?.quantity || 0).toFixed(2)} ${productoActual?.type_measure?.code || ''}`}
                     />
                     <Dato
                         label="Tipo de medida"
-                        value={registro?.type_measure?.name || 'No especificado'}
+                        value={productoActual?.type_measure?.name || 'No especificado'}
                     />
                     <Dato
                         label="Categoría"
-                        value={registro?.category?.name || 'Sin categoría'}
+                        value={productoActual?.category?.name || 'Sin categoría'}
                     />
                 </div>
 
                 {/* Botones de acciones */}
                 {/* Botón para ver receta - solo si tiene receta */}
-                {registro?.recetas_acopio && registro.recetas_acopio.length > 0 && (
+                {productoActual?.recetas_acopio && productoActual.recetas_acopio.length > 0 && (
                     <Boton
                         className='btn-gray'
                         label='Receta'
@@ -211,7 +235,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     onClose={() => setIsDeleteOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Eliminar el producto "{registro?.name}"? Esta acción es irreversible y puede afectar registros relacionados.</p>
+                    <p className={styles.subTitle}>¿Eliminar el producto "{productoActual?.name}"? Esta acción es irreversible y puede afectar registros relacionados.</p>
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-default'
@@ -234,9 +258,9 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
             <EditarAgregar
                 isOpen={isEditarOpen}
                 setIsOpen={setIsEditarOpen}
-                data={registro}
+                data={productoActual}
                 tipo='editar'
-                onProductUpdated={onProductUpdated}
+                onProductUpdated={handleProductUpdatedLocal}
                 typeMeasures={typeMeasures}
             />
             {/* Modal de receta */}
@@ -246,18 +270,18 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     onClose={() => setIsRecetaOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    {registro?.recetas_acopio && registro.recetas_acopio.length > 0 && (
+                    {productoActual?.recetas_acopio && productoActual.recetas_acopio.length > 0 && (
                         <>
                             <Dato
                                 label="Descripción de la receta"
-                                value={registro.recetas_acopio[0]?.description || 'Sin descripción'}
+                                value={productoActual.recetas_acopio[0]?.description || 'Sin descripción'}
                             />
 
-                            {registro.recetas_acopio[0]?.recetas_acopio_detalle && registro.recetas_acopio[0].recetas_acopio_detalle.length > 0 && (
+                            {productoActual.recetas_acopio[0]?.recetas_acopio_detalle && productoActual.recetas_acopio[0].recetas_acopio_detalle.length > 0 && (
                                 <>
                                     <p className={styles.subTitle}>INGREDIENTES</p>
                                     <div className={styles.content}>
-                                        {registro.recetas_acopio[0].recetas_acopio_detalle.map((detalle, index) => (
+                                        {productoActual.recetas_acopio[0].recetas_acopio_detalle.map((detalle, index) => (
                                             <Dato
                                                 label={detalle.products_acopio?.name || 'Producto desconocido'}
                                                 value={`${detalle.cantidad} ${detalle.products_acopio?.type_measure?.code || ''}`}
@@ -296,7 +320,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                     {groupMovements.map((movimiento, index) => (
                                         <ItemView
                                             key={movimiento.id || index}
-                                            title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${movimiento.quantity} ${registro?.type_measure?.code || ''}`}
+                                            title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${movimiento.quantity} ${productoActual?.type_measure?.code || ''}`}
                                             description={
                                                 <div>
                                                     <div>{movimiento.observations || 'Sin observaciones'}</div>
@@ -332,13 +356,13 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 text={notification.text}
             />
 
-            {/* Carga de movimientos - solo cuando está abierto y hay registro */}
-            {isOpen && registro?.id && (
+            {/* Carga de movimientos - solo cuando está abierto y hay productoActual */}
+            {isOpen && productoActual?.id && (
                 <FetchData
                     service={movimientosAcopioService}
                     serviceName="movimientosAcopioService"
                     method="getByProduct"
-                    methodParams={[registro.id]}
+                    methodParams={[productoActual.id]}
                     isOpen={isOpen}
                     onDataLoaded={handleMovimientosLoaded}
                     onLoadingStart={() => setLoadingMovimientosList(true)}

@@ -66,3 +66,24 @@
     opacity: 0.8;
     font-weight: 400;
 }
+
+/* Estilos para estado de error */
+.errorContainer {
+    background:none;
+}
+
+.errorIcon {
+    color: #dc2626 !important;
+    opacity: 1 !important;
+}
+
+.errorTitle {
+    color: #dc2626 !important;
+    font-weight: 700;
+}
+
+.errorDetail {
+    color: #991b1b !important;
+    opacity: 1 !important;
+    font-weight: 500;
+}

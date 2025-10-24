@@ -25,6 +25,14 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
     const [movimientos, setMovimientos] = useState([]);
     const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
 
+    // Estado local para el producto actual
+    const [productoActual, setProductoActual] = useState(registro);
+
+    // Actualizar el estado local cuando cambie el prop registro
+    useEffect(() => {
+        setProductoActual(registro);
+    }, [registro]);
+
     // Agrupar movimientos por fecha usando useMemo
     const groupedMovements = useMemo(() => {
         if (!movimientos || movimientos.length === 0) return [];
@@ -83,6 +91,22 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         setMovimientos(limitedMovements);
     }, []);
 
+    // Función para manejar la actualización del producto localmente
+    const handleProductUpdatedLocal = (updatedProduct) => {
+        // Actualizar el estado local del producto
+        setProductoActual(updatedProduct);
+        
+        // Llamar al callback del componente padre para actualizar la lista
+        if (onProductUpdated) {
+            onProductUpdated(updatedProduct);
+        }
+        
+        // Cerrar el modal de editar
+        setIsEditarOpen(false);
+        
+        // La notificación se maneja en AlmacenGeneral.jsx
+    };
+
     const [notification, setNotification] = useState({
         isVisible: false,
         type: 'success',
@@ -106,11 +130,11 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         setLoading(true);
         try {
             // Verificar si tiene movimientos (ULTRA OPTIMIZADO)
-            const movimientosResponse = await movimientosAlmacenService.hasMovements(registro.id);
+            const movimientosResponse = await movimientosAlmacenService.hasMovements(productoActual.id);
             const tieneMovimientos = movimientosResponse.success && movimientosResponse.hasMovements;
 
             // Verificar si tiene pedidos
-            const pedidosResponse = await pedidosAcopioService.verificarProductoEnPedidos(registro.id);
+            const pedidosResponse = await pedidosAcopioService.verificarProductoEnPedidos(productoActual.id);
             const tienePedidos = pedidosResponse.success && pedidosResponse.data && pedidosResponse.data.tienePedidos;
 
             if (tieneMovimientos) {
@@ -126,10 +150,10 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
             }
 
             // Si no tiene movimientos ni pedidos, proceder con la eliminación
-            const response = await productsAlmacenService.delete(registro.id);
+            const response = await productsAlmacenService.delete(productoActual.id);
             
             if (response.success) {
-                onProductDeleted(registro.id);
+                onProductDeleted(productoActual.id);
                 setIsDeleteOpen(false);
                 setIsOpen(false);
                 mostrarNotificacion('success', 'Producto eliminado correctamente');
@@ -145,8 +169,8 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         }
     };
 
-    // Validar que registro existe
-    if (!registro) {
+    // Validar que productoActual existe
+    if (!productoActual) {
         return (
             <View isOpen={isOpen} setIsOpen={setIsOpen}>
                 <HeaderView onBack={() => setIsOpen(false)} />
@@ -162,39 +186,39 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>{registro.name}</h1>
+                <h1 className={styles.title}>{productoActual.name}</h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
                 <div className={styles.content}>
                     <Dato
                         label="Descripción"
-                        value={registro.description || '--'}
+                        value={productoActual.description || '--'}
                     />
                     <Dato
                         label="Stock"
                         value={
-                            registro.grup 
-                                ? `${registro.stock || 0} unidades (${Math.floor((registro.stock || 0) / registro.grup)} grupos + ${(registro.stock || 0) % registro.grup} unidades)`
-                                : `${registro.stock || 0} unidades`
+                            productoActual.grup 
+                                ? `${productoActual.stock || 0} unidades (${Math.floor((productoActual.stock || 0) / productoActual.grup)} grupos + ${(productoActual.stock || 0) % productoActual.grup} unidades)`
+                                : `${productoActual.stock || 0} unidades`
                         }
                     />
                     <Dato
                         label="Código de barras"
-                        value={registro.codigo_barras || '--'}
+                        value={productoActual.codigo_barras || '--'}
                     />
                     <Dato
                         label="Grupo"
-                        value={registro.grup ? `${registro.grup} unidades` : 'No agrupado'}
+                        value={productoActual.grup ? `${productoActual.grup} unidades` : 'No agrupado'}
                     />
                     <Dato
                         label="Categoría"
-                        value={registro.category_name || '--'}
+                        value={productoActual.category_name || '--'}
                     />
                 </div>
 
 
                 {/* Botones de acciones */}
                 {/* Botón para ver precios - siempre visible */}
-                {registro?.price_product && registro.price_product.length > 0 && (
+                {productoActual?.price_product && productoActual.price_product.length > 0 && (
                     <Boton
                         className='btn-gray'
                         label='Precios'
@@ -203,7 +227,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 )}
 
                 {/* Botón para ver receta - solo si tiene receta */}
-                {registro?.recetas && registro.recetas.length > 0 && (
+                {productoActual?.recetas && productoActual.recetas.length > 0 && (
                     <Boton
                         className='btn-gray'
                         label='Receta'
@@ -239,7 +263,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     onClose={() => setIsDeleteOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Eliminar el producto "{registro?.name}"? Esta acción es irreversible y puede afectar registros relacionados.</p>
+                    <p className={styles.subTitle}>¿Eliminar el producto "{productoActual?.name}"? Esta acción es irreversible y puede afectar registros relacionados.</p>
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-default'
@@ -264,9 +288,9 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
             <EditarAgregar
                 isOpen={isEditarOpen}
                 setIsOpen={setIsEditarOpen}
-                data={registro}
+                data={productoActual}
                 tipo='editar'
-                onProductUpdated={onProductUpdated}
+                onProductUpdated={handleProductUpdatedLocal}
                 preciosTipos={preciosTipos}
                 loadingPrecios={loadingPrecios}
             />
@@ -277,18 +301,18 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     onClose={() => setIsRecetaOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    {registro?.recetas && registro.recetas.length > 0 && (
+                    {productoActual?.recetas && productoActual.recetas.length > 0 && (
                         <>
                             <Dato
                                 label="Descripción de la receta"
-                                value={registro.recetas[0]?.descripcion || '--'}
+                                value={productoActual.recetas[0]?.descripcion || '--'}
                             />
 
-                            {registro.recetas[0]?.recetas_detalle && registro.recetas[0].recetas_detalle.length > 0 && (
+                            {productoActual.recetas[0]?.recetas_detalle && productoActual.recetas[0].recetas_detalle.length > 0 && (
                                 <>
                                     <p className={styles.subTitle}>INGREDIENTES</p>
                                     <div className={styles.content}>
-                                        {registro.recetas[0].recetas_detalle.map((detalle, index) => (
+                                        {productoActual.recetas[0].recetas_detalle.map((detalle, index) => (
                                             <Dato
                                                 label={detalle.products_acopio?.name || 'Producto desconocido'}
                                                 value={`${detalle.cantidad} ${detalle.products_acopio?.type_measure?.code || ''}`}
@@ -327,7 +351,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                     </p>
                                     {groupMovements.map((movimiento, index) => {
                                         // Para movimientos de almacén, obtener la cantidad del producto específico
-                                        const productoMovimiento = movimiento.productos?.find(p => p.producto?.id === registro?.id);
+                                        const productoMovimiento = movimiento.productos?.find(p => p.producto?.id === productoActual?.id);
                                         const cantidad = productoMovimiento?.cantidad || 0;
 
                                         return (
@@ -372,9 +396,9 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>PRECIOS CONFIGURADOS</p>
-                    {registro?.price_product && registro.price_product.length > 0 ? (
+                    {productoActual?.price_product && productoActual.price_product.length > 0 ? (
                         <div className={styles.content}>
-                            {registro.price_product.map((precio, index) => (
+                            {productoActual.price_product.map((precio, index) => (
                                 <Dato
                                     key={precio.id || index}
                                     label={precio.prices_types?.name || 'Precio'}
@@ -400,13 +424,13 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 text={notification.text}
             />
 
-            {/* Carga de movimientos - solo cuando está abierto y hay registro */}
-            {isOpen && registro?.id && (
+            {/* Carga de movimientos - solo cuando está abierto y hay productoActual */}
+            {isOpen && productoActual?.id && (
                 <FetchData
                     service={movimientosAlmacenService}
                     serviceName="movimientosAlmacenService"
                     method="getByProduct"
-                    methodParams={[registro.id]}
+                    methodParams={[productoActual.id]}
                     isOpen={isOpen}
                     onDataLoaded={handleMovimientosLoaded}
                     onLoadingStart={() => setLoadingMovimientosList(true)}

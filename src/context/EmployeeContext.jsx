@@ -16,6 +16,7 @@ export const EmployeeProvider = ({ children }) => {
   const [employee, setEmployee] = useState(null);
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Cargar datos del empleado y sucursal al inicializar
   useEffect(() => {
@@ -60,6 +61,7 @@ export const EmployeeProvider = ({ children }) => {
   const clearEmployee = () => {
     setEmployee(null);
     setSucursalSeleccionada(null);
+    setError(null);
     
     // Limpiar solo los datos específicos del empleado, no todo el localStorage
     const keysToRemove = ['employee', 'token', 'sucursalSeleccionada', 'employeeData', 'empresa_id'];
@@ -77,10 +79,15 @@ export const EmployeeProvider = ({ children }) => {
 
   // Función para cargar datos completos del empleado
   const loadEmployeeData = async (employeeId) => {
+    setLoading(true);
+    setError(null);
+    
     try {
       const employeeData = await personalService.getById(employeeId);
-      if (employeeData.success) {
+      
+      if (employeeData && employeeData.success) {
         setEmployee(employeeData.data);
+        setError(null);
         
         // Si tiene sucursal_id, cargar la sucursal
         if (employeeData.data.sucursal_id) {
@@ -91,27 +98,31 @@ export const EmployeeProvider = ({ children }) => {
           }
         }
         
+        setLoading(false);
         return { success: true, data: employeeData.data };
       } else {
-        console.error('No se pudo obtener el empleado:', employeeData.error);
+        const errorMessage = employeeData?.error || employeeData?.message || 'Error desconocido al obtener empleado';
+        console.error('No se pudo obtener el empleado:', errorMessage);
         
-        // Si hay error al obtener el empleado, limpiar localStorage y redirigir
-        if (employeeData.status === 400 || employeeData.status === 500 || !employeeData.success) {
-          console.log('❌ Error al obtener empleado, limpiando sesión y redirigiendo...');
-          clearEmployee();
-          window.location.href = '/login';
-          return { success: false, error: employeeData.error };
+        // Si hay error al obtener el empleado, establecer error
+        if (employeeData?.status === 400 || employeeData?.status === 500 || !employeeData?.success) {
+          console.log('❌ Error al obtener empleado:', errorMessage);
+          setError(errorMessage);
+          setLoading(false);
+          return { success: false, error: errorMessage };
         }
         
-        return { success: false, error: employeeData.error };
+        setError(errorMessage);
+        setLoading(false);
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
       console.error('Error al cargar datos del empleado:', error);
       
-      // Si hay error de conexión o cualquier otro error, limpiar y redirigir
-      console.log('❌ Error de conexión al obtener empleado, limpiando sesión y redirigiendo...');
-      clearEmployee();
-      window.location.href = '/login';
+      // Si hay error de conexión o cualquier otro error, establecer error
+      console.log('❌ Error de conexión al obtener empleado:', error.message);
+      setError(error.message);
+      setLoading(false);
       return { success: false, error: error.message };
     }
   };
@@ -120,6 +131,7 @@ export const EmployeeProvider = ({ children }) => {
     employee,
     sucursalSeleccionada,
     loading,
+    error,
     clearEmployee,
     seleccionarSucursal,
     loadEmployeeData

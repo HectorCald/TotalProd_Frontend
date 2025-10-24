@@ -279,9 +279,10 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
         // Actualizar también el producto que se está viendo
         setInfoPersona(updatedProduct);
-        // Cerrar el modal de ver producto
-        setIsOpenVerProducto(false);
-        mostrarNotificacion('success', 'Producto actualizado correctamente')
+        // NO cerrar el modal de ver producto - se mantiene abierto para mostrar los cambios
+        // setIsOpenVerProducto(false);
+        // Mostrar notificación
+        mostrarNotificacion('success', 'Producto actualizado correctamente');
     };
 
     // Función para manejar cuando se crea un movimiento

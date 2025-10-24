@@ -7,22 +7,23 @@ const NoData = ({
     title = 'No hay datos', 
     detail = 'No se encontraron elementos para mostrar',
     transparent = false,
-    minHeight = '200px'
+    minHeight = '200px',
+    isError = false
 }) => {
     return (
         <div 
-            className={`${styles.noDataContainer} ${transparent ? styles.transparent : styles.withBackground}`}
+            className={`${styles.noDataContainer} ${transparent ? styles.transparent : styles.withBackground} ${isError ? styles.errorContainer : ''}`}
             style={{ minHeight }}
         >
             <div className={styles.noDataContent}>
                 <div className={styles.noDataIconContainer}>
                     <BoxIcon 
                         name={icon} 
-                        className={`${styles.noDataIcon} ${icon === 'loader-alt' ? styles.spinning : ''}`}
+                        className={`${styles.noDataIcon} ${icon === 'loader-alt' ? styles.spinning : ''} ${isError ? styles.errorIcon : ''}`}
                     />
                 </div>
-                <h3 className={styles.noDataTitle}>{title}</h3>
-                <p className={styles.noDataDetail}>{detail}</p>
+                <h3 className={`${styles.noDataTitle} ${isError ? styles.errorTitle : ''}`}>{title}</h3>
+                <p className={`${styles.noDataDetail} ${isError ? styles.errorDetail : ''}`}>{detail}</p>
             </div>
         </div>
     );

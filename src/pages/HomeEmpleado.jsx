@@ -7,6 +7,7 @@ import BarraLateralEmpleado from '../components/ui/BarraLateralEmpleado';
 import InicioEmpleadoPC from '../components/screens/InicioEmpleadoPC';
 import InicioEmpleado from '../components/screens/InicioEmpleado';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import NoData from '../components/common/NoData';
 import { getAvailableModules, getAvailableMainModules } from '../constants/modules';
 import '../styles/Home.css';
 import styles from '../styles/view.module.css';
@@ -34,7 +35,7 @@ import PanelConteos from '../components/views/conteos/PanelConteos';
 import PanelCotizaciones from '../components/views/cotizaciones/PanelCotizaciones';
 
 const HomeEmpleado = () => {
-    const { employee, sucursalSeleccionada, loading, refreshEmployeeData } = useEmployee();
+    const { employee, sucursalSeleccionada, loading, error } = useEmployee();
     const { isLargeScreen } = useLayout();
     const [activeScreen, setActiveScreen] = useState('inicio');
     const [activeView, setActiveView] = useState(null);
@@ -86,8 +87,45 @@ const HomeEmpleado = () => {
         }
     };
 
-    // Mostrar loading hasta que se cargue completamente el empleado con sus módulos
-    if (loading || !employee || !employee.modules) {
+    // Mostrar loading mientras está cargando
+    if (loading) {
+        return <LoadingSpinner fullScreen={true} text="Cargando empleado..." icon="user"/>;
+    }
+
+    // Si hay error, mostrar NoData con error
+    if (error) {
+        
+        // Determinar el tipo de error y el mensaje apropiado
+        let errorTitle = "Error al cargar datos del empleado";
+        let errorDetail = error;
+        let errorIcon = "error-circle";
+        
+        if (error.includes('plan activo') || error.includes('plan')) {
+            errorTitle = "Plan no activo";
+            errorDetail = "La empresa no tiene un plan activo. Contacta al administrador para actualizar el plan y acceder a esta función.";
+            errorIcon = "lock";
+        } else if (error.includes('conexión') || error.includes('network') || error.includes('fetch')) {
+            errorTitle = "Error de conexión";
+            errorDetail = `${error}. Por favor, verifica tu conexión e intenta nuevamente.`;
+            errorIcon = "wifi-off";
+        }
+        
+        return (
+            <div className="home-page">
+                <Nav />
+                <NoData 
+                    icon={errorIcon}
+                    title={errorTitle}
+                    detail={errorDetail}
+                    isError={true}
+                    minHeight="60vh"
+                />
+            </div>
+        );
+    }
+
+    // Si no hay empleado o módulos después de cargar (sin error), mostrar loading
+    if (!employee || !employee.modules) {
         return <LoadingSpinner fullScreen={true} text="Cargando empleado..." />;
     }
 
