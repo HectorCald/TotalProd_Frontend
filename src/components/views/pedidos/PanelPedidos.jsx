@@ -24,7 +24,7 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 
 function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const { isLargeScreen } = useLayout();
-    
+
     // Estados para los modal de ver pedido
     const [isOpenVerPedido, setIsOpenVerPedido] = useState(false);
     const [infoPedido, setInfoPedido] = useState(null);
@@ -33,19 +33,19 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-    
+
     // Estados para loading
     const [isLoadingPedidos, setIsLoadingPedidos] = useState(false);
-    
+
     // Estados para RefreshIndicator (solo PC)
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeRequests, setActiveRequests] = useState(0);
-    
+
 
     // Estado para acumular todos los pedidos de todas las páginas
     const [allPedidos, setAllPedidos] = useState([]);
-    
+
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
@@ -88,12 +88,12 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             }
             return newCount;
         });
-        
+
         try {
-            const response = tipoPedido === 'acopio' 
+            const response = tipoPedido === 'acopio'
                 ? await pedidosAcopioService.getAll(page, 30, search, estado, orden)
                 : await pedidosAlmacenService.getAll(page, 30, search, estado, orden);
-                
+
             if (response.success) {
                 const newData = response.data || [];
                 setPedidos(newData);
@@ -167,7 +167,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         // Limpiar estado acumulado y resetear página
         setAllPedidos([]);
         setCurrentPage(1);
-        
+
         // La función cargarPedidos ya maneja el RefreshIndicator
         await cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
     };
@@ -237,27 +237,27 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Función para manejar cuando se elimina un pedido
     const handlePedidoEliminado = (pedidoId) => {
         // Actualizar el estado local acumulado
-        setAllPedidos(prevPedidos => 
+        setAllPedidos(prevPedidos =>
             prevPedidos.filter(pedido => pedido.id !== pedidoId)
         );
-        
+
         mostrarNotificacion('success', 'Pedido eliminado correctamente');
         setIsOpenVerPedido(false);
     };
     // Función para manejar cuando se actualiza un pedido
     const handlePedidoActualizado = (pedidoActualizado) => {
         // Actualizar el estado local acumulado
-        setAllPedidos(prevPedidos => 
-            prevPedidos.map(pedido => 
+        setAllPedidos(prevPedidos =>
+            prevPedidos.map(pedido =>
                 pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido
             )
         );
-        
+
         // Actualizar también infoPedido si es el mismo pedido que se está viendo
         if (infoPedido && infoPedido.id === pedidoActualizado.id) {
             setInfoPedido(pedidoActualizado);
         }
-        
+
         // No mostrar notificación aquí, ya que VerPedidoAcopio maneja las notificaciones específicas
         // No cerrar VerPedido para permitir que se mantenga abierto después de entregas/ediciones
     };
@@ -358,7 +358,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                     className: 'info' // verde
                 },
             };
-            
+
             return badgeConfig[estado] || {
                 text: estado,
                 className: 'default'
@@ -434,7 +434,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-            <HeaderView 
+            <HeaderView
                 onBack={() => setIsOpen(false)}
                 showSearch={true}
                 searchPlaceholder="Buscar pedidos..."
@@ -453,17 +453,17 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                     />
                 </div>
                 <Filtros options={opciones} />
-                <div
-                    className={styles.content}
-                    onScroll={!isLargeScreen ? handleScroll : undefined}
-                    style={{
-                        maxHeight: tipoPedido === 'acopio' || tipoPedido === 'almacen'
-                            ? '100%'
-                            : ''
-                    }}
-                >
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
+
+                {isLargeScreen ? (
+                    <div
+                        className={styles.content}
+                        onScroll={!isLargeScreen ? handleScroll : undefined}
+                        style={{
+                            maxHeight: tipoPedido === 'acopio' || tipoPedido === 'almacen'
+                                ? '100%'
+                                : ''
+                        }}
+                    >
                         <Table
                             headers={tableHeaders}
                             data={tableData}
@@ -475,67 +475,68 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                             getCellBadge={getCellBadge}
                             onScroll={handleScroll}
                         />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas con PullToRefresh
-                        <PullToRefresh
-                            onRefresh={handleRefresh}
-                            screenName="Pedidos"
-                            containerStyle={{
-                                maxHeight: '100vh',
-                                minHeight: '100vh'
-                            }}
-                            onScroll={handleScroll}
-                        >
-                            {allPedidos.length > 0 ? (
-                                allPedidos.map((pedido, index) => {
-                                    return (
-                                        <ItemView
-                                            key={pedido.id || index}
-                                            title={tipoPedido === 'acopio' 
-                                                ? (pedido.producto_acopio?.name || 'Producto desconocido')
-                                                : (pedido.user?.name || pedido.personal?.name || 'Usuario desconocido')
-                                            }
-                                            description={tipoPedido === 'acopio'
-                                                ? `${pedido.cantidad || 0} ${pedido.tipo_medida || ''} - ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-                                                    year: 'numeric',
-                                                    month: '2-digit',
-                                                    day: '2-digit',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })}`
-                                                : new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-                                                    year: 'numeric',
-                                                    month: '2-digit',
-                                                    day: '2-digit',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })
-                                            }
-                                            icon="file"
-                                            onClick={() => handleVerPedido(pedido)}
-                                            flot1={pedido.estado === 'Completado' ? 'Completado' :''}
-                                            flot2={pedido.estado === 'Entregado' ? 'Entregado' :''}
-                                            flot3={pedido.estado === 'Pendiente' ? 'Pendiente' :''}
-                                        />
-                                    );
-                                })
-                            ) : (
-                                <NoData 
-                                    icon="shopping-bag"
-                                    title={searchQuery ? 'Sin resultados' : 'No hay pedidos'}
-                                    detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los pedidos que necesitas' : 'Crea pedidos para comenzar a gestionar tus ventas'}
-                                    transparent={true}
-                                    minHeight="200px"
-                                />
-                            )}
-                        </PullToRefresh>
-                    )}
+                    </div>
+                ) : (
+                    // Vista de cards para pantallas pequeñas con PullToRefresh
+                    <PullToRefresh
+                        onRefresh={handleRefresh}
+                        screenName="Pedidos"
+                        containerStyle={{
+                            maxHeight: '100%',
+                            minHeight: '100%',
+                        }}
+                        onScroll={handleScroll}
+                    >
+                        {allPedidos.length > 0 ? (
+                            allPedidos.map((pedido, index) => {
+                                return (
+                                    <ItemView
+                                        key={pedido.id || index}
+                                        title={tipoPedido === 'acopio'
+                                            ? (pedido.producto_acopio?.name || 'Producto desconocido')
+                                            : (pedido.user?.name || pedido.personal?.name || 'Usuario desconocido')
+                                        }
+                                        description={tipoPedido === 'acopio'
+                                            ? `${pedido.cantidad || 0} ${pedido.tipo_medida || ''} - ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                year: 'numeric',
+                                                month: '2-digit',
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}`
+                                            : new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                year: 'numeric',
+                                                month: '2-digit',
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })
+                                        }
+                                        icon="file"
+                                        onClick={() => handleVerPedido(pedido)}
+                                        flot1={pedido.estado === 'Completado' ? 'Completado' : ''}
+                                        flot2={pedido.estado === 'Entregado' ? 'Entregado' : ''}
+                                        flot3={pedido.estado === 'Pendiente' ? 'Pendiente' : ''}
+                                    />
+                                );
+                            })
+                        ) : (
+                            <NoData
+                                icon="shopping-bag"
+                                title={searchQuery ? 'Sin resultados' : 'No hay pedidos'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los pedidos que necesitas' : 'Crea pedidos para comenzar a gestionar tus ventas'}
+                                transparent={true}
+                                minHeight="200px"
+                            />
+                        )}
+                    </PullToRefresh>
+                )}
 
-                    {/* Indicador de carga para más elementos */}
-                    {isLoading && (
-                        <LoadingSpinner />
-                    )}
-                </div>
+                {/* Indicador de carga para más elementos */}
+                {isLoading && (
+                    <LoadingSpinner />
+                )}
+
             </div>
 
             {/* Modal para ver pedido */}
@@ -581,23 +582,23 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
             {/* Botón flotante de WhatsApp - solo para pedidos de acopio */}
             {tipoPedido === 'acopio' ? (
-            <div style={{
-                position: 'fixed',
-                bottom: '20px',
-                right: '20px',
-                zIndex: 200
-            }}>
-                <Select
-                    icon="whatsapp"
-                    iconOnly={true}
-                    options={[
-                        { value: 'historial', label: 'Historial', icon: 'history' },
-                        { value: 'ultima-entrega', label: 'Última entrega', icon: 'time-five' }
-                    ]}
-                    onChange={handleWhatsAppSelect}
-                    dropdownDirection="right"
-                />
-            </div>
+                <div style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    zIndex: 200
+                }}>
+                    <Select
+                        icon="whatsapp"
+                        iconOnly={true}
+                        options={[
+                            { value: 'historial', label: 'Historial', icon: 'history' },
+                            { value: 'ultima-entrega', label: 'Última entrega', icon: 'time-five' }
+                        ]}
+                        onChange={handleWhatsAppSelect}
+                        dropdownDirection="right"
+                    />
+                </div>
             ) : ''}
 
             {/* Modal de Historial WhatsApp */}
