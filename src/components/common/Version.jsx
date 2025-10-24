@@ -7,6 +7,12 @@ function Version() {
     useEffect(() => {
         const getCacheVersion = async () => {
             try {
+                // Verificar si caches está disponible
+                if (!('caches' in window)) {
+                    setCacheVersion('N/A');
+                    return;
+                }
+
                 // Obtener todas las claves del cache
                 const cacheNames = await caches.keys();
                 
@@ -18,10 +24,14 @@ function Version() {
                     const versionMatch = totalprodCache.match(/totalprod-cache-v(.+)/);
                     if (versionMatch) {
                         setCacheVersion(versionMatch[1]);
+                    } else {
+                        setCacheVersion('N/A');
                     }
+                } else {
+                    setCacheVersion('N/A');
                 }
             } catch (error) {
-                console.warn('Error obteniendo versión del cache:', error);
+                setCacheVersion('Error');
             }
         };
 
@@ -31,7 +41,7 @@ function Version() {
     return (
         <div className={styles.versionContainer}>
             <p className={styles.version}>
-                Versión TP {cacheVersion && `${cacheVersion}`}
+                Versión TP {cacheVersion || 'Cargando...'}
             </p>
         </div>
     )

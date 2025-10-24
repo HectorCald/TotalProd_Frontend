@@ -240,6 +240,8 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
             isOpen={isOpen} 
             setIsOpen={setIsOpen}
             isMainView={!modoSeleccion}
+            onRefresh={handleRefresh}
+            screenName="Clientes"
         >
             <HeaderView 
                 onBack={() => setIsOpen(false)}
@@ -260,7 +262,8 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                     />
                 </div>
                 <div className={styles.content} style={{
-                        maxHeight: 'calc(100% - 90px)',
+                        maxHeight: 'calc(100vh - 40px)',
+                        minHeight: 'calc(100vh - 40px)',
                     }}>
                     {isLargeScreen ? (
                         // Vista de tabla para pantallas grandes

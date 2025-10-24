@@ -2,6 +2,7 @@ import React from 'react';
 import AtajoAnuncio from '../common/AtajoAnuncio';
 import SalesCard from '../ui/SalesCard';
 import SalesChart from '../ui/SalesChart';
+import Version from '../common/Version';
 import almacenImage from '../../assets/almacen.png';
 import acopioImage from '../../assets/acopio.png';
 import movimientosImage from '../../assets/movimientos.png';
@@ -51,6 +52,9 @@ const InicioPC = ({ onViewOpen, sucuId = 1 }) => {
           <SalesChart sucuId={sucuId} />
         </div>
       </div>
+
+      {/* Componente de versión */}
+      <Version />
     </div>
   );
 };

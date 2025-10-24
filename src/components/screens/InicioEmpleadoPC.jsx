@@ -1,5 +1,6 @@
 import React from 'react';
 import { BoxIcon } from 'boxicons-react';
+import Version from '../common/Version';
 import './InicioPC.css';
 
 const InicioEmpleadoPC = ({ onViewOpen }) => {
@@ -16,6 +17,9 @@ const InicioEmpleadoPC = ({ onViewOpen }) => {
           Como empleado, no puedes ver los graficos o atajos de módulos en la pantalla de inicio usa el menú lateral para acceder a los módulos.
         </p>
       </div>
+
+      {/* Componente de versión */}
+      <Version />
     </div>
   );
 };

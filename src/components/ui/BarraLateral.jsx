@@ -62,8 +62,8 @@ const BarraLateral = ({
 
   // Función para abrir vistas
   const handleOpenView = (viewName, props = {}) => {
-    // Si es la misma vista pero con props diferentes, cerrar y volver a abrir
-    if (activeView === viewName && JSON.stringify(viewProps) !== JSON.stringify(props)) {
+    // Si es la misma vista (independientemente de props), cerrar y volver a abrir para recargar
+    if (activeView === viewName) {
       setActiveView(null);
       setViewProps({});
       // Usar setTimeout para asegurar que se cierre antes de abrir

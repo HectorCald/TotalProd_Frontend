@@ -218,8 +218,19 @@ const BarraLateralEmpleado = ({
 
   // Función para abrir vistas
   const handleOpenView = (viewName, props = {}) => {
-    setActiveView(viewName);
-    setViewProps(props);
+    // Si es la misma vista (independientemente de props), cerrar y volver a abrir para recargar
+    if (activeView === viewName) {
+      setActiveView(null);
+      setViewProps({});
+      // Usar setTimeout para asegurar que se cierre antes de abrir
+      setTimeout(() => {
+        setActiveView(viewName);
+        setViewProps(props);
+      }, 50);
+    } else {
+      setActiveView(viewName);
+      setViewProps(props);
+    }
   };
 
   // Función para cerrar vistas
