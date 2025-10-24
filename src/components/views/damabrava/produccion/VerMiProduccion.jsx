@@ -153,18 +153,16 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                     description="Responsable del registro"
                     transparent={false}
                 />
+                <p className={styles.subTitle}>INFORMACIÓN DE LA PRODUCCIÓN</p>
                 <ItemView
                     title={registro?.producto_almacen?.name || 'Sin producto'}
                     description={`Lote: ${registro?.lote || '0'}`}
                     description2={`Proceso: ${registro?.proceso === 'cernido' ? 'Cernido' : registro?.proceso === 'seleccionado' ? 'Seleccionado' : registro?.proceso === 'ninguno' ? 'Ninguno' : registro?.proceso}`}
                     transparent={false}
-                    circulo={false}
-                    flot6={
-                        registro?.estado === 'pendiente' ? 'Pendiente' : 
-                        registro?.estado === 'verificado' ? 'Verificado' : 
-                        registro?.estado === 'Ingresado' ? 'Ingresado' : 
-                        registro?.estado || ''
-                    }
+                    icon='package'
+                    flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
+                    flot2={registro?.estado === 'verificado' ? 'Verificado' : ''}
+                    flot5={registro?.estado === 'Ingresado' ? 'Ingresado' : ''}
                 />
 
                 {/* Información de producción */}
@@ -185,8 +183,8 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                         value={new Date(registro?.vencimiento).toLocaleDateString('es-ES', {
                             year: 'numeric',
                             month: '2-digit' // o 'long' si lo quieres con nombre: "octubre"
-                          })}
-                          
+                        })}
+
                         vertical={false}
                     />
                     <Dato
@@ -198,38 +196,44 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
 
                 {/* Información de verificación si existe */}
                 {registro?.fecha_verificado && (
-                    <div className={styles.content}>
-                        <Dato
-                            label="Fecha de Verificación"
-                            value={new Date(registro.fecha_verificado).toLocaleDateString()}
-                            vertical={false}
-                        />
+                    <>
+                        <p className={styles.subTitle}>INFORMACIÓN DE VERIFICACIÓN</p>
+                        <div className={styles.content}>
+                            <Dato
+                                label="Fecha de Verificación"
+                                value={new Date(registro.fecha_verificado).toLocaleDateString()}
+                                vertical={false}
+                            />
 
-                        <Dato
-                            label="Cantidad Verificada"
-                            value={`${registro.cantidad_verificada} unidades`}
-                            vertical={false}
-                            especial='blue'
-                        />
-                        <Dato
-                            label="Cantidad Ingresada"
-                            value={`${registro.cantidad_ingresada} unidades`}
-                            vertical={false}
-                            especial='green'
-                        />
+                            <Dato
+                                label="Cantidad Verificada"
+                                value={`${registro.cantidad_verificada} unidades`}
+                                vertical={false}
+                                especial='blue'
+                            />
+                            <Dato
+                                label="Cantidad Ingresada"
+                                value={`${registro.cantidad_ingresada} unidades`}
+                                vertical={false}
+                                especial='green'
+                            />
 
-                    </div>
+                        </div>
+                    </>
                 )}
 
                 {/* Observaciones del registro */}
                 {registro?.observaciones && (
-                    <div className={styles.content}>
-                        <Dato
-                            label="Observaciones"
-                            value={registro.observaciones}
-                            vertical={true}
-                        />
-                    </div>
+                    <>
+                        <p className={styles.subTitle}>OBSERVACIONES</p>
+                        <div className={styles.content}>
+                            <Dato
+                                label="Observaciones"
+                                value={registro.observaciones}
+                                vertical={true}
+                            />
+                        </div>
+                    </>
                 )}
             </div>
 

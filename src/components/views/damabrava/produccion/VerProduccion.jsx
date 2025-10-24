@@ -128,7 +128,18 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
             }
         } catch (error) {
             console.error('Error anulando verificación:', error);
-            mostrarNotificacion('error', 'Error al anular la verificación');
+            
+            // Manejar errores específicos de stock insuficiente
+            if (error.response?.data?.ingredientesConStockInsuficiente) {
+                const ingredientes = error.response.data.ingredientesConStockInsuficiente;
+                let mensajeError = 'Stock insuficiente de ingredientes:\n';
+                ingredientes.forEach(ing => {
+                    mensajeError += `• ${ing.nombre}: Necesitas ${ing.requerido}, tienes ${ing.stockActual} (faltan ${ing.requerido - ing.stockActual})\n`;
+                });
+                mostrarNotificacion('error', mensajeError);
+            } else {
+                mostrarNotificacion('error', error.message || 'Error al anular la verificación');
+            }
         } finally {
             setLoading(false);
         }
@@ -193,7 +204,18 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
             }
         } catch (error) {
             console.error('Error verificando registro:', error);
-            mostrarNotificacion('error', 'Error al verificar el registro');
+            
+            // Manejar errores específicos de stock insuficiente
+            if (error.response?.data?.ingredientesConStockInsuficiente) {
+                const ingredientes = error.response.data.ingredientesConStockInsuficiente;
+                let mensajeError = 'Stock insuficiente de ingredientes:\n';
+                ingredientes.forEach(ing => {
+                    mensajeError += `• ${ing.nombre}: Necesitas ${ing.requerido}, tienes ${ing.stockActual} (faltan ${ing.requerido - ing.stockActual})\n`;
+                });
+                mostrarNotificacion('error', mensajeError);
+            } else {
+                mostrarNotificacion('error', error.message || 'Error al verificar el registro');
+            }
         } finally {
             setLoading(false);
         }

@@ -56,8 +56,26 @@ function MiProduccion({ isOpen, setIsOpen }) {
             const response = await registrosProduccionDamabravaService.getByUser(page, 10, estado, orden, search);
                 
             if (response.success) {
-                setRegistros(response.data);
+                const newData = response.data || [];
+                setRegistros(newData);
                 setHasMorePages(response.pagination?.hasNextPage || false);
+
+                // Reemplazar o acumular SOLO después de que llega la data
+                if (page === 1) {
+                    // Si no llegó nada, limpiar; si llegó, reemplazar
+                    setAllRegistros(newData.length > 0 ? newData : []);
+                } else {
+                    // Paginación: acumular sin borrar lo anterior
+                    setAllRegistros(prev => {
+                        // Evitar duplicados por id
+                        const existingIds = new Set(prev.map(r => r.id));
+                        const merged = [...prev];
+                        newData.forEach(item => {
+                            if (!existingIds.has(item.id)) merged.push(item);
+                        });
+                        return merged;
+                    });
+                }
             } else {
                 setError(response);
             }
@@ -68,23 +86,6 @@ function MiProduccion({ isOpen, setIsOpen }) {
         }
     };
 
-    // Acumular datos de todas las páginas cuando llegan nuevos registros
-    useEffect(() => {
-        if (registros && registros.length > 0 && isOpen) {
-            if (currentPage === 1) {
-                // Si es la primera página, tomar todos los registros que vienen del servicio
-                setAllRegistros(registros);
-            } else {
-                // Si es una página posterior, acumular los datos
-                setAllRegistros(prevRegistros => {
-                    // Evitar duplicados por si acaso
-                    const existingIds = new Set(prevRegistros.map(r => r.id));
-                    const newRegistros = registros.filter(r => !existingIds.has(r.id));
-                    return [...prevRegistros, ...newRegistros];
-                });
-            }
-        }
-    }, [registros, currentPage, isOpen]);
 
     // Mostrar indicador cuando se ejecuta fetcher (cualquier cambio en isLoading)
     useEffect(() => {
@@ -113,12 +114,12 @@ function MiProduccion({ isOpen, setIsOpen }) {
         }
     }, [isOpen]);
 
-    // Cargar registros cuando cambian los parámetros
+    // Cargar registros cuando cambia la página (para paginación)
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && currentPage > 1) {
             cargarRegistros(currentPage, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
-    }, [currentPage, debouncedSearchQuery, filtroEstado, ordenamiento]);
+    }, [currentPage]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -222,6 +223,8 @@ function MiProduccion({ isOpen, setIsOpen }) {
         if (isOpen) {
             setAllRegistros([]);
             setCurrentPage(1);
+            // Cargar registros inmediatamente después de limpiar
+            cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
     }, [debouncedSearchQuery, filtroEstado, ordenamiento]);
 
