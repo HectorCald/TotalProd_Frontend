@@ -447,15 +447,15 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                     />
                 </div>
                 <Filtros options={opciones} />
-                <div
-                    className={styles.content}
-                    onScroll={!isLargeScreen ? handleScroll : undefined}
-                    style={{
-                        maxHeight: '100%'
-                    }}
-                >
+                
                     {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
+                        <div
+                        className={styles.content}
+                        onScroll={!isLargeScreen ? handleScroll : undefined}
+                        style={{
+                            maxHeight: '100%'
+                        }}
+                    >
                         <Table
                             headers={tableHeaders}
                             data={tableData}
@@ -476,6 +476,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                                 estado: '15%'
                             }}
                         />
+                        </div>
                     ) : (
                         // Vista de cards para pantallas pequeñas con PullToRefresh
                         <PullToRefresh
@@ -519,7 +520,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                     {isLoading && (
                         <LoadingSpinner />
                     )}
-                </div>
+               
             </div>
             
             {/* Modal de ver registro de producción */}

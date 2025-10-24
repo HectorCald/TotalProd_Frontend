@@ -19,7 +19,7 @@ import PullToRefresh from '../../../common/PullToRefresh';
 
 function MiProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
-    
+
     // Estados para los modales
     const [isOpenVerMiProduccion, setIsOpenVerMiProduccion] = useState(false);
     const [infoProduccion, setInfoProduccion] = useState(null);
@@ -28,15 +28,15 @@ function MiProduccion({ isOpen, setIsOpen }) {
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-    
+
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeRequests, setActiveRequests] = useState(0);
-    
+
     // Estado para acumular todos los registros de todas las páginas
     const [allRegistros, setAllRegistros] = useState([]);
-    
+
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
@@ -66,10 +66,10 @@ function MiProduccion({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-        
+
         try {
             const response = await registrosProduccionDamabravaService.getByUser(page, 10, estado, orden, search);
-                
+
             if (response.success) {
                 const newData = response.data || [];
                 setRegistros(newData);
@@ -173,7 +173,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
         // Limpiar estado acumulado y resetear página
         setAllRegistros([]);
         setCurrentPage(1);
-        
+
         // La función cargarRegistros ya maneja el RefreshIndicator
         await cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
     };
@@ -276,13 +276,13 @@ function MiProduccion({ isOpen, setIsOpen }) {
         id: registro.id,
         producto: registro.producto_almacen?.name || 'Sin producto',
         lote: registro.lote || '0',
-        proceso: registro.proceso === 'cernido' ? 'Cernido' : 
-                 registro.proceso === 'seleccionado' ? 'Seleccionado' : 
-                 registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso,
+        proceso: registro.proceso === 'cernido' ? 'Cernido' :
+            registro.proceso === 'seleccionado' ? 'Seleccionado' :
+                registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso,
         terminados: `${registro.terminados || '0'} ud`,
         fecha: new Date(registro.fecha).toLocaleDateString(),
-        estado: registro.estado === 'pendiente' ? 'Pendiente' : 
-                registro.estado === 'verificado' ? 'Verificado' : 
+        estado: registro.estado === 'pendiente' ? 'Pendiente' :
+            registro.estado === 'verificado' ? 'Verificado' :
                 registro.estado === 'Ingresado' ? 'Ingresado' : registro.estado
     }));
 
@@ -304,13 +304,13 @@ function MiProduccion({ isOpen, setIsOpen }) {
                     className: 'info' // azul
                 },
             };
-            
+
             return badgeConfig[estado] || {
                 text: estado,
                 className: 'default'
             };
         }
-        
+
         if (headerKey === 'proceso') {
             const proceso = item.proceso;
             const badgeConfig = {
@@ -327,19 +327,19 @@ function MiProduccion({ isOpen, setIsOpen }) {
                     className: 'info' // gris
                 },
             };
-            
+
             return badgeConfig[proceso] || {
                 text: proceso,
                 className: 'default'
             };
         }
-        
+
         return null;
     };
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-            <HeaderView 
+            <HeaderView
                 onBack={() => setIsOpen(false)}
                 showSearch={true}
                 searchPlaceholder="Buscar mis registros..."
@@ -358,15 +358,15 @@ function MiProduccion({ isOpen, setIsOpen }) {
                     />
                 </div>
                 <Filtros options={opciones} />
-                <div
-                    className={styles.content}
-                    onScroll={!isLargeScreen ? handleScroll : undefined}
-                    style={{
-                        maxHeight: '100%'
-                    }}
-                >
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
+
+                {isLargeScreen ? (
+                    <div
+                        className={styles.content}
+                        onScroll={!isLargeScreen ? handleScroll : undefined}
+                        style={{
+                            maxHeight: '100%'
+                        }}
+                    >
                         <Table
                             headers={tableHeaders}
                             data={tableData}
@@ -378,52 +378,53 @@ function MiProduccion({ isOpen, setIsOpen }) {
                             getCellBadge={getCellBadge}
                             onScroll={handleScroll}
                         />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas con PullToRefresh
-                        <PullToRefresh
-                            onRefresh={handleRefresh}
-                            screenName="Mi Producción"
-                            containerStyle={{
-                                maxHeight: '100%',
-                                minHeight: '100%'
-                            }}
-                            onScroll={handleScroll}
-                        >
-                            {allRegistros.length > 0 ? (
-                                allRegistros.map((registro, index) => {
-                                    return (
-                                        <ItemView
-                                            key={registro.id || index}
-                                            title={registro.producto_almacen?.name || 'Sin producto'}
-                                            description={`${registro.terminados || '0'} terminados • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
-                                            icon="package"
-                                            onClick={() => handleRegistro(registro)}
-                                            arrow={false}
-                                            flot1={registro?.estado === 'verificado' ? 'Verificado' : registro?.estado === 'Ingresado' ? 'Ingresado' : ''}  
-                                            flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
-                                            gris={true}
-                                        />
-                                    );
-                                })
-                            ) : (
-                                <NoData 
-                                    icon="file"
-                                    title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
-                                    detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
-                                    transparent={true}
-                                    minHeight="200px"
-                                />
-                            )}
-                        </PullToRefresh>
-                    )}
+                    </div>
+                ) : (
+                    // Vista de cards para pantallas pequeñas con PullToRefresh
+                    <PullToRefresh
+                        onRefresh={handleRefresh}
+                        screenName="Mi Producción"
+                        containerStyle={{
+                            maxHeight: '100%',
+                            minHeight: '100%'
+                        }}
+                        onScroll={handleScroll}
+                    >
+                        {allRegistros.length > 0 ? (
+                            allRegistros.map((registro, index) => {
+                                return (
+                                    <ItemView
+                                        key={registro.id || index}
+                                        title={registro.producto_almacen?.name || 'Sin producto'}
+                                        description={`${registro.terminados || '0'} terminados • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
+                                        icon="package"
+                                        onClick={() => handleRegistro(registro)}
+                                        arrow={false}
+                                        flot1={registro?.estado === 'verificado' ? 'Verificado' : registro?.estado === 'Ingresado' ? 'Ingresado' : ''}
+                                        flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
+                                        gris={true}
+                                    />
+                                );
+                            })
+                        ) : (
+                            <NoData
+                                icon="file"
+                                title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
+                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
+                                transparent={true}
+                                minHeight="200px"
+                            />
+                        )}
+                    </PullToRefresh>
+                )}
 
-                    {/* Indicador de carga para más elementos */}
-                    {isLoading && (
-                        <LoadingSpinner />
-                    )}
-                </div>
+                {/* Indicador de carga para más elementos */}
+                {isLoading && (
+                    <LoadingSpinner />
+                )}
+
             </div>
-            
+
             {/* Modal de ver registro de producción */}
             <VerMiProduccion
                 isOpen={isOpenVerMiProduccion}

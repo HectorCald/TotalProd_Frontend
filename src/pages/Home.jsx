@@ -19,6 +19,7 @@ import Personal from '../components/views/personal/Personal';
 import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
 import Pagos from '../components/views/pagos/Pagos';
+import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
 
 const Home = () => {
   const { isLargeScreen } = useLayout();
@@ -186,6 +187,10 @@ const Home = () => {
             isOpen={activeView === 'pagos'}
             setIsOpen={() => handleViewClose()}
           />
+          <MiProduccion
+            isOpen={activeView === 'miProduccion'}
+            setIsOpen={() => handleViewClose()}
+          />
         </div>
       ) : (
         <>
@@ -237,6 +242,10 @@ const Home = () => {
           />
           <PanelCotizaciones
             isOpen={activeView === 'cotizaciones'}
+            setIsOpen={() => handleViewClose()}
+          />
+          <MiProduccion
+            isOpen={activeView === 'miProduccion'}
             setIsOpen={() => handleViewClose()}
           />
         </>
