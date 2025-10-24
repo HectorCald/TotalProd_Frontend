@@ -2,9 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import styles from './View.module.css';
 import { useModalStack } from '../../context/ModalStackContext';
 import { useLayout } from '../../context/LayoutContext';
-import PullToRefresh from '../common/PullToRefresh';
 
-const View = ({ isOpen, setIsOpen, children, title, onBack, style, isMainView = false, isCart = false, onRefresh, screenName }) => {
+const View = ({ isOpen, setIsOpen, children, title, onBack, style, isMainView = false, isCart = false }) => {
     const { registerModal, unregisterModal, isLastModal, getOpenModalsCount } = useModalStack();
     const { isLargeScreen, sidebarCollapsed } = useLayout();
     const modalIdRef = useRef(null);
@@ -81,16 +80,7 @@ const View = ({ isOpen, setIsOpen, children, title, onBack, style, isMainView = 
                     className={getViewClasses()}
                     style={style}
                 >
-                    {onRefresh && !isLargeScreen ? (
-                        <PullToRefresh 
-                            onRefresh={onRefresh}
-                            screenName={screenName || 'pantalla'}
-                        >
-                            {children}
-                        </PullToRefresh>
-                    ) : (
-                        children
-                    )}
+                    {children}
                 </div>
             )}
         </>

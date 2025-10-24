@@ -15,6 +15,7 @@ import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
+import PullToRefresh from '../../common/PullToRefresh';
 
 
 function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccionado }) {
@@ -240,8 +241,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
             isOpen={isOpen} 
             setIsOpen={setIsOpen}
             isMainView={!modoSeleccion}
-            onRefresh={handleRefresh}
-            screenName="Clientes"
         >
             <HeaderView 
                 onBack={() => setIsOpen(false)}
@@ -261,12 +260,9 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                         isLoading={isRefreshing}
                     />
                 </div>
-                <div className={styles.content} style={{
-                        maxHeight: 'calc(100vh - 40px)',
-                        minHeight: 'calc(100vh - 40px)',
-                    }}>
-                    {isLargeScreen ? (
-                        // Vista de tabla para pantallas grandes
+                {isLargeScreen ? (
+                    // Vista de tabla para pantallas grandes
+                    <div className={styles.content}>
                         <Table
                             headers={tableHeaders}
                             data={tableData}
@@ -276,29 +272,40 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                                 handleCliente(clienteOriginal);
                             }}
                         />
-                    ) : (
-                        // Vista de cards para pantallas pequeñas
-                        clientesFiltrados.length > 0 ? (
-                            clientesFiltrados.map((cliente, index) => (
-                                <ItemView
-                                    key={cliente.id || index}
-                                    title={cliente.name || 'Sin nombre'}
-                                    description={cliente.description || 'Sin descripción'}
-                                    arrow={true}
-                                    onClick={() => handleCliente(cliente)}
+                    </div>
+                ) : (
+                    // Vista de cards para pantallas pequeñas con PullToRefresh
+                    <PullToRefresh 
+                        onRefresh={handleRefresh}
+                        screenName="Clientes"
+                    >
+                        <div className={styles.content} style={{
+                            maxHeight: 'calc(100vh - 50px)',
+                            minHeight: 'calc(100vh - 50px)',
+                            overflowY: 'auto'
+                        }}>
+                            {clientesFiltrados.length > 0 ? (
+                                clientesFiltrados.map((cliente, index) => (
+                                    <ItemView
+                                        key={cliente.id || index}
+                                        title={cliente.name || 'Sin nombre'}
+                                        description={cliente.description || 'Sin descripción'}
+                                        arrow={true}
+                                        onClick={() => handleCliente(cliente)}
+                                    />
+                                ))
+                            ) : (
+                                <NoData 
+                                    icon="user"
+                                    title={searchQuery ? 'Sin resultados' : 'No hay clientes'}
+                                    detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los clientes que necesitas' : 'Registra clientes para comenzar a gestionar tu base de datos de clientes'}
+                                    transparent={true}
+                                    minHeight="200px"
                                 />
-                            ))
-                        ) : (
-                            <NoData 
-                                icon="user"
-                                title={searchQuery ? 'Sin resultados' : 'No hay clientes'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los clientes que necesitas' : 'Registra clientes para comenzar a gestionar tu base de datos de clientes'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
-                        )
-                    )}
-                </div>
+                            )}
+                        </div>
+                    </PullToRefresh>
+                )}
                 <div className={styles.buttonFooter}>
                     <Boton
                         className='btn-original'

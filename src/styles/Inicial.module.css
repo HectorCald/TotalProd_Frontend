@@ -125,7 +125,7 @@
     padding: 10px 15px;
     background-color: var(--secondary-color);
     position: fixed !important;
-    bottom: 10px;
+    bottom: 0;
     left: 0;
     border-top: 1px solid var(--tertiary-color);
     gap: 10px;
