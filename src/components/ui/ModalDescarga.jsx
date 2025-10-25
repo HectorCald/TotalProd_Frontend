@@ -11,6 +11,7 @@ import * as XLSX from 'xlsx';
 import { pdf as pdfRenderer, Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
+import EmpresaImagenService from '../../services/empresaImagenService';
 
 function ModalDescarga({
     isOpen,
@@ -54,7 +55,7 @@ function ModalDescarga({
     const sucursal = isEmployee ? employeeSucursal : userSucursal;
 
     // Obtener la imagen de la empresa
-    const displayImage = empresaImage || currentUser?.logo_tipo;
+    const displayImage = empresaImage || currentUser?.logo_tipo || sucursal?.empresas?.logo_tipo;
 
     // Actualizar el estado cuando cambien las props
     useEffect(() => {
@@ -81,14 +82,56 @@ function ModalDescarga({
 
     // Cargar imagen de empresa al abrir el modal
     useEffect(() => {
-        if (isOpen && currentUser?.logo_tipo) {
-            setEmpresaImage(currentUser.logo_tipo);
-            // Convertir a base64 para usar en PDF
-            convertImageToBase64(currentUser.logo_tipo).then(base64 => {
-                setEmpresaImageBase64(base64);
-            });
-        }
-    }, [isOpen, currentUser]);
+        const loadEmpresaImage = async () => {
+            if (isOpen) {
+                try {
+                    // Para usuarios normales
+                    if (!isEmployee && currentUser?.logo_tipo) {
+                        setEmpresaImage(currentUser.logo_tipo);
+                        // Convertir a base64 para usar en PDF
+                        convertImageToBase64(currentUser.logo_tipo).then(base64 => {
+                            setEmpresaImageBase64(base64);
+                        });
+                        return;
+                    }
+                    
+                    // Para empleados
+                    if (isEmployee && sucursal?.empresas?.id) {
+                        // Primero intentar obtener de los datos ya cargados
+                        if (sucursal.empresas.logo_tipo) {
+                            setEmpresaImage(sucursal.empresas.logo_tipo);
+                            // Convertir a base64 para usar en PDF
+                            convertImageToBase64(sucursal.empresas.logo_tipo).then(base64 => {
+                                setEmpresaImageBase64(base64);
+                            });
+                            return;
+                        }
+                        
+                        // Si no está en los datos, hacer llamada al servicio
+                        const response = await EmpresaImagenService.getImage(sucursal.empresas.id);
+                        
+                        // Intentar diferentes propiedades de la respuesta
+                        const imageUrl = response.data?.imagen_url || 
+                                       response.data?.secure_url || 
+                                       response.data?.url ||
+                                       response.data?.image_url;
+                        
+                        if (response.success && imageUrl) {
+                            setEmpresaImage(imageUrl);
+                            // Convertir a base64 para usar en PDF
+                            convertImageToBase64(imageUrl).then(base64 => {
+                                setEmpresaImageBase64(base64);
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.log('Error cargando imagen de empresa:', error);
+                }
+            }
+        };
+        
+        loadEmpresaImage();
+    }, [isOpen, isEmployee, currentUser, sucursal?.empresas?.id, sucursal?.empresas?.logo_tipo]);
 
     // Función para manejar el cambio del nombre del archivo
     const handleNombreArchivoChange = (nuevoNombre) => {
@@ -912,7 +955,7 @@ function ModalDescarga({
                     </div>
 
                     {/* Solo mostrar switch de logos si la empresa tiene logo */}
-                    {currentUser?.logo_tipo && (
+                    {displayImage && (
                         <div className={styles.contentModal}>
                             <Switch
                                 title="Logos"
