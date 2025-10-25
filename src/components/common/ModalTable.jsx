@@ -3,7 +3,7 @@ import styles from './ModalTable.module.css';
 import HeaderModal from './HeaderModal';
 import Select from './Select';
 
-const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBadge = null, filters = {} }) => {
+const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBadge = null, filters = {}, columnWidths = {} }) => {
     // filters: { [columnIndex]: { value, onChange, options: [{value,label}] } }
     const [isVisible, setIsVisible] = useState(false);
 
@@ -42,7 +42,7 @@ const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBa
                             <thead>
                                 <tr>
                                     {headers.map((header, idx) => (
-                                        <th key={idx}>
+                                        <th key={idx} style={{ width: columnWidths[idx] || 'auto' }}>
                                             <div className={styles.filterHeader}>
                                                 <span>{header}</span>
                                                 {filters[idx] ? (
@@ -70,7 +70,7 @@ const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBa
                                             {(Array.isArray(row) ? row : headers.map((_, cIdx) => row?.[cIdx])).map((cell, cIdx) => {
                                                 const badge = typeof getCellBadge === 'function' ? getCellBadge(row, cIdx) : null;
                                                 return (
-                                                    <td key={cIdx}>
+                                                    <td key={cIdx} style={{ width: columnWidths[cIdx] || 'auto' }}>
                                                         {badge ? (
                                                             <span className={`${styles.cellBadge} ${badge.className ? styles[badge.className] : ''}`}>{badge.text}</span>
                                                         ) : (

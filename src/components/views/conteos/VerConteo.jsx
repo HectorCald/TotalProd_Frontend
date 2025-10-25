@@ -337,6 +337,19 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                     headers={conteo?.tipo === 'almacen' ? ['Producto','Sistema','Físico','Stock grup sist.','Stock grup fís.'] : ['Producto','Sistema','Físico','Medida','Justificación']}
                     rows={rowsMemo}
                     filters={filtersConfig}
+                    columnWidths={conteo?.tipo === 'almacen' ? {
+                        0: '25%', // Producto
+                        1: '15%', // Sistema
+                        2: '15%', // Físico
+                        3: '20%', // Stock grup sist.
+                        4: '20%'  // Stock grup fís.
+                    } : {
+                        0: '25%', // Producto
+                        1: '12%', // Sistema
+                        2: '12%', // Físico
+                        3: '10%', // Medida
+                        4: '40%'  // Justificación
+                    }}
                     getCellBadge={(row, cIdx) => {
                         const isAlmacen = conteo?.tipo === 'almacen';
                         if (Array.isArray(row)) {
