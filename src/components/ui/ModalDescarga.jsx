@@ -529,9 +529,9 @@ function ModalDescarga({
                             </View>
                         )}
                         
-                        {/* Logo FIJO en la esquina superior izquierda */}
+                        {/* Logo solo en la primera página (sin fixed) */}
                         {incluirLogos && empresaImageBase64 && (
-                            <View style={styles.logoContainer} fixed>
+                            <View style={styles.logoContainer}>
                                 <Image 
                                     src={empresaImageBase64} 
                                     style={styles.logoImage}

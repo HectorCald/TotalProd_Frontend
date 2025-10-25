@@ -18,6 +18,7 @@ import Boton from '../../common/Boton';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
 import { useNavigate } from 'react-router-dom';
+import EmpresaImagenService from '../../../services/empresaImagenService';
 import PlanInfo from './PlanInfo';
 import Comentarios from '../comentarios/Comentarios';
 import ImagenEmpresa from './ImagenEmpresa';
@@ -124,12 +125,44 @@ const Usuario = ({ isOpen, setIsOpen }) => {
         }
     }, []);
 
-    // Cargar imagen de empresa al abrir el componente
+    // Cargar imagen de empresa al abrir el componente (solo para usuarios normales)
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !isEmployee) {
             loadEmpresaImage();
         }
-    }, [isOpen]);
+    }, [isOpen, isEmployee]);
+    
+    // Cargar imagen de empresa para empleados
+    useEffect(() => {
+        const loadEmpresaImageForEmployee = async () => {
+            if (isEmployee && sucursal?.empresas?.id) {
+                try {
+                    // Primero intentar obtener de los datos ya cargados
+                    if (sucursal.empresas.logo_tipo) {
+                        setEmpresaImage(sucursal.empresas.logo_tipo);
+                        return;
+                    }
+                    
+                    // Si no está en los datos, hacer llamada al servicio
+                    const response = await EmpresaImagenService.getImage(sucursal.empresas.id);
+                    
+                    // Intentar diferentes propiedades de la respuesta
+                    const imageUrl = response.data?.imagen_url || 
+                                   response.data?.secure_url || 
+                                   response.data?.url ||
+                                   response.data?.image_url;
+                    
+                    if (response.success && imageUrl) {
+                        setEmpresaImage(imageUrl);
+                    }
+                } catch (error) {
+                    console.log('No hay imagen de empresa para empleado:', error);
+                }
+            }
+        };
+        
+        loadEmpresaImageForEmployee();
+    }, [isEmployee, sucursal?.empresas?.id, sucursal?.empresas?.logo_tipo]);
 
     const loadEmpresaImage = async () => {
         try {
@@ -162,7 +195,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const nombreEmpresa = sucursal?.empresas?.name || 'N/A';
     
     // Obtener la imagen a mostrar
-    const displayImage = empresaImage || currentUser.logo_tipo;
+    const displayImage = empresaImage || currentUser?.logo_tipo || sucursal?.empresas?.logo_tipo;
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
