@@ -318,14 +318,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         const descuento = parseFloat(movimientoActual?.descuento) || 0;
                         const aumento = parseFloat(movimientoActual?.aumento) || 0;
                         
-                        // Debug: mostrar valores en consola
-                        console.log('Debug VerMovimiento:', {
-                            descuento: movimientoActual?.descuento,
-                            descuentoParsed: descuento,
-                            aumento: movimientoActual?.aumento,
-                            aumentoParsed: aumento
-                        });
-                        
                         return (
                             <>
                                 {descuento > 0 && (

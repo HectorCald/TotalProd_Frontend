@@ -212,7 +212,7 @@ class pedidosAlmacenService {
   }
 
   // Actualizar estado del pedido
-  static async updateEstado(pedidoId, nuevoEstado, movimientoSalidaId = null, deudaId = null) {
+  static async updateEstado(pedidoId, nuevoEstado, movimientoSalidaId = null, deudaId = null, movimientoEntradaId = null) {
     try {
       const body = { estado: nuevoEstado };
       if (movimientoSalidaId) {
@@ -220,6 +220,9 @@ class pedidosAlmacenService {
       }
       if (deudaId) {
         body.deuda_id = deudaId;
+      }
+      if (movimientoEntradaId) {
+        body.movimiento_entrada_id = movimientoEntradaId;
       }
       
       const response = await fetch(`${API_BASE_URL}/pedidos-almacen/${pedidoId}/estado`, {

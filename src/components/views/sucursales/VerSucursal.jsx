@@ -82,6 +82,11 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
                         label="Fecha de creación"
                         value={sucursal?.created_at ? new Date(sucursal.created_at).toLocaleDateString('es-ES') : 'Sin fecha'}
                     />
+                    <Dato
+                        label="Total de Pedidos"
+                        value={sucursal?.total_pedidos !== undefined ? sucursal.total_pedidos.toString() : '0'}
+                        especial="blue"
+                    />
                 </div>
 
                 <div className={styles.buttons}>

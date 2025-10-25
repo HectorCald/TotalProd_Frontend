@@ -17,6 +17,7 @@ import ModalTable from '../../common/ModalTable';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import deudasService from '../../../services/deudasService';
+import VerMovimiento from '../movimientos/VerMovimiento';
 
 function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, onPedidoActualizado }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
@@ -27,6 +28,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [modoAlmacen, setModoAlmacen] = useState('pedido'); // 'pedido' o 'entregar'
+    const [isVerMovimientoOpen, setIsVerMovimientoOpen] = useState(false);
+    const [movimientoSalida, setMovimientoSalida] = useState(null);
+    const [loadingSalida, setLoadingSalida] = useState(false);
 
     // Estado local para el pedido actual
     const [pedidoActual, setPedidoActual] = useState(pedido);
@@ -60,6 +64,58 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         // Solo cerrar para ediciones de pedidos (modo 'pedido')
         if (modoAlmacen === 'pedido') {
             setIsAlmacenOpen(false);
+        }
+    };
+
+    // Función para ver el movimiento de salida del pedido
+    const handleVerSalida = async () => {
+        if (!pedidoActual?.movimiento_salida_id) {
+            mostrarNotificacion('error', 'No hay movimiento de salida asociado a este pedido');
+            return;
+        }
+
+        try {
+            setLoadingSalida(true);
+            
+            const response = await movimientosAlmacenService.getById(pedidoActual.movimiento_salida_id);
+            
+            if (response.success) {
+                setMovimientoSalida(response.data);
+                setIsVerMovimientoOpen(true);
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al obtener el movimiento de salida');
+            }
+        } catch (error) {
+            console.error('Error obteniendo movimiento de salida:', error);
+            mostrarNotificacion('error', 'Error al obtener el movimiento de salida');
+        } finally {
+            setLoadingSalida(false);
+        }
+    };
+
+    // Función para ver el movimiento de entrada del pedido
+    const handleVerEntrada = async () => {
+        if (!pedidoActual?.movimiento_entrada_id) {
+            mostrarNotificacion('error', 'No hay movimiento de entrada asociado a este pedido');
+            return;
+        }
+
+        try {
+            setLoadingSalida(true);
+            
+            const response = await movimientosAlmacenService.getById(pedidoActual.movimiento_entrada_id);
+            
+            if (response.success) {
+                setMovimientoSalida(response.data);
+                setIsVerMovimientoOpen(true);
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al obtener el movimiento de entrada');
+            }
+        } catch (error) {
+            console.error('Error obteniendo movimiento de entrada:', error);
+            mostrarNotificacion('error', 'Error al obtener el movimiento de entrada');
+        } finally {
+            setLoadingSalida(false);
         }
     };
     // Función para eliminar pedido
@@ -296,7 +352,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             // Crear el movimiento de entrada usando el MVC de movimientos
             const movimientoData = {
                 type: 'entrada',
-                observaciones: `Ingreso automático del pedido #${pedidoActual.id?.slice(-8) || 'N/A'}`,
+                observaciones: `Ingreso automático del pedido Nº ${pedidoActual.numero_pedido || 'N/A'}`,
                 productos: productosParaIngreso,
                 precio_id: pedidoActual.precio_id
             };
@@ -305,7 +361,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
             if (movimientoResponse.success) {
                 // Actualizar el estado del pedido a Completado y registrar el movimiento de entrada
-                const estadoResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, 'Completado', movimientoResponse.data.id);
+                const estadoResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, 'Completado', null, null, movimientoResponse.data.id);
 
                 if (estadoResponse.success) {
                     mostrarNotificacion('success', 'Pedido ingresado correctamente');
@@ -546,11 +602,12 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         value={pedidoActual.agrupado ? 'Agrupado' : 'Unidades'}
                         vertical={false}
                     />
-                    {pedidoActual.sucursal?.total_pedidos !== undefined && (
+                    {pedidoActual.numero_pedido !== undefined && pedidoActual.numero_pedido !== null && (
                         <Dato
-                            label="Total de Pedidos de la Sucursal"
-                            value={pedidoActual.sucursal.total_pedidos.toString()}
+                            label="Número de Pedido"
+                            value={`Nº ${pedidoActual.numero_pedido}`}
                             vertical={false}
+                            especial="blue"
                         />
                     )}
                     <Dato
@@ -586,6 +643,27 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         onClick={() => setIsProductosOpen(true)}
                     />
                 )}
+
+                {/* Botones para ver movimientos del pedido */}
+                {/* Mostrar botón de salida si la sucursal actual es la que hizo la salida (sucursal_destino_id) */}
+                {pedidoActual?.movimiento_salida_id && pedidoActual.sucursal_destino_id === sucursalActual?.id && (
+                    <Boton
+                        className='btn-gray'
+                        label='Ver Registro de Salida'
+                        onClick={handleVerSalida}
+                        loading={loadingSalida}
+                    />
+                )}
+                
+                {/* Mostrar botón de entrada si la sucursal actual es la que hizo la entrada (sucursal_id) */}
+                {pedidoActual?.movimiento_entrada_id && pedidoActual.sucursal_id === sucursalActual?.id && (
+                    <Boton
+                        className='btn-gray'
+                        label='Ver Registro de Entrada'
+                        onClick={handleVerEntrada}
+                        loading={loadingSalida}
+                    />
+                )}
                 {pedidoActual.observaciones && (
                     <>
                         <p className={styles.subTitle}>OBSERVACIONES</p>
@@ -604,6 +682,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                             className='btn-red'
                             label='Eliminar Pedido'
                             onClick={() => setIsEliminarOpen(true)}
+                            disabled={loadingSalida}
                         />
                     )}
                     {puedeEditarPedido() && (
@@ -611,6 +690,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                             className='btn-default'
                             label='Editar Pedido'
                             onClick={handleEditarPedido}
+                            disabled={loadingSalida}
                         />
                     )}
                     {puedeEntregarPedido() && (
@@ -618,6 +698,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                             className='btn-default'
                             label='Entregar Pedido'
                             onClick={handleEntregarPedido}
+                            disabled={loadingSalida}
                         />
                     )}
                     {puedeCancelarEntrega() && (
@@ -626,6 +707,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                             label='Cancelar Entrega'
                             onClick={handleCancelarEntrega}
                             loading={loading}
+                            disabled={loadingSalida}
                         />
                     )}
                     {puedeIngresarPedido() && (
@@ -634,6 +716,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                             label={sucursalActual?.almacen_sucursal_id ? 'Finalizar Pedido' : 'Ingresar Pedido'}
                             onClick={handleIngresarPedido}
                             loading={loading}
+                            disabled={loadingSalida}
                         />
                     )}
                 </div>
@@ -707,7 +790,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 pedidoData={pedidoActual}
                 tipo="almacen"
                 nombreArchivoDefault={localStorage.getItem('nombreArchivoPedidos') || `Pedido_Almacen_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`}
-                tituloDocumentoDefault={localStorage.getItem('tituloDocumentoPedidos') || `Pedido de Almacén #${pedidoActual?.id?.slice(-8) || ''}`}
+                tituloDocumentoDefault={localStorage.getItem('tituloDocumentoPedidos') || `Pedido de Almacén Nº ${pedidoActual?.numero_pedido || ''}`}
                 esPedido={true}
             />
 
@@ -755,6 +838,15 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 onEntregaConfirmada={modoAlmacen === 'entregar' ? handleEntregaConfirmada : null}
                 pedidoIdEditando={modoAlmacen === 'pedido' ? pedidoActual?.id : null}
             />
+
+            {/* Modal de VerMovimiento para mostrar el movimiento de salida */}
+            {movimientoSalida && (
+                <VerMovimiento
+                    isOpen={isVerMovimientoOpen}
+                    setIsOpen={setIsVerMovimientoOpen}
+                    movimiento={movimientoSalida}
+                />
+            )}
         </View>
     );
 }

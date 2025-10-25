@@ -473,6 +473,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             let movimientoId = null;
 
             // 1) Si es entrega: actualizar pedido primero
+            let numeroPedido = null;
             if (esEntrega) {
                 pedidoId = localStorage.getItem('pedidoIdEntregando');
                 if (!pedidoId) {
@@ -489,6 +490,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 };
                 pedidoActualizado = await pedidosAlmacenService.update(pedidoId, pedidoData);
 
+                // Obtener el numero_pedido del pedido actualizado
+                if (pedidoActualizado?.data?.numero_pedido !== undefined) {
+                    numeroPedido = pedidoActualizado.data.numero_pedido;
+                }
+
                 // Notificar al componente padre sobre la actualización del pedido
                 if (onPedidoActualizado && pedidoActualizado?.data) {
                     onPedidoActualizado(pedidoActualizado.data);
@@ -499,8 +505,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             // 2) Crear o actualizar movimiento de salida
             const observacionesFinales = esEntrega
                 ? (observacionesGenerales
-                    ? `Entrega del pedido #${pedidoId?.slice(-8) || 'N/A'} - ${observacionesGenerales}`
-                    : `Entrega del pedido #${pedidoId?.slice(-8) || 'N/A'}`)
+                    ? `Entrega del pedido Nº ${numeroPedido || 'N/A'} - ${observacionesGenerales}`
+                    : `Entrega del pedido Nº ${numeroPedido || 'N/A'}`)
                 : (observacionesGenerales || null);
 
             // Crear nuevo movimiento
@@ -549,7 +555,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         // Si es entrega, usar datos del pedido
                         if (esEntrega) {
                             const sucursalOrigenName = localStorage.getItem('pedidoDestinoSucursalName');
-                            concepto = sucursalOrigenName ? `Pedido - ${sucursalOrigenName}` : 'Pedido';
+                            concepto = sucursalOrigenName ? `Pedido Nº ${numeroPedido || 'N/A'} - ${sucursalOrigenName}` : `Pedido Nº ${numeroPedido || 'N/A'}`;
                             destinoSucursalId = localStorage.getItem('pedidoDestinoSucursalId');
                         }
 
@@ -827,7 +833,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                     </div>
                                     <div className={styles.horizontal}>
                                         <InputNormal
-                                            placeholder="Descuento (Bs.)"
+                                            placeholder="Descuento"
                                             tipo="number"
                                             step="0.01" min="0"
                                             value={descuento}
@@ -835,7 +841,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                             icon='trending-down'
                                         />
                                         <InputNormal
-                                            placeholder="Aumento (Bs.)"
+                                            placeholder="Aumento"
                                             tipo="number"
                                             step="0.01" min="0"
                                             value={aumento}

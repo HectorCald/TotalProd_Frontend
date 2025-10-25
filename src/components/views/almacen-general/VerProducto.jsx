@@ -24,6 +24,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
     const [loading, setLoading] = useState(false);
     const [movimientos, setMovimientos] = useState([]);
     const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
+    const [movimientosLoaded, setMovimientosLoaded] = useState(false);
 
     // Estado local para el producto actual
     const [productoActual, setProductoActual] = useState(registro);
@@ -89,6 +90,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         // Limitar a los últimos 10 movimientos
         const limitedMovements = (data || []).slice(0, 10);
         setMovimientos(limitedMovements);
+        setMovimientosLoaded(true);
     }, []);
 
     // Función para manejar la actualización del producto localmente
@@ -246,8 +248,11 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 {/* Botón para ver movimientos - siempre visible */}
                 <Boton
                     className='btn-gray'
-                    label={`Movimientos (${movimientos.length})`}
-                    onClick={() => setIsMovimientosOpen(true)}
+                    label='Movimientos'
+                    onClick={() => {
+                        setIsMovimientosOpen(true);
+                        setMovimientosLoaded(false); // Reset para cargar movimientos
+                    }}
                 />
                 <div className={styles.buttons}>
                     <Boton
@@ -322,6 +327,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                     <div className={styles.content}>
                                         {productoActual.recetas[0].recetas_detalle.map((detalle, index) => (
                                             <Dato
+                                                key={detalle.id || index}
                                                 label={detalle.products_acopio?.name || 'Producto desconocido'}
                                                 value={`${detalle.cantidad} ${detalle.products_acopio?.type_measure?.code || ''}`}
                                             />
@@ -360,12 +366,24 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                     {groupMovements.map((movimiento, index) => {
                                         // Para movimientos de almacén, obtener la cantidad del producto específico
                                         const productoMovimiento = movimiento.productos?.find(p => p.producto?.id === productoActual?.id);
-                                        const cantidad = productoMovimiento?.cantidad || 0;
+                                        const cantidad = parseFloat(productoMovimiento?.cantidad) || 0;
+                                        const grup = parseFloat(productoMovimiento?.producto?.grup) || 0;
+                                        const esAgrupado = movimiento?.agrupado && grup > 0;
+
+
+                                        let cantidadTexto;
+                                        if (esAgrupado) {
+                                            const grupos = Math.floor(cantidad / grup);
+                                            const unidades = cantidad % grup;
+                                            cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+                                        } else {
+                                            cantidadTexto = `${cantidad} ud`;
+                                        }
 
                                         return (
                                             <ItemView
                                                 key={`${movimiento.id}-${index}`}
-                                                title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${cantidad} ud`}
+                                                title={`${movimiento.type === 'entrada' ? 'Entrada' : 'Salida'} - ${cantidadTexto}`}
                                                 description={
                                                     <div>
                                                         <div>{movimiento.observaciones || 'Sin observaciones'}</div>
@@ -432,14 +450,14 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 text={notification.text}
             />
 
-            {/* Carga de movimientos - solo cuando está abierto y hay productoActual */}
-            {isOpen && productoActual?.id && (
+            {/* Carga de movimientos - solo cuando se abre el modal de movimientos y no se han cargado */}
+            {isMovimientosOpen && productoActual?.id && !movimientosLoaded && (
                 <FetchData
                     service={movimientosAlmacenService}
                     serviceName="movimientosAlmacenService"
                     method="getByProduct"
                     methodParams={[productoActual.id]}
-                    isOpen={isOpen}
+                    isOpen={isMovimientosOpen}
                     onDataLoaded={handleMovimientosLoaded}
                     onLoadingStart={() => setLoadingMovimientosList(true)}
                     onLoadingEnd={() => setLoadingMovimientosList(false)}

@@ -24,7 +24,7 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         const infoSup = {
                             'Solicitante': pedido?.user?.name || pedido?.personal?.name || 'Usuario desconocido',
                             'Sucursal': nombreSucursal,
-                            'Número de Pedido': `#${pedido.id.slice(-8)}`,
+                            'Número de Pedido': pedido.numero_pedido ? `Nº ${pedido.numero_pedido}` : `#${pedido.id.slice(-8)}`,
                             'Fecha': new Date(pedido.fecha || pedido.created_at).toLocaleString(),
                             'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'
                         };
@@ -52,7 +52,7 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         const infoSup = {
                             'Solicitante': pedido?.user?.name || pedido?.personal?.name || 'Usuario desconocido',
                             'Sucursal': nombreSucursal,
-                            'Número de Pedido': `#${pedido.id.slice(-8)}`,
+                            'Número de Pedido': pedido.numero_pedido ? `Nº ${pedido.numero_pedido}` : `#${pedido.id.slice(-8)}`,
                             'Fecha': new Date(pedido.fecha || pedido.created_at).toLocaleString(),
                             'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'
                         };
@@ -133,7 +133,7 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         const infoSup = {
                             'Solicitante': pedido?.user?.name || pedido?.personal?.name || 'Usuario desconocido',
                             'Sucursal': nombreSucursal,
-                            'Número de Pedido': `#${pedido.id.slice(-8)}`,
+                            'Número de Pedido': pedido.numero_pedido ? `Nº ${pedido.numero_pedido}` : `#${pedido.id.slice(-8)}`,
                             'Fecha': new Date(pedido.fecha || pedido.created_at).toLocaleString(),
                             'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'
                         };
@@ -162,7 +162,7 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                         const infoSup = {
                             'Solicitante': pedido?.user?.name || pedido?.personal?.name || 'Usuario desconocido',
                             'Sucursal': nombreSucursal,
-                            'Número de Pedido': `#${pedido.id.slice(-8)}`,
+                            'Número de Pedido': pedido.numero_pedido ? `Nº ${pedido.numero_pedido}` : `#${pedido.id.slice(-8)}`,
                             'Fecha': new Date(pedido.fecha || pedido.created_at).toLocaleString(),
                             'Estado': pedido.estado === 'Completado' ? 'Completado' : pedido.estado === 'Cancelado' ? 'Cancelado' : pedido.estado === 'Entregado' ? 'Entregado' : 'Pendiente'
                         };

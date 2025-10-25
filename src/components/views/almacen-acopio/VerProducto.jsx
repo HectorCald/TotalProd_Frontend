@@ -25,6 +25,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
     const [loading, setLoading] = useState(false);
     const [movimientos, setMovimientos] = useState([]);
     const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
+    const [movimientosLoaded, setMovimientosLoaded] = useState(false);
 
     // Estado local para el producto actual
     const [productoActual, setProductoActual] = useState(registro);
@@ -88,6 +89,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         // Limitar a los últimos 10 movimientos
         const limitedMovements = (data || []).slice(0, 10);
         setMovimientos(limitedMovements);
+        setMovimientosLoaded(true);
     }, []);
 
     // Función para manejar la actualización del producto localmente
@@ -217,8 +219,11 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 {/* Botón para ver movimientos - siempre visible */}
                 <Boton
                     className='btn-gray'
-                    label={`Movimientos (${movimientos.length})`}
-                    onClick={() => setIsMovimientosOpen(true)}
+                    label='Movimientos'
+                    onClick={() => {
+                        setIsMovimientosOpen(true);
+                        setMovimientosLoaded(false); // Reset para cargar movimientos
+                    }}
                 />
 
                 <div className={styles.buttons}>
@@ -364,14 +369,14 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                 text={notification.text}
             />
 
-            {/* Carga de movimientos - solo cuando está abierto y hay productoActual */}
-            {isOpen && productoActual?.id && (
+            {/* Carga de movimientos - solo cuando se abre el modal de movimientos y no se han cargado */}
+            {isMovimientosOpen && productoActual?.id && !movimientosLoaded && (
                 <FetchData
                     service={movimientosAcopioService}
                     serviceName="movimientosAcopioService"
                     method="getByProduct"
                     methodParams={[productoActual.id]}
-                    isOpen={isOpen}
+                    isOpen={isMovimientosOpen}
                     onDataLoaded={handleMovimientosLoaded}
                     onLoadingStart={() => setLoadingMovimientosList(true)}
                     onLoadingEnd={() => setLoadingMovimientosList(false)}

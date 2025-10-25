@@ -388,6 +388,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         { key: 'estado', label: 'Estado', icon: 'check-circle' },
         { key: 'cantidad', label: 'Cantidad', icon: 'calculator' }
     ] : [
+        { key: 'numero_pedido', label: 'Nº', icon: 'hash' },
         { key: 'sucursal', label: 'Sucursal', icon: 'store' },
         { key: 'usuario', label: 'Usuario', icon: 'user' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
@@ -416,6 +417,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         } else {
             return {
                 id: pedido.id,
+                numero_pedido: pedido.numero_pedido !== undefined && pedido.numero_pedido !== null ? `${pedido.numero_pedido}` : '0',
                 sucursal: pedido.sucursal?.name || 'Sucursal desconocida',
                 usuario: pedido.user?.name || pedido.personal?.name || 'Usuario desconocido',
                 fecha: new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
@@ -474,6 +476,15 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                             }}
                             getCellBadge={getCellBadge}
                             onScroll={handleScroll}
+                            columnWidths={{
+                                numero_pedido: '3%',
+                                sucursal: '20%',
+                                usuario: '15%',
+                                fecha: '15%',
+                                estado: '10%',
+                                cliente: '15%',
+                                observaciones: '15%'
+                            }}
                         />
                     </div>
                 ) : (
