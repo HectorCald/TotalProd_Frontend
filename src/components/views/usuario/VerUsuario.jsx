@@ -8,7 +8,6 @@ import ImagenEmpresa from './ImagenEmpresa';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
 import { useState, useEffect } from 'react';
-import EmpresaImagenService from '../../../services/empresaImagenService';
 
 function VerUsuario({ isOpen, setIsOpen }) {
     const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
@@ -19,50 +18,17 @@ function VerUsuario({ isOpen, setIsOpen }) {
         text: ''
     });
     const [isOpenImagenEmpresa, setIsOpenImagenEmpresa] = useState(false);
-    const [empresaImage, setEmpresaImage] = useState(null);
 
     // Determinar si es usuario normal o empleado
     const isEmployee = !!employeeInfo;
     const usuario = isEmployee ? employeeInfo : userInfo;
     const sucursal = isEmployee ? employeeSucursal : userSucursal;
-    
-    // Cargar imagen de empresa para empleados
-    useEffect(() => {
-        const loadEmpresaImage = async () => {
-            if (isEmployee && sucursal?.empresas?.id) {
-                try {
-                    // Primero intentar obtener de los datos ya cargados
-                    if (sucursal.empresas.logo_tipo) {
-                        setEmpresaImage(sucursal.empresas.logo_tipo);
-                        return;
-                    }
-                    
-                    // Si no está en los datos, hacer llamada al servicio
-                    const response = await EmpresaImagenService.getImage(sucursal.empresas.id);
-                    
-                    // Intentar diferentes propiedades de la respuesta
-                    const imageUrl = response.data?.imagen_url || 
-                                   response.data?.secure_url || 
-                                   response.data?.url ||
-                                   response.data?.image_url;
-                    
-                    if (response.success && imageUrl) {
-                        setEmpresaImage(imageUrl);
-                    }
-                } catch (error) {
-                    console.log('No hay imagen de empresa para empleado:', error);
-                }
-            }
-        };
-        
-        loadEmpresaImage();
-    }, [isEmployee, sucursal?.empresas?.id, sucursal?.empresas?.logo_tipo]);
 
     // Obtener nombre de la empresa
     const nombreEmpresa = sucursal?.empresas?.name || 'N/A';
     
-    // Obtener la imagen a mostrar
-    const displayImage = empresaImage || usuario?.logo_tipo || sucursal?.empresas?.logo_tipo;
+    // Obtener la imagen a mostrar - usar directamente del contexto
+    const displayImage = usuario?.logo_tipo || sucursal?.empresas?.logo_tipo;
     
     
     // Función para manejar la edición de imagen
@@ -71,8 +37,6 @@ function VerUsuario({ isOpen, setIsOpen }) {
     };
     
     const handleImageChange = (newImage, type, message) => {
-        setEmpresaImage(newImage);
-        
         // Mostrar notificación si se proporciona
         if (type && message) {
             mostrarNotificacion(type, message);
@@ -190,7 +154,7 @@ function VerUsuario({ isOpen, setIsOpen }) {
             <ImagenEmpresa 
                 isOpen={isOpenImagenEmpresa} 
                 setIsOpen={setIsOpenImagenEmpresa}
-                currentImage={empresaImage || usuario?.logo_tipo}
+                currentImage={displayImage}
                 onImageChange={handleImageChange}
                 empresaId={sucursal?.empresas?.id}
             />

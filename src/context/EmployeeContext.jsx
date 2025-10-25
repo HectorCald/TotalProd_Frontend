@@ -95,6 +95,38 @@ export const EmployeeProvider = ({ children }) => {
           if (sucursalData.success) {
             setSucursalSeleccionada(sucursalData.data);
             localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursalData.data));
+            
+            // Si la sucursal tiene empresa pero no tiene logo_tipo, cargar la imagen
+            if (sucursalData.data.empresas && sucursalData.data.empresas.id && !sucursalData.data.empresas.logo_tipo) {
+              try {
+                console.log('🔄 EmployeeContext: Cargando imagen de empresa para empleado');
+                const EmpresaImagenService = (await import('../services/empresaImagenService')).default;
+                const imageResponse = await EmpresaImagenService.getImage(sucursalData.data.empresas.id);
+                
+                if (imageResponse.success) {
+                  const imageUrl = imageResponse.data?.imagen_url || 
+                                 imageResponse.data?.secure_url || 
+                                 imageResponse.data?.url ||
+                                 imageResponse.data?.image_url;
+                  
+                  if (imageUrl) {
+                    console.log('✅ EmployeeContext: Imagen cargada y guardada en contexto');
+                    // Actualizar la sucursal con la imagen
+                    const updatedSucursal = {
+                      ...sucursalData.data,
+                      empresas: {
+                        ...sucursalData.data.empresas,
+                        logo_tipo: imageUrl
+                      }
+                    };
+                    setSucursalSeleccionada(updatedSucursal);
+                    localStorage.setItem('sucursalSeleccionada', JSON.stringify(updatedSucursal));
+                  }
+                }
+              } catch (error) {
+                console.log('❌ EmployeeContext: No se pudo cargar la imagen de la empresa:', error);
+              }
+            }
           }
         }
         
@@ -138,6 +170,20 @@ export const EmployeeProvider = ({ children }) => {
     });
   };
 
+  // Función para actualizar la imagen de empresa en la sucursal
+  const updateSucursalEmpresaImage = (newImage) => {
+    setSucursalSeleccionada(prevSucursal => {
+      if (!prevSucursal) return prevSucursal;
+      return {
+        ...prevSucursal,
+        empresas: {
+          ...prevSucursal.empresas,
+          logo_tipo: newImage
+        }
+      };
+    });
+  };
+
   const value = {
     employee,
     sucursalSeleccionada,
@@ -146,7 +192,8 @@ export const EmployeeProvider = ({ children }) => {
     clearEmployee,
     seleccionarSucursal,
     loadEmployeeData,
-    updateEmpresaImage
+    updateEmpresaImage,
+    updateSucursalEmpresaImage
   };
 
   return (
