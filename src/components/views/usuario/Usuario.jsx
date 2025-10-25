@@ -4,7 +4,6 @@ import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemLine from '../../common/ItemLine';
 import ItemView from '../../common/ItemView';
-import PieIcons from '../../common/PieIcons';
 import Version from '../../common/Version';
 
 import CambiarContraseña from './CambiarContraseña';
@@ -21,7 +20,8 @@ import { useEmployee } from '../../../context/EmployeeContext';
 import { useNavigate } from 'react-router-dom';
 import PlanInfo from './PlanInfo';
 import Comentarios from '../comentarios/Comentarios';
-
+import ImagenEmpresa from './ImagenEmpresa';
+import Notification from '../../common/Notification';
 
 const Usuario = ({ isOpen, setIsOpen }) => {
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
@@ -30,8 +30,12 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const [isOpenPlan, setIsOpenPlan] = useState(false);
     const [isOpenCodigoPromocional, setIsOpenCodigoPromocional] = useState(false);
     const [isOpenComentarios, setIsOpenComentarios] = useState(false);
-    const [ejemploChecked, setEjemploChecked] = useState(false);
+    const [isOpenImagenEmpresa, setIsOpenImagenEmpresa] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
+    const [empresaImage, setEmpresaImage] = useState(null);
+    const [loadingImage, setLoadingImage] = useState(false);
+    const [notification, setNotification] = useState({ isVisible: false, type: 'success', text: '' });
+    
     const handleClose = () => {
         setIsOpen(false);
     };
@@ -39,21 +43,52 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const handleCambiarContraseña = () => {
         setIsOpenCambiarContraseña(true);
     };
-    const handleApariencia = () => {
-        setIsOpenApariencia(true);
-    };
+    
     const handlePlan = () => {
         setIsOpenPlan(true);
     };
+    
     const handleCodigoPromocional = () => {
         setIsOpenCodigoPromocional(true);
     };
+    
     const handleComentarios = () => {
         setIsOpenComentarios(true);
     };
+    
+    const handleImagenEmpresa = () => {
+        setIsOpenImagenEmpresa(true);
+    };
+    
+    const handleImageChange = (newImage, type, message) => {
+        setEmpresaImage(newImage);
+        // Recargar la imagen del servidor para asegurar sincronización
+        loadEmpresaImage();
+        
+        // Mostrar notificación si se proporciona
+        if (type && message) {
+            mostrarNotificacion(type, message);
+        }
+    };
+
+    // Función para mostrar notificaciones
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        // Auto-ocultar después de 3 segundos
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
+    
     const handleLogout = () => {
         setIsLogoutOpen(true);
     };
+    
     const { user: userInfo, clearUser, sucursalSeleccionada: userSucursal } = useUser();
     const { employee: employeeInfo, clearEmployee, sucursalSeleccionada: employeeSucursal } = useEmployee();
     const navigate = useNavigate();
@@ -75,7 +110,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
         applyTheme(isDark ? 'dark' : 'light');
     };
 
-
     // Cargar tema guardado al iniciar
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme');
@@ -88,8 +122,31 @@ const Usuario = ({ isOpen, setIsOpen }) => {
             setIsDarkMode(true);
             applyTheme('dark');
         }
-
     }, []);
+
+    // Cargar imagen de empresa al abrir el componente
+    useEffect(() => {
+        if (isOpen) {
+            loadEmpresaImage();
+        }
+    }, [isOpen]);
+
+    const loadEmpresaImage = async () => {
+        try {
+            setLoadingImage(true);
+            // Solo obtener la URL directamente del usuario
+            if (currentUser?.logo_tipo) {
+                setEmpresaImage(currentUser.logo_tipo);
+            } else {
+                setEmpresaImage(null);
+            }
+        } catch (error) {
+            console.log('No hay imagen de empresa:', error);
+            setEmpresaImage(null);
+        } finally {
+            setLoadingImage(false);
+        }
+    };
 
     // Si no hay usuario ni empleado cargado, no renderizar nada
     if (!currentUser) {
@@ -103,14 +160,15 @@ const Usuario = ({ isOpen, setIsOpen }) => {
 
     // Obtener nombre de la empresa
     const nombreEmpresa = sucursal?.empresas?.name || 'N/A';
+    
+    // Obtener la imagen a mostrar
+    const displayImage = empresaImage || currentUser.logo_tipo;
 
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen} >
+        <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={handleClose} title={isEmployee ? 'Perfil de Empleado' : 'Perfil'} />
             
-            
             <div className={styles.container}>
-
                 {/* Información del usuario usando ItemView */}
                 <div className={styles.content} style={{ padding: '10px', gap: '10px' }}>
                     <ItemView
@@ -120,6 +178,22 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         circulo={true}
                         transparent={false}
                         style={{ padding: '0px', minHeight: 'auto'}}
+                        button={!isEmployee}
+                        onButtonClick={!isEmployee ? handleImagenEmpresa : undefined}
+                        customIcon={displayImage ? (
+                            <div 
+                                style={{ 
+                                    width: '50px',
+                                    height: '50px',
+                                    borderRadius: '10px',
+                                    backgroundImage: `url(${displayImage})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    backgroundRepeat: 'no-repeat'
+                                }}
+                            />
+                        ) : undefined}
+                        icon={displayImage ? undefined : 'building'}
                     />
                     <Boton
                         className='btn-default'
@@ -187,6 +261,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                 </div>
                 <Version />
             </div>
+            
             {isEmployee ? (
                 <CambiarContraseñaEmpleado isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} />
             ) : (
@@ -195,6 +270,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
             <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
             <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
             <Comentarios isOpen={isOpenComentarios} setIsOpen={setIsOpenComentarios} />
+            
             {/* Modal de logout*/}
             <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>
                 <HeaderModal
@@ -229,7 +305,21 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                     </div>
                 </div>
             </ViewModal>
+            
             {!isEmployee && <PlanInfo isOpen={isOpenPlan} setIsOpen={setIsOpenPlan} />}
+            <ImagenEmpresa 
+                isOpen={isOpenImagenEmpresa} 
+                setIsOpen={setIsOpenImagenEmpresa}
+                currentImage={empresaImage}
+                onImageChange={handleImageChange}
+                empresaId={sucursal?.empresas?.id}
+            />
+            
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
         </View>
     );
 };

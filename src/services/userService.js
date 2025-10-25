@@ -106,10 +106,12 @@ class UserService {
   // Obtener información del usuario logueado
   static async getCurrentUser(id) {
     try {
+      const token = this.getToken();
       const response = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
       });
 

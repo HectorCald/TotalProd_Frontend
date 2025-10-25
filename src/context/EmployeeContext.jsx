@@ -127,6 +127,17 @@ export const EmployeeProvider = ({ children }) => {
     }
   };
 
+  // Función para actualizar la imagen de empresa
+  const updateEmpresaImage = (newImage) => {
+    setEmployee(prevEmployee => {
+      if (!prevEmployee) return prevEmployee;
+      return {
+        ...prevEmployee,
+        logo_tipo: newImage
+      };
+    });
+  };
+
   const value = {
     employee,
     sucursalSeleccionada,
@@ -134,7 +145,8 @@ export const EmployeeProvider = ({ children }) => {
     error,
     clearEmployee,
     seleccionarSucursal,
-    loadEmployeeData
+    loadEmployeeData,
+    updateEmpresaImage
   };
 
   return (

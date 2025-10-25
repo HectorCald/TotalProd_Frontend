@@ -64,13 +64,25 @@ export const UserProvider = ({ children }) => {
         }
     };
 
+    // Función para actualizar la imagen de empresa
+    const updateEmpresaImage = (newImage) => {
+        setUser(prevUser => {
+            if (!prevUser) return prevUser;
+            return {
+                ...prevUser,
+                logo_tipo: newImage
+            };
+        });
+    };
+
     const value = {
         user,
         sucursalSeleccionada,
         loading,
         clearUser,
         seleccionarSucursal,
-        loadUserData
+        loadUserData,
+        updateEmpresaImage
     };
 
     return (

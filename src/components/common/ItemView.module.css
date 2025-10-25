@@ -237,3 +237,36 @@
     border-radius: 8px;
     margin: 10px 0;
 }
+
+/* Estilos para el botón de edición */
+.itemViewIconClickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.itemViewIconClickable:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.editButton {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.editIcon {
+    font-size: 10px !important;
+    color: white !important;
+    fill: white !important;
+}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo = true, transparent = true, colorIcon = 'default', style = {} }) => {
+const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo = true, transparent = true, colorIcon = 'default', style = {}, button = false, onButtonClick, customIcon }) => {
   const [fontSize, setFontSize] = useState(14);
   const titleRef = useRef(null);
   const hasFlots = flot1 || flot2 || flot3 || flot4 || flot5 || flot6;
@@ -165,8 +165,17 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
       }}
     >
       {circulo && (
-        <div className={styles.itemViewIcon} style={{ backgroundColor: icon ? getIconBackgroundColor() : initialsBackgroundColor }}>
-          {icon ? (
+        <div 
+          className={`${styles.itemViewIcon} ${button ? styles.itemViewIconClickable : ''}`} 
+          style={{ 
+            backgroundColor: icon ? getIconBackgroundColor() : initialsBackgroundColor,
+            borderRadius: customIcon ? '10px' : '50%'
+          }}
+          onClick={button && onButtonClick ? onButtonClick : undefined}
+        >
+          {customIcon ? (
+            customIcon
+          ) : icon ? (
             <BoxIcon
               name={icon}
               className={`${styles.icon} ${getIconClass()}`}
@@ -179,6 +188,11 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
               }}
             >
               {initials}
+            </div>
+          )}
+          {button && (
+            <div className={styles.editButton}>
+              <BoxIcon name="edit" className={styles.editIcon} />
             </div>
           )}
         </div>

@@ -8,7 +8,9 @@ import styles from '../../styles/Inicial.module.css';
 import pdfIcon from '../../assets/pdf.png';
 import excelIcon from '../../assets/xls.png';
 import * as XLSX from 'xlsx';
-import { pdf as pdfRenderer, Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
+import { pdf as pdfRenderer, Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
+import { useUser } from '../../context/UserContext';
+import { useEmployee } from '../../context/EmployeeContext';
 
 function ModalDescarga({
     isOpen,
@@ -34,12 +36,59 @@ function ModalDescarga({
     const [tituloDocumentoState, setTituloDocumentoState] = useState(tituloDocumento);
     const [verNumero, setVerNumero] = useState(false);
     const [incluirFirmas, setIncluirFirmas] = useState(false);
+    const [incluirLogos, setIncluirLogos] = useState(() => {
+        // Cargar desde localStorage al inicializar
+        const saved = localStorage.getItem('incluirLogos');
+        return saved ? JSON.parse(saved) : false;
+    });
+    const [empresaImage, setEmpresaImage] = useState(null);
+    const [empresaImageBase64, setEmpresaImageBase64] = useState(null);
+
+    // Obtener contexto de usuario
+    const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
+    const { employee: employeeInfo, sucursalSeleccionada: employeeSucursal } = useEmployee();
+
+    // Determinar si es usuario normal o empleado
+    const isEmployee = !!employeeInfo;
+    const currentUser = isEmployee ? employeeInfo : userInfo;
+    const sucursal = isEmployee ? employeeSucursal : userSucursal;
+
+    // Obtener la imagen de la empresa
+    const displayImage = empresaImage || currentUser?.logo_tipo;
 
     // Actualizar el estado cuando cambien las props
     useEffect(() => {
         setNombreArchivoState(nombreArchivo);
         setTituloDocumentoState(tituloDocumento);
     }, [nombreArchivo, tituloDocumento]);
+
+    // Función para convertir imagen a base64
+    const convertImageToBase64 = async (imageUrl) => {
+        try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.error('Error converting image to base64:', error);
+            return null;
+        }
+    };
+
+    // Cargar imagen de empresa al abrir el modal
+    useEffect(() => {
+        if (isOpen && currentUser?.logo_tipo) {
+            setEmpresaImage(currentUser.logo_tipo);
+            // Convertir a base64 para usar en PDF
+            convertImageToBase64(currentUser.logo_tipo).then(base64 => {
+                setEmpresaImageBase64(base64);
+            });
+        }
+    }, [isOpen, currentUser]);
 
     // Función para manejar el cambio del nombre del archivo
     const handleNombreArchivoChange = (nuevoNombre) => {
@@ -79,6 +128,14 @@ function ModalDescarga({
     const handleIncluirFirmasChange = (incluir) => {
         setIncluirFirmas(incluir);
     };
+
+    // Función para manejar el cambio del switch de "logos"
+    const handleIncluirLogosChange = (incluir) => {
+        setIncluirLogos(incluir);
+        // Guardar en localStorage
+        localStorage.setItem('incluirLogos', JSON.stringify(incluir));
+    };
+
 
     const handleDescargaExcel = () => {
         try {
@@ -359,7 +416,52 @@ function ModalDescarga({
     const handleDescargaPDF = async () => {
         try {
             const styles = StyleSheet.create({
-                page: { paddingTop: 30, paddingBottom: 36, paddingHorizontal: 36 },
+                page: { 
+                    paddingTop: 30, 
+                    paddingBottom: 36, 
+                    paddingHorizontal: 36,
+                    position: 'relative'
+                },
+                // Marca de agua centrada
+                watermarkFixed: {
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    opacity: 0.05,
+                    zIndex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                },
+                // Estilos para logo y marca de agua
+                logoContainer: {
+                    position: 'absolute',
+                    top: 10, // En la esquina superior
+                    left: -140, // En la esquina izquierda
+                    width: 50,
+                    height: 50,
+                    zIndex: 10
+                },
+                logoImage: {
+                    width: '400px',
+                    height: '400px',
+                    objectFit: 'contain'
+                },
+                watermark: {
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 200,
+                    height: 200,
+                    opacity: 0.03,
+                    zIndex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                },
                 title: { textAlign: 'center', fontSize: 15, fontWeight: 700, marginBottom: 8 },
                 infoContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, marginBottom: 12 },
                 infoBox: { width: '49%', borderWidth: 1, borderRadius: 8, borderColor: '#000', paddingVertical: 6, paddingHorizontal: 8 },
@@ -417,6 +519,26 @@ function ModalDescarga({
             const doc = (
                 <Document>
                     <Page size="A4" style={styles.page}>
+                        {/* Marca de agua FIJA para todas las páginas automáticas */}
+                        {incluirLogos && empresaImageBase64 && (
+                            <View style={styles.watermarkFixed} fixed>
+                                <Image 
+                                    src={empresaImageBase64} 
+                                    style={styles.logoImage}
+                                />
+                            </View>
+                        )}
+                        
+                        {/* Logo FIJO en la esquina superior izquierda */}
+                        {incluirLogos && empresaImageBase64 && (
+                            <View style={styles.logoContainer} fixed>
+                                <Image 
+                                    src={empresaImageBase64} 
+                                    style={styles.logoImage}
+                                />
+                            </View>
+                        )}
+                        
                         <Text style={styles.title}>{tituloDocumentoState}</Text>
 
                         <View style={styles.infoContainer}>
@@ -700,7 +822,7 @@ function ModalDescarga({
                             </>
                         )}
 
-                        {/* Pie de página fijo */}
+                        {/* Pie de página FIJO para todas las páginas */}
                         <View style={styles.footer} fixed>
                             <Text style={styles.footerLine1}>Generado por TotalProd - aplicación de gestión de procesos y ventas</Text>
                         </View>
@@ -708,11 +830,16 @@ function ModalDescarga({
                 </Document>
             );
 
-            const blob = await pdfRenderer(doc).toBlob();
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${nombreArchivoState.replace(/\s+/g, '_')}.pdf`;
-            link.click();
+            try {
+                const blob = await pdfRenderer(doc).toBlob();
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${nombreArchivoState.replace(/\s+/g, '_')}.pdf`;
+                link.click();
+            } catch (pdfError) {
+                console.error('Error específico del PDF:', pdfError);
+                throw new Error('Error al generar el PDF. Verifique que @react-pdf/renderer esté instalado correctamente.');
+            }
         } catch (error) {
             console.error('Error generando PDF:', error);
         }
@@ -777,12 +904,25 @@ function ModalDescarga({
                     <div className={styles.contentModal}>
                         <Switch
                             title="Firmas"
-                            subtitle="Incluir espacios para firmas de 'Entregado por' y 'Recibido por' al final del documento"
+                            subtitle="Incluir espacios para firmas 'Entregado por' y 'Recibido por'"
                             checked={incluirFirmas}
                             onChange={handleIncluirFirmasChange}
                             icon="edit"
                         />
                     </div>
+
+                    {/* Solo mostrar switch de logos si la empresa tiene logo */}
+                    {currentUser?.logo_tipo && (
+                        <div className={styles.contentModal}>
+                            <Switch
+                                title="Logos"
+                                subtitle="Incluir logo de la empresa y marca de agua en la descarga de PDF"
+                                checked={incluirLogos}
+                                onChange={handleIncluirLogosChange}
+                                icon="image"
+                            />
+                        </div>
+                    )}
 
                 </div>
 

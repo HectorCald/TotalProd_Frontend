@@ -2,11 +2,12 @@ import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import Dato from '../../common/Dato';
+import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
+import ImagenEmpresa from './ImagenEmpresa';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
 import { useState } from 'react';
-
 
 function VerUsuario({ isOpen, setIsOpen }) {
     const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
@@ -16,6 +17,8 @@ function VerUsuario({ isOpen, setIsOpen }) {
         type: 'success',
         text: ''
     });
+    const [isOpenImagenEmpresa, setIsOpenImagenEmpresa] = useState(false);
+    const [empresaImage, setEmpresaImage] = useState(null);
 
     // Determinar si es usuario normal o empleado
     const isEmployee = !!employeeInfo;
@@ -24,6 +27,23 @@ function VerUsuario({ isOpen, setIsOpen }) {
 
     // Obtener nombre de la empresa
     const nombreEmpresa = sucursal?.empresas?.name || 'N/A';
+    
+    // Obtener la imagen a mostrar
+    const displayImage = empresaImage || usuario?.logo_tipo;
+    
+    // Función para manejar la edición de imagen
+    const handleImagenEmpresa = () => {
+        setIsOpenImagenEmpresa(true);
+    };
+    
+    const handleImageChange = (newImage, type, message) => {
+        setEmpresaImage(newImage);
+        
+        // Mostrar notificación si se proporciona
+        if (type && message) {
+            mostrarNotificacion(type, message);
+        }
+    };
 
     if (!usuario) {
         return null;
@@ -64,15 +84,38 @@ function VerUsuario({ isOpen, setIsOpen }) {
     };
 
     return (
-        <View isOpen={isOpen} setIsOpen={setIsOpen}isMainView={true}>
+        <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>{nombreCompleto}</h1>
+                {/* Información del usuario usando ItemView */}
+                <div className={styles.content} style={{ padding: '10px', gap: '10px' }}>
+                    <ItemView
+                        title={nombreCompleto}
+                        description={isEmployee ? usuario.codigo || 'Sin código' : usuario.email || 'Sin email'}
+                        description2={`${nombreEmpresa}${isEmployee && sucursal ? ` • ${sucursal.name}` : ''}`}
+                        circulo={true}
+                        transparent={false}
+                        style={{ padding: '0px', minHeight: 'auto'}}
+                        button={!isEmployee}
+                        onButtonClick={!isEmployee ? handleImagenEmpresa : undefined}
+                        customIcon={displayImage ? (
+                            <div 
+                                style={{ 
+                                    width: '50px',
+                                    height: '50px',
+                                    borderRadius: '10px',
+                                    backgroundImage: `url(${displayImage})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    backgroundRepeat: 'no-repeat'
+                                }}
+                            />
+                        ) : undefined}
+                        icon={displayImage ? undefined : 'building'}
+                    />
+                </div>
                 <p className={styles.subTitle}>INFORMACIÓN PERSONAL</p>
                 <div className={styles.content}>
-                    {!isEmployee && (
-                        <Dato label="Correo electrónico" value={usuario.email || 'N/A'} />
-                    )}
                     {isEmployee && (
                         <Dato 
                             label="Código de empleado" 
@@ -110,7 +153,15 @@ function VerUsuario({ isOpen, setIsOpen }) {
                 type={notification.type}
                 text={notification.text}
             />
+            <ImagenEmpresa 
+                isOpen={isOpenImagenEmpresa} 
+                setIsOpen={setIsOpenImagenEmpresa}
+                currentImage={empresaImage || usuario?.logo_tipo}
+                onImageChange={handleImageChange}
+                empresaId={sucursal?.empresas?.id}
+            />
         </View>
     );
 }
+
 export default VerUsuario;
