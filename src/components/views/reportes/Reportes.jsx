@@ -52,6 +52,16 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     return 'Sucursal no seleccionada';
   };
 
+  // Función helper para calcular cantidad grup
+  const calcularCantidadGrup = (cantidad, grup) => {
+    if (!grup || grup <= 0) {
+      return '--';
+    }
+    const grupos = Math.floor(cantidad / grup);
+    const unidades = cantidad % grup;
+    return unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+  };
+
 
   // Función para mostrar notificaciones
   const mostrarNotificacion = (tipo, texto) => {
@@ -137,7 +147,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             nombre: producto.producto.name,
             cantidad: 0,
             precioUnitario: producto.precio_unitario,
-            subtotal: 0
+            subtotal: 0,
+            grup: producto.producto.grup || null
           };
         }
         productosAgrupados[key].cantidad += parseFloat(producto.cantidad);
@@ -156,13 +167,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       }
     });
 
-    const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+    const tablaHeaders = ['Producto', 'Cantidad', 'Cantidad Grup', 'Precio Unitario', 'Subtotal'];
     const productosArray = Object.values(productosAgrupados);
     // Ordenar productos alfabéticamente por nombre
     const productosOrdenados = productosArray.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
     const tablaValores = productosOrdenados.map(producto => [
       producto.nombre,
       producto.cantidad.toString(),
+      calcularCantidadGrup(producto.cantidad, producto.grup),
       `Bs. ${parseFloat(producto.precioUnitario).toFixed(2)}`,
       `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
     ]);
@@ -236,7 +248,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             nombre: producto.producto.name,
             cantidad: 0,
             precioUnitario: producto.precio_unitario,
-            subtotal: 0
+            subtotal: 0,
+            grup: producto.producto.grup || null
           };
         }
         productosEntradas[key].cantidad += parseFloat(producto.cantidad);
@@ -254,7 +267,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             nombre: producto.producto.name,
             cantidad: 0,
             precioUnitario: producto.precio_unitario,
-            subtotal: 0
+            subtotal: 0,
+            grup: producto.producto.grup || null
           };
         }
         productosSalidas[key].cantidad += parseFloat(producto.cantidad);
@@ -262,7 +276,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       });
     });
 
-    const tablaHeaders = ['Tipo', 'Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+    const tablaHeaders = ['Tipo', 'Producto', 'Cantidad', 'Cantidad Grup', 'Precio Unitario', 'Subtotal'];
     const tablaValores = [];
 
     // Ordenar productos de entradas alfabéticamente
@@ -281,6 +295,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         'Entrada',
         producto.nombre,
         producto.cantidad.toString(),
+        calcularCantidadGrup(producto.cantidad, producto.grup),
         `Bs. ${parseFloat(producto.precioUnitario).toFixed(2)}`,
         `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
       ]);
@@ -292,6 +307,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         'Salida',
         producto.nombre,
         producto.cantidad.toString(),
+        calcularCantidadGrup(producto.cantidad, producto.grup),
         `Bs. ${parseFloat(producto.precioUnitario).toFixed(2)}`,
         `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
       ]);
@@ -421,7 +437,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             nombre: detalle.producto_almacen.name,
             cantidad: 0,
             precioUnitario: detalle.precio,
-            subtotal: 0
+            subtotal: 0,
+            grup: detalle.producto_almacen.grup || null
           };
         }
         productosAgrupados[key].cantidad += parseFloat(detalle.cantidad);
@@ -429,7 +446,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       });
     });
 
-    const tablaHeaders = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+    const tablaHeaders = ['Producto', 'Cantidad', 'Cantidad Grup', 'Precio Unitario', 'Subtotal'];
     // Ordenar productos alfabéticamente por nombre
     const productosOrdenados = Object.values(productosAgrupados).sort((a, b) => 
       a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
@@ -437,6 +454,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     const tablaValores = productosOrdenados.map(producto => [
       producto.nombre,
       producto.cantidad.toString(),
+      calcularCantidadGrup(producto.cantidad, producto.grup),
       `Bs. ${parseFloat(producto.precioUnitario).toFixed(2)}`,
       `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
     ]);
@@ -497,15 +515,25 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     });
 
     // Tabla de ingresos
-    const headersIngresos = ['Fecha', 'Cliente/Detalle', 'Subtotal'];
+    const headersIngresos = ['Fecha', 'Cliente/Detalle', 'Productos', 'Subtotal'];
     const valoresIngresos = [];
     let totalIngresos = 0;
     movimientosFiltrados.forEach(mov => {
       const subtotal = (mov.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
       totalIngresos += subtotal;
+      
+      // Crear descripción de productos con cantidad grup
+      const productosDesc = (mov.productos || []).map(p => {
+        const cantidad = parseFloat(p.cantidad) || 0;
+        const grup = parseFloat(p.producto?.grup) || null;
+        const cantidadGrup = calcularCantidadGrup(cantidad, grup);
+        return `${p.producto?.name || 'Producto'} (${cantidad} - ${cantidadGrup})`;
+      }).join(', ');
+      
       valoresIngresos.push([
         new Date(mov.fecha).toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' }),
         mov?.cliente?.name || mov?.observaciones || '-',
+        productosDesc || '-',
         `Bs. ${subtotal.toFixed(2)}`
       ]);
     });
@@ -540,7 +568,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       {
         titulo: 'INGRESOS',
         headers: headersIngresos,
-        valores: [...valoresIngresos, ['Total Ingresos', '', `Bs. ${totalIngresos.toFixed(2)}`]]
+        valores: [...valoresIngresos, ['Total Ingresos', '', '', `Bs. ${totalIngresos.toFixed(2)}`]]
       },
       {
         titulo: 'GASTOS',

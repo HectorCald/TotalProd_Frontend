@@ -202,14 +202,21 @@ function ModalDescarga({
                         return sum + subtotalNum;
                     }, 0);
                     const subtotalConComa = `Bs. ${subtotalProductos.toFixed(2).replace(/\./g, ',')}`;
-                    allData.push(['', '', 'Subtotal:', subtotalConComa]);
+                    // Crear array con el número correcto de columnas, poniendo el total en la última columna
+                    const totalRow = new Array(tablaHeaders.length).fill('');
+                    totalRow[totalRow.length - 2] = 'Total:';
+                    totalRow[totalRow.length - 1] = subtotalConComa;
+                    allData.push(totalRow);
                     
                     // AUMENTO (si aplica)
                     if (tieneAumento) {
                         const aumentoConComa = informacionSuperior.Aumento.toString()
                             .replace(/\./g, ',') // Cambiar punto por coma
                             .trim();
-                        allData.push(['', '', 'Aumento:', aumentoConComa]);
+                        const aumentoRow = new Array(tablaHeaders.length).fill('');
+                        aumentoRow[aumentoRow.length - 2] = 'Aumento:';
+                        aumentoRow[aumentoRow.length - 1] = aumentoConComa;
+                        allData.push(aumentoRow);
                     }
                     
                     // DESCUENTO (si aplica)
@@ -217,7 +224,10 @@ function ModalDescarga({
                         const descuentoConComa = informacionSuperior.Descuento.toString()
                             .replace(/\./g, ',') // Cambiar punto por coma
                             .trim();
-                        allData.push(['', '', 'Descuento:', descuentoConComa]);
+                        const descuentoRow = new Array(tablaHeaders.length).fill('');
+                        descuentoRow[descuentoRow.length - 2] = 'Descuento:';
+                        descuentoRow[descuentoRow.length - 1] = descuentoConComa;
+                        allData.push(descuentoRow);
                     }
                 }
                 
@@ -226,7 +236,10 @@ function ModalDescarga({
                     const totalConComa = informacionSuperior.Total.toString()
                         .replace(/\./g, ',') // Cambiar punto por coma
                         .trim();
-                    allData.push(['', '', 'Total:', totalConComa]);
+                    const totalFinalRow = new Array(tablaHeaders.length).fill('');
+                    totalFinalRow[totalFinalRow.length - 2] = 'Total:';
+                    totalFinalRow[totalFinalRow.length - 1] = totalConComa;
+                    allData.push(totalFinalRow);
                 }
             }
 
@@ -389,7 +402,15 @@ function ModalDescarga({
             const getWidthsPct = (headers) => {
                 if (!headers || headers.length === 0) return [];
                 if (headers.length === 8) return ['9%', '43%', '8%', '8%', '14%', '6%', '6%', '6%'];
-                if (headers.length === 4) return ['46%', '18%', '18%', '18%'];
+                if (headers.length === 4) {
+                    // Verificar si es el reporte de balance (tiene columna "Productos")
+                    if (headers.includes('Productos')) {
+                        return ['15%', '25%', '45%', '15%']; // Fecha, Cliente/Detalle, Productos, Subtotal
+                    }
+                    return ['30%', '25%', '25%', '18%']; // Configuración por defecto para 4 columnas
+                }
+                if (headers.length === 5) return ['35%', '12%', '15%', '18%', '20%']; // Producto, Cantidad, Cantidad Grup, Precio Unitario, Subtotal
+                if (headers.length === 6) return ['8%', '35%', '12%', '15%', '15%', '15%']; // Tipo, Producto, Cantidad, Cantidad Grup, Precio Unitario, Subtotal
                 return new Array(headers.length).fill(`${Math.floor(100 / headers.length)}%`);
             };
 

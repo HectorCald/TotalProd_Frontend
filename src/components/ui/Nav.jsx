@@ -104,32 +104,81 @@ const Nav = () => {
     };
 
     return (
-        <div className={styles.navContainer}>
-            <div className={styles.navContent}>
-                <div className={styles.titleContainer}>
-                    <h1 className={styles.navTitle}>Total<span className={styles.navTitleSpan}>Prod</span></h1>
-                    {sucursalSeleccionada && (
-                        <div className={styles.sucursalBadge} onClick={handleSucursalClick}>
-                            <span>{sucursalSeleccionada.name}</span>
+        <>
+            <div className={styles.navContainer}>
+                <div className={styles.navContent}>
+                    <div className={styles.titleContainer}>
+                        <h1 className={styles.navTitle}>Total<span className={styles.navTitleSpan}>Prod</span></h1>
+                        {sucursalSeleccionada && (
+                            <div className={styles.sucursalBadge} onClick={handleSucursalClick}>
+                                <span>{sucursalSeleccionada.name}</span>
+                            </div>
+                        )}
+                    </div>
+                    {isLargeScreen ? (
+                        <div className={styles.selectContainer}>
+                            <Select
+                                placeholder={nombreCompleto}
+                                options={userMenuOptions}
+                                onChange={handleUserMenuSelect}
+                                icon="user"
+                            />
                         </div>
+                    ) : (
+                        <button className={styles.icon} onClick={handleOpen}>
+                            <BoxIcon name='user' />
+                        </button>
                     )}
                 </div>
-                {isLargeScreen ? (
-                    <div className={styles.selectContainer}>
-                        <Select
-                            placeholder={nombreCompleto}
-                            options={userMenuOptions}
-                            onChange={handleUserMenuSelect}
-                            icon="user"
-                        />
-                    </div>
+                <Usuario isOpen={isOpen} setIsOpen={setIsOpen} />
+
+                {/* Componentes modales del menú de usuario */}
+                <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} />
+                {isEmployee ? (
+                    <CambiarContraseñaEmpleado isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} />
                 ) : (
-                    <button className={styles.icon} onClick={handleOpen}>
-                        <BoxIcon name='user' />
-                    </button>
+                    <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} />
                 )}
+                <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
+                <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
+                <Comentarios isOpen={isOpenComentarios} setIsOpen={setIsOpenComentarios} />
+                {!isEmployee && <PlanInfo isOpen={isOpenPlan} setIsOpen={setIsOpenPlan} />}
+
+                {/* Modal de logout */}
+                <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>
+                    <HeaderModal
+                        title="Cerrar sesión"
+                        onClose={() => setIsLogoutOpen(false)}
+                    />
+                    <div className={styles.modalContent}>
+                        <p className={styles.subTitle}>¿Estas seguro de que deseas cerrar sesión?, esta accion eliminara toda la información del usuario en el dispositivo.</p>
+                        <div className={styles.buttons}>
+                            <Boton
+                                className='btn-default'
+                                label='Cancelar'
+                                style={{ marginTop: 'auto' }}
+                                onClick={() => setIsLogoutOpen(false)}
+                            />
+                            <Boton
+                                className='btn-red'
+                                label='Si, Cerrar sesión'
+                                style={{ marginTop: 'auto' }}
+                                onClick={() => {
+                                    // Limpiar context inmediatamente
+                                    if (isEmployee) {
+                                        clearEmployee();
+                                    } else {
+                                        clearUser();
+                                    }
+
+                                    // Redireccionar inmediatamente sin delay
+                                    window.location.href = '/login';
+                                }}
+                            />
+                        </div>
+                    </div>
+                </ViewModal>
             </div>
-            <Usuario isOpen={isOpen} setIsOpen={setIsOpen} />
             {currentUser && !isEmployee && (
                 <SeleccionarSucursal
                     isOpen={isSucursalOpen}
@@ -139,54 +188,7 @@ const Nav = () => {
                     canClose={true}
                 />
             )}
-
-            {/* Componentes modales del menú de usuario */}
-            <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} />
-            {isEmployee ? (
-                <CambiarContraseñaEmpleado isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} />
-            ) : (
-                <CambiarContraseña isOpen={isOpenCambiarContraseña} setIsOpen={setIsOpenCambiarContraseña} />
-            )}
-            <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
-            <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
-            <Comentarios isOpen={isOpenComentarios} setIsOpen={setIsOpenComentarios} />
-            {!isEmployee && <PlanInfo isOpen={isOpenPlan} setIsOpen={setIsOpenPlan} />}
-
-            {/* Modal de logout */}
-            <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>
-                <HeaderModal
-                    title="Cerrar sesión"
-                    onClose={() => setIsLogoutOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Estas seguro de que deseas cerrar sesión?, esta accion eliminara toda la información del usuario en el dispositivo.</p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsLogoutOpen(false)}
-                        />
-                        <Boton
-                            className='btn-red'
-                            label='Si, Cerrar sesión'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => {
-                                // Limpiar context inmediatamente
-                                if (isEmployee) {
-                                    clearEmployee();
-                                } else {
-                                    clearUser();
-                                }
-
-                                // Redireccionar inmediatamente sin delay
-                                window.location.href = '/login';
-                            }}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
-        </div>
+        </>
     );
 };
 

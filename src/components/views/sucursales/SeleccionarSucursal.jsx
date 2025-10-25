@@ -52,10 +52,8 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
         // Cerrar modal
         setIsOpen(false);
         
-        // Solo en PC: recargar la página después de seleccionar sucursal
-        if (isLargeScreen) {
-            window.location.reload();
-        }
+        // Recargar la página después de seleccionar sucursal (tanto PC como móvil)
+        window.location.reload();
     };
 
     if (!isOpen) return null;
