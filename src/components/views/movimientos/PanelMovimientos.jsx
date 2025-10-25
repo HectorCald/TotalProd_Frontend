@@ -52,6 +52,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Estado para acumular o reemplazar los movimientos mostrados
     const [allMovimientos, setAllMovimientos] = useState([]);
+    const [currentTipoMovimiento, setCurrentTipoMovimiento] = useState(tipoMovimiento);
 
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
@@ -65,12 +66,17 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [movimientos, setMovimientos] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState(null);
 
 
     // Función para cargar movimientos
     const cargarMovimientos = async (page = 1, search = '', filtro = null, estado = null, orden = 'fecha_desc') => {
-        setIsLoading(true);
+        if (page === 1) {
+            setIsLoading(true);
+        } else {
+            setIsLoadingMore(true);
+        }
         setError(null);
 
         // Incrementar contador de peticiones activas
@@ -119,7 +125,11 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         } catch (error) {
             setError(error);
         } finally {
-            setIsLoading(false);
+            if (page === 1) {
+                setIsLoading(false);
+            } else {
+                setIsLoadingMore(false);
+            }
             // Decrementar contador de peticiones activas
             setActiveRequests(prev => {
                 const newCount = Math.max(0, prev - 1);
@@ -137,10 +147,10 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     };
 
-    // Cargar movimientos cuando se abre el modal
+    // Cargar movimientos cuando se abre el modal - solo si no hay datos cargados
     useEffect(() => {
-        if (isOpen) {
-            // Cargar primera página
+        if (isOpen && allMovimientos.length === 0) {
+            // Solo cargar si no hay datos
             cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
         }
     }, [isOpen]);
@@ -204,7 +214,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading && !isLoadingMore) {
             setCurrentPage(prev => prev + 1);
         }
     };
@@ -240,27 +250,29 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setIsSearchExpanded(isExpanded);
     };
 
-    // Efecto para resetear búsqueda cuando se abre
+    // Efecto para resetear búsqueda cuando se abre - solo resetear búsqueda, no limpiar datos
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-            setCurrentPage(1);
         }
-    }, [isOpen, tipoMovimiento]);
+    }, [isOpen]);
 
-    // Efecto para limpiar datos cuando cambia el tipo de movimiento
+    // Efecto para limpiar datos SOLO cuando cambia el tipo de movimiento
     useEffect(() => {
-        setAllMovimientos([]);
-        setCurrentPage(1);
-        setFiltroTipo(null);
-        setFiltroEstado(null);
-        setOrdenamiento('fecha_desc');
-        setSearchQuery('');
-        // Cargar datos del nuevo tipo si el panel está abierto
-        if (isOpen) {
-            cargarMovimientos(1, '', null, null, 'fecha_desc');
+        if (tipoMovimiento !== currentTipoMovimiento) {
+            setAllMovimientos([]);
+            setCurrentPage(1);
+            setFiltroTipo(null);
+            setFiltroEstado(null);
+            setOrdenamiento('fecha_desc');
+            setSearchQuery('');
+            setCurrentTipoMovimiento(tipoMovimiento);
+            // Cargar datos del nuevo tipo si el panel está abierto
+            if (isOpen) {
+                cargarMovimientos(1, '', null, null, 'fecha_desc');
+            }
         }
-    }, [tipoMovimiento]);
+    }, [tipoMovimiento, currentTipoMovimiento, isOpen]);
 
     // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
     useEffect(() => {
@@ -440,18 +452,23 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 title={tipoMovimiento === 'acopio' ? 'Mov. Materia Prima' : 'Mov. Almacén'}
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                <Filtros options={opciones} />
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando inicialmente
+                    <LoadingSpinner />
+                ) : (
+                    <>
+                        <div className={styles.titleContainer}>
+                            <RefreshIndicator
+                                isVisible={showRefreshIndicator}
+                                isLoading={isRefreshing}
+                            />
+                        </div>
+                        <Filtros options={opciones} />
 
-                {isLargeScreen ? (
+                        {isLargeScreen ? (
                     <div
                         className={styles.content}
-                        onScroll={!isLargeScreen ? handleScroll : undefined}
+                        onScroll={handleScroll}
                         style={{
                             maxHeight: tipoMovimiento === 'acopio' || tipoMovimiento === 'almacen'
                                 ? '100%'
@@ -477,6 +494,13 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                 estado: '15%'
                             }}
                         />
+                        
+                        {/* Loading al final de la tabla */}
+                        {isLoadingMore && (
+                            
+                                <LoadingSpinner />
+                          
+                        )}
                     </div>
                 ) : (
                     // Vista de cards para pantallas pequeñas con PullToRefresh
@@ -490,28 +514,42 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                          onScroll={handleScroll}
                      >
                         {allMovimientos.length > 0 ? (
-                            allMovimientos.map((movimiento, index) => {
-                                return (
-                                    <ItemView
-                                        key={movimiento.id || index}
-                                        title={tipoMovimiento === 'acopio'
-                                            ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
-                                            : movimiento.productos && movimiento.productos.length > 0
-                                                ? movimiento.productos.length === 1
-                                                    ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
-                                                    : `${movimiento.productos.length} productos`
-                                                : 'Sin productos'
-                                        }
-                                        description={`${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
-                                        icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
-                                        onClick={() => handleRegistro(movimiento)}
-                                        arrow={false}
-                                        flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
-                                        flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
-                                        colorIcon={movimiento.type === 'entrada' ? 'verde' : 'rojo'}
-                                    />
-                                );
-                            })
+                            <>
+                                {allMovimientos.map((movimiento, index) => {
+                                    return (
+                                        <ItemView
+                                            key={movimiento.id || index}
+                                            title={tipoMovimiento === 'acopio'
+                                                ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
+                                                : movimiento.productos && movimiento.productos.length > 0
+                                                    ? movimiento.productos.length === 1
+                                                        ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
+                                                        : `${movimiento.productos.length} productos`
+                                                    : 'Sin productos'
+                                            }
+                                            description={`${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
+                                            icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                                            onClick={() => handleRegistro(movimiento)}
+                                            arrow={false}
+                                            flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
+                                            flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
+                                            colorIcon={movimiento.type === 'entrada' ? 'verde' : 'rojo'}
+                                        />
+                                    );
+                                })}
+                                
+                                {/* Loading debajo del último movimiento */}
+                                {isLoadingMore && (
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'center', 
+                                        padding: '20px',
+                                        marginTop: '10px'
+                                    }}>
+                                        <LoadingSpinner />
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <NoData
                                 icon="transfer"
@@ -523,10 +561,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         )}
                     </PullToRefresh>
                 )}
-
-                {/* Indicador de carga para más elementos */}
-                {isLoading && (
-                    <LoadingSpinner />
+                    </>
                 )}
 
             </div>

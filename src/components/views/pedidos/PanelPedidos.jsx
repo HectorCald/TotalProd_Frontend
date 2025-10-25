@@ -45,6 +45,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
     // Estado para acumular todos los pedidos de todas las páginas
     const [allPedidos, setAllPedidos] = useState([]);
+    const [currentTipoPedido, setCurrentTipoPedido] = useState(tipoPedido);
 
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
@@ -61,6 +62,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const [pedidos, setPedidos] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState(null);
 
     // Estados para el modal de historial WhatsApp
@@ -75,7 +77,11 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
     // Función para cargar pedidos
     const cargarPedidos = async (page = 1, search = '', estado = null, orden = 'fecha_desc') => {
-        setIsLoading(true);
+        if (page === 1) {
+            setIsLoading(true);
+        } else {
+            setIsLoadingMore(true);
+        }
         setError(null);
 
         // Incrementar contador de peticiones activas
@@ -121,7 +127,11 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         } catch (error) {
             setError(error);
         } finally {
-            setIsLoading(false);
+            if (page === 1) {
+                setIsLoading(false);
+            } else {
+                setIsLoadingMore(false);
+            }
             // Decrementar contador de peticiones activas
             setActiveRequests(prev => {
                 const newCount = Math.max(0, prev - 1);
@@ -139,10 +149,10 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     };
 
-    // Cargar pedidos cuando se abre el modal
+    // Cargar pedidos cuando se abre el modal - solo si no hay datos cargados
     useEffect(() => {
-        if (isOpen) {
-            // Cargar primera página
+        if (isOpen && allPedidos.length === 0) {
+            // Solo cargar si no hay datos
             cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
     }, [isOpen]);
@@ -190,26 +200,28 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     };
 
 
-    // Efecto para resetear búsqueda cuando se abre
+    // Efecto para resetear búsqueda cuando se abre - solo resetear búsqueda, no limpiar datos
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-            setCurrentPage(1);
         }
-    }, [isOpen, tipoPedido]);
+    }, [isOpen]);
 
-    // Efecto para limpiar datos cuando cambia el tipo de pedido
+    // Efecto para limpiar datos SOLO cuando cambia el tipo de pedido
     useEffect(() => {
-        setAllPedidos([]);
-        setCurrentPage(1);
-        setFiltroEstado(null);
-        setOrdenamiento('fecha_desc');
-        setSearchQuery('');
-        // Cargar datos del nuevo tipo si el panel está abierto
-        if (isOpen) {
-            cargarPedidos(1, '', null, 'fecha_desc');
+        if (tipoPedido !== currentTipoPedido) {
+            setAllPedidos([]);
+            setCurrentPage(1);
+            setFiltroEstado(null);
+            setOrdenamiento('fecha_desc');
+            setSearchQuery('');
+            setCurrentTipoPedido(tipoPedido);
+            // Cargar datos del nuevo tipo si el panel está abierto
+            if (isOpen) {
+                cargarPedidos(1, '', null, 'fecha_desc');
+            }
         }
-    }, [tipoPedido]);
+    }, [tipoPedido, currentTipoPedido, isOpen]);
 
     // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
     useEffect(() => {
@@ -267,7 +279,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading && !isLoadingMore) {
             setCurrentPage(prev => prev + 1);
         }
     };
@@ -448,15 +460,20 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 title={tipoPedido === 'acopio' ? 'Pedidos de Materia Prima' : 'Pedidos de Almacén'}
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                <Filtros options={opciones} />
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando inicialmente
+                    <LoadingSpinner />
+                ) : (
+                    <>
+                        <div className={styles.titleContainer}>
+                            <RefreshIndicator
+                                isVisible={showRefreshIndicator}
+                                isLoading={isRefreshing}
+                            />
+                        </div>
+                        <Filtros options={opciones} />
 
-                {isLargeScreen ? (
+                        {isLargeScreen ? (
                     <div
                         className={styles.content}
                         onScroll={!isLargeScreen ? handleScroll : undefined}
@@ -486,6 +503,18 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                 observaciones: '15%'
                             }}
                         />
+                        
+                        {/* Loading al final de la tabla */}
+                        {isLoadingMore && (
+                            <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'center', 
+                                padding: '20px',
+                                marginTop: '10px'
+                            }}>
+                                <LoadingSpinner />
+                            </div>
+                        )}
                     </div>
                 ) : (
                     // Vista de cards para pantallas pequeñas con PullToRefresh
@@ -499,38 +528,52 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         onScroll={handleScroll}
                     >
                         {allPedidos.length > 0 ? (
-                            allPedidos.map((pedido, index) => {
-                                return (
-                                    <ItemView
-                                        key={pedido.id || index}
-                                        title={tipoPedido === 'acopio'
-                                            ? (pedido.producto_acopio?.name || 'Producto desconocido')
-                                            : (pedido.user?.name || pedido.personal?.name || 'Usuario desconocido')
-                                        }
-                                        description={tipoPedido === 'acopio'
-                                            ? `${pedido.cantidad || 0} ${pedido.tipo_medida || ''} - ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-                                                year: 'numeric',
-                                                month: '2-digit',
-                                                day: '2-digit',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}`
-                                            : new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-                                                year: 'numeric',
-                                                month: '2-digit',
-                                                day: '2-digit',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })
-                                        }
-                                        icon="file"
-                                        onClick={() => handleVerPedido(pedido)}
-                                        flot1={pedido.estado === 'Completado' ? 'Completado' : ''}
-                                        flot2={pedido.estado === 'Entregado' ? 'Entregado' : ''}
-                                        flot3={pedido.estado === 'Pendiente' ? 'Pendiente' : ''}
-                                    />
-                                );
-                            })
+                            <>
+                                {allPedidos.map((pedido, index) => {
+                                    return (
+                                        <ItemView
+                                            key={pedido.id || index}
+                                            title={tipoPedido === 'acopio'
+                                                ? (pedido.producto_acopio?.name || 'Producto desconocido')
+                                                : (pedido.user?.name || pedido.personal?.name || 'Usuario desconocido')
+                                            }
+                                            description={tipoPedido === 'acopio'
+                                                ? `${pedido.cantidad || 0} ${pedido.tipo_medida || ''} - ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}`
+                                                : new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })
+                                            }
+                                            icon="file"
+                                            onClick={() => handleVerPedido(pedido)}
+                                            flot1={pedido.estado === 'Completado' ? 'Completado' : ''}
+                                            flot2={pedido.estado === 'Entregado' ? 'Entregado' : ''}
+                                            flot3={pedido.estado === 'Pendiente' ? 'Pendiente' : ''}
+                                        />
+                                    );
+                                })}
+                                
+                                {/* Loading debajo del último pedido */}
+                                {isLoadingMore && (
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'center', 
+                                        padding: '20px',
+                                        marginTop: '10px'
+                                    }}>
+                                        <LoadingSpinner />
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <NoData
                                 icon="shopping-bag"
@@ -542,10 +585,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         )}
                     </PullToRefresh>
                 )}
-
-                {/* Indicador de carga para más elementos */}
-                {isLoading && (
-                    <LoadingSpinner />
+                    </>
                 )}
 
             </div>

@@ -48,12 +48,16 @@ function MiProduccion({ isOpen, setIsOpen }) {
     const [registros, setRegistros] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [isLoadingRegistros, setIsLoadingRegistros] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState(null);
 
     // Función para cargar registros
     const cargarRegistros = async (page = 1, search = '', estado = null, orden = 'fecha_desc') => {
-        setIsLoading(true);
+        if (page === 1) {
+            setIsLoading(true);
+        } else {
+            setIsLoadingMore(true);
+        }
         setError(null);
 
         // Incrementar contador de peticiones activas
@@ -97,7 +101,11 @@ function MiProduccion({ isOpen, setIsOpen }) {
         } catch (error) {
             setError(error);
         } finally {
-            setIsLoading(false);
+            if (page === 1) {
+                setIsLoading(false);
+            } else {
+                setIsLoadingMore(false);
+            }
             // Decrementar contador de peticiones activas
             setActiveRequests(prev => {
                 const newCount = Math.max(0, prev - 1);
@@ -116,10 +124,10 @@ function MiProduccion({ isOpen, setIsOpen }) {
     };
 
 
-    // Cargar registros cuando se abre el modal
+    // Cargar registros cuando se abre el modal - solo si no hay datos cargados
     useEffect(() => {
-        if (isOpen) {
-            // Cargar primera página
+        if (isOpen && allRegistros.length === 0) {
+            // Solo cargar si no hay datos
             cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
     }, [isOpen]);
@@ -181,7 +189,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading && !isLoadingMore) {
             setCurrentPage(prev => prev + 1);
         }
     };
@@ -351,18 +359,23 @@ function MiProduccion({ isOpen, setIsOpen }) {
                 title="Mi Producción"
             />
             <div className={styles.container}>
-                <div className={styles.titleContainer}>
-                    <RefreshIndicator
-                        isVisible={showRefreshIndicator}
-                        isLoading={isRefreshing}
-                    />
-                </div>
-                <Filtros options={opciones} />
+                {isLoading ? (
+                    // Mostrar LoadingSpinner cuando está cargando inicialmente
+                    <LoadingSpinner />
+                ) : (
+                    <>
+                        <div className={styles.titleContainer}>
+                            <RefreshIndicator
+                                isVisible={showRefreshIndicator}
+                                isLoading={isRefreshing}
+                            />
+                        </div>
+                        <Filtros options={opciones} />
 
-                {isLargeScreen ? (
+                        {isLargeScreen ? (
                     <div
                         className={styles.content}
-                        onScroll={!isLargeScreen ? handleScroll : undefined}
+                        onScroll={handleScroll}
                         style={{
                             maxHeight: '100%'
                         }}
@@ -378,6 +391,11 @@ function MiProduccion({ isOpen, setIsOpen }) {
                             getCellBadge={getCellBadge}
                             onScroll={handleScroll}
                         />
+                        
+                        {/* Loading al final de la tabla */}
+                        {isLoadingMore && (
+                            <LoadingSpinner />
+                        )}
                     </div>
                 ) : (
                     // Vista de cards para pantallas pequeñas con PullToRefresh
@@ -391,21 +409,35 @@ function MiProduccion({ isOpen, setIsOpen }) {
                         onScroll={handleScroll}
                     >
                         {allRegistros.length > 0 ? (
-                            allRegistros.map((registro, index) => {
-                                return (
-                                    <ItemView
-                                        key={registro.id || index}
-                                        title={registro.producto_almacen?.name || 'Sin producto'}
-                                        description={`${registro.terminados || '0'} terminados • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
-                                        icon="package"
-                                        onClick={() => handleRegistro(registro)}
-                                        arrow={false}
-                                        flot1={registro?.estado === 'verificado' ? 'Verificado' : registro?.estado === 'Ingresado' ? 'Ingresado' : ''}
-                                        flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
-                                        gris={true}
-                                    />
-                                );
-                            })
+                            <>
+                                {allRegistros.map((registro, index) => {
+                                    return (
+                                        <ItemView
+                                            key={registro.id || index}
+                                            title={registro.producto_almacen?.name || 'Sin producto'}
+                                            description={`${registro.terminados || '0'} terminados • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
+                                            icon="package"
+                                            onClick={() => handleRegistro(registro)}
+                                            arrow={false}
+                                            flot1={registro?.estado === 'verificado' ? 'Verificado' : registro?.estado === 'Ingresado' ? 'Ingresado' : ''}
+                                            flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
+                                            gris={true}
+                                        />
+                                    );
+                                })}
+                                
+                                {/* Loading debajo del último registro */}
+                                {isLoadingMore && (
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'center', 
+                                        padding: '20px',
+                                        marginTop: '10px'
+                                    }}>
+                                        <LoadingSpinner />
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <NoData
                                 icon="file"
@@ -415,14 +447,10 @@ function MiProduccion({ isOpen, setIsOpen }) {
                                 minHeight="200px"
                             />
                         )}
-                    </PullToRefresh>
+                        </PullToRefresh>
+                    )}
+                    </>
                 )}
-
-                {/* Indicador de carga para más elementos */}
-                {isLoading && (
-                    <LoadingSpinner />
-                )}
-
             </div>
 
             {/* Modal de ver registro de producción */}
