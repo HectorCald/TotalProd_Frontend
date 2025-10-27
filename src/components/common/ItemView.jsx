@@ -159,7 +159,7 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
       onClick={onClick} 
       style={{ 
         backgroundColor: transparent ? 'transparent' : 'var(--tertiary-color)', 
-        borderRadius: transparent ? '0' : '20px',
+        borderRadius: transparent ? '0' : '10px',
         borderLeft: !circulo ? '5px solid var(--primary-color)' : 'none',
         ...style 
       }}

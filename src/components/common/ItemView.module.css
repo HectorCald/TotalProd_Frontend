@@ -119,8 +119,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    /* Evita que la flecha se encoja */
-
+    
 }
 
 .badge {
@@ -168,7 +167,7 @@
     color: var(--info-color);
     background-color: #1f74fe3a;
     padding: 5px 7px;
-    border-radius: 8px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -181,7 +180,7 @@
     color: var(--warning-color);
     background-color: #fb87133a;
     padding: 5px 7px;
-    border-radius: 8px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -194,7 +193,7 @@
     color: var(--error-color);
     background-color: #e74c3c3a;
     padding: 5px 7px;
-    border-radius: 8px;
+    border-radius: 5px;
     white-space: nowrap;
 }
 .flot4 {
@@ -203,7 +202,7 @@
     color: var(--success-color);
     background-color: #2ecc713a;
     padding: 5px 7px;
-    border-radius: 8px;
+    border-radius: 5px;
     white-space: nowrap;
 }
 .flot5 {
@@ -212,7 +211,7 @@
     color: var(--info-color);
     background-color: #3482ff3a;
     padding: 5px 7px;
-    border-radius: 8px;
+    border-radius: 5px;
     white-space: nowrap;
 }
 .flot6 {
@@ -221,7 +220,7 @@
     color: gray;
     background-color: #cccccc20;
     padding: 5px 7px;
-    border-radius: 8px;
+    border-radius: 5px;
     white-space: nowrap;
 }
 

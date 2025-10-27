@@ -24,7 +24,7 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                         color: isFocused ? 'var(--primary-color)' : ''
                     }}
                 >
-                    <BoxIcon name={icon} />
+                    <BoxIcon name={icon} className={styles.icon} />
                 </span>
             )}
             <input

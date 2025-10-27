@@ -604,7 +604,7 @@ function ImportExport({ isOpen, setIsOpen }) {
                 />
 
 
-                <div className={styles.content}>
+                <div className={styles.content} style={{ marginTop: '10px' }}>
                     <Checkbox
                         title="Precios"
                         subtitle="Incluir información de precios"
@@ -628,7 +628,7 @@ function ImportExport({ isOpen, setIsOpen }) {
                     />
                 </div>
 
-                <div className={styles.buttons}>
+                <div className={styles.buttons} style={{ marginTop: '10px' }}>
                     <Boton
                         className='btn-default'
                         label='Importar'

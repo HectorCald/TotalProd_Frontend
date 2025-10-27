@@ -225,7 +225,7 @@ function InputSugerencias({
                                 <div className={styles.spinner}></div>
                             </div>
                         ) : (
-                            <BoxIcon name={iconName} />
+                            <BoxIcon name={iconName} className={styles.icon} />
                         )}
                     </span>
                 )}

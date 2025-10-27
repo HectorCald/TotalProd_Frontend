@@ -276,58 +276,58 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         />
         <div className={styles.modalContent}>
           <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
+            <InputNormal
+              tipo="text"
+              value={dataMov.name}
+              placeholder='Nombre del Producto'
+              onChange={(e) => handleChange('name', e.target.value)}
+              icon='box'
+            />
 
-          <InputNormal
-            tipo="text"
-            value={dataMov.name}
-            placeholder='Nombre del Producto'
-            onChange={(e) => handleChange('name', e.target.value)}
-            icon='box'
-          />
+            <InputNormal
+              tipo="text"
+              value={dataMov.description}
+              placeholder='Descripción'
+              onChange={(e) => handleChange('description', e.target.value)}
+              icon='text'
+            />
 
-          <InputNormal
-            tipo="text"
-            value={dataMov.description}
-            placeholder='Descripción'
-            onChange={(e) => handleChange('description', e.target.value)}
-            icon='text'
-          />
+            <InputNormal
+              tipo="number"
+              value={dataMov.stock}
+              placeholder='Stock'
+              onChange={(e) => handleChange('stock', e.target.value)}
+              icon='calculator'
+            />
 
-          <InputNormal
-            tipo="number"
-            value={dataMov.stock}
-            placeholder='Stock'
-            onChange={(e) => handleChange('stock', e.target.value)}
-            icon='calculator'
-          />
+            <InputNormal
+              tipo="number"
+              value={dataMov.stock_minimo}
+              placeholder='Stock mínimo (opcional)'
+              onChange={(e) => handleChange('stock_minimo', e.target.value)}
+              icon='error'
+              step="0.01"
+              min="0"
+            />
 
-          <InputNormal
-            tipo="number"
-            value={dataMov.stock_minimo}
-            placeholder='Stock mínimo (opcional)'
-            onChange={(e) => handleChange('stock_minimo', e.target.value)}
-            icon='error'
-            step="0.01"
-            min="0"
-          />
+            <InputNormal
+              tipo="text"
+              value={dataMov.codigo_barras}
+              placeholder='Código de barras'
+              onChange={(e) => handleChange('codigo_barras', e.target.value)}
+              icon='barcode'
+            />
 
-          <InputNormal
-            tipo="text"
-            value={dataMov.codigo_barras}
-            placeholder='Código de barras'
-            onChange={(e) => handleChange('codigo_barras', e.target.value)}
-            icon='barcode'
-          />
+            <InputNormal
+              tipo="number"
+              value={dataMov.grup}
+              placeholder='Grupo (ej: 12 para docena)'
+              onChange={(e) => handleChange('grup', e.target.value)}
+              icon='package'
+              step="1"
+              min="1"
+            />
 
-          <InputNormal
-            tipo="number"
-            value={dataMov.grup}
-            placeholder='Grupo (ej: 12 para docena)'
-            onChange={(e) => handleChange('grup', e.target.value)}
-            icon='package'
-            step="1"
-            min="1"
-          />
 
           <Boton
             className='btn-gray'
@@ -339,7 +339,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
           {/* Sección de Precios */}
           <p className={styles.subTitle}>PRECIOS</p>
           {loadingPrecios ? (
-            <NoData 
+            <NoData
               icon="loader-alt"
               title="Cargando precios..."
               detail="Obteniendo tipos de precios disponibles para configurar"
@@ -352,7 +352,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
                 key={priceType.id}
                 tipo="number"
                 value={dataMov.prices[priceType.id] || ''}
-                placeholder={`Precio ${priceType.name}`}
+                placeholder={priceType.name}
                 onChange={(e) => handlePriceChange(priceType.id, e.target.value)}
                 icon='dollar'
                 step="0.01"
@@ -409,16 +409,16 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
           text={notification.text}
         />
         {/* Modal de selección de categorías */}
-      <CategoriasAlmacen
-        isOpen={isCategoriasSeleccionOpen}
-        setIsOpen={setIsCategoriasSeleccionOpen}
-        modoSeleccion={true}
-        onCategoriaSeleccionada={handleCategoriaSeleccionada}
-      />
+        <CategoriasAlmacen
+          isOpen={isCategoriasSeleccionOpen}
+          setIsOpen={setIsCategoriasSeleccionOpen}
+          modoSeleccion={true}
+          onCategoriaSeleccionada={handleCategoriaSeleccionada}
+        />
       </ViewModal>
 
 
-      
+
       {/* Modal de receta */}
       <EditarAgregarReceta
         isOpen={isRecetaOpen}

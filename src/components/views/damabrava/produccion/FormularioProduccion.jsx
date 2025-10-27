@@ -106,7 +106,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
     const handleProductoChange = (e) => {
         const value = e.target.value;
         setDataProduccion(prev => ({ ...prev, producto: value }));
-        
+
         // Si el valor no coincide exactamente con el producto seleccionado, limpiar la selección
         if (!productoSeleccionado || productoSeleccionado.name !== value) {
             setProductoSeleccionado(null);
@@ -188,7 +188,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
 
             if (response.success) {
                 mostrarNotificacion('success', 'Producción registrada exitosamente');
-                
+
                 // Limpiar formulario pero no cerrar modal
                 setDataProduccion({
                     producto: '',
@@ -205,7 +205,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
 
         } catch (error) {
             console.error('Error al registrar producción:', error);
-            
+
             // Manejar errores específicos de stock insuficiente
             if (error.response?.data?.ingredientesConStockInsuficiente) {
                 const ingredientes = error.response.data.ingredientesConStockInsuficiente;
@@ -259,7 +259,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                         min="1"
                     />
 
-                    <div className={styles.content}>
+                    <div className={styles.content} style={{ padding: '8px 15px' }}>
                         <Select
                             placeholder="Seleccionar Proceso"
                             options={opcionesProceso}
@@ -295,22 +295,23 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                         onChange={(e) => handleChange('fechaVencimiento', e.target.value)}
                         icon='calendar'
                     />
-
-                    <Boton
-                        className='btn-original'
-                        label='Registrar Producción'
-                        style={{ marginTop: 'auto' }}
-                        onClick={handleSubmit}
-                        loading={loading}
-                        disabled={
-                            !dataProduccion.producto.trim() ||
-                            !dataProduccion.lote ||
-                            !dataProduccion.proceso ||
-                            !dataProduccion.terminados ||
-                            !dataProduccion.fechaVencimiento ||
-                            !productoSeleccionado
-                        }
-                    />
+                    <div className={styles.buttons} style={{ marginTop: '10px' }}>
+                        <Boton
+                            className='btn-original'
+                            label='Registrar Producción'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleSubmit}
+                            loading={loading}
+                            disabled={
+                                !dataProduccion.producto.trim() ||
+                                !dataProduccion.lote ||
+                                !dataProduccion.proceso ||
+                                !dataProduccion.terminados ||
+                                !dataProduccion.fechaVencimiento ||
+                                !productoSeleccionado
+                            }
+                        />
+                    </div>
                 </div>
 
                 <Notification

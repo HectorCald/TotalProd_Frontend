@@ -212,16 +212,18 @@ class pedidosAlmacenService {
   }
 
   // Actualizar estado del pedido
-  static async updateEstado(pedidoId, nuevoEstado, movimientoSalidaId = null, deudaId = null, movimientoEntradaId = null) {
+  static async updateEstado(pedidoId, nuevoEstado, movimientoSalidaId = undefined, deudaId = undefined, movimientoEntradaId = undefined) {
     try {
       const body = { estado: nuevoEstado };
-      if (movimientoSalidaId) {
+      
+      // Solo agregar campos al body si tienen valor (no undefined)
+      if (movimientoSalidaId !== undefined) {
         body.movimiento_salida_id = movimientoSalidaId;
       }
-      if (deudaId) {
+      if (deudaId !== undefined) {
         body.deuda_id = deudaId;
       }
-      if (movimientoEntradaId) {
+      if (movimientoEntradaId !== undefined) {
         body.movimiento_entrada_id = movimientoEntradaId;
       }
       

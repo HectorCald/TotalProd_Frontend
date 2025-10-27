@@ -455,7 +455,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                                                 const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
                                                 return `Físico: ${fisico} ud • Grup fís.: ${fmt(fisG, fisU)}`;
                                             })()
-                                            : (d.justificacion ? d.justificacion : undefined)}
+                                            : `Físico: ${fisico}${medidaCode ? ` ${medidaCode}` : ''}${d.justificacion ? ` • ${d.justificacion}` : ''}`}
                                         {...(() => {
                                             if (fisico === sistema) return { flot1: '=' };
                                             if (fisico > sistema) return { flot4: '+' };

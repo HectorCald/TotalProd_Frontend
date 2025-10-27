@@ -17,7 +17,7 @@ function ModalDescarga({
     isOpen,
     setIsOpen,
     titulo = "Descargar",
-    subtitulo = "Selecciona el formato que prefieras para descargar.",
+    subtitulo = "SELECCIONA EL FORMATO QUE PREFERIAS PARA DESCARGAR.",
     informacionSuperior = {},
     tablaHeaders = [],
     tablaValores = [],
@@ -94,7 +94,7 @@ function ModalDescarga({
                         });
                         return;
                     }
-                    
+
                     // Para empleados
                     if (isEmployee && sucursal?.empresas?.id) {
                         // Primero intentar obtener de los datos ya cargados
@@ -106,16 +106,16 @@ function ModalDescarga({
                             });
                             return;
                         }
-                        
+
                         // Si no está en los datos, hacer llamada al servicio
                         const response = await EmpresaImagenService.getImage(sucursal.empresas.id);
-                        
+
                         // Intentar diferentes propiedades de la respuesta
-                        const imageUrl = response.data?.imagen_url || 
-                                       response.data?.secure_url || 
-                                       response.data?.url ||
-                                       response.data?.image_url;
-                        
+                        const imageUrl = response.data?.imagen_url ||
+                            response.data?.secure_url ||
+                            response.data?.url ||
+                            response.data?.image_url;
+
                         if (response.success && imageUrl) {
                             setEmpresaImage(imageUrl);
                             // Convertir a base64 para usar en PDF
@@ -129,7 +129,7 @@ function ModalDescarga({
                 }
             }
         };
-        
+
         loadEmpresaImage();
     }, [isOpen, isEmployee, currentUser, sucursal?.empresas?.id, sucursal?.empresas?.logo_tipo]);
 
@@ -286,10 +286,10 @@ function ModalDescarga({
             // 5. TOTALES (desglose solo si hay aumento o descuento)
             if (tablaValores.length > 0) {
                 allData.push([]);
-                
+
                 const tieneAumento = informacionSuperior && informacionSuperior.Aumento;
                 const tieneDescuento = informacionSuperior && informacionSuperior.Descuento;
-                
+
                 // Si hay aumento o descuento, mostrar desglose completo
                 if (tieneAumento || tieneDescuento) {
                     // Calcular solo la suma de subtotales de productos
@@ -307,7 +307,7 @@ function ModalDescarga({
                     totalRow[totalRow.length - 2] = 'Total:';
                     totalRow[totalRow.length - 1] = subtotalConComa;
                     allData.push(totalRow);
-                    
+
                     // AUMENTO (si aplica)
                     if (tieneAumento) {
                         const aumentoConComa = informacionSuperior.Aumento.toString()
@@ -318,7 +318,7 @@ function ModalDescarga({
                         aumentoRow[aumentoRow.length - 1] = aumentoConComa;
                         allData.push(aumentoRow);
                     }
-                    
+
                     // DESCUENTO (si aplica)
                     if (tieneDescuento) {
                         const descuentoConComa = informacionSuperior.Descuento.toString()
@@ -330,7 +330,7 @@ function ModalDescarga({
                         allData.push(descuentoRow);
                     }
                 }
-                
+
                 // TOTAL FINAL (siempre se muestra)
                 if (informacionSuperior && informacionSuperior.Total) {
                     const totalConComa = informacionSuperior.Total.toString()
@@ -459,9 +459,9 @@ function ModalDescarga({
     const handleDescargaPDF = async () => {
         try {
             const styles = StyleSheet.create({
-                page: { 
-                    paddingTop: 30, 
-                    paddingBottom: 36, 
+                page: {
+                    paddingTop: 30,
+                    paddingBottom: 36,
                     paddingHorizontal: 36,
                     position: 'relative'
                 },
@@ -565,23 +565,23 @@ function ModalDescarga({
                         {/* Marca de agua FIJA para todas las páginas automáticas */}
                         {incluirLogos && empresaImageBase64 && (
                             <View style={styles.watermarkFixed} fixed>
-                                <Image 
-                                    src={empresaImageBase64} 
+                                <Image
+                                    src={empresaImageBase64}
                                     style={styles.logoImage}
                                 />
                             </View>
                         )}
-                        
+
                         {/* Logo solo en la primera página (sin fixed) */}
                         {incluirLogos && empresaImageBase64 && (
                             <View style={styles.logoContainer}>
-                                <Image 
-                                    src={empresaImageBase64} 
+                                <Image
+                                    src={empresaImageBase64}
                                     style={styles.logoImage}
                                 />
                             </View>
                         )}
-                        
+
                         <Text style={styles.title}>{tituloDocumentoState}</Text>
 
                         <View style={styles.infoContainer}>
@@ -673,11 +673,11 @@ function ModalDescarga({
                         {tablaValores.length > 0 && (
                             <>
                                 <View style={[styles.contentPad, styles.separator]} />
-                                
+
                                 {(() => {
                                     const tieneAumento = informacionSuperior && informacionSuperior.Aumento;
                                     const tieneDescuento = informacionSuperior && informacionSuperior.Descuento;
-                                    
+
                                     // Si hay aumento o descuento, mostrar desglose completo
                                     if (tieneAumento || tieneDescuento) {
                                         return (
@@ -910,64 +910,62 @@ function ModalDescarga({
                 onClose={() => setIsOpen(false)}
             />
             <div className={styles.modalContent}>
-                <p className={styles.subTitle}>{subtitulo}</p>
-
-                <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                    <InputNormal
-                        label="Nombre del archivo"
-                        value={nombreArchivoState}
-                        onChange={(e) => handleNombreArchivoChange(e.target.value)}
-                        onBlur={() => { }}
-                        placeholder="Ingresa el nombre del archivo"
-                        style={{ width: '300px' }}
-                        icon="file"
-                    />
-                    <InputNormal
-                        label="Título del documento"
-                        value={tituloDocumentoState}
-                        onChange={(e) => handleTituloDocumentoChange(e.target.value)}
-                        onBlur={() => { }}
-                        placeholder="Ingresa el título del documento"
-                        style={{ width: '300px' }}
-                        icon="text"
-                    />
-
+                <p className={styles.subTitle}>SELECCIONA EL FORMATO QUE PREFERIAS PARA DESCARGAR.</p>
+                <InputNormal
+                    label="Nombre del archivo"
+                    value={nombreArchivoState}
+                    onChange={(e) => handleNombreArchivoChange(e.target.value)}
+                    onBlur={() => { }}
+                    placeholder="Ingresa el nombre del archivo"
+                    style={{ width: '300px' }}
+                    icon="file"
+                />
+                <InputNormal
+                    label="Título del documento"
+                    value={tituloDocumentoState}
+                    onChange={(e) => handleTituloDocumentoChange(e.target.value)}
+                    onBlur={() => { }}
+                    placeholder="Ingresa el título del documento"
+                    style={{ width: '300px' }}
+                    icon="text"
+                />
+                <div className={styles.contentModal} style={{ gap: '20px', marginTop: '15px' }}>
                     {clienteInfo && (
-                        <div className={styles.contentModal}>
-                            <Switch
-                                title="Ver número"
-                                subtitle={`Incluir nombre del cliente y número de orden (${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden})`}
-                                checked={verNumero}
-                                onChange={handleVerNumeroChange}
-                                icon="user"
-                            />
-                        </div>
+
+                        <Switch
+                            title="Ver número"
+                            subtitle={`Nombre y número de orden (${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden})`}
+                            checked={verNumero}
+                            onChange={handleVerNumeroChange}
+                            icon="user"
+                        />
+
                     )}
 
-                    <div className={styles.contentModal}>
-                        <Switch
-                            title="Firmas"
-                            subtitle="Incluir espacios para firmas 'Entregado por' y 'Recibido por'"
-                            checked={incluirFirmas}
-                            onChange={handleIncluirFirmasChange}
-                            icon="edit"
-                        />
-                    </div>
+
+                    <Switch
+                        title="Firmas"
+                        subtitle="Incluir espacios para firmas"
+                        checked={incluirFirmas}
+                        onChange={handleIncluirFirmasChange}
+                        icon="edit"
+                    />
+
 
                     {/* Solo mostrar switch de logos si la empresa tiene logo */}
                     {displayImage && (
-                        <div className={styles.contentModal}>
-                            <Switch
-                                title="Logos"
-                                subtitle="Incluir logo de la empresa y marca de agua en la descarga de PDF"
-                                checked={incluirLogos}
-                                onChange={handleIncluirLogosChange}
-                                icon="image"
-                            />
-                        </div>
-                    )}
 
+                        <Switch
+                            title="Logos"
+                            subtitle="Incluir logo de la empresa y marca de agua"
+                            checked={incluirLogos}
+                            onChange={handleIncluirLogosChange}
+                            icon="image"
+                        />
+
+                    )}
                 </div>
+
 
                 <div className={styles.buttons}>
                     <Boton

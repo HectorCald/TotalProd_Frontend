@@ -280,12 +280,12 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     const tablaValores = [];
 
     // Ordenar productos de entradas alfabéticamente
-    const productosEntradasOrdenados = Object.values(productosEntradas).sort((a, b) => 
+    const productosEntradasOrdenados = Object.values(productosEntradas).sort((a, b) =>
       a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
     );
-    
+
     // Ordenar productos de salidas alfabéticamente
-    const productosSalidasOrdenados = Object.values(productosSalidas).sort((a, b) => 
+    const productosSalidasOrdenados = Object.values(productosSalidas).sort((a, b) =>
       a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
     );
 
@@ -373,7 +373,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
     const tablaHeaders = ['Producto', 'Cantidad', 'Costo', 'Subtotal'];
     // Ordenar productos alfabéticamente por nombre
-    const productosOrdenados = Object.values(productosAgrupados).sort((a, b) => 
+    const productosOrdenados = Object.values(productosAgrupados).sort((a, b) =>
       a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
     );
     const tablaValores = productosOrdenados.map(producto => [
@@ -448,7 +448,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
     const tablaHeaders = ['Producto', 'Cantidad', 'Cantidad Grup', 'Precio Unitario', 'Subtotal'];
     // Ordenar productos alfabéticamente por nombre
-    const productosOrdenados = Object.values(productosAgrupados).sort((a, b) => 
+    const productosOrdenados = Object.values(productosAgrupados).sort((a, b) =>
       a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
     );
     const tablaValores = productosOrdenados.map(producto => [
@@ -521,7 +521,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     movimientosFiltrados.forEach(mov => {
       const subtotal = (mov.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
       totalIngresos += subtotal;
-      
+
       // Crear descripción de productos con cantidad grup
       const productosDesc = (mov.productos || []).map(p => {
         const cantidad = parseFloat(p.cantidad) || 0;
@@ -529,7 +529,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         const cantidadGrup = calcularCantidadGrup(cantidad, grup);
         return `${p.producto?.name || 'Producto'} (${cantidad} - ${cantidadGrup})`;
       }).join(', ');
-      
+
       valoresIngresos.push([
         new Date(mov.fecha).toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' }),
         mov?.cliente?.name || mov?.observaciones || '-',
@@ -537,7 +537,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         `Bs. ${subtotal.toFixed(2)}`
       ]);
     });
-    
+
     // Ordenar ingresos alfabéticamente por cliente/detalle
     valoresIngresos.sort((a, b) => a[1].localeCompare(b[1], 'es', { sensitivity: 'base' }));
 
@@ -557,7 +557,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         ]);
       }
     });
-    
+
     // Ordenar gastos alfabéticamente por concepto
     valoresGastos.sort((a, b) => a[1].localeCompare(b[1], 'es', { sensitivity: 'base' }));
 
@@ -617,10 +617,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       }
     }
 
-    if (DEBUG_REPORTES) {
-      console.group('Generar Reporte: Inicio');
-      console.log('Inputs ->', { fechaInicio, fechaFin, areaSeleccionada, sucuId });
-    }
     setIsLoading(true);
     try {
       if (DEBUG_REPORTES) console.log('Rango de fechas ->', {
@@ -694,17 +690,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
 
               const enRango = fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
-              if (DEBUG_REPORTES) {
-                console.log('Comparación Almacén:', {
-                  fechaMovimiento_raw: movimiento.fecha,
-                  fechaMovimiento_toString: fechaMovimiento.toString(),
-                  fechaMovimiento_locale_LaPaz: fechaMovimiento.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-                  fechaMovimientoNormalizada: fechaMovimientoNormalizada.toString(),
-                  fechaInicioNormalizada: fechaInicioNormalizada.toString(),
-                  fechaFinNormalizada: fechaFinNormalizada.toString(),
-                  enRango
-                });
-              }
               return enRango;
             });
 
@@ -740,17 +725,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
 
               const enRango = fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
-              if (DEBUG_REPORTES) {
-                console.log('Comparación Materia Prima:', {
-                  fechaMovimiento_raw: movimiento.date,
-                  fechaMovimiento_toString: fechaMovimiento.toString(),
-                  fechaMovimiento_locale_LaPaz: fechaMovimiento.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-                  fechaMovimientoNormalizada: fechaMovimientoNormalizada.toString(),
-                  fechaInicioNormalizada: fechaInicioNormalizada.toString(),
-                  fechaFinNormalizada: fechaFinNormalizada.toString(),
-                  enRango
-                });
-              }
               return enRango;
             });
 
@@ -786,17 +760,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
 
               const enRango = fechaPedidoNormalizada >= fechaInicioNormalizada && fechaPedidoNormalizada <= fechaFinNormalizada;
-              if (DEBUG_REPORTES) {
-                console.log('Comparación Pedidos:', {
-                  fechaPedido_raw: pedido.fecha || pedido.created_at,
-                  fechaPedido_toString: fechaPedido.toString(),
-                  fechaPedido_locale_LaPaz: fechaPedido.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-                  fechaPedidoNormalizada: fechaPedidoNormalizada.toString(),
-                  fechaInicioNormalizada: fechaInicioNormalizada.toString(),
-                  fechaFinNormalizada: fechaFinNormalizada.toString(),
-                  enRango
-                });
-              }
               return enRango;
             });
 
@@ -825,13 +788,11 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       setDatosReporte(reporteData);
       setIsDescargaOpen(true);
       mostrarNotificacion('success', 'Reporte generado correctamente');
-      if (DEBUG_REPORTES) console.log('Reporte listo, abriendo modal de descarga');
     } catch (error) {
       console.error('Error generando reporte:', error);
       mostrarNotificacion('error', 'Error al generar el reporte');
     } finally {
       setIsLoading(false);
-      if (DEBUG_REPORTES) console.groupEnd();
     }
   };
 
@@ -848,15 +809,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         <div className={styles.headerContainer}>
           <p className={styles.subTitle}>SELECCIONAR</p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'row',gap: '10px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <DateRangePicker
             startDate={fechaInicio}
             endDate={fechaFin}
             onChange={handleFechaChange}
             placeholder="Seleccionar rango de fechas"
           />
-
-          <div className={styles.content}>
+          <div className={styles.content} style={{ padding: '8px 15px' }}>
             <Select
               placeholder="Área"
               options={opcionesArea}
@@ -865,7 +825,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               icon="category"
             />
           </div>
-
         </div>
 
         <div className={styles.buttons}>

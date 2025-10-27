@@ -361,7 +361,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
             if (movimientoResponse.success) {
                 // Actualizar el estado del pedido a Completado y registrar el movimiento de entrada
-                const estadoResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, 'Completado', null, null, movimientoResponse.data.id);
+                const estadoResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, 'Completado', undefined, undefined, movimientoResponse.data.id);
 
                 if (estadoResponse.success) {
                     mostrarNotificacion('success', 'Pedido ingresado correctamente');
