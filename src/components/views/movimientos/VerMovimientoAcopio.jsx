@@ -18,6 +18,14 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
 
+    // Estado local para el movimiento actual
+    const [movimientoActual, setMovimientoActual] = useState(movimiento);
+
+    // Actualizar el estado local cuando cambie el prop movimiento
+    useEffect(() => {
+        setMovimientoActual(movimiento);
+    }, [movimiento]);
+
     // Estados para notificaciones
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -43,11 +51,43 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
     const handleAnular = async () => {
         setLoading(true);
         try {
-            const response = await movimientosAcopioService.anular(movimiento.id);
+            const response = await movimientosAcopioService.anular(movimientoActual.id);
 
             if (response.success) {
+                // Usar la respuesta del servidor que incluye el movimiento actualizado
+                const movimientoActualizado = response.data;
+
+                // Preservar los datos originales que podrían perderse al anular
+                const movimientoConDatosPreservados = {
+                    ...movimientoActualizado,
+                    // Preservar datos importantes que podrían perderse
+                    date: movimientoActualizado.date || movimientoActual.date,
+                    quantity: movimientoActualizado.quantity || movimientoActual.quantity,
+                    costo: movimientoActualizado.costo || movimientoActual.costo,
+                    metodo_pago: movimientoActualizado.metodo_pago || movimientoActual.metodo_pago,
+                    observations: movimientoActualizado.observations || movimientoActual.observations,
+                    observaciones: movimientoActualizado.observaciones || movimientoActual.observaciones,
+                    restar_ingredientes: movimientoActualizado.restar_ingredientes !== undefined ? movimientoActualizado.restar_ingredientes : movimientoActual.restar_ingredientes,
+                    // Preservar información del responsable
+                    user: movimientoActualizado.user || movimientoActual.user,
+                    user_id: movimientoActualizado.user_id || movimientoActual.user_id,
+                    personal: movimientoActualizado.personal || movimientoActual.personal,
+                    personal_id: movimientoActualizado.personal_id || movimientoActual.personal_id,
+                    // Preservar información del cliente/proveedor
+                    cliente: movimientoActualizado.cliente || movimientoActual.cliente,
+                    cliente_id: movimientoActualizado.cliente_id || movimientoActual.cliente_id,
+                    proveedor: movimientoActualizado.proveedor || movimientoActual.proveedor,
+                    proveedor_id: movimientoActualizado.proveedor_id || movimientoActual.proveedor_id,
+                    // Preservar información del producto
+                    product: movimientoActualizado.product || movimientoActual.product,
+                    product_id: movimientoActualizado.product_id || movimientoActual.product_id
+                };
+
+                // Actualizar el estado local del movimiento
+                setMovimientoActual(movimientoConDatosPreservados);
+
                 setIsAnularOpen(false);
-                setIsOpen(false);
+                // NO cerrar VerMovimientoAcopio, solo actualizar el estado
 
                 // Mostrar notificación con información del pedido si fue actualizado
                 if (response.pedidoActualizado) {
@@ -57,7 +97,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 }
 
                 if (onMovimientoAnulado) {
-                    onMovimientoAnulado(movimiento.id);
+                    onMovimientoAnulado(movimientoActual.id);
                 }
             } else {
                 const msg = response.message || 'Error al anular el movimiento';
@@ -112,23 +152,23 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
                 <ItemView
-                    title={movimiento?.user?.name || movimiento?.personal?.name || 'Usuario desconocido'}
+                    title={movimientoActual?.user?.name || movimientoActual?.personal?.name || 'Usuario desconocido'}
                     description="Responsable del movimiento"
                     transparent={false}
                 />
                 <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
                 <ItemView
-                    title={movimiento?.product?.name || 'Sin producto'}
-                    description={`${movimiento?.quantity || '0'} ${movimiento?.product?.type_measure?.code || ''}`}
+                    title={movimientoActual?.product?.name || 'Sin producto'}
+                    description={`${movimientoActual?.quantity || '0'} ${movimientoActual?.product?.type_measure?.code || ''}`}
                     transparent={false}
                     icon='package'
-                    flot5={movimiento?.estado === 'finalizado' ? 'Finalizado' : ''}
-                    flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
+                    flot5={movimientoActual?.estado === 'finalizado' ? 'Finalizado' : ''}
+                    flot3={movimientoActual?.estado === 'anulado' ? 'Anulado' : ''}
                 />
-                {(movimiento?.cliente_id || movimiento?.proveedor_id) && (
+                {(movimientoActual?.cliente_id || movimientoActual?.proveedor_id) && (
                     <ItemView
-                        title={movimiento?.type === 'entrada' ? movimiento?.proveedor?.name || 'Sin proveedor' : movimiento?.cliente?.name || 'Sin cliente'}
-                        description={movimiento?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
+                        title={movimientoActual?.type === 'entrada' ? movimientoActual?.proveedor?.name || 'Sin proveedor' : movimientoActual?.cliente?.name || 'Sin cliente'}
+                        description={movimientoActual?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
                         transparent={false}
                     />
 
@@ -136,61 +176,69 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 <div className={styles.content}>
                     <Dato
                         label="Tipo de movimiento"
-                        value={movimiento?.type === 'entrada' ? 'Entrada' : 'Salida'}
+                        value={movimientoActual?.type === 'entrada' ? 'Entrada' : 'Salida'}
                     />
                     <Dato
                         label="Fecha y hora"
-                        value={`${new Date(movimiento?.date).toLocaleString()}`}
+                        value={(() => {
+                            if (!movimientoActual?.date) return 'Fecha no disponible';
+                            try {
+                                const fecha = new Date(movimientoActual.date);
+                                return isNaN(fecha.getTime()) ? 'Fecha inválida' : fecha.toLocaleString();
+                            } catch (error) {
+                                return 'Fecha inválida';
+                            }
+                        })()}
                     />
                     <Dato
                         label="Cantidad"
-                        value={`${movimiento?.quantity || 0} ${movimiento?.product?.type_measure?.code || ''}`}
+                        value={`${movimientoActual?.quantity || 0} ${movimientoActual?.product?.type_measure?.code || ''}`}
                     />
                 </div>
                 <p className={styles.subTitle}>OTROS DATOS</p>
                 {/* Mostrar costo solo para movimientos de entrada */}
-                {movimiento?.type === 'entrada' && (
+                {movimientoActual?.type === 'entrada' && (
                     <div className={styles.content}>
                         <Dato
                             label="Costo"
-                            value={`Bs. ${(movimiento?.costo || 0).toFixed(2)}`}
+                            value={`Bs. ${(movimientoActual?.costo || 0).toFixed(2)}`}
                             vertical={false}
                         />
                         <Dato
                             label="Restar Ingredientes"
-                            value={movimiento?.restar_ingredientes ? 'Sí' : 'No'}
+                            value={movimientoActual?.restar_ingredientes ? 'Sí' : 'No'}
                             vertical={false}
                         />
                     </div>
            
                 )}
-                {movimiento?.metodo_pago && (
+                {movimientoActual?.metodo_pago && (
                     <Dato
                         label="Método de pago"
-                        value={movimiento.metodo_pago}
+                        value={movimientoActual.metodo_pago}
                         vertical={false}
                     />
                 )}
 
                 {/* Observaciones del movimiento */}
-                {(movimiento?.observations || movimiento?.observaciones) && (
+                {(movimientoActual?.observations || movimientoActual?.observaciones) && (
                     <div className={styles.content}>
                         <Dato
                             label="Observaciones"
-                            value={movimiento.observations || movimiento.observaciones}
+                            value={movimientoActual.observations || movimientoActual.observaciones}
                             vertical={true}
                         />
                     </div>
                 )}
                 <div className={styles.buttons}>
-                    {movimiento?.estado === 'anulado' ? (
+                    {movimientoActual?.estado === 'anulado' ? (
                         <Boton
                             className='btn-red'
                             label='Eliminar Movimiento'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(true)}
                         />
-                    ) : !movimiento?.tiene_pedido_relacionado ? (
+                    ) : !movimientoActual?.tiene_pedido_relacionado ? (
                         <Boton
                             className='btn-red'
                             label='Anular Movimiento'
@@ -205,8 +253,8 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
             <DescargaMovimientoBuilder
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
-                movimientoId={movimiento?.id}
-                movimientoData={movimiento}
+                movimientoId={movimientoActual?.id}
+                movimientoData={movimientoActual}
                 tipo="acopio"
             />
 
@@ -219,7 +267,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>
                         ¿Estás seguro que deseas anular este movimiento? Esta acción no se puede deshacer y si en el movimiento se consumio materia prima se devolvera el peso correspondiente.
-                        {movimiento?.restar_ingredientes && (
+                        {movimientoActual?.restar_ingredientes && (
                             <><br /><br />
                                 <strong>Nota:</strong> Este movimiento consumió ingredientes. Al anularlo, se devolverá el peso de los ingredientes consumidos al stock de acopio.
                             </>

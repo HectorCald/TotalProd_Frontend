@@ -38,9 +38,39 @@ const getPersonalId = () => {
 
 class movimientosAlmacenService {
 
+  // Función auxiliar para validar el tamaño de los datos
+  static validateDataSize(movimientoData) {
+    const productos = movimientoData.productos || [];
+    
+    if (productos.length > 100) {
+      return {
+        valid: false,
+        message: `Demasiados productos (${productos.length}). El máximo permitido es 100 productos por movimiento.`
+      };
+    }
+    
+    if (productos.length > 50) {
+      return {
+        valid: true,
+        warning: `Procesando ${productos.length} productos. Esto puede tardar más tiempo.`
+      };
+    }
+    
+    return { valid: true };
+  }
+
   // Crear un nuevo movimiento de almacén
   static async create(movimientoData) {
     try {
+      // Validar el tamaño de los datos antes de procesar
+      const validation = this.validateDataSize(movimientoData);
+      if (!validation.valid) {
+        return {
+          success: false,
+          message: validation.message
+        };
+      }
+
       const sucuId = getSucuId();
       if (!sucuId) {
         return {
@@ -58,23 +88,45 @@ class movimientosAlmacenService {
         personal_id: personalId
       };
 
-      const response = await fetch(`${API_BASE_URL}/movimientos-almacen`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(dataToSend),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al crear el movimiento');
+      // Mostrar warning si hay muchos productos
+      if (validation.warning) {
+        console.warn(validation.warning);
       }
 
-      // Normalizar la respuesta para que siempre tenga { success, data: { id } }
-      return {
-        success: true,
-        data: { id: data.id }
-      };
+      // Crear AbortController para timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos timeout
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/movimientos-almacen`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(dataToSend),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Error al crear el movimiento');
+        }
+
+        // Normalizar la respuesta para que siempre tenga { success, data: { id } }
+        return {
+          success: true,
+          data: { id: data.id }
+        };
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Timeout: La operación tardó demasiado tiempo. Intenta con menos productos o verifica tu conexión.');
+        }
+        
+        throw fetchError;
+      }
     } catch (error) {
       console.error('Error creando movimiento de almacén:', error);
       return {

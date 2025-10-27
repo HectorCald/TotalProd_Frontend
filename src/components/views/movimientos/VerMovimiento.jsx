@@ -54,35 +54,44 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     };
 
     // Filas preparadas para ModalTable (para PC)
-    const rowsMemo = useMemo(() => (movimientoActual?.productos || [])
-        .sort((a, b) => (a?.producto?.name || '').localeCompare(b?.producto?.name || '', 'es', { sensitivity: 'base' }))
-        .map((productoMovimiento) => {
-            const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
-            const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
-            const esAgrupado = movimientoActual?.agrupado && grup > 0;
-            const precioUnitario = parseFloat(productoMovimiento.precio_unitario) || 0;
+    const rowsMemo = useMemo(() => {
+        // Usar productos originales si el movimiento está anulado y los productos actuales están vacíos
+        const productosParaMostrar = movimientoActual?.estado === 'anulado' && 
+            (!movimientoActual?.productos || movimientoActual.productos.length === 0 || 
+             movimientoActual.productos.some(p => !p.producto?.name || p.precio_unitario === 0))
+            ? movimiento?.productos || []
+            : movimientoActual?.productos || [];
 
-            let cantidadTexto;
-            let precioTexto;
+        return productosParaMostrar
+            .sort((a, b) => (a?.producto?.name || '').localeCompare(b?.producto?.name || '', 'es', { sensitivity: 'base' }))
+            .map((productoMovimiento) => {
+                const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
+                const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
+                const esAgrupado = movimientoActual?.agrupado && grup > 0;
+                const precioUnitario = parseFloat(productoMovimiento.precio_unitario) || 0;
 
-            if (esAgrupado) {
-                const grupos = Math.floor(cantidad / grup);
-                const unidades = cantidad % grup;
-                cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                // Precio unitario multiplicado por la cantidad de agrupación
-                precioTexto = `${(precioUnitario * grup).toFixed(2)} BOB`;
-            } else {
-                cantidadTexto = `${cantidad} ud`;
-                precioTexto = `${precioUnitario.toFixed(2)} BOB`;
-            }
+                let cantidadTexto;
+                let precioTexto;
 
-            return [
-                productoMovimiento.producto?.name || 'Sin nombre',
-                cantidadTexto,
-                precioTexto,
-                `${(parseFloat(productoMovimiento.subtotal) || 0).toFixed(2)} BOB`
-            ];
-        }), [movimientoActual?.productos, movimientoActual?.agrupado]);
+                if (esAgrupado) {
+                    const grupos = Math.floor(cantidad / grup);
+                    const unidades = cantidad % grup;
+                    cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+                    // Precio unitario multiplicado por la cantidad de agrupación
+                    precioTexto = `${(precioUnitario * grup).toFixed(2)} BOB`;
+                } else {
+                    cantidadTexto = `${cantidad} ud`;
+                    precioTexto = `${precioUnitario.toFixed(2)} BOB`;
+                }
+
+                return [
+                    productoMovimiento.producto?.name || 'Sin nombre',
+                    cantidadTexto,
+                    precioTexto,
+                    `${(parseFloat(productoMovimiento.subtotal) || 0).toFixed(2)} BOB`
+                ];
+            });
+    }, [movimientoActual?.productos, movimientoActual?.agrupado, movimientoActual?.estado, movimiento?.productos]);
 
 
     // Handle para anular movimiento
@@ -140,12 +149,57 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 // Usar la respuesta del servidor que incluye el movimiento actualizado
                 const movimientoActualizado = response.data;
 
+                // Preservar los datos originales que podrían perderse al anular
+                const movimientoConDatosPreservados = {
+                    ...movimientoActualizado,
+                    // Preservar datos importantes que podrían perderse
+                    fecha: movimientoActualizado.fecha || movimientoActual.fecha,
+                    precio: movimientoActualizado.precio || movimientoActual.precio,
+                    precio_id: movimientoActualizado.precio_id || movimientoActual.precio_id,
+                    agrupado: movimientoActualizado.agrupado !== undefined ? movimientoActualizado.agrupado : movimientoActual.agrupado,
+                    metodo_pago: movimientoActualizado.metodo_pago || movimientoActual.metodo_pago,
+                    observaciones: movimientoActualizado.observaciones || movimientoActual.observaciones,
+                    // Preservar información del responsable
+                    user: movimientoActualizado.user || movimientoActual.user,
+                    user_id: movimientoActualizado.user_id || movimientoActual.user_id,
+                    personal: movimientoActualizado.personal || movimientoActual.personal,
+                    personal_id: movimientoActualizado.personal_id || movimientoActual.personal_id,
+                    // Preservar información del cliente/proveedor
+                    cliente: movimientoActualizado.cliente || movimientoActual.cliente,
+                    cliente_id: movimientoActualizado.cliente_id || movimientoActual.cliente_id,
+                    proveedor: movimientoActualizado.proveedor || movimientoActual.proveedor,
+                    proveedor_id: movimientoActualizado.proveedor_id || movimientoActual.proveedor_id,
+                    // Preservar productos con toda su información
+                    productos: (() => {
+                        // Si hay productos actualizados, preservar su información completa
+                        if (movimientoActualizado.productos && movimientoActualizado.productos.length > 0) {
+                            return movimientoActualizado.productos.map((productoActualizado) => {
+                                // Buscar el producto original por ID
+                                const productoOriginal = movimientoActual.productos?.find(
+                                    p => p.producto?.id === productoActualizado.producto?.id
+                                );
+                                
+                                return {
+                                    ...productoActualizado,
+                                    // Preservar información completa del producto
+                                    producto: productoActualizado.producto || productoOriginal?.producto,
+                                    precio_unitario: productoActualizado.precio_unitario || productoOriginal?.precio_unitario,
+                                    cantidad: productoActualizado.cantidad || productoOriginal?.cantidad,
+                                    subtotal: productoActualizado.subtotal || productoOriginal?.subtotal
+                                };
+                            });
+                        }
+                        // Si no hay productos actualizados, usar los originales
+                        return movimientoActual.productos || [];
+                    })()
+                };
+
                 // Actualizar el estado local del movimiento
-                setMovimientoActual(movimientoActualizado);
+                setMovimientoActual(movimientoConDatosPreservados);
 
                 // Notificar al componente padre del cambio
                 if (onMovimientoActualizado) {
-                    onMovimientoActualizado(movimientoActualizado);
+                    onMovimientoActualizado(movimientoConDatosPreservados);
                 }
 
                 // También llamar al callback original para mantener compatibilidad
@@ -286,12 +340,20 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     />
                     <Dato
                         label="Fecha y hora"
-                        value={`${new Date(movimientoActual?.fecha).toLocaleString()}`}
+                        value={(() => {
+                            if (!movimientoActual?.fecha) return 'Fecha no disponible';
+                            try {
+                                const fecha = new Date(movimientoActual.fecha);
+                                return isNaN(fecha.getTime()) ? 'Fecha inválida' : fecha.toLocaleString();
+                            } catch (error) {
+                                return 'Fecha inválida';
+                            }
+                        })()}
                         vertical={false}
                     />
                     <Dato
                         label="Tipo de precio"
-                        value={movimientoActual?.precio?.name || 'Precio desconocido'}
+                        value={movimientoActual?.precio?.name || 'Sin tipo de precio'}
                         vertical={false}
                     />
                     <Dato
@@ -452,13 +514,21 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         onClose={() => setIsProductosOpen(false)}
                     />
                     <div className={styles.modalContent}>
-                        {movimientoActual?.productos && movimientoActual.productos.length > 0 && (
-                            <>
-                                <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
+                        {(() => {
+                            // Usar productos originales si el movimiento está anulado y los productos actuales están vacíos
+                            const productosParaMostrar = movimientoActual?.estado === 'anulado' && 
+                                (!movimientoActual?.productos || movimientoActual.productos.length === 0 || 
+                                 movimientoActual.productos.some(p => !p.producto?.name || p.precio_unitario === 0))
+                                ? movimiento?.productos || []
+                                : movimientoActual?.productos || [];
 
-                                {movimientoActual.productos
-                                    .sort((a, b) => (a.producto?.name || '').localeCompare(b.producto?.name || '', 'es', { sensitivity: 'base' }))
-                                    .map((productoMovimiento, index) => {
+                            return productosParaMostrar && productosParaMostrar.length > 0 && (
+                                <>
+                                    <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
+
+                                    {productosParaMostrar
+                                        .sort((a, b) => (a.producto?.name || '').localeCompare(b.producto?.name || '', 'es', { sensitivity: 'base' }))
+                                        .map((productoMovimiento, index) => {
                                         const cantidad = parseFloat(productoMovimiento.cantidad) || 0;
                                         const grup = parseFloat(productoMovimiento.producto?.grup) || 0;
                                         const esAgrupado = movimientoActual?.agrupado && grup > 0;
@@ -489,8 +559,9 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                             />
                                         );
                                     })}
-                            </>
-                        )}
+                                </>
+                            );
+                        })()}
                     </div>
                 </ViewModal>
             )}

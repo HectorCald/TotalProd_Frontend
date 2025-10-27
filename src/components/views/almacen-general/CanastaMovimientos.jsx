@@ -440,6 +440,26 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
     // Validaciones: para salidas/metodo de pago y crédito
     const validarMovimiento = () => {
+        // VALIDAR STOCK ANTES DE CUALQUIER OTRA VALIDACIÓN (este componente es solo para salidas)
+        const productosSinStock = productosCanasta.filter(producto => {
+            const stockDisponible = producto.stockOriginal || producto.stock || 0;
+            const cantidadRequerida = producto.cantidad || 0;
+            
+            // Si está en modo agrupado y el producto tiene grupo, convertir a unidades
+            let cantidadEnUnidades = cantidadRequerida;
+            if (modoAgrupacion === 'agrupado' && producto.grup && producto.grup > 0) {
+                cantidadEnUnidades = cantidadRequerida * producto.grup;
+            }
+            
+            return stockDisponible < cantidadEnUnidades;
+        });
+
+        if (productosSinStock.length > 0) {
+            const nombresProductos = productosSinStock.map(p => p.name).join(', ');
+            mostrarNotificacion('error', `❌ STOCK INSUFICIENTE: Los siguientes productos no tienen stock suficiente: ${nombresProductos}`);
+            return false;
+        }
+
         if (!metodoPagoSeleccionado) {
             mostrarNotificacion('error', 'El método de pago es obligatorio');
             return false;
