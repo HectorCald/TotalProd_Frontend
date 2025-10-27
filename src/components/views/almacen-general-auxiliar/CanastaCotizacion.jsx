@@ -449,7 +449,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                                             <div>
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
-                                                    Disponible: {modoAgrupacion === 'agrupado' && producto.grup
+                                                    {modoAgrupacion === 'agrupado' && producto.grup
                                                         ? `${producto.stock || 0} grupos`
                                                         : `${producto.stock || 0} unidades`
                                                     }
