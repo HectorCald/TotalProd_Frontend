@@ -108,6 +108,16 @@ const HomeEmpleado = () => {
         }
     };
 
+    // Función específica para móviles - detectar cuando la app vuelve del background
+    const handleMobileAppResume = () => {
+        if (!employee || !employee.rastrear) return;
+        
+        // Delay más largo para móviles para asegurar que la app esté completamente activa
+        setTimeout(() => {
+            updateEmployeeLocation();
+        }, 1000);
+    };
+
     // Actualizar ubicación cuando el empleado tiene rastreo activado
     useEffect(() => {
         if (!employee || !employee.rastrear) return;
@@ -138,14 +148,70 @@ const HomeEmpleado = () => {
             }
         };
 
+        // Para móviles: detectar cuando la app vuelve a estar activa
+        const handleAppStateChange = () => {
+            // Pequeño delay para asegurar que la app esté completamente activa
+            setTimeout(() => {
+                updateEmployeeLocation();
+            }, 500);
+        };
+
         // Agregar listeners para detectar cuando el usuario vuelve a la app
         window.addEventListener('focus', handleFocus);
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Para PWA/APK móviles
+        window.addEventListener('pageshow', handleAppStateChange);
+        window.addEventListener('resume', handleAppStateChange); // Evento específico de Cordova/PhoneGap
+        
+        // Detectar cuando la app vuelve del background (móviles)
+        if (document.addEventListener) {
+            document.addEventListener('resume', handleAppStateChange, false);
+        }
 
         // Cleanup
         return () => {
             window.removeEventListener('focus', handleFocus);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pageshow', handleAppStateChange);
+            window.removeEventListener('resume', handleAppStateChange);
+            if (document.removeEventListener) {
+                document.removeEventListener('resume', handleAppStateChange, false);
+            }
+        };
+    }, [employee?.id, employee?.rastrear]);
+
+    // Detectar cambios de estado de la app específicamente para móviles
+    useEffect(() => {
+        if (!employee || !employee.rastrear) return;
+
+        // Detectar cuando la app vuelve del background (móviles)
+        const handleAppStateChange = (event) => {
+            // Solo procesar si la app vuelve a estar activa
+            if (event.type === 'resume' || event.type === 'pageshow') {
+                handleMobileAppResume();
+            }
+        };
+
+        // Eventos específicos para móviles/PWA
+        window.addEventListener('pageshow', handleAppStateChange);
+        window.addEventListener('resume', handleAppStateChange);
+        
+        // Para aplicaciones híbridas (Cordova/PhoneGap)
+        if (window.cordova || window.PhoneGap) {
+            document.addEventListener('resume', handleAppStateChange, false);
+            document.addEventListener('pause', () => {
+                // Opcional: limpiar timers cuando la app va al background
+            }, false);
+        }
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('pageshow', handleAppStateChange);
+            window.removeEventListener('resume', handleAppStateChange);
+            if (window.cordova || window.PhoneGap) {
+                document.removeEventListener('resume', handleAppStateChange, false);
+            }
         };
     }, [employee?.id, employee?.rastrear]);
 
