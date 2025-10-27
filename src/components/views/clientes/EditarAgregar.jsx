@@ -5,7 +5,7 @@ import ViewModal from '../../ui/ViewModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import Notification from '../../common/Notification';
-import MapaModal from './MapaModal';
+import MapaModal2 from './MapaModal2';
 import clientService from '../../../services/clientService';
 import { useUser } from '../../../context/UserContext';
 
@@ -246,7 +246,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
 
             
         </ViewModal>
-        <MapaModal
+        <MapaModal2
                 isOpen={isMapModalOpen}
                 setIsOpen={setIsMapModalOpen}
                 onLocationSelect={handleLocationSelect}

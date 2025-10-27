@@ -135,9 +135,19 @@ class conteosService {
         return { success: false, message: 'ID del conteo es requerido' };
       }
 
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return { success: false, message: 'ID de la empresa es requerido' };
+      }
+
+      const payload = {
+        empresa_id: empresaId
+      };
+
       const resp = await fetch(`${API_BASE_URL}/conteos/${conteoId}/replace`, {
         method: 'POST',
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload)
       });
 
       const data = await resp.json();
@@ -158,9 +168,19 @@ class conteosService {
         return { success: false, message: 'ID del conteo es requerido' };
       }
 
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return { success: false, message: 'ID de la empresa es requerido' };
+      }
+
+      const payload = {
+        empresa_id: empresaId
+      };
+
       const resp = await fetch(`${API_BASE_URL}/conteos/${conteoId}/replace-acopio`, {
         method: 'POST',
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload)
       });
 
       const data = await resp.json();
