@@ -46,6 +46,9 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Estado para acumular todos los pedidos de todas las páginas
     const [allPedidos, setAllPedidos] = useState([]);
     const [currentTipoPedido, setCurrentTipoPedido] = useState(tipoPedido);
+    
+    // Estados para rastrear qué datos se han cargado
+    const [pedidosLoaded, setPedidosLoaded] = useState(false);
 
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
@@ -77,9 +80,10 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
     // Función para cargar pedidos
     const cargarPedidos = async (page = 1, search = '', estado = null, orden = 'fecha_desc') => {
-        if (page === 1) {
+        // Solo mostrar loading si no hay datos cargados Y es página 1
+        if (page === 1 && allPedidos.length === 0) {
             setIsLoading(true);
-        } else {
+        } else if (page > 1) {
             setIsLoadingMore(true);
         }
         setError(null);
@@ -121,6 +125,11 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         return merged;
                     });
                 }
+                
+                // Marcar como cargado solo en página 1
+                if (page === 1) {
+                    setPedidosLoaded(true);
+                }
             } else {
                 setError(response);
             }
@@ -135,31 +144,37 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             // Decrementar contador de peticiones activas
             setActiveRequests(prev => {
                 const newCount = Math.max(0, prev - 1);
-                // Ocultar RefreshIndicator cuando no hay peticiones activas
-                if (newCount === 0 && isLargeScreen) {
-                    setTimeout(() => {
-                        setIsRefreshing(false);
+                // Solo ocultar loading y RefreshIndicator cuando no hay peticiones activas
+                if (newCount === 0) {
+                    if (page === 1) {
+                        setIsLoading(false);
+                    }
+                    if (isLargeScreen) {
                         setTimeout(() => {
-                            setShowRefreshIndicator(false);
-                        }, 500);
-                    }, 300);
+                            setIsRefreshing(false);
+                            setTimeout(() => {
+                                setShowRefreshIndicator(false);
+                            }, 500);
+                        }, 300);
+                    }
                 }
                 return newCount;
             });
         }
     };
 
-    // Cargar pedidos cuando se abre el modal
+    // Cargar pedidos cuando se abre el modal - solo si no hay datos cargados
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !pedidosLoaded) {
             cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
-    }, [isOpen]);
+    }, [isOpen, pedidosLoaded]);
 
-    // Limpiar datos cuando se abre el modal
+    // Resetear flags cuando se abre el modal (NO los datos)
     useEffect(() => {
         if (isOpen) {
-            setAllPedidos([]);
+            // Solo resetear flags, NO los datos acumulados
+            setPedidosLoaded(false);
             setCurrentPage(1);
         }
     }, [isOpen]);
@@ -184,6 +199,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         // Limpiar estado acumulado y resetear página
         setAllPedidos([]);
         setCurrentPage(1);
+        setPedidosLoaded(false);
 
         // La función cargarPedidos ya maneja el RefreshIndicator
         await cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
@@ -222,6 +238,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setFiltroEstado(null);
             setOrdenamiento('fecha_desc');
             setSearchQuery('');
+            setPedidosLoaded(false);
             setCurrentTipoPedido(tipoPedido);
             // Cargar datos del nuevo tipo si el panel está abierto
             if (isOpen) {
@@ -235,6 +252,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         if (isOpen) {
             setAllPedidos([]);
             setCurrentPage(1);
+            setPedidosLoaded(false);
             // Cargar pedidos inmediatamente después de limpiar
             cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }

@@ -36,6 +36,9 @@ function MiProduccion({ isOpen, setIsOpen }) {
 
     // Estado para acumular todos los registros de todas las páginas
     const [allRegistros, setAllRegistros] = useState([]);
+    
+    // Estados para rastrear qué datos se han cargado
+    const [registrosLoaded, setRegistrosLoaded] = useState(false);
 
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
@@ -53,9 +56,10 @@ function MiProduccion({ isOpen, setIsOpen }) {
 
     // Función para cargar registros
     const cargarRegistros = async (page = 1, search = '', estado = null, orden = 'fecha_desc') => {
-        if (page === 1) {
+        // Solo mostrar loading si no hay datos cargados Y es página 1
+        if (page === 1 && allRegistros.length === 0) {
             setIsLoading(true);
-        } else {
+        } else if (page > 1) {
             setIsLoadingMore(true);
         }
         setError(null);
@@ -95,6 +99,11 @@ function MiProduccion({ isOpen, setIsOpen }) {
                         return merged;
                     });
                 }
+                
+                // Marcar como cargado solo en página 1
+                if (page === 1) {
+                    setRegistrosLoaded(true);
+                }
             } else {
                 setError(response);
             }
@@ -109,14 +118,19 @@ function MiProduccion({ isOpen, setIsOpen }) {
             // Decrementar contador de peticiones activas
             setActiveRequests(prev => {
                 const newCount = Math.max(0, prev - 1);
-                // Ocultar RefreshIndicator cuando no hay peticiones activas
-                if (newCount === 0 && isLargeScreen) {
-                    setTimeout(() => {
-                        setIsRefreshing(false);
+                // Solo ocultar loading y RefreshIndicator cuando no hay peticiones activas
+                if (newCount === 0) {
+                    if (page === 1) {
+                        setIsLoading(false);
+                    }
+                    if (isLargeScreen) {
                         setTimeout(() => {
-                            setShowRefreshIndicator(false);
-                        }, 500);
-                    }, 300);
+                            setIsRefreshing(false);
+                            setTimeout(() => {
+                                setShowRefreshIndicator(false);
+                            }, 500);
+                        }, 300);
+                    }
                 }
                 return newCount;
             });
@@ -124,17 +138,18 @@ function MiProduccion({ isOpen, setIsOpen }) {
     };
 
 
-    // Cargar registros cuando se abre el modal
+    // Cargar registros cuando se abre el modal - solo si no hay datos cargados
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !registrosLoaded) {
             cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
-    }, [isOpen]);
+    }, [isOpen, registrosLoaded]);
 
-    // Limpiar datos cuando se abre el modal
+    // Resetear flags cuando se abre el modal (NO los datos)
     useEffect(() => {
         if (isOpen) {
-            setAllRegistros([]);
+            // Solo resetear flags, NO los datos acumulados
+            setRegistrosLoaded(false);
             setCurrentPage(1);
         }
     }, [isOpen]);
@@ -188,6 +203,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
         // Limpiar estado acumulado y resetear página
         setAllRegistros([]);
         setCurrentPage(1);
+        setRegistrosLoaded(false);
 
         // La función cargarRegistros ya maneja el RefreshIndicator
         await cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
@@ -233,6 +249,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
         if (isOpen) {
             setAllRegistros([]);
             setCurrentPage(1);
+            setRegistrosLoaded(false);
             // Cargar registros inmediatamente después de limpiar
             cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }

@@ -323,6 +323,65 @@ class productsAlmacenService {
       };
     }
   }
+
+  // Obtener productos con recetas por IDs (para reportes)
+  static async getByIdsWithRecipes(productIds) {
+    try {
+      const empresaId = getEmpresaId();
+      const sucuId = getSucuId();
+      
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+        return {
+          success: false,
+          message: 'IDs de productos son requeridos'
+        };
+      }
+
+      const params = new URLSearchParams({
+        empresa_id: empresaId,
+        sucu_id: sucuId,
+        with_recipes: 'true'
+      });
+
+      // Agregar IDs como parámetros
+      productIds.forEach(id => {
+        params.append('ids', id);
+      });
+
+      const response = await fetch(`${API_BASE_URL}/products-almacen/by-ids?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener productos con recetas');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error en getByIdsWithRecipes:', error);
+      return {
+        success: false,
+        message: error.message || 'Error de conexión con el servidor'
+      };
+    }
+  }
 }
 
 export default productsAlmacenService;

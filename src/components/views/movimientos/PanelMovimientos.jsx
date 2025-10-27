@@ -53,6 +53,9 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     // Estado para acumular o reemplazar los movimientos mostrados
     const [allMovimientos, setAllMovimientos] = useState([]);
     const [currentTipoMovimiento, setCurrentTipoMovimiento] = useState(tipoMovimiento);
+    
+    // Estados para rastrear qué datos se han cargado
+    const [movimientosLoaded, setMovimientosLoaded] = useState(false);
 
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
@@ -72,9 +75,10 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Función para cargar movimientos
     const cargarMovimientos = async (page = 1, search = '', filtro = null, estado = null, orden = 'fecha_desc') => {
-        if (page === 1) {
+        // Solo mostrar loading si no hay datos cargados Y es página 1
+        if (page === 1 && allMovimientos.length === 0) {
             setIsLoading(true);
-        } else {
+        } else if (page > 1) {
             setIsLoadingMore(true);
         }
         setError(null);
@@ -119,6 +123,11 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         return merged;
                     });
                 }
+                
+                // Marcar como cargado solo en página 1
+                if (page === 1) {
+                    setMovimientosLoaded(true);
+                }
             } else {
                 setError(response);
             }
@@ -133,31 +142,37 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             // Decrementar contador de peticiones activas
             setActiveRequests(prev => {
                 const newCount = Math.max(0, prev - 1);
-                // Ocultar RefreshIndicator cuando no hay peticiones activas
-                if (newCount === 0 && isLargeScreen) {
-                    setTimeout(() => {
-                        setIsRefreshing(false);
+                // Solo ocultar loading y RefreshIndicator cuando no hay peticiones activas
+                if (newCount === 0) {
+                    if (page === 1) {
+                        setIsLoading(false);
+                    }
+                    if (isLargeScreen) {
                         setTimeout(() => {
-                            setShowRefreshIndicator(false);
-                        }, 500);
-                    }, 300);
+                            setIsRefreshing(false);
+                            setTimeout(() => {
+                                setShowRefreshIndicator(false);
+                            }, 500);
+                        }, 300);
+                    }
                 }
                 return newCount;
             });
         }
     };
 
-    // Cargar movimientos cuando se abre el modal
+    // Cargar movimientos cuando se abre el modal - solo si no hay datos cargados
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !movimientosLoaded) {
             cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
         }
-    }, [isOpen]);
+    }, [isOpen, movimientosLoaded]);
 
-    // Limpiar datos cuando se abre el modal
+    // Resetear flags cuando se abre el modal (NO los datos)
     useEffect(() => {
         if (isOpen) {
-            setAllMovimientos([]);
+            // Solo resetear flags, NO los datos acumulados
+            setMovimientosLoaded(false);
             setCurrentPage(1);
         }
     }, [isOpen]);
@@ -182,6 +197,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         // Limpiar estado acumulado y resetear página
         setAllMovimientos([]);
         setCurrentPage(1);
+        setMovimientosLoaded(false);
 
         // La función cargarMovimientos ya maneja el RefreshIndicator
         await cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
@@ -273,6 +289,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setFiltroEstado(null);
             setOrdenamiento('fecha_desc');
             setSearchQuery('');
+            setMovimientosLoaded(false);
             setCurrentTipoMovimiento(tipoMovimiento);
             // Cargar datos del nuevo tipo si el panel está abierto
             if (isOpen) {
@@ -286,6 +303,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         if (isOpen) {
             setAllMovimientos([]);
             setCurrentPage(1);
+            setMovimientosLoaded(false);
             // Cargar movimientos inmediatamente después de limpiar
             cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
         }

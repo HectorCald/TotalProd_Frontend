@@ -247,6 +247,49 @@ class registrosProduccionDamabravaService {
       };
     }
   }
+
+  // Obtener todos los registros de producción sin límite (para reportes)
+  static async getAllSinLimite(estado = null, ordenamiento = 'fecha_desc', search = '', responsable = null) {
+    try {
+      const params = new URLSearchParams();
+
+      if (estado) {
+        params.append('estado', estado);
+      }
+      if (ordenamiento) {
+        params.append('ordenamiento', ordenamiento);
+      }
+      if (search && search.trim()) {
+        params.append('search', search.trim());
+      }
+      if (responsable && responsable.id && responsable.tipo) {
+        params.append('responsable_id', responsable.id);
+        params.append('responsable_tipo', responsable.tipo);
+      }
+
+      // Usar un límite alto para obtener todos los registros
+      params.append('limit', '1000');
+
+      const response = await fetch(`${API_BASE_URL}/registros-produccion-damabrava?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener los registros de producción');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error obteniendo registros de producción sin límite:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al obtener los registros de producción'
+      };
+    }
+  }
 }
 
 export default registrosProduccionDamabravaService;

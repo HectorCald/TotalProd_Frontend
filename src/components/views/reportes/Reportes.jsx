@@ -8,10 +8,13 @@ import movimientosAlmacenService from '../../../services/movimientosAlmacenServi
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import gastosService from '../../../services/gastosService';
+import registrosProduccionDamabravaService from '../../../services/registrosProduccionDamabravaService';
+import productsAlmacenService from '../../../services/productsAlmacenService';
 import Notification from '../../common/Notification';
 import styles from '../../../styles/view.module.css';
 import Boton from '../../common/Boton';
 import DateRangePicker from '../../common/DateRangePicker';
+import { isDamabrava } from '../../../utils/empresaHelper';
 
 const Reportes = ({ isOpen, setIsOpen }) => {
   const DEBUG_REPORTES = false;
@@ -55,11 +58,32 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   // Función helper para calcular cantidad grup
   const calcularCantidadGrup = (cantidad, grup) => {
     if (!grup || grup <= 0) {
-      return '--';
+      return `${cantidad} ud`;
     }
     const grupos = Math.floor(cantidad / grup);
     const unidades = cantidad % grup;
-    return unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+    if (grupos === 0) {
+      return `${unidades} ud`;
+    }
+    return unidades > 0 ? `${grupos} g. - ${unidades} u.` : `${grupos} g.`;
+  };
+
+  // Función helper para obtener solo los grupos
+  const obtenerGrupos = (cantidad, grup) => {
+    if (!grup || grup <= 0) {
+      return '0';
+    }
+    const grupos = Math.floor(cantidad / grup);
+    return grupos.toString();
+  };
+
+  // Función helper para obtener solo las unidades restantes
+  const obtenerUnidades = (cantidad, grup) => {
+    if (!grup || grup <= 0) {
+      return cantidad.toString();
+    }
+    const unidades = cantidad % grup;
+    return unidades.toString();
   };
 
 
@@ -115,6 +139,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     { value: 'materia_Prima', label: 'Materia Prima', icon: 'leaf' },
     { value: 'pedidos', label: 'Pedidos', icon: 'cart' },
     { value: 'balance', label: 'Balance', icon: 'transfer' },
+    ...(isDamabrava() ? [{ value: 'produccion', label: 'Producción (Damabrava)', icon: 'factory' }] : []),
   ];
 
   const handleAreaChange = (valor) => {
@@ -222,7 +247,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     return resultado;
   };
 
-  // Función para generar reporte de almacén general (entradas y salidas por separado)
+  // Función para generar reporte de almacén general (entradas y salidas agrupadas por producto)
   const generarReporteAlmacen = async (movimientos, { fechaInicio, fechaFin }) => {
     if (DEBUG_REPORTES) {
       console.group('Generar Reporte: Almacén General');
@@ -238,83 +263,72 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     const salidas = movimientos.filter(m => m.type === 'salida');
     if (DEBUG_REPORTES) console.log('Entradas:', entradas.length, 'Salidas:', salidas.length);
 
-    // Agrupar productos de entradas
-    const productosEntradas = {};
+    // Agrupar productos (sumando entradas y salidas por separado)
+    const productosAgrupados = {};
+    
+    // Procesar entradas
     entradas.forEach(movimiento => {
       movimiento.productos.forEach(producto => {
         const key = producto.producto.id;
-        if (!productosEntradas[key]) {
-          productosEntradas[key] = {
+        if (!productosAgrupados[key]) {
+          productosAgrupados[key] = {
             nombre: producto.producto.name,
-            cantidad: 0,
-            precioUnitario: producto.precio_unitario,
-            subtotal: 0,
+            cantidadEntrada: 0,
+            cantidadSalida: 0,
+            precioUnitarioEntrada: producto.precio_unitario,
+            precioUnitarioSalida: producto.precio_unitario,
+            subtotalEntrada: 0,
+            subtotalSalida: 0,
             grup: producto.producto.grup || null
           };
         }
-        productosEntradas[key].cantidad += parseFloat(producto.cantidad);
-        productosEntradas[key].subtotal += parseFloat(producto.subtotal);
+        productosAgrupados[key].cantidadEntrada += parseFloat(producto.cantidad);
+        productosAgrupados[key].subtotalEntrada += parseFloat(producto.subtotal);
       });
     });
 
-    // Agrupar productos de salidas
-    const productosSalidas = {};
+    // Procesar salidas
     salidas.forEach(movimiento => {
       movimiento.productos.forEach(producto => {
         const key = producto.producto.id;
-        if (!productosSalidas[key]) {
-          productosSalidas[key] = {
+        if (!productosAgrupados[key]) {
+          productosAgrupados[key] = {
             nombre: producto.producto.name,
-            cantidad: 0,
-            precioUnitario: producto.precio_unitario,
-            subtotal: 0,
+            cantidadEntrada: 0,
+            cantidadSalida: 0,
+            precioUnitarioEntrada: producto.precio_unitario,
+            precioUnitarioSalida: producto.precio_unitario,
+            subtotalEntrada: 0,
+            subtotalSalida: 0,
             grup: producto.producto.grup || null
           };
         }
-        productosSalidas[key].cantidad += parseFloat(producto.cantidad);
-        productosSalidas[key].subtotal += parseFloat(producto.subtotal);
+        productosAgrupados[key].cantidadSalida += parseFloat(producto.cantidad);
+        productosAgrupados[key].subtotalSalida += parseFloat(producto.subtotal);
       });
     });
 
-    const tablaHeaders = ['Tipo', 'Producto', 'Cantidad', 'Cantidad Grup', 'Precio Unitario', 'Subtotal'];
-    const tablaValores = [];
-
-    // Ordenar productos de entradas alfabéticamente
-    const productosEntradasOrdenados = Object.values(productosEntradas).sort((a, b) =>
+    const tablaHeaders = ['Producto', 'Entrada (GRUP)', 'Entrada (UD)', 'Salida (GRUP)', 'Salida (UD)'];
+    // Filtrar solo productos que tuvieron movimientos (entradas o salidas)
+    const productosConMovimientos = Object.values(productosAgrupados).filter(producto => 
+      producto.cantidadEntrada > 0 || producto.cantidadSalida > 0
+    );
+    
+    // Ordenar productos alfabéticamente por nombre
+    const productosOrdenados = productosConMovimientos.sort((a, b) =>
       a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
     );
+    
+    const tablaValores = productosOrdenados.map(producto => [
+      producto.nombre,
+      producto.cantidadEntrada > 0 ? obtenerGrupos(producto.cantidadEntrada, producto.grup) : '--',
+      producto.cantidadEntrada > 0 ? obtenerUnidades(producto.cantidadEntrada, producto.grup) : '--',
+      producto.cantidadSalida > 0 ? obtenerGrupos(producto.cantidadSalida, producto.grup) : '--',
+      producto.cantidadSalida > 0 ? obtenerUnidades(producto.cantidadSalida, producto.grup) : '--'
+    ]);
 
-    // Ordenar productos de salidas alfabéticamente
-    const productosSalidasOrdenados = Object.values(productosSalidas).sort((a, b) =>
-      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
-    );
-
-    // Agregar entradas
-    productosEntradasOrdenados.forEach(producto => {
-      tablaValores.push([
-        'Entrada',
-        producto.nombre,
-        producto.cantidad.toString(),
-        calcularCantidadGrup(producto.cantidad, producto.grup),
-        `Bs. ${parseFloat(producto.precioUnitario).toFixed(2)}`,
-        `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
-      ]);
-    });
-
-    // Agregar salidas
-    productosSalidasOrdenados.forEach(producto => {
-      tablaValores.push([
-        'Salida',
-        producto.nombre,
-        producto.cantidad.toString(),
-        calcularCantidadGrup(producto.cantidad, producto.grup),
-        `Bs. ${parseFloat(producto.precioUnitario).toFixed(2)}`,
-        `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
-      ]);
-    });
-
-    const totalEntradas = productosEntradasOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
-    const totalSalidas = productosSalidasOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    const totalEntradas = productosOrdenados.reduce((sum, p) => sum + p.subtotalEntrada, 0);
+    const totalSalidas = productosOrdenados.reduce((sum, p) => sum + p.subtotalSalida, 0);
 
     // Formatear período con fechas específicas
     const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
@@ -338,7 +352,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         'Movimientos Salida': salidas.length.toString()
       },
       tablaHeaders,
-      tablaValores
+      tablaValores,
+      columnWidths: {
+        producto: 'auto',
+        entradaGrup: '150px !important',
+        entradaUd: '60px !important',
+        salidaGrup: '90px !important',
+        salidaUd: '50px !important'
+      }
     };
     if (DEBUG_REPORTES) {
       console.log('Resultado Almacén:', resultado.informacionSuperior);
@@ -347,46 +368,75 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     return resultado;
   };
 
-  // Función para generar reporte de materia prima (entradas con costo)
+  // Función para generar reporte de materia prima (entradas y salidas)
   const generarReporteMateriaPrima = async (movimientos, { fechaInicio, fechaFin }) => {
-    if (DEBUG_REPORTES) console.log('🌾 Movimientos de materia prima recibidos:', movimientos);
+    // Separar entradas y salidas
     const entradas = movimientos.filter(m => m.type === 'entrada');
-    if (DEBUG_REPORTES) console.log('🌾 Entradas filtradas:', entradas);
+    const salidas = movimientos.filter(m => m.type === 'salida');
 
-    // Agrupar productos
+    // Agrupar productos (sumando entradas y salidas por separado)
     const productosAgrupados = {};
+    
+    // Procesar entradas
     entradas.forEach(movimiento => {
       const key = movimiento.product.id;
       if (!productosAgrupados[key]) {
         productosAgrupados[key] = {
           nombre: movimiento.product.name,
-          cantidad: 0,
-          costo: movimiento.costo || 0,
-          subtotal: 0
+          tipoMedida: movimiento.product.type_measure?.name || 'Sin medida',
+          cantidadEntrada: 0,
+          cantidadSalida: 0,
+          costoEntrada: 0,
+          costoSalida: 0,
+          subtotalEntrada: 0,
+          subtotalSalida: 0
         };
       }
-      productosAgrupados[key].cantidad += parseFloat(movimiento.quantity);
-      productosAgrupados[key].subtotal += parseFloat(movimiento.costo || 0);
+      productosAgrupados[key].cantidadEntrada += parseFloat(movimiento.quantity);
+      productosAgrupados[key].costoEntrada += parseFloat(movimiento.costo || 0);
+      productosAgrupados[key].subtotalEntrada += parseFloat(movimiento.costo || 0);
+    });
+
+    // Procesar salidas
+    salidas.forEach(movimiento => {
+      const key = movimiento.product.id;
+      if (!productosAgrupados[key]) {
+        productosAgrupados[key] = {
+          nombre: movimiento.product.name,
+          tipoMedida: movimiento.product.type_measure?.name || 'Sin medida',
+          cantidadEntrada: 0,
+          cantidadSalida: 0,
+          costoEntrada: 0,
+          costoSalida: 0,
+          subtotalEntrada: 0,
+          subtotalSalida: 0
+        };
+      }
+      productosAgrupados[key].cantidadSalida += parseFloat(movimiento.quantity);
+      productosAgrupados[key].costoSalida += parseFloat(movimiento.costo || 0);
+      productosAgrupados[key].subtotalSalida += parseFloat(movimiento.costo || 0);
     });
 
     if (DEBUG_REPORTES) console.log('🌾 Productos agrupados:', productosAgrupados);
 
-    const tablaHeaders = ['Producto', 'Cantidad', 'Costo', 'Subtotal'];
+    const tablaHeaders = ['Producto', 'Tipo Medida', 'Entrada', 'Salida'];
     // Ordenar productos alfabéticamente por nombre
     const productosOrdenados = Object.values(productosAgrupados).sort((a, b) =>
       a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
     );
+    
     const tablaValores = productosOrdenados.map(producto => [
       producto.nombre,
-      producto.cantidad.toString(),
-      `Bs. ${parseFloat(producto.costo).toFixed(2)}`,
-      `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
+      producto.tipoMedida,
+      `${producto.cantidadEntrada.toFixed(2)}`,
+      `${producto.cantidadSalida.toFixed(2)}`
     ]);
 
-    if (DEBUG_REPORTES) console.log('🌾 Tabla headers:', tablaHeaders);
-    if (DEBUG_REPORTES) console.log('🌾 Tabla valores:', tablaValores);
-
-    const total = productosOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    // Calcular totales separados
+    const totalEntradas = productosOrdenados.reduce((sum, p) => sum + p.subtotalEntrada, 0);
+    const totalSalidas = productosOrdenados.reduce((sum, p) => sum + p.subtotalSalida, 0);
+    const totalCantidadEntrada = productosOrdenados.reduce((sum, p) => sum + p.cantidadEntrada, 0);
+    const totalCantidadSalida = productosOrdenados.reduce((sum, p) => sum + p.cantidadSalida, 0);
 
     // Formatear período con fechas específicas
     const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
@@ -404,11 +454,21 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         'Tipo de Reporte': 'Materia Prima',
         'Período': periodoConFechas,
         'Sucursal': getSucursalName(),
-        'Total Costo': `Bs. ${total.toFixed(2)}`,
-        'Cantidad de Movimientos': entradas.length.toString()
+        'Total Entradas': `Bs. ${totalEntradas.toFixed(2)}`,
+        'Total Salidas': `Bs. ${totalSalidas.toFixed(2)}`,
+        'Cantidad Total Entrada': `${totalCantidadEntrada.toFixed(2)}`,
+        'Cantidad Total Salida': `${totalCantidadSalida.toFixed(2)}`,
+        'Movimientos Entrada': entradas.length.toString(),
+        'Movimientos Salida': salidas.length.toString()
       },
       tablaHeaders,
-      tablaValores
+      tablaValores,
+      columnWidths: {
+        producto: 'auto',
+        tipoMedida: 'auto',
+        entrada: 'auto',
+        salida: 'auto'
+      }
     };
 
     if (DEBUG_REPORTES) console.log('🌾 Reporte data final:', reporteData);
@@ -489,6 +549,197 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       console.log('Resultado Pedidos:', resultado.informacionSuperior);
       console.groupEnd();
     }
+    return resultado;
+  };
+
+  // Función para generar reporte de producción (Damabrava)
+  const generarReporteProduccion = async (registros, { fechaInicio, fechaFin }) => {
+    if (DEBUG_REPORTES) {
+      console.group('Generar Reporte: Producción');
+      console.log('Registros recibidos:', registros?.length);
+      console.log('Fechas periodo:', {
+        fechaInicio,
+        fechaFin,
+        inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+        fin_locale_LaPaz: fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+      });
+    }
+
+    // Agrupar productos por producción
+    const productosAgrupados = {};
+    registros.forEach(registro => {
+      const key = registro.producto_almacen.id;
+      if (!productosAgrupados[key]) {
+        productosAgrupados[key] = {
+          id: registro.producto_almacen.id,
+          nombre: registro.producto_almacen.name,
+          cantidadProducida: 0,
+          cantidadVerificada: 0,
+          cantidadTerminados: 0,
+          materiaPrimaConsumida: {} // { materia_prima_id: { nombre, cantidad_total } }
+        };
+      }
+      
+      // Usar cantidad verificada si está verificado, sino cantidad terminados
+      const cantidadAUsar = registro.estado === 'verificado' || registro.estado === 'Ingresado' 
+        ? parseFloat(registro.cantidad_verificada || 0)
+        : parseFloat(registro.terminados || 0);
+      
+      productosAgrupados[key].cantidadProducida += cantidadAUsar;
+      productosAgrupados[key].cantidadVerificada += parseFloat(registro.cantidad_verificada || 0);
+      productosAgrupados[key].cantidadTerminados += parseFloat(registro.terminados || 0);
+    });
+
+
+    // Obtener recetas de todos los productos únicos
+    const productIds = Object.keys(productosAgrupados);
+    if (productIds.length === 0) {
+      return {
+        informacionSuperior: {
+          'Tipo de Reporte': 'Producción (Damabrava)',
+          'Período': 'Sin datos',
+          'Sucursal': getSucursalName(),
+          'Total Productos': '0',
+          'Total Materia Prima': '0'
+        },
+        tablaHeaders: ['Producto', 'Verificado', 'Terminados', 'Materia Prima', 'C. Consumida'],
+        tablaValores: []
+      };
+    }
+
+    // Obtener productos con recetas del backend
+    let productosConRecetas = [];
+    try {
+      const productosResponse = await productsAlmacenService.getByIdsWithRecipes(productIds);
+      if (productosResponse.success && productosResponse.data) {
+        productosConRecetas = productosResponse.data;
+      }
+    } catch (error) {
+      console.error('Error obteniendo recetas:', error);
+    }
+
+    // Crear mapa de productos con recetas para acceso rápido
+    const productosConRecetasMap = new Map();
+    productosConRecetas.forEach(producto => {
+      productosConRecetasMap.set(producto.id, producto);
+    });
+
+    // Calcular materia prima consumida para cada producto
+    const tablaHeaders = ['Producto', 'Verificado', 'Terminados', 'Materia Prima', 'C. Consumida'];
+    const tablaValores = [];
+    const materiaPrimaTotal = {}; // Para agregar al final
+
+    // Ordenar productos alfabéticamente
+    const productosOrdenados = Object.values(productosAgrupados).sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    );
+
+    // Para cada producto, crear filas con su materia prima
+    productosOrdenados.forEach(producto => {
+      // Buscar el producto por ID en el mapa
+      const productoConReceta = productosConRecetasMap.get(producto.id);
+      
+      if (productoConReceta && productoConReceta.recetas && productoConReceta.recetas.length > 0) {
+        const receta = productoConReceta.recetas[0];
+        
+        if (receta && receta.recetas_detalle && receta.recetas_detalle.length > 0) {
+          // Crear una fila por cada ingrediente de la receta
+          receta.recetas_detalle.forEach(ingrediente => {
+            const cantidadConsumida = ingrediente.cantidad * producto.cantidadProducida;
+            
+            // Agregar al total de materia prima
+            const materiaPrimaId = ingrediente.products_acopio.id;
+            if (!materiaPrimaTotal[materiaPrimaId]) {
+              materiaPrimaTotal[materiaPrimaId] = {
+                nombre: ingrediente.products_acopio.name,
+                cantidadTotal: 0
+              };
+            }
+            materiaPrimaTotal[materiaPrimaId].cantidadTotal += cantidadConsumida;
+            
+            tablaValores.push([
+              producto.nombre,
+              producto.cantidadVerificada.toString(),
+              producto.cantidadTerminados.toString(),
+              ingrediente.products_acopio.name,
+              cantidadConsumida.toFixed(2)
+            ]);
+          });
+        } else {
+          // Producto sin ingredientes en la receta
+          tablaValores.push([
+            producto.nombre,
+            producto.cantidadVerificada.toString(),
+            producto.cantidadTerminados.toString(),
+            'Sin ingredientes',
+            '--'
+          ]);
+        }
+      } else {
+        // Producto sin receta
+        tablaValores.push([
+          producto.nombre,
+          producto.cantidadVerificada.toString(),
+          producto.cantidadTerminados.toString(),
+          'Sin receta',
+          '--'
+        ]);
+      }
+    });
+
+    // Agregar filas de resumen de materia prima total al final
+    const materiaPrimaOrdenada = Object.values(materiaPrimaTotal).sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    );
+
+    materiaPrimaOrdenada.forEach(materia => {
+      tablaValores.push([
+        '--- RESUMEN ---',
+        '---',
+        '---',
+        materia.nombre,
+        materia.cantidadTotal.toFixed(2)
+      ]);
+    });
+
+    const totalProducido = productosOrdenados.reduce((sum, p) => sum + p.cantidadProducida, 0);
+    const totalMateriaPrima = Object.keys(materiaPrimaTotal).length;
+
+    // Formatear período con fechas específicas
+    const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+    const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+
+    let periodoConFechas;
+    if (fechaInicio.getTime() === fechaFin.getTime()) {
+      periodoConFechas = fechaFinFormateada;
+    } else {
+      periodoConFechas = `${fechaInicioFormateada} a ${fechaFinFormateada}`;
+    }
+
+    const totalVerificado = productosOrdenados.reduce((sum, p) => sum + p.cantidadVerificada, 0);
+    const totalTerminados = productosOrdenados.reduce((sum, p) => sum + p.cantidadTerminados, 0);
+
+    const resultado = {
+      informacionSuperior: {
+        'Tipo de Reporte': 'Producción (Damabrava)',
+        'Período': periodoConFechas,
+        'Sucursal': getSucursalName(),
+        'Total Verificado': `${totalVerificado} unidades`,
+        'Total Terminados': `${totalTerminados} unidades`,
+        'Total Producido': `${totalProducido} unidades`,
+        'Total Materia Prima': `${totalMateriaPrima} tipos`,
+        'Cantidad de Registros': registros.length.toString()
+      },
+      tablaHeaders,
+      tablaValores,
+      columnWidths: {
+        producto: '25%',
+        verificado: '12%',
+        terminados: '12%',
+        materiaPrima: '35%',
+        cConsumida: '16%'
+      }
+    };
     return resultado;
   };
 
@@ -708,7 +959,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
         case 'materia_Prima':
           // Para materia prima, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosAcopio = await movimientosAcopioService.getAllSinLimite('entrada', 'fecha_desc', sucuId);
+          const movimientosAcopio = await movimientosAcopioService.getAllSinLimite(null, 'fecha_desc', sucuId);
           if (DEBUG_REPORTES) console.log('API acopio ->', movimientosAcopio?.data?.length ?? 0);
 
           if (movimientosAcopio.success && movimientosAcopio.data) {
@@ -779,6 +1030,40 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         case 'balance':
           // Generar reporte de balance (ingresos y gastos)
           reporteData = await generarReporteBalance({ fechaInicio, fechaFin });
+          break;
+
+        case 'produccion':
+          // Para producción, obtener todos los registros y filtrar por fecha en el frontend
+          const registrosProduccion = await registrosProduccionDamabravaService.getAllSinLimite();
+          if (DEBUG_REPORTES) console.log('API producción ->', registrosProduccion?.data?.length ?? 0);
+
+          if (registrosProduccion.success && registrosProduccion.data) {
+            // Filtrar por fecha en el frontend
+            const registrosFiltrados = registrosProduccion.data.filter(registro => {
+              const fechaRegistro = new Date(registro.fecha);
+              const fechaInicioObj = new Date(fechaInicio);
+              const fechaFinObj = new Date(fechaFin);
+
+              // Normalizar fechas a medianoche para comparación de días
+              const fechaRegistroNormalizada = new Date(fechaRegistro.getFullYear(), fechaRegistro.getMonth(), fechaRegistro.getDate());
+              const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
+              const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
+
+              const enRango = fechaRegistroNormalizada >= fechaInicioNormalizada && fechaRegistroNormalizada <= fechaFinNormalizada;
+              return enRango;
+            });
+
+            if (registrosFiltrados.length === 0) {
+              mostrarNotificacion('warning', 'No hay registros de producción en el período seleccionado');
+              if (DEBUG_REPORTES) console.warn('Sin registros de producción en rango. Total API:', registrosProduccion.data.length);
+              return;
+            }
+
+            reporteData = await generarReporteProduccion(registrosFiltrados, { fechaInicio, fechaFin });
+          } else {
+            mostrarNotificacion('error', 'No se pudieron obtener los registros de producción');
+            return;
+          }
           break;
 
         default:

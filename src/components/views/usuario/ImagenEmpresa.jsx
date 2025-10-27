@@ -415,7 +415,7 @@ const ImagenEmpresa = ({ isOpen, setIsOpen, currentImage, onImageChange, empresa
                                         {isDragOver ? 'Suelta la imagen aquí' : 'Arrastra una imagen aquí o haz clic para seleccionar'}
                                     </p>
                                     <p className={styles.uploadSubtext}>
-                                        Formato recomendado: PNG con fondo transparente (máx. 3MB)
+                                        Formato recomendado: PNG o JPG (máx. 3MB)
                                     </p>
                                 </>
                             )}

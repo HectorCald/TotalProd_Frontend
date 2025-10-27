@@ -546,17 +546,24 @@ function ModalDescarga({
 
             const getWidthsPct = (headers) => {
                 if (!headers || headers.length === 0) return [];
-                if (headers.length === 8) return ['9%', '43%', '8%', '8%', '14%', '6%', '6%', '6%'];
-                if (headers.length === 4) {
-                    // Verificar si es el reporte de balance (tiene columna "Productos")
-                    if (headers.includes('Productos')) {
-                        return ['15%', '25%', '45%', '15%']; // Fecha, Cliente/Detalle, Productos, Subtotal
+                
+                // Calcular ancho mínimo basado en el título de cada columna
+                const widths = headers.map((header, index) => {
+                    const headerLength = header.toString().length;
+                    
+                    // La primera columna (Producto) debe tener más espacio para el contenido
+                    if (index === 0) {
+                        return '35%'; // Espacio fijo generoso para productos
                     }
-                    return ['30%', '25%', '25%', '18%']; // Configuración por defecto para 4 columnas
-                }
-                if (headers.length === 5) return ['35%', '12%', '15%', '18%', '20%']; // Producto, Cantidad, Cantidad Grup, Precio Unitario, Subtotal
-                if (headers.length === 6) return ['8%', '35%', '12%', '15%', '15%', '15%']; // Tipo, Producto, Cantidad, Cantidad Grup, Precio Unitario, Subtotal
-                return new Array(headers.length).fill(`${Math.floor(100 / headers.length)}%`);
+                    
+                    // Ancho mínimo: longitud del título + padding (mínimo 8 caracteres)
+                    const minWidth = Math.max(headerLength + 2, 8);
+                    // Convertir a porcentaje aproximado (asumiendo página de ~80 caracteres)
+                    const percentage = Math.max((minWidth / 80) * 100, 8); // Mínimo 8%
+                    return `${percentage.toFixed(1)}%`;
+                });
+                
+                return widths;
             };
 
             const doc = (
