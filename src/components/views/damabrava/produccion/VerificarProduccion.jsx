@@ -420,7 +420,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                 },
                 'Verificado': {
                     text: 'Verificado',
-                    className: 'success' // verde
+                    className: 'warning' // verde
                 },
                 'Ingresado': {
                     text: 'Ingresado',
@@ -543,7 +543,8 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                                                 icon="file"
                                                 onClick={() => handleRegistro(registro)}
                                                 arrow={false}
-                                                flot1={registro?.estado === 'verificado' ? 'Verificado' : registro?.estado === 'Ingresado' ? 'Ingresado' : ''}  
+                                                flot1={registro?.estado === 'Ingresado' ? 'Ingresado' : ''}  
+                                                flot2={registro?.estado === 'verificado' ? 'Verificado' : ''}
                                                 flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
                                                 gris={true}
                                             />
