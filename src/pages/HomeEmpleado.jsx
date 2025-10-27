@@ -81,23 +81,18 @@ const HomeEmpleado = () => {
     // Función para actualizar ubicación del empleado
     const updateEmployeeLocation = async () => {
         if (!employee || !employee.rastrear) {
-            console.log('❌ No se actualiza ubicación - empleado:', !!employee, 'rastrear:', employee?.rastrear);
             return;
         }
 
-        // Debounce: evitar actualizaciones muy frecuentes (mínimo 30 segundos entre actualizaciones)
+        // Debounce: evitar actualizaciones muy frecuentes (mínimo 10 segundos entre actualizaciones)
         const now = Date.now();
-        if (now - lastLocationUpdate < 30000) {
-            console.log('⏳ Actualización de ubicación omitida (debounce)');
+        if (now - lastLocationUpdate < 10000) {
             return;
         }
-
-        console.log('🔄 Intentando actualizar ubicación para empleado:', employee.id, 'rastrear:', employee.rastrear);
 
         try {
             const locationResponse = await personalService.getCurrentLocation();
             if (locationResponse.success) {
-                console.log('📍 Ubicación obtenida:', locationResponse.data);
                 const updateResponse = await personalService.updateLocation(
                     employee.id,
                     locationResponse.data.latitude,
@@ -105,13 +100,8 @@ const HomeEmpleado = () => {
                 );
                 
                 if (updateResponse.success) {
-                    console.log('✅ Ubicación actualizada exitosamente');
                     setLastLocationUpdate(now);
-                } else {
-                    console.error('❌ Error al actualizar ubicación:', updateResponse.message);
                 }
-            } else {
-                console.error('❌ Error al obtener ubicación:', locationResponse.message);
             }
         } catch (error) {
             console.error('❌ Error al actualizar ubicación:', error);
@@ -133,6 +123,31 @@ const HomeEmpleado = () => {
         // Actualizar ubicación cuando cambie la pantalla
         updateEmployeeLocation();
     }, [activeScreen, activeView, employee?.id]); // Incluir employee.id para evitar loops
+
+    // Actualizar ubicación cuando la ventana vuelve a tener foco (usuario regresa a la app)
+    useEffect(() => {
+        if (!employee || !employee.rastrear) return;
+
+        const handleFocus = () => {
+            updateEmployeeLocation();
+        };
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                updateEmployeeLocation();
+            }
+        };
+
+        // Agregar listeners para detectar cuando el usuario vuelve a la app
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [employee?.id, employee?.rastrear]);
 
     const handleRetryConnection = () => {
         // Verificar conexión nuevamente
@@ -195,24 +210,44 @@ const HomeEmpleado = () => {
     const handleViewOpen = (viewName) => {
         setActiveView(viewName);
         setActiveRoute(null);
+        // Actualizar ubicación cuando se abre una vista
+        if (employee?.rastrear) {
+            updateEmployeeLocation();
+        }
     };
 
     const handleViewClose = () => {
         setActiveView(null);
+        // Actualizar ubicación cuando se cierra una vista
+        if (employee?.rastrear) {
+            updateEmployeeLocation();
+        }
     };
 
     const handleMenuClick = (menuItem) => {
         if (menuItem.route) {
             setActiveRoute(menuItem.route);
+            // Actualizar ubicación cuando se navega desde el menú
+            if (employee?.rastrear) {
+                updateEmployeeLocation();
+            }
         }
     };
 
     const handleViewOpenFromMenu = (viewName, props = {}) => {
         setActiveView(viewName);
+        // Actualizar ubicación cuando se abre vista desde el menú
+        if (employee?.rastrear) {
+            updateEmployeeLocation();
+        }
     };
 
     const handleNavigateFromMenu = (route) => {
         setActiveRoute(route);
+        // Actualizar ubicación cuando se navega desde el menú
+        if (employee?.rastrear) {
+            updateEmployeeLocation();
+        }
     };
 
     // Manejar click en módulo principal (AtajoAnuncio)

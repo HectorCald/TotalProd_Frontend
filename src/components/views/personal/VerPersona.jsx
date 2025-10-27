@@ -127,11 +127,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
 
     // Función para abrir el mapa de ubicación
     const handleOpenMap = () => {
-        if (usuario.ubicacion) {
-            setIsMapModalOpen(true);
-        } else {
-            mostrarNotificacion('error', 'No hay ubicación registrada para mostrar');
-        }
+        setIsMapModalOpen(true);
     };
 
     return (
@@ -157,8 +153,8 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                     <Dato label="Rastreo" value={usuario?.rastrear ? 'Activado' : 'Desactivado'} especial={usuario?.rastrear ? 'green' : 'gray'} />
                 </div>
 
-                {/* Sección de ubicación - solo si tiene rastreo activado */}
-                {usuario?.rastrear && (
+                {/* Sección de ubicación - solo si tiene rastreo activado Y tiene coordenadas */}
+                {usuario?.rastrear && usuario?.ubicacion && (
                     <>
                         <p className={styles.subTitle}>UBICACIÓN</p>
                         <div className={styles.content}>
@@ -167,7 +163,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                                 title="Última Ubicación" 
                                 onClick={handleOpenMap} 
                                 arrow={true}
-                                subtitle={usuario?.ubicacion ? 'Ver en mapa' : 'Sin ubicación registrada'}
+                                subtitle="Ver en mapa"
                             />
                         </div>
                     </>
