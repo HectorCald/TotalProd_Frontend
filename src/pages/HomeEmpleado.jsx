@@ -33,6 +33,7 @@ import Reportes from '../components/views/reportes/Reportes';
 import Deudas from '../components/views/deudas/PanelDeudas';
 import PanelConteos from '../components/views/conteos/PanelConteos';
 import PanelCotizaciones from '../components/views/cotizaciones/PanelCotizaciones';
+import personalService from '../services/personalService';
 
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, error } = useEmployee();
@@ -46,6 +47,7 @@ const HomeEmpleado = () => {
     const [isSubModuleOpen, setIsSubModuleOpen] = useState(false);
     const [isOffline, setIsOffline] = useState(false);
     const [showOfflineModal, setShowOfflineModal] = useState(false);
+    const [lastLocationUpdate, setLastLocationUpdate] = useState(0);
 
     // Detectar cambios en la conexión
     useEffect(() => {
@@ -75,6 +77,62 @@ const HomeEmpleado = () => {
             window.removeEventListener('offline', handleOffline);
         };
     }, []);
+
+    // Función para actualizar ubicación del empleado
+    const updateEmployeeLocation = async () => {
+        if (!employee || !employee.rastrear) {
+            console.log('❌ No se actualiza ubicación - empleado:', !!employee, 'rastrear:', employee?.rastrear);
+            return;
+        }
+
+        // Debounce: evitar actualizaciones muy frecuentes (mínimo 30 segundos entre actualizaciones)
+        const now = Date.now();
+        if (now - lastLocationUpdate < 30000) {
+            console.log('⏳ Actualización de ubicación omitida (debounce)');
+            return;
+        }
+
+        console.log('🔄 Intentando actualizar ubicación para empleado:', employee.id, 'rastrear:', employee.rastrear);
+
+        try {
+            const locationResponse = await personalService.getCurrentLocation();
+            if (locationResponse.success) {
+                console.log('📍 Ubicación obtenida:', locationResponse.data);
+                const updateResponse = await personalService.updateLocation(
+                    employee.id,
+                    locationResponse.data.latitude,
+                    locationResponse.data.longitude
+                );
+                
+                if (updateResponse.success) {
+                    console.log('✅ Ubicación actualizada exitosamente');
+                    setLastLocationUpdate(now);
+                } else {
+                    console.error('❌ Error al actualizar ubicación:', updateResponse.message);
+                }
+            } else {
+                console.error('❌ Error al obtener ubicación:', locationResponse.message);
+            }
+        } catch (error) {
+            console.error('❌ Error al actualizar ubicación:', error);
+        }
+    };
+
+    // Actualizar ubicación cuando el empleado tiene rastreo activado
+    useEffect(() => {
+        if (!employee || !employee.rastrear) return;
+
+        // Actualizar ubicación inmediatamente al cargar
+        updateEmployeeLocation();
+    }, [employee?.id, employee?.rastrear]); // Solo cuando cambie el ID o el estado de rastreo
+
+    // Actualizar ubicación cada vez que cambie la pantalla activa
+    useEffect(() => {
+        if (!employee || !employee.rastrear) return;
+        
+        // Actualizar ubicación cuando cambie la pantalla
+        updateEmployeeLocation();
+    }, [activeScreen, activeView, employee?.id]); // Incluir employee.id para evitar loops
 
     const handleRetryConnection = () => {
         // Verificar conexión nuevamente

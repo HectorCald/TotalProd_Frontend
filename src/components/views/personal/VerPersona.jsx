@@ -10,6 +10,8 @@ import EditarAgregar from './EditarAgregar';
 import Notification from '../../common/Notification';
 import personalService from '../../../services/personalService';
 import NoData from '../../common/NoData';
+import ItemLine from '../../common/ItemLine';
+import MapaModal from '../clientes/MapaModal';
 
 
 function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated, sucursales = [] }) {
@@ -33,6 +35,9 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
     // Estados para módulos y permisos
     const [isModulesOpen, setIsModulesOpen] = useState(false);
     const [isPermisosOpen, setIsPermisosOpen] = useState(false);
+
+    // Estados para el mapa
+    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
 
     // Función para eliminar el personal
@@ -120,6 +125,14 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
         }
     };
 
+    // Función para abrir el mapa de ubicación
+    const handleOpenMap = () => {
+        if (usuario.ubicacion) {
+            setIsMapModalOpen(true);
+        } else {
+            mostrarNotificacion('error', 'No hay ubicación registrada para mostrar');
+        }
+    };
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -141,8 +154,25 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                     />
                     <Dato label="Estado" value={usuario?.is_active ? 'Activo' : 'Inactivo'} especial={usuario?.is_active ? 'green' : 'red'} />
                     <Dato label="Sucursal" value={usuario?.sucursal?.name || 'Sin sucursal asignada'} />
+                    <Dato label="Rastreo" value={usuario?.rastrear ? 'Activado' : 'Desactivado'} especial={usuario?.rastrear ? 'green' : 'gray'} />
                 </div>
 
+                {/* Sección de ubicación - solo si tiene rastreo activado */}
+                {usuario?.rastrear && (
+                    <>
+                        <p className={styles.subTitle}>UBICACIÓN</p>
+                        <div className={styles.content}>
+                            <ItemLine 
+                                icon="map-pin" 
+                                title="Última Ubicación" 
+                                onClick={handleOpenMap} 
+                                arrow={true}
+                                subtitle={usuario?.ubicacion ? 'Ver en mapa' : 'Sin ubicación registrada'}
+                            />
+                        </div>
+                    </>
+                )}
+                <p className={styles.subTitle}>CONFIGURACIÓN</p>
                 {/* Botón para ver módulos - solo si tiene módulos */}
                 {usuario?.modules && usuario.modules.length > 0 && (
 
@@ -323,6 +353,13 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 </div>
             </ViewModal>
 
+            {/* Modal de Mapa*/}
+            <MapaModal
+                isOpen={isMapModalOpen}
+                setIsOpen={setIsMapModalOpen}
+                initialLocation={usuario?.ubicacion}
+                readOnly={true}
+            />
 
             {/* Modal de Notificación*/}
             <Notification

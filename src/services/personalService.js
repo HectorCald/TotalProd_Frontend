@@ -425,6 +425,126 @@ const personalService = {
                 message: 'Error de conexión con el servidor'
             };
         }
+    },
+
+    // Actualizar ubicación del empleado
+    async updateLocation(personalId, latitude, longitude) {
+        try {
+            if (!personalId || !latitude || !longitude) {
+                return {
+                    success: false,
+                    message: 'ID del personal, latitud y longitud son requeridos'
+                };
+            }
+
+            const response = await fetch(`${API_BASE_URL}/personal/${personalId}/update-location`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ latitude, longitude })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return {
+                    success: false,
+                    message: data.message || 'Error del servidor'
+                };
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error en personalService.updateLocation:', error);
+            return {
+                success: false,
+                message: 'Error de conexión con el servidor'
+            };
+        }
+    },
+
+    // Obtener ubicación del empleado
+    async getLocation(personalId) {
+        try {
+            if (!personalId) {
+                return {
+                    success: false,
+                    message: 'ID del personal es requerido'
+                };
+            }
+
+            const response = await fetch(`${API_BASE_URL}/personal/${personalId}/location`, {
+                method: 'GET',
+                headers: getAuthHeaders()
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return {
+                    success: false,
+                    message: data.message || 'Error del servidor'
+                };
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error en personalService.getLocation:', error);
+            return {
+                success: false,
+                message: 'Error de conexión con el servidor'
+            };
+        }
+    },
+
+    // Obtener ubicación actual del navegador
+    async getCurrentLocation() {
+        return new Promise((resolve) => {
+            if (!navigator.geolocation) {
+                resolve({
+                    success: false,
+                    message: 'Geolocalización no soportada por este navegador'
+                });
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        success: true,
+                        data: {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        }
+                    });
+                },
+                (error) => {
+                    let message = 'Error al obtener ubicación';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = 'Permiso de ubicación denegado';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = 'Ubicación no disponible';
+                            break;
+                        case error.TIMEOUT:
+                            message = 'Tiempo de espera agotado';
+                            break;
+                        default:
+                            message = 'Error al obtener ubicación';
+                            break;
+                    }
+                    resolve({
+                        success: false,
+                        message: message
+                    });
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000
+                }
+            );
+        });
     }
 };
 

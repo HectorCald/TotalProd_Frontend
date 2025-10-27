@@ -102,7 +102,7 @@
     flex-direction: column;
     gap: 8px; 
     height: 100%;
-    max-height: 83vh;
+    max-height: 93vh;
     overflow-y: auto;
 }
 /* Scrollbar personalizado para pantallas pequeñas */

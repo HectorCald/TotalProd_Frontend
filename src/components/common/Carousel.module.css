@@ -4,6 +4,7 @@
     flex-direction: column;
     background: none;
     overflow-x: hidden;
+    min-height: fit-content;
 }
 
 .carouselWrapper {

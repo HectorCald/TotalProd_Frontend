@@ -112,6 +112,25 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
             
             if (response.success) {
                 // El token ya se guardó en personalService.loginEmployee
+                
+                // Si el empleado tiene rastreo activado, obtener y actualizar ubicación
+                if (response.data.personal && response.data.personal.rastrear) {
+                    try {
+                        const locationResponse = await personalService.getCurrentLocation();
+                        if (locationResponse.success) {
+                            await personalService.updateLocation(
+                                response.data.personal.id,
+                                locationResponse.data.latitude,
+                                locationResponse.data.longitude
+                            );
+                            console.log('Ubicación actualizada al iniciar sesión');
+                        }
+                    } catch (locationError) {
+                        console.error('Error al obtener ubicación:', locationError);
+                        // No mostrar error al usuario, solo log
+                    }
+                }
+                
                 onLoginSuccess(response.data);
                 setIsOpen(false);
             } else {
