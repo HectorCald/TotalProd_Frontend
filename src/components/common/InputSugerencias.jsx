@@ -36,14 +36,15 @@ function InputSugerencias({
         }
     }, [value]);
 
-    // Función para normalizar texto (quitar acentos, espacios, guiones, convertir a minúsculas)
+    // Función para normalizar texto (quitar acentos, guiones, convertir a minúsculas, mantener espacios)
     const normalizeText = (text) => {
         if (!text) return '';
         return text
             .toLowerCase()
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
-            .replace(/[-\s]/g, '') // Quitar guiones y espacios
+            .replace(/[-]/g, ' ') // Convertir guiones a espacios
+            .replace(/\s+/g, ' ') // Normalizar espacios múltiples a uno solo
             .trim();
     };
 
@@ -55,21 +56,33 @@ function InputSugerencias({
         }
 
         const valorBusquedaNormalizado = normalizeText(value);
+        // Dividir la búsqueda en palabras individuales
+        const palabrasBusqueda = valorBusquedaNormalizado.split(' ').filter(palabra => palabra.length > 0);
         
         const filtradas = sugerencias.filter(sugerencia => {
             let textoComparar;
+            let descripcionComparar = '';
             
             if (typeof sugerencia === 'string') {
                 textoComparar = sugerencia;
             } else if (typeof sugerencia === 'object' && sugerencia[buscarCampo]) {
                 textoComparar = sugerencia[buscarCampo].toString();
+                // También buscar en la descripción si existe
+                if (sugerencia.descripcion) {
+                    descripcionComparar = sugerencia.descripcion.toString();
+                }
             } else {
                 return false;
             }
             
             const textoCompararNormalizado = normalizeText(textoComparar);
+            const descripcionCompararNormalizada = normalizeText(descripcionComparar);
             
-            return textoCompararNormalizado.includes(valorBusquedaNormalizado);
+            // Combinar texto y descripción para buscar todas las palabras
+            const textoCompleto = `${textoCompararNormalizado} ${descripcionCompararNormalizada}`;
+            
+            // Verificar que AL MENOS UNA palabra de búsqueda esté en el texto completo
+            return palabrasBusqueda.some(palabra => textoCompleto.includes(palabra));
         }).slice(0, maxSugerencias);
 
         setSugerenciasFiltradas(filtradas);

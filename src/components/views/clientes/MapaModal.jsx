@@ -3,10 +3,207 @@ import styles from './MapaModal.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
+import InputSugerencias from '../../common/InputSugerencias';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 import Dato from '../../common/Dato';
+
+// Estilos de mapa para tema oscuro
+const darkMapStyles = [
+    {
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#212121"
+            }
+        ]
+    },
+    {
+        "elementType": "labels.icon",
+        "stylers": [
+            {
+                "visibility": "on"
+            }
+        ]
+    },
+    {
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "elementType": "labels.text.stroke",
+        "stylers": [
+            {
+                "color": "#212121"
+            }
+        ]
+    },
+    {
+        "featureType": "administrative",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#757575"
+            }
+        ]
+    },
+    {
+        "featureType": "administrative.country",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "featureType": "administrative.land_parcel",
+        "stylers": [
+            {
+                "visibility": "off"
+            }
+        ]
+    },
+    {
+        "featureType": "administrative.locality",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "featureType": "poi",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "featureType": "poi.park",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#181818"
+            }
+        ]
+    },
+    {
+        "featureType": "poi.park",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "featureType": "poi.park",
+        "elementType": "labels.text.stroke",
+        "stylers": [
+            {
+                "color": "#1b1b1b"
+            }
+        ]
+    },
+    {
+        "featureType": "road",
+        "elementType": "geometry.fill",
+        "stylers": [
+            {
+                "color": "#2a2a2a"
+            }
+        ]
+    },
+    {
+        "featureType": "road",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "featureType": "road.arterial",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#2d2d2d"
+            }
+        ]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#3c3c3c"
+            }
+        ]
+    },
+    {
+        "featureType": "road.highway.controlled_access",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#4e4e4e"
+            }
+        ]
+    },
+    {
+        "featureType": "road.local",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#4a4a4a"
+            }
+        ]
+    },
+    {
+        "featureType": "road.local",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "featureType": "transit",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "featureType": "water",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#000000"
+            }
+        ]
+    },
+    {
+        "featureType": "water",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    }
+];
 
 const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readOnly = false, title = "Seleccionar Ubicación" }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -15,8 +212,9 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
     const [marker, setMarker] = useState(null);
     const [geocoder, setGeocoder] = useState(null);
     const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+    const [sugerenciasBusqueda, setSugerenciasBusqueda] = useState([]);
+    const [loadingBusqueda, setLoadingBusqueda] = useState(false);
     const mapRef = useRef(null);
-    const searchInputRef = useRef(null);
     const [loading, setLoading] = useState(false);
     const [initialLocationSet, setInitialLocationSet] = useState(false);
 
@@ -37,6 +235,18 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
         setTimeout(() => {
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 5000);
+    };
+
+    // Función para obtener el tema actual
+    const getCurrentTheme = () => {
+        const savedTheme = localStorage.getItem('theme');
+        return savedTheme === 'light' ? 'light' : 'dark';
+    };
+
+    // Función para obtener los estilos del mapa según el tema
+    const getMapStyles = () => {
+        const theme = getCurrentTheme();
+        return theme === 'dark' ? darkMapStyles : null; // null = colores originales de Google
     };
 
     // Inicializar el mapa cuando se abre el modal
@@ -105,9 +315,17 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                 const mapInstance = new window.google.maps.Map(mapRef.current, {
                     center: initialCoords,
                     zoom: 15,
-                    mapTypeControl: true,
-                    streetViewControl: true,
-                    fullscreenControl: true,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: false,
+                    panControl: false,
+                    zoomControl: false,
+                    scaleControl: false,
+                    rotateControl: false,
+                    clickableIcons: false,
+                    disableDefaultUI: true,
+                    gestureHandling: 'cooperative',
+                    styles: getMapStyles()
                 });
 
                 // Delay para asegurar que Google Maps esté completamente cargado
@@ -168,9 +386,17 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                     const mapInstance = new window.google.maps.Map(mapRef.current, {
                         center: userLocation,
                         zoom: 15,
-                        mapTypeControl: true,
-                        streetViewControl: true,
-                        fullscreenControl: true,
+                        mapTypeControl: false,
+                        streetViewControl: false,
+                        fullscreenControl: false,
+                        panControl: false,
+                        zoomControl: false,
+                        scaleControl: false,
+                        rotateControl: false,
+                        clickableIcons: false,
+                        disableDefaultUI: true,
+                        gestureHandling: 'cooperative',
+                        styles: getMapStyles()
                     });
 
                     initializeMapComponents(mapInstance, userLocation);
@@ -182,9 +408,17 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
                     const mapInstance = new window.google.maps.Map(mapRef.current, {
                         center: defaultLocation,
                         zoom: 13,
-                        mapTypeControl: true,
-                        streetViewControl: true,
-                        fullscreenControl: true,
+                        mapTypeControl: false,
+                        streetViewControl: false,
+                        fullscreenControl: false,
+                        panControl: false,
+                        zoomControl: false,
+                        scaleControl: false,
+                        rotateControl: false,
+                        clickableIcons: false,
+                        disableDefaultUI: true,
+                        gestureHandling: 'cooperative',
+                        styles: getMapStyles()
                     });
 
                     initializeMapComponents(mapInstance, defaultLocation);
@@ -197,9 +431,17 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
             const mapInstance = new window.google.maps.Map(mapRef.current, {
                 center: defaultLocation,
                 zoom: 13,
-                mapTypeControl: true,
-                streetViewControl: true,
-                fullscreenControl: true,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+                panControl: false,
+                zoomControl: false,
+                scaleControl: false,
+                rotateControl: false,
+                clickableIcons: false,
+                disableDefaultUI: true,
+                gestureHandling: 'cooperative',
+                styles: getMapStyles()
             });
 
             initializeMapComponents(mapInstance, defaultLocation);
@@ -245,38 +487,8 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
             reverseGeocode(position);
         });
 
-        // Configurar autocompletado del buscador
-        if (searchInputRef.current && window.google.maps.places) {
-            try {
-                const autocomplete = new window.google.maps.places.Autocomplete(searchInputRef.current);
-                autocomplete.bindTo('bounds', mapInstance);
-                autocomplete.addListener('place_changed', () => {
-                    const place = autocomplete.getPlace();
-                    if (place.geometry) {
-                        const position = place.geometry.location;
-                        mapInstance.setCenter(position);
-                        mapInstance.setZoom(15);
-                        markerInstance.setPosition(position);
-
-                        // Actualizar el valor del buscador
-                        setSearchQuery(place.formatted_address);
-
-                        const addressComponents = extractAddressComponents(place.formatted_address);
-                        setSelectedLocation({
-                            lat: position.lat(),
-                            lng: position.lng(),
-                            address: place.formatted_address,
-                            placeId: place.place_id,
-                            ...addressComponents
-                        });
-                    }
-                });
-            } catch (error) {
-                console.log('Error configurando autocompletado:', error);
-            }
-        } else {
-            console.log('Places API no disponible para autocompletado');
-        }
+        // Configurar autocompletado del buscador - REMOVIDO
+        // Ya no usamos el autocompletado de Google, usamos InputSugerencias
 
         // Seleccionar ubicación inicial automáticamente
         if (initialPosition) {
@@ -382,42 +594,154 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
         });
     };
 
-    // Buscar ubicación por texto
-    const handleSearch = () => {
-        if (!searchQuery.trim()) {
+    // Buscar sugerencias usando Google Geocoder
+    const buscarSugerencias = async (query) => {
+        if (!query || query.length < 2 || !geocoder) {
+            setSugerenciasBusqueda([]);
             return;
         }
 
-        if (!geocoder) {
-            mostrarNotificacion('error', 'El servicio de búsqueda no está disponible. Intenta hacer clic en el mapa para seleccionar una ubicación.');
-            return;
-        }
-
-        geocoder.geocode({ address: searchQuery }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-                const result = results[0];
-                const position = result.geometry.location;
-
-                map.setCenter(position);
-                map.setZoom(15);
-                marker.setPosition(position);
-
-                const addressComponents = extractAddressComponents(result.formatted_address);
-                setSelectedLocation({
-                    lat: position.lat(),
-                    lng: position.lng(),
-                    address: result.formatted_address,
-                    placeId: result.place_id,
-                    ...addressComponents
+        console.log('Buscando sugerencias para:', query);
+        setLoadingBusqueda(true);
+        
+        try {
+            // Usar Places API para obtener sugerencias más precisas
+            if (window.google && window.google.maps && window.google.maps.places) {
+                const service = new window.google.maps.places.AutocompleteService();
+                service.getPlacePredictions({
+                    input: query,
+                    types: ['geocode'] // Solo geocode para evitar conflictos
+                }, (predictions, status) => {
+                    if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+                        const sugerencias = predictions.map(prediction => ({
+                            id: prediction.place_id,
+                            name: prediction.structured_formatting.main_text,
+                            descripcion: prediction.structured_formatting.secondary_text || '',
+                            placeId: prediction.place_id,
+                            description: prediction.description
+                        }));
+                        console.log('Sugerencias Places API:', sugerencias);
+                        setSugerenciasBusqueda(sugerencias);
+                    } else {
+                        setSugerenciasBusqueda([]);
+                    }
+                    setLoadingBusqueda(false);
                 });
             } else {
-                if (status === 'ZERO_RESULTS') {
-                    mostrarNotificacion('error', 'No se encontró la ubicación. Intenta con una dirección más específica o usa el mapa para seleccionar.');
-                } else {
-                    mostrarNotificacion('error', 'Error en la búsqueda. Intenta con una dirección más específica o usa el mapa para seleccionar.');
-                }
+                // Fallback usando Geocoder
+                geocoder.geocode({ address: query }, (results, status) => {
+                    if (status === 'OK' && results) {
+                        const sugerencias = results.slice(0, 5).map(result => ({
+                            id: result.place_id,
+                            name: result.formatted_address.split(',')[0],
+                            descripcion: result.formatted_address,
+                            placeId: result.place_id,
+                            description: result.formatted_address
+                        }));
+                        console.log('Sugerencias Geocoder:', sugerencias);
+                        setSugerenciasBusqueda(sugerencias);
+                    } else {
+                        setSugerenciasBusqueda([]);
+                    }
+                    setLoadingBusqueda(false);
+                });
             }
-        });
+        } catch (error) {
+            console.error('Error buscando sugerencias:', error);
+            setSugerenciasBusqueda([]);
+            setLoadingBusqueda(false);
+        }
+    };
+
+    // Manejar cambio en el input de búsqueda
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setSearchQuery(value);
+        buscarSugerencias(value);
+    };
+
+    // Manejar selección de sugerencia
+    const handleSugerenciaSelect = async (sugerencia) => {
+        setSearchQuery(sugerencia.name);
+        setSugerenciasBusqueda([]);
+        
+        if (!geocoder) {
+            mostrarNotificacion('error', 'El servicio de búsqueda no está disponible.');
+            return;
+        }
+
+        try {
+            // Usar Places API para obtener detalles del lugar
+            if (window.google && window.google.maps && window.google.maps.places && sugerencia.placeId) {
+                const service = new window.google.maps.places.PlacesService(map);
+                service.getDetails({
+                    placeId: sugerencia.placeId,
+                    fields: ['geometry', 'formatted_address', 'place_id']
+                }, (place, status) => {
+                    if (status === window.google.maps.places.PlacesServiceStatus.OK && place.geometry) {
+                        const position = place.geometry.location;
+                        
+                        map.setCenter(position);
+                        map.setZoom(15);
+                        marker.setPosition(position);
+
+                        const addressComponents = extractAddressComponents(place.formatted_address);
+                        setSelectedLocation({
+                            lat: position.lat(),
+                            lng: position.lng(),
+                            address: place.formatted_address,
+                            placeId: place.place_id,
+                            ...addressComponents
+                        });
+                    } else {
+                        // Fallback usando geocoder
+                        geocoder.geocode({ address: sugerencia.description }, (results, status) => {
+                            if (status === 'OK' && results[0]) {
+                                const result = results[0];
+                                const position = result.geometry.location;
+
+                                map.setCenter(position);
+                                map.setZoom(15);
+                                marker.setPosition(position);
+
+                                const addressComponents = extractAddressComponents(result.formatted_address);
+                                setSelectedLocation({
+                                    lat: position.lat(),
+                                    lng: position.lng(),
+                                    address: result.formatted_address,
+                                    placeId: result.place_id,
+                                    ...addressComponents
+                                });
+                            }
+                        });
+                    }
+                });
+            } else {
+                // Fallback usando geocoder
+                geocoder.geocode({ address: sugerencia.description }, (results, status) => {
+                    if (status === 'OK' && results[0]) {
+                        const result = results[0];
+                        const position = result.geometry.location;
+
+                        map.setCenter(position);
+                        map.setZoom(15);
+                        marker.setPosition(position);
+
+                        const addressComponents = extractAddressComponents(result.formatted_address);
+                        setSelectedLocation({
+                            lat: position.lat(),
+                            lng: position.lng(),
+                            address: result.formatted_address,
+                            placeId: result.place_id,
+                            ...addressComponents
+                        });
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error obteniendo detalles del lugar:', error);
+            mostrarNotificacion('error', 'Error al obtener detalles de la ubicación.');
+        }
     };
 
     // Confirmar selección
@@ -469,13 +793,13 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
     const handleClose = () => {
         setSelectedLocation(null);
         setSearchQuery('');
+        setSugerenciasBusqueda([]);
         setInitialLocationSet(false);
         setIsOpen(false);
     };
 
     return (
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
-            {loading && <LoadingSpinner iconName='map' />}
             <HeaderModal
                 title={title}
                 onClose={handleClose}
@@ -483,68 +807,55 @@ const MapaModal = ({ isOpen, setIsOpen, onLocationSelect, initialLocation, readO
             <div className={styles.modalContent}>
 
                 <div className={styles.searchWrapper}>
-                    <InputNormal
-                        ref={searchInputRef}
-                        tipo="text"
+                    <InputSugerencias
+                        type="text"
                         value={searchQuery}
                         placeholder="Buscar dirección..."
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                        onChange={handleSearchChange}
+                        sugerencias={sugerenciasBusqueda}
+                        onSugerenciaSelect={handleSugerenciaSelect}
+                        mostrarCampo="name"
+                        buscarCampo="name"
+                        maxSugerencias={5}
+                        minCaracteres={2}
+                        showIcon={true}
+                        iconName="search"
+                        loading={loadingBusqueda}
                     />
-                    <button
-                        className={styles.searchButton}
-                        onClick={handleSearch}
-                        type="button"
-                    >
-                        <i className="bx bx-search"></i>
-                    </button>
                 </div>
 
                 <div className={styles.mapContainer}>
-
-                    <div ref={mapRef} className={styles.map}></div>
-
+                    {loading && (
+                        <div className={styles.mapLoading}>
+                            <LoadingSpinner iconName='map' />
+                        </div>
+                    )}
+                    <div ref={mapRef} className={styles.map} style={{
+                        '--google-maps-logo': 'none',
+                        '--google-maps-terms': 'none'
+                    }}></div>
                 </div>
 
-                {selectedLocation && (
-                    <div className={styles.locationInfo}>
-                        <div className={styles.locationDetails}>
-                            <div className={styles.locationDetailsTop}>
-                            {selectedLocation.pais && (
-                                <Dato
-                                    label="País"
-                                    value={selectedLocation.pais}
-                                />
-                            )}
-                            {selectedLocation.ciudad && (
-                                <Dato
-                                    label="Ciudad"
-                                    value={selectedLocation.ciudad}
-                                />
-                            )}
-                            
-                            </div>
-                            
+                <div className={styles.locationInfo}>
+                    <div className={styles.locationDetails}>
+                        <div className={styles.locationDetailsTop}>
                             <Dato
-                                label="Dirección"
-                                value={selectedLocation.direccion || selectedLocation.address}
+                                label="País"
+                                value={selectedLocation?.pais || initialLocation?.pais || "Seleccionando..."}
+                            />
+                            <Dato
+                                label="Ciudad"
+                                value={selectedLocation?.ciudad || initialLocation?.ciudad || "Seleccionando..."}
                             />
                         </div>
+                        
+                        <Dato
+                            label="Dirección"
+                            value={selectedLocation?.direccion || selectedLocation?.address || initialLocation?.direccion || initialLocation?.address || "Selecciona una ubicación en el mapa"}
+                        />
                     </div>
-                )}
+                </div>
 
-                {!selectedLocation && initialLocation && (
-                    <div className={styles.locationInfo}>
-                        <h4>📍 Cargando ubicación...</h4>
-                    </div>
-                )}
-
-                {!selectedLocation && !initialLocation && initialLocationSet && (
-                    <div className={styles.locationInfo}>
-                        <h4>📍 Ubicación actual:</h4>
-                        <p>Selecciona una ubicación en el mapa o usa el buscador</p>
-                    </div>
-                )}
 
                 {!readOnly && (
                     <Boton

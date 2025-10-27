@@ -1,10 +1,13 @@
 .modalContent {
+  padding: 20px;
+  padding-top: 0;
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  gap: 15px;
+  gap: 8px; 
+  height: 100%;
+  max-height: 83vh;
+  overflow-y: auto;
 }
-
 .searchWrapper {
   position: relative;
   width: 100%;
@@ -33,14 +36,93 @@
   flex: 1;
   height: 350px;
   max-height: 350px;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
+  position: relative;
+}
+
+.mapLoading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--tertiary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 10px;
+  border: none;
 }
 
 .map {
   width: 100%;
-  min-height: 350px;
-  height: 350px;
+  min-height: 450px;
+  height: 450px;
+}
+
+/* Ocultar elementos del footer de Google Maps */
+.map :global(.gm-style-cc),
+.map :global(.gm-style-cc a),
+.map :global(.gm-style-cc span),
+.map :global(.gm-style-cc div),
+.map :global(.gm-style-cc .gm-style-cc-c),
+.map :global(.gm-style-cc .gm-style-cc-d),
+.map :global(.gm-style-cc .gm-style-cc-e),
+.map :global(.gm-style-cc .gm-style-cc-f),
+.map :global(.gm-style-cc .gm-style-cc-g),
+.map :global(.gm-style-cc .gm-style-cc-h),
+.map :global(.gm-style-cc .gm-style-cc-i),
+.map :global(.gm-style-cc .gm-style-cc-j),
+.map :global(.gm-style-cc .gm-style-cc-k),
+.map :global(.gm-style-cc .gm-style-cc-l),
+.map :global(.gm-style-cc .gm-style-cc-m),
+.map :global(.gm-style-cc .gm-style-cc-n),
+.map :global(.gm-style-cc .gm-style-cc-o),
+.map :global(.gm-style-cc .gm-style-cc-p),
+.map :global(.gm-style-cc .gm-style-cc-q),
+.map :global(.gm-style-cc .gm-style-cc-r),
+.map :global(.gm-style-cc .gm-style-cc-s),
+.map :global(.gm-style-cc .gm-style-cc-t),
+.map :global(.gm-style-cc .gm-style-cc-u),
+.map :global(.gm-style-cc .gm-style-cc-v),
+.map :global(.gm-style-cc .gm-style-cc-w),
+.map :global(.gm-style-cc .gm-style-cc-x),
+.map :global(.gm-style-cc .gm-style-cc-y),
+.map :global(.gm-style-cc .gm-style-cc-z) {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Ocultar elementos específicos del footer */
+.map :global(.gm-style-cc),
+.map :global(.gm-style-cc-c),
+.map :global(.gm-style-cc-d),
+.map :global(.gm-style-cc-e),
+.map :global(.gm-style-cc-f),
+.map :global(.gm-style-cc-g),
+.map :global(.gm-style-cc-h),
+.map :global(.gm-style-cc-i),
+.map :global(.gm-style-cc-j),
+.map :global(.gm-style-cc-k),
+.map :global(.gm-style-cc-l),
+.map :global(.gm-style-cc-m),
+.map :global(.gm-style-cc-n),
+.map :global(.gm-style-cc-o),
+.map :global(.gm-style-cc-p),
+.map :global(.gm-style-cc-q),
+.map :global(.gm-style-cc-r),
+.map :global(.gm-style-cc-s),
+.map :global(.gm-style-cc-t),
+.map :global(.gm-style-cc-u),
+.map :global(.gm-style-cc-v),
+.map :global(.gm-style-cc-w),
+.map :global(.gm-style-cc-x),
+.map :global(.gm-style-cc-y),
+.map :global(.gm-style-cc-z) {
+  display: none !important;
+  visibility: hidden !important;
 }
 
 
@@ -79,8 +161,3 @@
   display: flex;
   gap: 10px;
 }
-
-
-
-
-
