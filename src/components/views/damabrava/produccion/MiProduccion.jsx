@@ -124,11 +124,18 @@ function MiProduccion({ isOpen, setIsOpen }) {
     };
 
 
-    // Cargar registros cuando se abre el modal - solo si no hay datos cargados
+    // Cargar registros cuando se abre el modal
     useEffect(() => {
-        if (isOpen && allRegistros.length === 0) {
-            // Solo cargar si no hay datos
+        if (isOpen) {
             cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
+        }
+    }, [isOpen]);
+
+    // Limpiar datos cuando se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            setAllRegistros([]);
+            setCurrentPage(1);
         }
     }, [isOpen]);
 

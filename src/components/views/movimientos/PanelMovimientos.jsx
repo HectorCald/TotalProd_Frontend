@@ -147,11 +147,18 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     };
 
-    // Cargar movimientos cuando se abre el modal - solo si no hay datos cargados
+    // Cargar movimientos cuando se abre el modal
     useEffect(() => {
-        if (isOpen && allMovimientos.length === 0) {
-            // Solo cargar si no hay datos
+        if (isOpen) {
             cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
+        }
+    }, [isOpen]);
+
+    // Limpiar datos cuando se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            setAllMovimientos([]);
+            setCurrentPage(1);
         }
     }, [isOpen]);
 

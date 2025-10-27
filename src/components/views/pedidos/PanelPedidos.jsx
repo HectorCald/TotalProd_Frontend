@@ -149,20 +149,27 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     };
 
-    // Cargar pedidos cuando se abre el modal - solo si no hay datos cargados
+    // Cargar pedidos cuando se abre el modal
     useEffect(() => {
-        if (isOpen && allPedidos.length === 0) {
-            // Solo cargar si no hay datos
+        if (isOpen) {
             cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
     }, [isOpen]);
 
-    // Cargar pedidos cuando cambian los parámetros
+    // Limpiar datos cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
+            setAllPedidos([]);
+            setCurrentPage(1);
+        }
+    }, [isOpen]);
+
+    // Cargar pedidos cuando cambia la página (para paginación)
+    useEffect(() => {
+        if (isOpen && currentPage > 1) {
             cargarPedidos(currentPage, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
-    }, [currentPage, debouncedSearchQuery, filtroEstado, ordenamiento]);
+    }, [currentPage]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -228,6 +235,8 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         if (isOpen) {
             setAllPedidos([]);
             setCurrentPage(1);
+            // Cargar pedidos inmediatamente después de limpiar
+            cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
         }
     }, [debouncedSearchQuery, filtroEstado, ordenamiento]);
 

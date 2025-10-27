@@ -126,20 +126,27 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     };
 
 
-    // Cargar registros cuando se abre el modal - solo si no hay datos cargados
+    // Cargar registros cuando se abre el modal
     useEffect(() => {
-        if (isOpen && allRegistros.length === 0) {
-            // Solo cargar si no hay datos
+        if (isOpen) {
             cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable);
         }
     }, [isOpen]);
 
-    // Cargar registros cuando cambian los parámetros
+    // Limpiar datos cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
+            setAllRegistros([]);
+            setCurrentPage(1);
+        }
+    }, [isOpen]);
+
+    // Cargar registros cuando cambia la página (para paginación)
+    useEffect(() => {
+        if (isOpen && currentPage > 1) {
             cargarRegistros(currentPage, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable);
         }
-    }, [currentPage, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable]);
+    }, [currentPage]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -229,6 +236,8 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         if (isOpen) {
             setAllRegistros([]);
             setCurrentPage(1);
+            // Cargar registros inmediatamente después de limpiar
+            cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable);
         }
     }, [debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable]);
 
