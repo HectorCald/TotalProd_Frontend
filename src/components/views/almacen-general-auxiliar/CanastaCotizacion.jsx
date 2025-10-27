@@ -371,7 +371,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
             setMetodoPagoSeleccionado('');
             setFechaVencimiento('');
             localStorage.removeItem('canastaCotizaciones');
-            
+
             // Solo cerrar la canasta en móvil, no en PC (modo carrito)
             if (!isCartMode) {
                 setIsOpen(false);
@@ -532,18 +532,18 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                             {/* Controles específicos para cotizaciones */}
                             <>
                                 {/* Selector de cliente para cotizaciones (opcional) */}
-                                <div className={styles.content} style={{ padding: '5px 15px', marginTop: 'auto' }}>
-                                    <Boton
-                                        className='btn-transparent'
-                                        label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)')}
-                                        onClick={() => setIsClientesSeleccionOpen(true)}
-                                        style={{
-                                            width: '100%',
-                                            justifyContent: 'flex-start',
-                                            ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
-                                        }}
-                                    />
-                                </div>
+
+                                <Boton
+                                    className='btn-gray'
+                                    label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)')}
+                                    onClick={() => setIsClientesSeleccionOpen(true)}
+                                    style={{
+                                        marginTop: 'auto',
+                                        width: '100%',
+                                        justifyContent: 'flex-start',
+                                        ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
+                                    }}
+                                />
 
                                 {/* Selector de método de pago para cotizaciones (opcional) */}
                                 <SelectorMetodoPago
@@ -553,15 +553,15 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                                 />
 
                                 {/* Fecha de vencimiento de la cotización (opcional) */}
-                                    <p className={styles.subTitle}>Fecha de Vencimiento (opcional):</p>
-                                    <InputNormal
-                                        tipo="date"
-                                        value={fechaVencimiento}
-                                        onChange={(e) => setFechaVencimiento(e.target.value)}
-                                        icon="calendar"
-                                        placeholder="Seleccionar fecha de vencimiento"
-                                    />
-                            
+                                <p className={styles.subTitle}>Fecha de Vencimiento (opcional):</p>
+                                <InputNormal
+                                    tipo="date"
+                                    value={fechaVencimiento}
+                                    onChange={(e) => setFechaVencimiento(e.target.value)}
+                                    icon="calendar"
+                                    placeholder="Seleccionar fecha de vencimiento"
+                                />
+
 
                             </>
                         </div>

@@ -498,8 +498,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
                                                     {modoAgrupacion === 'agrupado' && producto.grup
-                                                        ? `Disponible: ${(producto.stock || 0)} grupos`
-                                                        : `Disponible: ${producto.stock || 0} ${producto.type_measure?.code || ''}`
+                                                        ? `${(producto.stock || 0)} grupos`
+                                                        : `${producto.stock || 0} ${producto.type_measure?.code || ''}`
                                                     }
                                                 </p>
                                             </div>
@@ -579,7 +579,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                             ))}
                             {/* Selector de sucursal - Solo mostrar si no estamos editando */}
                             {!pedidoId && (
-                                <div className={styles.content} style={{ padding: '10px 15px', marginTop: 'auto' }}>
+                                <div className={styles.content} style={{ padding: '8px 15px', marginTop: 'auto' }}>
                                     <Select
                                         value={sucursalSeleccionada}
                                         onChange={setSucursalSeleccionada}
@@ -591,14 +591,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                 </div>
                             )}
                             {/* Botón para seleccionar cliente entre sucursal y observaciones */}
-                            <div className={styles.content} style={{ padding: '5px 15px' }}>
                                 <Boton
-                                    className='btn-transparent'
+                                    className='btn-gray'
                                     label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
                                     onClick={() => setIsClientesSeleccionOpen(true)}
                                     style={{ width: '100%', justifyContent: 'flex-start' }}
                                 />
-                            </div>
+    
 
                             {/* Input de observaciones debajo del selector de cliente */}
 
@@ -607,6 +606,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                 value={observacionesGenerales}
                                 placeholder="Observaciones del pedido"
                                 onChange={(e) => setObservacionesGenerales(e.target.value)}
+                                icon='comment'
                             />
                         </div>
 

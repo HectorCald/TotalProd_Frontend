@@ -13,7 +13,7 @@ function SelectorMetodoPago({ value, onChange, disabled = false, placeholder = '
     ];
 
     return (
-        <div className={styles.content} style={{ padding: '10px 15px' }}>
+        <div className={styles.content} style={{ padding: '8px 15px' }}>
             <Select
                 value={value}
                 onChange={onChange}

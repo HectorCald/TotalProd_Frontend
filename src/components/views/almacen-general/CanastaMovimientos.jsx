@@ -835,9 +835,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             {(
                                 <>
                                     {/* Selector de cliente para salidas */}
-                                    <div className={styles.content} style={{ padding: '15px', marginTop: 'auto' }}>
                                         <Boton
-                                            className='btn-transparent'
+                                            className='btn-gray'
                                             label={esEntrega
                                                 ? (clientePedidoData ? `Cliente del Pedido: ${clientePedidoData.name}` : 'Seleccionar Cliente')
                                                 : (clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name :
@@ -845,12 +844,13 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                             }
                                             onClick={() => setIsClientesSeleccionOpen(true)}
                                             style={{
+                                                marginTop: 'auto',
                                                 width: '100%',
                                                 justifyContent: 'flex-start',
                                                 ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData && !esEntrega ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
                                             }}
                                         />
-                                    </div>
+                                   
                                     <div className={styles.horizontal}>
                                         <InputNormal
                                             placeholder="Descuento"
