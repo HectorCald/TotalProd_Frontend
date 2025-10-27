@@ -1,7 +1,7 @@
 // Configuración central de la API
 const API_CONFIG = {
     // Cambia aquí para cambiar entre local y producción
-    ENVIRONMENT: 'production', // 'local' | 'production
+    ENVIRONMENT: 'local', // 'local' | 'production
     
     // URLs de los backends
     LOCAL: 'http://localhost:5000/api',
