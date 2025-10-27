@@ -36,16 +36,6 @@ const getPersonalId = () => {
   return null;
 };
 
-// Función helper para obtener empresa_id
-const getEmpresaId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.empresas?.id;
-  }
-  return null;
-};
-
 class cotizacionesService {
 
   // Obtener una cotización por ID
@@ -75,19 +65,19 @@ class cotizacionesService {
     }
   }
 
-  // Obtener todas las cotizaciones
+  // Obtener todas las cotizaciones de una sucursal
   static async getAll() {
     try {
-      const empresaId = getEmpresaId();
-      if (!empresaId) {
+      const sucuId = getSucuId();
+      if (!sucuId) {
         return {
           success: false,
-          message: 'No hay empresa seleccionada'
+          message: 'No hay sucursal seleccionada'
         };
       }
 
       const params = new URLSearchParams({
-        empresa_id: empresaId
+        sucu_id: sucuId
       });
 
       const response = await fetch(`${API_BASE_URL}/cotizaciones?${params}`, {

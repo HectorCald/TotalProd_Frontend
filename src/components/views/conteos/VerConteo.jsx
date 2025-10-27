@@ -93,8 +93,8 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
             }
             return [
                 nombreProducto,
-                `${sistema}${medidaCode ? ` ${medidaCode}` : ''}`,
-                `${fisico}${medidaCode ? ` ${medidaCode}` : ''}`,
+                `${Number(sistema).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}`,
+                `${Number(fisico).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}`,
                 medidaCode || '--',
                 d.justificacion || ''
             ];
@@ -446,7 +446,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                                                 const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
                                                 return `Sistema: ${sistema} ud • Grup sist.: ${fmt(sysG, sysU)}`;
                                             })()
-                                            : `Sistema: ${sistema}${medidaCode ? ` ${medidaCode}` : ''}`}
+                                            : `Sistema: ${Number(sistema).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}`}
                                         description2={isAlmacen
                                             ? (() => {
                                                 if (grup <= 0) return `Físico: ${fisico} ud`;
@@ -455,7 +455,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                                                 const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
                                                 return `Físico: ${fisico} ud • Grup fís.: ${fmt(fisG, fisU)}`;
                                             })()
-                                            : `Físico: ${fisico}${medidaCode ? ` ${medidaCode}` : ''}${d.justificacion ? ` • ${d.justificacion}` : ''}`}
+                                            : `Físico: ${Number(fisico).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}${d.justificacion ? ` • ${d.justificacion}` : ''}`}
                                         {...(() => {
                                             if (fisico === sistema) return { flot1: '=' };
                                             if (fisico > sistema) return { flot4: '+' };
