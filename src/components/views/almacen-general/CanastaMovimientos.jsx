@@ -737,7 +737,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                             <div>
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
-                                                    Disponible: {modoAgrupacion === 'agrupado' && producto.grup
+                                                    {modoAgrupacion === 'agrupado' && producto.grup
                                                         ? `${producto.stock || 0} grupos`
                                                         : `${producto.stock || 0} unidades`
                                                     }
@@ -835,7 +835,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             {(
                                 <>
                                     {/* Selector de cliente para salidas */}
-                                    <div className={styles.content} style={{ padding: '5px 15px', marginTop: 'auto' }}>
+                                    <div className={styles.content} style={{ padding: '15px', marginTop: 'auto' }}>
                                         <Boton
                                             className='btn-transparent'
                                             label={esEntrega

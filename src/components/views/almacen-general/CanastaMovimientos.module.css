@@ -94,7 +94,7 @@
     background: var(--tertiary-color);
     padding:10px;
     width: 100%;
-    gap: 10px;
+    gap: 5px;
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
@@ -111,13 +111,13 @@
     transition: all 0.3s ease;
 }
 .productoIcon {
-    font-size: 20px;
+    font-size: 20px !important;
     color: var(--primary-color) !important;
     background-color: #28b49847;
     border-radius: 8px;
     padding: 2px;
-    width: 40px;
-    height: 40px;
+    width: 35px;
+    height: 35px;
     display: flex !important;
     align-items: center;
     justify-content: center;
@@ -127,12 +127,12 @@
     font-size: 14px;
     font-weight: 500;
     color: var(--white-color);
-    margin: 0 0 4px 0;
     width: 100%;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.2;
 }
 .descripcion {
     font-size: 13px;
@@ -149,7 +149,7 @@
 
 .stockInfo {
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 400;
     color: var(--primary-color);
     margin: 0;
     width: 100%;
@@ -229,10 +229,10 @@
     background: gray;
     border: none;
     color: white;
-    min-width: 32px;
-    min-height: 32px;
-    max-width: 32px;
-    max-height: 32px;
+    min-width: 30px;
+    min-height: 30px;
+    max-width: 30px;
+    max-height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -310,7 +310,7 @@
 }
 
 .totalLabel {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     color: gray;
 }

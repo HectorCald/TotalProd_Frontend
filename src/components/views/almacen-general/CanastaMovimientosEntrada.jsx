@@ -403,7 +403,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                             <div>
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
-                                                    Stock: {modoAgrupacion === 'agrupado' && producto.grup
+                                                    {modoAgrupacion === 'agrupado' && producto.grup
                                                         ? `${producto.stock || 0} grupos`
                                                         : `${producto.stock || 0} unidades`
                                                     }
@@ -449,12 +449,23 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                 </div>
                             ))}
 
+                            
+                            {/* Registrar gasto (opcional) */}
+                            <div className={styles.content} style={{ marginTop: 'auto', padding: '15px' }}>
+                                <Switch
+                                    title="Registrar gasto"
+                                    subtitle="Crear un gasto automáticamente con estas entradas"
+                                    checked={registrarGasto}
+                                    onChange={setRegistrarGasto}
+                                    icon="money"
+                                />
+                            </div>
                             {/* Switch para restar ingredientes (solo si hay productos con recetas) */}
                             {tieneProductosConRecetas() && (
-                                <div className={styles.content} style={{ padding: '10px 15px' }}>
+                                <div className={styles.content} style={{ padding: '15px' }}>
                                     <Switch
                                         title="Restar ingredientes"
-                                        subtitle="Restar automáticamente los ingredientes de las recetas del stock"
+                                        subtitle="Restar automáticamente los ingredientes de las recetas"
                                         checked={restarIngredientes}
                                         onChange={(value) => {
                                             setRestarIngredientes(value);
@@ -464,16 +475,6 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                     />
                                 </div>
                             )}
-                            {/* Registrar gasto (opcional) */}
-                            <div className={styles.content} style={{ marginTop: 'auto' }}>
-                                <Switch
-                                    title="Registrar gasto"
-                                    subtitle="Crear un gasto automáticamente con estas entradas"
-                                    checked={registrarGasto}
-                                    onChange={setRegistrarGasto}
-                                    icon="money"
-                                />
-                            </div>
                             {registrarGasto && (
                                 <>
                                     <InputNormal
