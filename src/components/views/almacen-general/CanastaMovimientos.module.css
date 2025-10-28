@@ -70,7 +70,7 @@
     width: 100%;
     border-radius: 10px;
     background:none;
-    padding-inline: 10px;
+    padding-inline: 5px;
 }
 /* Scrollbar personalizado para pantallas grandes */
 .productosList::-webkit-scrollbar {
@@ -100,6 +100,7 @@
     flex-direction: column;
     transition: all 0.3s ease;
     border-radius: 10px;
+    position: relative;
 }
 
 .productoItem.eliminando {
@@ -351,7 +352,7 @@
 .btnEliminar {
     background:none;
     border: none;
-    color: gray;
+    color: var(--error-color);
     width: 36px;
     height: 36px;
     border-radius: 8px;
@@ -360,6 +361,9 @@
     justify-content: center;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    position: absolute;
+    right: 0;
+    top: 0;
 }
 
 .btnEliminarIcon {
