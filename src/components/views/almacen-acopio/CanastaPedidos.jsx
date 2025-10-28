@@ -8,7 +8,7 @@ import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
-import { motion} from 'framer-motion';
+import { motion } from 'framer-motion';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import Notification from '../../common/Notification';
 
@@ -27,8 +27,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [animarCantidad, setAnimarCantidad] = useState({});
-    
-    
+
+
     // Estado para notificaciones
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -58,7 +58,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             // Encontrar el último producto agregado (el más reciente)
             const ultimoProducto = productosCanasta[productosCanasta.length - 1];
             const inputRef = cantidadInputRefs.current[ultimoProducto.id];
-            
+
             if (inputRef) {
                 // Pequeño delay para asegurar que el DOM se haya actualizado
                 setTimeout(() => {
@@ -82,7 +82,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 ...prev,
                 [productoId]: true
             }));
-            
+
             // Desactivar la animación después de 300ms
             setTimeout(() => {
                 setAnimarCantidad(prev => ({
@@ -225,24 +225,25 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 <h1 className={styles.title}>Canasta de Pedidos
                     <div className={styles.titleButtons}>
                         {isCartMode && onWhatsAppSelect && (
-                            <div className={styles.whatsappButton}>
-                                <Select
-                                    icon="whatsapp"
-                                    iconOnly={true}
-                                    options={[
-                                        { value: 'historial', label: 'Historial', icon: 'history' },
-                                        { value: 'ultimo-pedido', label: 'Último pedido', icon: 'time-five' }
-                                    ]}
-                                    onChange={onWhatsAppSelect}
-                                    dropdownDirection="right"
-                                />
-                            </div>
+
+                            <Select
+                                icon="whatsapp"
+                                iconOnly={true}
+                                options={[
+                                    { value: 'historial', label: 'Historial', icon: 'history' },
+                                    { value: 'ultimo-pedido', label: 'Último pedido', icon: 'time-five' }
+                                ]}
+                                onChange={onWhatsAppSelect}
+                                dropdownDirection="right"
+                                containerStyle={{ background: 'none', width:'fit-content' }}
+                            />
+
                         )}
-                        <div className={styles.iconButton}>
-                            <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
-                                <BoxIcon name='trash' className={styles.iconTrash} />
-                            </button>
-                        </div>
+
+                        <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
+                            <BoxIcon name='trash' className={styles.iconTrash} />
+                        </button>
+
                     </div>
                 </h1>
 
@@ -273,22 +274,23 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                     </div>
 
                                     <div className={styles.productoControles}>
-                                        <div className={styles.medidaControl}>
-                                            <Select
-                                                value={producto.medidaPedido || 'kg'}
-                                                onChange={(value) => handleActualizarMedida(producto.id, value)}
-                                                options={medidasPedido}
-                                                placeholder="Medida"
-                                            />
-                                        </div>
+
+                                        <Select
+                                            value={producto.medidaPedido || 'kg'}
+                                            onChange={(value) => handleActualizarMedida(producto.id, value)}
+                                            options={medidasPedido}
+                                            placeholder="Medida"
+                                            containerStyle={{ maxWidth: '200px' }}
+                                        />
+
                                         <div className={styles.cantidadControl}>
-                                             <button
-                                                 className={styles.btnCantidad}
-                                                 onClick={() => handleActualizarCantidad(producto.id, producto.cantidad - 1, true)}
-                                                 disabled={producto.cantidad <= 1}
-                                             >
-                                                 <BoxIcon name='minus' className={styles.iconMinus} />
-                                             </button>
+                                            <button
+                                                className={styles.btnCantidad}
+                                                onClick={() => handleActualizarCantidad(producto.id, producto.cantidad - 1, true)}
+                                                disabled={producto.cantidad <= 1}
+                                            >
+                                                <BoxIcon name='minus' className={styles.iconMinus} />
+                                            </button>
                                             <motion.span
                                                 animate={animarCantidad[producto.id] ? { scale: [1, 1.3, 0.9, 1] } : { scale: 1 }}
                                                 transition={{ duration: 0.3 }}
@@ -315,12 +317,12 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                     }}
                                                 />
                                             </motion.span>
-                                             <button
-                                                 className={styles.btnCantidad}
-                                                 onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}
-                                             >
-                                                 <BoxIcon name='plus' className={styles.iconPlus} />
-                                             </button>
+                                            <button
+                                                className={styles.btnCantidad}
+                                                onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}
+                                            >
+                                                <BoxIcon name='plus' className={styles.iconPlus} />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

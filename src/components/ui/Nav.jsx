@@ -116,14 +116,16 @@ const Nav = () => {
                         )}
                     </div>
                     {isLargeScreen ? (
-                        <div className={styles.selectContainer}>
+              
                             <Select
                                 placeholder={nombreCompleto}
                                 options={userMenuOptions}
                                 onChange={handleUserMenuSelect}
                                 icon="user"
+                                activePlaceholder={true}
+                                containerStyle={{ maxWidth: '300px', maxHeight: '40px' }}
                             />
-                        </div>
+                       
                     ) : (
                         <button className={styles.icon} onClick={handleOpen}>
                             <BoxIcon name='user' />

@@ -4,6 +4,7 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
+import InputDate from '../../common/InputDate';
 import Proveedores from '../proveedores/Proveedores';
 import Notification from '../../common/Notification';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
@@ -163,12 +164,12 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
         <p className={styles.subTitle}>INFORMACIÓN DEL GASTO</p>
 
         {/* Campo de fecha */}
-        <InputNormal
-          tipo="date"
+        <InputDate
+          mode="date"
           value={dataGasto.fecha}
-          placeholder='Fecha del gasto'
-          onChange={(e) => handleChange('fecha', e.target.value)}
-          icon='calendar'
+          onChange={(val) => handleChange('fecha', val)}
+          placeholder="Fecha del gasto"
+          icon="calendar"
         />
 
         {/* Campo de valor */}
@@ -198,14 +199,12 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
         />
 
         {/* Selector de proveedor */}
-        <div className={styles.content} style={{ padding: '5px 15px' }}>
           <Boton
-            className='btn-transparent'
+            className='btn-gray'
             label={proveedorSeleccionadoData ? 'Proveedor: ' + proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
             onClick={() => setIsProveedoresSeleccionOpen(true)}
             style={{ width: '100%', justifyContent: 'flex-start' }}
           />
-        </div>
 
 
         <Boton

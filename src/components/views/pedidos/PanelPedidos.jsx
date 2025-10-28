@@ -675,6 +675,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         ]}
                         onChange={handleWhatsAppSelect}
                         dropdownDirection="right"
+                        containerStyle={{ background: 'none' }}
                     />
                 </div>
             ) : ''}

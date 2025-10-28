@@ -26,10 +26,10 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     // Filtros de modal (desktop)
     const [filtroFisico, setFiltroFisico] = useState('todos'); // igual | mayor | menor | todos
-    
+
     // Filtros para móvil
     const [filtroMovil, setFiltroMovil] = useState('todos'); // igual | mayor | menor | todos
-    
+
     // Estados para eliminación y reemplazo
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
@@ -41,7 +41,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
         type: 'success',
         text: ''
     });
-    
+
     const mostrarNotificacion = (tipo, texto) => {
         setNotification({
             isVisible: true,
@@ -54,7 +54,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 3000);
     };
-    
+
     // Estado para abrir almacén en modo conteo
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
 
@@ -133,22 +133,22 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
     // Función para filtrar detalles en móvil
     const detallesFiltrados = useMemo(() => {
         if (filtroMovil === 'todos') return detalles;
-        
+
         return detalles.filter(detalle => {
             const sistema = Number(detalle.sistema ?? 0);
             const fisico = Number(detalle.fisico ?? 0);
-            
+
             if (filtroMovil === 'igual') return fisico === sistema;
             if (filtroMovil === 'mayor') return fisico > sistema;
             if (filtroMovil === 'menor') return fisico < sistema;
-            
+
             return true;
         });
     }, [detalles, filtroMovil]);
 
     const handleDeleteConteo = async () => {
         if (!conteo?.id) return;
-        
+
         setIsDeleting(true);
         try {
             const result = await conteosService.delete(conteo.id);
@@ -180,7 +180,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
             } else {
                 result = await conteosService.replace(conteo.id);
             }
-            
+
             if (result.success) {
                 // Cerrar modal de confirmación inmediatamente
                 setIsReemplazarOpen(false);
@@ -203,36 +203,36 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
         try {
             const isAlmacen = conteo.tipo === 'almacen';
             const storageKey = isAlmacen ? 'conteo_almacen_inputs' : 'conteo_acopio_inputs';
-            
-            
+
+
             // Preparar datos según el tipo de conteo
             let savedData = {};
-            
+
             if (isAlmacen) {
                 // Para almacén: guardar stockInputs, groupInputs, stockInputsText, groupInputsText
                 const stockInputs = {};
                 const groupInputs = {};
                 const stockInputsText = {};
                 const groupInputsText = {};
-                
+
                 detalles.forEach(detalle => {
                     if (detalle.producto_almacen?.id) {
                         const fisico = Number(detalle.fisico || 0);
                         const grup = Number(detalle.producto_almacen?.grup || 0);
                         const grupos = grup > 0 ? Math.floor(fisico / grup) : 0;
                         const productoId = detalle.producto_almacen.id;
-                        
+
                         stockInputs[productoId] = fisico;
                         stockInputsText[productoId] = String(fisico);
-                        
+
                         if (grup > 0) {
                             groupInputs[productoId] = grupos;
                             groupInputsText[productoId] = String(grupos);
                         }
-                        
+
                     }
                 });
-                
+
                 savedData = {
                     stockInputs,
                     groupInputs,
@@ -245,20 +245,20 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                 const quantityInputs = {};
                 const quantityInputsText = {};
                 const justificationInputsText = {};
-                
+
                 detalles.forEach(detalle => {
                     if (detalle.producto_acopio?.id) {
                         const fisico = Number(detalle.fisico || 0);
                         const productoId = detalle.producto_acopio.id;
-                        
+
                         quantityInputs[productoId] = fisico;
                         // Guardar texto con dos decimales para coincidir con la UI
                         quantityInputsText[productoId] = Number.isFinite(fisico) ? fisico.toFixed(2) : '0.00';
                         justificationInputsText[productoId] = detalle.justificacion || '';
-                        
+
                     }
                 });
-                
+
                 savedData = {
                     quantityInputs,
                     quantityInputsText,
@@ -266,16 +266,16 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                     timestamp: Date.now()
                 };
             }
-            
+
             // Guardar en localStorage
             localStorage.setItem(storageKey, JSON.stringify(savedData));
-            
+
             // Marcar que se está repitiendo un conteo
             localStorage.setItem('isRepeatingConteo', 'true');
-            
+
             // Abrir almacén dentro de esta vista
             setIsAlmacenOpen(true);
-            
+
         } catch (error) {
             console.error('Error al repetir conteo:', error);
             mostrarNotificacion('error', 'Error al cargar datos del conteo');
@@ -283,134 +283,134 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
     };
     return (
         <>
-        <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={() => setIsOpen(false)} />
-            <div className={styles.container}>
-                <h1 className={styles.title}>Conteo • {tipoNombre}</h1>
-                <div className={styles.content}>
-                    <Dato label="Tipo" value={tipoNombre} vertical={false} />
-                    <Dato label="Fecha" value={fechaLocal} vertical={false} />
-                    <Dato label="Hora" value={horaLocal} vertical={false} />
-                </div>
-                {detalles.length > 0 && (
-
-                    <Boton
-                        className='btn-gray'
-                        label={`Productos (${detalles.length})`}
-                        onClick={() => setIsProductosOpen(true)}
-                    />
-
-                )}
-                
-                <div className={styles.buttons}>
-                    <Boton
-                        className='btn-red'
-                        label='Eliminar Conteo'
-                        style={{ marginTop: 'auto' }}
-                        onClick={() => setIsEliminarOpen(true)}
-                    />
-                    <Boton
-                        className='btn-orange'
-                        label={conteo?.tipo === 'acopio' ? 'Reemplazar Stock Acopio' : 'Reemplazar Stock Almacén'}
-                        style={{ marginTop: 'auto' }}
-                        onClick={() => setIsReemplazarOpen(true)}
-                    />
-                    <Boton
-                        className='btn-blue'
-                        label='Repetir Conteo'
-                        style={{ marginTop: 'auto' }}
-                        onClick={handleRepetirConteo}
-                    />
-                </div>
-                {conteo?.observaciones && (
+            <View isOpen={isOpen} setIsOpen={setIsOpen}>
+                <HeaderView onBack={() => setIsOpen(false)} />
+                <div className={styles.container}>
+                    <h1 className={styles.title}>Conteo • {tipoNombre}</h1>
                     <div className={styles.content}>
-                        <Dato label="Observaciones" value={conteo.observaciones} vertical={true} />
+                        <Dato label="Tipo" value={tipoNombre} vertical={false} />
+                        <Dato label="Fecha" value={fechaLocal} vertical={false} />
+                        <Dato label="Hora" value={horaLocal} vertical={false} />
                     </div>
-                )}
-            </div>
+                    {detalles.length > 0 && (
 
-            {/* Modal de productos del conteo */}
-            {isLargeScreen ? (
-                <ModalTable
-                    isOpen={isProductosOpen}
-                    title="Productos del Conteo"
-                    headers={conteo?.tipo === 'almacen' ? ['Producto','Sistema','Físico','Stock grup sist.','Stock grup fís.'] : ['Producto','Sistema','Físico','Medida','Justificación']}
-                    rows={rowsMemo}
-                    filters={filtersConfig}
-                    columnWidths={conteo?.tipo === 'almacen' ? {
-                        0: '25%', // Producto
-                        1: '15%', // Sistema
-                        2: '15%', // Físico
-                        3: '20%', // Stock grup sist.
-                        4: '20%'  // Stock grup fís.
-                    } : {
-                        0: '25%', // Producto
-                        1: '12%', // Sistema
-                        2: '12%', // Físico
-                        3: '10%', // Medida
-                        4: '40%'  // Justificación
-                    }}
-                    getCellBadge={(row, cIdx) => {
-                        const isAlmacen = conteo?.tipo === 'almacen';
-                        if (Array.isArray(row)) {
-                            if (isAlmacen) {
-                                // cIdx: 1->Sistema, 2->Físico, 3->Stock grup sist., 4->Stock grup fís.
-                                if (cIdx === 2) {
-                                    // badge Físico (unidades)
-                                    const sistemaStr = row[1] || '';
-                                    const fisicoStr = row[2] || '';
-                                    const sistema = parseFloat(String(sistemaStr).replace(/[^0-9.]/g, '')) || 0;
-                                    const fisico = parseFloat(String(fisicoStr).replace(/[^0-9.]/g, '')) || 0;
-                                    if (fisico === sistema) return { text: fisicoStr, className: 'info' };
-                                    if (fisico > sistema) return { text: fisicoStr, className: 'success' };
-                                    return { text: fisicoStr, className: 'error' };
-                                }
-                                if (cIdx === 4) {
-                                    // badge Stock grup fís. comparar contra sist.
-                                    const sys = row[3];
-                                    const fis = row[4];
-                                    if (!sys || !fis || sys === '--' || fis === '--') return null;
-                                    const parsePair = (s) => {
-                                        const match = String(s).match(/(\d+)\s*g\.?\s*(\d+)?/i);
-                                        const g = match ? parseInt(match[1], 10) : 0;
-                                        const uMatch = String(s).match(/g\.?\s*(\d+)\s*u\.?/i);
-                                        const u = uMatch ? parseInt(uMatch[1], 10) : 0;
-                                        return { g, u };
-                                    };
-                                    const a = parsePair(sys);
-                                    const b = parsePair(fis);
-                                    const cmp = (x, y) => (x.g === y.g && x.u === y.u) ? 0 : (x.g > y.g || (x.g === y.g && x.u > y.u) ? 1 : -1);
-                                    const rel = cmp(b, a);
-                                    if (rel === 0) return { text: fis, className: 'info' };
-                                    if (rel > 0) return { text: fis, className: 'success' };
-                                    return { text: fis, className: 'error' };
-                                }
-                            } else {
-                                // acopio: cIdx: 1->Sistema, 2->Físico
-                                if (cIdx === 2) {
-                                    const sistemaStr = row[1] || '';
-                                    const fisicoStr = row[2] || '';
-                                    const sistema = parseFloat(String(sistemaStr).replace(/[^0-9.]/g, '')) || 0;
-                                    const fisico = parseFloat(String(fisicoStr).replace(/[^0-9.]/g, '')) || 0;
-                                    if (fisico === sistema) return { text: fisicoStr, className: 'info' };
-                                    if (fisico > sistema) return { text: fisicoStr, className: 'success' };
-                                    return { text: fisicoStr, className: 'error' };
+                        <Boton
+                            className='btn-gray'
+                            label={`Productos (${detalles.length})`}
+                            onClick={() => setIsProductosOpen(true)}
+                        />
+
+                    )}
+
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-red'
+                            label='Eliminar Conteo'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsEliminarOpen(true)}
+                        />
+                        <Boton
+                            className='btn-orange'
+                            label={conteo?.tipo === 'acopio' ? 'Reemplazar Stock Acopio' : 'Reemplazar Stock Almacén'}
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsReemplazarOpen(true)}
+                        />
+                        <Boton
+                            className='btn-blue'
+                            label='Repetir Conteo'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleRepetirConteo}
+                        />
+                    </div>
+                    {conteo?.observaciones && (
+                        <div className={styles.content}>
+                            <Dato label="Observaciones" value={conteo.observaciones} vertical={true} />
+                        </div>
+                    )}
+                </div>
+
+                {/* Modal de productos del conteo */}
+                {isLargeScreen ? (
+                    <ModalTable
+                        isOpen={isProductosOpen}
+                        title="Productos del Conteo"
+                        headers={conteo?.tipo === 'almacen' ? ['Producto', 'Sistema', 'Físico', 'Stock grup sist.', 'Stock grup fís.'] : ['Producto', 'Sistema', 'Físico', 'Medida', 'Justificación']}
+                        rows={rowsMemo}
+                        filters={filtersConfig}
+                        columnWidths={conteo?.tipo === 'almacen' ? {
+                            0: '25%', // Producto
+                            1: '15%', // Sistema
+                            2: '15%', // Físico
+                            3: '20%', // Stock grup sist.
+                            4: '20%'  // Stock grup fís.
+                        } : {
+                            0: '25%', // Producto
+                            1: '12%', // Sistema
+                            2: '12%', // Físico
+                            3: '10%', // Medida
+                            4: '40%'  // Justificación
+                        }}
+                        getCellBadge={(row, cIdx) => {
+                            const isAlmacen = conteo?.tipo === 'almacen';
+                            if (Array.isArray(row)) {
+                                if (isAlmacen) {
+                                    // cIdx: 1->Sistema, 2->Físico, 3->Stock grup sist., 4->Stock grup fís.
+                                    if (cIdx === 2) {
+                                        // badge Físico (unidades)
+                                        const sistemaStr = row[1] || '';
+                                        const fisicoStr = row[2] || '';
+                                        const sistema = parseFloat(String(sistemaStr).replace(/[^0-9.]/g, '')) || 0;
+                                        const fisico = parseFloat(String(fisicoStr).replace(/[^0-9.]/g, '')) || 0;
+                                        if (fisico === sistema) return { text: fisicoStr, className: 'info' };
+                                        if (fisico > sistema) return { text: fisicoStr, className: 'success' };
+                                        return { text: fisicoStr, className: 'error' };
+                                    }
+                                    if (cIdx === 4) {
+                                        // badge Stock grup fís. comparar contra sist.
+                                        const sys = row[3];
+                                        const fis = row[4];
+                                        if (!sys || !fis || sys === '--' || fis === '--') return null;
+                                        const parsePair = (s) => {
+                                            const match = String(s).match(/(\d+)\s*g\.?\s*(\d+)?/i);
+                                            const g = match ? parseInt(match[1], 10) : 0;
+                                            const uMatch = String(s).match(/g\.?\s*(\d+)\s*u\.?/i);
+                                            const u = uMatch ? parseInt(uMatch[1], 10) : 0;
+                                            return { g, u };
+                                        };
+                                        const a = parsePair(sys);
+                                        const b = parsePair(fis);
+                                        const cmp = (x, y) => (x.g === y.g && x.u === y.u) ? 0 : (x.g > y.g || (x.g === y.g && x.u > y.u) ? 1 : -1);
+                                        const rel = cmp(b, a);
+                                        if (rel === 0) return { text: fis, className: 'info' };
+                                        if (rel > 0) return { text: fis, className: 'success' };
+                                        return { text: fis, className: 'error' };
+                                    }
+                                } else {
+                                    // acopio: cIdx: 1->Sistema, 2->Físico
+                                    if (cIdx === 2) {
+                                        const sistemaStr = row[1] || '';
+                                        const fisicoStr = row[2] || '';
+                                        const sistema = parseFloat(String(sistemaStr).replace(/[^0-9.]/g, '')) || 0;
+                                        const fisico = parseFloat(String(fisicoStr).replace(/[^0-9.]/g, '')) || 0;
+                                        if (fisico === sistema) return { text: fisicoStr, className: 'info' };
+                                        if (fisico > sistema) return { text: fisicoStr, className: 'success' };
+                                        return { text: fisicoStr, className: 'error' };
+                                    }
                                 }
                             }
-                        }
-                        return null;
-                    }}
-                    onClose={() => setIsProductosOpen(false)}
-                />
-            ) : (
-                <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
-                    <HeaderModal
-                        title="Productos del Conteo"
+                            return null;
+                        }}
                         onClose={() => setIsProductosOpen(false)}
                     />
-                    <div className={styles.modalContent}>
-                        {/* Select de filtro para móvil */}
-                        <div className={styles.content}>
+                ) : (
+                    <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
+                        <HeaderModal
+                            title="Productos del Conteo"
+                            onClose={() => setIsProductosOpen(false)}
+                        />
+                        <div className={styles.modalContent}>
+                            {/* Select de filtro para móvil */}
+
                             <Select
                                 placeholder="Filtrar productos"
                                 options={filtroOptions}
@@ -418,54 +418,54 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                                 onChange={setFiltroMovil}
                                 icon="filter"
                             />
-                        </div>
-                        
-                        {detallesFiltrados.length > 0 ? detallesFiltrados
-                            .sort((a, b) => {
-                                const isAlmacen = conteo?.tipo === 'almacen';
-                                const nombreA = isAlmacen ? (a.producto_almacen?.name || '') : (a.producto_acopio?.name || '');
-                                const nombreB = isAlmacen ? (b.producto_almacen?.name || '') : (b.producto_acopio?.name || '');
-                                return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
-                            })
-                            .map((d, idx) => {
-                                const isAlmacen = conteo?.tipo === 'almacen';
-                                const nombreProducto = isAlmacen ? (d.producto_almacen?.name || 'Producto') : (d.producto_acopio?.name || 'Producto');
-                                const grup = isAlmacen ? (d.producto_almacen?.grup || 0) : 0;
-                                const medidaCode = !isAlmacen ? (d.producto_acopio?.type_measure?.code || '') : '';
-                                const sistema = Number(d.sistema ?? 0);
-                                const fisico = Number(d.fisico ?? 0);
-                                return (
-                                    <ItemView
-                                        key={d.id || idx}
-                                        title={nombreProducto}
-                                        description={isAlmacen
-                                            ? (() => {
-                                                if (grup <= 0) return `Sistema: ${sistema} ud`;
-                                                const sysG = Math.floor(sistema / grup);
-                                                const sysU = sistema % grup;
-                                                const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
-                                                return `Sistema: ${sistema} ud • Grup sist.: ${fmt(sysG, sysU)}`;
-                                            })()
-                                            : `Sistema: ${Number(sistema).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}`}
-                                        description2={isAlmacen
-                                            ? (() => {
-                                                if (grup <= 0) return `Físico: ${fisico} ud`;
-                                                const fisG = Math.floor(fisico / grup);
-                                                const fisU = fisico % grup;
-                                                const fmt = (g,u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
-                                                return `Físico: ${fisico} ud • Grup fís.: ${fmt(fisG, fisU)}`;
-                                            })()
-                                            : `Físico: ${Number(fisico).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}${d.justificacion ? ` • ${d.justificacion}` : ''}`}
-                                        {...(() => {
-                                            if (fisico === sistema) return { flot1: '=' };
-                                            if (fisico > sistema) return { flot4: '+' };
-                                            return { flot3: '-' };
-                                        })()}
-                                        icon='box'
-                                    />
-                                );
-                            }) : (
-                                <NoData 
+
+
+                            {detallesFiltrados.length > 0 ? detallesFiltrados
+                                .sort((a, b) => {
+                                    const isAlmacen = conteo?.tipo === 'almacen';
+                                    const nombreA = isAlmacen ? (a.producto_almacen?.name || '') : (a.producto_acopio?.name || '');
+                                    const nombreB = isAlmacen ? (b.producto_almacen?.name || '') : (b.producto_acopio?.name || '');
+                                    return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+                                })
+                                .map((d, idx) => {
+                                    const isAlmacen = conteo?.tipo === 'almacen';
+                                    const nombreProducto = isAlmacen ? (d.producto_almacen?.name || 'Producto') : (d.producto_acopio?.name || 'Producto');
+                                    const grup = isAlmacen ? (d.producto_almacen?.grup || 0) : 0;
+                                    const medidaCode = !isAlmacen ? (d.producto_acopio?.type_measure?.code || '') : '';
+                                    const sistema = Number(d.sistema ?? 0);
+                                    const fisico = Number(d.fisico ?? 0);
+                                    return (
+                                        <ItemView
+                                            key={d.id || idx}
+                                            title={nombreProducto}
+                                            description={isAlmacen
+                                                ? (() => {
+                                                    if (grup <= 0) return `Sistema: ${sistema} ud`;
+                                                    const sysG = Math.floor(sistema / grup);
+                                                    const sysU = sistema % grup;
+                                                    const fmt = (g, u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
+                                                    return `Sistema: ${sistema} ud • Grup sist.: ${fmt(sysG, sysU)}`;
+                                                })()
+                                                : `Sistema: ${Number(sistema).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}`}
+                                            description2={isAlmacen
+                                                ? (() => {
+                                                    if (grup <= 0) return `Físico: ${fisico} ud`;
+                                                    const fisG = Math.floor(fisico / grup);
+                                                    const fisU = fisico % grup;
+                                                    const fmt = (g, u) => u > 0 ? `${g} g. ${u} u.` : `${g} g.`;
+                                                    return `Físico: ${fisico} ud • Grup fís.: ${fmt(fisG, fisU)}`;
+                                                })()
+                                                : `Físico: ${Number(fisico).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}${d.justificacion ? ` • ${d.justificacion}` : ''}`}
+                                            {...(() => {
+                                                if (fisico === sistema) return { flot1: '=' };
+                                                if (fisico > sistema) return { flot4: '+' };
+                                                return { flot3: '-' };
+                                            })()}
+                                            icon='box'
+                                        />
+                                    );
+                                }) : (
+                                <NoData
                                     icon="box"
                                     title="No hay productos"
                                     detail="No hay productos registrados en este conteo"
@@ -473,93 +473,93 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                                     minHeight="200px"
                                 />
                             )}
+                        </div>
+                    </ViewModal>
+                )}
+
+                {/* Modal de confirmación para eliminar conteo */}
+                <ViewModal isOpen={isEliminarOpen} setIsOpen={setIsEliminarOpen}>
+                    <HeaderModal
+                        title="Eliminar Conteo"
+                        onClose={() => setIsEliminarOpen(false)}
+                    />
+                    <div className={styles.modalContent}>
+                        <p className={styles.subTitle}>
+                            ¿Estás seguro que deseas eliminar permanentemente este conteo? Esta acción no se puede deshacer y se eliminarán todos los detalles asociados.
+                        </p>
+                        <div className={styles.buttons}>
+                            <Boton
+                                className='btn-default'
+                                label='Cancelar'
+                                style={{ marginTop: 'auto' }}
+                                onClick={() => setIsEliminarOpen(false)}
+                            />
+                            <Boton
+                                className='btn-red'
+                                label='Sí, eliminar'
+                                style={{ marginTop: 'auto' }}
+                                onClick={handleDeleteConteo}
+                                loading={isDeleting}
+                                disabled={isDeleting}
+                            />
+                        </div>
                     </div>
                 </ViewModal>
-            )}
 
-            {/* Modal de confirmación para eliminar conteo */}
-            <ViewModal isOpen={isEliminarOpen} setIsOpen={setIsEliminarOpen}>
-                <HeaderModal
-                    title="Eliminar Conteo"
-                    onClose={() => setIsEliminarOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas eliminar permanentemente este conteo? Esta acción no se puede deshacer y se eliminarán todos los detalles asociados.
-                    </p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsEliminarOpen(false)}
-                        />
-                        <Boton
-                            className='btn-red'
-                            label='Sí, eliminar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleDeleteConteo}
-                            loading={isDeleting}
-                            disabled={isDeleting}
-                        />
+                {/* Modal de confirmación para reemplazar conteo */}
+                <ViewModal isOpen={isReemplazarOpen} setIsOpen={setIsReemplazarOpen}>
+                    <HeaderModal
+                        title={conteo?.tipo === 'acopio' ? "Reemplazar Stock Acopio" : "Reemplazar Stock Almacén"}
+                        onClose={() => setIsReemplazarOpen(false)}
+                    />
+                    <div className={styles.modalContent}>
+                        <p className={styles.subTitle}>
+                            {conteo?.tipo === 'acopio'
+                                ? 'Esta acción reemplazará el stock de materia prima por las cantidades registradas en Físico en este conteo. ¿Estás seguro de continuar?'
+                                : 'Esta acción reemplazará el stock general del almacén por las cantidades registradas en Físico en este conteo. ¿Estás seguro de continuar?'
+                            }
+                        </p>
+                        <div className={styles.buttons}>
+                            <Boton
+                                className='btn-default'
+                                label='Cancelar'
+                                style={{ marginTop: 'auto' }}
+                                onClick={() => setIsReemplazarOpen(false)}
+                            />
+                            <Boton
+                                className='btn-orange'
+                                label='Sí, reemplazar'
+                                style={{ marginTop: 'auto' }}
+                                onClick={handleReemplazarConteo}
+                                loading={isReplacing}
+                                disabled={isReplacing}
+                            />
+                        </div>
                     </div>
-                </div>
-            </ViewModal>
+                </ViewModal>
 
-            {/* Modal de confirmación para reemplazar conteo */}
-            <ViewModal isOpen={isReemplazarOpen} setIsOpen={setIsReemplazarOpen}>
-                <HeaderModal
-                    title={conteo?.tipo === 'acopio' ? "Reemplazar Stock Acopio" : "Reemplazar Stock Almacén"}
-                    onClose={() => setIsReemplazarOpen(false)}
+                <Notification
+                    type={notification.type}
+                    text={notification.text}
+                    isVisible={notification.isVisible}
+                    onClose={() => setNotification(prev => ({ ...prev, isVisible: false }))}
                 />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        {conteo?.tipo === 'acopio' 
-                            ? 'Esta acción reemplazará el stock de materia prima por las cantidades registradas en Físico en este conteo. ¿Estás seguro de continuar?'
-                            : 'Esta acción reemplazará el stock general del almacén por las cantidades registradas en Físico en este conteo. ¿Estás seguro de continuar?'
-                        }
-                    </p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsReemplazarOpen(false)}
-                        />
-                        <Boton
-                            className='btn-orange'
-                            label='Sí, reemplazar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleReemplazarConteo}
-                            loading={isReplacing}
-                            disabled={isReplacing}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
 
-            <Notification 
-                type={notification.type} 
-                text={notification.text} 
-                isVisible={notification.isVisible} 
-                onClose={() => setNotification(prev => ({ ...prev, isVisible: false }))} 
-            />
 
-            
-        </View>
-        {/* Componentes de almacén para repetir conteo */}
-        {conteo?.tipo === 'almacen' && (
-                <AlmacenGeneralAuxiliar 
-                    isOpen={isAlmacenOpen} 
-                    setIsOpen={setIsAlmacenOpen} 
-                    tipo="conteo" 
+            </View>
+            {/* Componentes de almacén para repetir conteo */}
+            {conteo?.tipo === 'almacen' && (
+                <AlmacenGeneralAuxiliar
+                    isOpen={isAlmacenOpen}
+                    setIsOpen={setIsAlmacenOpen}
+                    tipo="conteo"
                 />
             )}
             {conteo?.tipo === 'acopio' && (
-                <AlmacenAcopioAuxiliar 
-                    isOpen={isAlmacenOpen} 
-                    setIsOpen={setIsAlmacenOpen} 
-                    tipo="conteo" 
+                <AlmacenAcopioAuxiliar
+                    isOpen={isAlmacenOpen}
+                    setIsOpen={setIsAlmacenOpen}
+                    tipo="conteo"
                 />
             )}
         </>

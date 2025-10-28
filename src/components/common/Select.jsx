@@ -10,7 +10,9 @@ function Select({
     onChange,
     icon,
     iconOnly = false,
-    dropdownDirection = 'left'
+    dropdownDirection = 'left',
+    activePlaceholder = false,
+    containerStyle
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
@@ -60,9 +62,10 @@ function Select({
     };
 
     const selectedOption = options.find(opt => opt.value === value);
+    const isPlaceholder = !selectedOption && !activePlaceholder;
 
     return (
-        <div className={`${styles.selectContainer} ${iconOnly ? styles.iconOnly : ''}`} ref={selectRef}>
+        <div className={`${styles.selectContainer} ${iconOnly ? styles.iconOnly : ''}`} ref={selectRef} style={containerStyle}>
             
             <div 
                 className={`${styles.selectButton} ${isOpen ? styles.active : ''} ${iconOnly ? styles.iconOnlyButton : ''}`}
@@ -77,8 +80,8 @@ function Select({
                 ) : (
                     // Modo normal
                     <>
-                        {icon && <BoxIcon name={icon} className={styles.icon} />}
-                        <span className={styles.selectedText}>
+                        {icon && <BoxIcon name={icon} className={`${styles.icon} ${isPlaceholder ? styles.iconGray : ''}`} />}
+                        <span className={`${styles.selectedText} ${isPlaceholder ? styles.textGray : ''}`}>
                             {selectedOption ? selectedOption.label : placeholder}
                         </span>
                         <motion.div
@@ -112,17 +115,19 @@ function Select({
                             }
                         }}
                     >
-                        {options.map((option, index) => (
-                            <motion.div
-                                key={option.value || option.id || index}
-                                className={`${styles.option} ${option.value === value ? styles.selected : ''}`}
-                                onClick={() => handleSelect(option.value)}
-                                whileTap={{ scale: 0.98 }}
-                            >
-                                {option.icon && <BoxIcon name={option.icon} className={styles.optionIcon} />}
-                                {option.label}
-                            </motion.div>
-                        ))}
+                        <div className={styles.optionsScroll}>
+                            {options.map((option, index) => (
+                                <motion.div
+                                    key={option.value || option.id || index}
+                                    className={`${styles.option} ${option.value === value ? styles.selected : ''}`}
+                                    onClick={() => handleSelect(option.value)}
+                                    whileTap={{ scale: 0.98 }}
+                                >
+                                    {option.icon && <BoxIcon name={option.icon} className={styles.optionIcon} />}
+                                    {option.label}
+                                </motion.div>
+                            ))}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

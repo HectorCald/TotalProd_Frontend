@@ -4,6 +4,7 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
+import InputDate from '../../common/InputDate';
 import Clientes from '../clientes/Clientes';
 import Notification from '../../common/Notification';
 import deudasService from '../../../services/deudasService';
@@ -192,22 +193,22 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
 
         {/* Campo de fecha de deuda */}
         <span className={styles.subTitle}>FECHA DE DEUDA</span>
-        <InputNormal
-          tipo="date"
+        <InputDate
+          mode="date"
           value={dataDeuda.fecha_deuda}
-          placeholder='Fecha de la deuda'
-          onChange={(e) => handleChange('fecha_deuda', e.target.value)}
-          icon='calendar'
+          onChange={(val) => handleChange('fecha_deuda', val)}
+          placeholder="Fecha de la deuda"
+          icon="calendar"
         />
 
         {/* Campo de fecha de vencimiento */}
         <span className={styles.subTitle}>FECHA DE VENCIMIENTO</span>
-        <InputNormal
-          tipo="date"
+        <InputDate
+          mode="date"
           value={dataDeuda.fecha_vencimiento}
-          placeholder='Fecha de vencimiento'
-          onChange={(e) => handleChange('fecha_vencimiento', e.target.value)}
-          icon='time'
+          onChange={(val) => handleChange('fecha_vencimiento', val)}
+          placeholder="Fecha de vencimiento"
+          icon="time"
         />
 
         {/* Campo de monto total */}
@@ -245,14 +246,12 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
 
 
         {/* Selector de cliente */}
-        <div className={styles.content} style={{ padding: '5px 15px' }}>
           <Boton
-            className='btn-transparent'
+            className='btn-gray'
             label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
             onClick={() => setIsClientesSeleccionOpen(true)}
             style={{ width: '100%', justifyContent: 'flex-start' }}
           />
-        </div>
 
 
         <Boton

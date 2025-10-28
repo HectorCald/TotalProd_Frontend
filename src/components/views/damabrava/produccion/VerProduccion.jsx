@@ -57,6 +57,16 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     };
 
 
+    // Formateo seguro Mes Año (evita desfase por zonas horarias)
+    const formatMesAnio = (v) => {
+        if (!v) return '';
+        const base = String(v).split('T')[0];
+        const [y, m] = base.split('-');
+        const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const nombreMes = meses[(parseInt(m, 10) || 1) - 1] || '';
+        return `${nombreMes} ${y}`;
+    };
+
     // Función para preparar datos de descarga
     const prepararDatosDescarga = () => {
         if (!registroActual) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
@@ -75,7 +85,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
             'Microondas': `${registroActual?.microondas || '0'} min`,
             'Terminados': `${registroActual?.terminados || '0'} ud`,
             'Fecha de Registro': new Date(registroActual?.fecha).toLocaleString(),
-            'Fecha de Vencimiento': new Date(registroActual?.vencimiento).toLocaleDateString(),
+            'Fecha de Vencimiento': formatMesAnio(registroActual?.vencimiento),
             'Estado': registroActual?.estado === 'pendiente' ? 'Pendiente' :
                 registroActual?.estado === 'verificado' ? 'Verificado' :
                     registroActual?.estado === 'Ingresado' ? 'Ingresado' :
@@ -301,11 +311,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     />
                     <Dato
                         label="Fecha de Vencimiento"
-                        value={new Date(registroActual?.vencimiento).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: '2-digit' // o 'long' si lo quieres con nombre: "octubre"
-                        })}
-
+                        value={formatMesAnio(registroActual?.vencimiento)}
                         vertical={false}
                     />
                     <Dato

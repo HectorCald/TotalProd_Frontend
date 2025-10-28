@@ -11,6 +11,7 @@ import Notification from '../../common/Notification';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import InputNormal from '../../common/InputNormal';
+import InputDate from '../../common/InputDate';
 import cotizacionesService from '../../../services/cotizacionesService';
 
 function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
@@ -410,7 +411,6 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
 
                 {/* Selectores de precio y agrupación */}
                 <div className={styles.controlesGenerales}>
-                    <div className={styles.precioGeneral}>
                         <Select
                             value={precioSeleccionado}
                             onChange={handleCambiarTipoPrecio}
@@ -419,8 +419,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                             disabled={loadingPrecios}
                             icon='dollar'
                         />
-                    </div>
-                    <div className={styles.grupoGeneral}>
+
                         <Select
                             value={modoAgrupacion}
                             onChange={handleCambiarModoAgrupacion}
@@ -431,7 +430,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                             placeholder="Modo de agrupación"
                             icon='package'
                         />
-                    </div>
+                    
                 </div>
 
                 {productosCanasta.length > 0 ? (
@@ -554,12 +553,12 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
 
                                 {/* Fecha de vencimiento de la cotización (opcional) */}
                                 <p className={styles.subTitle}>Fecha de Vencimiento (opcional):</p>
-                                <InputNormal
-                                    tipo="date"
+                                <InputDate
+                                    mode="date"
                                     value={fechaVencimiento}
-                                    onChange={(e) => setFechaVencimiento(e.target.value)}
-                                    icon="calendar"
+                                    onChange={(val) => setFechaVencimiento(val)}
                                     placeholder="Seleccionar fecha de vencimiento"
+                                    icon="calendar"
                                 />
 
 

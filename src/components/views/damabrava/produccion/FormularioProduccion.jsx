@@ -4,6 +4,7 @@ import ViewModal from '../../../ui/ViewModal';
 import HeaderModal from '../../../common/HeaderModal';
 import Boton from '../../../common/Boton';
 import InputNormal from '../../../common/InputNormal';
+import InputDate from '../../../common/InputDate';
 import InputSugerencias from '../../../common/InputSugerencias';
 import Select from '../../../common/Select';
 import Notification from '../../../common/Notification';
@@ -181,7 +182,6 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                 return;
             }
 
-            console.log('Datos de producción a registrar:', registroData);
 
             // Enviar datos al servidor
             const response = await registrosProduccionDamabravaService.create(registroData);
@@ -259,15 +259,15 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                         min="1"
                     />
 
-                    <div className={styles.content} style={{ padding: '8px 15px' }}>
-                        <Select
-                            placeholder="Seleccionar Proceso"
-                            options={opcionesProceso}
-                            value={dataProduccion.proceso}
-                            onChange={handleProcesoChange}
-                            icon="cog"
-                        />
-                    </div>
+
+                    <Select
+                        placeholder="Seleccionar Proceso"
+                        options={opcionesProceso}
+                        value={dataProduccion.proceso}
+                        onChange={handleProcesoChange}
+                        icon="cog"
+                    />
+
                     <InputNormal
                         tipo="number"
                         value={dataProduccion.microondas}
@@ -288,13 +288,15 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                         min="0"
                     />
                     <p className={styles.subTitle}>FECHA DE VENCIMIENTO</p>
-                    <InputNormal
-                        tipo="month"
+
+                    <InputDate
+                        mode="month"
                         value={dataProduccion.fechaVencimiento}
-                        placeholder='Mes y Año de Vencimiento'
-                        onChange={(e) => handleChange('fechaVencimiento', e.target.value)}
-                        icon='calendar'
+                        onChange={(val) => handleChange('fechaVencimiento', val)}
+                        placeholder="Mes y Año de Vencimiento"
+                        icon="calendar"
                     />
+
                     <div className={styles.buttons} style={{ marginTop: '10px' }}>
                         <Boton
                             className='btn-original'

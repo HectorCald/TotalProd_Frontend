@@ -1,6 +1,12 @@
 .selectContainer {
   position: relative;
   width: 100%;
+  background-color: var(--tertiary-color);
+  height: 50px;
+  display: flex;
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-sizing: border-box;
 }
 
 .selectButton {
@@ -12,7 +18,8 @@
   cursor: pointer;
   user-select: none;
   transition: all 0.2s;
-  font-weight: 400;
+  font-weight: 500;
+  width: 100%;
 }
 
 .active {
@@ -21,13 +28,21 @@
 
 .selectedText {
   flex: 1;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--white-color);
 }
 
+.textGray {
+  color: var(--quinary-color);
+}
+
 .icon {
-  font-size: 17px !important;
+  font-size: 20px !important;
   color: var(--primary-color) !important;
+}
+
+.iconGray {
+  color: var(--quinary-color) !important;
 }
 
 .arrow {
@@ -41,12 +56,34 @@
   left: 0;
   right: 0;
   background-color: var(--quaternary-color);
-  border-radius: 10px;
+  border-radius: 8px;
   z-index: 1000;
+  max-height: 300px;
+  overflow: hidden; /* clip inner scrollbars to rounded corners */
+  padding: 0;
+  box-shadow: 0 0 15px 0 rgba(0, 0, 0, 0.2);
+}
+.optionsScroll{
   max-height: 300px;
   overflow-y: auto;
   padding: 5px;
-  box-shadow: 0 0 15px 0 rgba(0, 0, 0, 0.2);
+  border-radius: 10px; /* helps with scrollbar clipping on some browsers */
+}
+
+/* Scrollbar styling to better match rounded container */
+.optionsScroll::-webkit-scrollbar {
+  width: 8px;
+}
+.optionsScroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 6px; /* inset scrollbar to avoid touching rounded corners */
+}
+.optionsScroll::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 8px;
+}
+.optionsScroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
 }
 
 .optionsContainer.openUpward {

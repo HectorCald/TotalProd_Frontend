@@ -65,7 +65,7 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
         const existe = productosAcopio.some(option => option.value === producto.producto_acopio_id);
         return existe;
       });
-      
+
       setDataReceta({
         descripcion: recetaData.descripcion || '',
         productos: productosValidos
@@ -87,7 +87,7 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
     // Calcular el límite de productos disponibles (excluyendo el producto actual)
     const productosDisponibles = productosAcopio.filter(option => option.value !== productoAlmacenId);
     const limiteMaximo = productosDisponibles.length;
-    
+
     // Solo permitir agregar si no hemos alcanzado el límite de productos disponibles
     if (dataReceta.productos.length >= limiteMaximo) {
       setErrorMessage(`Solo se pueden agregar hasta ${limiteMaximo} productos (uno de cada tipo disponible)`);
@@ -132,9 +132,9 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
     const productosSeleccionados = dataReceta.productos
       .map((p, index) => index !== currentIndex ? p.producto_acopio_id : null)
       .filter(id => id && id !== '');
-    
-    return productosAcopio.filter(option => 
-      !productosSeleccionados.includes(option.value) && 
+
+    return productosAcopio.filter(option =>
+      !productosSeleccionados.includes(option.value) &&
       option.value !== productoAlmacenId // Excluir el producto que se está editando
     );
   };
@@ -174,7 +174,7 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
     }
 
     setLoading(true);
-    
+
     // Crear los datos de la receta
     const recetaData = {
       producto_almacen_id: productoAlmacenId,
@@ -184,8 +184,6 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
         cantidad: parseFloat(p.cantidad)
       }))
     };
-
-    console.log('Datos de la receta guardados en estado:', recetaData);
 
     // Simular un pequeño delay para mostrar el loading
     setTimeout(() => {
@@ -218,9 +216,9 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
           onChange={(e) => handleDescripcionChange(e.target.value)}
           icon='text'
         />
-        
+
         {loadingProductos ? (
-          <NoData 
+          <NoData
             icon="loader-alt"
             title="Cargando productos..."
             detail="Obteniendo productos de materia prima disponibles para la receta"
@@ -235,7 +233,7 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
               onClick={agregarProducto}
               style={{ minWidth: '120px' }}
               disabled={
-                dataReceta.productos.length >= (productosAcopio.filter(option => option.value !== productoAlmacenId).length) || 
+                dataReceta.productos.length >= (productosAcopio.filter(option => option.value !== productoAlmacenId).length) ||
                 getOpcionesDisponibles(-1).length === 0
               }
             />
@@ -252,17 +250,17 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
 
 
         {dataReceta.productos.map((producto, index) => (
-            <div key={index} className={styles.recetaProductoCard}>
-              <div className={styles.recetaProductoHeader}>
+          <div key={index} className={styles.recetaProductoCard} style={{ padding: '10px 10px' }}>
+            <div className={styles.recetaProductoHeader}>
               <Select
-                    value={producto.producto_acopio_id}
-                    onChange={(value) => actualizarProducto(index, 'producto_acopio_id', value)}
-                    options={getOpcionesDisponibles(index)}
-                    placeholder='Seleccionar producto'
-                    disabled={loadingProductos}
-                    icon='box'
-                  />
-              
+                value={producto.producto_acopio_id}
+                onChange={(value) => actualizarProducto(index, 'producto_acopio_id', value)}
+                options={getOpcionesDisponibles(index)}
+                placeholder='Seleccionar producto'
+                disabled={loadingProductos}
+                icon='box'
+              />
+
               <button
                 className={styles.btnEliminar}
                 onClick={() => eliminarProducto(index)}
@@ -271,23 +269,23 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
               </button>
             </div>
 
-            <div className={styles.recetaProductoContent}>
-                <InputNormal
-                  tipo="number"
-                  value={producto.cantidad}
-                  placeholder='Cantidad'
-                  icon='calculator'
-                  onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
-                  step="0.01"
-                  min="0.01"
-                />
-            </div>
+
+              <InputNormal
+                tipo="number"
+                value={producto.cantidad}
+                placeholder='Cantidad'
+                icon='calculator'
+                onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
+                step="0.01"
+                min="0.01"
+              />
+    
           </div>
         ))}
 
         {dataReceta.productos.length === 0 && (
-          <NoData 
-            icon="plus"
+          <NoData
+            icon="no-entry"
             title="Sin productos"
             detail="No hay productos agregados a la receta. Presiona 'Agregar Producto' para comenzar a configurar los ingredientes necesarios"
             transparent={false}
@@ -303,14 +301,14 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
           onClick={handleSubmit}
           loading={loading}
           disabled={
-            dataReceta.productos.length === 0 || 
+            dataReceta.productos.length === 0 ||
             loadingProductos ||
             dataReceta.productos.some(p => !p.producto_acopio_id || !p.cantidad || p.cantidad <= 0)
           }
         />
       </div>
     </ViewModal>
-    
+
   );
 }
 

@@ -444,13 +444,13 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         const productosSinStock = productosCanasta.filter(producto => {
             const stockDisponible = producto.stockOriginal || producto.stock || 0;
             const cantidadRequerida = producto.cantidad || 0;
-            
+
             // Si está en modo agrupado y el producto tiene grupo, convertir a unidades
             let cantidadEnUnidades = cantidadRequerida;
             if (modoAgrupacion === 'agrupado' && producto.grup && producto.grup > 0) {
                 cantidadEnUnidades = cantidadRequerida * producto.grup;
             }
-            
+
             return stockDisponible < cantidadEnUnidades;
         });
 
@@ -698,28 +698,27 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
                 {/* Selectores de precio y agrupación */}
                 <div className={styles.controlesGenerales}>
-                    <div className={styles.precioGeneral}>
-                        <Select
-                            value={precioSeleccionado}
-                            onChange={handleCambiarTipoPrecio}
-                            options={preciosTipos}
-                            placeholder="Seleccionar precio general"
-                            disabled={loadingPrecios}
-                            icon='dollar'
-                        />
-                    </div>
-                    <div className={styles.grupoGeneral}>
-                        <Select
-                            value={modoAgrupacion}
-                            onChange={handleCambiarModoAgrupacion}
-                            options={[
-                                { value: 'agrupado', label: 'Agrupado' },
-                                { value: 'no_agrupado', label: 'No agrupado' }
-                            ]}
-                            placeholder="Modo de agrupación"
-                            icon='package'
-                        />
-                    </div>
+
+                    <Select
+                        value={precioSeleccionado}
+                        onChange={handleCambiarTipoPrecio}
+                        options={preciosTipos}
+                        placeholder="Seleccionar precio general"
+                        disabled={loadingPrecios}
+                        icon='dollar'
+                    />
+
+                    <Select
+                        value={modoAgrupacion}
+                        onChange={handleCambiarModoAgrupacion}
+                        options={[
+                            { value: 'agrupado', label: 'Agrupado' },
+                            { value: 'no_agrupado', label: 'No agrupado' }
+                        ]}
+                        placeholder="Modo de agrupación"
+                        icon='package'
+                    />
+
                 </div>
 
                 {productosCanasta.length > 0 ? (
@@ -835,22 +834,22 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             {(
                                 <>
                                     {/* Selector de cliente para salidas */}
-                                        <Boton
-                                            className='btn-gray'
-                                            label={esEntrega
-                                                ? (clientePedidoData ? `Cliente del Pedido: ${clientePedidoData.name}` : 'Seleccionar Cliente')
-                                                : (clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name :
-                                                    (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)'))
-                                            }
-                                            onClick={() => setIsClientesSeleccionOpen(true)}
-                                            style={{
-                                                marginTop: 'auto',
-                                                width: '100%',
-                                                justifyContent: 'flex-start',
-                                                ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData && !esEntrega ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
-                                            }}
-                                        />
-                                   
+                                    <Boton
+                                        className='btn-gray'
+                                        label={esEntrega
+                                            ? (clientePedidoData ? `Cliente del Pedido: ${clientePedidoData.name}` : 'Seleccionar Cliente')
+                                            : (clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name :
+                                                (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)'))
+                                        }
+                                        onClick={() => setIsClientesSeleccionOpen(true)}
+                                        style={{
+                                            marginTop: 'auto',
+                                            width: '100%',
+                                            justifyContent: 'flex-start',
+                                            ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData && !esEntrega ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
+                                        }}
+                                    />
+
                                     <div className={styles.horizontal}>
                                         <InputNormal
                                             placeholder="Descuento"
@@ -875,7 +874,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                         value={metodoPagoSeleccionado}
                                         onChange={setMetodoPagoSeleccionado}
                                     />
-                                    
+
 
                                 </>
                             )}

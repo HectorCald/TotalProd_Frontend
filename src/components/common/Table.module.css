@@ -2,7 +2,7 @@
 .tableContainer {
   width: 100%;
   background: none;
-  border-radius: 15px 15px 0 0;
+  border-radius: 10px 10px 0 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -16,7 +16,7 @@
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
-  border-radius: 15px 15px 0 0;
+  border-radius: 10px 10px 0 0;
 }
 
 /* Wrapper del body (con scroll) */

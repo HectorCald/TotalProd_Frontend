@@ -100,14 +100,14 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                         if (productoActualizado.stock !== productoCarrito.stockOriginal) {
                             // Actualizar el stockOriginal con el nuevo stock del backend
                             productoModificado.stockOriginal = productoActualizado.stock;
-                            
+
                             // Recalcular el stock mostrado según el modo de agrupación actual
                             if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
                                 productoModificado.stock = Math.floor(productoActualizado.stock / productoCarrito.grup);
                             } else {
                                 productoModificado.stock = productoActualizado.stock;
                             }
-                            
+
                             // Si la cantidad en el carrito excede el nuevo stock, ajustar
                             if (productoCarrito.cantidad > productoModificado.stock) {
                                 mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoModificado.stock}`);
@@ -121,12 +121,12 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                             if (precioTipo) {
                                 const precioUnit = precioTipo.valor;
                                 let precioFinal = (modoAgrupacion === 'agrupado' && productoCarrito.grup) ? (precioUnit * (productoCarrito.grup || 1)) : precioUnit;
-                                
+
                                 // Aplicar redondeo si está en modo agrupado
                                 if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
                                     precioFinal = redondearPrecio(precioFinal);
                                 }
-                                
+
                                 productoModificado.precio = precioFinal;
                                 productoModificado.price_product = productoActualizado.price_product;
                             }
@@ -184,12 +184,12 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
             const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
             const precioUnit = precioProducto?.valor || 0;
             let nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
-            
+
             // Aplicar redondeo si está en modo agrupado
             if (modoAgrupacion === 'agrupado' && producto.grup) {
                 nuevoPrecio = redondearPrecio(nuevoPrecio);
             }
-            
+
             return { ...producto, precio: nuevoPrecio };
         }));
     };
@@ -208,10 +208,10 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 const stockEnGrupos = Math.floor(stockOriginalEnUnidades / producto.grup);
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
                 let precioPorGrupo = precioUnitario * (producto.grup || 1);
-                
+
                 // Aplicar redondeo al precio por grupo
                 precioPorGrupo = redondearPrecio(precioPorGrupo);
-                
+
                 return { ...producto, cantidad: producto.cantidad, precio: precioPorGrupo, stock: stockEnGrupos, stockOriginal: stockOriginalEnUnidades };
             } else {
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
@@ -368,28 +368,24 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 </h1>
                 {/* Selectores de precio y agrupación */}
                 <div className={styles.controlesGenerales}>
-                    <div className={styles.precioGeneral}>
-                        <Select
-                            value={precioSeleccionado}
-                            onChange={handleCambiarTipoPrecio}
-                            options={preciosTipos}
-                            placeholder="Seleccionar precio general"
-                            disabled={loadingPrecios}
-                            icon='dollar'
-                        />
-                    </div>
-                    <div className={styles.grupoGeneral}>
-                        <Select
-                            value={modoAgrupacion}
-                            onChange={handleCambiarModoAgrupacion}
-                            options={[
-                                { value: 'agrupado', label: 'Agrupado' },
-                                { value: 'no_agrupado', label: 'No agrupado' }
-                            ]}
-                            placeholder="Modo de agrupación"
-                            icon='package'
-                        />
-                    </div>
+                    <Select
+                        value={precioSeleccionado}
+                        onChange={handleCambiarTipoPrecio}
+                        options={preciosTipos}
+                        placeholder="Seleccionar precio general"
+                        disabled={loadingPrecios}
+                        icon='dollar'
+                    />
+                    <Select
+                        value={modoAgrupacion}
+                        onChange={handleCambiarModoAgrupacion}
+                        options={[
+                            { value: 'agrupado', label: 'Agrupado' },
+                            { value: 'no_agrupado', label: 'No agrupado' }
+                        ]}
+                        placeholder="Modo de agrupación"
+                        icon='package'
+                    />
                 </div>
 
                 {productosCanasta.length > 0 ? (
@@ -449,7 +445,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                 </div>
                             ))}
 
-                            
+
                             {/* Registrar gasto (opcional) */}
                             <div className={styles.content} style={{ marginTop: 'auto', padding: '15px' }}>
                                 <Switch
@@ -485,21 +481,21 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                         onChange={(e) => setCosto(e.target.value)}
                                         className={styles.precioInput}
                                     />
-                                     <Boton
+                                    <Boton
                                         className='btn-gray'
                                         label={proveedorSeleccionadoData ? 'Proveedor: ' + proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
                                         onClick={() => setIsProveedoresSeleccionOpen(true)}
                                         style={{ width: '100%', justifyContent: 'flex-start' }}
                                     />
-                                    <div className={styles.content} style={{padding: '5px 15px'}}>
+                                    <div className={styles.content} style={{ padding: '5px 15px' }}>
                                         <SelectorMetodoPago value={metodoPago} onChange={setMetodoPago} />
                                     </div>
-                                     <InputNormal
-                                         placeholder="Concepto del gasto"
-                                         type="text"
-                                         value={concepto}
-                                         onChange={(e) => setConcepto(e.target.value)}
-                                     />
+                                    <InputNormal
+                                        placeholder="Concepto del gasto"
+                                        type="text"
+                                        value={concepto}
+                                        onChange={(e) => setConcepto(e.target.value)}
+                                    />
                                 </>
                             )}
                         </div>

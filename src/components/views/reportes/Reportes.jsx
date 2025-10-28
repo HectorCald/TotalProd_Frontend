@@ -1101,7 +1101,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             onChange={handleFechaChange}
             placeholder="Seleccionar rango de fechas"
           />
-          <div className={styles.content} style={{ padding: '8px 15px' }}>
             <Select
               placeholder="Área"
               options={opcionesArea}
@@ -1109,7 +1108,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               onChange={handleAreaChange}
               icon="category"
             />
-          </div>
+    
         </div>
 
         <div className={styles.buttons}>

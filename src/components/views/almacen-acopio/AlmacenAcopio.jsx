@@ -840,6 +840,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                             ]}
                             onChange={handleWhatsAppSelect}
                             dropdownDirection="right"
+                            containerStyle={{ background: 'none' }}
                         />
                     </div>
                 ) : ''}

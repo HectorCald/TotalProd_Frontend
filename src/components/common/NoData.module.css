@@ -3,7 +3,7 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    border-radius: 20px;
+    border-radius: 10px;
     transition: all 0.3s ease;
 }
 
@@ -51,7 +51,7 @@
 }
 
 .noDataTitle {
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 600;
     color: gray;
     margin-bottom: 5px;
@@ -59,7 +59,7 @@
 }
 
 .noDataDetail {
-    font-size: 14px;
+    font-size: 12px;
     color: gray;
     line-height: 1.5;
     margin: 0;

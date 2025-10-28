@@ -118,7 +118,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                             const precioUnit = precioProducto?.valor || 0;
                             // Considerar el modo de agrupación al calcular el precio
                             let nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
-                            
+
                             // Aplicar redondeo si está en modo agrupado
                             if (modoAgrupacion === 'agrupado' && producto.grup) {
                                 nuevoPrecio = redondearPrecio(nuevoPrecio);
@@ -246,12 +246,12 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
             const precioUnit = precioProducto?.valor || 0;
             let nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
-            
+
             // Aplicar redondeo si está en modo agrupado
             if (modoAgrupacion === 'agrupado' && producto.grup) {
                 nuevoPrecio = redondearPrecio(nuevoPrecio);
             }
-            
+
             return { ...producto, precio: nuevoPrecio };
         }));
     };
@@ -265,7 +265,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 const stockEnGrupos = Math.floor(stockOriginalEnUnidades / producto.grup);
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
                 let precioPorGrupo = precioUnitario * (producto.grup || 1);
-                
+
                 // Aplicar redondeo al precio por grupo
                 precioPorGrupo = redondearPrecio(precioPorGrupo);
 
@@ -275,7 +275,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     cantidadFinal = stockEnGrupos;
                     mostrarNotificacion('warning', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${stockEnGrupos} grupos`);
                 }
-                
+
                 return { ...producto, cantidad: cantidadFinal, precio: precioPorGrupo, stock: stockEnGrupos, stockOriginal: stockOriginalEnUnidades };
             } else {
                 const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
@@ -458,28 +458,24 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
                 {/* Selectores de precio y agrupación */}
                 <div className={styles.controlesGenerales}>
-                    <div className={styles.precioGeneral}>
-                        <Select
-                            value={precioSeleccionado}
-                            onChange={handleCambiarTipoPrecio}
-                            options={preciosTipos}
-                            placeholder="Seleccionar precio general"
-                            disabled={loadingPrecios}
-                            icon='dollar'
-                        />
-                    </div>
-                    <div className={styles.grupoGeneral}>
-                        <Select
-                            value={modoAgrupacion}
-                            onChange={handleCambiarModoAgrupacion}
-                            options={[
-                                { value: 'agrupado', label: 'Agrupado' },
-                                { value: 'no_agrupado', label: 'No agrupado' }
-                            ]}
-                            placeholder="Modo de agrupación"
-                            icon='package'
-                        />
-                    </div>
+                    <Select
+                        value={precioSeleccionado}
+                        onChange={handleCambiarTipoPrecio}
+                        options={preciosTipos}
+                        placeholder="Seleccionar precio general"
+                        disabled={loadingPrecios}
+                        icon='dollar'
+                    />
+                    <Select
+                        value={modoAgrupacion}
+                        onChange={handleCambiarModoAgrupacion}
+                        options={[
+                            { value: 'agrupado', label: 'Agrupado' },
+                            { value: 'no_agrupado', label: 'No agrupado' }
+                        ]}
+                        placeholder="Modo de agrupación"
+                        icon='package'
+                    />
                 </div>
 
                 {productosCanasta.length > 0 ? (
@@ -577,27 +573,26 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                     </div>
                                 </div>
                             ))}
+                            {/* Botón para seleccionar cliente entre sucursal y observaciones */}
+                            <Boton
+                                className='btn-gray'
+                                label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+                                onClick={() => setIsClientesSeleccionOpen(true)}
+                                style={{ width: '100%', justifyContent: 'flex-start', marginTop: 'auto' }}
+                            />
                             {/* Selector de sucursal - Solo mostrar si no estamos editando */}
                             {!pedidoId && (
-                                <div className={styles.content} style={{ padding: '8px 15px', marginTop: 'auto' }}>
-                                    <Select
-                                        value={sucursalSeleccionada}
-                                        onChange={setSucursalSeleccionada}
-                                        options={sucursales}
-                                        placeholder='Sucursal de destino (obligatorio)'
-                                        disabled={loadingSucursales}
-                                        icon='building'
-                                    />
-                                </div>
-                            )}
-                            {/* Botón para seleccionar cliente entre sucursal y observaciones */}
-                                <Boton
-                                    className='btn-gray'
-                                    label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
-                                    onClick={() => setIsClientesSeleccionOpen(true)}
-                                    style={{ width: '100%', justifyContent: 'flex-start' }}
+                                <Select
+                                    value={sucursalSeleccionada}
+                                    onChange={setSucursalSeleccionada}
+                                    options={sucursales}
+                                    placeholder='Sucursal de destino (obligatorio)'
+                                    disabled={loadingSucursales}
+                                    icon='building'
                                 />
-    
+                            )}
+                            
+
 
                             {/* Input de observaciones debajo del selector de cliente */}
 

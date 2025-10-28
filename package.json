@@ -3,12 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@mapbox/mapbox-gl-geocoder": "^5.1.2",
     "@react-pdf/renderer": "^4.3.1",
-    "@types/react-datepicker": "^6.2.0",
     "boxicons-react": "^0.1.1",
     "chart.js": "^4.5.1",
-    "exceljs": "^4.4.0",
+    "date-fns": "2.29.3",
     "framer-motion": "^12.23.12",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
@@ -28,6 +26,9 @@
     "use-debounce": "^10.0.6",
     "xlsx": "^0.18.5",
     "xlsx-populate": "^1.21.0"
+  },
+  "overrides": {
+    "date-fns": "2.29.3"
   },
   "scripts": {
     "start": "set BROWSER=none && react-scripts start",

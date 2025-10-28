@@ -18,7 +18,6 @@ import PanelCotizaciones from '../components/views/cotizaciones/PanelCotizacione
 import Personal from '../components/views/personal/Personal';
 import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
-import Pagos from '../components/views/pagos/Pagos';
 import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
 
 const Home = () => {
@@ -183,10 +182,6 @@ const Home = () => {
             isOpen={activeView === 'proveedores'}
             setIsOpen={() => handleViewClose()}
           />
-          <Pagos
-            isOpen={activeView === 'pagos'}
-            setIsOpen={() => handleViewClose()}
-          />
           <MiProduccion
             isOpen={activeView === 'miProduccion'}
             setIsOpen={() => handleViewClose()}
@@ -214,10 +209,6 @@ const Home = () => {
           />
           <Proveedores
             isOpen={activeView === 'proveedores'}
-            setIsOpen={() => handleViewClose()}
-          />
-          <Pagos
-            isOpen={activeView === 'pagos'}
             setIsOpen={() => handleViewClose()}
           />
           <AlmacenMedio

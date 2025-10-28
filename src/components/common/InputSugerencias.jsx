@@ -29,12 +29,7 @@ function InputSugerencias({
     const sugerenciasRef = useRef(null);
     const containerRef = useRef(null);
 
-    // Actualizar isFocused cuando value cambie
-    useEffect(() => {
-        if (value && value !== '') {
-            setIsFocused(true);
-        }
-    }, [value]);
+    // isFocused solo depende del focus real del input; no lo forzamos por el valor
 
     // Función para normalizar texto (quitar acentos, guiones, convertir a minúsculas, mantener espacios)
     const normalizeText = (text) => {
@@ -195,7 +190,13 @@ function InputSugerencias({
         <div className={styles.inputContainer} ref={containerRef}>
             {label && (
                 <label 
-                    className={styles.inputLabel + (isFocused ? ' ' + styles.inputLabelFocused : '')} 
+                    className={
+                        styles.inputLabel + (
+                            (isFocused || (value && value !== ''))
+                                ? ' ' + styles.inputLabelFocused
+                                : ''
+                        )
+                    } 
                     style={{
                         color: error && value !== '' ? 'var(--error-color)' : ''
                     }} 
@@ -252,7 +253,7 @@ function InputSugerencias({
                             className={`${styles.sugerenciaItem} ${
                                 index === indiceSugerenciaActiva ? styles.sugerenciaActiva : ''
                             }`}
-                            onClick={() => handleSugerenciaClick(sugerencia)}
+                            onMouseDown={(e) => { e.preventDefault(); handleSugerenciaClick(sugerencia); }}
                             onMouseEnter={() => setIndiceSugerenciaActiva(index)}
                         >
                             <span className={styles.sugerenciaTexto}>

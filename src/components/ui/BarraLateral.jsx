@@ -13,7 +13,6 @@ import PanelPedidos from '../views/pedidos/PanelPedidos';
 import Clientes from '../views/clientes/Clientes';
 import Proveedores from '../views/proveedores/Proveedores';
 import Personal from '../views/personal/Personal';
-import Pagos from '../views/pagos/Pagos';
 import PanelGastos from '../views/gastos/PanelGastos';
 import PanelDeudas from '../views/deudas/PanelDeudas';
 import Sucursales from '../views/sucursales/Sucursales';
@@ -309,12 +308,6 @@ const BarraLateral = ({
 
       <Personal
         isOpen={activeView === 'personal'}
-        setIsOpen={handleCloseView}
-        {...viewProps}
-      />
-
-      <Pagos
-        isOpen={activeView === 'pagos'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />
