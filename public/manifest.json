@@ -10,7 +10,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icon-192x192.png",
+      "src": "/icon-redondo.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
