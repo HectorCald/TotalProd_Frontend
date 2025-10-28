@@ -1,0 +1,50 @@
+/* Estilos para iconos con bordes redondeados como las empresas grandes */
+.rounded-icon {
+  border-radius: 20%;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.rounded-icon img {
+  border-radius: 20%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Para diferentes tamaños de iconos */
+.icon-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 20%;
+}
+
+.icon-medium {
+  width: 32px;
+  height: 32px;
+  border-radius: 20%;
+}
+
+.icon-large {
+  width: 48px;
+  height: 48px;
+  border-radius: 20%;
+}
+
+.icon-apple-style {
+  border-radius: 22%;
+  overflow: hidden;
+}
+
+.icon-google-style {
+  border-radius: 25%;
+  overflow: hidden;
+}
+
+/* Para usar en tu aplicación */
+.favicon-style {
+  border-radius: 20%;
+  overflow: hidden;
+  background: #28b498;
+  padding: 2px;
+}

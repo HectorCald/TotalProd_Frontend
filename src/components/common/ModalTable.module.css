@@ -46,6 +46,7 @@
   width: 100%;
   color: var(--white-color);
   background: var(--tertiary-color);
+  border-radius: 10px 10px 0 0;
 }
 
 .table thead th {

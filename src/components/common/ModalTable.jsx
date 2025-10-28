@@ -52,6 +52,7 @@ const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBa
                                                         value={filters[idx].value}
                                                         onChange={(v) => filters[idx].onChange?.(v)}
                                                         options={(filters[idx].options || []).map(op => ({ value: op.value, label: op.label }))}
+                                                        containerStyle={{ padding: '0', margin: '0', height: '40px', background: 'none' }}
                                                     />
                                                 ) : null}
                                             </div>

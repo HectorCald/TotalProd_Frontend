@@ -4,19 +4,19 @@
   "id": "TotalProd",
   "icons": [
     {
-      "src": "icon.png",
+      "src": "/icon.png",
       "type": "image/png",
       "sizes": "any",
       "purpose": "any"
     },
     {
-      "src": "icon-192x192.png",
+      "src": "/icon-192x192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512x512.png",
+      "src": "/icon-512x512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
@@ -58,8 +58,8 @@
   },
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "transparent",
-  "background_color": "#ffffff",
+  "theme_color": "#28b498",
+  "background_color": "#28b498",
   "orientation": "portrait",
   "scope": "/",
   "description": "Sistema integral de gestión de procesos y ventas",
