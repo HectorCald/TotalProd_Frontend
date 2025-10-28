@@ -56,7 +56,7 @@ const Login = () => {
     const [delayedMinHeight, setDelayedMinHeight] = useState(0);
     useEffect(() => {
         const timer = setTimeout(() => {
-            setDelayedMinHeight(isRegister ? 390 : 220);
+            setDelayedMinHeight(isRegister ? 370 : 220);
         }, 500); // Mismo tiempo que la duración de la animación
 
         return () => clearTimeout(timer);
@@ -295,7 +295,7 @@ const Login = () => {
             <motion.div
                 className={styles.content}
                 animate={{
-                    height: isRegister ? 390 : 220,
+                    height: isRegister ? 370 : 220,
                 }}
                 transition={{
                     duration: 0.5,

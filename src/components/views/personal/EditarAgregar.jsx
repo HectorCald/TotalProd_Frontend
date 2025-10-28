@@ -341,7 +341,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         buttonIconClick={handleCopyCode}
                     />
 
-                    <div className={styles.content} style={{ padding: '10px 15px' }}>
                         <Select
                             value={sucursalId}
                             onChange={(value) => setSucursalId(value)}
@@ -355,7 +354,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             disabled={tipo === 'ver'}
                             icon='store'
                         />
-                    </div>
+                 
 
                     {tipo !== 'ver' && (
 

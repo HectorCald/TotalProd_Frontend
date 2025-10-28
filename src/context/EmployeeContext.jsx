@@ -86,6 +86,14 @@ export const EmployeeProvider = ({ children }) => {
       const employeeData = await personalService.getById(employeeId);
       
       if (employeeData && employeeData.success) {
+        // Validar si el empleado está activo
+        if (!employeeData.data.is_active) {
+          const errorMessage = 'Su cuenta está inactiva. Contacte al administrador para reactivar su acceso.';
+          setError(errorMessage);
+          setLoading(false);
+          return { success: false, error: errorMessage };
+        }
+        
         setEmployee(employeeData.data);
         setError(null);
         

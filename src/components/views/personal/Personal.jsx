@@ -251,6 +251,30 @@ function Personal({ isOpen, setIsOpen }) {
         modulos: persona.modules?.length+' Submódulos'
     }));
 
+    // Función para obtener el badge de estado
+    const getCellBadge = (item, headerKey) => {
+        if (headerKey === 'estado') {
+            const estado = item.estado;
+            const badgeConfig = {
+                'Activo': {
+                    text: 'Activo',
+                    className: 'success' // verde
+                },
+                'Inactivo': {
+                    text: 'Inactivo',
+                    className: 'error' // rojo
+                },
+            };
+
+            return badgeConfig[estado] || {
+                text: estado,
+                className: 'default'
+            };
+        }
+
+        return null;
+    };
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
             <HeaderView 
@@ -289,6 +313,7 @@ function Personal({ isOpen, setIsOpen }) {
                                     const personaOriginal = personalFiltrado.find(p => p.id === persona.id);
                                     handlePersonal(personaOriginal);
                                 }}
+                                getCellBadge={getCellBadge}
                             />
                         </div>
                     </>

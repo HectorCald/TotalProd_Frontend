@@ -239,7 +239,11 @@ const HomeEmpleado = () => {
         let errorDetail = error;
         let errorIcon = "error-circle";
         
-        if (error.includes('plan activo') || error.includes('plan')) {
+        if (error.includes('inactiva') || error.includes('inactivo')) {
+            errorTitle = "Cuenta inactiva";
+            errorDetail = "Su cuenta de empleado está inactiva. Contacte al administrador para reactivar su acceso al sistema.";
+            errorIcon = "user-x";
+        } else if (error.includes('plan activo') || error.includes('plan')) {
             errorTitle = "Plan no activo";
             errorDetail = "La empresa no tiene un plan activo. Contacta al administrador para actualizar el plan y acceder a esta función.";
             errorIcon = "lock";

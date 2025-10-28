@@ -11,17 +11,25 @@ function SelectorMetodoPago({ value, onChange, disabled = false, placeholder = '
         { value: 'credito', label: 'A crédito', icon: 'credit-card-alt' }
     ];
 
+    // Establecer valor por defecto si no hay valor
+    const valorActual = value || 'efectivo';
+
+    // Si no hay valor y onChange existe, establecer el valor por defecto
+    React.useEffect(() => {
+        if (!value && onChange) {
+            onChange('efectivo');
+        }
+    }, [value, onChange]);
+
     return (
-
-            <Select
-                value={value || 'efectivo'}
-                onChange={onChange}
-                options={metodosPago}
-                placeholder={placeholder}
-                disabled={disabled}
-                icon='credit-card'
-            />
-
+        <Select
+            value={valorActual}
+            onChange={onChange}
+            options={metodosPago}
+            placeholder={placeholder}
+            disabled={disabled}
+            icon='credit-card'
+        />
     );
 }
 
