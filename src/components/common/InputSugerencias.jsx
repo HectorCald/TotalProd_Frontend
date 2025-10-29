@@ -109,7 +109,7 @@ function InputSugerencias({
         setIndiceSugerenciaActiva(-1);
     }, [value, sugerencias, minCaracteres, buscarCampo, maxSugerencias, isFocused]);
 
-    // Manejar clicks fuera del componente
+    // Manejar interacciones fuera del componente (click/touch/pointer)
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (containerRef.current && !containerRef.current.contains(event.target)) {
@@ -118,8 +118,12 @@ function InputSugerencias({
         };
 
         document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('pointerdown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside, { passive: true });
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('pointerdown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
         };
     }, []);
 
@@ -132,12 +136,8 @@ function InputSugerencias({
         setIsFocused(true);
     };
 
-    const handleInputBlur = () => {
-        // Delay para permitir click en sugerencias antes de perder el focus
-        setTimeout(() => {
-            setIsFocused(false);
-        }, 150);
-    };
+    // No ocultar por blur; se cierra solo con click/touch fuera o selección
+    const handleInputBlur = () => {};
 
     const handleSugerenciaClick = (sugerencia) => {
         let valorSeleccionado;
