@@ -923,7 +923,7 @@ function ModalDescarga({
                     value={nombreArchivoState}
                     onChange={(e) => handleNombreArchivoChange(e.target.value)}
                     onBlur={() => { }}
-                    placeholder="Ingresa el nombre del archivo"
+                    placeholder="Nombre del archivo"
                     style={{ width: '300px' }}
                     icon="file"
                 />
@@ -932,7 +932,7 @@ function ModalDescarga({
                     value={tituloDocumentoState}
                     onChange={(e) => handleTituloDocumentoChange(e.target.value)}
                     onBlur={() => { }}
-                    placeholder="Ingresa el título del documento"
+                    placeholder="Título del documento"
                     style={{ width: '300px' }}
                     icon="text"
                 />
