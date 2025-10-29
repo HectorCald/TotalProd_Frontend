@@ -154,6 +154,10 @@ const sucursalesService = {
             const empresaId = getEmpresaId();
             const casaMatrizId = shouldUseAlmacenSucursal ? await getCasaMatrizId(empresaId) : null;
             const { almacenSeparado, precios, ...payload } = sucursalData;
+            
+            // Siempre enviar precios como array (incluso si está vacío) para sincronización correcta
+            const preciosArray = Array.isArray(precios) ? precios : [];
+            
             const response = await fetch(`${API_BASE_URL}/sucursales/${id}`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
@@ -161,7 +165,7 @@ const sucursalesService = {
                     ...payload,
                     // Si vino el flag, siempre enviar el campo (incluso null para indicar propio)
                     ...(hasFlag ? { almacen_sucursal_id: casaMatrizId } : {}),
-                    ...(precios && Array.isArray(precios) ? { precios } : {})
+                    precios: preciosArray
                 })
             });
 

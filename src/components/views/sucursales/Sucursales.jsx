@@ -200,27 +200,41 @@ function Sucursales({ isOpen, setIsOpen }) {
             sucursal.id === updatedSucursal.id ? updatedSucursal : sucursal
         ));
 
-        // Cerrar el modal de ver sucursal
-        setIsOpenVerSucursal(false);
-        mostrarNotificacion('success', 'Sucursal actualizada correctamente');
+        // Actualizar también la sucursal en el modal si está abierto
+        if (infoSucursal && infoSucursal.id === updatedSucursal.id) {
+            setInfoSucursal(updatedSucursal);
+        }
+
+        // NO cerrar el modal de ver sucursal cuando se actualiza
+        // El modal se mantiene abierto para mostrar los cambios actualizados
     };
 
     // Headers para la tabla
     const tableHeaders = [
         { key: 'name', label: 'Sucursal', icon: 'building' },
         { key: 'almacen_tipo', label: 'Almacén', icon: 'store' },
+        { key: 'precios', label: 'Precios', icon: 'tag' },
         { key: 'total_pedidos', label: 'Pedidos', icon: 'shopping-bag' },
         { key: 'created_at', label: 'Fecha de Creación', icon: 'calendar' }
     ];
 
     // Datos para la tabla
-    const tableData = sucursalesFiltradas.map(sucursal => ({
-        id: sucursal.id,
-        name: sucursal.name || 'Sin nombre',
-        almacen_tipo: sucursal.almacen_sucursal_id ? 'Comparte' : 'Propio',
-        total_pedidos: sucursal.total_pedidos !== undefined ? sucursal.total_pedidos.toString() : '0',
-        created_at: sucursal.created_at ? new Date(sucursal.created_at).toLocaleDateString('es-ES') : 'Sin fecha'
-    }));
+    const tableData = sucursalesFiltradas.map(sucursal => {
+        let preciosNombres;
+        if (sucursal.name === 'Casa Matriz') {
+            preciosNombres = 'Todos los precios';
+        } else {
+            preciosNombres = (sucursal.precios || []).map(p => p.name).join(', ') || 'Sin precios';
+        }
+        return {
+            id: sucursal.id,
+            name: sucursal.name || 'Sin nombre',
+            almacen_tipo: sucursal.almacen_sucursal_id ? 'Comparte' : 'Propio',
+            total_pedidos: sucursal.total_pedidos !== undefined ? sucursal.total_pedidos.toString() : '0',
+            precios: preciosNombres,
+            created_at: sucursal.created_at ? new Date(sucursal.created_at).toLocaleDateString('es-ES') : 'Sin fecha'
+        };
+    });
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>

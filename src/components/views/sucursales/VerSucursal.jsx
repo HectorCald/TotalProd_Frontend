@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import Dato from '../../common/Dato';
+import ListData from '../../common/ListData';
 import Boton from '../../common/Boton';
 import EditarAgregarSucursal from './EditarAgregarSucursal';
 import ViewModal from '../../ui/ViewModal';
@@ -14,6 +15,14 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
     const [isEditarOpen, setIsEditarOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    // Estado local para la sucursal actual
+    const [sucursalActual, setSucursalActual] = useState(sucursal);
+
+    // Actualizar el estado local cuando cambie el prop sucursal
+    useEffect(() => {
+        setSucursalActual(sucursal);
+    }, [sucursal]);
 
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -36,12 +45,12 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
     const handleEliminar = async () => {
         setLoading(true);
         try {
-            const response = await sucursalesService.delete(sucursal.id);
+            const response = await sucursalesService.delete(sucursalActual.id);
             if (response.success) {
                 setIsEliminarOpen(false);
                 setIsOpen(false);
                 if (onSucursalDeleted) {
-                    onSucursalDeleted(sucursal.id);
+                    onSucursalDeleted(sucursalActual.id);
                 }
             } else {
                 mostrarNotificacion('error', response.message || 'Error al eliminar la sucursal');
@@ -55,10 +64,19 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
     };
 
     const handleSucursalUpdated = (updatedSucursal) => {
+        // Actualizar el estado local de la sucursal
+        setSucursalActual(updatedSucursal);
+
+        // Actualizar el estado en el componente padre
         if (onSucursalUpdated) {
             onSucursalUpdated(updatedSucursal);
         }
+
+        // Cerrar solo el modal de edición, NO el modal principal
         setIsEditarOpen(false);
+        
+        // Mostrar notificación de éxito
+        mostrarNotificacion('success', 'Sucursal actualizada correctamente');
     };
 
     return (
@@ -66,54 +84,59 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>
-                    {sucursal?.name}
+                    {sucursalActual?.name}
                 </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DE LA SUCURSAL</p>
                 <div className={styles.content}>
                     <Dato
                         label="Nombre"
-                        value={sucursal?.name || 'Sin nombre'}
+                        value={sucursalActual?.name || 'Sin nombre'}
                     />
                     <Dato
                         label="Tipo de almacén"
-                        value={sucursal?.almacen_sucursal_id ? 'Comparte' : 'Propio'}
+                        value={sucursalActual?.almacen_sucursal_id ? 'Comparte' : 'Propio'}
                     />
                     <Dato
                         label="Fecha de creación"
-                        value={sucursal?.created_at ? new Date(sucursal.created_at).toLocaleDateString('es-ES') : 'Sin fecha'}
+                        value={sucursalActual?.created_at ? new Date(sucursalActual.created_at).toLocaleDateString('es-ES') : 'Sin fecha'}
                     />
                     <Dato
                         label="Total de Pedidos"
-                        value={sucursal?.total_pedidos !== undefined ? sucursal.total_pedidos.toString() : '0'}
+                        value={sucursalActual?.total_pedidos !== undefined ? sucursalActual.total_pedidos.toString() : '0'}
                         especial="blue"
+                    />
+                    <ListData
+                        label="Precios asignados"
+                        items={sucursalActual?.name === 'Casa Matriz' ? ['Todos los precios'] : (sucursalActual?.precios?.map(precio => precio.name) || [])}
+                        emptyText={sucursalActual?.name === 'Casa Matriz' ? 'Todos los precios' : 'Sin precios asignados'}
+                        badgeColor="orange"
+                        badgeIcon="dollar"
                     />
                 </div>
 
-                <div className={styles.buttons}>
-                    <Boton
-                        className='btn-default'
-                        label='Editar Sucursal'
-                        onClick={() => {
-                            if (sucursal?.name === 'Casa Matriz') {
-                                mostrarNotificacion('error', 'No se puede editar la sucursal principal "Casa Matriz"');
-                                return;
-                            }
-                            setIsEditarOpen(true);
-                        }}
-                    />
-                    <Boton
-                        className='btn-red'
-                        label='Eliminar Sucursal'
-                        onClick={() => setIsEliminarOpen(true)}
-                    />
-                </div>
+                {sucursalActual?.name !== 'Casa Matriz' && (
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Editar Sucursal'
+                            onClick={() => {
+                                setIsEditarOpen(true);
+                            }}
+                        />
+                        <Boton
+                            className='btn-red'
+                            label='Eliminar Sucursal'
+                            onClick={() => setIsEliminarOpen(true)}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Modal de editar sucursal */}
             <EditarAgregarSucursal
                 isOpen={isEditarOpen}
                 setIsOpen={setIsEditarOpen}
-                data={sucursal}
+                data={sucursalActual}
                 tipo='editar'
                 onSucursalUpdated={handleSucursalUpdated}
             />
