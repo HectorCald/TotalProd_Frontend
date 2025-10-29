@@ -9,6 +9,7 @@ import productsAcopioService from '../../../services/productsAcopioService';
 import MensajeError from '../../common/MensajeError';
 import { BoxIcon } from 'boxicons-react';
 import NoData from '../../common/NoData';
+import Dato from '../../common/Dato';
 
 function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData = null, onRecetaCreated, onRecetaUpdated }) {
   const [dataReceta, setDataReceta] = useState({
@@ -31,7 +32,7 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
           // Mapear los datos para el Select
           const mappedOptions = response.data.map(producto => ({
             value: producto.id,
-            label: `${producto.name} (${producto.type_measure?.name || ''})`,
+            label: `${producto.name}`,
             id: producto.id,
             name: producto.name,
             quantity: producto.quantity,
@@ -253,9 +254,8 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
                 value={producto.producto_acopio_id}
                 onChange={(value) => actualizarProducto(index, 'producto_acopio_id', value)}
                 options={getOpcionesDisponibles(index)}
-                placeholder='Seleccionar producto'
+                placeholder='Materia prima'
                 disabled={loadingProductos}
-                icon='box'
               />
 
               <button
@@ -267,20 +267,51 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
             </div>
 
 
-              <InputNormal
-                tipo="number"
-                value={producto.cantidad}
-                placeholder='Cantidad'
-                icon='calculator'
-                onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
-                step="0.01"
-                min="0.01"
-              />
+              {(() => {
+                const selected = productosAcopio.find(p => p.value === producto.producto_acopio_id);
+                const cantidadNum = parseFloat(String(producto.cantidad || '0').replace(',', '.'));
+                const tm = selected?.type_measure || {};
+                const codeMayor = tm.code || '';
+                const codeMenor = tm.code_menor || '';
+                const measureValue = tm.value ? Number(tm.value) : null;
+                let texto = '0';
+                if (selected && !isNaN(cantidadNum) && cantidadNum > 0) {
+                  if (measureValue && cantidadNum < 1) {
+                    const menor = Math.round(cantidadNum * measureValue);
+                    texto = `${menor} ${codeMenor}`;
+                  } else {
+                    const rounded = Math.round(cantidadNum * 1000) / 1000;
+                    const formatted = Number.isInteger(rounded)
+                      ? `${rounded}`
+                      : `${rounded}`.replace(/\.0+$/, '').replace(/(\.[0-9]*?)0+$/, '$1');
+                    texto = `${formatted} ${codeMayor}`;
+                  }
+                }
+                return (
+                  <div className={styles.horizontal ? styles.horizontal : ''} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <InputNormal
+                      tipo="number"
+                      value={producto.cantidad}
+                      placeholder='Cantidad'
+                      icon='calculator'
+                      onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
+                      step="0.01"
+                      min="0.01"
+                    />
+                    <Dato
+                      label='='
+                      value={texto}
+                      vertical={false}
+                      containerStyle={{ maxWidth: '100px' }}
+                    />
+                  </div>
+                );
+              })()}
     
           </div>
         ))}
 
-        {dataReceta.productos.length === 0 && (
+        {!loadingProductos && dataReceta.productos.length === 0 && (
           <NoData
             icon="no-entry"
             title="Sin productos"

@@ -25,8 +25,8 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
             return;
         }
 
-        if (codigo.length < 6) {
-            setErrorMessage('El código debe tener al menos 6 caracteres');
+        if (codigo.length < 8) {
+            setErrorMessage('El código debe tener al menos 8 caracteres');
             setTimeout(() => setErrorMessage(''), 3000);
             return;
         }
@@ -181,7 +181,7 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                             label="Validar Código"
                             onClick={handleValidateCode}
                             loading={loading}
-                            disabled={!codigo.trim() || codigo.length < 6}
+                            disabled={!codigo.trim() || codigo.length < 8}
                         />
                     </>
                 )}

@@ -123,6 +123,7 @@ const Nav = () => {
                                 onChange={handleUserMenuSelect}
                                 icon="user"
                                 activePlaceholder={true}
+                                placeholderAsValue={true}
                                 containerStyle={{ maxWidth: '300px', maxHeight: '40px' }}
                             />
                        

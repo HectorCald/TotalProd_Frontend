@@ -287,19 +287,56 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                         <>
                             <Dato
                                 label="Descripción de la receta"
-                                value={productoActual.recetas_acopio[0]?.description || 'Sin descripción'}
+                                value={productoActual.recetas_acopio[0]?.description || '--'}
                             />
 
                             {productoActual.recetas_acopio[0]?.recetas_acopio_detalle && productoActual.recetas_acopio[0].recetas_acopio_detalle.length > 0 && (
                                 <>
                                     <p className={styles.subTitle}>INGREDIENTES</p>
                                     <div className={styles.content}>
-                                        {productoActual.recetas_acopio[0].recetas_acopio_detalle.map((detalle, index) => (
-                                            <Dato
-                                                label={detalle.products_acopio?.name || 'Producto desconocido'}
-                                                value={`${detalle.cantidad} ${detalle.products_acopio?.type_measure?.code || ''}`}
-                                            />
-                                        ))}
+                                        {productoActual.recetas_acopio[0].recetas_acopio_detalle.map((detalle, index) => {
+                                            const tm = detalle.products_acopio?.type_measure || {};
+                                            const codeMayor = tm.code || '';
+                                            let codeMenor = tm.code_menor || '';
+                                            let measureValue = tm.value ? Number(tm.value) : null;
+                                            if (!measureValue || !codeMenor) {
+                                                const map = {
+                                                    'kg': { v: 1000, m: 'gr' },
+                                                    'Kg': { v: 1000, m: 'gr' },
+                                                    'KG': { v: 1000, m: 'gr' },
+                                                    'l': { v: 1000, m: 'ml' },
+                                                    'L': { v: 1000, m: 'ml' },
+                                                    'Lt': { v: 1000, m: 'ml' },
+                                                    'm': { v: 1000, m: 'mm' },
+                                                };
+                                                const f = map[codeMayor];
+                                                if (f) {
+                                                    measureValue = measureValue || f.v;
+                                                    codeMenor = codeMenor || f.m;
+                                                }
+                                            }
+                                            const cantidadNum = parseFloat(String(detalle.cantidad ?? '0').replace(',', '.'));
+                                            let valueText = '0';
+                                            if (!isNaN(cantidadNum) && cantidadNum > 0) {
+                                                if (measureValue && cantidadNum < 1) {
+                                                    const menor = Math.round(cantidadNum * measureValue);
+                                                    valueText = `${menor} ${codeMenor}`;
+                                                } else {
+                                                    const rounded = Math.round(cantidadNum * 1000) / 1000;
+                                                    const formatted = Number.isInteger(rounded)
+                                                        ? `${rounded}`
+                                                        : `${rounded}`.replace(/\.0+$/, '').replace(/(\.[0-9]*?)0+$/, '$1');
+                                                    valueText = `${formatted} ${codeMayor}`;
+                                                }
+                                            }
+                                            return (
+                                                <Dato
+                                                    key={detalle.id || index}
+                                                    label={detalle.products_acopio?.name || 'Producto desconocido'}
+                                                    value={valueText}
+                                                />
+                                            );
+                                        })}
                                     </div>
                                 </>
                             )}

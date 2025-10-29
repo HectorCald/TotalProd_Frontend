@@ -13,6 +13,8 @@ function Select({
     dropdownDirection = 'left',
     activePlaceholder = false,
     containerStyle,
+    // Cuando es true, el placeholder se muestra como texto principal (sin etiqueta flotante)
+    placeholderAsValue = false,
     disabled = false
 }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -63,13 +65,14 @@ function Select({
     };
 
     const selectedOption = options.find(opt => opt.value === value);
-    const isPlaceholder = !selectedOption; // usamos label flotante para placeholder visual
+    const isPlaceholder = !selectedOption && !placeholderAsValue; // si usamos placeholder como valor, no aplicar estilo placeholder
     const hasSingleOption = options.length === 1;
-    const labelUp = isOpen || !!selectedOption;
+    // La etiqueta solo sube cuando hay un valor seleccionado, no al abrir el dropdown
+    const labelUp = !!selectedOption;
 
     return (
         <div className={`${styles.selectContainer} ${iconOnly ? styles.iconOnly : ''} ${disabled ? styles.disabled : ''}`} ref={selectRef} style={containerStyle}>
-            {!iconOnly && placeholder && (
+            {!iconOnly && placeholder && !placeholderAsValue && (
                 <label 
                     className={`${styles.selectLabel} ${labelUp ? styles.selectLabelUp : ''} ${!icon && labelUp ? styles.selectLabelUpNoIcon : ''}`}
                     style={{
@@ -95,11 +98,11 @@ function Select({
                     <>
                         {icon && <BoxIcon name={icon} className={`${styles.icon} ${isPlaceholder ? styles.iconGray : ''}`} />}
                         <span className={`${styles.selectedText} ${isPlaceholder ? styles.textGray : ''}`}>
-                            {selectedOption ? selectedOption.label : ''}
+                            {selectedOption ? selectedOption.label : (placeholderAsValue ? placeholder : '')}
                         </span>
                         {!hasSingleOption && (
                             <motion.div
-                                animate={{ rotate: isOpen ? 180 : 0 }}
+                                animate={{ rotate: isOpen ? 180 : 0, marginTop: isOpen ? '12px' : '8px' }}
                                 transition={{ duration: 0.2 }}
                             >
                                 <BoxIcon name='chevron-down' className={styles.arrow} />

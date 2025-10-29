@@ -386,13 +386,12 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
 
           {/* Selector de cliente para salidas */}
           {tipo === 'salida' && (
-            <div className={styles.content} style={{ padding: '5px 15px' }}>
               <Boton
                 className='btn-gray'
                 label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
                 onClick={() => setIsClientesSeleccionOpen(true)}
               />
-            </div>
+         
           )}
           {/* Switch para restar materia prima (solo para entradas y si tiene receta) */}
           {tipo === 'entrada' && tieneReceta && (
