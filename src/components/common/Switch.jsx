@@ -1,9 +1,9 @@
 import styles from './Switch.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-function Switch({ title, subtitle, checked, onChange, icon }) {
+function Switch({ title, subtitle, checked, onChange, icon, disabled = false }) {
     return (
-        <div className={`${styles.checkboxContainer} ${checked ? styles.checked : ''}`}>
+        <div className={`${styles.checkboxContainer} ${checked ? styles.checked : ''} ${disabled ? styles.disabled : ''}`}>
             <div className={styles.icon}>
                 <BoxIcon name={icon} className={styles.icon} />
             </div>
@@ -15,7 +15,8 @@ function Switch({ title, subtitle, checked, onChange, icon }) {
                 <input
                     type="checkbox"
                     checked={checked}
-                    onChange={(e) => onChange(e.target.checked)}
+                    onChange={(e) => !disabled && onChange(e.target.checked)}
+                    disabled={disabled}
                 />
                 <span className={styles.slider}></span>
             </label>

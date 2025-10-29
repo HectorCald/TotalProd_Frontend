@@ -63,13 +63,14 @@ function Select({
 
     const selectedOption = options.find(opt => opt.value === value);
     const isPlaceholder = !selectedOption && !activePlaceholder;
+    const hasSingleOption = options.length === 1;
 
     return (
         <div className={`${styles.selectContainer} ${iconOnly ? styles.iconOnly : ''}`} ref={selectRef} style={containerStyle}>
             
             <div 
-                className={`${styles.selectButton} ${isOpen ? styles.active : ''} ${iconOnly ? styles.iconOnlyButton : ''}`}
-                onClick={() => setIsOpen(!isOpen)}
+                className={`${styles.selectButton} ${isOpen ? styles.active : ''} ${iconOnly ? styles.iconOnlyButton : ''} ${hasSingleOption ? styles.singleOption : ''}`}
+                onClick={() => !hasSingleOption && setIsOpen(!isOpen)}
             >
                 {iconOnly ? (
                     // Modo solo icono
@@ -84,12 +85,14 @@ function Select({
                         <span className={`${styles.selectedText} ${isPlaceholder ? styles.textGray : ''}`}>
                             {selectedOption ? selectedOption.label : placeholder}
                         </span>
-                        <motion.div
-                            animate={{ rotate: isOpen ? 180 : 0 }}
-                            transition={{ duration: 0.2 }}
-                        >
-                            <BoxIcon name='chevron-down' className={styles.arrow} />
-                        </motion.div>
+                        {!hasSingleOption && (
+                            <motion.div
+                                animate={{ rotate: isOpen ? 180 : 0 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <BoxIcon name='chevron-down' className={styles.arrow} />
+                            </motion.div>
+                        )}
                     </>
                 )}
             </div>

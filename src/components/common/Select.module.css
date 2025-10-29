@@ -22,6 +22,14 @@
   width: 100%;
 }
 
+.selectButton.singleOption {
+  cursor: default;
+}
+
+.selectButton.singleOption:hover {
+  background-color: transparent;
+}
+
 .active {
   border-color: var(--primary-color);
 }

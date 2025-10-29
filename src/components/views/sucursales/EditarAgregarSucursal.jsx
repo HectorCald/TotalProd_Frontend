@@ -5,7 +5,10 @@ import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import Switch from '../../common/Switch';
+import MultiSelect from '../../common/MultiSelect';
+import NoData from '../../common/NoData';
 import sucursalesService from '../../../services/sucursalesService';
+import pricesTypesService from '../../../services/pricesTypesService';
 import Notification from '../../common/Notification';
 
 function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalCreated, onSucursalUpdated }) {
@@ -15,6 +18,9 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
 
   const [loading, setLoading] = useState(false);
   const [almacenSeparado, setAlmacenSeparado] = useState(true);
+  const [precios, setPrecios] = useState([]);
+  const [preciosSeleccionados, setPreciosSeleccionados] = useState([]);
+  const [loadingPrecios, setLoadingPrecios] = useState(false);
 
   // Estado para la notificación
   const [notification, setNotification] = useState({
@@ -35,21 +41,74 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
     }, 3000);
   };
 
-  // Efecto para cargar los datos de la sucursal
+  // Función para cargar precios disponibles
+  const loadPrecios = async () => {
+    try {
+      setLoadingPrecios(true);
+      const response = await pricesTypesService.getAll();
+      if (response.success) {
+        setPrecios(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error al cargar precios:', error);
+      mostrarNotificacion('error', 'Error al cargar los tipos de precios');
+    } finally {
+      setLoadingPrecios(false);
+    }
+  };
+
+  // Función para cargar precios asignados a la sucursal
+  const loadPreciosSucursal = async (sucursalId) => {
+    try {
+      const response = await sucursalesService.getPreciosBySucursalId(sucursalId);
+      if (response.success && response.data && Array.isArray(response.data)) {
+        // Extraer solo los IDs de los precios asignados
+        const preciosIds = response.data.map(precio => precio.id || precio).filter(Boolean);
+        setPreciosSeleccionados(preciosIds);
+      } else {
+        setPreciosSeleccionados([]);
+      }
+    } catch (error) {
+      console.error('Error al cargar precios de la sucursal:', error);
+      setPreciosSeleccionados([]);
+    }
+  };
+
+  // Efecto para cargar precios disponibles cuando se abre el modal
+  useEffect(() => {
+    if (isOpen) {
+      loadPrecios();
+    }
+  }, [isOpen]);
+
+  // Efecto para cargar los datos de la sucursal y precios asignados cuando se está editando
   useEffect(() => {
     if (data && tipo === 'editar') {
       setDataMov({
         name: data.name || ''
       });
-      // Si la sucursal comparte almacén (tiene almacen_sucursal_id), el switch debe estar desactivado
       setAlmacenSeparado(!data.almacen_sucursal_id);
+      
+      // Cargar precios asignados a la sucursal después de que los precios disponibles estén listos
+      if (data.id && precios.length > 0) {
+        loadPreciosSucursal(data.id);
+      } else if (data.id) {
+        // Si los precios aún no están cargados, esperar un poco y luego cargar
+        const timer = setTimeout(() => {
+          if (precios.length > 0) {
+            loadPreciosSucursal(data.id);
+          }
+        }, 100);
+        return () => clearTimeout(timer);
+      }
     } else {
       setDataMov({
         name: ''
       });
       setAlmacenSeparado(true);
+      setPreciosSeleccionados([]);
     }
-  }, [isOpen, data, tipo]);
+  }, [isOpen, data, tipo, precios]);
 
   // Función para actualizar los datos del formulario
   const handleChange = (field, value) => {
@@ -69,7 +128,8 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
       const sucursalData = {
         name: dataMov.name.trim(),
         // Solo informativo para el service; no se envía al backend directamente
-        almacenSeparado: almacenSeparado
+        almacenSeparado: almacenSeparado,
+        precios: preciosSeleccionados
       };
 
       if (tipo === 'editar') {
@@ -124,8 +184,40 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
             checked={almacenSeparado}
             onChange={setAlmacenSeparado}
             icon="store"
+            disabled={tipo === 'editar' && data?.total_pedidos > 0 && !data?.almacen_sucursal_id}
           />
         </div>
+
+        <p className={styles.subTitle}>PRECIOS DISPONIBLES</p>
+        {loadingPrecios ? (
+          <NoData
+            icon="loader-alt"
+            title="Cargando precios..."
+            detail="Obteniendo tipos de precios disponibles"
+            transparent={true}
+            minHeight="150px"
+          />
+        ) : precios.length > 0 ? (
+          <div className={styles.content}>
+            <MultiSelect
+              title="Tipos de precios"
+              options={precios.map(precio => ({
+                name: precio.name,
+                value: precio.id
+              }))}
+              selectedValues={preciosSeleccionados}
+              onChange={setPreciosSeleccionados}
+            />
+          </div>
+        ) : (
+          <NoData
+            icon="grid-alt"
+            title="Sin tipos de precios"
+            detail="No hay tipos de precios disponibles para asignar"
+            transparent={false}
+            minHeight="150px"
+          />
+        )}
 
         <Boton
           className='btn-original'

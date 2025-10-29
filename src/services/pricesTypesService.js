@@ -21,6 +21,16 @@ const getEmpresaId = () => {
   return null;
 };
 
+// Función helper para obtener sucursal_id
+const getSucursalId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.id;
+  }
+  return null;
+};
+
 class pricesTypesService {
 
   // Obtener todos los tipos de precios
@@ -34,7 +44,12 @@ class pricesTypesService {
         };
       }
 
-      const response = await fetch(`${API_BASE_URL}/prices-types?empresa_id=${empresaId}`, {
+      const sucursalId = getSucursalId();
+      const url = sucursalId 
+        ? `${API_BASE_URL}/prices-types?empresa_id=${empresaId}&sucursal_id=${sucursalId}`
+        : `${API_BASE_URL}/prices-types?empresa_id=${empresaId}`;
+
+      const response = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders(),
       });

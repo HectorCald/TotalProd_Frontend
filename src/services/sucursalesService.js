@@ -116,14 +116,15 @@ const sucursalesService = {
             // se debe enviar almacen_sucursal_id con el id de "Casa Matriz" de la misma empresa
             const shouldUseAlmacenSucursal = (sucursalData && typeof sucursalData.almacenSeparado === 'boolean') ? !sucursalData.almacenSeparado : false;
             const casaMatrizId = shouldUseAlmacenSucursal ? await getCasaMatrizId(empresaId) : null;
-            const { almacenSeparado, ...payload } = sucursalData;
+            const { almacenSeparado, precios, ...payload } = sucursalData;
             const response = await fetch(`${API_BASE_URL}/sucursales`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
                     ...payload,
                     empresa_id: empresaId,
-                    ...(casaMatrizId ? { almacen_sucursal_id: casaMatrizId } : {})
+                    ...(casaMatrizId ? { almacen_sucursal_id: casaMatrizId } : {}),
+                    ...(precios && Array.isArray(precios) ? { precios } : {})
                 })
             });
 
@@ -152,14 +153,15 @@ const sucursalesService = {
             const shouldUseAlmacenSucursal = hasFlag ? !sucursalData.almacenSeparado : false;
             const empresaId = getEmpresaId();
             const casaMatrizId = shouldUseAlmacenSucursal ? await getCasaMatrizId(empresaId) : null;
-            const { almacenSeparado, ...payload } = sucursalData;
+            const { almacenSeparado, precios, ...payload } = sucursalData;
             const response = await fetch(`${API_BASE_URL}/sucursales/${id}`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
                     ...payload,
                     // Si vino el flag, siempre enviar el campo (incluso null para indicar propio)
-                    ...(hasFlag ? { almacen_sucursal_id: casaMatrizId } : {})
+                    ...(hasFlag ? { almacen_sucursal_id: casaMatrizId } : {}),
+                    ...(precios && Array.isArray(precios) ? { precios } : {})
                 })
             });
 
@@ -223,6 +225,35 @@ const sucursalesService = {
             console.error('Error en sucursalesService.delete:', error);
             // Re-lanzar el error con el mensaje específico
             throw new Error(error.message || 'Error inesperado al eliminar la sucursal');
+        }
+    },
+
+    // Obtener precios por sucursal
+    async getPreciosBySucursalId(sucursalId) {
+        try {
+            if (!sucursalId) {
+                throw new Error('ID de sucursal es requerido');
+            }
+
+            const response = await fetch(`${API_BASE_URL}/sucursales/${sucursalId}/precios`, {
+                method: 'GET',
+                headers: getAuthHeaders()
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
+                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
+                    return data;
+                }
+                throw new Error(data.message || 'Error al obtener los precios de la sucursal');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error en sucursalesService.getPreciosBySucursalId:', error);
+            throw error;
         }
     }
 };
