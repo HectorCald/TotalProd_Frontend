@@ -13,7 +13,7 @@ function InputSugerencias({
     onSugerenciaSelect, // Callback cuando se selecciona una sugerencia
     mostrarCampo = 'nombre', // Campo a mostrar si sugerencias son objetos
     buscarCampo = 'nombre', // Campo por el cual buscar si sugerencias son objetos
-    maxSugerencias = 5, // Máximo número de sugerencias a mostrar
+    maxSugerencias = null, // Si es número, limita; por defecto sin límite
     minCaracteres = 1, // Mínimo de caracteres para mostrar sugerencias
     caseSensitive = false, // Si la búsqueda es sensible a mayúsculas
     showIcon = false, // Mostrar icono de búsqueda
@@ -31,17 +31,20 @@ function InputSugerencias({
 
     // isFocused solo depende del focus real del input; no lo forzamos por el valor
 
-    // Función para normalizar texto (quitar acentos, guiones, convertir a minúsculas, mantener espacios)
+    // Normalización flexible: sin acentos, sin mayúsculas, guiones->espacio.
+    // Además generamos una variante sin espacios para coincidencias independientes de espacios.
     const normalizeText = (text) => {
         if (!text) return '';
         return text
             .toLowerCase()
             .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
-            .replace(/[-]/g, ' ') // Convertir guiones a espacios
-            .replace(/\s+/g, ' ') // Normalizar espacios múltiples a uno solo
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[-]/g, ' ')
+            .replace(/\s+/g, ' ')
             .trim();
     };
+
+    const normalizeNoSpaces = (text) => normalizeText(text).replace(/\s+/g, '');
 
     // Filtrar sugerencias basado en el valor del input
     useEffect(() => {
@@ -51,7 +54,8 @@ function InputSugerencias({
         }
 
         const valorBusquedaNormalizado = normalizeText(value);
-        // Dividir la búsqueda en palabras individuales
+        const valorBusquedaSinEspacios = normalizeNoSpaces(value);
+        // Dividir la búsqueda en palabras individuales (ya normalizadas)
         const palabrasBusqueda = valorBusquedaNormalizado.split(' ').filter(palabra => palabra.length > 0);
         
         const filtradas = sugerencias.filter(sugerencia => {
@@ -72,15 +76,36 @@ function InputSugerencias({
             
             const textoCompararNormalizado = normalizeText(textoComparar);
             const descripcionCompararNormalizada = normalizeText(descripcionComparar);
-            
-            // Combinar texto y descripción para buscar todas las palabras
-            const textoCompleto = `${textoCompararNormalizado} ${descripcionCompararNormalizada}`;
-            
-            // Verificar que AL MENOS UNA palabra de búsqueda esté en el texto completo
-            return palabrasBusqueda.some(palabra => textoCompleto.includes(palabra));
-        }).slice(0, maxSugerencias);
 
-        setSugerenciasFiltradas(filtradas);
+            // Combinar texto y descripción para buscar
+            const textoCompleto = `${textoCompararNormalizado} ${descripcionCompararNormalizada}`.trim();
+            const textoCompletoSinEspacios = normalizeNoSpaces(textoCompleto);
+
+            // Coincidencia flexible: si alguna palabra aparece en el texto completo
+            // ya sea considerando espacios o ignorándolos completamente
+            const coincidePorPalabras = palabrasBusqueda.some((palabra) => {
+                if (!palabra) return false;
+                const palabraSinEspacios = palabra.replace(/\s+/g, '');
+                return (
+                    textoCompleto.includes(palabra) ||
+                    textoCompletoSinEspacios.includes(palabraSinEspacios)
+                );
+            });
+
+            // También permitir coincidencia directa con todo el valor de búsqueda sin espacios
+            const coincideBusquedaCompleta = valorBusquedaSinEspacios.length > 0
+                ? textoCompletoSinEspacios.includes(valorBusquedaSinEspacios)
+                : false;
+
+            return coincidePorPalabras || coincideBusquedaCompleta;
+        });
+
+        // Aplicar límite solo si es un número válido
+        const resultado = (typeof maxSugerencias === 'number' && isFinite(maxSugerencias) && maxSugerencias > 0)
+            ? filtradas.slice(0, maxSugerencias)
+            : filtradas;
+
+        setSugerenciasFiltradas(resultado);
         setIndiceSugerenciaActiva(-1);
     }, [value, sugerencias, minCaracteres, buscarCampo, maxSugerencias, isFocused]);
 

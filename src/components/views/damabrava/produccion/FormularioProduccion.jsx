@@ -241,7 +241,6 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                         onSugerenciaSelect={handleProductoSelect}
                         mostrarCampo="name"
                         buscarCampo="name"
-                        maxSugerencias={8}
                         minCaracteres={1}
                         showIcon={true}
                         iconName="box"
