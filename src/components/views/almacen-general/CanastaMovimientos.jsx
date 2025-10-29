@@ -49,7 +49,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         // Auto-ocultar después de 3 segundos
         setTimeout(() => {
             setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
+        }, 4000);
     };
     // Referencias para el auto-focus en inputs de cantidad
     const cantidadInputRefs = useRef({});
@@ -214,51 +214,64 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     useEffect(() => {
         if (productosActualizados.length > 0 && productosCanasta.length > 0) {
             setProductosCanasta(prevCanasta => {
-                return prevCanasta.map(productoCarrito => {
-                    const productoActualizado = productosActualizados.find(p => p.id === productoCarrito.id);
-                    if (productoActualizado) {
-                        let productoModificado = { ...productoCarrito };
+                const canastaActualizada = prevCanasta
+                    .map(productoCarrito => {
+                        const productoActualizado = productosActualizados.find(p => p.id === productoCarrito.id);
+                        if (productoActualizado) {
+                            let productoModificado = { ...productoCarrito };
 
-                        // Si el stock cambió, actualizar el stock en el carrito
-                        if (productoActualizado.stock !== productoCarrito.stockOriginal) {
-                            // Actualizar el stockOriginal con el nuevo stock del backend
+                            // Verificar si el stock cambió ANTES de actualizar
+                            const stockCambio = productoActualizado.stock !== productoCarrito.stockOriginal;
+
+                            // Actualizar el stockOriginal con el stock del backend (siempre, no solo cuando cambia)
                             productoModificado.stockOriginal = productoActualizado.stock;
 
                             // Recalcular el stock mostrado según el modo de agrupación actual
+                            let stockMostrado = 0;
                             if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
-                                productoModificado.stock = Math.floor(productoActualizado.stock / productoCarrito.grup);
+                                stockMostrado = Math.floor(productoActualizado.stock / productoCarrito.grup);
                             } else {
-                                productoModificado.stock = productoActualizado.stock;
+                                stockMostrado = productoActualizado.stock;
                             }
+                            productoModificado.stock = stockMostrado;
 
-                            // Si la cantidad en el carrito excede el nuevo stock, ajustar
-                            if (productoCarrito.cantidad > productoModificado.stock) {
-                                mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoModificado.stock}`);
-                                productoModificado.cantidad = productoModificado.stock;
-                            }
-                        }
-
-                        // Si los precios cambiaron, actualizar el precio en el carrito según el tipo seleccionado
-                        if (productoActualizado.price_product && precioSeleccionado) {
-                            const precioTipo = productoActualizado.price_product.find(pp => pp.prices_types?.id === precioSeleccionado);
-                            if (precioTipo) {
-                                const precioUnit = precioTipo.valor;
-                                let precioFinal = (modoAgrupacion === 'agrupado' && productoCarrito.grup) ? (precioUnit * (productoCarrito.grup || 1)) : precioUnit;
-
-                                // Aplicar redondeo si está en modo agrupado
-                                if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
-                                    precioFinal = redondearPrecio(precioFinal);
+                            // Verificar si debe eliminarse (stock 0 o negativo, o cantidad mayor al stock disponible)
+                            if (stockMostrado <= 0) {
+                                // Si el stock es 0 o menor, eliminar del carrito
+                                mostrarNotificacion('warning', `Se eliminaron algunos productos porque no hay stock disponible`);
+                                return null; // Retornar null para eliminar
+                            } else if (productoCarrito.cantidad > stockMostrado) {
+                                // Si la cantidad excede el stock disponible, ajustar
+                                if (stockCambio) {
+                                    mostrarNotificacion('warning', `Se ajusto la cantidad de algunos productos para que no excedan el stock disponible`);
                                 }
-
-                                productoModificado.precio = precioFinal;
-                                productoModificado.price_product = productoActualizado.price_product; // Actualizar también la estructura de precios
+                                productoModificado.cantidad = stockMostrado;
                             }
-                        }
 
-                        return productoModificado;
-                    }
-                    return productoCarrito;
-                });
+                            // Si los precios cambiaron, actualizar el precio en el carrito según el tipo seleccionado
+                            if (productoActualizado.price_product && precioSeleccionado) {
+                                const precioTipo = productoActualizado.price_product.find(pp => pp.prices_types?.id === precioSeleccionado);
+                                if (precioTipo) {
+                                    const precioUnit = precioTipo.valor;
+                                    let precioFinal = (modoAgrupacion === 'agrupado' && productoCarrito.grup) ? (precioUnit * (productoCarrito.grup || 1)) : precioUnit;
+
+                                    // Aplicar redondeo si está en modo agrupado
+                                    if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
+                                        precioFinal = redondearPrecio(precioFinal);
+                                    }
+
+                                    productoModificado.precio = precioFinal;
+                                    productoModificado.price_product = productoActualizado.price_product; // Actualizar también la estructura de precios
+                                }
+                            }
+
+                            return productoModificado;
+                        }
+                        return productoCarrito;
+                    })
+                    .filter(producto => producto !== null && producto.cantidad > 0); // Filtrar productos eliminados (null) y productos con cantidad 0
+
+                return canastaActualizada;
             });
         }
     }, [productosActualizados, precioSeleccionado, modoAgrupacion]);
@@ -381,7 +394,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 let cantidadFinal = producto.cantidad;
                 if (producto.cantidad > stockEnGrupos) {
                     cantidadFinal = stockEnGrupos;
-                    mostrarNotificacion('warning', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${stockEnGrupos} grupos`);
+                    mostrarNotificacion('warning', `Se ajusto la cantidad de algunos productos para que no excedan el stock disponible`);
                 }
 
                 return {
@@ -456,7 +469,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
         if (productosSinStock.length > 0) {
             const nombresProductos = productosSinStock.map(p => p.name).join(', ');
-            mostrarNotificacion('error', `❌ STOCK INSUFICIENTE: Los siguientes productos no tienen stock suficiente: ${nombresProductos}`);
+            mostrarNotificacion('error', `STOCK INSUFICIENTE: Los siguientes productos no tienen stock suficiente: ${nombresProductos}`);
             return false;
         }
 

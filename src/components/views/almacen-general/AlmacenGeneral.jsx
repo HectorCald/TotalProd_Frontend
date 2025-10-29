@@ -99,7 +99,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         // Auto-ocultar después de 3 segundos
         setTimeout(() => {
             setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
+        }, 4000);
     };
 
     // Función para manejar cuando inicia la carga
@@ -665,7 +665,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const handleAgregarACanastaMovimientos = (producto, tipoMovimiento, precioSeleccionado = null, cantidadEspecifica = null) => {
         // Para salidas, validar que el producto tenga stock
         if (tipoMovimiento === 'salida' && (!producto.stock || producto.stock <= 0)) {
-            mostrarNotificacion('error', 'No se puede agregar el producto porque no tiene stock disponible');
+            mostrarNotificacion('error', 'Stock insuficiente');
             return;
         }
 
@@ -727,7 +727,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             }
 
             if (tipoMovimiento === 'salida' && productoExistente.cantidad >= stockParaValidar) {
-                mostrarNotificacion('error', `No se puede agregar más cantidad. Stock disponible: ${stockParaValidar}`);
+                mostrarNotificacion('error', `Stock insuficiente`);
                 return;
             }
 
