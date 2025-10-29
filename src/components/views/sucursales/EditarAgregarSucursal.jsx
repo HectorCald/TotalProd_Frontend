@@ -57,23 +57,6 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
     }
   };
 
-  // Función para cargar precios asignados a la sucursal
-  const loadPreciosSucursal = async (sucursalId) => {
-    try {
-      const response = await sucursalesService.getPreciosBySucursalId(sucursalId);
-      if (response.success && response.data && Array.isArray(response.data)) {
-        // Extraer solo los IDs de los precios asignados
-        const preciosIds = response.data.map(precio => precio.id || precio).filter(Boolean);
-        setPreciosSeleccionados(preciosIds);
-      } else {
-        setPreciosSeleccionados([]);
-      }
-    } catch (error) {
-      console.error('Error al cargar precios de la sucursal:', error);
-      setPreciosSeleccionados([]);
-    }
-  };
-
   // Efecto para cargar precios disponibles cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
@@ -89,17 +72,13 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
       });
       setAlmacenSeparado(!data.almacen_sucursal_id);
       
-      // Cargar precios asignados a la sucursal después de que los precios disponibles estén listos
-      if (data.id && precios.length > 0) {
-        loadPreciosSucursal(data.id);
-      } else if (data.id) {
-        // Si los precios aún no están cargados, esperar un poco y luego cargar
-        const timer = setTimeout(() => {
-          if (precios.length > 0) {
-            loadPreciosSucursal(data.id);
-          }
-        }, 100);
-        return () => clearTimeout(timer);
+      // Usar los precios que ya vienen en data en lugar de hacer una petición
+      if (data.precios && Array.isArray(data.precios)) {
+        // Extraer solo los IDs de los precios asignados
+        const preciosIds = data.precios.map(precio => precio.id || precio).filter(Boolean);
+        setPreciosSeleccionados(preciosIds);
+      } else {
+        setPreciosSeleccionados([]);
       }
     } else {
       setDataMov({
@@ -108,7 +87,7 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
       setAlmacenSeparado(true);
       setPreciosSeleccionados([]);
     }
-  }, [isOpen, data, tipo, precios]);
+  }, [isOpen, data, tipo]);
 
   // Función para actualizar los datos del formulario
   const handleChange = (field, value) => {
