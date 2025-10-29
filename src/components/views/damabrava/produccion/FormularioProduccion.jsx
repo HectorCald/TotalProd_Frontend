@@ -9,10 +9,12 @@ import InputSugerencias from '../../../common/InputSugerencias';
 import Select from '../../../common/Select';
 import Notification from '../../../common/Notification';
 import FetchData from '../../../mixed/FetchData';
+import { useLayout } from '../../../../context/LayoutContext';
 import productsAlmacenService from '../../../../services/productsAlmacenService';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
 
 function FormularioProduccion({ isOpen, setIsOpen }) {
+    const { isLargeScreen } = useLayout();
     const [dataProduccion, setDataProduccion] = useState({
         producto: '',
         lote: '',
@@ -229,7 +231,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                     title="Registro de Producción"
                     onClose={() => setIsOpen(false)}
                 />
-                <div className={styles.modalContent}>
+                <div className={styles.modalContent} style={!isLargeScreen ? { minHeight: '80vh' } : undefined}>
                     <p className={styles.subTitle}>INFORMACIÓN DE PRODUCCIÓN</p>
 
                     <InputSugerencias
@@ -296,7 +298,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                         icon="calendar"
                     />
 
-                    <div className={styles.buttons} style={{ marginTop: '10px' }}>
+                    <div className={styles.buttons} style={{ marginTop: 'auto' }}>
                         <Boton
                             className='btn-original'
                             label='Registrar Producción'
