@@ -372,7 +372,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                         value={precioSeleccionado}
                         onChange={handleCambiarTipoPrecio}
                         options={preciosTipos}
-                        placeholder="Seleccionar precio general"
+                        placeholder="Precio"
                         disabled={loadingPrecios}
                         icon='dollar'
                     />
@@ -383,7 +383,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                             { value: 'agrupado', label: 'Agrupado' },
                             { value: 'no_agrupado', label: 'No agrupado' }
                         ]}
-                        placeholder="Modo de agrupación"
+                        placeholder="Modalidad"
                         icon='package'
                     />
                 </div>

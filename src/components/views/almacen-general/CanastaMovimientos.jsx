@@ -703,7 +703,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         value={precioSeleccionado}
                         onChange={handleCambiarTipoPrecio}
                         options={preciosTipos}
-                        placeholder="Seleccionar precio general"
+                        placeholder="Precio"
                         disabled={loadingPrecios}
                         icon='dollar'
                     />
@@ -715,7 +715,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             { value: 'agrupado', label: 'Agrupado' },
                             { value: 'no_agrupado', label: 'No agrupado' }
                         ]}
-                        placeholder="Modo de agrupación"
+                        placeholder="Modalidad"
                         icon='package'
                     />
 
