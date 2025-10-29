@@ -261,7 +261,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
 
 
                     <Select
-                        placeholder="Seleccionar Proceso"
+                        placeholder="Proceso"
                         options={opcionesProceso}
                         value={dataProduccion.proceso}
                         onChange={handleProcesoChange}

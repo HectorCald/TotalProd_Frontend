@@ -17,7 +17,7 @@ import { useEmployee } from '../../../context/EmployeeContext';
 function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) {
     const { user } = useUser();
     const { employee } = useEmployee();
-    
+
     // Función para obtener el nombre del usuario actual
     const getCurrentUserName = () => {
         // Priorizar employee si está disponible
@@ -77,10 +77,10 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
 
     // Opciones para los selects de medidas
     const medidasPeso = [
-        { value: 'kg', label: 'Kilo (kg)', icon: 'tag' },
-        { value: 'l', label: 'Litro (L)', icon: 'tag' },
-        { value: 'ud', label: 'Unidad (Ud)', icon: 'tag' },
-        { value: 'm', label: 'Metro (m)', icon: 'tag' }
+        { value: 'kg', label: 'Kilogramo', icon: 'tag' },
+        { value: 'l', label: 'Litro', icon: 'tag' },
+        { value: 'ud', label: 'Unidad', icon: 'tag' },
+        { value: 'm', label: 'Metro', icon: 'tag' }
     ];
 
     const medidasUnidad = [
@@ -166,7 +166,7 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
                 ...dataEntrega,
                 entregado_por: getCurrentUserName()
             };
-            
+
             const response = await pedidosAcopioService.entregar(pedido.id, dataEntregaConUsuario);
 
             if (response.success) {
@@ -202,7 +202,7 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
                     <p className={styles.subTitle}>DETALLES DE LA ENTREGA</p>
 
                     {/* Cantidad entregada con select de medidas */}
-                    <div className={styles.content} style={{ flexDirection: 'row', alignItems: 'center', padding: '0px 10px' }}>
+                    <div className={styles.content} style={{ flexDirection: 'row', alignItems: 'center', padding: '0px 10px', paddingInline: '0' }}>
                         <InputNormal
                             tipo="number"
                             value={dataEntrega.cantidadEntregada}
@@ -216,13 +216,12 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
                             value={dataEntrega.unidadEntregada}
                             onChange={(value) => handleChange('unidadEntregada', value)}
                             options={medidasPeso}
-                            placeholder="Unidad"
-                            icon='tag'
+                            placeholder="Medida"
                         />
                     </div>
 
                     {/* Cantidad en unidades con select de medidas */}
-                    <div className={styles.content} style={{ flexDirection: 'row', alignItems: 'center', padding: '0px 10px' }}>
+                    <div className={styles.content} style={{ flexDirection: 'row', alignItems: 'center', padding: '0px 10px', paddingInline: '0' }}>
                         <InputNormal
                             tipo="number"
                             value={dataEntrega.cantidadUD}
@@ -236,8 +235,7 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
                             value={dataEntrega.unidadUD}
                             onChange={(value) => handleChange('unidadUD', value)}
                             options={medidasUnidad}
-                            placeholder="Unidad"
-                            icon='package'
+                            placeholder="Medida"
                         />
                     </div>
 
@@ -266,15 +264,14 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
                     />
 
                     {/* Selector de estado de entrega */}
-                    <div className={styles.content} style={{ padding: '10px 15px' }}>
-                        <Select
-                            value={dataEntrega.estado_entrega}
-                            onChange={(value) => handleChange('estado_entrega', value)}
-                            options={estadosEntrega}
-                            placeholder="Estado de la entrega"
-                            icon='truck'
-                        />
-                    </div>
+                    <Select
+                        value={dataEntrega.estado_entrega}
+                        onChange={(value) => handleChange('estado_entrega', value)}
+                        options={estadosEntrega}
+                        placeholder="Estado de la entrega"
+                        icon='truck'
+                    />
+
                     {/* Input de observaciones */}
                     <InputNormal
                         tipo="text"
