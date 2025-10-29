@@ -348,18 +348,28 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
               minHeight="150px"
             />
           ) : (
-            preciosTipos.map(priceType => (
-              <InputNormal
-                key={priceType.id}
-                tipo="number"
-                value={dataMov.prices[priceType.id] || ''}
-                placeholder={priceType.name}
-                onChange={(e) => handlePriceChange(priceType.id, e.target.value)}
-                icon='dollar'
-                step="0.01"
-                min="0"
-              />
-            ))
+            (() => {
+              const rows = [];
+              for (let i = 0; i < preciosTipos.length; i += 2) {
+                rows.push(preciosTipos.slice(i, i + 2));
+              }
+              return rows.map((row, rowIndex) => (
+                <div className={styles.horizontal} key={`row-${rowIndex}`}>
+                  {row.map((priceType) => (
+                    <InputNormal
+                      key={priceType.id}
+                      tipo="number"
+                      value={dataMov.prices[priceType.id] || ''}
+                      placeholder={priceType.name}
+                      onChange={(e) => handlePriceChange(priceType.id, e.target.value)}
+                      icon='dollar'
+                      step="0.01"
+                      min="0"
+                    />
+                  ))}
+                </div>
+              ));
+            })()
           )}
           {/* Switch para receta */}
           <div className={styles.content} style={{ padding: '10px 15px' }}>

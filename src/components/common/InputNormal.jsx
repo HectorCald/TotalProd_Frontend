@@ -5,9 +5,14 @@ import { BoxIcon } from 'boxicons-react';
 const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, label, error, buttonIcon, buttonIconClick, onKeyPress, readonly = false }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    
+    // Determinar si la label debe estar arriba (cuando hay valor o está en foco)
+    const hasValue = value !== '' && value !== null && value !== undefined;
+    const labelUp = hasValue || isFocused;
+
     // Actualizar isFocused cuando value cambie
     React.useEffect(() => {
-        if (value !== '' && value !== null && value !== undefined) {
+        if (hasValue) {
             setIsFocused(true);
         }
     }, [value]);
@@ -15,6 +20,17 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
     const handleShowPassword = () => {
         setShowPassword(!showPassword);
     }
+
+    const handleFocus = () => {
+        setIsFocused(true);
+    }
+
+    const handleBlur = () => {
+        if (!hasValue) {
+            setIsFocused(false);
+        }
+    }
+
     return (
         <div style={{ width: '100%', position: 'relative' }}>
             {icon && (
@@ -27,6 +43,16 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                     <BoxIcon name={icon} className={styles.icon} />
                 </span>
             )}
+            {placeholder && (
+                <label 
+                    className={`${styles.inputLabel} ${labelUp ? styles.inputLabelUp : ''}`}
+                    style={{
+                        paddingLeft: icon ? '50px' : '15px'
+                    }}
+                >
+                    {placeholder}
+                </label>
+            )}
             <input
                 ref={ref}
                 className={styles.input}
@@ -34,18 +60,11 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                 {...(tipo === 'number'
                     ? { inputMode: 'numeric' }
                     : {})}
-                placeholder={placeholder}
                 value={value}
                 onChange={onChange}
                 onKeyPress={onKeyPress}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => {
-                    if (value !== '' && value !== null && value !== undefined) {
-                        setIsFocused(true);
-                    } else {
-                        setIsFocused(false);
-                    }
-                }}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 onWheel={(e) => {
                     // Prevenir que el scroll cambie el valor en inputs de tipo number
                     if (tipo === 'number') {
