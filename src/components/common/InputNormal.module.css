@@ -32,6 +32,10 @@
     pointer-events: none;
     transition: transform 0.3s ease, top 0.3s ease, color 0.3s ease;
     z-index: 1;
+    min-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .inputLabelUp{
