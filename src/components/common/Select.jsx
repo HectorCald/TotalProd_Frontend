@@ -63,11 +63,22 @@ function Select({
     };
 
     const selectedOption = options.find(opt => opt.value === value);
-    const isPlaceholder = !selectedOption && !activePlaceholder;
+    const isPlaceholder = !selectedOption; // usamos label flotante para placeholder visual
     const hasSingleOption = options.length === 1;
+    const labelUp = isOpen || !!selectedOption;
 
     return (
         <div className={`${styles.selectContainer} ${iconOnly ? styles.iconOnly : ''} ${disabled ? styles.disabled : ''}`} ref={selectRef} style={containerStyle}>
+            {!iconOnly && placeholder && (
+                <label 
+                    className={`${styles.selectLabel} ${labelUp ? styles.selectLabelUp : ''} ${!icon && labelUp ? styles.selectLabelUpNoIcon : ''}`}
+                    style={{
+                        paddingLeft: icon ? '34px' : '14px'
+                    }}
+                >
+                    {placeholder}
+                </label>
+            )}
             
             <div 
                 className={`${styles.selectButton} ${isOpen ? styles.active : ''} ${iconOnly ? styles.iconOnlyButton : ''} ${hasSingleOption ? styles.singleOption : ''}`}
@@ -84,7 +95,7 @@ function Select({
                     <>
                         {icon && <BoxIcon name={icon} className={`${styles.icon} ${isPlaceholder ? styles.iconGray : ''}`} />}
                         <span className={`${styles.selectedText} ${isPlaceholder ? styles.textGray : ''}`}>
-                            {selectedOption ? selectedOption.label : placeholder}
+                            {selectedOption ? selectedOption.label : ''}
                         </span>
                         {!hasSingleOption && (
                             <motion.div

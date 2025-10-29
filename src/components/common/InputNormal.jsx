@@ -2,7 +2,7 @@ import React, { useState, forwardRef } from 'react';
 import styles from './InputNormal.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, label, error, buttonIcon, buttonIconClick, onKeyPress, readonly = false }, ref) => {
+const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, label, error, buttonIcon, buttonIconClick, onKeyPress, readonly = false, onClick }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     
@@ -65,6 +65,7 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                 onKeyPress={onKeyPress}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
+                onClick={onClick}
                 onWheel={(e) => {
                     // Prevenir que el scroll cambie el valor en inputs de tipo number
                     if (tipo === 'number') {
@@ -76,7 +77,7 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                     paddingRight: buttonIcon ? '50px' : '15px',
                     paddingLeft: icon ? '50px' : '15px',
                     opacity: readonly ? 0.5 : 1,
-                    cursor: readonly ? 'not-allowed' : 'text'
+                    cursor: readonly && onClick ? 'pointer' : readonly ? 'not-allowed' : 'text'
                 }}
 
             />

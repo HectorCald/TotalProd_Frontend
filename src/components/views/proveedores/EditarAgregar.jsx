@@ -208,7 +208,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
                     icon="map-pin"
                     value={getDireccionDisplay()}
                     placeholder='Dirección'
-                    onChange={(e) => setDataEdit({ ...dataEdit, direccion: e.target.value })}
+                    readonly={tipo !== 'ver'}
+                    onClick={tipo !== 'ver' ? handleOpenMap : undefined}
                     buttonIcon="map"
                     buttonIconClick={handleOpenMap}
                     disabled={tipo === 'ver'}

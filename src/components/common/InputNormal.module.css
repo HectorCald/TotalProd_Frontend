@@ -13,7 +13,7 @@
     color: var(--white-color);
     caret-color: var(--primary-color);
     font-weight: 500;
-    padding-left: 45px !important;
+    padding-left: 40px !important;
     position: relative;
     display: flex;
     align-items: center;
@@ -22,7 +22,7 @@
 
 .inputLabel{
     position: absolute;
-    left: 0;
+    left: -9px;
     bottom: 50%;
     transform: translateY(50%) scale(1);
     transform-origin: left center;
@@ -32,16 +32,16 @@
     pointer-events: none;
     transition: transform 0.3s ease, top 0.3s ease, color 0.3s ease;
     z-index: 1;
-    min-width: 100%;
+    width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .inputLabelUp{
-    bottom: 5px;
-    left: 10px;
-    transform: translateY(0) scale(0.7);
+    bottom: 6px;
+    left: 1px;
+    transform: translateY(0) scale(0.8);
     color: var(--primary-color);
 }
 /* Para Chrome, Safari, Edge y Opera */
@@ -81,7 +81,7 @@
 }
 .inputIcon{
   position: absolute;
-  left: 15px;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
