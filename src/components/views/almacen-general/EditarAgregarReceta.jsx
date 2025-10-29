@@ -176,7 +176,7 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
     setLoading(true);
 
     // Crear los datos de la receta
-    const recetaData = {
+    const nuevaRecetaData = {
       producto_almacen_id: productoAlmacenId,
       descripcion: dataReceta.descripcion,
       productos: dataReceta.productos.map(p => ({
@@ -185,18 +185,15 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
       }))
     };
 
-    // Simular un pequeño delay para mostrar el loading
-    setTimeout(() => {
-      if (recetaData && onRecetaUpdated) {
-        // Si hay recetaData, es una actualización
-        onRecetaUpdated(recetaData);
-      } else if (onRecetaCreated) {
-        // Si no hay recetaData, es una creación
-        onRecetaCreated(recetaData);
-      }
-      setIsOpen(false);
-      setLoading(false);
-    }, 500);
+    // Ejecutar directamente sin delay
+    // Si hay recetaData inicial (prop), es una actualización, si no, es una creación
+    if (recetaData && onRecetaUpdated) {
+      onRecetaUpdated(nuevaRecetaData);
+    } else if (onRecetaCreated) {
+      onRecetaCreated(nuevaRecetaData);
+    }
+    setIsOpen(false);
+    setLoading(false);
   };
 
   return (

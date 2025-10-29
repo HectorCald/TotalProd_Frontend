@@ -10,6 +10,7 @@ import Switch from '../../common/Switch';
 import Notification from '../../common/Notification';
 import CategoriasAlmacen from './CategoriasAlmacen';
 import NoData from '../../common/NoData';
+import Text from '../../common/Text';
 
 function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, preciosTipos = [], loadingPrecios = false }) {
 
@@ -373,23 +374,23 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
 
           {/* Botón de receta (solo si está marcado el switch) */}
           {hasReceta && (
-            <div className={styles.content} style={{ padding: '10px 15px' }}>
+            <>
               <Boton
-                className='btn-default'
+                className='btn-gray'
                 label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
                 style={{ marginTop: 'auto' }}
                 onClick={() => setIsRecetaOpen(true)}
               />
               {recetaGuardada && recetaGuardada.productos && recetaGuardada.productos.length > 0 ? (
-                <div style={{ fontSize: '12px', color: '#28a745', fontWeight: '500', marginTop: '5px' }}>
-                  ✓ Receta guardada con {recetaGuardada.productos.length} productos
-                </div>
+                <Text type="success" align="left">
+                  Receta guardada con {recetaGuardada.productos.length} productos
+                </Text>
               ) : (
-                <div style={{ fontSize: '12px', color: '#dc3545', fontWeight: '500', marginTop: '5px' }}>
-                  ⚠ Debe crear una receta con al menos un producto
-                </div>
+                <Text type="error" align="left">
+                  Debe crear una receta con al menos un producto
+                </Text>
               )}
-            </div>
+          </>
           )}
 
           <Boton

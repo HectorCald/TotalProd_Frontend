@@ -12,7 +12,8 @@ function Select({
     iconOnly = false,
     dropdownDirection = 'left',
     activePlaceholder = false,
-    containerStyle
+    containerStyle,
+    disabled = false
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
@@ -66,11 +67,11 @@ function Select({
     const hasSingleOption = options.length === 1;
 
     return (
-        <div className={`${styles.selectContainer} ${iconOnly ? styles.iconOnly : ''}`} ref={selectRef} style={containerStyle}>
+        <div className={`${styles.selectContainer} ${iconOnly ? styles.iconOnly : ''} ${disabled ? styles.disabled : ''}`} ref={selectRef} style={containerStyle}>
             
             <div 
                 className={`${styles.selectButton} ${isOpen ? styles.active : ''} ${iconOnly ? styles.iconOnlyButton : ''} ${hasSingleOption ? styles.singleOption : ''}`}
-                onClick={() => !hasSingleOption && setIsOpen(!isOpen)}
+                onClick={() => !hasSingleOption && !disabled && setIsOpen(!isOpen)}
             >
                 {iconOnly ? (
                     // Modo solo icono

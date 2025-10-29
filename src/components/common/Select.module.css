@@ -9,6 +9,12 @@
   box-sizing: border-box;
 }
 
+.selectContainer.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .selectButton {
   display: flex;
   align-items: center;
