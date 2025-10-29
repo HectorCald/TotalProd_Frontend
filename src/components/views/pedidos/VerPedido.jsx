@@ -839,7 +839,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 pedidoIdEditando={modoAlmacen === 'pedido' ? pedidoActual?.id : null}
             />
 
-            {/* Modal de VerMovimiento para mostrar el movimiento de salida */}
+            {/* Modal de VerMovimiento para mostrar el movimiento de salida o movimiento de entrada */}
             {movimientoSalida && (
                 <VerMovimiento
                     isOpen={isVerMovimientoOpen}

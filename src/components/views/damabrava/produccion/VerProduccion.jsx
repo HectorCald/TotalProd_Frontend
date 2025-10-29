@@ -12,8 +12,11 @@ import Notification from '../../../common/Notification';
 import ModalDescarga from '../../../ui/ModalDescarga';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
 import productsAlmacenService from '../../../../services/productsAlmacenService';
+import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
 import InputNormal from '../../../common/InputNormal';
 import IngresoProduccion from './IngresoProduccion';
+import VerMovimiento from '../../movimientos/VerMovimiento';
+import NoData from '../../../common/NoData';
 
 function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegistroEliminado, onRegistroVerificado }) {
     const [loading, setLoading] = useState(false);
@@ -24,6 +27,11 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     const [isIngresoOpen, setIsIngresoOpen] = useState(false);
     const [productoDetalle, setProductoDetalle] = useState(null);
     const [loadingProducto, setLoadingProducto] = useState(false);
+    const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
+    const [isVerMovimientoOpen, setIsVerMovimientoOpen] = useState(false);
+    const [movimientoSeleccionado, setMovimientoSeleccionado] = useState(null);
+    const [movimientos, setMovimientos] = useState([]);
+    const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
 
     // Estado local para el registro actualizado
     const [registroActual, setRegistroActual] = useState(registro);
@@ -264,6 +272,49 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
         }
     };
 
+    // Función para obtener movimientos de la producción
+    const handleOpenMovimientos = async () => {
+        if (!registroActual?.id) {
+            mostrarNotificacion('error', 'No se encontró el ID del registro de producción');
+            return;
+        }
+
+        setIsMovimientosOpen(true);
+        setLoadingMovimientosList(true);
+
+        try {
+            const response = await movimientosAlmacenService.getByProduccionDamabrava(registroActual.id);
+
+            if (response.success) {
+                setMovimientos(response.data || []);
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al obtener los movimientos');
+                setMovimientos([]);
+            }
+        } catch (error) {
+            console.error('Error obteniendo movimientos:', error);
+            mostrarNotificacion('error', 'Error al obtener los movimientos');
+            setMovimientos([]);
+        } finally {
+            setLoadingMovimientosList(false);
+        }
+    };
+
+    // Función para manejar el click en un movimiento
+    const handleMovimientoClick = (movimiento) => {
+        setMovimientoSeleccionado(movimiento);
+        // Cerrar el modal de movimientos para que VerMovimiento quede visible al frente
+        setIsMovimientosOpen(false);
+        setIsVerMovimientoOpen(true);
+    };
+
+    // Limpiar movimientos cuando se cierra el modal
+    useEffect(() => {
+        if (!isMovimientosOpen) {
+            setMovimientos([]);
+        }
+    }, [isMovimientosOpen]);
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
@@ -361,6 +412,15 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                             />
                         </div>
                     </>
+                )}
+
+                {/* Botón para ver movimientos */}
+                {(registroActual?.estado === 'verificado' || registroActual?.estado === 'Ingresado') && (
+                    <Boton
+                        className='btn-gray'
+                        label='Movimientos'
+                        onClick={handleOpenMovimientos}
+                    />
                 )}
 
                 <div className={styles.buttons}>
@@ -540,6 +600,63 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     setIsOpen(false);
                 }}
             />
+
+            {/* Modal de movimientos */}
+            <ViewModal isOpen={isMovimientosOpen} setIsOpen={setIsMovimientosOpen}>
+                <HeaderModal
+                    title="Movimientos de la Producción"
+                    onClose={() => setIsMovimientosOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    {loadingMovimientosList ? (
+                        <NoData 
+                            icon="loader-alt"
+                            title="Cargando movimientos..."
+                            detail="Obteniendo el historial de movimientos de la producción"
+                            transparent={true}
+                            minHeight="150px"
+                        />
+                    ) : movimientos.length > 0 ? (
+                        <>
+                            <p className={styles.subTitle}>HISTORIAL DE MOVIMIENTOS</p>
+                            {movimientos.map((movimiento, index) => (
+                                <ItemView
+                                    key={movimiento.id || index}
+                                    title={movimiento.productos && movimiento.productos.length > 0
+                                        ? movimiento.productos.length === 1
+                                            ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
+                                            : `${movimiento.productos.length} productos`
+                                        : 'Sin productos'
+                                    }
+                                    description={`${movimiento.observaciones || 'Sin observaciones'} • ${new Date(movimiento.fecha).toLocaleDateString()}`}
+                                    circulo={false}
+                                    onClick={() => handleMovimientoClick(movimiento)}
+                                    arrow={false}
+                                    flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
+                                    flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
+                                />
+                            ))}
+                        </>
+                    ) : (
+                        <NoData 
+                            icon="history"
+                            title="No hay movimientos"
+                            detail="Esta producción no tiene movimientos registrados aún"
+                            transparent={false}
+                            minHeight="150px"
+                        />
+                    )}
+                </div>
+            </ViewModal>
+
+            {/* Modal de Ver Movimiento */}
+            {movimientoSeleccionado && (
+                <VerMovimiento
+                    isOpen={isVerMovimientoOpen}
+                    setIsOpen={setIsVerMovimientoOpen}
+                    movimiento={movimientoSeleccionado}
+                />
+            )}
 
             <Notification
                 isVisible={notification.isVisible}

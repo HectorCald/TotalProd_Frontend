@@ -446,6 +446,38 @@ class movimientosAlmacenService {
     }
   }
 
+  // Obtener movimientos por producción Damabrava
+  static async getByProduccionDamabrava(produccionId) {
+    try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/produccion-damabrava/${produccionId}?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Error en getByProduccionDamabrava:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
   // Actualizar un movimiento
   static async update(movimientoId, updateData) {
     try {
