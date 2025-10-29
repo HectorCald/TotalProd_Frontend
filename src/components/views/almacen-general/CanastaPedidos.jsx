@@ -471,7 +471,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         onChange={handleCambiarModoAgrupacion}
                         options={[
                             { value: 'agrupado', label: 'Agrupado' },
-                            { value: 'no_agrupado', label: 'No agrupado' }
+                            { value: 'no_agrupado', label: 'Unidades' }
                         ]}
                         placeholder="Modalidad"
                         icon='package'

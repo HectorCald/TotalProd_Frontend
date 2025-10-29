@@ -425,7 +425,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                             onChange={handleCambiarModoAgrupacion}
                             options={[
                                 { value: 'agrupado', label: 'Agrupado' },
-                                { value: 'no_agrupado', label: 'No agrupado' }
+                                { value: 'no_agrupado', label: 'Unidades' }
                             ]}
                             placeholder="Modalidad"
                             icon='package'
