@@ -10,7 +10,6 @@
   height: 100%;
   overflow-y: auto;
   padding-inline: 15px;
-  border: 1px solid red;
 }
 .pullArea {
   position: absolute;
