@@ -54,6 +54,12 @@ const Inicio = ({ onViewOpen }) => {
           const response = await UserService.getCurrentUser(user.id);
           if (response && response.success && response.data && response.data.user) {
             setUserFromService(response.data.user);
+            // Forzar chequeo de actualización de cache vía Service Worker
+            try {
+              if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'CHECK_FOR_UPDATE' });
+              }
+            } catch (_) {}
           }
         }}
         screenName="Inicio"

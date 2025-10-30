@@ -25,6 +25,12 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
           const response = await personalService.getById(employee.id);
           if (response && response.success && response.data) {
             setEmployeeFromService(response.data);
+            // Forzar chequeo de actualización de cache vía Service Worker
+            try {
+              if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'CHECK_FOR_UPDATE' });
+              }
+            } catch (_) {}
           }
         }}
         screenName="Inicio"
