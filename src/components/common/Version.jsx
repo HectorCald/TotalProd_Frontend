@@ -16,7 +16,7 @@ function Version() {
     return (
         <div className={styles.versionContainer}>
             <p className={styles.version}>
-                Versión TP {cacheVersion || 'Cargando...'}
+                Versión {cacheVersion || 'Cargando...'}
             </p>
         </div>
     )

@@ -20,7 +20,7 @@ export const MODULES = {
     Almacen: {
         name: 'Almacén General',
         imagen: imagenAlmacen,
-        descripcion: 'Administra tu almacén de productos terminados, realiza entradas y salidas.',
+        descripcion: 'Administra tu almacén de productos terminados.',
 
         realizar_salidas: {
             name: 'Salida o Venta',
@@ -68,7 +68,7 @@ export const MODULES = {
     Acopio: {
         name: 'Materia Prima',
         imagen: imagenAcopio,
-        descripcion: 'Administra tu materia prima, realiza entradas y salidas.',
+        descripcion: 'Administra tu materia prima.',
         realizar_entradas: {
             name: 'Entrada',
             description: 'Realizar entrada de productos en almacén',
@@ -109,7 +109,7 @@ export const MODULES = {
     Movimientos: {  
         name: 'Movimientos',
         imagen: imagenMovimientos,
-        descripcion: 'Administra tus movimientos de productos, realiza entradas y salidas.',
+        descripcion: 'Administra tus movimientos de productos.',
 
         movimientos_almacen: {
             name: 'Almacen',
@@ -149,7 +149,7 @@ export const MODULES = {
     Pedidos: {
         name: 'Pedidos',
         imagen: imagenPedidos,
-        descripcion: 'Administra tus pedidos de productos, realiza entradas y salidas.',
+        descripcion: 'Administra tus pedidos de productos.',
 
         pedidos_almacen: {
             name: 'Almacen',
@@ -169,7 +169,7 @@ export const MODULES = {
     Precios: {  
         name: 'Precios',
         imagen: imagenPrecios,
-        descripcion: 'Administra tus precios de productos, realiza entradas y salidas.',
+        descripcion: 'Administra tus precios de productos.',
         gestionar: {
             name: 'Precios',
             description: 'Administra tus precios de productos.',
@@ -181,7 +181,7 @@ export const MODULES = {
     Clientes: {
         name: 'Clientes',
         imagen: imagenClientes,
-        descripcion: 'Administra tus clientes, realiza entradas y salidas.',
+        descripcion: 'Administra tus clientes.',
         gestionar: {
             name: 'Clientes',
             description: 'Administra tus clientes.',
@@ -193,7 +193,7 @@ export const MODULES = {
     Proveedores: {
         name: 'Proveedores',
         imagen: imagenProveedores,
-        descripcion: 'Administra tus proveedores, realiza entradas y salidas.',
+        descripcion: 'Administra tus proveedores.',
         gestionar: {
             name: 'Proveedores',
             description: 'Administra tus proveedores.',
@@ -205,7 +205,7 @@ export const MODULES = {
     Gastos: {
         name: 'Gastos',
         imagen: imagenGastos,
-        descripcion: 'Administra tus gastos, realiza entradas y salidas.',
+        descripcion: 'Administra tus gastos.',
         gestionar: {
             name: 'Gastos',
             description: 'Administra tus gastos.',
@@ -217,7 +217,7 @@ export const MODULES = {
     Deudas: {
         name: 'Deudas',
         imagen: imagenDeudas,
-        descripcion: 'Administra las deudas de tus clientes, controla vencimientos y pagos.',
+        descripcion: 'Administra las deudas de tus clientes.',
         gestionar: {
             name: 'Deudas',
             description: 'Administra las deudas de tus clientes.',
@@ -229,7 +229,7 @@ export const MODULES = {
     Reportes: {
         name: 'Reportes',
         imagen: imagenReportes,
-        descripcion: 'Genera reportes detallados de ventas, movimientos y análisis de negocio.',
+        descripcion: 'Genera reportes detallados de ventas, movimientos.',
         generar_reportes: {
             name: 'Reportes',
             description: 'Genera reportes de tu negocio.',
@@ -241,7 +241,7 @@ export const MODULES = {
     Balance: {
         name: 'Balance',
         imagen: imageBalance,
-        descripcion: 'Visualiza el balance de ingresos y egresos de tu negocio.',
+        descripcion: 'Visualiza el balance de ingresos y egresos.',
         ver_balance: {
             name: 'Balance',
             description: 'Controla el balance de tu negocio.',
@@ -280,7 +280,7 @@ export const MODULES = {
     Cotizaciones: {
         name: 'Cotizaciones',
         imagen: imageCotizaciones,
-        descripcion: 'Administra tus cotizaciones de productos, realiza entradas y salidas.',
+        descripcion: 'Administra tus cotizaciones de productos.',
 
         gestionar: {
             name: 'Cotizaciones',
