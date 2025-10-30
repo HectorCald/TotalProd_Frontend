@@ -73,7 +73,7 @@ const Explorar = () => {
   };
 
   return (
-    <>
+    <div style={{ paddingInline: '15px', width: '100%' }}>
       <p className="subTitle">Otras Funciones</p>
       <div className="funciones-extras">
         {EXTRAS.map((extra) => (
@@ -122,7 +122,7 @@ const Explorar = () => {
         text={notification.text}
       />
       {/* Conteos se maneja ahora desde Inicio.jsx */}
-    </>
+    </div>
   );
 };
 

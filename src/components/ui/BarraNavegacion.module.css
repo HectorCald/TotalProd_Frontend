@@ -53,6 +53,7 @@
     color: rgba(255, 255, 255, 0.9);
     font-weight: 400;
     transition: color 0.25s ease;
+    z-index: 3;
 }
 
 .activeIcon {
