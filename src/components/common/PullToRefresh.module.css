@@ -3,7 +3,6 @@
   width: 100%;
   overflow: hidden;
   height: 100%;
-  overscroll-behavior-y: contain;
 }
 
 .containerContent {
@@ -11,9 +10,7 @@
   height: 100%;
   overflow-y: auto;
   padding-inline: 15px;
-  overscroll-behavior-y: contain;
-  touch-action: pan-x;
-  will-change: transform;
+  border: 1px solid red;
 }
 .pullArea {
   position: absolute;
