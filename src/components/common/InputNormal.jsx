@@ -31,6 +31,28 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
         }
     }
 
+    const inputType = tipo === 'password'
+        ? (showPassword ? 'text' : 'password')
+        : (tipo === 'number' ? 'text' : tipo);
+
+    const handleNormalizedChange = (e) => {
+        if (tipo === 'number') {
+            const raw = e.target.value;
+            const normalized = raw.replace(/,/g, '.');
+            if (onChange) {
+                onChange({
+                    ...e,
+                    target: {
+                        ...e.target,
+                        value: normalized
+                    }
+                });
+            }
+            return;
+        }
+        if (onChange) onChange(e);
+    };
+
     return (
         <div style={{ width: '100%', position: 'relative' }}>
             {icon && (
@@ -56,12 +78,12 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
             <input
                 ref={ref}
                 className={styles.input}
-                type={tipo === 'password' && showPassword ? 'text' : tipo}
+                type={inputType}
                 {...(tipo === 'number'
-                    ? { inputMode: 'decimal', step: 'any' }
+                    ? { inputMode: 'decimal' }
                     : {})}
                 value={value}
-                onChange={onChange}
+                onChange={handleNormalizedChange}
                 onKeyPress={onKeyPress}
                 onFocus={handleFocus}
                 onBlur={handleBlur}

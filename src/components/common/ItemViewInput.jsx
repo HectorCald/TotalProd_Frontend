@@ -90,20 +90,41 @@ const ItemViewInput = ({ title, icon, onClick, arrow, flot1, flot2, flot3, flot4
         {/* Inputs en lugar de descripción */}
         {Array.isArray(inputs) && inputs.length > 0 ? (
           <div className={styles.inputsContainer}>
-            {inputs.map((input, idx) => (
-              <div key={input.name || idx} className={styles.inputRow}>
-                {input.label ? <label className={styles.inputLabel} htmlFor={input.name || `input-${idx}`}>{input.label}</label> : null}
-                <input
-                  id={input.name || `input-${idx}`}
-                  className={styles.inputControl}
-                  type={input.type || 'text'}
-                  placeholder={input.placeholder || ''}
-                  value={input.value}
-                  onChange={input.onChange}
-                  {...(input.inputProps || {})}
-                />
-              </div>
-            ))}
+            {inputs.map((input, idx) => {
+              const isNumber = input.type === 'number';
+              const effectiveType = isNumber ? 'text' : (input.type || 'text');
+              const effectiveOnChange = (e) => {
+                if (isNumber) {
+                  const normalized = (e.target?.value ?? '').replace(/,/g, '.');
+                  if (typeof input.onChange === 'function') {
+                    input.onChange({
+                      ...e,
+                      target: {
+                        ...e.target,
+                        value: normalized
+                      }
+                    });
+                  }
+                  return;
+                }
+                if (typeof input.onChange === 'function') input.onChange(e);
+              };
+              return (
+                <div key={input.name || idx} className={styles.inputRow}>
+                  {input.label ? <label className={styles.inputLabel} htmlFor={input.name || `input-${idx}`}>{input.label}</label> : null}
+                  <input
+                    id={input.name || `input-${idx}`}
+                    className={styles.inputControl}
+                    type={effectiveType}
+                    placeholder={input.placeholder || ''}
+                    value={input.value}
+                    onChange={effectiveOnChange}
+                    {...(isNumber ? { inputMode: 'decimal' } : {})}
+                    {...(input.inputProps || {})}
+                  />
+                </div>
+              );
+            })}
           </div>
         ) : null}
       </div>
