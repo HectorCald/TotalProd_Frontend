@@ -119,8 +119,8 @@ const ItemViewInput = ({ title, icon, onClick, arrow, flot1, flot2, flot3, flot4
                     placeholder={input.placeholder || ''}
                     value={input.value}
                     onChange={effectiveOnChange}
-                    {...(isNumber ? { inputMode: 'decimal' } : {})}
                     {...(input.inputProps || {})}
+                    {...(isNumber ? { inputMode: 'decimal' } : {})}
                   />
                 </div>
               );

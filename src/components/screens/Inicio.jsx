@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Coleccion from '../common/Coleccion';
 import { FUNCTIONS } from '../../constants/functions';
 import AtajoAnuncio from '../common/AtajoAnuncio';
@@ -22,6 +22,7 @@ const Inicio = ({ onViewOpen }) => {
     type: 'info',
     text: ''
   });
+  const checkingRef = useRef(false);
 
   const mostrarNotificacion = (tipo, texto) => {
     setNotification({
@@ -35,6 +36,75 @@ const Inicio = ({ onViewOpen }) => {
       setNotification(prev => ({ ...prev, isVisible: false }));
     }, 3000);
   };
+
+  const parseVersion = (v) => (v || '').split('.').map(n => parseInt(n, 10) || 0);
+  const isGreater = (a, b) => {
+    const pa = parseVersion(a);
+    const pb = parseVersion(b);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const ai = pa[i] || 0;
+      const bi = pb[i] || 0;
+      if (ai > bi) return true;
+      if (ai < bi) return false;
+    }
+    return false;
+  };
+  const getLatestCacheVersion = async () => {
+    if (!('caches' in window)) return null;
+    const cacheNames = await caches.keys();
+    const versions = cacheNames
+      .map(name => {
+        const m = name.match(/totalprod-cache-v(.+)/);
+        return m ? m[1] : null;
+      })
+      .filter(Boolean);
+    if (versions.length === 0) return null;
+    return versions.reduce((max, cur) => (isGreater(cur, max) ? cur : max), versions[0]);
+  };
+
+  const forceServiceWorkerUpdate = async () => {
+    try {
+      if (!navigator.serviceWorker) return;
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && reg.update) {
+        await reg.update();
+      }
+    } catch (_) {}
+  };
+
+  const checkAndNotifyCacheVersion = async (force = false, notifyNoChange = false) => {
+    if (checkingRef.current && !force) return;
+    checkingRef.current = true;
+    try {
+      await forceServiceWorkerUpdate();
+      const latest = await getLatestCacheVersion();
+      if (!latest) {
+        mostrarNotificacion('warning', 'No se encontró versión de caché');
+        return;
+      }
+      const stored = localStorage.getItem('cacheVersion');
+      if (!stored || stored !== latest) {
+        mostrarNotificacion('success', `Nuevo caché disponible: v${latest}`);
+      } else {
+        if (notifyNoChange) {
+          mostrarNotificacion('info', `Sin cambios en caché (v${latest})`);
+        }
+      }
+    } catch (err) {
+      mostrarNotificacion('error', 'Error verificando caché');
+    } finally {
+      checkingRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        checkAndNotifyCacheVersion(false, false);
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleFunctionClick = (func) => {
     if (func.view === 'transferencias') {
@@ -54,12 +124,7 @@ const Inicio = ({ onViewOpen }) => {
           const response = await UserService.getCurrentUser(user.id);
           if (response && response.success && response.data && response.data.user) {
             setUserFromService(response.data.user);
-            // Forzar chequeo de actualización de cache vía Service Worker
-            try {
-              if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ type: 'CHECK_FOR_UPDATE' });
-              }
-            } catch (_) {}
+            await checkAndNotifyCacheVersion(true, true);
           }
         }}
         screenName="Inicio"

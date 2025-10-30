@@ -438,12 +438,12 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                 const state = getDiffState(row.id, rawQty);
                                                 return (
                                                     <input
-                                                        type="number"
-                                                        step="0.01"
-                                                        inputMode="numeric"
+                                                        type="text"
+                                                        inputMode="decimal"
                                                         value={valueText}
                                                         onChange={(e) => {
-                                                            const text = e.target.value;
+                                                            const raw = e.target.value;
+                                                            const text = raw.replace(/,/g, '.');
                                                             setQuantityInputsText(prev => ({ ...prev, [row.id]: text }));
                                                             if (text === '') return;
                                                             const next = parseFloat(text);
@@ -532,7 +532,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                         },
                                                         inputProps: {
                                                             step: '0.01',
-                                                            inputMode: 'numeric',
+                                                            inputMode: 'decimal',
                                                             onFocus: (e) => e.target.select(),
                                                             onWheel: (e) => {
                                                                 // Prevenir que el scroll cambie el valor

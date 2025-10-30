@@ -36,14 +36,35 @@ const Home = () => {
 
   // Detectar versión del cache y mostrar actualización (sin guardar aún)
   useEffect(() => {
+    const parseVersion = (v) => v.split('.').map(n => parseInt(n, 10) || 0);
+    const isGreater = (a, b) => {
+      const pa = parseVersion(a);
+      const pb = parseVersion(b);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const ai = pa[i] || 0;
+        const bi = pb[i] || 0;
+        if (ai > bi) return true;
+        if (ai < bi) return false;
+      }
+      return false;
+    };
+
+    const getLatestCacheVersion = async () => {
+      const cacheNames = await caches.keys();
+      const versions = cacheNames
+        .map(name => {
+          const m = name.match(/totalprod-cache-v(.+)/);
+          return m ? m[1] : null;
+        })
+        .filter(Boolean);
+      if (versions.length === 0) return null;
+      return versions.reduce((max, cur) => (isGreater(cur, max) ? cur : max), versions[0]);
+    };
+
     const checkCacheVersion = async () => {
       try {
         if (!('caches' in window)) return;
-        const cacheNames = await caches.keys();
-        const totalprodCache = cacheNames.find(name => name.startsWith('totalprod-cache-v'));
-        if (!totalprodCache) return;
-        const match = totalprodCache.match(/totalprod-cache-v(.+)/);
-        const currentVersion = match ? match[1] : null;
+        const currentVersion = await getLatestCacheVersion();
         if (!currentVersion) return;
 
         const storedVersion = localStorage.getItem('cacheVersion');
@@ -57,74 +78,8 @@ const Home = () => {
       }
     };
     checkCacheVersion();
-  }, []);
-
-  // Integración con Service Worker: escuchar y forzar chequeos al recuperar foco
-  useEffect(() => {
-    const handleSWMessage = async (event) => {
-      const data = event.data || {};
-      if (data.type === 'UPDATE_AVAILABLE') {
-        try {
-          // Calcular versiones
-          let currentVersion = null;
-          if (data.reason === 'new_cache' && data.cacheName) {
-            const match = data.cacheName.match(/totalprod-cache-v(.+)/);
-            currentVersion = match ? match[1] : null;
-          } else {
-            // Fallback leyendo caches
-            const cacheNames = await caches.keys();
-            const totalprodCache = cacheNames.find(name => name.startsWith('totalprod-cache-v'));
-            const match = totalprodCache ? totalprodCache.match(/totalprod-cache-v(.+)/) : null;
-            currentVersion = match ? match[1] : null;
-          }
-          if (currentVersion) {
-            const storedVersion = localStorage.getItem('cacheVersion');
-            if (!storedVersion || storedVersion !== currentVersion) {
-              setOldVersion(storedVersion);
-              setNewVersion(currentVersion);
-              setShowUpdateModal(true);
-            }
-          }
-        } catch (_) {}
-      }
-    };
-
-    const requestUpdateCheck = () => {
-      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        try {
-          navigator.serviceWorker.controller.postMessage({ type: 'CHECK_FOR_UPDATE' });
-        } catch (_) {}
-      }
-    };
-
-    // Escuchar mensajes del SW
-    if (navigator.serviceWorker) {
-      navigator.serviceWorker.addEventListener('message', handleSWMessage);
-    }
-
-    // Disparar chequeos al recuperar foco/visibilidad
-    window.addEventListener('focus', requestUpdateCheck);
-    window.addEventListener('pageshow', requestUpdateCheck);
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) requestUpdateCheck();
-    });
-
-    // Primer chequeo diferido por si el SW aún se registra
-    const t = setTimeout(requestUpdateCheck, 1000);
-    const interval = setInterval(requestUpdateCheck, 60000);
-
-    return () => {
-      if (navigator.serviceWorker) {
-        navigator.serviceWorker.removeEventListener('message', handleSWMessage);
-      }
-      window.removeEventListener('focus', requestUpdateCheck);
-      window.removeEventListener('pageshow', requestUpdateCheck);
-      document.removeEventListener('visibilitychange', () => {
-        if (!document.hidden) requestUpdateCheck();
-      });
-      clearTimeout(t);
-      clearInterval(interval);
-    };
+    const t = setTimeout(checkCacheVersion, 1500);
+    return () => clearTimeout(t);
   }, []);
 
   // Detectar cambios en la conexión
