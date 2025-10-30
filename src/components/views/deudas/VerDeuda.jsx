@@ -18,8 +18,10 @@ import VerMovimiento from '../movimientos/VerMovimiento';
 import InputDate from '../../common/InputDate';
 import InputNormal from '../../common/InputNormal';
 import NoData from '../../common/NoData';
+import { useLayout } from '../../../context/LayoutContext';
 
 function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualizada }) {
+    const { isLargeScreen } = useLayout();
     const [loading, setLoading] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
@@ -385,7 +387,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                         />
                     )}
                     {/* Botones de pagos parciales */}
-                    {!isPagada && (
+                    {!isPagada && !isLargeScreen && (
                         <Boton
                             className='btn-original'
                             label='Registrar pago'
@@ -434,7 +436,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                     title="Eliminar Deuda"
                     onClose={() => setIsEliminarOpen(false)}
                 />
-                <div className={styles.modalContent}>
+                <div className={styles.modalContent} >
                     <p className={styles.subTitle}>
                         ¿Estás seguro que deseas eliminar permanentemente esta deuda? Esta acción no se puede deshacer.
                     </p>
@@ -489,7 +491,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                     title='Registrar Pago Parcial'
                     onClose={() => setIsRegistrarPagoOpen(false)}
                 />
-                <div className={styles.modalContent}>
+                <div className={styles.modalContent} style={!isLargeScreen ? { minHeight: '50vh' } : undefined}>
                     <p className={styles.subTitle}>INFORMACIÓN DEL PAGO</p>
                     <InputDate
                         mode='date'
@@ -524,7 +526,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                     title='Pagos Parciales'
                     onClose={() => setIsVerPagosOpen(false)}
                 />
-                <div className={styles.modalContent}>
+                <div className={styles.modalContent} style={!isLargeScreen ? { minHeight: '50vh' } : undefined}>
                     <p className={styles.subTitle}>HISTORIAL DE PAGOS</p>
                     {loadingPagos ? (
                         <NoData 

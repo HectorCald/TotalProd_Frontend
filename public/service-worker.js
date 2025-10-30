@@ -1,4 +1,4 @@
-const CACHE_NAME = 'totalprod-cache-v1.7.0';
+const CACHE_NAME = 'totalprod-cache-v1.7.2';
 const urlsToCache = [
   '/',
   '/index.html',

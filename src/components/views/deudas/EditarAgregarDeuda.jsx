@@ -8,8 +8,10 @@ import InputDate from '../../common/InputDate';
 import Clientes from '../clientes/Clientes';
 import Notification from '../../common/Notification';
 import deudasService from '../../../services/deudasService';
+import { useLayout } from '../../../context/LayoutContext';
 
 function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, tipo = 'agregar', onDeudaUpdated }) {
+  const { isLargeScreen } = useLayout();
   const [dataDeuda, setDataDeuda] = useState({
     fecha_deuda: '',
     fecha_vencimiento: '',
@@ -208,7 +210,7 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
         title={tipo === 'editar' ? 'Editar Deuda' : 'Nueva Deuda'}
         onClose={() => setIsOpen(false)}
       />
-      <div className={styles.modalContent}>
+      <div className={styles.modalContent} style={!isLargeScreen ? { minHeight: '60vh' } : undefined}>
         {/* Campo de fecha de deuda (oculto cuando solo se permite vencimiento/concepto) */}
         {!(tipo === 'editar' && deuda?.movimiento_salida_id) && (
           <>
