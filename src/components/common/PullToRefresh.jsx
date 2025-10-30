@@ -111,12 +111,24 @@ function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull
           setIsPulling(false);
           setPullDistance(0);
           isPullingDown.current = false;
-        });
+          // Forzar volver al tope y reset de transform en el siguiente frame
+          requestAnimationFrame(() => {
+            if (containerRef.current) {
+              containerRef.current.scrollTop = 0;
+            }
+          });
+          });
       } else {
         // Solo resetear si no se activó el refresh
         setIsPulling(false);
         setPullDistance(0);
         isPullingDown.current = false;
+        // Forzar volver al tope y reset de transform
+        requestAnimationFrame(() => {
+          if (containerRef.current) {
+            containerRef.current.scrollTop = 0;
+          }
+        });
       }
     };
 
@@ -187,12 +199,22 @@ function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull
           setIsPulling(false);
           setPullDistance(0);
           isPullingDown.current = false;
+          requestAnimationFrame(() => {
+            if (containerRef.current) {
+              containerRef.current.scrollTop = 0;
+            }
+          });
         });
       } else {
         // Solo resetear si no se activó el refresh
         setIsPulling(false);
         setPullDistance(0);
         isPullingDown.current = false;
+        requestAnimationFrame(() => {
+          if (containerRef.current) {
+            containerRef.current.scrollTop = 0;
+          }
+        });
       }
     };
 
@@ -292,7 +314,7 @@ function PullToRefresh({ children, onRefresh, onScroll, threshold = 120, maxPull
         ref={containerRef}
         className={styles.containerContent}
         style={{ 
-          transform: isPulling ? `translateY(${Math.min(pullDistance * 0.3, 30)}px)` : 'translateY(0)',
+          transform: isPulling ? `translate3d(0, ${Math.min(pullDistance * 0.3, 30)}px, 0)` : 'translate3d(0, 0, 0)',
           transition: isPulling ? 'none' : 'transform 0.3s ease',
           ...containerStyle
         }}
