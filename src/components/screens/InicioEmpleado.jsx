@@ -22,8 +22,8 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
         }}
         screenName="Inicio"
         containerStyle={{
-          height: 'calc(100vh - 50px)',
-          minHeight: 'calc(100vh - 50px)',
+          height: '100%',
+          minHeight: '100%',
           paddingBottom: '90px',
           gap: '10px',
           display: 'flex',

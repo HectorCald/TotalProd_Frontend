@@ -58,7 +58,7 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                 className={styles.input}
                 type={tipo === 'password' && showPassword ? 'text' : tipo}
                 {...(tipo === 'number'
-                    ? { inputMode: 'numeric' }
+                    ? { inputMode: 'decimal', step: 'any' }
                     : {})}
                 value={value}
                 onChange={onChange}

@@ -51,11 +51,10 @@ const Inicio = ({ onViewOpen }) => {
         }}
         screenName="Inicio"
         containerStyle={{
-          maxHeight: 'calc(100%)',
-          minHeight: 'calc(100%)',
+          height: '100%',
+          minHeight: '100%',
         }}
       >
-        <div className="inicio-mobile">
           <p className="subTitle">Funciones</p>
           <div className="funciones">
             {FUNCTIONS.slice(0, 4).map((func) => (
@@ -112,7 +111,7 @@ const Inicio = ({ onViewOpen }) => {
               onClick={() => onViewOpen('cotizaciones')} 
             />
           </div>
-        </div>
+        
       </PullToRefresh>
 
       {/* Contenido para pantallas grandes */}
