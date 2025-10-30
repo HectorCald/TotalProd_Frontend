@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { checkCacheStatus } from '../utils/cacheUtils';
 import '../styles/Home.css';
 import Nav from '../components/ui/Nav';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
@@ -36,41 +37,13 @@ const Home = () => {
 
   // Detectar versión del cache y mostrar actualización (sin guardar aún)
   useEffect(() => {
-    const parseVersion = (v) => v.split('.').map(n => parseInt(n, 10) || 0);
-    const isGreater = (a, b) => {
-      const pa = parseVersion(a);
-      const pb = parseVersion(b);
-      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-        const ai = pa[i] || 0;
-        const bi = pb[i] || 0;
-        if (ai > bi) return true;
-        if (ai < bi) return false;
-      }
-      return false;
-    };
-
-    const getLatestCacheVersion = async () => {
-      const cacheNames = await caches.keys();
-      const versions = cacheNames
-        .map(name => {
-          const m = name.match(/totalprod-cache-v(.+)/);
-          return m ? m[1] : null;
-        })
-        .filter(Boolean);
-      if (versions.length === 0) return null;
-      return versions.reduce((max, cur) => (isGreater(cur, max) ? cur : max), versions[0]);
-    };
-
     const checkCacheVersion = async () => {
       try {
-        if (!('caches' in window)) return;
-        const currentVersion = await getLatestCacheVersion();
-        if (!currentVersion) return;
-
-        const storedVersion = localStorage.getItem('cacheVersion');
-        if (!storedVersion || storedVersion !== currentVersion) {
+        const result = await checkCacheStatus();
+        if (result.status === 'new') {
+          const storedVersion = localStorage.getItem('cacheVersion');
           setOldVersion(storedVersion);
-          setNewVersion(currentVersion);
+          setNewVersion(result.latest);
           setShowUpdateModal(true);
         }
       } catch (e) {
@@ -81,6 +54,13 @@ const Home = () => {
     const t = setTimeout(checkCacheVersion, 1500);
     return () => clearTimeout(t);
   }, []);
+
+  const handleCacheUpdateFound = (latestVersion) => {
+    const storedVersion = localStorage.getItem('cacheVersion');
+    setOldVersion(storedVersion);
+    setNewVersion(latestVersion);
+    setShowUpdateModal(true);
+  };
 
   // Detectar cambios en la conexión
   useEffect(() => {
@@ -170,11 +150,11 @@ const Home = () => {
                          activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio';
     switch (currentScreen) {
       case 'inicio':
-        return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} />;
+        return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} onCacheUpdateFound={handleCacheUpdateFound} />;
       case 'explorar':
         return <Explorar />;
       default:
-        return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} />;
+        return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} onCacheUpdateFound={handleCacheUpdateFound} />;
     }
   };
 

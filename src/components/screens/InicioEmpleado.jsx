@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { checkCacheStatus } from '../../utils/cacheUtils';
 import { getAvailableMainModules } from '../../constants/modules';
 import AtajoAnuncio from '../common/AtajoAnuncio';
 import InicioEmpleadoPC from './InicioEmpleadoPC';
@@ -10,7 +11,7 @@ import { useEmployee } from '../../context/EmployeeContext';
 import personalService from '../../services/personalService';
 import Notification from '../common/Notification';
 
-const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
+const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen, onCacheUpdateFound }) => {
   const { setEmployeeFromService } = useEmployee();
   const [notification, setNotification] = useState({ isVisible: false, type: 'info', text: '' });
   const checkingRef = useRef(false);
@@ -26,57 +27,23 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
     }, 3000);
   };
 
-  const parseVersion = (v) => (v || '').split('.').map(n => parseInt(n, 10) || 0);
-  const isGreater = (a, b) => {
-    const pa = parseVersion(a);
-    const pb = parseVersion(b);
-    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-      const ai = pa[i] || 0;
-      const bi = pb[i] || 0;
-      if (ai > bi) return true;
-      if (ai < bi) return false;
-    }
-    return false;
-  };
-  const getLatestCacheVersion = async () => {
-    if (!('caches' in window)) return null;
-    const cacheNames = await caches.keys();
-    const versions = cacheNames
-      .map(name => {
-        const m = name.match(/totalprod-cache-v(.+)/);
-        return m ? m[1] : null;
-      })
-      .filter(Boolean);
-    if (versions.length === 0) return null;
-    return versions.reduce((max, cur) => (isGreater(cur, max) ? cur : max), versions[0]);
-  };
-  const forceServiceWorkerUpdate = async () => {
-    try {
-      if (!navigator.serviceWorker) return;
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (reg && reg.update) {
-        await reg.update();
-      }
-    } catch (_) {}
-  };
   const checkAndNotifyCacheVersion = async (force = false, notifyNoChange = false) => {
     if (checkingRef.current && !force) return;
     checkingRef.current = true;
     try {
-      await forceServiceWorkerUpdate();
-      const latest = await getLatestCacheVersion();
-      if (!latest) {
-        mostrarNotificacion('warning', 'No se encontró versión de caché');
-        return;
-      }
-      const stored = localStorage.getItem('cacheVersion');
-      if (!stored || stored !== latest) {
-        mostrarNotificacion('success', `Nuevo caché disponible: v${latest}`);
-      } else if (notifyNoChange) {
-        mostrarNotificacion('info', `Sin cambios en caché (v${latest})`);
+      const result = await checkCacheStatus();
+      if (result.status === 'new') {
+        mostrarNotificacion('success', `Nueva versión disponible: v${result.latest}`);
+        if (typeof onCacheUpdateFound === 'function') {
+          onCacheUpdateFound(result.latest);
+        }
+      } else if (result.status === 'same') {
+        if (notifyNoChange) mostrarNotificacion('info', `No hay nueva versión (v${result.latest})`);
+      } else if (result.status === 'error') {
+        mostrarNotificacion('error', 'Error al obtener versión');
       }
     } catch (err) {
-      mostrarNotificacion('error', 'Error verificando caché');
+      mostrarNotificacion('error', 'Error al obtener versión');
     } finally {
       checkingRef.current = false;
     }
