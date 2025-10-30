@@ -32,7 +32,7 @@ export const MENU_OPTIONS = [
         submenu: [
           {
             id: 'almacen-salidas',
-            title: 'Salidas',
+            title: 'Salida o Venta',
             icon: 'minus',
             action: 'openView',
             viewName: 'almacenMedioGeneral',
@@ -40,7 +40,7 @@ export const MENU_OPTIONS = [
           },
           {
             id: 'almacen-entradas',
-            title: 'Entradas',
+            title: 'Entrada',
             icon: 'plus',
             action: 'openView',
             viewName: 'almacenMedioGeneral',
@@ -48,7 +48,7 @@ export const MENU_OPTIONS = [
           },
           {
             id: 'almacen-pedidos',
-            title: 'Realizar Pedido',
+            title: 'Nuevo Pedido',
             icon: 'cart',
             action: 'openView',
             viewName: 'almacenMedioGeneral',
@@ -80,6 +80,7 @@ export const MENU_OPTIONS = [
           }
         ]
       },
+      
       {
         id: 'materia-prima',
         title: 'Materia Prima',
@@ -89,7 +90,7 @@ export const MENU_OPTIONS = [
         submenu: [
           {
             id: 'acopio-entradas',
-            title: 'Entradas',
+            title: 'Entrada',
             icon: 'plus',
             action: 'openView',
             viewName: 'almacenMedio',
@@ -97,7 +98,7 @@ export const MENU_OPTIONS = [
           },
           {
             id: 'acopio-salidas',
-            title: 'Salidas',
+            title: 'Salida',
             icon: 'minus',
             action: 'openView',
             viewName: 'almacenMedio',
@@ -105,7 +106,7 @@ export const MENU_OPTIONS = [
           },
           {
             id: 'acopio-pedidos',
-            title: 'Realizar Pedido',
+            title: 'Nuevo Pedido',
             icon: 'cart',
             action: 'openView',
             viewName: 'almacenMedio',
@@ -121,7 +122,7 @@ export const MENU_OPTIONS = [
           },
           {
             id: 'acopio-auxiliar',
-            title: 'Conteo',
+            title: 'Pesaje',
             icon: 'calculator',
             action: 'openView',
             viewName: 'almacenAcopioAuxiliar',
@@ -129,6 +130,13 @@ export const MENU_OPTIONS = [
           }
         ]
       },
+    ]
+  },
+  {
+    id: 'registros',
+    title: 'REGISTROS Y PEDIDOS',
+    type: 'section',
+    items: [
       {
         id: 'movimientos',
         title: 'Movimientos',
@@ -241,25 +249,12 @@ export const MENU_OPTIONS = [
       },
     ]
   },
+
   {
-    id: 'configuracion',
-    title: 'CONFIGURACIÓN',
+    id: 'finanzas',
+    title: 'FINANZAS',
     type: 'section',
     items: [
-      {
-        id: 'precios',
-        title: 'Precios',
-        icon: 'dollar',
-        action: 'openView',
-        viewName: 'precios'
-      },
-      {
-        id: 'sucursales',
-        title: 'Sucursales',
-        icon: 'building',
-        action: 'openView',
-        viewName: 'sucursales'
-      },
       {
         id: 'gastos',
         title: 'Gastos',
@@ -287,6 +282,27 @@ export const MENU_OPTIONS = [
         icon: 'file',
         action: 'openView',
         viewName: 'reportes'
+      },
+    ]
+  },
+  {
+    id: 'configuracion',
+    title: 'CONFIGURACIÓN',
+    type: 'section',
+    items: [
+      {
+        id: 'precios',
+        title: 'Precios',
+        icon: 'dollar',
+        action: 'openView',
+        viewName: 'precios'
+      },
+      {
+        id: 'sucursales',
+        title: 'Sucursales',
+        icon: 'building',
+        action: 'openView',
+        viewName: 'sucursales'
       },
       {
         id: 'importar-exportar',

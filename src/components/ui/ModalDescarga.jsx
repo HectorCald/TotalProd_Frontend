@@ -251,6 +251,34 @@ function ModalDescarga({
                     }
                     if (idx !== tablas.length - 1) allData.push([]);
                 });
+                // Añadir también la tabla principal si existe, incluso cuando hay secciones
+                if (tablaHeaders.length > 0 && tablaValores.length > 0) {
+                    allData.push([]);
+                    allData.push(tablaHeaders);
+                    const valoresLimpios = tablaValores.map(row =>
+                        row.map((cell, index) => {
+                            if (index === 1) {
+                                return cell.toString()
+                                    .replace(/\s*u\s*$/, '')
+                                    .replace(/\s*gr\s*$/, '')
+                                    .replace(/\s*kg\s*$/, '')
+                                    .replace(/\s*ml\s*$/, '')
+                                    .trim();
+                            } else if (index === 2) {
+                                return cell.toString()
+                                    .replace(/Bs\.\s*/, '')
+                                    .replace(/\./g, ',')
+                                    .trim();
+                            } else if (index === 3) {
+                                return cell.toString()
+                                    .replace(/\./g, ',')
+                                    .trim();
+                            }
+                            return cell;
+                        })
+                    );
+                    allData.push(...valoresLimpios);
+                }
             } else if (tablaHeaders.length > 0 && tablaValores.length > 0) {
                 allData.push(tablaHeaders);
                 // Limpiar unidades de los valores
@@ -283,7 +311,7 @@ function ModalDescarga({
                 allData.push(...valoresLimpios);
             }
 
-            // 5. TOTALES (desglose solo si hay aumento o descuento)
+            // 5. TOTALES (desglose extra y totales personalizados al final de la tabla principal)
             if (tablaValores.length > 0) {
                 allData.push([]);
 
@@ -331,15 +359,19 @@ function ModalDescarga({
                     }
                 }
 
-                // TOTAL FINAL (siempre se muestra)
-                if (informacionSuperior && informacionSuperior.Total) {
-                    const totalConComa = informacionSuperior.Total.toString()
-                        .replace(/\./g, ',') // Cambiar punto por coma
-                        .trim();
-                    const totalFinalRow = new Array(tablaHeaders.length).fill('');
-                    totalFinalRow[totalFinalRow.length - 2] = 'Total:';
-                    totalFinalRow[totalFinalRow.length - 1] = totalConComa;
-                    allData.push(totalFinalRow);
+                // TOTAL FINAL y filas extra (Total, Pagado, Saldo pendiente) si existen
+                const pushFooterRow = (label, value) => {
+                    const val = (value || '').toString().replace(/\./g, ',').trim();
+                    const row = new Array(tablaHeaders.length).fill('');
+                    row[row.length - 2] = `${label}:`;
+                    row[row.length - 1] = val;
+                    allData.push(row);
+                };
+
+                if (informacionSuperior) {
+                    if (informacionSuperior.Total) pushFooterRow('Total', informacionSuperior.Total);
+                    if (informacionSuperior.Pagado) pushFooterRow('Pagado', informacionSuperior.Pagado);
+                    if (informacionSuperior['Saldo pendiente']) pushFooterRow('Saldo pendiente', informacionSuperior['Saldo pendiente']);
                 }
             }
 
@@ -610,7 +642,7 @@ function ModalDescarga({
                             </View>
                         </View>
 
-                        {Array.isArray(tablas) && tablas.length > 0 ? (
+                        {Array.isArray(tablas) && tablas.length > 0 && (
                             tablas.map((seccion, sIdx) => {
                                 const widths = getWidthsPct(seccion.headers || []);
                                 return (
@@ -647,33 +679,32 @@ function ModalDescarga({
                                     </View>
                                 );
                             })
-                        ) : (
-                            <>
-                                {tablaHeaders.length > 0 && (
-                                    <View style={[styles.headerBox, styles.contentPad]}>
-                                        <View style={styles.headerRow}>
-                                            {tablaHeaders.map((h, idx) => (
-                                                <View key={idx} style={{ width: getWidthsPct(tablaHeaders)[idx] }}>
-                                                    <Text style={[styles.headerCell, idx === tablaHeaders.length - 1 ? styles.headerLast : null]}>{String(h)}</Text>
-                                                </View>
-                                            ))}
+                        )}
+
+                        {/* Renderizar también la tabla principal si existe (para mostrar totales alineados) */}
+                        {tablaHeaders.length > 0 && (
+                            <View style={[styles.headerBox, styles.contentPad]}>
+                                <View style={styles.headerRow}>
+                                    {tablaHeaders.map((h, idx) => (
+                                        <View key={idx} style={{ width: getWidthsPct(tablaHeaders)[idx] }}>
+                                            <Text style={[styles.headerCell, idx === tablaHeaders.length - 1 ? styles.headerLast : null]}>{String(h)}</Text>
                                         </View>
-                                    </View>
-                                )}
-                                {tablaValores.length > 0 && (
-                                    <View style={styles.contentPad}>
-                                        {tablaValores.map((row, rIdx) => (
-                                            <View key={rIdx} style={styles.row}>
-                                                {row.map((cell, cIdx) => (
-                                                    <View key={cIdx} style={{ width: getWidthsPct(tablaHeaders)[cIdx] }}>
-                                                        <Text style={styles.cellText}>{cell != null ? String(cell) : ''}</Text>
-                                                    </View>
-                                                ))}
+                                    ))}
+                                </View>
+                            </View>
+                        )}
+                        {tablaValores.length > 0 && (
+                            <View style={styles.contentPad}>
+                                {tablaValores.map((row, rIdx) => (
+                                    <View key={rIdx} style={styles.row}>
+                                        {row.map((cell, cIdx) => (
+                                            <View key={cIdx} style={{ width: getWidthsPct(tablaHeaders)[cIdx] }}>
+                                                <Text style={styles.cellText}>{cell != null ? String(cell) : ''}</Text>
                                             </View>
                                         ))}
                                     </View>
-                                )}
-                            </>
+                                ))}
+                            </View>
                         )}
 
                         {/* TOTALES (desglose solo si hay aumento o descuento) */}
@@ -815,42 +846,46 @@ function ModalDescarga({
                                     return null;
                                 })()}
 
-                                {/* Total Final (siempre se muestra) */}
-                                {informacionSuperior && informacionSuperior.Total && (
-                                    <View style={[styles.contentPad, styles.row]}>
-                                        {(() => {
-                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0
-                                                ? getWidthsPct(tablas[tablas.length - 1].headers || [])
-                                                : getWidthsPct(tablaHeaders);
-                                            return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
-                                                <View key={i} style={{ width: w }} />
-                                            ));
-                                        })()}
-                                        {/* Columna de etiqueta (alineada a la derecha) */}
-                                        <View style={{
-                                            width: (() => {
+                        {/* Totales al pie de la tabla principal (Total, Pagado, Saldo pendiente) */}
+                        {informacionSuperior && (informacionSuperior.Total || informacionSuperior.Pagado || informacionSuperior['Saldo pendiente']) && (
+                            <>
+                                {['Total', 'Pagado', 'Saldo pendiente'].map((labelKey) => (
+                                    informacionSuperior[labelKey] ? (
+                                        <View key={labelKey} style={[styles.contentPad, styles.row]}>
+                                            {(() => {
                                                 const currentWidths = Array.isArray(tablas) && tablas.length > 0
                                                     ? getWidthsPct(tablas[tablas.length - 1].headers || [])
                                                     : getWidthsPct(tablaHeaders);
-                                                return currentWidths[currentWidths.length - 2];
-                                            })(),
-                                            paddingRight: 6
-                                        }}>
-                                            <Text style={styles.totalLabel}>Total:</Text>
+                                                return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
+                                                    <View key={i} style={{ width: w }} />
+                                                ));
+                                            })()}
+                                            <View style={{
+                                                width: (() => {
+                                                    const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                        ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                        : getWidthsPct(tablaHeaders);
+                                                    return currentWidths[currentWidths.length - 2];
+                                                })(),
+                                                paddingRight: 6
+                                            }}>
+                                                <Text style={styles.totalLabel}>{`${labelKey}:`}</Text>
+                                            </View>
+                                            <View style={{
+                                                width: (() => {
+                                                    const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                        ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                        : getWidthsPct(tablaHeaders);
+                                                    return currentWidths[currentWidths.length - 1];
+                                                })()
+                                            }}>
+                                                <Text style={styles.totalValue}>{String(informacionSuperior[labelKey])}</Text>
+                                            </View>
                                         </View>
-                                        {/* Columna de valor (alineada a la derecha) */}
-                                        <View style={{
-                                            width: (() => {
-                                                const currentWidths = Array.isArray(tablas) && tablas.length > 0
-                                                    ? getWidthsPct(tablas[tablas.length - 1].headers || [])
-                                                    : getWidthsPct(tablaHeaders);
-                                                return currentWidths[currentWidths.length - 1];
-                                            })()
-                                        }}>
-                                            <Text style={styles.totalValue}>{String(informacionSuperior.Total)}</Text>
-                                        </View>
-                                    </View>
-                                )}
+                                    ) : null
+                                ))}
+                            </>
+                        )}
                             </>
                         )}
 

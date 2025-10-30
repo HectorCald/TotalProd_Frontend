@@ -6,6 +6,8 @@ import deudasService from '../../../services/deudasService';
 function DescargaDeudaBuilder({ isOpen, setIsOpen, deuda, nombreArchivoDefault = null, tituloDocumentoDefault = null }) {
     const [informacionSuperior, setInformacionSuperior] = useState({});
     const [tablas, setTablas] = useState([]); // [{ titulo?, headers, valores }]
+    const [tablaHeaders, setTablaHeaders] = useState([]);
+    const [tablaValores, setTablaValores] = useState([]);
     const [nombreArchivo, setNombreArchivo] = useState('Deuda');
     const [tituloDocumento, setTituloDocumento] = useState('Deuda');
     const [cargando, setCargando] = useState(false);
@@ -31,6 +33,7 @@ function DescargaDeudaBuilder({ isOpen, setIsOpen, deuda, nombreArchivoDefault =
                 }
 
                 const secciones = [];
+                let totalPagos = 0;
 
                 // Si tiene movimiento, agregar tabla de productos del movimiento como primera sección
                 if (deuda?.movimiento_salida_id) {
@@ -71,21 +74,34 @@ function DescargaDeudaBuilder({ isOpen, setIsOpen, deuda, nombreArchivoDefault =
                     }
                 }
 
-                // Agregar sección de pagos parciales
+                // Preparar tabla principal como Pagos parciales (para usar totales alineados en ModalDescarga)
                 let pagosValores = [];
                 try {
                     const pagosResp = await deudasService.getPagosParciales(deuda.id);
                     if (pagosResp?.success && Array.isArray(pagosResp.data)) {
-                        pagosValores = pagosResp.data.map(p => [
-                            new Date(p.fecha).toLocaleString(),
-                            `Bs. ${(parseFloat(p.monto) || 0).toFixed(2)}`
-                        ]);
+                        pagosValores = pagosResp.data.map(p => {
+                            const monto = parseFloat(p.monto) || 0;
+                            totalPagos += monto;
+                            return [
+                                new Date(p.fecha).toLocaleString(),
+                                `Bs. ${monto.toFixed(2)}`
+                            ];
+                        });
                     }
                 } catch (e) {
                     // Ignorar errores de pagos para no romper descarga
                 }
-                secciones.push({ titulo: 'Pagos parciales', headers: ['Fecha', 'Monto'], valores: pagosValores });
+                // Setear tabla principal y total (saldo) para que ModalDescarga los muestre alineados
+                setTablaHeaders(['Fecha', 'Pago parcial']);
+                setTablaValores(pagosValores);
 
+                const montoTotal = parseFloat(deuda?.monto_total) || 0;
+                const saldoCalculado = Math.max(0, montoTotal - totalPagos);
+
+                // Mostrar totales bajo la tabla principal (pagos): Total, Pagado, Saldo pendiente
+                infoSup['Total'] = `Bs. ${montoTotal.toFixed(2)}`;
+                infoSup['Pagado'] = `Bs. ${totalPagos.toFixed(2)}`;
+                infoSup['Saldo pendiente'] = `Bs. ${saldoCalculado.toFixed(2)}`;
                 setInformacionSuperior(infoSup);
                 setTablas(secciones);
 
@@ -110,6 +126,8 @@ function DescargaDeudaBuilder({ isOpen, setIsOpen, deuda, nombreArchivoDefault =
             tituloDocumento={tituloDocumento}
             informacionSuperior={informacionSuperior}
             tablas={tablas}
+            tablaHeaders={tablaHeaders}
+            tablaValores={tablaValores}
             loading={cargando}
         />
     );

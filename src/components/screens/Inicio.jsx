@@ -42,8 +42,9 @@ const Inicio = ({ onViewOpen }) => {
 
   return (
     <>
+
       {/* Contenido original para móvil */}
-      <div className="inicio-mobile">
+      <div className="inicio-mobile" style={{ paddingInline: '15px' }}>
         <p className="subTitle">Funciones</p>
         <div className="funciones">
           {FUNCTIONS.slice(0, 4).map((func) => (

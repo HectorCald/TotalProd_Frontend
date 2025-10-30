@@ -4,7 +4,7 @@ import { BoxIcon } from 'boxicons-react';
 import Inicio from '../screens/Inicio';
 import InicioEmpleado from '../screens/InicioEmpleado';
 import Explorar from '../screens/Explorar';
-import Usuario from '../views/usuario/Usuario';
+import UsuarioScreen from '../screens/UsuarioScreen';
 import Notification from '../common/Notification';
 
 function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee, employee, onMainModuleClick }) {
@@ -24,9 +24,11 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
         { id: 'configuracion', icon: 'cog', title: '' },
     ];
 
+    const activeIndex = Math.max(0, navigationItems.findIndex((item) => item.id === activeScreen));
+
     const handleNavigation = (screenId) => {
         if (screenId === 'configuracion') {
-            setIsUsuarioOpen(true);
+            onScreenChange('configuracion');
         } else {
             onScreenChange(screenId);
         }
@@ -45,6 +47,8 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
                 );
             case 'explorar':
                 return <Explorar />;
+            case 'configuracion':
+                return <UsuarioScreen />;
             default:
                 return isEmployee ? (
                     <InicioEmpleado 
@@ -59,7 +63,16 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
 
     return (
         <>
-            <div className={styles.barraNavegacion}>
+            <div
+                className={styles.barraNavegacion}
+                style={{
+                    '--active-index': activeIndex,
+                    '--item-size': '50px',
+                    '--gap': '10px',
+                    '--pad-x': '8px',
+                }}
+            >
+                <span className={styles.highlight} aria-hidden="true" />
                 {navigationItems.map((item) => (
                     <div 
                         key={item.id}
@@ -78,11 +91,7 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
             </div>
             {renderScreen()}
             
-            {/* Modal de Usuario */}
-            <Usuario
-                isOpen={isUsuarioOpen}
-                setIsOpen={setIsUsuarioOpen}
-            />
+            {/* Modal de Usuario removido: ahora es una pantalla */}
             
             <Notification
                 isVisible={notification.isVisible}

@@ -60,6 +60,7 @@ const BarraLateralEmpleado = ({
       'Conteos': 'calculator',
       'Pedidos': 'shopping-bag',
       'Precios': 'dollar',
+      'Cotizaciones': 'file',
       'Clientes': 'user',
       'Proveedores': 'truck',
       'Gastos': 'receipt',
@@ -182,9 +183,10 @@ const BarraLateralEmpleado = ({
     }
   };
 
-  // Opciones del menú para empleados con memoización
-  const EMPLOYEE_MENU_OPTIONS = useMemo(() => [
-    {
+  // Opciones del menú para empleados con memoización (agrupadas por secciones como en BarraLateral)
+  const EMPLOYEE_MENU_OPTIONS = useMemo(() => {
+    // Sección de Dashboard siempre presente
+    const dashboardSection = {
       id: 'dashboard',
       title: 'DASHBOARD',
       items: [
@@ -196,13 +198,58 @@ const BarraLateralEmpleado = ({
           route: '/dashboard/default'
         }
       ]
-    },
-    {
-      id: 'funciones',
-      title: 'FUNCIONES',
-      items: availableMainModules.map(mapModuleToMenuOption)
-    }
-  ], [availableMainModules]);
+    };
+
+    // Mapear cada módulo disponible a una sección
+    const sectionMap = {
+      // INVENTARIO
+      'Almacen': 'inventario',
+      'Acopio': 'inventario',
+      //REGISTROS
+      'Movimientos': 'registros',
+      'Conteos': 'registros',
+      'Pedidos': 'registros',
+      'Cotizaciones': 'registros',
+      // GESTIÓN
+      'Clientes': 'gestion',
+      'Proveedores': 'gestion',
+      // FINANZAS
+      'Gastos': 'finanzas',
+      'Deudas': 'finanzas',
+      'Balance': 'finanzas',
+      'Reportes': 'finanzas',
+      // CONFIGURACIÓN
+      'Precios': 'configuracion',
+      // DAMABRAVA
+      'Damabrava': 'damabrava'
+    };
+
+    const buckets = {
+      inventario: [],
+      registros: [],
+      gestion: [],
+      finanzas: [],
+      configuracion: [],
+      damabrava: []
+    };
+
+    availableMainModules.forEach((mod) => {
+      const sectionKey = sectionMap[mod.key] || 'inventario';
+      buckets[sectionKey].push(mapModuleToMenuOption(mod));
+    });
+
+    const sections = [
+      dashboardSection,
+      ...(buckets.inventario.length > 0 ? [{ id: 'inventario', title: 'INVENTARIO', items: buckets.inventario }] : []),
+      ...(buckets.registros.length > 0 ? [{ id: 'registros', title: 'REGISTROS Y PEDIDOS', items: buckets.registros }] : []),
+      ...(buckets.gestion.length > 0 ? [{ id: 'gestion', title: 'GESTIÓN', items: buckets.gestion }] : []),
+      ...(buckets.finanzas.length > 0 ? [{ id: 'finanzas', title: 'FINANZAS', items: buckets.finanzas }] : []),
+      ...(buckets.configuracion.length > 0 ? [{ id: 'configuracion', title: 'CONFIGURACIÓN', items: buckets.configuracion }] : []),
+      ...(buckets.damabrava.length > 0 ? [{ id: 'damabrava', title: 'DAMABRAVA', items: buckets.damabrava }] : [])
+    ];
+
+    return sections;
+  }, [availableMainModules]);
 
   // Función para cerrar todas las vistas y limpiar el stack de modales
   const closeAllViewsAndClearStack = () => {

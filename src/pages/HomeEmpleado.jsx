@@ -322,6 +322,21 @@ const HomeEmpleado = () => {
 
     // Manejar click en módulo principal (AtajoAnuncio)
     const handleMainModuleClick = (module) => {
+        // Si el módulo solo tiene un submódulo, abrirlo directamente sin mostrar opciones
+        if (module?.submodules && module.submodules.length === 1) {
+            const singleSubmodule = module.submodules[0];
+            if (singleSubmodule?.component) {
+                setCurrentSubModule(singleSubmodule);
+                setIsSubModuleOpen(true);
+                // Actualizar ubicación cuando se abre vista desde el atajo directo
+                if (employee?.rastrear) {
+                    updateEmployeeLocation();
+                }
+                return;
+            }
+        }
+
+        // Si tiene múltiples submódulos, mostrar el modal de opciones
         setSelectedModule(module);
         setShowModuleOptions(true);
     };
@@ -457,6 +472,8 @@ const HomeEmpleado = () => {
                             {renderSubModuleComponent()}
                         </ViewModal>
                     )}
+                    {/* Renderizar submódulo fuera del modal de opciones cuando se abrió directo */}
+                    {!showModuleOptions && renderSubModuleComponent()}
                 </>
             )}
 

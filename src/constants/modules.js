@@ -636,7 +636,7 @@ export const getAvailableModules = (employeeModules) => {
                     description: submodule.description,
                     component: submodule.component,
                     props: submodule.props,
-                    icon: submodule.image
+                    icon: submodule.icon
                 };
             }
         }

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import styles from './Nav.module.css';
 import { BoxIcon } from 'boxicons-react';
-import Usuario from '../views/usuario/Usuario';
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import { useLayout } from '../../context/LayoutContext';
@@ -20,7 +19,7 @@ import HeaderModal from '../common/HeaderModal';
 import Boton from '../common/Boton';
 
 const Nav = () => {
-    const [isOpen, setIsOpen] = useState(false);
+    
     const [isSucursalOpen, setIsSucursalOpen] = useState(false);
     const [isOpenVerUsuario, setIsOpenVerUsuario] = useState(false);
     const [isOpenCambiarContraseña, setIsOpenCambiarContraseña] = useState(false);
@@ -56,9 +55,7 @@ const Nav = () => {
         { value: 'logout', label: 'Cerrar sesión', icon: 'power-off' }
     ];
 
-    const handleOpen = () => {
-        setIsOpen(!isOpen);
-    }
+    
 
     const handleSucursalClick = () => {
         // Solo permitir cambio de sucursal para usuarios normales, no empleados
@@ -127,13 +124,9 @@ const Nav = () => {
                                 containerStyle={{ maxWidth: '300px', maxHeight: '40px' }}
                             />
                        
-                    ) : (
-                        <button className={styles.icon} onClick={handleOpen}>
-                            <BoxIcon name='user' />
-                        </button>
-                    )}
+                    ) : null}
                 </div>
-                <Usuario isOpen={isOpen} setIsOpen={setIsOpen} />
+                
 
                 {/* Componentes modales del menú de usuario */}
                 <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} />
