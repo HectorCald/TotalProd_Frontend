@@ -48,7 +48,7 @@
   font-weight: 500;
   font-size: 13px;
   color: var(--primary-color);
-  margin-bottom: 4px;
+  margin-block: 4px;
 }
 
 .labelNested {
