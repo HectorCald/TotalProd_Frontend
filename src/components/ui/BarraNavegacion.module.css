@@ -42,12 +42,6 @@
     justify-content: center;
 }
 
-.opcion.active .icon {
-    color: var(--primary-color) !important;
-    text-shadow: none;
-}
-
-
 .icon {
     font-size: 20px;
     color: rgba(255, 255, 255, 0.9);
@@ -58,6 +52,8 @@
 
 .activeIcon {
     color: rgba(255, 255, 255, 1);
+    color: var(--primary-color) !important;
+    text-shadow: none;
 }
 
 .title {
@@ -71,12 +67,7 @@
     color: rgba(255, 255, 255, 1);
     font-weight: 600;
 }
-.opcion.active {
-    background: transparent;
-    box-shadow: none;
-}
 
-/* Removed top sheen for a flatter, non-3D look */
 
 /* Moving circular highlight */
 .highlight {
@@ -86,9 +77,11 @@
     width: var(--highlight-size, 50px);
     height: var(--highlight-size, 50px);
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.034);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(6px);
+    /* Minimal liquid glass container */
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(8px);
+    overflow: hidden;
     -webkit-backdrop-filter: blur(6px);
     transform: translate(calc(var(--active-index, 0) * (var(--item-size, 50px) + var(--gap, 10px))), -50%);
     transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), background 200ms ease, border-color 200ms ease;

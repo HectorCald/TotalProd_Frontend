@@ -171,7 +171,7 @@ export const MODULES = {
         imagen: imagenPrecios,
         descripcion: 'Administra tus precios de productos, realiza entradas y salidas.',
         gestionar: {
-            name: 'Gestionar',
+            name: 'Precios',
             description: 'Administra tus precios de productos.',
             icon: 'file',
             component: 'Precios',
