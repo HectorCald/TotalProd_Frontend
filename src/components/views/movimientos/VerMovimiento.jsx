@@ -277,20 +277,37 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             localStorage.removeItem('clienteNameEditando');
         }
 
-        // Guardar productos del movimiento para cargar automáticamente
-        const productosMovimiento = movimientoActual.productos?.map(productoMovimiento => {
-            let cantidadParaGuardar = productoMovimiento.cantidad;
+        // Guardar productos del movimiento para cargar automáticamente (robusto post-anulación)
+        const productosFuente = (() => {
+            const productosAct = movimientoActual?.productos || [];
+            const productosOriginales = movimiento?.productos || [];
+            const productosActInvalidos =
+                movimientoActual?.estado === 'anulado' &&
+                (!productosAct.length || productosAct.some(p => !p?.producto?.id || p.precio_unitario === 0));
+            return productosActInvalidos ? productosOriginales : productosAct;
+        })();
 
-            // Si el movimiento es agrupado, convertir la cantidad a grupos
-            if (movimientoActual.agrupado && productoMovimiento.producto?.grup) {
-                cantidadParaGuardar = Math.round(productoMovimiento.cantidad / productoMovimiento.producto.grup);
-            }
+        const productosMovimiento = (productosFuente || [])
+            .map((productoMovimiento) => {
+                const prodId = productoMovimiento?.producto?.id ?? productoMovimiento?.producto_id;
+                if (!prodId) return null;
 
-            return {
-                id: productoMovimiento.producto.id,
-                cantidad: cantidadParaGuardar
-            };
-        }) || [];
+                let cantidadParaGuardar = Number(productoMovimiento?.cantidad) || 0;
+
+                // Si el movimiento es agrupado, convertir la cantidad a grupos
+                if (movimientoActual?.agrupado && productoMovimiento?.producto?.grup) {
+                    const grup = Number(productoMovimiento.producto.grup) || 0;
+                    if (grup > 0) {
+                        cantidadParaGuardar = Math.round(cantidadParaGuardar / grup);
+                    }
+                }
+
+                return {
+                    id: prodId,
+                    cantidad: cantidadParaGuardar
+                };
+            })
+            .filter(Boolean);
         localStorage.setItem('productosMovimientoEditando', JSON.stringify(productosMovimiento));
 
         // Abrir AlmacenGeneral en modo salida normal

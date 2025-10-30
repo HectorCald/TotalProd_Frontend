@@ -22,6 +22,16 @@ function Select({
     const selectRef = useRef(null);
     const optionsRef = useRef(null);
 
+	// Si solo hay una opción, seleccionarla automáticamente y evitar despliegue
+	useEffect(() => {
+		if (options.length === 1) {
+			const onlyOption = options[0];
+			if (onlyOption && value !== onlyOption.value) {
+				onChange(onlyOption.value);
+			}
+		}
+	}, [options, value, onChange]);
+
 
     // Calcular la dirección de apertura
     useEffect(() => {
