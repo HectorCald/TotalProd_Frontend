@@ -4,7 +4,7 @@
     justify-content: flex-start;
     gap: 8px;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: 5px;
     font-size: 12px;
     font-weight: 400;
     width: 100%;
@@ -41,7 +41,7 @@
 }
 
 .text.warning {
-    border-left: 3px solid #ea580c;
+    border-left: 3px solid #ea990c;
 }
 
 .text.info {

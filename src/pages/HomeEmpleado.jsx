@@ -66,7 +66,7 @@ const HomeEmpleado = () => {
                 if (!currentVersion) return;
 
                 const storedVersion = localStorage.getItem('cacheVersion');
-                if (storedVersion && storedVersion !== currentVersion) {
+                if (!storedVersion || storedVersion !== currentVersion) {
                     setOldVersion(storedVersion);
                     setNewVersion(currentVersion);
                     setShowUpdateModal(true);

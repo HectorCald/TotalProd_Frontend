@@ -4,6 +4,9 @@ import HeaderModal from '../common/HeaderModal';
 import Etapa from '../common/Etapa';
 import Boton from '../common/Boton';
 import styles from '../../styles/Inicial.module.css';
+import ListaProfesional from '../common/ListaProfesional';
+import { detallesUpdate } from '../../constants/detallesUpdate';
+import Text from '../common/Text';
 
 function ModalActualizacion({
     isOpen,
@@ -54,13 +57,11 @@ function ModalActualizacion({
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} closed={true}>
             <HeaderModal title={'Actualización disponible'} onClose={() => { }} closed={true} />
             <div className={styles.modalContent}>
-                <p className={styles.subTitle}>Se encontró una nueva actualización.</p>
-                <div className={styles.contentModal} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <p className={styles.subTitle}>Versión anterior: {versionAnterior || 'N/A'}</p>
-                    <p className={styles.subTitle}>Versión nueva: {versionNueva || 'N/A'}</p>
-                </div>
+                <p className={styles.subTitle}>Versión anterior: {versionAnterior || 'N/A'}</p>
+                <p className={styles.subTitle}>Versión nueva: {versionNueva || 'N/A'}</p>
+                <ListaProfesional title={'Detalles de la actualización'} items={detallesUpdate} />
                 <Etapa etapas={etapas} etapaActual={etapaActual} />
-
+                <Text type="warning" align="left">Debe actualizar para continuar</Text>
 
                 <div className={styles.buttons}>
                     <Boton

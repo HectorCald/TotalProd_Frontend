@@ -25,8 +25,8 @@ function Text({
             case 'warning':
                 return {
                     icon: icon || 'error-circle',
-                    color: '#ea580c',
-                    bgColor: 'rgba(234, 88, 12, 0.1)'
+                    color: '#ea990c',
+                    bgColor: 'rgba(234, 142, 12, 0.1)'
                 };
             case 'info':
             default:
