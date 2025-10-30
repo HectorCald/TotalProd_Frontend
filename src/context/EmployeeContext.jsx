@@ -192,6 +192,12 @@ export const EmployeeProvider = ({ children }) => {
     });
   };
 
+  // Establecer empleado directamente desde una respuesta de servicio (sin re-fetch)
+  const setEmployeeFromService = (newEmployee) => {
+    if (!newEmployee) return;
+    setEmployee(newEmployee);
+  };
+
   const value = {
     employee,
     sucursalSeleccionada,
@@ -201,7 +207,8 @@ export const EmployeeProvider = ({ children }) => {
     seleccionarSucursal,
     loadEmployeeData,
     updateEmpresaImage,
-    updateSucursalEmpresaImage
+    updateSucursalEmpresaImage,
+    setEmployeeFromService
   };
 
   return (

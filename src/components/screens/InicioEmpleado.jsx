@@ -6,8 +6,11 @@ import styles from '../../styles/view.module.css';
 import './Inicio.css';
 import PullToRefresh from '../common/PullToRefresh';
 import NoData from '../common/NoData';
+import { useEmployee } from '../../context/EmployeeContext';
+import personalService from '../../services/personalService';
 
 const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
+  const { setEmployeeFromService } = useEmployee();
   // Obtener módulos principales disponibles con memoización
   const availableMainModules = useMemo(() => {
     return getAvailableMainModules(employee.modules || []);
@@ -18,7 +21,11 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
       {/* Contenido original para móvil */}
       <PullToRefresh
         onRefresh={async () => {
-          window.location.reload();
+          if (!employee || !employee.id) return;
+          const response = await personalService.getById(employee.id);
+          if (response && response.success && response.data) {
+            setEmployeeFromService(response.data);
+          }
         }}
         screenName="Inicio"
         containerStyle={{

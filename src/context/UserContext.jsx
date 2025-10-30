@@ -75,6 +75,12 @@ export const UserProvider = ({ children }) => {
         });
     };
 
+    // Establecer usuario directamente desde una respuesta de servicio (sin re-fetch)
+    const setUserFromService = (newUser) => {
+        if (!newUser) return;
+        setUser(newUser);
+    };
+
     const value = {
         user,
         sucursalSeleccionada,
@@ -82,7 +88,8 @@ export const UserProvider = ({ children }) => {
         clearUser,
         seleccionarSucursal,
         loadUserData,
-        updateEmpresaImage
+        updateEmpresaImage,
+        setUserFromService
     };
 
     return (

@@ -12,8 +12,11 @@ import conteosImage from '../../assets/conteos.png';
 import cotizacionesImage from '../../assets/cotizaciones.png';  
 import './Inicio.css';
 import PullToRefresh from '../common/PullToRefresh';
+import { useUser } from '../../context/UserContext';
+import UserService from '../../services/userService';
 
 const Inicio = ({ onViewOpen }) => {
+  const { user, setUserFromService } = useUser();
   const [notification, setNotification] = useState({
     isVisible: false,
     type: 'info',
@@ -47,7 +50,11 @@ const Inicio = ({ onViewOpen }) => {
       {/* Contenido original para móvil */}
       <PullToRefresh
         onRefresh={async () => {
-          window.location.reload();
+          if (!user || !user.id) return;
+          const response = await UserService.getCurrentUser(user.id);
+          if (response && response.success && response.data && response.data.user) {
+            setUserFromService(response.data.user);
+          }
         }}
         screenName="Inicio"
         containerStyle={{
