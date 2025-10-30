@@ -386,8 +386,8 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                             onClick={() => setIsEditarOpen(true)}
                         />
                     )}
-                    {/* Botones de pagos parciales */}
-                    {!isPagada && !isLargeScreen && (
+                    {/* Botón Registrar pago: visible si no está pagada */}
+                    {!isPagada && (
                         <Boton
                             className='btn-original'
                             label='Registrar pago'
