@@ -29,7 +29,7 @@
     transition: color 0.25s ease;
 }
 
-.opcion .icon {
+.icon {
     font-size: 22px;
     color: rgba(255, 255, 255, 0.9);
     font-weight: 500;

@@ -83,7 +83,8 @@ const Home = () => {
     // Mapear screenId a route
     const routeMap = {
       'inicio': '/dashboard/default',
-      'explorar': '/dashboard/explorar'
+      'explorar': '/dashboard/explorar',
+      'configuracion': '/dashboard/configuracion'
     };
     const route = routeMap[screenId] || '/dashboard/default';
     setActiveRoute(route);
@@ -192,7 +193,8 @@ const Home = () => {
           {/* BarraNavegacion para pantallas pequeñas */}
           <BarraNavegacion 
             activeScreen={activeRoute === '/dashboard/default' ? 'inicio' : 
-                         activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio'} 
+                         activeRoute === '/dashboard/explorar' ? 'explorar' : 
+                         activeRoute === '/dashboard/configuracion' ? 'configuracion' : 'inicio'} 
             onScreenChange={handleScreenChange}
             onViewOpen={handleViewOpen}
             isEmployee={false}
