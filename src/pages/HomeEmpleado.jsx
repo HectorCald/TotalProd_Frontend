@@ -34,6 +34,7 @@ import Deudas from '../components/views/deudas/PanelDeudas';
 import PanelConteos from '../components/views/conteos/PanelConteos';
 import PanelCotizaciones from '../components/views/cotizaciones/PanelCotizaciones';
 import personalService from '../services/personalService';
+import ModalActualizacion from '../components/ui/ModalActualizacion';
 
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, error } = useEmployee();
@@ -48,6 +49,34 @@ const HomeEmpleado = () => {
     const [isOffline, setIsOffline] = useState(false);
     const [showOfflineModal, setShowOfflineModal] = useState(false);
     const [lastLocationUpdate, setLastLocationUpdate] = useState(0);
+    const [showUpdateModal, setShowUpdateModal] = useState(false);
+    const [oldVersion, setOldVersion] = useState(null);
+    const [newVersion, setNewVersion] = useState(null);
+
+    // Detectar versión del cache y mostrar actualización (sin guardar aún)
+    useEffect(() => {
+        const checkCacheVersion = async () => {
+            try {
+                if (!('caches' in window)) return;
+                const cacheNames = await caches.keys();
+                const totalprodCache = cacheNames.find(name => name.startsWith('totalprod-cache-v'));
+                if (!totalprodCache) return;
+                const match = totalprodCache.match(/totalprod-cache-v(.+)/);
+                const currentVersion = match ? match[1] : null;
+                if (!currentVersion) return;
+
+                const storedVersion = localStorage.getItem('cacheVersion');
+                if (storedVersion && storedVersion !== currentVersion) {
+                    setOldVersion(storedVersion);
+                    setNewVersion(currentVersion);
+                    setShowUpdateModal(true);
+                }
+            } catch (e) {
+                // noop
+            }
+        };
+        checkCacheVersion();
+    }, []);
 
     // Detectar cambios en la conexión
     useEffect(() => {
@@ -482,6 +511,14 @@ const HomeEmpleado = () => {
                 isOpen={showOfflineModal}
                 setIsOpen={setShowOfflineModal}
                 onRetry={handleRetryConnection}
+            />
+
+            {/* Modal de actualización */}
+            <ModalActualizacion
+                isOpen={showUpdateModal}
+                setIsOpen={setShowUpdateModal}
+                versionAnterior={oldVersion}
+                versionNueva={newVersion}
             />
         </div>
     );

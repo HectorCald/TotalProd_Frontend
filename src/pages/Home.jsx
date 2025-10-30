@@ -19,6 +19,7 @@ import Personal from '../components/views/personal/Personal';
 import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
 import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
+import ModalActualizacion from '../components/ui/ModalActualizacion';
 
 const Home = () => {
   const { isLargeScreen } = useLayout();
@@ -26,6 +27,34 @@ const Home = () => {
   const [activeRoute, setActiveRoute] = useState('/dashboard/default');
   const [isOffline, setIsOffline] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [oldVersion, setOldVersion] = useState(null);
+  const [newVersion, setNewVersion] = useState(null);
+
+  // Detectar versión del cache y mostrar actualización (sin guardar aún)
+  useEffect(() => {
+    const checkCacheVersion = async () => {
+      try {
+        if (!('caches' in window)) return;
+        const cacheNames = await caches.keys();
+        const totalprodCache = cacheNames.find(name => name.startsWith('totalprod-cache-v'));
+        if (!totalprodCache) return;
+        const match = totalprodCache.match(/totalprod-cache-v(.+)/);
+        const currentVersion = match ? match[1] : null;
+        if (!currentVersion) return;
+
+        const storedVersion = localStorage.getItem('cacheVersion');
+        if (storedVersion && storedVersion !== currentVersion) {
+          setOldVersion(storedVersion);
+          setNewVersion(currentVersion);
+          setShowUpdateModal(true);
+        }
+      } catch (e) {
+        // noop
+      }
+    };
+    checkCacheVersion();
+  }, []);
 
   // Detectar cambios en la conexión
   useEffect(() => {
@@ -249,6 +278,14 @@ const Home = () => {
         isOpen={showOfflineModal}
         setIsOpen={setShowOfflineModal}
         onRetry={handleRetryConnection}
+      />
+
+      {/* Modal de actualización */}
+      <ModalActualizacion
+        isOpen={showUpdateModal}
+        setIsOpen={setShowUpdateModal}
+        versionAnterior={oldVersion}
+        versionNueva={newVersion}
       />
     </div>
   );
