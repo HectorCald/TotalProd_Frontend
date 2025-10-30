@@ -1,4 +1,4 @@
-const CACHE_NAME = 'totalprod-cache-v1.8.5';
+const CACHE_NAME = 'totalprod-cache-v1.8.6';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -92,4 +92,44 @@ self.addEventListener('activate', event => {
       return self.clients.claim();
     })
   );
+});
+
+// Utilidad: enviar mensaje a todos los clientes controlados
+async function broadcastMessage(message) {
+  const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  for (const client of clientsList) {
+    client.postMessage(message);
+  }
+}
+
+// Manejar mensajes desde la app (por ejemplo, al recuperar el foco)
+self.addEventListener('message', async (event) => {
+  const data = event.data || {};
+  if (data && data.type === 'CHECK_FOR_UPDATE') {
+    try {
+      // Forzar chequeo de actualización del SW
+      await self.registration.update();
+
+      // Detectar si hay un SW en espera
+      if (self.registration.waiting) {
+        await broadcastMessage({ type: 'UPDATE_AVAILABLE', source: 'sw', reason: 'waiting_sw' });
+        return;
+      }
+
+      // Alternativa: comparar caches por nombre (ej. totalprod-cache-vX)
+      const cacheNames = await caches.keys();
+      const latestCache = cacheNames.find(name => name.startsWith('totalprod-cache-v'));
+      if (latestCache && latestCache !== CACHE_NAME) {
+        await broadcastMessage({ type: 'UPDATE_AVAILABLE', source: 'sw', reason: 'new_cache', cacheName: latestCache });
+      }
+    } catch (err) {
+      // Avisar fallo opcionalmente
+      await broadcastMessage({ type: 'UPDATE_CHECK_FAILED', error: String(err) });
+    }
+  }
+
+  // Permitir activar inmediatamente el nuevo SW bajo demanda
+  if (data && data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });

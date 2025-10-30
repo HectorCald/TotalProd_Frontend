@@ -56,6 +56,74 @@ const Home = () => {
     checkCacheVersion();
   }, []);
 
+  // Integración con Service Worker: escuchar y forzar chequeos al recuperar foco
+  useEffect(() => {
+    const handleSWMessage = async (event) => {
+      const data = event.data || {};
+      if (data.type === 'UPDATE_AVAILABLE') {
+        try {
+          // Calcular versiones
+          let currentVersion = null;
+          if (data.reason === 'new_cache' && data.cacheName) {
+            const match = data.cacheName.match(/totalprod-cache-v(.+)/);
+            currentVersion = match ? match[1] : null;
+          } else {
+            // Fallback leyendo caches
+            const cacheNames = await caches.keys();
+            const totalprodCache = cacheNames.find(name => name.startsWith('totalprod-cache-v'));
+            const match = totalprodCache ? totalprodCache.match(/totalprod-cache-v(.+)/) : null;
+            currentVersion = match ? match[1] : null;
+          }
+          if (currentVersion) {
+            const storedVersion = localStorage.getItem('cacheVersion');
+            if (!storedVersion || storedVersion !== currentVersion) {
+              setOldVersion(storedVersion);
+              setNewVersion(currentVersion);
+              setShowUpdateModal(true);
+            }
+          }
+        } catch (_) {}
+      }
+    };
+
+    const requestUpdateCheck = () => {
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        try {
+          navigator.serviceWorker.controller.postMessage({ type: 'CHECK_FOR_UPDATE' });
+        } catch (_) {}
+      }
+    };
+
+    // Escuchar mensajes del SW
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', handleSWMessage);
+    }
+
+    // Disparar chequeos al recuperar foco/visibilidad
+    window.addEventListener('focus', requestUpdateCheck);
+    window.addEventListener('pageshow', requestUpdateCheck);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) requestUpdateCheck();
+    });
+
+    // Primer chequeo diferido por si el SW aún se registra
+    const t = setTimeout(requestUpdateCheck, 1000);
+    const interval = setInterval(requestUpdateCheck, 60000);
+
+    return () => {
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+      }
+      window.removeEventListener('focus', requestUpdateCheck);
+      window.removeEventListener('pageshow', requestUpdateCheck);
+      document.removeEventListener('visibilitychange', () => {
+        if (!document.hidden) requestUpdateCheck();
+      });
+      clearTimeout(t);
+      clearInterval(interval);
+    };
+  }, []);
+
   // Detectar cambios en la conexión
   useEffect(() => {
     const handleOnline = () => {
