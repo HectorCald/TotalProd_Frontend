@@ -87,7 +87,6 @@
     justify-content: flex-start;
     width: 100%;
     gap: 10px;
-    height: calc(100vh - 50px);
     padding: 10px 15px;
     padding-bottom: 90px;
     overflow-y: auto;

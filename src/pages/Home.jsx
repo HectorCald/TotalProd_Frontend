@@ -4,10 +4,12 @@ import Nav from '../components/ui/Nav';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
 import BarraLateral from '../components/ui/BarraLateral';
 import { useLayout } from '../context/LayoutContext';
+import { useUser } from '../context/UserContext';
 import Inicio from '../components/screens/Inicio';
 import InicioPC from '../components/screens/InicioPC';
 import Explorar from '../components/screens/Explorar';
 import ModalOffline from '../components/views/offline/ModalOffline';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
 import AlmacenMedioGeneral from '../components/views/almacen-general/AlmacenMedioGeneral';
@@ -23,6 +25,7 @@ import ModalActualizacion from '../components/ui/ModalActualizacion';
 
 const Home = () => {
   const { isLargeScreen } = useLayout();
+  const { user } = useUser();
   const [activeView, setActiveView] = useState(null);
   const [activeRoute, setActiveRoute] = useState('/dashboard/default');
   const [isOffline, setIsOffline] = useState(false);
@@ -221,6 +224,11 @@ const Home = () => {
   };
 
 
+
+  // Mostrar loading hasta obtener la información del usuario
+  if (!user) {
+    return <LoadingSpinner fullScreen={true} text="Cargando usuario..." icon="user" />;
+  }
 
   return (
     <div className="home-page">

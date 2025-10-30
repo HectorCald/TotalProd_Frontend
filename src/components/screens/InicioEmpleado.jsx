@@ -4,6 +4,8 @@ import AtajoAnuncio from '../common/AtajoAnuncio';
 import InicioEmpleadoPC from './InicioEmpleadoPC';
 import styles from '../../styles/view.module.css';
 import './Inicio.css';
+import PullToRefresh from '../common/PullToRefresh';
+import NoData from '../common/NoData';
 
 const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
   // Obtener módulos principales disponibles con memoización
@@ -14,8 +16,23 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
   return (
     <>
       {/* Contenido original para móvil */}
-      <div className="inicio-mobile">
-        <div className={styles.modulos}>
+      <PullToRefresh
+        onRefresh={async () => {
+          window.location.reload();
+        }}
+        screenName="Inicio"
+        containerStyle={{
+          height: 'calc(100vh - 50px)',
+          minHeight: 'calc(100vh - 50px)',
+          paddingBottom: '90px',
+          gap: '10px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          justifyContent: 'flex-start',
+          paddingTop: '10px',
+        }}
+      >
           {(() => {
             // Agrupar por secciones como en la barra lateral del empleado
             const sectionMap = {
@@ -82,14 +99,18 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
               </div>
             ));
           })()}
-        </div>
+      
 
         {availableMainModules.length === 0 && (
-          <div className={styles.noData}>
-            <p>No tienes módulos asignados</p>
-          </div>
+          <NoData
+            icon="category"
+            title="No tienes módulos asignados"
+            detail="Pide al administrador que te asigne módulos para comenzar"
+            transparent={true}
+            minHeight="200px"
+          />
         )}
-      </div>
+      </PullToRefresh>
 
       {/* Contenido para pantallas grandes */}
       <div className="inicio-desktop">

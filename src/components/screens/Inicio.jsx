@@ -11,6 +11,7 @@ import pedidosImage from '../../assets/pedidos.png';
 import conteosImage from '../../assets/conteos.png';
 import cotizacionesImage from '../../assets/cotizaciones.png';  
 import './Inicio.css';
+import PullToRefresh from '../common/PullToRefresh';
 
 const Inicio = ({ onViewOpen }) => {
   const [notification, setNotification] = useState({
@@ -44,64 +45,75 @@ const Inicio = ({ onViewOpen }) => {
     <>
 
       {/* Contenido original para móvil */}
-      <div className="inicio-mobile" style={{ paddingInline: '15px' }}>
-        <p className="subTitle">Funciones</p>
-        <div className="funciones">
-          {FUNCTIONS.slice(0, 4).map((func) => (
-            <Coleccion
-              key={func.name}
-              title={func.name}
-              icon={func.icon}
-              onClick={() => handleFunctionClick(func)}
+      <PullToRefresh
+        onRefresh={async () => {
+          window.location.reload();
+        }}
+        screenName="Inicio"
+        containerStyle={{
+          maxHeight: 'calc(100%)',
+          minHeight: 'calc(100%)',
+        }}
+      >
+        <div className="inicio-mobile">
+          <p className="subTitle">Funciones</p>
+          <div className="funciones">
+            {FUNCTIONS.slice(0, 4).map((func) => (
+              <Coleccion
+                key={func.name}
+                title={func.name}
+                icon={func.icon}
+                onClick={() => handleFunctionClick(func)}
+              />
+            ))}
+          </div>
+          <p className="subTitle">Atajos</p>
+          <div className="atajoAnuncio">
+            <AtajoAnuncio 
+              title="Almacén General" 
+              description="Administra tu almacén de productos terminados, realiza entradas y salidas." 
+              image={almacenImage} 
+              onClick={() => onViewOpen('almacenMedioGeneral')} 
             />
-          ))}
+            <AtajoAnuncio 
+              title="Materia Prima" 
+              description="Administra tu materia prima, realiza entradas y salidas." 
+              image={acopioImage} 
+              onClick={() => onViewOpen('almacenMedio')} 
+            />
+          </div>
+          <p className="subTitle">Otros</p>
+          <div className="atajoAnuncioOtros">
+            <AtajoAnuncio 
+              title="Movimientos" 
+              description="" 
+              image={movimientosImage} 
+              onClick={() => onViewOpen('movimientos')} 
+            />
+            <AtajoAnuncio 
+              title="Pedidos" 
+              description="" 
+              image={pedidosImage} 
+              onClick={() => onViewOpen('pedidos')} 
+            />
+          </div>
+          <p className="subTitle">Extras</p>
+          <div className="atajoAnuncioOtros">
+            <AtajoAnuncio 
+              title="Conteos" 
+              description="" 
+              image={conteosImage} 
+              onClick={() => onViewOpen('conteos')} 
+            />
+            <AtajoAnuncio 
+              title="Cotizaciones" 
+              description="" 
+              image={cotizacionesImage} 
+              onClick={() => onViewOpen('cotizaciones')} 
+            />
+          </div>
         </div>
-        <p className="subTitle">Atajos</p>
-        <div className="atajoAnuncio">
-          <AtajoAnuncio 
-            title="Almacén General" 
-            description="Administra tu almacén de productos terminados, realiza entradas y salidas." 
-            image={almacenImage} 
-            onClick={() => onViewOpen('almacenMedioGeneral')} 
-          />
-          <AtajoAnuncio 
-            title="Materia Prima" 
-            description="Administra tu materia prima, realiza entradas y salidas." 
-            image={acopioImage} 
-            onClick={() => onViewOpen('almacenMedio')} 
-          />
-        </div>
-        <p className="subTitle">Otros</p>
-        <div className="atajoAnuncioOtros">
-          <AtajoAnuncio 
-            title="Movimientos" 
-            description="" 
-            image={movimientosImage} 
-            onClick={() => onViewOpen('movimientos')} 
-          />
-          <AtajoAnuncio 
-            title="Pedidos" 
-            description="" 
-            image={pedidosImage} 
-            onClick={() => onViewOpen('pedidos')} 
-          />
-        </div>
-        <p className="subTitle">Extras</p>
-        <div className="atajoAnuncioOtros">
-          <AtajoAnuncio 
-            title="Conteos" 
-            description="" 
-            image={conteosImage} 
-            onClick={() => onViewOpen('conteos')} 
-          />
-          <AtajoAnuncio 
-            title="Cotizaciones" 
-            description="" 
-            image={cotizacionesImage} 
-            onClick={() => onViewOpen('cotizaciones')} 
-          />
-        </div>
-      </div>
+      </PullToRefresh>
 
       {/* Contenido para pantallas grandes */}
       <div className="inicio-desktop">

@@ -9,7 +9,6 @@ import imagenProveedores from '../assets/proveedores.png';
 import imagenGastos from '../assets/gastos.png';
 import imagenDeudas from '../assets/deudas.png';
 import imagenReportes from '../assets/reporte-ia.png';
-import imageImport from '../assets/import-export.png';
 import imageBalance from '../assets/balance.png';
 import imageDamabrava from '../assets/damabrava/damabrava.png';
 import imageConteos from '../assets/conteos.png';
@@ -20,7 +19,7 @@ export const MODULES = {
     Almacen: {
         name: 'Almacén General',
         imagen: imagenAlmacen,
-        descripcion: 'Administra tu almacén de productos terminados.',
+        descripcion: 'Administra tu almacén de productos.',
 
         realizar_salidas: {
             name: 'Salida o Venta',
@@ -100,7 +99,7 @@ export const MODULES = {
         },
         realizar_conteo: {
             name: 'Pesaje',
-            description: 'Realizar conteo (pesaje) de materia prima',
+            description: 'Realizar pesaje de materia prima',
             icon: 'calculator',
             component: 'AlmacenAcopioAuxiliar',
             props: { tipo: 'conteo' }
@@ -253,25 +252,25 @@ export const MODULES = {
     Damabrava: {
         name: 'Damabrava',
         imagen: imageDamabrava,
-        descripcion: 'Registra y verifica la producción de damabrava.',
+        descripcion: 'Funcionalidades de Damabrava.',
         
         formulario: {
             name: 'Formulario',
-            description: 'Registra una nueva producción de damabrava.',
+            description: 'Registra una nueva producción.',
             icon: 'detail',
             component: 'FormularioProduccion',
             props: { tipo: 'almacen' }
         },
         verificar: {
             name: 'Verificación',
-            description: 'Verifica la producción de damabrava.',
+            description: 'Verifica la producción.',
             icon: 'list-check',
             component: 'VerificarProduccion',
             props: {}
         },
         mi_produccion: {
             name: 'Mi Producción',
-            description: 'Visualiza tu producción de damabrava.',
+            description: 'Visualiza tu producción.',
             icon: 'archive',
             component: 'MiProduccion',
             props: {}
