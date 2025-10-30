@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -11,9 +11,13 @@ import deudasService from '../../../services/deudasService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
+import DescargaDeudaBuilder from './DescargaDeudaBuilder';
 import EditarAgregarDeuda from './EditarAgregarDeuda';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import VerMovimiento from '../movimientos/VerMovimiento';
+import InputDate from '../../common/InputDate';
+import InputNormal from '../../common/InputNormal';
+import NoData from '../../common/NoData';
 
 function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualizada }) {
     const [loading, setLoading] = useState(false);
@@ -22,25 +26,50 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
     const [isEditarOpen, setIsEditarOpen] = useState(false);
     const [movimientoDetalle, setMovimientoDetalle] = useState(null);
     const [isMovimientoDetalleOpen, setIsMovimientoDetalleOpen] = useState(false);
+    const [isRegistrarPagoOpen, setIsRegistrarPagoOpen] = useState(false);
+    const [isVerPagosOpen, setIsVerPagosOpen] = useState(false);
+    const [pagos, setPagos] = useState([]);
+    const [loadingPagos, setLoadingPagos] = useState(false);
+    const [pagoForm, setPagoForm] = useState({ fecha: '', monto: '' });
+    const [deletingPagoId, setDeletingPagoId] = useState(null);
+    const [isEditarVencOpen, setIsEditarVencOpen] = useState(false);
+    const [fechaVencEdit, setFechaVencEdit] = useState('');
+
+    // Estado local para la deuda actual
+    const [deudaActual, setDeudaActual] = useState(deuda);
+    useEffect(() => {
+        setDeudaActual(deuda);
+    }, [deuda]);
+
+    // Inicializar fecha de vencimiento para edición
+    useEffect(() => {
+        if (isEditarVencOpen && deudaActual?.fecha_vencimiento) {
+            const d = new Date(deudaActual.fecha_vencimiento);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            setFechaVencEdit(`${yyyy}-${mm}-${dd}`);
+        }
+    }, [isEditarVencOpen, deudaActual?.fecha_vencimiento]);
 
     // Función para preparar datos de descarga
     const prepararDatosDescarga = () => {
-        if (!deuda) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
+        if (!deudaActual) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
 
         // Información superior
         const informacionSuperior = {
-            'Responsable': deuda?.user?.name || deuda?.personal?.name || 'Usuario desconocido',
-            'Fecha Deuda': new Date(deuda?.fecha_deuda).toLocaleString(),
-            'Fecha Vencimiento': new Date(deuda?.fecha_vencimiento).toLocaleString(),
-            'Concepto': deuda?.concepto || 'Sin concepto',
-            'Monto Total': `Bs. ${(parseFloat(deuda?.monto_total) || 0).toFixed(2)}`,
-            'Saldo Pendiente': `Bs. ${(parseFloat(deuda?.saldo_pendiente) || 0).toFixed(2)}`,
-            'Estado': deuda?.estado || 'Sin estado',
-            'Sucursal': deuda?.sucursal?.name || 'Sucursal no encontrada'
+            'Responsable': deudaActual?.user?.name || deudaActual?.personal?.name || 'Usuario desconocido',
+            'Fecha Deuda': new Date(deudaActual?.fecha_deuda).toLocaleString(),
+            'Fecha Vencimiento': new Date(deudaActual?.fecha_vencimiento).toLocaleString(),
+            'Concepto': deudaActual?.concepto || 'Sin concepto',
+            'Monto Total': `Bs. ${(parseFloat(deudaActual?.monto_total) || 0).toFixed(2)}`,
+            'Saldo Pendiente': `Bs. ${(parseFloat(deudaActual?.saldo_pendiente) || 0).toFixed(2)}`,
+            'Estado': deudaActual?.estado || 'Sin estado',
+            'Sucursal': deudaActual?.sucursal?.name || 'Sucursal no encontrada'
         };
 
-        if (deuda?.cliente?.name) {
-            informacionSuperior['Cliente'] = deuda.cliente.name;
+        if (deudaActual?.cliente?.name) {
+            informacionSuperior['Cliente'] = deudaActual.cliente.name;
         }
 
         // No hay tabla para deudas, solo información
@@ -69,14 +98,14 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
 
     // Función para ver detalle del movimiento
     const handleVerDetalleMovimiento = async () => {
-        if (!deuda?.movimiento_salida_id) {
+        if (!deudaActual?.movimiento_salida_id) {
             mostrarNotificacion('error', 'No hay movimiento asociado a esta deuda');
             return;
         }
 
         try {
             setLoading(true);
-            const response = await movimientosAlmacenService.getById(deuda.movimiento_salida_id);
+            const response = await movimientosAlmacenService.getById(deudaActual.movimiento_salida_id);
 
             if (response.success) {
                 setMovimientoDetalle(response.data);
@@ -94,34 +123,96 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
 
     // Función para manejar cuando se actualiza una deuda
     const handleDeudaUpdated = (deudaActualizada) => {
-        if (onDeudaActualizada) {
-            onDeudaActualizada(deudaActualizada);
-        }
+        setDeudaActual(deudaActualizada);
+        if (onDeudaActualizada) onDeudaActualizada(deudaActualizada);
         setIsEditarOpen(false);
-        setIsOpen(false);
     };
 
 
-    // Función para marcar como pagada
-    const handleMarcarComoPagada = async () => {
+    // Cargar pagos parciales cuando se abre el modal de pagos
+    useEffect(() => {
+        const cargarPagos = async () => {
+            if (!deuda?.id) return;
+            setLoadingPagos(true);
+            try {
+                const response = await deudasService.getPagosParciales(deuda.id);
+                if (response.success) {
+                    setPagos(response.data);
+                } else {
+                    mostrarNotificacion('error', response.message || 'Error al obtener pagos parciales');
+                }
+            } catch (e) {
+                console.error('Error obteniendo pagos parciales:', e);
+                mostrarNotificacion('error', 'Error al obtener pagos parciales');
+            } finally {
+                setLoadingPagos(false);
+            }
+        };
+        if (isVerPagosOpen) {
+            cargarPagos();
+        } else {
+            setPagos([]);
+        }
+    }, [isVerPagosOpen, deuda?.id]);
+
+    // Inicializar formulario de pago cuando se abre el modal
+    useEffect(() => {
+        if (isRegistrarPagoOpen) {
+            const hoy = new Date();
+            const fechaHoy = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+            setPagoForm({ fecha: fechaHoy, monto: '' });
+        }
+    }, [isRegistrarPagoOpen]);
+
+    const handleSubmitPago = async () => {
+        if (!pagoForm.monto || parseFloat(pagoForm.monto) <= 0) {
+            mostrarNotificacion('error', 'El monto es obligatorio y debe ser mayor a 0');
+            return;
+        }
+        if (!pagoForm.fecha) {
+            mostrarNotificacion('error', 'La fecha es obligatoria');
+            return;
+        }
         setLoading(true);
         try {
-            const response = await deudasService.updateEstado(deuda.id, 'pagada', 0);
-
+            const response = await deudasService.createPagoParcial(deudaActual.id, { monto: parseFloat(pagoForm.monto), fecha: pagoForm.fecha });
             if (response.success) {
-                if (onDeudaActualizada) {
-                    onDeudaActualizada({ ...deuda, estado: 'pagada', saldo_pendiente: 0 });
-                }
-                mostrarNotificacion('success', 'Deuda marcada como pagada');
-                setIsOpen(false);
+                const deudaActualizada = response.data?.deuda || { ...deudaActual };
+                setDeudaActual(deudaActualizada);
+                if (onDeudaActualizada) onDeudaActualizada(deudaActualizada);
+                mostrarNotificacion('success', 'Pago parcial registrado');
+                setIsRegistrarPagoOpen(false);
             } else {
-                mostrarNotificacion('error', response.message || 'Error al actualizar el estado');
+                mostrarNotificacion('error', response.message || 'Error al registrar el pago');
             }
-        } catch (error) {
-            console.error('Error actualizando estado:', error);
-            mostrarNotificacion('error', 'Error al actualizar el estado');
+        } catch (e) {
+            console.error('Error registrando pago parcial:', e);
+            mostrarNotificacion('error', 'Error al registrar el pago parcial');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEliminarPago = async (pagoId) => {
+        setDeletingPagoId(pagoId);
+        try {
+            const response = await deudasService.deletePagoParcial(deudaActual.id, pagoId);
+            if (response.success) {
+                // refrescar lista
+                const listResp = await deudasService.getPagosParciales(deudaActual.id);
+                if (listResp.success) setPagos(listResp.data);
+                // notificar y actualizar deuda en padre
+                setDeudaActual(response.data);
+                if (onDeudaActualizada) onDeudaActualizada(response.data);
+                mostrarNotificacion('success', 'Pago parcial eliminado');
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al eliminar el pago');
+            }
+        } catch (e) {
+            console.error('Error eliminando pago parcial:', e);
+            mostrarNotificacion('error', 'Error al eliminar el pago parcial');
+        } finally {
+            setDeletingPagoId(null);
         }
     };
 
@@ -148,8 +239,26 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
         }
     };
 
-    // Verificar si la deuda está vencida
-    const isVencida = new Date(deuda?.fecha_vencimiento) < new Date() && deuda?.estado === 'pendiente';
+    // Verificar si la deuda está vencida y estados de pago
+    const isVencida = new Date(deudaActual?.fecha_vencimiento) < new Date() && deudaActual?.estado === 'pendiente';
+    const montoTotalNum = parseFloat(deudaActual?.monto_total) || 0;
+    const saldoPendienteNum = parseFloat(deudaActual?.saldo_pendiente) || 0;
+    const hasPagosParciales = saldoPendienteNum > 0 && saldoPendienteNum < montoTotalNum;
+    const isPagada = saldoPendienteNum === 0 || deudaActual?.estado === 'pagada';
+
+    // Formateador seguro de fechas YYYY-MM-DD sin cambiar de día por zona horaria
+    const formatDate = (val) => {
+        if (!val) return '';
+        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            const [y, m, d] = val.split('-');
+            return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
+        }
+        try {
+            return new Date(val).toLocaleDateString();
+        } catch {
+            return String(val);
+        }
+    };
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -168,24 +277,24 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                 </h1>
 
                 <p className={styles.subTitle}>RESPONSABLE DE LA DEUDA</p>
-                <ItemView
-                    title={deuda?.user?.name || deuda?.personal?.name || 'Usuario desconocido'}
+                    <ItemView
+                    title={deudaActual?.user?.name || deudaActual?.personal?.name || 'Usuario desconocido'}
                     description="Registro de la deuda"
                     transparent={false}
                 />
                 <p className={styles.subTitle}>INFORMACIÓN DE LA DEUDA</p>
                 {/* Mostrar cliente o sucursal destino según corresponda */}
-                {deuda?.destino_sucursal_id ? (
+                {deudaActual?.destino_sucursal_id ? (
                     <ItemView
-                        title={deuda.sucursal_destino?.name || 'Sucursal no encontrada'}
+                        title={deudaActual.sucursal_destino?.name || 'Sucursal no encontrada'}
                         description="Sucursal Destino"
                         transparent={false}
                         icon='store'
                     />
                 ) : (
-                    deuda?.cliente?.name && (
+                    deudaActual?.cliente?.name && (
                         <ItemView
-                            title={deuda.cliente.name}
+                            title={deudaActual.cliente.name}
                             description="Cliente"
                             transparent={false}
                         />
@@ -194,46 +303,46 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                 <div className={styles.content}>
                     <Dato
                         label="Concepto"
-                        value={deuda?.concepto || 'Sin concepto'}
+                        value={deudaActual?.concepto || 'Sin concepto'}
                         vertical={false}
                     />
                     <Dato
                         label="Fecha de deuda"
-                        value={`${new Date(deuda?.fecha_deuda).toLocaleDateString()}`}
+                        value={formatDate(deudaActual?.fecha_deuda)}
                         vertical={false}
                     />
                     <Dato
                         label="Fecha de vencimiento"
-                        value={`${new Date(deuda?.fecha_vencimiento).toLocaleDateString()}`}
+                        value={formatDate(deudaActual?.fecha_vencimiento)}
                         vertical={false}
                     />
                     <Dato
                         label="Estado"
-                        value={deuda?.estado}
+                        value={deudaActual?.estado}
                         vertical={false}
-                        especial={deuda?.estado === 'pendiente' ? 'red' : deuda?.estado === 'pagada' ? 'blue' : 'gray'}
+                        especial={deudaActual?.estado === 'pendiente' ? 'red' : deudaActual?.estado === 'pagada' ? 'blue' : 'gray'}
                     />
                     <Dato
                         label="Sucursal deuda"
-                        value={deuda?.sucursal?.name || 'No especificada'}
+                        value={deudaActual?.sucursal?.name || 'No especificada'}
                         vertical={false}
                     />
                     <Dato
                         label="Monto Total"
-                        value={`Bs. ${(parseFloat(deuda?.monto_total) || 0).toFixed(2)}`}
+                        value={`Bs. ${(parseFloat(deudaActual?.monto_total) || 0).toFixed(2)}`}
                         vertical={false}
                         especial='blue'
                     />
 
                     <Dato
                         label="Saldo Pendiente"
-                        value={`Bs. ${(parseFloat(deuda?.saldo_pendiente) || 0).toFixed(2)}`}
+                        value={`Bs. ${(parseFloat(deudaActual?.saldo_pendiente) || 0).toFixed(2)}`}
                         vertical={false}
-                        especial={deuda?.saldo_pendiente > 0 ? 'red' : 'green'}
+                        especial={deudaActual?.saldo_pendiente > 0 ? 'red' : 'green'}
                     />
                 </div>
                 {/* Botón Ver Detalle del Movimiento */}
-                {deuda?.movimiento_salida_id && (
+                {deudaActual?.movimiento_salida_id && (
                     <Boton
                         className='btn-gray'
                         label='Ver Detalle'
@@ -242,11 +351,17 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                     />
 
                 )}
+                
+                <Boton
+                    className='btn-gray'
+                    label='Ver Pagos'
+                    onClick={() => setIsVerPagosOpen(true)}
+                />
 
 
                 <div className={styles.buttons}>
-                    {/* Solo mostrar botones de eliminar y editar si NO tiene movimiento_salida_id */}
-                    {!deuda?.movimiento_salida_id && (
+                    {/* Si NO tiene movimiento: permitir eliminar/editar solo si no hay pagos parciales y no está pagada */}
+                    {!deudaActual?.movimiento_salida_id && !hasPagosParciales && !isPagada && (
                         <>
                             <Boton
                                 className='btn-red'
@@ -261,44 +376,47 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                             />
                         </>
                     )}
-                    {/* Botones de acciones rápidas */}
-                    {deuda?.estado === 'pendiente' && (
-
-                        <>
-                            <Boton
-                                className='btn-original'
-                                label='Marcar como Pagada'
-                                onClick={handleMarcarComoPagada}
-                                loading={loading}
-                            />
-                            {isVencida && (
-                                <Boton
-                                    className='btn-red'
-                                    label='Marcar como Vencida'
-                                    onClick={handleMarcarComoVencida}
-                                    loading={loading}
-                                />
-                            )}
-                        </>
+                    {/* Si TIENE movimiento: permitir editar (para cambiar solo vencimiento y concepto) si no está pagada */}
+                    {deudaActual?.movimiento_salida_id && !isPagada && (
+                        <Boton
+                            className='btn-default'
+                            label='Editar Deuda'
+                            onClick={() => setIsEditarOpen(true)}
+                        />
+                    )}
+                    {/* Botones de pagos parciales */}
+                    {!isPagada && (
+                        <Boton
+                            className='btn-original'
+                            label='Registrar pago'
+                            onClick={() => setIsRegistrarPagoOpen(true)}
+                            loading={loading}
+                        />
+                    )}
+                    {/* Mantener marcar como vencida si aplica */}
+                    {deudaActual?.estado === 'pendiente' && isVencida && (
+                        <Boton
+                            className='btn-red'
+                            label='Marcar como Vencida'
+                            onClick={handleMarcarComoVencida}
+                            loading={loading}
+                        />
                     )}
                 </div>
             </div>
 
-            {/* Modal de descarga */}
-            <ModalDescarga
+            {/* Modal de descarga de deuda con movimiento y pagos parciales */}
+            <DescargaDeudaBuilder
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
-                titulo="Descargar Deuda"
-                subtitulo="Selecciona el formato que prefieras para descargar esta deuda."
-                nombreArchivo={`Deuda_${new Date(deuda?.fecha_deuda).toLocaleDateString().replace(/\//g, '-')}_${deuda?.concepto?.replace(/[^a-zA-Z0-9]/g, '_') || 'deuda'}`}
-                {...prepararDatosDescarga()}
+                deuda={deudaActual}
             />
 
             {/* Modal de editar deuda */}
             <EditarAgregarDeuda
                 isOpen={isEditarOpen}
                 setIsOpen={setIsEditarOpen}
-                deuda={deuda}
+                deuda={deudaActual}
                 tipo='editar'
                 onDeudaUpdated={handleDeudaUpdated}
             />
@@ -328,14 +446,14 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                             onClick={async () => {
                                 setLoading(true);
                                 try {
-                                    const response = await deudasService.delete(deuda.id);
+                                    const response = await deudasService.delete(deudaActual.id);
 
                                     if (response.success) {
                                         setIsEliminarOpen(false);
                                         setIsOpen(false);
 
                                         if (onDeudaEliminada) {
-                                            onDeudaEliminada(deuda.id);
+                                            onDeudaEliminada(deudaActual.id);
                                         }
                                     } else {
                                         mostrarNotificacion('error', response.message || 'Error al eliminar la deuda');
@@ -364,6 +482,129 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                 type={notification.type}
                 text={notification.text}
             />
+
+            {/* Modal Registrar Pago Parcial */}
+            <ViewModal isOpen={isRegistrarPagoOpen} setIsOpen={setIsRegistrarPagoOpen}>
+                <HeaderModal
+                    title='Registrar Pago Parcial'
+                    onClose={() => setIsRegistrarPagoOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>INFORMACIÓN DEL PAGO</p>
+                    <InputDate
+                        mode='date'
+                        value={pagoForm.fecha}
+                        onChange={(val) => setPagoForm(prev => ({ ...prev, fecha: val }))}
+                        placeholder='Fecha del pago'
+                        icon='calendar'
+                    />
+                    <InputNormal
+                        tipo='number'
+                        value={pagoForm.monto}
+                        placeholder='Monto del pago (Bs.)'
+                        onChange={(e) => setPagoForm(prev => ({ ...prev, monto: e.target.value }))}
+                        icon='money'
+                        step='0.01'
+                        min='0'
+                    />
+                    <Boton
+                        className='btn-original'
+                        label='Registrar Pago'
+                        style={{ marginTop: 'auto' }}
+                        onClick={handleSubmitPago}
+                        loading={loading}
+                        disabled={!pagoForm.fecha || !pagoForm.monto}
+                    />
+                </div>
+            </ViewModal>
+
+            {/* Modal Ver Pagos Parciales */}
+            <ViewModal isOpen={isVerPagosOpen} setIsOpen={setIsVerPagosOpen}>
+                <HeaderModal
+                    title='Pagos Parciales'
+                    onClose={() => setIsVerPagosOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>HISTORIAL DE PAGOS</p>
+                    {loadingPagos ? (
+                        <NoData 
+                            icon="loader-alt"
+                            title="Cargando pagos..."
+                            detail="Obteniendo el historial de pagos"
+                            transparent={true}
+                            minHeight="150px"
+                        />
+                    ) : pagos.length > 0 ? (
+                        pagos.map((p) => (
+                            <Dato
+                                key={p.id}
+                                label={new Date(p.fecha).toLocaleDateString()}
+                                value={`Bs. ${(parseFloat(p.monto) || 0).toFixed(2)}`}
+                                icon={deletingPagoId === p.id ? 'loader-alt' : 'trash'}
+                                iconLoading={deletingPagoId === p.id}
+                                onClick={() => (deletingPagoId ? null : handleEliminarPago(p.id))}
+                                vertical={false}
+                            />
+                        ))
+                    ) : (
+                        <NoData 
+                            icon="history"
+                            title="No hay pagos"
+                            detail="Esta deuda no tiene pagos registrados aún"
+                            transparent={true}
+                            minHeight="150px"
+                        />
+                    )}
+                </div>
+            </ViewModal>
+
+            {/* Modal Editar Fecha de Vencimiento (para deudas con movimiento) */}
+            <ViewModal isOpen={isEditarVencOpen} setIsOpen={setIsEditarVencOpen}>
+                <HeaderModal
+                    title="Editar Fecha de Vencimiento"
+                    onClose={() => setIsEditarVencOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>NUEVA FECHA DE VENCIMIENTO</p>
+                    <InputDate
+                        mode='date'
+                        value={fechaVencEdit}
+                        onChange={(val) => setFechaVencEdit(val)}
+                        placeholder='Fecha de vencimiento'
+                        icon='time'
+                    />
+                    <Boton
+                        className='btn-original'
+                        label='Guardar'
+                        style={{ marginTop: 'auto' }}
+                        onClick={async () => {
+                            if (!fechaVencEdit) {
+                                mostrarNotificacion('error', 'La fecha de vencimiento es obligatoria');
+                                return;
+                            }
+                            setLoading(true);
+                            try {
+                                const resp = await deudasService.update(deudaActual.id, { fecha_vencimiento: fechaVencEdit });
+                                if (resp.success) {
+                                    setDeudaActual(resp.data);
+                                    if (onDeudaActualizada) onDeudaActualizada(resp.data);
+                                    mostrarNotificacion('success', 'Fecha de vencimiento actualizada');
+                                    setIsEditarVencOpen(false);
+                                } else {
+                                    mostrarNotificacion('error', resp.message || 'Error al actualizar la fecha');
+                                }
+                            } catch (e) {
+                                console.error('Error actualizando vencimiento:', e);
+                                mostrarNotificacion('error', 'Error al actualizar la fecha');
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                        loading={loading}
+                        disabled={!fechaVencEdit}
+                    />
+                </div>
+            </ViewModal>
         </View>
     );
 }

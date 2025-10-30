@@ -435,6 +435,71 @@ class deudasService {
             };
         }
     }
+
+    // Crear pago parcial
+    static async createPagoParcial(deudaId, { monto, fecha = null }) {
+        try {
+            const body = { monto };
+            if (fecha) body.fecha = fecha;
+
+            const response = await fetch(`${API_BASE_URL}/deudas/${deudaId}/pagos-parciales`, {
+                method: 'POST',
+                headers: {
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(body),
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al registrar el pago parcial');
+            }
+            return data;
+        } catch (error) {
+            console.error('Error creando pago parcial:', error);
+            if (error.status === 403) throw error;
+            return { success: false, message: error.message || 'Error al registrar el pago parcial' };
+        }
+    }
+
+    // Listar pagos parciales de una deuda
+    static async getPagosParciales(deudaId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/deudas/${deudaId}/pagos-parciales`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener los pagos parciales');
+            }
+            return data;
+        } catch (error) {
+            console.error('Error obteniendo pagos parciales:', error);
+            if (error.status === 403) throw error;
+            return { success: false, message: error.message || 'Error al obtener los pagos parciales' };
+        }
+    }
+
+    // Eliminar un pago parcial
+    static async deletePagoParcial(deudaId, pagoId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/deudas/${deudaId}/pagos-parciales/${pagoId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al eliminar el pago parcial');
+            }
+            return data;
+        } catch (error) {
+            console.error('Error eliminando pago parcial:', error);
+            if (error.status === 403) throw error;
+            return { success: false, message: error.message || 'Error al eliminar el pago parcial' };
+        }
+    }
 }
 
 export default deudasService;

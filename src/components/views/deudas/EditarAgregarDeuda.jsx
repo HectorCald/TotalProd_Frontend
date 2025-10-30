@@ -110,8 +110,14 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
 
   // Función para enviar los datos
   const handleSubmit = async () => {
+    const soloVencimiento = tipo === 'editar' && deuda?.movimiento_salida_id;
+    // Cliente obligatorio solo al crear
+    if (!soloVencimiento && tipo !== 'editar' && !dataDeuda.cliente_id) {
+      mostrarNotificacion('error', 'El cliente es obligatorio');
+      return;
+    }
     // Validaciones
-    if (!dataDeuda.fecha_deuda) {
+    if (!soloVencimiento && !dataDeuda.fecha_deuda) {
       mostrarNotificacion('error', 'La fecha de deuda es obligatoria');
       return;
     }
@@ -121,7 +127,7 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
       return;
     }
 
-    if (!dataDeuda.monto_total || dataDeuda.monto_total <= 0) {
+    if (!soloVencimiento && (!dataDeuda.monto_total || dataDeuda.monto_total <= 0)) {
       mostrarNotificacion('error', 'El monto total es obligatorio y debe ser mayor a 0');
       return;
     }
@@ -132,14 +138,27 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
     }
 
     // Validar que la fecha de vencimiento sea posterior a la fecha de deuda
-    if (new Date(dataDeuda.fecha_vencimiento) <= new Date(dataDeuda.fecha_deuda)) {
+    if (!soloVencimiento && new Date(dataDeuda.fecha_vencimiento) <= new Date(dataDeuda.fecha_deuda)) {
       mostrarNotificacion('error', 'La fecha de vencimiento debe ser posterior a la fecha de deuda');
       return;
     }
 
     setLoading(true);
     try {
-      const deudaData = {
+      // En edición: si tiene movimiento, solo permitir fecha_vencimiento y concepto
+      const deudaData = tipo === 'editar' ? (
+        soloVencimiento ? {
+          fecha_vencimiento: dataDeuda.fecha_vencimiento,
+          concepto: dataDeuda.concepto.trim()
+        } : {
+          fecha_deuda: dataDeuda.fecha_deuda,
+          fecha_vencimiento: dataDeuda.fecha_vencimiento,
+          monto_total: parseFloat(dataDeuda.monto_total),
+          concepto: dataDeuda.concepto.trim(),
+          estado: dataDeuda.estado,
+          cliente_id: dataDeuda.cliente_id || null
+        }
+      ) : {
         fecha_deuda: dataDeuda.fecha_deuda,
         fecha_vencimiento: dataDeuda.fecha_vencimiento,
         monto_total: parseFloat(dataDeuda.monto_total),
@@ -190,16 +209,19 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
         onClose={() => setIsOpen(false)}
       />
       <div className={styles.modalContent}>
-
-        {/* Campo de fecha de deuda */}
-        <span className={styles.subTitle}>FECHA DE DEUDA</span>
-        <InputDate
-          mode="date"
-          value={dataDeuda.fecha_deuda}
-          onChange={(val) => handleChange('fecha_deuda', val)}
-          placeholder="Fecha de la deuda"
-          icon="calendar"
-        />
+        {/* Campo de fecha de deuda (oculto cuando solo se permite vencimiento/concepto) */}
+        {!(tipo === 'editar' && deuda?.movimiento_salida_id) && (
+          <>
+            <span className={styles.subTitle}>FECHA DE DEUDA</span>
+            <InputDate
+              mode="date"
+              value={dataDeuda.fecha_deuda}
+              onChange={(val) => handleChange('fecha_deuda', val)}
+              placeholder="Fecha de la deuda"
+              icon="calendar"
+            />
+          </>
+        )}
 
         {/* Campo de fecha de vencimiento */}
         <span className={styles.subTitle}>FECHA DE VENCIMIENTO</span>
@@ -211,29 +233,20 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
           icon="time"
         />
 
-        {/* Campo de monto total */}
-        <InputNormal
-          tipo="number"
-          value={dataDeuda.monto_total}
-          placeholder='Monto total (Bs.)'
-          onChange={(e) => handleChange('monto_total', e.target.value)}
-          icon='dollar'
-          step="0.01"
-          min="0"
-        />
-
-        {/* Campo de saldo pendiente (solo en modo edición) */}
-        {tipo === 'editar' && (
+        {/* Campo de monto total (oculto cuando solo se permite vencimiento/concepto) */}
+        {!(tipo === 'editar' && deuda?.movimiento_salida_id) && (
           <InputNormal
             tipo="number"
-            value={dataDeuda.saldo_pendiente}
-            placeholder='Saldo pendiente (Bs.)'
-            onChange={(e) => handleChange('saldo_pendiente', e.target.value)}
-            icon='money'
+            value={dataDeuda.monto_total}
+            placeholder='Monto total (Bs.)'
+            onChange={(e) => handleChange('monto_total', e.target.value)}
+            icon='dollar'
             step="0.01"
             min="0"
           />
         )}
+
+        {/* Saldo pendiente no editable en modo edición */}
 
         {/* Campo de concepto */}
         <InputNormal
@@ -245,13 +258,15 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
         />
 
 
-        {/* Selector de cliente */}
+        {/* Selector de cliente (oculto cuando solo se permite vencimiento/concepto; obligatorio al crear) */}
+        {!(tipo === 'editar' && deuda?.movimiento_salida_id) && (
           <Boton
             className='btn-gray'
-            label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+            label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente'}
             onClick={() => setIsClientesSeleccionOpen(true)}
             style={{ width: '100%', justifyContent: 'flex-start' }}
           />
+        )}
 
 
         <Boton
@@ -260,7 +275,11 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
           style={{ marginTop: 'auto' }}
           onClick={handleSubmit}
           loading={loading}
-          disabled={!dataDeuda.fecha_deuda || !dataDeuda.fecha_vencimiento || !dataDeuda.monto_total || !dataDeuda.concepto}
+          disabled={
+            (tipo === 'editar' && deuda?.movimiento_salida_id)
+              ? (!dataDeuda.fecha_vencimiento || !dataDeuda.concepto)
+              : (!dataDeuda.fecha_deuda || !dataDeuda.fecha_vencimiento || !dataDeuda.monto_total || !dataDeuda.concepto || (tipo !== 'editar' && !dataDeuda.cliente_id))
+          }
         />
       </div>
       {/* Modal de selección de clientes */}

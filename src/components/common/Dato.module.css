@@ -79,3 +79,12 @@
     color: var(--quinary-color);
     font-weight: 600;
 }
+
+@keyframes datoSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spinning {
+    animation: datoSpin 1s linear infinite;
+}

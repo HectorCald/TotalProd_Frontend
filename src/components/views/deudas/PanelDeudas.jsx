@@ -14,13 +14,22 @@ import LoadingSpinner from '../../common/LoadingSpinner';
 import Boton from '../../common/Boton';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
-import FetchData from '../../mixed/FetchData';
+// import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
 import FiltroEstadoDeuda from '../../mixed/FiltroEstadoDeuda';
-import FiltroOrdenamientoDeudas from '../../mixed/FiltroOrdenamientoDeudas';
 import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+
+// Función helper para normalizar texto (quitar acentos)
+const normalizeText = (text) => {
+    if (!text) return '';
+    return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+};
 
 function PanelDeudas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -50,6 +59,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     const [deudas, setDeudas] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState(null);
 
     // Estados para RefreshIndicator (solo PC)
@@ -57,71 +67,95 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeRequests, setActiveRequests] = useState(0);
 
-    // Callback para manejar las deudas cargadas
-    const handleDeudasLoaded = useCallback((data) => {
-        setDeudas(data);
-        setError(null); // Limpiar error cuando se cargan datos exitosamente
-    }, []);
-
-    // Función para manejar errores de FetchData
-    const handleError = useCallback((error) => {
-        setError(error);
-    }, []);
-
-    // Función para manejar cuando inicia la carga
-    const handleLoadingStart = useCallback(() => {
-        // Solo mostrar loading si no hay datos cargados
-        if (allDeudas.length === 0) {
+    // Cargar deudas (similar a PanelMovimientos)
+    const cargarDeudas = async (page = 1, limit = 10, search = '', estado = null, cliente = null, orden = 'fecha_desc') => {
+        // Loading flags
+        if (page === 1 && allDeudas.length === 0) {
             setIsLoading(true);
+        } else if (page > 1) {
+            setIsLoadingMore(true);
         }
+        setError(null);
+
         // Incrementar contador de peticiones activas
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
             if (isLargeScreen && newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [allDeudas.length, isLargeScreen]);
 
-    // Función para manejar cuando termina la carga
-    const handleLoadingEnd = useCallback(() => {
-        setIsLoading(false);
-        // Decrementar contador de peticiones activas
-        setActiveRequests(prev => {
-            const newCount = Math.max(0, prev - 1);
-            // Ocultar RefreshIndicator cuando no hay peticiones activas
-            if (newCount === 0 && isLargeScreen) {
-                setTimeout(() => {
-                    setIsRefreshing(false);
-                    setTimeout(() => {
-                        setShowRefreshIndicator(false);
-                    }, 500);
-                }, 300);
-            }
-            return newCount;
-        });
-    }, [isLargeScreen]);
+        const normalizedSearch = normalizeText(search);
 
-    // Acumular datos de todas las páginas cuando llegan nuevas deudas
-    useEffect(() => {
-        if (deudas && deudas.length > 0 && isOpen) {
-            if (currentPage === 1) {
-                // Si es la primera página, tomar todas las deudas que vienen del servicio
-                setAllDeudas(deudas);
+        try {
+            const response = await deudasService.getAll(page, limit, normalizedSearch, estado, cliente, orden);
+            if (response.success) {
+                const newData = response.data || [];
+                setDeudas(newData);
+                setHasMorePages(response.pagination?.hasNextPage || false);
+
+                if (page === 1) {
+                    setAllDeudas(newData.length > 0 ? newData : []);
+                } else {
+                    setAllDeudas(prev => {
+                        const existingIds = new Set(prev.map(d => d.id));
+                        const merged = [...prev];
+                        newData.forEach(item => {
+                            if (!existingIds.has(item.id)) merged.push(item);
+                        });
+                        return merged;
+                    });
+                }
             } else {
-                // Si es una página posterior, acumular los datos
-                setAllDeudas(prevDeudas => {
-                    // Evitar duplicados por si acaso
-                    const existingIds = new Set(prevDeudas.map(d => d.id));
-                    const newDeudas = deudas.filter(d => !existingIds.has(d.id));
-                    return [...prevDeudas, ...newDeudas];
-                });
+                setError(response);
             }
+        } catch (err) {
+            setError(err);
+        } finally {
+            if (page === 1) {
+                setIsLoading(false);
+            } else {
+                setIsLoadingMore(false);
+            }
+            setActiveRequests(prev => {
+                const newCount = Math.max(0, prev - 1);
+                if (newCount === 0 && isLargeScreen) {
+                    setTimeout(() => {
+                        setIsRefreshing(false);
+                        setTimeout(() => {
+                            setShowRefreshIndicator(false);
+                        }, 500);
+                    }, 300);
+                }
+                return newCount;
+            });
         }
-    }, [deudas, currentPage, isOpen]);
+    };
+
+    // Cargar deudas cuando se abre si no hay datos cargados
+    const [deudasLoaded, setDeudasLoaded] = useState(false);
+    useEffect(() => {
+        if (isOpen && !deudasLoaded) {
+            cargarDeudas(1, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento);
+            setDeudasLoaded(true);
+        }
+    }, [isOpen, deudasLoaded, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento]);
+
+    // Resetear flags cuando se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            setCurrentPage(1);
+        }
+    }, [isOpen]);
+
+    // Cargar al cambiar de página
+    useEffect(() => {
+        if (isOpen && currentPage > 1) {
+            cargarDeudas(currentPage, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento);
+        }
+    }, [currentPage]);
 
 
     // Estados para la notificación
@@ -144,7 +178,6 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     };
 
     // Estados para filtros y modales
-    const [isOpenOrden, setOpenOrden] = useState(false);
     const [isOpenEstado, setOpenEstado] = useState(false);
     const [isOpenCliente, setOpenCliente] = useState(false);
 
@@ -156,15 +189,10 @@ function PanelDeudas({ isOpen, setIsOpen }) {
 
     // Función para manejar refresh
     const handleRefresh = async () => {
-        try {
-            const response = await deudasService.getAll(currentPage, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento);
-            if (response.success) {
-                setDeudas(response.data);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-            }
-        } catch (error) {
-            console.error('Error al refrescar deudas:', error);
-        }
+        setAllDeudas([]);
+        setCurrentPage(1);
+        setDeudasLoaded(false);
+        await cargarDeudas(1, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento);
     };
 
 
@@ -176,11 +204,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         }
     };
 
-    // Función para manejar ordenamiento
-    const handleOrdenamiento = useCallback((orden) => {
-        setOrdenamiento(orden);
-        setCurrentPage(1);
-    }, []);
+    // (Ordenamiento por UI removido; se mantiene estado por compatibilidad)
 
     // Función para manejar filtro de estado
     const handleFiltroEstado = useCallback((estado) => {
@@ -198,7 +222,6 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-            setCurrentPage(1);
         }
     }, [isOpen]);
 
@@ -215,11 +238,13 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         setIsSearchExpanded(isExpanded);
     };
 
-    // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
+    // Efecto para limpiar y recargar al cambiar búsqueda/filtros/orden
     useEffect(() => {
         if (isOpen) {
             setAllDeudas([]);
             setCurrentPage(1);
+            setDeudasLoaded(false);
+            cargarDeudas(1, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento);
         }
     }, [debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento]);
 
@@ -298,32 +323,14 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         return estado ? estado.label : 'Todos los estados';
     };
 
-    // Función para obtener el nombre del ordenamiento
-    const getOrdenamientoNombre = () => {
-        const ordenamientos = {
-            'fecha_desc': 'Más recientes',
-            'fecha_asc': 'Más antiguos',
-            'vencimiento_desc': 'Vencimiento reciente',
-            'vencimiento_asc': 'Vencimiento lejano',
-            'monto_desc': 'Mayor monto',
-            'monto_asc': 'Menor monto',
-            'concepto_asc': 'Concepto A-Z',
-            'concepto_desc': 'Concepto Z-A'
-        };
-        return ordenamientos[ordenamiento] || 'Ordenamiento';
-    };
+    // (Nombre de ordenamiento removido junto con filtro de UI)
 
     const opciones = [
         {
             label: getEstadoNombre(),
             active: filtroEstado !== null,
             onClick: () => setOpenEstado(true)
-        },
-        {
-            label: getOrdenamientoNombre(),
-            active: ordenamiento !== 'fecha_desc',
-            onClick: () => setOpenOrden(true)
-        },
+        }
     ];
 
     // Headers para la tabla
@@ -369,8 +376,12 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     const tableData = allDeudas.map(deuda => ({
         id: deuda.id,
         concepto: deuda.concepto || 'Sin concepto',
-        fecha_deuda: new Date(deuda.fecha_deuda).toLocaleDateString(),
-        fecha_vencimiento: new Date(deuda.fecha_vencimiento).toLocaleDateString(),
+        fecha_deuda: (typeof deuda.fecha_deuda === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(deuda.fecha_deuda))
+            ? (() => { const [y,m,d]=deuda.fecha_deuda.split('-'); return `${parseInt(d,10)}/${parseInt(m,10)}/${y}`; })()
+            : new Date(deuda.fecha_deuda).toLocaleDateString(),
+        fecha_vencimiento: (typeof deuda.fecha_vencimiento === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(deuda.fecha_vencimiento))
+            ? (() => { const [y,m,d]=deuda.fecha_vencimiento.split('-'); return `${parseInt(d,10)}/${parseInt(m,10)}/${y}`; })()
+            : new Date(deuda.fecha_vencimiento).toLocaleDateString(),
         cliente: deuda.cliente?.name || '--',
         estado: deuda.estado,
         monto_total: `Bs. ${(deuda.monto_total || 0).toFixed(2)}`,
@@ -433,7 +444,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                         }}
                                     />
                                     {/* Indicador de carga para más elementos */}
-                                    {isLoading && (
+                                    {isLoadingMore && (
                                         <div className={styles.loadingMore}>
                                             <p>Cargando más deudas...</p>
                                         </div>
@@ -457,7 +468,9 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                                 <ItemView
                                                     key={deuda.id || index}
                                                     title={deuda.concepto || 'Sin concepto'}
-                                                    description={`${new Date(deuda.fecha_deuda).toLocaleDateString()}`}
+                                            description={(typeof deuda.fecha_deuda === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(deuda.fecha_deuda))
+                                                ? (() => { const [y,m,d]=deuda.fecha_deuda.split('-'); return `${parseInt(d,10)}/${parseInt(m,10)}/${y}`; })()
+                                                : `${new Date(deuda.fecha_deuda).toLocaleDateString()}`}
                                                     icon='receipt'
                                                     onClick={() => handleDeuda(deuda)}
                                                     arrow={false}
@@ -477,7 +490,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                         />
                                     )}
                                     {/* Indicador de carga para más elementos */}
-                                    {isLoading && (
+                                    {isLoadingMore && (
                                         <div className={styles.loadingMore}>
                                             <p>Cargando más deudas...</p>
                                         </div>
@@ -518,21 +531,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                 text={notification.text}
             />
 
-            {/* FetchData para deudas */}
-            {isOpen && (
-                <FetchData
-                    service={deudasService}
-                    serviceName="deudasService"
-                    method="getAll"
-                    methodParams={[currentPage, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento]}
-                    isOpen={isOpen}
-                    onDataLoaded={handleDeudasLoaded}
-                    onLoadingStart={handleLoadingStart}
-                    onLoadingEnd={handleLoadingEnd}
-                    onError={handleError}
-                    onRefresh={isLargeScreen ? handleRefresh : undefined}
-                />
-            )}
+            {/* FetchData eliminado: la carga ahora es interna como en PanelMovimientos */}
 
             {/* Modal de Información */}
             <InfoModal
@@ -553,11 +552,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                 onEstadoSeleccionado={handleFiltroEstado}
             />
 
-            <FiltroOrdenamientoDeudas
-                isOpen={isOpenOrden}
-                setIsOpen={setOpenOrden}
-                onOrdenamientoSeleccionado={handleOrdenamiento}
-            />
+            {null}
         </View>
     );
 }

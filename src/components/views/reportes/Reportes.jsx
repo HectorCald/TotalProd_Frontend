@@ -10,6 +10,7 @@ import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import gastosService from '../../../services/gastosService';
 import registrosProduccionDamabravaService from '../../../services/registrosProduccionDamabravaService';
 import productsAlmacenService from '../../../services/productsAlmacenService';
+import deudasService from '../../../services/deudasService';
 import Notification from '../../common/Notification';
 import styles from '../../../styles/view.module.css';
 import Boton from '../../common/Boton';
@@ -137,6 +138,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     { value: 'ventas', label: 'Ventas', icon: 'money' },
     { value: 'almacen_general', label: 'Almacen General', icon: 'store' },
     { value: 'materia_Prima', label: 'Materia Prima', icon: 'leaf' },
+    { value: 'deudas', label: 'Deudas', icon: 'credit-card' },
     { value: 'pedidos', label: 'Pedidos', icon: 'cart' },
     { value: 'balance', label: 'Balance', icon: 'transfer' },
     ...(isDamabrava() ? [{ value: 'produccion', label: 'Producción (Damabrava)', icon: 'factory' }] : []),
@@ -846,6 +848,101 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     };
   };
 
+  // Función para generar reporte de deudas (agrupado por cliente)
+  const generarReporteDeudas = async ({ fechaInicio, fechaFin }) => {
+    const sucuId = getSucuId();
+    // Fechas como YYYY-MM-DD
+    const toYmd = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    const fechaInicioStr = toYmd(new Date(fechaInicio));
+    const fechaFinStr = toYmd(new Date(fechaFin));
+
+    const deudasResp = await deudasService.getByDateRange(fechaInicioStr, fechaFinStr, sucuId);
+    if (!deudasResp?.success || !Array.isArray(deudasResp.data)) {
+      throw new Error(deudasResp?.message || 'No se pudieron obtener las deudas');
+    }
+
+    const deudas = deudasResp.data;
+
+    // Obtener pagos parciales por deuda en paralelo
+    const pagosPorDeuda = await Promise.all(
+      deudas.map(async (d) => {
+        try {
+          const resp = await deudasService.getPagosParciales(d.id);
+          const pagos = (resp?.success && Array.isArray(resp.data)) ? resp.data : [];
+          const totalPagos = pagos.reduce((s, p) => s + (parseFloat(p.monto) || 0), 0);
+          return { deudaId: d.id, totalPagos };
+        } catch {
+          return { deudaId: d.id, totalPagos: 0 };
+        }
+      })
+    );
+    const mapaPagos = new Map(pagosPorDeuda.map((x) => [x.deudaId, x.totalPagos]));
+
+    // Agrupar por cliente
+    const agrupado = {};
+    deudas.forEach((d) => {
+      const clienteNombre = d?.cliente?.name || 'Sin cliente';
+      const montoTotal = parseFloat(d?.monto_total) || 0;
+      const saldo = parseFloat(d?.saldo_pendiente) || 0;
+      const pagos = mapaPagos.get(d.id);
+      const pagosTotal = typeof pagos === 'number' ? pagos : Math.max(0, montoTotal - saldo);
+
+      if (!agrupado[clienteNombre]) {
+        agrupado[clienteNombre] = { deudaTotal: 0, pagosParciales: 0, saldoTotal: 0 };
+      }
+      agrupado[clienteNombre].deudaTotal += montoTotal;
+      agrupado[clienteNombre].pagosParciales += pagosTotal;
+      agrupado[clienteNombre].saldoTotal += saldo;
+    });
+
+    // Construir tabla
+    const tablaHeaders = ['Cliente', 'Deuda Total', 'Pagos Parciales', 'Total Saldo'];
+    const filas = Object.keys(agrupado)
+      .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+      .map((cliente) => {
+        const vals = agrupado[cliente];
+        return [
+          cliente,
+          `Bs. ${vals.deudaTotal.toFixed(2)}`,
+          `Bs. ${vals.pagosParciales.toFixed(2)}`,
+          `Bs. ${vals.saldoTotal.toFixed(2)}`
+        ];
+      });
+
+    // Totales generales
+    const totales = Object.values(agrupado).reduce(
+      (acc, v) => {
+        acc.deuda += v.deudaTotal;
+        acc.pagos += v.pagosParciales;
+        acc.saldo += v.saldoTotal;
+        return acc;
+      },
+      { deuda: 0, pagos: 0, saldo: 0 }
+    );
+
+    const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+    const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+    const periodoConFechas = fechaInicio.getTime() === fechaFin.getTime() ? fechaFinFormateada : `${fechaInicioFormateada} a ${fechaFinFormateada}`;
+
+    return {
+      informacionSuperior: {
+        'Tipo de Reporte': 'Deudas',
+        'Período': periodoConFechas,
+        'Sucursal': getSucursalName(),
+        'Deuda Total': `Bs. ${totales.deuda.toFixed(2)}`,
+        'Pagos Parciales': `Bs. ${totales.pagos.toFixed(2)}`,
+        'Total Saldo': `Bs. ${totales.saldo.toFixed(2)}`
+      },
+      tablaHeaders,
+      tablaValores: filas
+    };
+  };
+
   // Función principal para generar el reporte
   const handleGenerarReporte = async () => {
     if (!fechaInicio || !fechaFin || !areaSeleccionada) {
@@ -1030,6 +1127,11 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         case 'balance':
           // Generar reporte de balance (ingresos y gastos)
           reporteData = await generarReporteBalance({ fechaInicio, fechaFin });
+          break;
+
+        case 'deudas':
+          // Generar reporte de deudas por rango de fechas agrupado por cliente
+          reporteData = await generarReporteDeudas({ fechaInicio, fechaFin });
           break;
 
         case 'produccion':
