@@ -38,7 +38,7 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen, onCacheUpdate
           onCacheUpdateFound(result.latest);
         }
       } else if (result.status === 'same') {
-        if (notifyNoChange) mostrarNotificacion('info', `No hay nueva versión (v${result.latest})`);
+        if (notifyNoChange) mostrarNotificacion('info', `Versión actual v${result.latest}`);
       } else if (result.status === 'error') {
         mostrarNotificacion('error', 'Error al obtener versión');
       }
