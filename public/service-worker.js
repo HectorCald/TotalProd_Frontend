@@ -1,4 +1,4 @@
-const CACHE_NAME = 'totalprod-cache-v1.8.7';
+const CACHE_NAME = 'totalprod-cache-v1.8.8';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -14,8 +14,10 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('📦 Cache abierto, instalando...');
-        // No cachear archivos específicos al instalar, solo abrir el cache
-        return Promise.resolve();
+        // Precargar recursos base para que el nuevo CACHE_NAME exista en install
+        return cache.addAll(urlsToCache).catch(err => {
+          console.warn('⚠️ Error precache addAll, continuando:', err);
+        });
       })
       .then(() => {
         console.log('✅ Service Worker instalado correctamente');
