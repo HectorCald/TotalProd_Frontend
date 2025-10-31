@@ -403,7 +403,7 @@ const HomeEmpleado = () => {
             case 'Movimientos':
                 return <PanelMovimientos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoMovimiento={currentSubModule.props?.tipo} />;
             case 'Pedidos':
-                return <Pedidos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+                return <Pedidos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoPedido={currentSubModule.props?.tipo} />;
             case 'Precios':
                 return <Precios isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Clientes':
