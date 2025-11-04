@@ -286,8 +286,16 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 }
                 const valorTotal = parseFloat(costo);
                 const conceptoFinal = (concepto && concepto.trim() !== '') ? concepto.trim() : `Entradas (${productosCanasta.length} items)`;
+                
+                // Obtener fecha local en formato YYYY-MM-DD (no usar toISOString que devuelve UTC)
+                const hoy = new Date();
+                const año = hoy.getFullYear();
+                const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+                const dia = String(hoy.getDate()).padStart(2, '0');
+                const fechaLocal = `${año}-${mes}-${dia}`;
+                
                 const gastoData = {
-                    fecha_gasto: new Date().toISOString().split('T')[0],
+                    fecha_gasto: fechaLocal, // Fecha actual en formato YYYY-MM-DD (zona horaria local)
                     valor: valorTotal,
                     concepto: conceptoFinal,
                     metodo_pago: metodoPago,

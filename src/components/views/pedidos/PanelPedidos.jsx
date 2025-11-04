@@ -46,7 +46,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Estado para acumular todos los pedidos de todas las páginas
     const [allPedidos, setAllPedidos] = useState([]);
     const [currentTipoPedido, setCurrentTipoPedido] = useState(tipoPedido);
-    
+
     // Estados para rastrear qué datos se han cargado
     const [pedidosLoaded, setPedidosLoaded] = useState(false);
 
@@ -125,7 +125,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         return merged;
                     });
                 }
-                
+
                 // Marcar como cargado solo en página 1
                 if (page === 1) {
                     setPedidosLoaded(true);
@@ -501,117 +501,109 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         <Filtros options={opciones} />
 
                         {isLargeScreen ? (
-                    <div
-                        className={styles.content}
-                        onScroll={!isLargeScreen ? handleScroll : undefined}
-                        style={{
-                            maxHeight: tipoPedido === 'acopio' || tipoPedido === 'almacen'
-                                ? '100%'
-                                : ''
-                        }}
-                    >
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(pedido) => {
-                                // Buscar el pedido original sin formatear
-                                const pedidoOriginal = allPedidos.find(p => p.id === pedido.id);
-                                handleVerPedido(pedidoOriginal);
-                            }}
-                            getCellBadge={getCellBadge}
-                            onScroll={handleScroll}
-                            columnWidths={{
-                                numero_pedido: '3%',
-                                sucursal: '20%',
-                                usuario: '15%',
-                                fecha: '15%',
-                                estado: '10%',
-                                cliente: '15%',
-                                observaciones: '15%'
-                            }}
-                        />
-                        
-                        {/* Loading al final de la tabla */}
-                        {isLoadingMore && (
-                            <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'center', 
-                                padding: '20px',
-                                marginTop: '10px'
-                            }}>
-                                <LoadingSpinner />
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    // Vista de cards para pantallas pequeñas con PullToRefresh
-                    <PullToRefresh
-                        onRefresh={handleRefresh}
-                        screenName="Pedidos"
-                        containerStyle={{
-                            maxHeight: '100%',
-                            minHeight: '100%',
-                        }}
-                        onScroll={handleScroll}
-                    >
-                        {allPedidos.length > 0 ? (
-                            <>
-                                {allPedidos.map((pedido, index) => {
-                                    return (
-                                        <ItemView
-                                            key={pedido.id || index}
-                                            title={tipoPedido === 'acopio'
-                                                ? (pedido.producto_acopio?.name || 'Producto desconocido')
-                                                : (pedido.user?.name || pedido.personal?.name || 'Usuario desconocido')
-                                            }
-                                            description={tipoPedido === 'acopio'
-                                                ? `${pedido.cantidad || 0} ${pedido.tipo_medida || ''} - ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-                                                    year: 'numeric',
-                                                    month: '2-digit',
-                                                    day: '2-digit',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })}`
-                                                : new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
-                                                    year: 'numeric',
-                                                    month: '2-digit',
-                                                    day: '2-digit',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })
-                                            }
-                                            icon="file"
-                                            onClick={() => handleVerPedido(pedido)}
-                                            flot1={pedido.estado === 'Completado' ? 'Completado' : ''}
-                                            flot2={pedido.estado === 'Entregado' ? 'Entregado' : ''}
-                                            flot3={pedido.estado === 'Pendiente' ? 'Pendiente' : ''}
-                                        />
-                                    );
-                                })}
-                                
-                                {/* Loading debajo del último pedido */}
+                            <div
+                                className={styles.content}
+                                onScroll={!isLargeScreen ? handleScroll : undefined}
+                                style={{
+                                    maxHeight: tipoPedido === 'acopio' || tipoPedido === 'almacen'
+                                        ? '100%'
+                                        : ''
+                                }}
+                            >
+                                <Table
+                                    headers={tableHeaders}
+                                    data={tableData}
+                                    onRowClick={(pedido) => {
+                                        // Buscar el pedido original sin formatear
+                                        const pedidoOriginal = allPedidos.find(p => p.id === pedido.id);
+                                        handleVerPedido(pedidoOriginal);
+                                    }}
+                                    getCellBadge={getCellBadge}
+                                    onScroll={handleScroll}
+                                    columnWidths={tipoPedido === 'almacen' ? {
+                                        numero_pedido: '3%',
+                                        sucursal: '20%',
+                                        usuario: '15%',
+                                        fecha: '15%',
+                                        estado: '10%',
+                                        cliente: '15%',
+                                        observaciones: '15%'
+                                    } : {
+                                        producto: '20%',
+                                        usuario: '15%',
+                                        fecha: '15%',
+                                        estado: '10%',
+                                        cantidad: '10%'
+                                    }}
+                                />
+
+                                {/* Loading al final de la tabla */}
                                 {isLoadingMore && (
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        justifyContent: 'center', 
-                                        padding: '20px',
-                                        marginTop: '10px'
-                                    }}>
-                                        <LoadingSpinner />
-                                    </div>
+                                    <LoadingSpinner />
                                 )}
-                            </>
+                            </div>
                         ) : (
-                            <NoData
-                                icon="shopping-bag"
-                                title={searchQuery ? 'Sin resultados' : 'No hay pedidos'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los pedidos que necesitas' : 'Crea pedidos para comenzar a gestionar tus ventas'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
+                            // Vista de cards para pantallas pequeñas con PullToRefresh
+                            <PullToRefresh
+                                onRefresh={handleRefresh}
+                                screenName="Pedidos"
+                                containerStyle={{
+                                    maxHeight: '100%',
+                                    minHeight: '100%',
+                                }}
+                                onScroll={handleScroll}
+                            >
+                                {allPedidos.length > 0 ? (
+                                    <>
+                                        {allPedidos.map((pedido, index) => {
+                                            return (
+                                                <ItemView
+                                                    key={pedido.id || index}
+                                                    title={tipoPedido === 'acopio'
+                                                        ? (pedido.producto_acopio?.name || 'Producto desconocido')
+                                                        : (pedido.user?.name || pedido.personal?.name || 'Usuario desconocido')
+                                                    }
+                                                    description={tipoPedido === 'acopio'
+                                                        ? `${pedido.cantidad || 0} ${pedido.tipo_medida || ''} - ${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                            year: 'numeric',
+                                                            month: '2-digit',
+                                                            day: '2-digit',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}`
+                                                        : new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                            year: 'numeric',
+                                                            month: '2-digit',
+                                                            day: '2-digit',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })
+                                                    }
+                                                    icon="file"
+                                                    onClick={() => handleVerPedido(pedido)}
+                                                    flot1={pedido.estado === 'Completado' ? 'Completado' : ''}
+                                                    flot2={pedido.estado === 'Entregado' ? 'Entregado' : ''}
+                                                    flot3={pedido.estado === 'Pendiente' ? 'Pendiente' : ''}
+                                                />
+                                            );
+                                        })}
+
+                                        {/* Loading debajo del último pedido */}
+                                        {isLoadingMore && (
+                                            <LoadingSpinner />
+                                        )}
+                                    </>
+                                ) : (
+                                    <NoData
+                                        icon="shopping-bag"
+                                        title={searchQuery ? 'Sin resultados' : 'No hay pedidos'}
+                                        detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los pedidos que necesitas' : 'Crea pedidos para comenzar a gestionar tus ventas'}
+                                        transparent={true}
+                                        minHeight="200px"
+                                    />
+                                )}
+                            </PullToRefresh>
                         )}
-                    </PullToRefresh>
-                )}
                     </>
                 )}
 

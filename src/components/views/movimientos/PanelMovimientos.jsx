@@ -53,7 +53,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     // Estado para acumular o reemplazar los movimientos mostrados
     const [allMovimientos, setAllMovimientos] = useState([]);
     const [currentTipoMovimiento, setCurrentTipoMovimiento] = useState(tipoMovimiento);
-    
+
     // Estados para rastrear qué datos se han cargado
     const [movimientosLoaded, setMovimientosLoaded] = useState(false);
 
@@ -123,7 +123,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         return merged;
                     });
                 }
-                
+
                 // Marcar como cargado solo en página 1
                 if (page === 1) {
                     setMovimientosLoaded(true);
@@ -491,101 +491,96 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         <Filtros options={opciones} />
 
                         {isLargeScreen ? (
-                    <div
-                        className={styles.content}
-                        onScroll={handleScroll}
-                        style={{
-                            maxHeight: tipoMovimiento === 'acopio' || tipoMovimiento === 'almacen'
-                                ? '100%'
-                                : ''
-                        }}
-                    >
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(movimiento) => {
-                                // Buscar el movimiento original sin formatear
-                                const movimientoOriginal = allMovimientos.find(m => m.id === movimiento.id);
-                                handleRegistro(movimientoOriginal);
-                            }}
-                            getCellBadge={getCellBadge}
-                            onScroll={handleScroll}
-                            columnWidths={{
-                                producto: '25%',
-                                tipo: '10%',
-                                cantidad: '10%',
-                                fecha: '10%',
-                                cliente_proveedor: '20%',
-                                estado: '15%'
-                            }}
-                        />
-                        
-                        {/* Loading al final de la tabla */}
-                        {isLoadingMore && (
-                            
-                                <LoadingSpinner />
-                          
-                        )}
-                    </div>
-                ) : (
-                    // Vista de cards para pantallas pequeñas con PullToRefresh
-                     <PullToRefresh
-                         onRefresh={handleRefresh}
-                         screenName="Movimientos"
-                         containerStyle={{
-                             maxHeight: '100%',
-                             minHeight: '100%'
-                         }}
-                         onScroll={handleScroll}
-                     >
-                        {allMovimientos.length > 0 ? (
-                            <>
-                                {allMovimientos.map((movimiento, index) => {
-                                    return (
-                                        <ItemView
-                                            key={movimiento.id || index}
-                                            title={tipoMovimiento === 'acopio'
-                                                ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
-                                                : movimiento.productos && movimiento.productos.length > 0
-                                                    ? movimiento.productos.length === 1
-                                                        ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
-                                                        : `${movimiento.productos.length} productos`
-                                                    : 'Sin productos'
-                                            }
-                                            description={`${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
-                                            icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
-                                            onClick={() => handleRegistro(movimiento)}
-                                            arrow={false}
-                                            flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
-                                            flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
-                                            colorIcon={movimiento.type === 'entrada' ? 'verde' : 'rojo'}
-                                        />
-                                    );
-                                })}
-                                
-                                {/* Loading debajo del último movimiento */}
+                            <div
+                                className={styles.content}
+                                onScroll={handleScroll}
+                                style={{
+                                    maxHeight: tipoMovimiento === 'acopio' || tipoMovimiento === 'almacen'
+                                        ? '100%'
+                                        : ''
+                                }}
+                            >
+                                <Table
+                                    headers={tableHeaders}
+                                    data={tableData}
+                                    onRowClick={(movimiento) => {
+                                        // Buscar el movimiento original sin formatear
+                                        const movimientoOriginal = allMovimientos.find(m => m.id === movimiento.id);
+                                        handleRegistro(movimientoOriginal);
+                                    }}
+                                    getCellBadge={getCellBadge}
+                                    onScroll={handleScroll}
+                                    columnWidths={{
+                                        producto: '25%',
+                                        tipo: '10%',
+                                        cantidad: '10%',
+                                        fecha: '10%',
+                                        cliente_proveedor: '20%',
+                                        estado: '15%'
+                                    }}
+                                />
+
+                                {/* Loading al final de la tabla */}
                                 {isLoadingMore && (
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        justifyContent: 'center', 
-                                        padding: '20px',
-                                        marginTop: '10px'
-                                    }}>
-                                        <LoadingSpinner />
-                                    </div>
+
+                                    <LoadingSpinner />
+
                                 )}
-                            </>
+                            </div>
                         ) : (
-                            <NoData
-                                icon="transfer"
-                                title={searchQuery ? 'Sin resultados' : 'No hay movimientos'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los movimientos que necesitas' : 'Realiza movimientos de inventario para comenzar a gestionar tu stock'}
-                                transparent={true}
-                                minHeight="200px"
-                            />
+                            // Vista de cards para pantallas pequeñas con PullToRefresh
+                            <PullToRefresh
+                                onRefresh={handleRefresh}
+                                screenName="Movimientos"
+                                containerStyle={{
+                                    maxHeight: '100%',
+                                    minHeight: '100%'
+                                }}
+                                onScroll={handleScroll}
+                            >
+                                {allMovimientos.length > 0 ? (
+                                    <>
+                                        {allMovimientos.map((movimiento, index) => {
+                                            return (
+                                                <ItemView
+                                                    key={movimiento.id || index}
+                                                    title={tipoMovimiento === 'acopio'
+                                                        ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
+                                                        : movimiento.productos && movimiento.productos.length > 0
+                                                            ? movimiento.productos.length === 1
+                                                                ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
+                                                                : `${movimiento.productos.length} productos`
+                                                            : 'Sin productos'
+                                                    }
+                                                    description={`${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
+                                                    icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                                                    onClick={() => handleRegistro(movimiento)}
+                                                    arrow={false}
+                                                    flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
+                                                    flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
+                                                    colorIcon={movimiento.type === 'entrada' ? 'verde' : 'rojo'}
+                                                />
+                                            );
+                                        })}
+
+                                        {/* Loading debajo del último movimiento */}
+                                        {isLoadingMore && (
+
+                                            <LoadingSpinner />
+
+                                        )}
+                                    </>
+                                ) : (
+                                    <NoData
+                                        icon="transfer"
+                                        title={searchQuery ? 'Sin resultados' : 'No hay movimientos'}
+                                        detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los movimientos que necesitas' : 'Realiza movimientos de inventario para comenzar a gestionar tu stock'}
+                                        transparent={true}
+                                        minHeight="200px"
+                                    />
+                                )}
+                            </PullToRefresh>
                         )}
-                    </PullToRefresh>
-                )}
                     </>
                 )}
 

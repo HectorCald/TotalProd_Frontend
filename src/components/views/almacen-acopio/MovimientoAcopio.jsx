@@ -244,8 +244,15 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
 
       // Si es entrada con registro de gasto activado, crear gasto simultáneamente
       if (tipo === 'entrada' && registrarGasto) {
+        // Obtener fecha local en formato YYYY-MM-DD (no usar toISOString que devuelve UTC)
+        const hoy = new Date();
+        const año = hoy.getFullYear();
+        const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoy.getDate()).padStart(2, '0');
+        const fechaLocal = `${año}-${mes}-${dia}`;
+        
         const gastoData = {
-          fecha_gasto: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
+          fecha_gasto: fechaLocal, // Fecha actual en formato YYYY-MM-DD (zona horaria local)
           valor: parseFloat(dataMov.costo),
           concepto: `${producto.name} - ${dataMov.quantity} ${producto?.type_measure?.code || ''}`,
           metodo_pago: dataMov.metodo_pago,

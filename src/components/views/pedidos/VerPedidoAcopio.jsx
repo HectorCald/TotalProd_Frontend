@@ -659,9 +659,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                                 value={pedidoActual.fecha_entregado ? new Date(pedidoActual.fecha_entregado).toLocaleDateString('es-ES', {
                                     year: 'numeric',
                                     month: '2-digit',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
+                                    day: '2-digit'
                                 }) : 'No especificada'}
                             />
                             {pedidoActual.observaciones_entrega && (
