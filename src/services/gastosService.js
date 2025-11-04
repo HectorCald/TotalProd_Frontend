@@ -142,9 +142,18 @@ class gastosService {
     }
 
     // Obtener un gasto por ID
-    static async getById(id) {
+    static async getById(id, empresaIdParam = null) {
         try {
-            const response = await fetch(`${API_BASE_URL}/gastos/${id}`, {
+            const empresaId = empresaIdParam || getEmpresaId();
+            
+            const params = new URLSearchParams();
+            if (empresaId) {
+                params.append('empresa_id', empresaId);
+            }
+
+            const url = `${API_BASE_URL}/gastos/${id}${params.toString() ? `?${params.toString()}` : ''}`;
+            
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: getAuthHeaders(),
             });
@@ -152,12 +161,25 @@ class gastosService {
             const data = await response.json();
 
             if (!response.ok) {
+                // Si es un error 403, relanzarlo para que llegue al componente
+                if (response.status === 403) {
+                    const error = new Error(data.message || 'Error al obtener el gasto');
+                    error.status = response.status;
+                    error.code = data.code;
+                    error.currentPlan = data.currentPlan;
+                    error.requiredModule = data.requiredModule;
+                    throw error;
+                }
                 throw new Error(data.message || 'Error al obtener el gasto');
             }
 
             return data;
         } catch (error) {
             console.error('Error obteniendo gasto por ID:', error);
+            // Si es un error 403, relanzarlo para que llegue al componente
+            if (error.status === 403) {
+                throw error;
+            }
             return {
                 success: false,
                 message: error.message || 'Error al obtener el gasto'

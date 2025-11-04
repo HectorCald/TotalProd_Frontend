@@ -321,7 +321,9 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
         try {
             setLoadingGasto(true);
-            const response = await gastosService.getById(pedidoActual.gasto_id);
+            // Obtener empresa_id de la sucursal seleccionada
+            const empresaId = sucursalActual?.empresas?.id || null;
+            const response = await gastosService.getById(pedidoActual.gasto_id, empresaId);
 
             if (response.success) {
                 setGasto(response.data);
@@ -331,7 +333,12 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
             }
         } catch (error) {
             console.error('Error al obtener gasto:', error);
-            mostrarNotificacion('error', 'Error al obtener información del gasto');
+            // Manejar errores de permisos (403)
+            if (error.status === 403) {
+                mostrarNotificacion('error', error.message || 'No tienes acceso al módulo de Gastos');
+            } else {
+                mostrarNotificacion('error', 'Error al obtener información del gasto');
+            }
         } finally {
             setLoadingGasto(false);
         }
