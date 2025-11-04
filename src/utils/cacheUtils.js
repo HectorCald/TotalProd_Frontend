@@ -48,7 +48,7 @@ export const waitForServiceWorkerReady = async (timeoutMs = 2000) => {
   }
 };
 
-// Returns: { status: 'new'|'same'|'no_cache'|'error', latest?: string, error?: string }
+// Returns: { status: 'new'|'same'|'no_version'|'no_cache'|'error', latest?: string, stored?: string, error?: string }
 export const checkCacheStatus = async (opts = {}) => {
   const { useLocalStorage = true, storedVersion } = opts;
   try {
@@ -64,10 +64,17 @@ export const checkCacheStatus = async (opts = {}) => {
     const stored = useLocalStorage ? localStorage.getItem('cacheVersion') : storedVersion;
     if (!latest) {
       // Fallback suave: reportar como "same" usando la versión almacenada (si existe)
-      return { status: 'same', latest: stored || null };
+      return { status: 'same', latest: stored || null, stored: stored || null };
     }
-    if (!stored || stored !== latest) return { status: 'new', latest };
-    return { status: 'same', latest };
+    // Si no hay versión guardada, retornar 'no_version' para guardarla automáticamente
+    if (!stored) {
+      return { status: 'no_version', latest, stored: null };
+    }
+    // Si hay versión guardada pero es diferente, retornar 'new' para mostrar modal
+    if (stored !== latest) {
+      return { status: 'new', latest, stored };
+    }
+    return { status: 'same', latest, stored };
   } catch (e) {
     return { status: 'error', error: String(e) };
   }

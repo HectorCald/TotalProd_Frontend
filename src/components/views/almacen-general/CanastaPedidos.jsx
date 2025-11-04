@@ -466,16 +466,18 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         disabled={loadingPrecios}
                         icon='dollar'
                     />
-                    <Select
-                        value={modoAgrupacion}
-                        onChange={handleCambiarModoAgrupacion}
-                        options={[
-                            { value: 'agrupado', label: 'Agrupado' },
-                            { value: 'no_agrupado', label: 'Unidades' }
-                        ]}
-                        placeholder="Modalidad"
-                        icon='package'
-                    />
+                    {productosCanasta.some(producto => producto.grup) && (
+                        <Select
+                            value={modoAgrupacion}
+                            onChange={handleCambiarModoAgrupacion}
+                            options={[
+                                { value: 'agrupado', label: 'Agrupado' },
+                                { value: 'no_agrupado', label: 'Unidades' }
+                            ]}
+                            placeholder="Modalidad"
+                            icon='package'
+                        />
+                    )}
                 </div>
 
                 {productosCanasta.length > 0 ? (

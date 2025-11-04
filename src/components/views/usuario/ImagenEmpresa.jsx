@@ -237,9 +237,12 @@ const ImagenEmpresa = ({ isOpen, setIsOpen, currentImage, onImageChange, empresa
             img.onload = () => {
                 try {
                     const { width, height } = img;
+                    const MAX_SIZE = 1200; // Tamaño máximo para logos (1200x1200px es suficiente)
+                    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB máximo (reducido para dar más margen)
+                    
                     let cropX = 0, cropY = 0, cropWidth = width, cropHeight = height;
 
-                    // Determinar si es cuadrado, horizontal o vertical
+                    // Determinar si es cuadrado, horizontal o vertical y recortar
                     if (width === height) {
                         // Es cuadrado, no recortar
                         cropWidth = width;
@@ -260,35 +263,50 @@ const ImagenEmpresa = ({ isOpen, setIsOpen, currentImage, onImageChange, empresa
                         cropHeight = width;
                     }
 
-                    // Configurar el canvas con el tamaño final
-                    canvas.width = cropWidth;
-                    canvas.height = cropHeight;
+                    // Reducir el tamaño si es mayor al máximo permitido
+                    let finalWidth = cropWidth;
+                    let finalHeight = cropHeight;
+                    if (cropWidth > MAX_SIZE || cropHeight > MAX_SIZE) {
+                        const scale = Math.min(MAX_SIZE / cropWidth, MAX_SIZE / cropHeight);
+                        finalWidth = Math.floor(cropWidth * scale);
+                        finalHeight = Math.floor(cropHeight * scale);
+                    }
 
-                    // Dibujar la imagen recortada
+                    // Configurar el canvas con el tamaño final
+                    canvas.width = finalWidth;
+                    canvas.height = finalHeight;
+
+                    // Usar suavizado para mejor calidad
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+
+                    // Dibujar la imagen recortada y redimensionada
                     ctx.drawImage(
                         img,
                         cropX, cropY, cropWidth, cropHeight,
-                        0, 0, cropWidth, cropHeight
+                        0, 0, finalWidth, finalHeight
                     );
 
-                    // Comprimir la imagen hasta que sea menor a 3MB
-                    let quality = 0.9;
+                    // Comprimir la imagen hasta que sea menor a MAX_FILE_SIZE
+                    let quality = 0.85; // Empezar con calidad media-alta
                     let dataURL = canvas.toDataURL('image/jpeg', quality);
 
                     // Verificar el tamaño y reducir calidad si es necesario
-                    while (getBase64Size(dataURL) > 3 * 1024 * 1024 && quality > 0.1) {
-                        quality -= 0.1;
+                    while (getBase64Size(dataURL) > MAX_FILE_SIZE && quality > 0.1) {
+                        quality -= 0.05; // Reducir en pasos más pequeños para mejor control
                         dataURL = canvas.toDataURL('image/jpeg', quality);
                     }
 
-                    // Si aún es muy grande, reducir el tamaño de la imagen
-                    if (getBase64Size(dataURL) > 3 * 1024 * 1024) {
-                        const scaleFactor = Math.sqrt((3 * 1024 * 1024) / getBase64Size(dataURL));
-                        const newWidth = Math.floor(cropWidth * scaleFactor);
-                        const newHeight = Math.floor(cropHeight * scaleFactor);
+                    // Si aún es muy grande después de reducir la calidad, reducir más el tamaño
+                    if (getBase64Size(dataURL) > MAX_FILE_SIZE) {
+                        const scaleFactor = Math.sqrt(MAX_FILE_SIZE / getBase64Size(dataURL));
+                        const newWidth = Math.floor(finalWidth * scaleFactor);
+                        const newHeight = Math.floor(finalHeight * scaleFactor);
 
                         canvas.width = newWidth;
                         canvas.height = newHeight;
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
 
                         ctx.drawImage(
                             img,
@@ -296,7 +314,15 @@ const ImagenEmpresa = ({ isOpen, setIsOpen, currentImage, onImageChange, empresa
                             0, 0, newWidth, newHeight
                         );
 
-                        dataURL = canvas.toDataURL('image/jpeg', 0.8);
+                        // Intentar con calidad 0.7
+                        quality = 0.7;
+                        dataURL = canvas.toDataURL('image/jpeg', quality);
+                        
+                        // Si aún es grande, reducir más la calidad
+                        while (getBase64Size(dataURL) > MAX_FILE_SIZE && quality > 0.1) {
+                            quality -= 0.05;
+                            dataURL = canvas.toDataURL('image/jpeg', quality);
+                        }
                     }
 
                     resolve(dataURL);

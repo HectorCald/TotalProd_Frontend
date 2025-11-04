@@ -29,6 +29,13 @@ class EmpresaImagenService {
                 })
             });
             
+            // Verificar si la respuesta es JSON antes de parsear
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Error del servidor: ${response.status} ${response.statusText}. La imagen puede ser demasiado grande o el servidor no está disponible.`);
+            }
+            
             const data = await response.json();
             
             if (!response.ok) {
@@ -53,6 +60,13 @@ class EmpresaImagenService {
                 method: 'GET',
                 headers: getAuthHeaders()
             });
+            
+            // Verificar si la respuesta es JSON antes de parsear
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+            }
             
             const data = await response.json();
             
@@ -83,6 +97,13 @@ class EmpresaImagenService {
                     empresa_id: empresaId
                 })
             });
+            
+            // Verificar si la respuesta es JSON antes de parsear
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Error del servidor: ${response.status} ${response.statusText}. La imagen puede ser demasiado grande o el servidor no está disponible.`);
+            }
             
             const data = await response.json();
             
@@ -116,6 +137,13 @@ class EmpresaImagenService {
             
             console.log('DELETE Response status:', response.status);
             console.log('DELETE Response ok:', response.ok);
+            
+            // Verificar si la respuesta es JSON antes de parsear
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+            }
             
             const data = await response.json();
             console.log('DELETE Response data:', data);
@@ -153,6 +181,13 @@ class EmpresaImagenService {
                 method: 'GET',
                 headers: getAuthHeaders()
             });
+            
+            // Verificar si la respuesta es JSON antes de parsear
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+            }
             
             const data = await response.json();
             

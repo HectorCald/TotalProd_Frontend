@@ -721,16 +721,18 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         icon='dollar'
                     />
 
-                    <Select
-                        value={modoAgrupacion}
-                        onChange={handleCambiarModoAgrupacion}
-                        options={[
-                            { value: 'agrupado', label: 'Agrupado' },
-                            { value: 'no_agrupado', label: 'Unidades' }
-                        ]}
-                        placeholder="Modalidad"
-                        icon='package'
-                    />
+                    {productosCanasta.some(producto => producto.grup) && (
+                        <Select
+                            value={modoAgrupacion}
+                            onChange={handleCambiarModoAgrupacion}
+                            options={[
+                                { value: 'agrupado', label: 'Agrupado' },
+                                { value: 'no_agrupado', label: 'Unidades' }
+                            ]}
+                            placeholder="Modalidad"
+                            icon='package'
+                        />
+                    )}
 
                 </div>
 

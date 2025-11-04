@@ -49,12 +49,16 @@ const Inicio = ({ onViewOpen }) => {
     checkingRef.current = true;
     try {
       const result = await checkCacheStatus();
-      if (result.status === 'new') {
+      if (result.status === 'no_version') {
+        // Primera vez: guardar versión automáticamente sin mostrar modal
+        if (result.latest) {
+          localStorage.setItem('cacheVersion', result.latest);
+        }
+      } else if (result.status === 'new') {
+        // Hay versión antigua y nueva: mostrar modal
         mostrarNotificacion('success', `Nueva versión disponible: v${result.latest}`);
-        const storedVersion = localStorage.getItem('cacheVersion');
-        // Abrir modal automáticamente después de mostrar la notificación
         setTimeout(() => {
-          setOldVersion(storedVersion);
+          setOldVersion(result.stored);
           setNewVersion(result.latest);
           setShowUpdateModal(true);
         }, 500);
