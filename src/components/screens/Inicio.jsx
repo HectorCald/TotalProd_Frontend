@@ -170,10 +170,7 @@ const Inicio = ({ onViewOpen }) => {
 
       {/* Contenido para pantallas grandes */}
       <div className="inicio-desktop">
-        <InicioPC onViewOpen={(viewName) => {
-          console.log('Inicio pasando onViewOpen a InicioPC con:', viewName);
-          onViewOpen(viewName);
-        }} />
+        <InicioPC onViewOpen={onViewOpen} />
       </div>
 
       <Notification

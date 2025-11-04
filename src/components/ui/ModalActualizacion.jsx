@@ -18,12 +18,11 @@ function ModalActualizacion({
     const [inProgress, setInProgress] = useState(false);
 
     useEffect(() => {
-        console.log('📱 ModalActualizacion - isOpen:', isOpen, 'versionAnterior:', versionAnterior, 'versionNueva:', versionNueva);
         if (!isOpen) {
             setEtapaActual(-1);
             setInProgress(false);
         }
-    }, [isOpen, versionAnterior, versionNueva]);
+    }, [isOpen]);
 
     const etapas = useMemo(() => ([
         { label: 'Procesando', icon: 'loader-alt' },
