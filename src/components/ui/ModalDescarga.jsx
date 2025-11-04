@@ -31,7 +31,8 @@ function ModalDescarga({
     onAutoDownloadDone,
     esPedido = false,
     esMovimiento = false,
-    clienteInfo = null // { nombre: string, numeroOrden: number }
+    clienteInfo = null, // { nombre: string, numeroOrden: number }
+    separarColumnas = false // Prop para separar columnas con líneas
 }) {
     const [nombreArchivoState, setNombreArchivoState] = useState(nombreArchivo);
     const [tituloDocumentoState, setTituloDocumentoState] = useState(tituloDocumento);
@@ -438,15 +439,18 @@ function ModalDescarga({
                 for (let col = 0; col < maxCols; col++) {
                     const cellAddress = XLSX.utils.encode_cell({ r: headerRowStart, c: col });
                     if (worksheet[cellAddress]) {
+                        // Color más oscuro para las líneas (gris oscuro)
+                        const borderColor = { rgb: "888888" };
+                        
                         worksheet[cellAddress].s = {
                             font: { bold: true, color: { rgb: "FFFFFF" } },
                             fill: { fgColor: { rgb: "366092" } },
                             alignment: { horizontal: "center" },
                             border: {
-                                top: { style: "thin", color: { rgb: "000000" } },
-                                bottom: { style: "thin", color: { rgb: "000000" } },
-                                left: { style: "thin", color: { rgb: "000000" } },
-                                right: { style: "thin", color: { rgb: "000000" } }
+                                top: { style: "thin", color: borderColor },
+                                bottom: { style: "thin", color: borderColor },
+                                left: { style: "thin", color: borderColor },
+                                right: { style: "thin", color: borderColor }
                             }
                         };
                     }
@@ -460,12 +464,15 @@ function ModalDescarga({
                         for (let col = 0; col < maxCols; col++) {
                             const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
                             if (worksheet[cellAddress]) {
+                                // Color más oscuro para las líneas
+                                const borderColor = { rgb: "888888" };
+                                
                                 worksheet[cellAddress].s = {
                                     border: {
-                                        top: { style: "thin", color: { rgb: "000000" } },
-                                        bottom: { style: "thin", color: { rgb: "000000" } },
-                                        left: { style: "thin", color: { rgb: "000000" } },
-                                        right: { style: "thin", color: { rgb: "000000" } }
+                                        top: { style: "thin", color: borderColor },
+                                        bottom: { style: "thin", color: borderColor },
+                                        left: { style: "thin", color: borderColor },
+                                        right: { style: "thin", color: borderColor }
                                     }
                                 };
 
@@ -545,7 +552,9 @@ function ModalDescarga({
                 infoValue: { fontSize: 10, textAlign: 'right' },
                 headerBox: { borderWidth: 1.2, borderRadius: 8, borderColor: '#000', paddingVertical: 3, paddingHorizontal: 8, marginTop: 6, height: 22, justifyContent: 'center' },
                 headerRow: { flexDirection: 'row', alignItems: 'center' },
-                row: { flexDirection: 'row', marginTop: 6, borderBottomWidth: 0.5, borderBottomColor: '#CCCCCC', paddingBottom: 4 },
+                row: { flexDirection: 'row', marginTop: 0, borderBottomWidth: 0.5, borderBottomColor: '#888888', paddingBottom: 2, paddingTop: 2 },
+                rowWithColumnBorders: { flexDirection: 'row', marginTop: 0, borderBottomWidth: 0.5, borderBottomColor: '#888888', paddingBottom: 2, paddingTop: 2 },
+                cellWithBorder: { borderRightWidth: 0.5, borderRightColor: '#888888', paddingRight: 4 },
                 headerCell: { fontSize: 9, fontWeight: 700 },
                 headerLast: { paddingLeft: 0 },
                 cellText: { fontSize: 9 },
@@ -668,7 +677,10 @@ function ModalDescarga({
                                                 {seccion.valores.map((row, rIdx) => (
                                                     <View key={rIdx} style={styles.row}>
                                                         {row.map((cell, cIdx) => (
-                                                            <View key={cIdx} style={{ width: widths[cIdx] }}>
+                                                            <View key={cIdx} style={[
+                                                                { width: widths[cIdx] },
+                                                                separarColumnas && cIdx < row.length - 1 && styles.cellWithBorder
+                                                            ]}>
                                                                 <Text style={styles.cellText}>{cell != null ? String(cell) : ''}</Text>
                                                             </View>
                                                         ))}
@@ -698,7 +710,10 @@ function ModalDescarga({
                                 {tablaValores.map((row, rIdx) => (
                                     <View key={rIdx} style={styles.row}>
                                         {row.map((cell, cIdx) => (
-                                            <View key={cIdx} style={{ width: getWidthsPct(tablaHeaders)[cIdx] }}>
+                                            <View key={cIdx} style={[
+                                                { width: getWidthsPct(tablaHeaders)[cIdx] },
+                                                separarColumnas && cIdx < row.length - 1 && styles.cellWithBorder
+                                            ]}>
                                                 <Text style={styles.cellText}>{cell != null ? String(cell) : ''}</Text>
                                             </View>
                                         ))}
@@ -987,7 +1002,7 @@ function ModalDescarga({
 
                     <Switch
                         title="Firmas"
-                        subtitle="Incluir espacios para firmas"
+                        subtitle="Incluir espacios para firmas 'Entregado por' y 'Recibido por'"
                         checked={incluirFirmas}
                         onChange={handleIncluirFirmasChange}
                         icon="edit"

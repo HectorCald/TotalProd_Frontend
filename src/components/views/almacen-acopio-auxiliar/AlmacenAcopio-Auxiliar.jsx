@@ -22,6 +22,7 @@ import Notification from '../../common/Notification';
 import conteosService from '../../../services/conteosService';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import DescargaConteoBuilder from './DescargaConteoBuilder';
 
 function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const { isLargeScreen } = useLayout();
@@ -39,6 +40,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     // UI: envío y notificación
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [notif, setNotif] = useState({ visible: false, text: '', type: 'success' });
+    const [isOpenDescarga, setIsOpenDescarga] = useState(false);
 
     // Datos
     const [productos, setProductos] = useState([]);
@@ -614,8 +616,11 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                 </div>
                 {tipo === 'conteo' ? (
                     <div className={styles.buttonFooter}>
-                        <Boton className='btn-original' label='Registrar conteo' onClick={handleRegistrarConteo} loading={isSubmitting} />
-                        <Boton className='btn-gray' label='Restablecer' onClick={handleRestablecerValores} disabled={isSubmitting} />
+                        <Boton className='btn-original' label='Registrar' onClick={handleRegistrarConteo} loading={isSubmitting} />
+                        
+                            <Boton className='btn-gray' label='Restablecer' onClick={handleRestablecerValores} disabled={isSubmitting} />
+                            <Boton className='btn-gray' buttonIcon='download' onClick={() => setIsOpenDescarga(true)} disabled={isSubmitting} />
+                     
                     </div>
                 ) : ''}
 
@@ -661,6 +666,16 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             <FiltroOrdenamientoAcopio isOpen={isOpenOrden} setIsOpen={setOpenOrden} onOrdenamientoSeleccionado={handleOrdenamiento} />
             <FiltroDiferenciaConteo isOpen={isOpenDiferencia} setIsOpen={setOpenDiferencia} onDiferenciaSeleccionada={(op) => setFiltroDiferencia(op)} />
             <Notification type={notif.type} text={notif.text} isVisible={notif.visible} onClose={() => setNotif(prev => ({ ...prev, visible: false }))} />
+            {tipo === 'conteo' && (
+                <DescargaConteoBuilder
+                    isOpen={isOpenDescarga}
+                    setIsOpen={setIsOpenDescarga}
+                    productos={productos}
+                    quantityInputs={quantityInputs}
+                    quantityInputsText={quantityInputsText}
+                    justificationInputsText={justificationInputsText}
+                />
+            )}
         </>
     );
 }
