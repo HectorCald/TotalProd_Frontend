@@ -5,6 +5,7 @@ import { FUNCTIONS } from '../../constants/functions';
 import AtajoAnuncio from '../common/AtajoAnuncio';
 import Notification from '../common/Notification';
 import InicioPC from './InicioPC';
+import ModalActualizacion from '../ui/ModalActualizacion';
 import almacenImage from '../../assets/almacen.png';
 import acopioImage from '../../assets/acopio.png';
 import movimientosImage from '../../assets/movimientos.png';
@@ -16,13 +17,16 @@ import PullToRefresh from '../common/PullToRefresh';
 import { useUser } from '../../context/UserContext';
 import UserService from '../../services/userService';
 
-const Inicio = ({ onViewOpen, onCacheUpdateFound }) => {
+const Inicio = ({ onViewOpen }) => {
   const { user, setUserFromService } = useUser();
   const [notification, setNotification] = useState({
     isVisible: false,
     type: 'info',
     text: ''
   });
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [oldVersion, setOldVersion] = useState(null);
+  const [newVersion, setNewVersion] = useState(null);
   const checkingRef = useRef(false);
 
   const mostrarNotificacion = (tipo, texto) => {
@@ -45,9 +49,13 @@ const Inicio = ({ onViewOpen, onCacheUpdateFound }) => {
       const result = await checkCacheStatus();
       if (result.status === 'new') {
         mostrarNotificacion('success', `Nueva versión disponible: v${result.latest}`);
-        if (typeof onCacheUpdateFound === 'function') {
-          onCacheUpdateFound(result.latest);
-        }
+        const storedVersion = localStorage.getItem('cacheVersion');
+        // Abrir modal automáticamente después de mostrar la notificación
+        setTimeout(() => {
+          setOldVersion(storedVersion);
+          setNewVersion(result.latest);
+          setShowUpdateModal(true);
+        }, 500);
       } else if (result.status === 'same') {
         if (notifyNoChange) mostrarNotificacion('info', `Versión actual v${result.latest}`);
       } else if (result.status === 'error') {
@@ -61,11 +69,16 @@ const Inicio = ({ onViewOpen, onCacheUpdateFound }) => {
   };
 
   useEffect(() => {
+    // Verificación inicial al montar el componente
+    checkAndNotifyCacheVersion(false, false);
+    
+    // Verificación periódica cada 1 minuto (60000ms)
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         checkAndNotifyCacheVersion(false, false);
       }
     }, 60000);
+    
     return () => clearInterval(interval);
   }, []);
 
@@ -167,6 +180,14 @@ const Inicio = ({ onViewOpen, onCacheUpdateFound }) => {
         isVisible={notification.isVisible}
         type={notification.type}
         text={notification.text}
+      />
+
+      {/* Modal de actualización */}
+      <ModalActualizacion
+        isOpen={showUpdateModal}
+        setIsOpen={setShowUpdateModal}
+        versionAnterior={oldVersion}
+        versionNueva={newVersion}
       />
     </>
   );

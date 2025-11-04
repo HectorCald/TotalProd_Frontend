@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { checkCacheStatus } from '../utils/cacheUtils';
 import '../styles/Home.css';
 import Nav from '../components/ui/Nav';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
@@ -22,7 +21,6 @@ import Personal from '../components/views/personal/Personal';
 import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
 import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
-import ModalActualizacion from '../components/ui/ModalActualizacion';
 
 const Home = () => {
   const { isLargeScreen } = useLayout();
@@ -31,36 +29,6 @@ const Home = () => {
   const [activeRoute, setActiveRoute] = useState('/dashboard/default');
   const [isOffline, setIsOffline] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [oldVersion, setOldVersion] = useState(null);
-  const [newVersion, setNewVersion] = useState(null);
-
-  // Detectar versión del cache y mostrar actualización (sin guardar aún)
-  useEffect(() => {
-    const checkCacheVersion = async () => {
-      try {
-        const result = await checkCacheStatus();
-        if (result.status === 'new') {
-          const storedVersion = localStorage.getItem('cacheVersion');
-          setOldVersion(storedVersion);
-          setNewVersion(result.latest);
-          setShowUpdateModal(true);
-        }
-      } catch (e) {
-        // noop
-      }
-    };
-    checkCacheVersion();
-    const t = setTimeout(checkCacheVersion, 1500);
-    return () => clearTimeout(t);
-  }, []);
-
-  const handleCacheUpdateFound = (latestVersion) => {
-    const storedVersion = localStorage.getItem('cacheVersion');
-    setOldVersion(storedVersion);
-    setNewVersion(latestVersion);
-    setShowUpdateModal(true);
-  };
 
   // Detectar cambios en la conexión
   useEffect(() => {
@@ -150,11 +118,11 @@ const Home = () => {
                          activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio';
     switch (currentScreen) {
       case 'inicio':
-        return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} onCacheUpdateFound={handleCacheUpdateFound} />;
+        return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} />;
       case 'explorar':
         return <Explorar />;
       default:
-        return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} onCacheUpdateFound={handleCacheUpdateFound} />;
+        return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} />;
     }
   };
 
@@ -289,14 +257,6 @@ const Home = () => {
         isOpen={showOfflineModal}
         setIsOpen={setShowOfflineModal}
         onRetry={handleRetryConnection}
-      />
-
-      {/* Modal de actualización */}
-      <ModalActualizacion
-        isOpen={showUpdateModal}
-        setIsOpen={setShowUpdateModal}
-        versionAnterior={oldVersion}
-        versionNueva={newVersion}
       />
     </div>
   );

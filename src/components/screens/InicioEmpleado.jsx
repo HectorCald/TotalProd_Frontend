@@ -3,6 +3,7 @@ import { checkCacheStatus } from '../../utils/cacheUtils';
 import { getAvailableMainModules } from '../../constants/modules';
 import AtajoAnuncio from '../common/AtajoAnuncio';
 import InicioEmpleadoPC from './InicioEmpleadoPC';
+import ModalActualizacion from '../ui/ModalActualizacion';
 import styles from '../../styles/view.module.css';
 import './Inicio.css';
 import PullToRefresh from '../common/PullToRefresh';
@@ -11,9 +12,12 @@ import { useEmployee } from '../../context/EmployeeContext';
 import personalService from '../../services/personalService';
 import Notification from '../common/Notification';
 
-const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen, onCacheUpdateFound }) => {
+const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
   const { setEmployeeFromService } = useEmployee();
   const [notification, setNotification] = useState({ isVisible: false, type: 'info', text: '' });
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [oldVersion, setOldVersion] = useState(null);
+  const [newVersion, setNewVersion] = useState(null);
   const checkingRef = useRef(false);
   // Obtener módulos principales disponibles con memoización
   const availableMainModules = useMemo(() => {
@@ -34,9 +38,13 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen, onCacheUpdate
       const result = await checkCacheStatus();
       if (result.status === 'new') {
         mostrarNotificacion('success', `Nueva versión disponible: v${result.latest}`);
-        if (typeof onCacheUpdateFound === 'function') {
-          onCacheUpdateFound(result.latest);
-        }
+        const storedVersion = localStorage.getItem('cacheVersion');
+        // Abrir modal automáticamente después de mostrar la notificación
+        setTimeout(() => {
+          setOldVersion(storedVersion);
+          setNewVersion(result.latest);
+          setShowUpdateModal(true);
+        }, 500);
       } else if (result.status === 'same') {
         if (notifyNoChange) mostrarNotificacion('info', `Versión actual v${result.latest}`);
       } else if (result.status === 'error') {
@@ -50,11 +58,16 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen, onCacheUpdate
   };
 
   useEffect(() => {
+    // Verificación inicial al montar el componente
+    checkAndNotifyCacheVersion(false, false);
+    
+    // Verificación periódica cada 1 minuto (60000ms)
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         checkAndNotifyCacheVersion(false, false);
       }
     }, 60000);
+    
     return () => clearInterval(interval);
   }, []);
 
@@ -170,6 +183,14 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen, onCacheUpdate
         isVisible={notification.isVisible}
         type={notification.type}
         text={notification.text}
+      />
+
+      {/* Modal de actualización */}
+      <ModalActualizacion
+        isOpen={showUpdateModal}
+        setIsOpen={setShowUpdateModal}
+        versionAnterior={oldVersion}
+        versionNueva={newVersion}
       />
     </>
   );

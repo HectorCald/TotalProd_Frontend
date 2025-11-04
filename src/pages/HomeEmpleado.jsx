@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { checkCacheStatus } from '../utils/cacheUtils';
 import { useEmployee } from '../context/EmployeeContext';
 import { useLayout } from '../context/LayoutContext';
 import Nav from '../components/ui/Nav';
@@ -35,7 +34,6 @@ import Deudas from '../components/views/deudas/PanelDeudas';
 import PanelConteos from '../components/views/conteos/PanelConteos';
 import PanelCotizaciones from '../components/views/cotizaciones/PanelCotizaciones';
 import personalService from '../services/personalService';
-import ModalActualizacion from '../components/ui/ModalActualizacion';
 
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, error } = useEmployee();
@@ -50,36 +48,6 @@ const HomeEmpleado = () => {
     const [isOffline, setIsOffline] = useState(false);
     const [showOfflineModal, setShowOfflineModal] = useState(false);
     const [lastLocationUpdate, setLastLocationUpdate] = useState(0);
-    const [showUpdateModal, setShowUpdateModal] = useState(false);
-    const [oldVersion, setOldVersion] = useState(null);
-    const [newVersion, setNewVersion] = useState(null);
-
-    // Detectar versión del cache y mostrar actualización (sin guardar aún)
-    useEffect(() => {
-        const checkCacheVersion = async () => {
-            try {
-                const result = await checkCacheStatus();
-                if (result.status === 'new') {
-                    const storedVersion = localStorage.getItem('cacheVersion');
-                    setOldVersion(storedVersion);
-                    setNewVersion(result.latest);
-                    setShowUpdateModal(true);
-                }
-            } catch (e) {
-                // noop
-            }
-        };
-        checkCacheVersion();
-        const t = setTimeout(checkCacheVersion, 1500);
-        return () => clearTimeout(t);
-    }, []);
-
-    const handleCacheUpdateFound = (latestVersion) => {
-        const storedVersion = localStorage.getItem('cacheVersion');
-        setOldVersion(storedVersion);
-        setNewVersion(latestVersion);
-        setShowUpdateModal(true);
-    };
 
     // Detectar cambios en la conexión
     useEffect(() => {
@@ -439,9 +407,9 @@ const HomeEmpleado = () => {
         const currentScreen = activeRoute === '/dashboard/default' ? 'inicio' : 'inicio';
         switch (currentScreen) {
             case 'inicio':
-                return isLargeScreen ? <InicioEmpleadoPC onViewOpen={handleViewOpen} /> : <InicioEmpleado employee={employee} onMainModuleClick={handleMainModuleClick} onViewOpen={handleViewOpen} onCacheUpdateFound={handleCacheUpdateFound} />;
+                return isLargeScreen ? <InicioEmpleadoPC onViewOpen={handleViewOpen} /> : <InicioEmpleado employee={employee} onMainModuleClick={handleMainModuleClick} onViewOpen={handleViewOpen} />;
             default:
-                return isLargeScreen ? <InicioEmpleadoPC onViewOpen={handleViewOpen} /> : <InicioEmpleado employee={employee} onMainModuleClick={handleMainModuleClick} onViewOpen={handleViewOpen} onCacheUpdateFound={handleCacheUpdateFound} />;
+                return isLargeScreen ? <InicioEmpleadoPC onViewOpen={handleViewOpen} /> : <InicioEmpleado employee={employee} onMainModuleClick={handleMainModuleClick} onViewOpen={handleViewOpen} />;
         }
     };
 
@@ -514,14 +482,6 @@ const HomeEmpleado = () => {
                 isOpen={showOfflineModal}
                 setIsOpen={setShowOfflineModal}
                 onRetry={handleRetryConnection}
-            />
-
-            {/* Modal de actualización */}
-            <ModalActualizacion
-                isOpen={showUpdateModal}
-                setIsOpen={setShowUpdateModal}
-                versionAnterior={oldVersion}
-                versionNueva={newVersion}
             />
         </div>
     );
