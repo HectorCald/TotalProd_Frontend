@@ -1,20 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
 import PanelConteos from './PanelConteos';
+import { useUser } from '../../../context/UserContext';
+import { isSoloVentas } from '../../../utils/empresaHelper';
 
 
 function ConteosMedio({ isOpen, setIsOpen }) {
+    const { user } = useUser();
+    const soloVentas = isSoloVentas(user);
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [tipoConteo, setTipoConteo] = useState('almacen');
+
+    // Si solo hay una opción (solo ventas), abrir directamente
+    useEffect(() => {
+        if (isOpen) {
+            if (soloVentas) {
+                // Solo hay una opción, abrir directamente
+                setIsOpen(false);
+                setIsPanelOpen(true);
+                setTipoConteo('almacen');
+            }
+        }
+    }, [isOpen, soloVentas, setIsOpen]);
 
     const handleTipoConteo = (tipo) => {
         setIsOpen(false);
         setIsPanelOpen(true);
         setTipoConteo(tipo);
     };
+
+    const handleConteosClose = () => {
+        setIsPanelOpen(false);
+        setTipoConteo('almacen');
+        setIsOpen(false);
+    };
+
+    // Si solo hay una opción, no mostrar el modal, solo el componente
+    if (soloVentas) {
+        return (
+            <PanelConteos 
+                isOpen={isPanelOpen} 
+                setIsOpen={handleConteosClose} 
+                tipoConteo={tipoConteo || 'almacen'} 
+            />
+        );
+    }
 
     return (
         <>

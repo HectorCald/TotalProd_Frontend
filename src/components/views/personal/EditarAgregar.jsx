@@ -11,10 +11,13 @@ import modulesService from '../../../services/modulesService';
 import Switch from '../../common/Switch';
 import Select from '../../common/Select';
 import Notification from '../../common/Notification';
-import { isDamabrava } from '../../../utils/empresaHelper';
+import { isDamabrava, isSoloVentas } from '../../../utils/empresaHelper';
 import NoData from '../../common/NoData';
+import { useUser } from '../../../context/UserContext';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated, sucursales = [] }) {
+    const { user } = useUser();
+    const soloVentas = isSoloVentas(user);
 
     // Estados para los datos del personal
     const [dataEdit, setDataEdit] = useState({
@@ -104,19 +107,54 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             setLoadingModules(true);
             const response = await modulesService.getAll();
             if (response.success) {
+                let filteredModules = response.data;
+                
                 // Si la empresa es Damabrava, cargar TODOS los módulos
                 if (isDamabrava()) {
-                    setModules(response.data);
+                    filteredModules = response.data;
                 } else {
                     // Para otras empresas, cargar todos los módulos EXCEPTO los de Damabrava
-                    const nonDamabravaModules = response.data.filter(module =>
+                    filteredModules = response.data.filter(module =>
                         !module.name.toLowerCase().includes('damabrava') &&
                         !module.name.toLowerCase().includes('producción') &&
                         !module.name.toLowerCase().includes('formulario') &&
                         !module.name.toLowerCase().includes('verificación')
                     );
-                    setModules(nonDamabravaModules);
                 }
+                
+                // Si es solo ventas (y es usuario, no empleado), filtrar módulos de materia prima
+                // Solo aplica cuando se está creando/editando personal, no cuando es un empleado
+                if (soloVentas && tipo !== 'ver') {
+                    filteredModules = filteredModules.map(module => {
+                        // Filtrar submódulos de materia prima
+                        if (module.sub_modulos && module.sub_modulos.length > 0) {
+                            const filteredSubModulos = module.sub_modulos.filter(subModulo => {
+                                // Ocultar submódulos relacionados con materia prima/acopio
+                                const isMateriaPrima = subModulo.name.toLowerCase().includes('materia') ||
+                                                      subModulo.name.toLowerCase().includes('acopio') ||
+                                                      subModulo.name.toLowerCase().includes('pesaje') ||
+                                                      module.name.toLowerCase().includes('materia');
+                                return !isMateriaPrima;
+                            });
+                            
+                            // Si el módulo tiene submódulos después del filtro, incluirlo
+                            if (filteredSubModulos.length > 0) {
+                                return {
+                                    ...module,
+                                    sub_modulos: filteredSubModulos
+                                };
+                            }
+                            // Si no quedan submódulos, excluir el módulo completo
+                            return null;
+                        }
+                        // Si el módulo no tiene submódulos, verificar si es de materia prima
+                        const isMateriaPrimaModule = module.name.toLowerCase().includes('materia') ||
+                                                     module.name.toLowerCase().includes('acopio');
+                        return isMateriaPrimaModule ? null : module;
+                    }).filter(module => module !== null); // Eliminar módulos null
+                }
+                
+                setModules(filteredModules);
             }
         } catch (error) {
             console.error('Error al cargar módulos:', error);

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BoxIcon } from 'boxicons-react';
-import { MENU_OPTIONS, handleMenuAction } from '../../constants/menuOptions';
+import { getMenuOptions, handleMenuAction } from '../../constants/menuOptions';
 import { useLayout } from '../../context/LayoutContext';
 import { useModalStack } from '../../context/ModalStackContext';
+import { useUser } from '../../context/UserContext';
 import styles from './BarraLateral.module.css';
 
 // Importar todos los componentes de vistas
@@ -38,7 +39,11 @@ const BarraLateral = ({
 }) => {
   const { sidebarCollapsed, setSidebarState } = useLayout();
   const { modalStack, unregisterModal } = useModalStack();
+  const { user } = useUser();
   const [expandedMenus, setExpandedMenus] = useState(new Set());
+  
+  // Obtener opciones de menú filtradas según el tipo de empresa
+  const menuOptions = useMemo(() => getMenuOptions(user), [user]);
 
   // Estados para todas las vistas modales
   const [activeView, setActiveView] = useState(null);
@@ -189,7 +194,7 @@ const BarraLateral = ({
 
       {/* Menu Items */}
       <div className={styles.menuContainer}>
-        {MENU_OPTIONS.map((section) => (
+        {menuOptions.map((section) => (
           <div key={section.id} className={styles.section}>
             {!sidebarCollapsed && (
               <div className={styles.sectionTitle}>

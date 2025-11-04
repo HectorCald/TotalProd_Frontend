@@ -21,6 +21,7 @@ import Personal from '../components/views/personal/Personal';
 import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
 import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
+import PasoTipo from '../components/views/pasos/PasoTipo';
 
 const Home = () => {
   const { isLargeScreen } = useLayout();
@@ -29,6 +30,7 @@ const Home = () => {
   const [activeRoute, setActiveRoute] = useState('/dashboard/default');
   const [isOffline, setIsOffline] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [showPasoTipo, setShowPasoTipo] = useState(false);
 
   // Detectar cambios en la conexión
   useEffect(() => {
@@ -128,9 +130,27 @@ const Home = () => {
 
 
 
+  // Verificar si necesita mostrar el paso de selección de tipo
+  useEffect(() => {
+    if (user && user.empresa && user.empresa.tipo === null) {
+      setShowPasoTipo(true);
+    } else {
+      setShowPasoTipo(false);
+    }
+  }, [user]);
+
+  const handlePasoTipoComplete = () => {
+    setShowPasoTipo(false);
+  };
+
   // Mostrar loading hasta obtener la información del usuario
   if (!user) {
     return <LoadingSpinner fullScreen={true} text="Cargando usuario..." icon="user" />;
+  }
+
+  // Mostrar componente de selección de tipo si es necesario
+  if (showPasoTipo) {
+    return <PasoTipo onComplete={handlePasoTipoComplete} />;
   }
 
   return (

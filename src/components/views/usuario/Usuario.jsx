@@ -194,6 +194,25 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     // Obtener nombre de la empresa
     const nombreEmpresa = sucursal?.empresas?.name || 'N/A';
     
+    // Obtener tipo de app
+    const getTipoApp = () => {
+        if (isEmployee) {
+            // Para empleados, obtener el tipo desde la sucursal
+            const tipo = sucursal?.empresas?.tipo;
+            if (tipo === 'ventas') return 'Ventas';
+            if (tipo === 'ventas_produccion') return 'Ventas y Producción';
+            return 'N/A';
+        } else {
+            // Para usuarios, obtener el tipo desde el user
+            const tipo = userInfo?.empresa?.tipo;
+            if (tipo === 'ventas') return 'Ventas';
+            if (tipo === 'ventas_produccion') return 'Ventas y Producción';
+            return 'N/A';
+        }
+    };
+    
+    const tipoApp = getTipoApp();
+    
     // Obtener la imagen a mostrar
     const displayImage = empresaImage || currentUser?.logo_tipo || sucursal?.empresas?.logo_tipo;
 
@@ -207,7 +226,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                     <ItemView
                         title={nombreCompleto}
                         description={isEmployee ? currentUser.codigo || 'Sin código' : currentUser.email || 'Sin email'}
-                        description2={`${nombreEmpresa}${isEmployee && sucursal ? ` • ${sucursal.name}` : ''}`}
+                        description2={`${nombreEmpresa}${tipoApp !== 'N/A' ? ` • ${tipoApp}` : ''}${isEmployee && sucursal ? ` • ${sucursal.name}` : ''}`}
                         circulo={true}
                         transparent={false}
                         style={{ padding: '0px', minHeight: 'auto'}}

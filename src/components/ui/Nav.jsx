@@ -115,6 +115,7 @@ const Nav = () => {
                     {isLargeScreen ? (
               
                             <Select
+                                label="Administrador"
                                 placeholder={nombreCompleto}
                                 options={userMenuOptions}
                                 onChange={handleUserMenuSelect}

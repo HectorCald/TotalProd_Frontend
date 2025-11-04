@@ -27,6 +27,25 @@ function VerUsuario({ isOpen, setIsOpen }) {
     // Obtener nombre de la empresa
     const nombreEmpresa = sucursal?.empresas?.name || 'N/A';
     
+    // Obtener tipo de app
+    const getTipoApp = () => {
+        if (isEmployee) {
+            // Para empleados, obtener el tipo desde la sucursal
+            const tipo = sucursal?.empresas?.tipo;
+            if (tipo === 'ventas') return 'Ventas';
+            if (tipo === 'ventas_produccion') return 'Ventas y Producción';
+            return 'N/A';
+        } else {
+            // Para usuarios, obtener el tipo desde el user
+            const tipo = userInfo?.empresa?.tipo;
+            if (tipo === 'ventas') return 'Ventas';
+            if (tipo === 'ventas_produccion') return 'Ventas y Producción';
+            return 'N/A';
+        }
+    };
+    
+    const tipoApp = getTipoApp();
+    
     // Obtener la imagen a mostrar - usar directamente del contexto
     const displayImage = usuario?.logo_tipo || sucursal?.empresas?.logo_tipo;
     
@@ -143,6 +162,10 @@ function VerUsuario({ isOpen, setIsOpen }) {
                             value={sucursal.name || 'N/A'}
                         />
                     )}
+                    <Dato
+                        label="Tipo de aplicación"
+                        value={tipoApp}
+                    />
                 </div>
             </div>
 

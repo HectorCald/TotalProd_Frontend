@@ -16,9 +16,11 @@ import './Inicio.css';
 import PullToRefresh from '../common/PullToRefresh';
 import { useUser } from '../../context/UserContext';
 import UserService from '../../services/userService';
+import { isSoloVentas } from '../../utils/empresaHelper';
 
 const Inicio = ({ onViewOpen }) => {
   const { user, setUserFromService } = useUser();
+  const soloVentas = isSoloVentas(user);
   const [notification, setNotification] = useState({
     isVisible: false,
     type: 'info',
@@ -128,12 +130,14 @@ const Inicio = ({ onViewOpen }) => {
               image={almacenImage} 
               onClick={() => onViewOpen('almacenMedioGeneral')} 
             />
-            <AtajoAnuncio 
-              title="Materia Prima" 
-              description="Administra tu materia prima, realiza entradas y salidas." 
-              image={acopioImage} 
-              onClick={() => onViewOpen('almacenMedio')} 
-            />
+            {!soloVentas && (
+              <AtajoAnuncio 
+                title="Materia Prima" 
+                description="Administra tu materia prima, realiza entradas y salidas." 
+                image={acopioImage} 
+                onClick={() => onViewOpen('almacenMedio')} 
+              />
+            )}
           </div>
           <p className="subTitle">Otros</p>
           <div className="atajoAnuncioOtros">

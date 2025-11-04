@@ -9,7 +9,7 @@ import { useLayout } from '../../../context/LayoutContext';
 import NoData from '../../common/NoData';
 
 function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccionada, canClose = true }) {
-    const { seleccionarSucursal } = useUser();
+    const { seleccionarSucursal, sucursalSeleccionada } = useUser();
     const { isLargeScreen } = useLayout();
     const [sucursales, setSucursales] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -20,6 +20,24 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
             cargarSucursales();
         }
     }, [isOpen, empresaId]);
+
+    // Auto-seleccionar si solo hay una sucursal Y no hay sucursal seleccionada previamente
+    useEffect(() => {
+        if (sucursales.length === 1 && !loading && isOpen && !error && !sucursalSeleccionada) {
+            // Auto-seleccionar la única sucursal disponible sin mostrar el modal y sin refresh
+            const sucursal = sucursales[0];
+            seleccionarSucursal(sucursal);
+            
+            // Notificar al componente padre
+            if (onSucursalSeleccionada) {
+                onSucursalSeleccionada(sucursal);
+            }
+            
+            // Cerrar modal
+            setIsOpen(false);
+            // NO hacer refresh cuando es auto-selección
+        }
+    }, [sucursales, loading, isOpen, error, sucursalSeleccionada]);
 
     const cargarSucursales = async () => {
         try {
@@ -52,11 +70,14 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
         // Cerrar modal
         setIsOpen(false);
         
-        // Recargar la página después de seleccionar sucursal (tanto PC como móvil)
+        // Recargar la página cuando es selección manual desde el modal
+        // La auto-selección (solo 1 sucursal sin selección previa) no hace refresh
         window.location.reload();
     };
 
-    if (!isOpen) return null;
+    // No mostrar el modal si solo hay una sucursal Y no hay sucursal seleccionada (se auto-selecciona)
+    // Si hay sucursal seleccionada, mostrar el modal aunque sea solo una (apertura manual)
+    if (!isOpen || (sucursales.length === 1 && !loading && !error && !sucursalSeleccionada)) return null;
 
     return (
         <ViewModal isOpen={isOpen} setIsOpen={canClose ? setIsOpen : () => {}}>

@@ -1,7 +1,7 @@
-import { isDamabrava } from '../utils/empresaHelper';
+import { isDamabrava, isSoloVentas } from '../utils/empresaHelper';
 
-// Opciones oficiales del menú lateral para TotalProd
-export const MENU_OPTIONS = [
+// Opciones base del menú lateral para TotalProd
+const MENU_OPTIONS_BASE = [
   {
     id: 'dashboard',
     title: 'DASHBOARD',
@@ -343,6 +343,114 @@ export const MENU_OPTIONS = [
     ]
   }] : [])
 ];
+
+// Exportar también las opciones base para compatibilidad
+export const MENU_OPTIONS = MENU_OPTIONS_BASE;
+
+// Función para obtener opciones de menú filtradas según el tipo de empresa
+export const getMenuOptions = (user) => {
+  const soloVentas = isSoloVentas(user);
+  
+  // Si no hay user, devolver todas las opciones
+  if (!user) {
+    return MENU_OPTIONS_BASE;
+  }
+
+  // Filtrar opciones de materia prima si es solo ventas
+  return MENU_OPTIONS_BASE.map(section => {
+    if (section.id === 'inventario') {
+      return {
+        ...section,
+        items: section.items.filter(item => {
+          // Si es solo ventas, ocultar el item de "Materia Prima"
+          if (soloVentas && item.id === 'materia-prima') {
+            return false;
+          }
+          return true;
+        })
+      };
+    }
+    
+    if (section.id === 'registros') {
+      return {
+        ...section,
+        items: section.items.map(item => {
+          // Si tiene submenu, filtrar opciones de materia prima
+          if (item.hasSubmenu && item.submenu) {
+            const filteredSubmenu = item.submenu.filter(subItem => {
+              // Si es solo ventas, ocultar opciones de materia prima/acopio
+              if (soloVentas) {
+                const isMateriaPrima = subItem.id?.includes('acopio') || 
+                                       subItem.id?.includes('materia') ||
+                                       subItem.props?.tipo === 'acopio';
+                return !isMateriaPrima;
+              }
+              return true;
+            });
+
+            // Si después del filtrado solo queda una opción, convertir en item directo
+            if (filteredSubmenu.length === 1) {
+              const singleSubItem = filteredSubmenu[0];
+              return {
+                id: singleSubItem.id,
+                title: item.title, // Mantener el título del padre
+                icon: item.icon,
+                action: singleSubItem.action || 'openView',
+                viewName: singleSubItem.viewName || singleSubItem.view,
+                props: singleSubItem.props || {}
+              };
+            }
+
+            // Si quedan múltiples opciones, mantener el submenu
+            return {
+              ...item,
+              submenu: filteredSubmenu
+            };
+          }
+          return item;
+        })
+      };
+    }
+
+    // También aplicar a otras secciones que puedan tener submenus
+    if (section.id === 'inventario') {
+      return {
+        ...section,
+        items: section.items.map(item => {
+          // Si tiene submenu, verificar si solo queda una opción después del filtrado
+          if (item.hasSubmenu && item.submenu) {
+            const filteredSubmenu = item.submenu.filter(subItem => {
+              // No filtrar nada aquí, solo verificar cantidad
+              return true;
+            });
+
+            // Si solo queda una opción, convertir en item directo
+            if (filteredSubmenu.length === 1) {
+              const singleSubItem = filteredSubmenu[0];
+              return {
+                id: singleSubItem.id,
+                title: item.title, // Mantener el título del padre
+                icon: item.icon,
+                action: singleSubItem.action || 'openView',
+                viewName: singleSubItem.viewName || singleSubItem.view,
+                props: singleSubItem.props || {}
+              };
+            }
+
+            // Si quedan múltiples opciones, mantener el submenu
+            return {
+              ...item,
+              submenu: filteredSubmenu
+            };
+          }
+          return item;
+        })
+      };
+    }
+    
+    return section;
+  });
+};
 
 // Función para manejar las acciones del menú
 export const handleMenuAction = (menuItem, onViewOpen, onNavigate, onScreenChange) => {

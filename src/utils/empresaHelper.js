@@ -24,3 +24,16 @@ export const getEmpresaName = () => {
   const empresa = getEmpresaInfo();
   return empresa ? empresa.name : null;
 };
+
+// Función para verificar si la empresa es solo de ventas (no producción)
+// Esta función debe recibir el user del contexto, no usar localStorage
+export const isSoloVentas = (user) => {
+  if (!user || !user.empresa) return false;
+  return user.empresa.tipo === 'ventas';
+};
+
+// Función para verificar si la empresa tiene producción
+export const tieneProduccion = (user) => {
+  if (!user || !user.empresa) return false;
+  return user.empresa.tipo === 'ventas_produccion';
+};

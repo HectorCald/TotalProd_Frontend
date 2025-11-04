@@ -11,8 +11,12 @@ import Notification from '../../common/Notification';
 import CategoriasAlmacen from './CategoriasAlmacen';
 import NoData from '../../common/NoData';
 import Text from '../../common/Text';
+import { useUser } from '../../../context/UserContext';
+import { isSoloVentas } from '../../../utils/empresaHelper';
 
 function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, preciosTipos = [], loadingPrecios = false }) {
+  const { user } = useUser();
+  const soloVentas = isSoloVentas(user);
 
   const [dataMov, setDataMov] = useState({
     name: '',
@@ -222,8 +226,8 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       return;
     }
 
-    // Validar receta solo si está marcado el switch
-    if (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0)) {
+    // Validar receta solo si está marcado el switch y no es solo ventas
+    if (!soloVentas && hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0)) {
       mostrarNotificacion('error', 'Debe crear una receta con al menos un producto');
       return;
     }
@@ -240,7 +244,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         grup: dataMov.grup ? parseInt(dataMov.grup) : null,
         stock_minimo: dataMov.stock_minimo ? parseFloat(dataMov.stock_minimo) : 0,
         prices: dataMov.prices,
-        receta: hasReceta ? recetaGuardada : null // Incluir receta solo si está marcado el switch
+        receta: (!soloVentas && hasReceta) ? recetaGuardada : null // Incluir receta solo si no es solo ventas y está marcado el switch
       };
 
       if (tipo === 'editar') {
@@ -371,36 +375,40 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
               ));
             })()
           )}
-          {/* Switch para receta */}
-          <div className={styles.content} style={{ padding: '10px 15px' }}>
-            <Switch
-              title="¿Tiene receta?"
-              subtitle="Marca si este producto se produce a partir de materias primas de acopio"
-              checked={hasReceta}
-              onChange={handleRecetaSwitch}
-              icon="receipt"
-            />
-          </div>
-
-          {/* Botón de receta (solo si está marcado el switch) */}
-          {hasReceta && (
+          {/* Switch para receta (solo si no es solo ventas) */}
+          {!soloVentas && (
             <>
-              <Boton
-                className='btn-gray'
-                label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
-                style={{ marginTop: 'auto' }}
-                onClick={() => setIsRecetaOpen(true)}
-              />
-              {recetaGuardada && recetaGuardada.productos && recetaGuardada.productos.length > 0 ? (
-                <Text type="success" align="left">
-                  Receta guardada con {recetaGuardada.productos.length} productos
-                </Text>
-              ) : (
-                <Text type="error" align="left">
-                  Debe crear una receta con al menos un producto
-                </Text>
+              <div className={styles.content} style={{ padding: '10px 15px' }}>
+                <Switch
+                  title="¿Tiene receta?"
+                  subtitle="Marca si este producto se produce a partir de materias primas de acopio"
+                  checked={hasReceta}
+                  onChange={handleRecetaSwitch}
+                  icon="receipt"
+                />
+              </div>
+
+              {/* Botón de receta (solo si está marcado el switch) */}
+              {hasReceta && (
+                <>
+                  <Boton
+                    className='btn-gray'
+                    label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
+                    style={{ marginTop: 'auto' }}
+                    onClick={() => setIsRecetaOpen(true)}
+                  />
+                  {recetaGuardada && recetaGuardada.productos && recetaGuardada.productos.length > 0 ? (
+                    <Text type="success" align="left">
+                      Receta guardada con {recetaGuardada.productos.length} productos
+                    </Text>
+                  ) : (
+                    <Text type="error" align="left">
+                      Debe crear una receta con al menos un producto
+                    </Text>
+                  )}
+                </>
               )}
-          </>
+            </>
           )}
 
           <Boton
@@ -409,7 +417,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
             style={{ marginTop: 'auto' }}
             onClick={handleSubmit}
             loading={loading}
-            disabled={!dataMov.name.trim() || dataMov.stock === '' || dataMov.stock === null || dataMov.stock === undefined || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
+            disabled={!dataMov.name.trim() || dataMov.stock === '' || dataMov.stock === null || dataMov.stock === undefined || (!soloVentas && hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
           />
 
         </div>

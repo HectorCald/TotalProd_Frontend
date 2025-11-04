@@ -15,7 +15,9 @@ function Select({
     containerStyle,
     // Cuando es true, el placeholder se muestra como texto principal (sin etiqueta flotante)
     placeholderAsValue = false,
-    disabled = false
+    disabled = false,
+    // Label separado que se muestra arriba cuando hay un valor o placeholderAsValue es true
+    label
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
@@ -77,19 +79,22 @@ function Select({
     const selectedOption = options.find(opt => opt.value === value);
     const isPlaceholder = !selectedOption && !placeholderAsValue; // si usamos placeholder como valor, no aplicar estilo placeholder
     const hasSingleOption = options.length === 1;
-    // La etiqueta solo sube cuando hay un valor seleccionado, no al abrir el dropdown
-    const labelUp = !!selectedOption;
+    // La etiqueta solo sube cuando hay un valor seleccionado o cuando placeholderAsValue es true y hay un label personalizado
+    const labelUp = !!selectedOption || (placeholderAsValue && !!label);
 
+    // Determinar qué texto mostrar como label
+    const labelText = label || (!placeholderAsValue ? placeholder : null);
+    
     return (
         <div className={`${styles.selectContainer} ${iconOnly ? styles.iconOnly : ''} ${disabled ? styles.disabled : ''}`} ref={selectRef} style={containerStyle}>
-            {!iconOnly && placeholder && !placeholderAsValue && (
+            {!iconOnly && labelText && (
                 <label 
                     className={`${styles.selectLabel} ${labelUp ? styles.selectLabelUp : ''} ${!icon && labelUp ? styles.selectLabelUpNoIcon : ''}`}
                     style={{
                         paddingLeft: icon ? '34px' : '14px'
                     }}
                 >
-                    {placeholder}
+                    {labelText}
                 </label>
             )}
             

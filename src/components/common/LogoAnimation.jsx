@@ -11,7 +11,7 @@ const LogoAnimation = () => {
                 initial={{ width: 0, overflow: "hidden" }}
                 animate={{ width: "100%" }}
                 transition={{ duration: 2, ease: "easeInOut" }}
-                style={{ position: "relative" }}
+                style={{ position: "relative", paddingRight: "50px" }}
             >
                 <motion.span
                     initial={{ x: -50, rotate: 0 }}
