@@ -10,6 +10,7 @@ import NoData from '../../common/NoData';
 import sucursalesService from '../../../services/sucursalesService';
 import pricesTypesService from '../../../services/pricesTypesService';
 import Notification from '../../common/Notification';
+import Text from '../../common/Text';
 
 function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalCreated, onSucursalUpdated }) {
   const [dataMov, setDataMov] = useState({
@@ -165,7 +166,13 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
             icon="store"
             disabled={tipo === 'editar' && data?.total_pedidos > 0 && !data?.almacen_sucursal_id}
           />
+          
         </div>
+        {data?.total_pedidos > 0 && !data?.almacen_sucursal_id && (
+            <Text type="warning" align="left">
+              No es posible separar el almacén si hay pedidos o movimientos en la sucursal
+            </Text>
+          )}
 
         <p className={styles.subTitle}>PRECIOS DISPONIBLES</p>
         {loadingPrecios ? (

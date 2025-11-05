@@ -81,10 +81,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                     proveedor_id: movimientoActualizado.proveedor_id || movimientoActual.proveedor_id,
                     // Preservar información del producto
                     product: movimientoActualizado.product || movimientoActual.product,
-                    product_id: movimientoActualizado.product_id || movimientoActual.product_id,
-                    // Preservar información de entrada asociada
-                    movimiento_entrada_id: movimientoActualizado.movimiento_entrada_id || movimientoActual.movimiento_entrada_id,
-                    movimiento_entrada: movimientoActualizado.movimiento_entrada || movimientoActual.movimiento_entrada
+                    product_id: movimientoActualizado.product_id || movimientoActual.product_id
                 };
 
                 // Actualizar el estado local del movimiento
@@ -101,9 +98,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 }
 
                 if (onMovimientoAnulado) {
-                    // Pasar los IDs de salidas eliminadas si existen
-                    const salidasEliminadas = response.salidasEliminadas || null;
-                    onMovimientoAnulado(movimientoActual.id, salidasEliminadas);
+                    onMovimientoAnulado(movimientoActual.id);
                 }
             } else {
                 const msg = response.message || 'Error al anular el movimiento';
@@ -236,43 +231,6 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                         />
                     </div>
                 )}
-                
-                {/* Mostrar información de entrada asociada si es una salida generada por receta */}
-                {movimientoActual?.type === 'salida' && movimientoActual?.movimiento_entrada_id && movimientoActual?.movimiento_entrada && (
-                    <div className={styles.content}>
-                        <Dato
-                            label="Asociado a entrada"
-                            value={(() => {
-                                const entrada = movimientoActual.movimiento_entrada;
-                                try {
-                                    const fecha = entrada?.date ? new Date(entrada.date).toLocaleString('es-ES', {
-                                        year: 'numeric',
-                                        month: '2-digit',
-                                        day: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    }) : 'Fecha no disponible';
-                                    const productoNombre = entrada?.product?.name || 'Producto desconocido';
-                                    const cantidad = parseFloat(entrada?.quantity || 0).toFixed(2);
-                                    return `Entrada del ${fecha} - ${productoNombre} (${cantidad})`;
-                                } catch (error) {
-                                    return `Entrada asociada - ${entrada?.product?.name || 'Producto desconocido'}`;
-                                }
-                            })()}
-                            vertical={true}
-                        />
-                    </div>
-                )}
-                
-                {/* Mensaje informativo para salidas asociadas */}
-                {movimientoActual?.type === 'salida' && movimientoActual?.movimiento_entrada_id && movimientoActual?.estado !== 'anulado' && (
-
-                        <Text type="info" align="left">
-                            Este movimiento de salida está asociado a una entrada con receta. Para anularlo, debes anular la entrada asociada.
-                        </Text>
-                   
-                )}
-                
                 <div className={styles.buttons}>
                     {movimientoActual?.estado === 'anulado' ? (
                         <Boton
@@ -281,7 +239,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(true)}
                         />
-                    ) : !movimientoActual?.tiene_pedido_relacionado && !(movimientoActual?.type === 'salida' && movimientoActual?.movimiento_entrada_id) ? (
+                    ) : !movimientoActual?.tiene_pedido_relacionado ? (
                         <Boton
                             className='btn-red'
                             label='Anular Movimiento'

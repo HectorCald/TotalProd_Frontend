@@ -140,6 +140,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     { value: 'materia_Prima', label: 'Materia Prima', icon: 'leaf' },
     { value: 'deudas', label: 'Deudas', icon: 'credit-card' },
     { value: 'pedidos', label: 'Pedidos', icon: 'cart' },
+    { value: 'gastos', label: 'Gastos', icon: 'receipt' },
     { value: 'balance', label: 'Balance', icon: 'transfer' },
     ...(isDamabrava() ? [{ value: 'produccion', label: 'Producción (Damabrava)', icon: 'factory' }] : []),
   ];
@@ -874,6 +875,84 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     };
   };
 
+  // Función para generar reporte de gastos
+  const generarReporteGastos = async (gastos, { fechaInicio, fechaFin }) => {
+    if (DEBUG_REPORTES) {
+      console.group('Generar Reporte: Gastos');
+      console.log('Gastos recibidos:', gastos?.length);
+      console.log('Fechas periodo:', {
+        fechaInicio,
+        fechaFin,
+        inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+        fin_locale_LaPaz: fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+      });
+    }
+
+    const tablaHeaders = ['Fecha', 'Concepto', 'Proveedor', 'M. Pago', 'Subtotal'];
+    
+    // Ordenar gastos por fecha (de más antiguo a más reciente)
+    const gastosOrdenados = [...gastos].sort((a, b) => {
+      const fechaA = new Date(a.fecha_gasto);
+      const fechaB = new Date(b.fecha_gasto);
+      return fechaA - fechaB;
+    });
+
+    const tablaValores = gastosOrdenados.map(gasto => {
+      const fechaFormateada = new Date(gasto.fecha_gasto).toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+      const proveedor = gasto.proveedor?.name || '--';
+      const metodoPago = gasto.metodo_pago || '--';
+      const subtotal = parseFloat(gasto.valor) || 0;
+
+      return [
+        fechaFormateada,
+        gasto.concepto || '--',
+        proveedor,
+        metodoPago,
+        `Bs. ${subtotal.toFixed(2)}`
+      ];
+    });
+
+    // Calcular total
+    const total = gastosOrdenados.reduce((sum, g) => sum + (parseFloat(g.valor) || 0), 0);
+
+    // Formatear período con fechas específicas
+    const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+    const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
+
+    let periodoConFechas;
+    if (fechaInicio.getTime() === fechaFin.getTime()) {
+      periodoConFechas = fechaFinFormateada;
+    } else {
+      periodoConFechas = `${fechaInicioFormateada} a ${fechaFinFormateada}`;
+    }
+
+    const resultado = {
+      informacionSuperior: {
+        'Tipo de Reporte': 'Gastos',
+        'Período': periodoConFechas,
+        'Sucursal': getSucursalName(),
+        'Total': `Bs. ${total.toFixed(2)}`,
+        'Cantidad de Gastos': gastosOrdenados.length.toString()
+      },
+      tablaHeaders,
+      tablaValores,
+      columnWidths: {
+        fecha: '10%',
+        concepto: '48%',
+        proveedor: '15%',
+        metodoPago: '12%',
+        subtotal: '15%'
+      }
+    };
+
+    if (DEBUG_REPORTES) {
+      console.log('Resultado Gastos:', resultado.informacionSuperior);
+      console.groupEnd();
+    }
+
+    return resultado;
+  };
+
   // Función para generar reporte de deudas (agrupado por cliente)
   const generarReporteDeudas = async ({ fechaInicio, fechaFin }) => {
     const sucuId = getSucuId();
@@ -1148,6 +1227,34 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             mostrarNotificacion('error', 'No se pudieron obtener los pedidos');
             return;
           }
+          break;
+
+        case 'gastos':
+          // Para gastos, obtener gastos por rango de fechas
+          const toYmdGastos = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+          };
+          const fechaInicioStrGastos = toYmdGastos(new Date(fechaInicio));
+          const fechaFinStrGastos = toYmdGastos(new Date(fechaFin));
+          
+          const gastosResp = await gastosService.getByDateRange(fechaInicioStrGastos, fechaFinStrGastos, sucuId);
+          if (DEBUG_REPORTES) console.log('API gastos ->', gastosResp?.data?.length ?? 0);
+          
+          if (!gastosResp?.success || !Array.isArray(gastosResp.data)) {
+            mostrarNotificacion('error', 'No se pudieron obtener los gastos');
+            return;
+          }
+          
+          if (gastosResp.data.length === 0) {
+            mostrarNotificacion('warning', 'No hay gastos en el período seleccionado');
+            if (DEBUG_REPORTES) console.warn('Sin gastos en rango');
+            return;
+          }
+          
+          reporteData = await generarReporteGastos(gastosResp.data, { fechaInicio, fechaFin });
           break;
 
         case 'balance':

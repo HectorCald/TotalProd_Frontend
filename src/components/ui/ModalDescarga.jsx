@@ -32,7 +32,8 @@ function ModalDescarga({
     esPedido = false,
     esMovimiento = false,
     clienteInfo = null, // { nombre: string, numeroOrden: number }
-    separarColumnas = false // Prop para separar columnas con líneas
+    separarColumnas = false, // Prop para separar columnas con líneas
+    columnWidths = null // { [key: string]: string } - Anchos personalizados para columnas
 }) {
     const [nombreArchivoState, setNombreArchivoState] = useState(nombreArchivo);
     const [tituloDocumentoState, setTituloDocumentoState] = useState(tituloDocumento);
@@ -588,7 +589,55 @@ function ModalDescarga({
             const getWidthsPct = (headers) => {
                 if (!headers || headers.length === 0) return [];
                 
-                // Calcular ancho mínimo basado en el título de cada columna
+                // Si hay columnWidths definido, usarlo
+                if (columnWidths && typeof columnWidths === 'object') {
+                    // Mapear headers a keys de columnWidths
+                    const headerKeys = ['fecha', 'concepto', 'proveedor', 'metodoPago', 'subtotal', 
+                                       'producto', 'entradaGrup', 'entradaUd', 'salidaGrup', 'salidaUd',
+                                       'tipoMedida', 'entrada', 'salida', 'verificado', 'terminados', 
+                                       'materiaPrima', 'cConsumida'];
+                    
+                    const widths = headers.map((header, index) => {
+                        const headerLower = header.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+                        // Buscar key que coincida con el header
+                        let matchedKey = null;
+                        for (const key of headerKeys) {
+                            const keyLower = key.toLowerCase();
+                            if (headerLower.includes(keyLower) || keyLower.includes(headerLower)) {
+                                matchedKey = key;
+                                break;
+                            }
+                        }
+                        
+                        // Casos especiales para headers con espacios o caracteres especiales
+                        if (!matchedKey) {
+                            const headerText = header.toString().toLowerCase();
+                            if (headerText.includes('fecha') || headerText === 'fecha') matchedKey = 'fecha';
+                            else if (headerText.includes('concepto')) matchedKey = 'concepto';
+                            else if (headerText.includes('proveedor')) matchedKey = 'proveedor';
+                            else if (headerText.includes('m. pago') || headerText.includes('metodo') || headerText.includes('pago')) matchedKey = 'metodoPago';
+                            else if (headerText.includes('subtotal')) matchedKey = 'subtotal';
+                        }
+                        
+                        // Si hay un match en columnWidths, usar ese valor
+                        if (matchedKey && columnWidths[matchedKey]) {
+                            return columnWidths[matchedKey];
+                        }
+                        
+                        // Si no hay match, usar lógica por defecto
+                        const headerLength = header.toString().length;
+                        if (index === 0) {
+                            return '35%';
+                        }
+                        const minWidth = Math.max(headerLength + 2, 8);
+                        const percentage = Math.max((minWidth / 80) * 100, 8);
+                        return `${percentage.toFixed(1)}%`;
+                    });
+                    
+                    return widths;
+                }
+                
+                // Calcular ancho mínimo basado en el título de cada columna (lógica original)
                 const widths = headers.map((header, index) => {
                     const headerLength = header.toString().length;
                     

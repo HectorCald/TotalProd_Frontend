@@ -8,12 +8,15 @@ import { useUser } from '../../../context/UserContext';
 import { useLayout } from '../../../context/LayoutContext';
 import NoData from '../../common/NoData';
 
-function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccionada, canClose = true }) {
+function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccionada }) {
     const { seleccionarSucursal, sucursalSeleccionada } = useUser();
     const { isLargeScreen } = useLayout();
     const [sucursales, setSucursales] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    
+    // No permitir cerrar si no hay sucursal seleccionada
+    const closed = !sucursalSeleccionada;
 
     useEffect(() => {
         if (isOpen && empresaId) {
@@ -80,10 +83,11 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
     if (!isOpen || (sucursales.length === 1 && !loading && !error && !sucursalSeleccionada)) return null;
 
     return (
-        <ViewModal isOpen={isOpen} setIsOpen={canClose ? setIsOpen : () => {}}>
+        <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} closed={closed}>
             <HeaderModal
                 title="Seleccionar Sucursal"
-                onClose={canClose ? () => setIsOpen(false) : undefined}
+                onClose={() => setIsOpen(false)}
+                closed={closed}
             />
             <div className={styles.modalContent}>
                 {loading ? (

@@ -14,6 +14,7 @@ import Notification from '../../common/Notification';
 import { isDamabrava, isSoloVentas } from '../../../utils/empresaHelper';
 import NoData from '../../common/NoData';
 import { useUser } from '../../../context/UserContext';
+import Text from '../../common/Text';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated, sucursales = [] }) {
     const { user } = useUser();
@@ -32,7 +33,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
         eliminar: false,
         editar: false,
         anular: false,
-        reemplazar: false
+        reemplazar: false,
+        info: false
     });
     const [rastrear, setRastrear] = useState(false);
     // Estado para la notificación
@@ -108,7 +110,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             const response = await modulesService.getAll();
             if (response.success) {
                 let filteredModules = response.data;
-                
+
                 // Si la empresa es Damabrava, cargar TODOS los módulos
                 if (isDamabrava()) {
                     filteredModules = response.data;
@@ -121,7 +123,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         !module.name.toLowerCase().includes('verificación')
                     );
                 }
-                
+
                 // Si es solo ventas (y es usuario, no empleado), filtrar módulos de materia prima
                 // Solo aplica cuando se está creando/editando personal, no cuando es un empleado
                 if (soloVentas && tipo !== 'ver') {
@@ -131,12 +133,12 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             const filteredSubModulos = module.sub_modulos.filter(subModulo => {
                                 // Ocultar submódulos relacionados con materia prima/acopio
                                 const isMateriaPrima = subModulo.name.toLowerCase().includes('materia') ||
-                                                      subModulo.name.toLowerCase().includes('acopio') ||
-                                                      subModulo.name.toLowerCase().includes('pesaje') ||
-                                                      module.name.toLowerCase().includes('materia');
+                                    subModulo.name.toLowerCase().includes('acopio') ||
+                                    subModulo.name.toLowerCase().includes('pesaje') ||
+                                    module.name.toLowerCase().includes('materia');
                                 return !isMateriaPrima;
                             });
-                            
+
                             // Si el módulo tiene submódulos después del filtro, incluirlo
                             if (filteredSubModulos.length > 0) {
                                 return {
@@ -149,11 +151,11 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         }
                         // Si el módulo no tiene submódulos, verificar si es de materia prima
                         const isMateriaPrimaModule = module.name.toLowerCase().includes('materia') ||
-                                                     module.name.toLowerCase().includes('acopio');
+                            module.name.toLowerCase().includes('acopio');
                         return isMateriaPrimaModule ? null : module;
                     }).filter(module => module !== null); // Eliminar módulos null
                 }
-                
+
                 setModules(filteredModules);
             }
         } catch (error) {
@@ -221,7 +223,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                 eliminar: false,
                 editar: false,
                 anular: false,
-                reemplazar: false
+                reemplazar: false,
+                info: false
             });
             setRastrear(false);
         }
@@ -378,41 +381,61 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         buttonIcon="copy"
                         buttonIconClick={handleCopyCode}
                     />
+                    {dataEdit.codigo ?
+                    <Text type="warning" align="left">
+                         Una vez creado el personal con el código autogenerado, no es posible cambiarlo, intenta eliminarlo y crear uno nuevo.
+                    </Text>
+                    : ''}
+                    <Select
+                        value={sucursalId}
+                        onChange={(value) => setSucursalId(value)}
+                        options={sucursales.map(sucursal => ({
+                            value: sucursal.id,
+                            label: sucursal.name,
+                            id: sucursal.id,
+                            name: sucursal.name
+                        }))}
+                        placeholder='Sucursal (obligatorio)'
+                        disabled={tipo === 'ver'}
+                        icon='store'
+                    />
 
-                        <Select
-                            value={sucursalId}
-                            onChange={(value) => setSucursalId(value)}
-                            options={sucursales.map(sucursal => ({
-                                value: sucursal.id,
-                                label: sucursal.name,
-                                id: sucursal.id,
-                                name: sucursal.name
-                            }))}
-                            placeholder='Sucursal (obligatorio)'
-                            disabled={tipo === 'ver'}
-                            icon='store'
-                        />
-                 
+                    {tipo === 'editar' && (
+                        <>
+                            <p className={styles.subTitle}>ESTADO</p>
+                            <div className={styles.content}>
+                                <Switch
+                                    icon="check-circle"
+                                    title="Activo"
+                                    subtitle="Indica si el usuario está activo o inactivo"
+                                    checked={estado}
+                                    onChange={setEstado}
+                                />
+                            </div>
+                        </>
+                    )}
 
                     {tipo !== 'ver' && (
 
                         <Boton
                             className='btn-gray'
-                            label='Ver Configuración'
+                            label='Configuración'
                             onClick={() => setIsConfiguracionOpen(true)}
                         />
 
                     )}
 
                     {tipo !== 'ver' && (
-                        <Boton
-                            className='btn-original'
-                            label={tipo === 'editar' ? 'Actualizar Personal' : 'Agregar Personal'}
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleSubmit}
-                            loading={loading}
-                            disabled={!dataEdit.first_name || !dataEdit.last_name || !sucursalId}
-                        />
+                        <div className={styles.buttons}>
+                            <Boton
+                                className='btn-original'
+                                label={tipo === 'editar' ? 'Actualizar Personal' : 'Agregar Personal'}
+                                style={{ marginTop: 'auto' }}
+                                onClick={handleSubmit}
+                                loading={loading}
+                                disabled={!dataEdit.first_name || !dataEdit.last_name || !sucursalId}
+                            />
+                        </div>
                     )}
                 </div>
 
@@ -430,21 +453,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                     onClose={() => setIsConfiguracionOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    {tipo === 'editar' && (
-                        <>
-                            <p className={styles.subTitle}>ESTADO</p>
-                            <div className={styles.content}>
-                                
-                            <Switch
-                                    icon="check-circle"
-                                    title="Activo"
-                                    subtitle="Indica si el usuario está activo o inactivo"
-                                    checked={estado}
-                                    onChange={setEstado}
-                                />
-                            </div>
-                        </>
-                    )}
                     <p className={styles.subTitle}>PERMISOS</p>
                     <div className={styles.content}>
                         <Switch
@@ -464,14 +472,14 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         <Switch
                             icon="edit"
                             title="Editar"
-                            subtitle="Permite modificar registros"
+                            subtitle="Permite modificar registros o productos"
                             checked={permisos.editar || false}
                             onChange={(checked) => hanclePermisos('editar', checked)}
                         />
                         <Switch
                             icon="x-circle"
                             title="Anular"
-                            subtitle="Permite anular registros"
+                            subtitle="Permite anular registros o pedidos"
                             checked={permisos.anular || false}
                             onChange={(checked) => hanclePermisos('anular', checked)}
                         />
@@ -482,8 +490,15 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             checked={permisos.reemplazar || false}
                             onChange={(checked) => hanclePermisos('reemplazar', checked)}
                         />
+                        <Switch
+                            icon="show"
+                            title="Ver información"
+                            subtitle="Permite ver información (Costos, precios, etc.)"
+                            checked={permisos.info || false}
+                            onChange={(checked) => hanclePermisos('info', checked)}
+                        />
                     </div>
-                    <p className={styles.subTitle}>RASTREO</p>
+                    {/* <p className={styles.subTitle}>RASTREO</p>
                     <div className={styles.content}>
                         <Switch
                             icon="map"
@@ -492,8 +507,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             checked={rastrear || false}
                             onChange={setRastrear}
                         />
-                    </div>
-                    <p className={styles.subTitle}>MÓDULOS {isDamabrava() ? '(TODOS)' : '(GENERALES)'}</p>
+                    </div> */}
+                    <p className={styles.subTitle}>MÓDULOS</p>
                     {loadingModules ? (
                         <NoData
                             icon="loader-alt"
@@ -503,23 +518,25 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             minHeight="150px"
                         />
                     ) : modules.filter(module => module.sub_modulos && module.sub_modulos.length > 0).length > 0 ? (
-                        <Carousel>
-                            {modules
-                                .filter(module => module.sub_modulos && module.sub_modulos.length > 0)
-                                .map((module) => (
-                                    <div key={module.id}>
-                                        <MultiSelect
-                                            title={module.name}
-                                            options={module.sub_modulos.map(sub => ({
-                                                name: sub.name,
-                                                value: sub.id
-                                            }))}
-                                            selectedValues={selectedModules}
-                                            onChange={setSelectedModules}
-                                        />
-                                    </div>
-                                ))}
-                        </Carousel>
+                        <div className={styles.content} style={{ paddingInline: '5px', paddingBottom: '5px' }}>
+                            <Carousel>
+                                {modules
+                                    .filter(module => module.sub_modulos && module.sub_modulos.length > 0)
+                                    .map((module) => (
+                                        <div key={module.id}>
+                                            <MultiSelect
+                                                title={`${module.name.toUpperCase()} (${module.sub_modulos.length})`}
+                                                options={module.sub_modulos.map(sub => ({
+                                                    name: sub.name,
+                                                    value: sub.id
+                                                }))}
+                                                selectedValues={selectedModules}
+                                                onChange={setSelectedModules}
+                                            />
+                                        </div>
+                                    ))}
+                            </Carousel>
+                        </div>
                     ) : (
                         <NoData
                             icon="grid-alt"
@@ -529,12 +546,14 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             minHeight="150px"
                         />
                     )}
-                    <Boton
-                        className='btn-original'
-                        label='Cerrar Configuración'
-                        style={{ marginTop: 'auto' }}
-                        onClick={() => setIsConfiguracionOpen(false)}
-                    />
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-original'
+                            label='Cerrar Configuración'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsConfiguracionOpen(false)}
+                        />
+                    </div>
                 </div>
             </ViewModal >
         </>

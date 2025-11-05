@@ -5,6 +5,7 @@
     background: none;
     overflow-x: hidden;
     min-height: fit-content;
+    gap: 10px;
 }
 
 .carouselWrapper {
