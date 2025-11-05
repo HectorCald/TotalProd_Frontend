@@ -70,29 +70,27 @@ class conteosService {
   static async getAll({ tipo = null } = {}) {
     try {
       const sucuId = getSucuId();
-      const empresaId = getEmpresaId();
       
       if (!sucuId) {
         return { success: false, message: 'No hay sucursal seleccionada' };
       }
       
-      if (!empresaId) {
-        return { success: false, message: 'No hay empresa seleccionada' };
-      }
-      
-      const params = new URLSearchParams({ sucu_id: sucuId, empresa_id: empresaId });
+      const params = new URLSearchParams({ sucu_id: sucuId });
       if (tipo) params.append('tipo', tipo);
       const resp = await fetch(`${API_BASE_URL}/conteos?${params}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
       const data = await resp.json();
+      
       if (!resp.ok) {
-        const error = new Error(data.message || 'Error al obtener conteos');
+        const errorMessage = data.message || data.error?.message || 'Error al obtener conteos';
+        const error = new Error(errorMessage);
         error.status = resp.status;
         error.code = data.code;
         error.currentPlan = data.currentPlan;
         error.requiredModule = data.requiredModule;
+        error.originalError = data.error;
         throw error;
       }
       return data; // { success, data }
@@ -100,6 +98,10 @@ class conteosService {
       console.error('Error obteniendo conteos:', error);
       // Si es un error 403, relanzarlo para que llegue al componente
       if (error.status === 403) {
+        throw error;
+      }
+      // Si es un error de red o de respuesta, mostrar el mensaje específico
+      if (error.message && error.message !== 'Error al obtener conteos') {
         throw error;
       }
       return { success: false, message: error.message || 'Error al obtener conteos' };

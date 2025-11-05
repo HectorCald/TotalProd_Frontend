@@ -288,6 +288,13 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                 <HeaderView onBack={() => setIsOpen(false)} />
                 <div className={styles.container}>
                     <h1 className={styles.title}>Conteo • {tipoNombre}</h1>
+                    <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
+                    <ItemView
+                        title={conteo?.user?.name || conteo?.personal?.name || 'Usuario desconocido'}
+                        description="Responsable del conteo"
+                        transparent={false}
+                    />
+                    <p className={styles.subTitle}>INFORMACIÓN DEL CONTEO</p>
                     <div className={styles.content}>
                         <Dato label="Tipo" value={tipoNombre} vertical={false} />
                         <Dato label="Fecha" value={fechaLocal} vertical={false} />

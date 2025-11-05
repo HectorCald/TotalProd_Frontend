@@ -70,9 +70,9 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
             const tipo = tipoConteo === 'almacen' ? 'almacen' : tipoConteo === 'acopio' ? 'acopio' : null;
             const resp = await conteosService.getAll({ tipo });
             if (resp.success) {
+                // El backend ya filtra por sucursal y tipo, solo usar los datos directamente
                 const data = resp.data || [];
-                const filteredByTipo = tipo ? data.filter(c => ((c.tipo || '').toString().trim().toLowerCase() === (tipo || '').toString().trim().toLowerCase())) : data;
-                setConteos(filteredByTipo);
+                setConteos(data);
                 setError(null); // Limpiar error cuando se cargan datos exitosamente
             } else {
                 throw new Error(resp.message || 'Error al obtener conteos');

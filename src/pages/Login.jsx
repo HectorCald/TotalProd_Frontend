@@ -174,7 +174,19 @@ const Login = () => {
         }
     };
     const handleSubmitRegister = async () => {
-        if (!formDataRegister.firstName || !formDataRegister.lastName || !formDataRegister.email || !formDataRegister.password || !formDataRegister.nameStore) {
+        // Aplicar .trim() a todos los campos del registro
+        const trimmedData = {
+            firstName: formDataRegister.firstName.trim(),
+            lastName: formDataRegister.lastName.trim(),
+            email: formDataRegister.email.trim(),
+            password: formDataRegister.password.trim(),
+            nameStore: formDataRegister.nameStore.trim(),
+        };
+
+        // Actualizar el estado con los valores sin espacios
+        setFormDataRegister(trimmedData);
+
+        if (!trimmedData.firstName || !trimmedData.lastName || !trimmedData.email || !trimmedData.password || !trimmedData.nameStore) {
 
             setErrorMessage('Todos los campos son requeridos')
 
@@ -183,14 +195,14 @@ const Login = () => {
             }, 3000);
             return;
         }
-        if (formDataRegister.password.length < 8) {
+        if (trimmedData.password.length < 8) {
             setErrorMessage('La contraseña debe tener al menos 8 caracteres')
             setTimeout(() => {
                 setErrorMessage('')
             }, 3000);
             return;
         }
-        if (!formDataRegister.email.includes('@') || !formDataRegister.email.includes('.com')) {
+        if (!trimmedData.email.includes('@') || !trimmedData.email.includes('.com')) {
             setErrorMessage('El email no es válido')
             setTimeout(() => {
                 setErrorMessage('')
@@ -200,7 +212,7 @@ const Login = () => {
         // Verificar si el email ya existe antes de crear el usuario
         setLoading(true);
         try {
-            const result = await UserService.getUserByEmail(formDataRegister.email);
+            const result = await UserService.getUserByEmail(trimmedData.email);
             if (result.success && result.data && result.data.exists) {
                 setErrorMessage('El email ya está registrado');
                 setTimeout(() => {
@@ -222,19 +234,19 @@ const Login = () => {
         }
         try {
             setLoading(true);
-            const result = await UserService.createUser(formDataRegister);
+            const result = await UserService.createUser(trimmedData);
             if (result.success) {
                 // Iniciar sesión automáticamente después del registro
                 try {
                     const loginResult = await UserService.login({
-                        email: formDataRegister.email,
-                        password: formDataRegister.password
+                        email: trimmedData.email,
+                        password: trimmedData.password
                     });
                     if (loginResult.success) {
                         // Guardar preferencia de "recordar sesión" para registro
                         if (remember) {
                             UserService.saveRememberPreference(true);
-                            localStorage.setItem('savedEmail', formDataRegister.email);
+                            localStorage.setItem('savedEmail', trimmedData.email);
                         } else {
                             UserService.saveRememberPreference(false);
                             localStorage.removeItem('savedEmail');
