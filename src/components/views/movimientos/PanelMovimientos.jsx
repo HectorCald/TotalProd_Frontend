@@ -317,15 +317,24 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     }, [error]);
 
     // Función para manejar cuando se anula un movimiento
-    const handleMovimientoAnulado = (movimientoId) => {
+    const handleMovimientoAnulado = (movimientoId, salidasEliminadas = null) => {
         // Actualizar el estado local acumulado
-        setAllMovimientos(prevMovimientos =>
-            prevMovimientos.map(movimiento =>
+        setAllMovimientos(prevMovimientos => {
+            // Primero, eliminar las salidas asociadas si existen
+            let movimientosActualizados = prevMovimientos;
+            if (salidasEliminadas && salidasEliminadas.length > 0) {
+                movimientosActualizados = prevMovimientos.filter(
+                    movimiento => !salidasEliminadas.includes(movimiento.id)
+                );
+            }
+            
+            // Luego, actualizar el estado del movimiento anulado
+            return movimientosActualizados.map(movimiento =>
                 movimiento.id === movimientoId
                     ? { ...movimiento, estado: 'anulado' }
                     : movimiento
-            )
-        );
+            );
+        });
 
         mostrarNotificacion('success', 'Movimiento anulado correctamente');
     };

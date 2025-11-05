@@ -10,6 +10,7 @@ import Boton from '../../common/Boton';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import DescargaPedidoBuilder from './DescargaPedidoBuilder';
+import Text from '../../common/Text';
 import EntregaPedidoAcopio from './EntregaPedidoAcopio';
 import MovimientoAcopio from '../almacen-acopio/MovimientoAcopio';
 import { useUser } from '../../../context/UserContext';
@@ -35,6 +36,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
     
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
+    const [isAnularEntregaOpen, setIsAnularEntregaOpen] = useState(false);
     const [isEntregaAcopioOpen, setIsEntregaAcopioOpen] = useState(false);
     const [isGastoOpen, setIsGastoOpen] = useState(false);
     const [gasto, setGasto] = useState(null);
@@ -237,6 +239,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
 
             if (response.success) {
                 mostrarNotificacion('success', 'Entrega anulada correctamente');
+                setIsAnularEntregaOpen(false);
 
                 // Actualizar el pedido local: solo cambiar estado a Pendiente y limpiar campos de entrega
                 const pedidoActualizado = {
@@ -574,7 +577,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                         <Boton
                             className='btn-orange'
                             label='Anular Entrega'
-                            onClick={handleAnularEntregaAcopio}
+                            onClick={() => setIsAnularEntregaOpen(true)}
                             loading={loadingAnular}
                             disabled={isAnyLoading}
                         />
@@ -617,12 +620,47 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             style={{ marginTop: 'auto' }}
                             onClick={handleEliminarPedido}
                             loading={loadingEliminar}
+                            segundosDisabled={5}
                         />
                         <Boton
                             className='btn-default'
                             label='Cancelar'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(false)}
+                        />
+                    </div>
+                </div>
+            </ViewModal>
+
+            {/* Modal de anular entrega */}
+            <ViewModal isOpen={isAnularEntregaOpen} setIsOpen={setIsAnularEntregaOpen}>
+                <HeaderModal
+                    title="Anular Entrega"
+                    onClose={() => setIsAnularEntregaOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>
+                        ¿Estás seguro que deseas anular la entrega de este pedido? Esta acción no se puede deshacer.
+                    </p>
+                    <div style={{ marginTop: '10px',  width: '100%' }}>
+                        <Text type="warning" align="left">
+                            Al anular se eliminará el gasto del costo del producto y del transporte si hubiera.
+                        </Text>
+                    </div>
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-orange'
+                            label='Sí, Anular'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleAnularEntregaAcopio}
+                            loading={loadingAnular}
+                            segundosDisabled={5}
+                        />
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsAnularEntregaOpen(false)}
                         />
                     </div>
                 </div>

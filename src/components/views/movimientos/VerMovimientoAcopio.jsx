@@ -11,6 +11,7 @@ import movimientosAcopioService from '../../../services/movimientosAcopioService
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
+import Text from '../../common/Text';
 
 function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
     const [loading, setLoading] = useState(false);
@@ -80,7 +81,10 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                     proveedor_id: movimientoActualizado.proveedor_id || movimientoActual.proveedor_id,
                     // Preservar información del producto
                     product: movimientoActualizado.product || movimientoActual.product,
-                    product_id: movimientoActualizado.product_id || movimientoActual.product_id
+                    product_id: movimientoActualizado.product_id || movimientoActual.product_id,
+                    // Preservar información de entrada asociada
+                    movimiento_entrada_id: movimientoActualizado.movimiento_entrada_id || movimientoActual.movimiento_entrada_id,
+                    movimiento_entrada: movimientoActualizado.movimiento_entrada || movimientoActual.movimiento_entrada
                 };
 
                 // Actualizar el estado local del movimiento
@@ -97,7 +101,9 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 }
 
                 if (onMovimientoAnulado) {
-                    onMovimientoAnulado(movimientoActual.id);
+                    // Pasar los IDs de salidas eliminadas si existen
+                    const salidasEliminadas = response.salidasEliminadas || null;
+                    onMovimientoAnulado(movimientoActual.id, salidasEliminadas);
                 }
             } else {
                 const msg = response.message || 'Error al anular el movimiento';
@@ -230,6 +236,43 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                         />
                     </div>
                 )}
+                
+                {/* Mostrar información de entrada asociada si es una salida generada por receta */}
+                {movimientoActual?.type === 'salida' && movimientoActual?.movimiento_entrada_id && movimientoActual?.movimiento_entrada && (
+                    <div className={styles.content}>
+                        <Dato
+                            label="Asociado a entrada"
+                            value={(() => {
+                                const entrada = movimientoActual.movimiento_entrada;
+                                try {
+                                    const fecha = entrada?.date ? new Date(entrada.date).toLocaleString('es-ES', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    }) : 'Fecha no disponible';
+                                    const productoNombre = entrada?.product?.name || 'Producto desconocido';
+                                    const cantidad = parseFloat(entrada?.quantity || 0).toFixed(2);
+                                    return `Entrada del ${fecha} - ${productoNombre} (${cantidad})`;
+                                } catch (error) {
+                                    return `Entrada asociada - ${entrada?.product?.name || 'Producto desconocido'}`;
+                                }
+                            })()}
+                            vertical={true}
+                        />
+                    </div>
+                )}
+                
+                {/* Mensaje informativo para salidas asociadas */}
+                {movimientoActual?.type === 'salida' && movimientoActual?.movimiento_entrada_id && movimientoActual?.estado !== 'anulado' && (
+
+                        <Text type="info" align="left">
+                            Este movimiento de salida está asociado a una entrada con receta. Para anularlo, debes anular la entrada asociada.
+                        </Text>
+                   
+                )}
+                
                 <div className={styles.buttons}>
                     {movimientoActual?.estado === 'anulado' ? (
                         <Boton
@@ -238,7 +281,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(true)}
                         />
-                    ) : !movimientoActual?.tiene_pedido_relacionado ? (
+                    ) : !movimientoActual?.tiene_pedido_relacionado && !(movimientoActual?.type === 'salida' && movimientoActual?.movimiento_entrada_id) ? (
                         <Boton
                             className='btn-red'
                             label='Anular Movimiento'
@@ -266,15 +309,20 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas anular este movimiento? Esta acción no se puede deshacer y si en el movimiento se consumio materia prima se devolvera el peso correspondiente.
-                        {movimientoActual?.restar_ingredientes && (
-                            <><br /><br />
-                                <strong>Nota:</strong> Este movimiento consumió ingredientes. Al anularlo, se devolverá el peso de los ingredientes consumidos al stock de acopio.
-                            </>
-                        )}
-                        <br /><br />
-                        <strong>Importante:</strong> Si este movimiento está relacionado con un pedido de acopio, el pedido será actualizado a estado "Entregado" y se podrá hacer un nuevo ingreso.
+                        ¿Estás seguro que deseas anular este movimiento? Esta acción no se puede deshacer.
                     </p>
+                    <div style={{ marginTop: '10px', marginBottom: '10px', width: '100%' }}>
+                        <Text type="warning" align="left">
+                            Si este movimiento está relacionado con un pedido de acopio, el pedido será actualizado a estado "Entregado" y se podrá hacer un nuevo ingreso.
+                        </Text>
+                    </div>
+                    {movimientoActual?.restar_ingredientes && (
+                        <div style={{ marginTop: '0', marginBottom: '10px', width: '100%' }}>
+                            <Text type="error" align="left">
+                                Este movimiento restó materia prima. Al anular este movimiento se devolverá el total de la materia prima de la receta del producto.
+                            </Text>
+                        </div>
+                    )}
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-default'
@@ -288,6 +336,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                             style={{ marginTop: 'auto' }}
                             onClick={handleAnular}
                             loading={loading}
+                            segundosDisabled={5}
                         />
                     </div>
                 </div>
@@ -316,6 +365,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                             style={{ marginTop: 'auto' }}
                             onClick={handleEliminar}
                             loading={loading}
+                            segundosDisabled={5}
                         />
                     </div>
                 </div>

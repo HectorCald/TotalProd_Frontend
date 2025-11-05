@@ -17,6 +17,7 @@ import InputNormal from '../../../common/InputNormal';
 import IngresoProduccion from './IngresoProduccion';
 import VerMovimiento from '../../movimientos/VerMovimiento';
 import NoData from '../../../common/NoData';
+import Text from '../../../common/Text';
 
 function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegistroEliminado, onRegistroVerificado }) {
     const [loading, setLoading] = useState(false);
@@ -70,7 +71,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
         if (!v) return '';
         const base = String(v).split('T')[0];
         const [y, m] = base.split('-');
-        const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const nombreMes = meses[(parseInt(m, 10) || 1) - 1] || '';
         return `${nombreMes} ${y}`;
     };
@@ -146,7 +147,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
             }
         } catch (error) {
             console.error('Error anulando verificación:', error);
-            
+
             // Manejar errores específicos de stock insuficiente
             if (error.response?.data?.ingredientesConStockInsuficiente) {
                 const ingredientes = error.response.data.ingredientesConStockInsuficiente;
@@ -222,7 +223,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
             }
         } catch (error) {
             console.error('Error verificando registro:', error);
-            
+
             // Manejar errores específicos de stock insuficiente
             if (error.response?.data?.ingredientesConStockInsuficiente) {
                 const ingredientes = error.response.data.ingredientesConStockInsuficiente;
@@ -502,6 +503,33 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         label="Observaciones"
                     />
 
+                    {(() => {
+                        const cantidadVer = parseFloat(cantidadVerificada) || 0;
+                        const terminados = parseFloat(registroActual?.terminados) || 0;
+                        const diferencia = cantidadVer - terminados;
+                        
+                        if (cantidadVerificada && diferencia !== 0) {
+                            if (diferencia > 0) {
+                                return (
+                                    <div style={{ marginTop: '15px', marginBottom: '10px', width: '100%' }}>
+                                        <Text type="info" align="left">
+                                            Se restará materia prima de la receta del producto. La cantidad verificada ({cantidadVer}) es mayor que los terminados ({terminados}), diferencia de {diferencia}.
+                                        </Text>
+                                    </div>
+                                );
+                            } else {
+                                return (
+                                    <div style={{ marginTop: '15px', marginBottom: '10px', width: '100%' }}>
+                                        <Text type="info" align="left">
+                                            Se sumará materia prima de la receta del producto. La cantidad verificada ({cantidadVer}) es menor que los terminados ({terminados}), diferencia de {Math.abs(diferencia)}.
+                                        </Text>
+                                    </div>
+                                );
+                            }
+                        }
+                        return null;
+                    })()}
+
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-default'
@@ -530,6 +558,13 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     <p className={styles.subTitle}>
                         ¿Estás seguro que deseas anular la verificación de este registro? Esta acción volverá el registro al estado pendiente y eliminará los datos de verificación.
                     </p>
+
+                    <div style={{ marginTop: '15px', marginBottom: '10px', width: '100%' }}>
+                        <Text type="error" align="left">
+                            Al anular la verificación se regresará la materia prima de la receta del monto verificado. Si terminados es {registroActual?.terminados || 0} y se verificó {registroActual?.cantidad_verificada || 0}, se devolverá la materia prima de la receta pero de la diferencia de {Math.max(0, (registroActual?.cantidad_verificada || 0) - (registroActual?.terminados || 0))}.
+                        </Text>
+                    </div>
+
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-default'
@@ -539,10 +574,11 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         />
                         <Boton
                             className='btn-red'
-                            label='Sí, anular verificación'
+                            label='Si, Anular'
                             style={{ marginTop: 'auto' }}
                             onClick={handleAnular}
                             loading={loading}
+                            segundosDisabled={5}
                         />
                     </div>
                 </div>
@@ -558,6 +594,11 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     <p className={styles.subTitle}>
                         ¿Estás seguro que deseas eliminar permanentemente este registro de producción? Esta acción no se puede deshacer.
                     </p>
+                    <div style={{ marginTop: '15px', marginBottom: '10px', width: '100%' }}>
+                        <Text type="error" align="left">
+                            Al eliminar el registro de producción se devolverá el peso total de la materia prima de la receta del producto según terminados hayan ({registroActual?.terminados || 0}).
+                        </Text>
+                    </div>
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-default'
@@ -571,6 +612,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                             style={{ marginTop: 'auto' }}
                             onClick={handleEliminar}
                             loading={loading}
+                            segundosDisabled={5}
                         />
                     </div>
                 </div>
@@ -609,7 +651,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 />
                 <div className={styles.modalContent}>
                     {loadingMovimientosList ? (
-                        <NoData 
+                        <NoData
                             icon="loader-alt"
                             title="Cargando movimientos..."
                             detail="Obteniendo el historial de movimientos de la producción"
@@ -638,7 +680,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                             ))}
                         </>
                     ) : (
-                        <NoData 
+                        <NoData
                             icon="history"
                             title="No hay movimientos"
                             detail="Esta producción no tiene movimientos registrados aún"

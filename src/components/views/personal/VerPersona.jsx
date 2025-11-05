@@ -233,6 +233,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                             style={{ marginTop: 'auto' }}
                             onClick={() => handleEliminar(usuario?.id)}
                             loading={loading}
+                            segundosDisabled={5}
                         />
                         <Boton
                             className='btn-default'

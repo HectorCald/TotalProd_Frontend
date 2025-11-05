@@ -155,6 +155,7 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                             style={{ marginTop: 'auto' }}
                             onClick={handleEliminar}
                             loading={loading}
+                            segundosDisabled={5}
                         />
 
                     </div>

@@ -78,12 +78,10 @@ const Inicio = ({ onViewOpen }) => {
     // Verificación inicial al montar el componente
     checkAndNotifyCacheVersion(false, false);
     
-    // Verificación periódica cada 1 minuto (60000ms)
+    // Verificación periódica cada 30 segundos (30000ms)
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        checkAndNotifyCacheVersion(false, false);
-      }
-    }, 60000);
+      checkAndNotifyCacheVersion(false, false);
+    }, 30000);
     
     return () => clearInterval(interval);
   }, []);

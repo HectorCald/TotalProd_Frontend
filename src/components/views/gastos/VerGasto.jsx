@@ -233,6 +233,7 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
                                 }
                             }}
                             loading={loading}
+                            segundosDisabled={5}
                         />
                         <Boton
                             className='btn-default'

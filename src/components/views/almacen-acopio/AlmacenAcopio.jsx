@@ -28,6 +28,7 @@ import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const { isLargeScreen } = useLayout();
@@ -283,6 +284,9 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         }
     });
 
+    // Paginación virtual - mostrar solo 30 elementos inicialmente
+    const { visibleItems, hasMore, handleScroll } = useVirtualPagination(productosFiltrados, 30);
+
     // Función para cargar canastas desde localStorage
     const cargarCanastasDesdeLocalStorage = () => {
         try {
@@ -482,7 +486,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     ];
 
     // Datos para la tabla
-    const tableData = productosFiltrados.map(producto => {
+    const tableData = visibleItems.map(producto => {
         const baseData = {
             id: producto.id,
             name: producto.name,
@@ -616,10 +620,12 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                                 // Vista de tabla para pantallas grandes
                                 <div
                                     className={styles.content}
+                                    onScroll={handleScroll}
                                     style={{
                                         maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido')
                                             ? '100%'
-                                            : ''
+                                            : '',
+                                        overflowY: 'auto'
                                     }}
                                 >
                                     <Table
@@ -632,6 +638,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                                         }}
                                         getBadge={getBadge}
                                         getCellBadge={getCellBadge}
+                                        onScroll={handleScroll}
                                         columnWidths={tipo === 'pedido' ? {
                                             name: '35%',
                                             quantity: '25%',
@@ -660,12 +667,13 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                                             minHeight: 'calc(100% - 80px)'
                                         }
                                     }
+                                    onScroll={handleScroll}
                                 >
 
 
 
-                                    {productosFiltrados.length > 0 ? (
-                                        productosFiltrados.map((producto, index) => {
+                                    {visibleItems.length > 0 ? (
+                                        visibleItems.map((producto, index) => {
                                             const cantidadEnCanasta = getCantidadEnCanasta(producto.id);
                                             
                                             // Obtener el flot del stock con colores dinámicos

@@ -15,6 +15,7 @@ import AlmacenGeneralAuxiliar from '../almacen-general-auxiliar/AlmacenGeneral-A
 import AlmacenAcopioAuxiliar from '../almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
 import Select from '../../common/Select';
 import NoData from '../../common/NoData';
+import Text from '../../common/Text';
 
 function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplaced }) {
     const { isLargeScreen } = useLayout();
@@ -501,6 +502,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                                 onClick={handleDeleteConteo}
                                 loading={isDeleting}
                                 disabled={isDeleting}
+                                segundosDisabled={5}
                             />
                         </div>
                     </div>
@@ -514,11 +516,13 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                     />
                     <div className={styles.modalContent}>
                         <p className={styles.subTitle}>
-                            {conteo?.tipo === 'acopio'
-                                ? 'Esta acción reemplazará el stock de materia prima por las cantidades registradas en Físico en este conteo. ¿Estás seguro de continuar?'
-                                : 'Esta acción reemplazará el stock general del almacén por las cantidades registradas en Físico en este conteo. ¿Estás seguro de continuar?'
-                            }
+                            ¿Estás seguro de continuar con el reemplazo de stock?
                         </p>
+                        <div style={{ marginTop: '10px', width: '100%' }}>
+                            <Text type="warning" align="left">
+                                Al reemplazar stock este va a tomar las cantidades físicas de este conteo y las va a reemplazar en el stock principal de los productos.
+                            </Text>
+                        </div>
                         <div className={styles.buttons}>
                             <Boton
                                 className='btn-default'
@@ -533,6 +537,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                                 onClick={handleReemplazarConteo}
                                 loading={isReplacing}
                                 disabled={isReplacing}
+                                segundosDisabled={5}
                             />
                         </div>
                     </div>

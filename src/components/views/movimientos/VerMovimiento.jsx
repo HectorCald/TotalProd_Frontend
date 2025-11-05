@@ -15,6 +15,7 @@ import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
 import { useLayout } from '../../../context/LayoutContext';
 import ModalTable from '../../common/ModalTable';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
+import Text from '../../common/Text';
 
 function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado, onMovimientoActualizado }) {
     const { isLargeScreen } = useLayout();
@@ -600,18 +601,37 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas anular este movimiento? Esta acción no se puede deshacer y si en el movimiento se consumio materia prima se devolvera el peso correspondiente.
-                        {movimiento?.restar_ingredientes && (
-                            <><br /><br />
-                                <strong>Nota:</strong> Este movimiento consumió ingredientes. Al anularlo, se devolverá el peso de los ingredientes consumidos al stock de acopio.
-                            </>
-                        )}
-                        {movimiento?.produccion_damabrava_id && (
-                            <><br /><br />
-                                <strong>Nota:</strong> Este movimiento proviene de producción de Damabrava. Al anularlo, se restará la cantidad del registro de producción y se actualizará su estado si es necesario.
-                            </>
-                        )}
+                        ¿Estás seguro que deseas anular este movimiento? Esta acción no se puede deshacer.
                     </p>
+                    {movimientoActual?.type === 'entrada' && (
+                        <div style={{ marginTop: '10px', marginBottom: '10px', width: '100%' }}>
+                            <Text type="error" align="left">
+                                Si este movimiento restó materia prima según la receta, se le devolverá el total de la materia prima de la receta del producto.
+                            </Text>
+                        </div>
+                    )}
+                    {movimientoActual?.produccion_damabrava_id && movimientoActual?.type === 'entrada' && (
+                        <div style={{ marginTop: '0', marginBottom: '10px', width: '100%' }}>
+                            <Text type="warning" align="left">
+                                Este movimiento es un ingreso de producción Damabrava. Al anular, si el registro de producción está en estado "Completado" se pondrá a estado "Verificado".
+                            </Text>
+                        </div>
+                    )}
+                    {movimientoActual?.type === 'salida' && (
+                        <div style={{ marginTop: '10px', marginBottom: '10px', width: '100%' }}>
+                            <Text type="info" align="left">
+                                Al anular este movimiento se regresarán todos los productos a tu stock del producto.
+                                {movimientoActual?.cliente_id && ' Se quitará el número de pedido o de orden del cliente.'}
+                            </Text>
+                        </div>
+                    )}
+                    {movimientoActual?.metodo_pago?.toLowerCase() === 'credito' && (
+                        <div style={{ marginBottom: '10px', width: '100%' }}>
+                            <Text type="warning" align="left">
+                                Al anular este movimiento se eliminará la deuda del apartado de deudas por que este movimiento tiene metodo de pago a credito.
+                            </Text>
+                        </div>
+                    )}
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-default'
@@ -625,6 +645,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                             style={{ marginTop: 'auto' }}
                             onClick={handleAnular}
                             loading={loading}
+                            segundosDisabled={5}
                         />
 
                     </div>
@@ -654,6 +675,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                             style={{ marginTop: 'auto' }}
                             onClick={handleEliminar}
                             loading={loading}
+                            segundosDisabled={5}
                         />
 
                     </div>

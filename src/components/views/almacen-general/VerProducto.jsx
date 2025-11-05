@@ -289,6 +289,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                             style={{ marginTop: 'auto' }}
                             onClick={handleDelete}
                             loading={loading}
+                            segundosDisabled={5}
                         />
                     </div>
 

@@ -164,6 +164,7 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
                             style={{ marginTop: 'auto' }}
                             onClick={handleEliminar}
                             loading={loading}
+                            segundosDisabled={5}
                         />
                     </div>
                 </div>

@@ -468,6 +468,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                                 }
                             }}
                             loading={loading}
+                            segundosDisabled={5}
                         />
                         <Boton
                             className='btn-default'

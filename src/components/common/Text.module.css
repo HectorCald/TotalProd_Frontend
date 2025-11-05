@@ -1,6 +1,6 @@
 .text {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: flex-start;
     gap: 8px;
     padding: 8px 12px;

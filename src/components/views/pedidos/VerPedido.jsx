@@ -10,6 +10,7 @@ import Boton from '../../common/Boton';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import DescargaPedidoBuilder from './DescargaPedidoBuilder';
+import Text from '../../common/Text';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import { useUser } from '../../../context/UserContext';
 import { useLayout } from '../../../context/LayoutContext';
@@ -26,6 +27,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
+    const [isCancelarEntregaOpen, setIsCancelarEntregaOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [modoAlmacen, setModoAlmacen] = useState('pedido'); // 'pedido' o 'entregar'
     const [isVerMovimientoOpen, setIsVerMovimientoOpen] = useState(false);
@@ -291,6 +293,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             console.log('✅ Estado del pedido cambiado a Pendiente');
 
             mostrarNotificacion('success', 'Entrega cancelada correctamente');
+            setIsCancelarEntregaOpen(false);
 
             // Usar la respuesta actualizada del servidor que incluye total_pedidos actualizado
             const pedidoActualizado = cambiarEstadoResponse.data;
@@ -705,7 +708,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         <Boton
                             className='btn-orange'
                             label='Cancelar Entrega'
-                            onClick={handleCancelarEntrega}
+                            onClick={() => setIsCancelarEntregaOpen(true)}
                             loading={loading}
                             disabled={loadingSalida}
                         />
@@ -811,12 +814,47 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                             style={{ marginTop: 'auto' }}
                             onClick={handleEliminarPedido}
                             loading={loading}
+                            segundosDisabled={5}
                         />
                         <Boton
                             className='btn-default'
                             label='Cancelar'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(false)}
+                        />
+                    </div>
+                </div>
+            </ViewModal>
+
+            {/* Modal de cancelar entrega */}
+            <ViewModal isOpen={isCancelarEntregaOpen} setIsOpen={setIsCancelarEntregaOpen}>
+                <HeaderModal
+                    title="Cancelar Entrega"
+                    onClose={() => setIsCancelarEntregaOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>
+                        ¿Estás seguro que deseas cancelar la entrega de este pedido? Esta acción no se puede deshacer.
+                    </p>
+                    <div style={{ marginTop: '10px', width: '100%' }}>
+                        <Text type="warning" align="left">
+                            Al anular se regresarán los productos que se entregaron al almacén general y se eliminará el movimiento de salida.
+                        </Text>
+                    </div>
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-orange'
+                            label='Sí, cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleCancelarEntrega}
+                            loading={loading}
+                            segundosDisabled={5}
+                        />
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsCancelarEntregaOpen(false)}
                         />
                     </div>
                 </div>

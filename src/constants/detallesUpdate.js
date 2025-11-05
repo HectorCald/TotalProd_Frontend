@@ -1,14 +1,15 @@
 export const detallesUpdate = [
     {
         label: 'Nuevas funcionalidades', children: [
-            'Nuevo campo de transporte y/o Otros al relizar entrega de pedido de materia prima',
+            'Tiempo de espera para botones de confirmacion de acciones importantes',
+            'Informacion clara y precisa en modales de confirmacion de acciones importantes',
         ]
     },
     {
         label: 'Correcciones', children: [
             {
-                label: 'Reportes de produccion (Damabrava)', children: [
-                    'Correccion de total de materia prima consumida',
+                label: 'Materia Prima', children: [
+                    'Al anular la entrada con receta se anulan y eliminan las salidas asociadas',
                 ]
             },
         ]

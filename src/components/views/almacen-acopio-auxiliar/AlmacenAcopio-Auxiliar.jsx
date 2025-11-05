@@ -23,6 +23,7 @@ import conteosService from '../../../services/conteosService';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import DescargaConteoBuilder from './DescargaConteoBuilder';
+import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const { isLargeScreen } = useLayout();
@@ -330,7 +331,10 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         return true;
     });
 
-    const tableData = productosFiltradosPorDiferencia
+    // Paginación virtual - mostrar solo 30 elementos inicialmente
+    const { visibleItems, hasMore, handleScroll } = useVirtualPagination(productosFiltradosPorDiferencia, 30);
+
+    const tableData = visibleItems
         .map(p => ({
             id: p.id,
             name: p.name,
@@ -423,12 +427,19 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                             <Filtros options={opciones} />
                             {isLargeScreen ? (
                                 // Vista de tabla para pantallas grandes
-                                <div className={styles.content}>
+                                <div 
+                                    className={styles.content}
+                                    onScroll={handleScroll}
+                                    style={{
+                                        overflowY: 'auto'
+                                    }}
+                                >
                                     <Table
                                         headers={tableHeaders}
                                         data={tableData}
                                         onRowClick={() => {}}
                                         getBadge={() => null}
+                                        onScroll={handleScroll}
                                         renderCell={(row, key) => {
                                             if (tipo !== 'conteo') return null;
                                             if (key !== 'quantity' && key !== 'justificacion') return null;
@@ -512,9 +523,10 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                         maxHeight: 'calc(100% - 80px)',
                                         minHeight: 'calc(100% - 80px)'
                                     }}
+                                    onScroll={handleScroll}
                                 >
-                                        {productosFiltradosPorDiferencia.length > 0 ? (
-                                            productosFiltradosPorDiferencia.map((p, index) => {
+                                        {visibleItems.length > 0 ? (
+                                            visibleItems.map((p, index) => {
                                                 if (tipo === 'conteo') {
                                                     const rawQty = parseFloat(p.quantity || 0);
                                                     const state = getDiffState(p.id, rawQty);

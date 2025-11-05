@@ -10,6 +10,7 @@ import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import Proveedores from '../proveedores/Proveedores';
 import Dato from '../../common/Dato';
 import ItemView from '../../common/ItemView';
+import Text from '../../common/Text';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
@@ -293,6 +294,13 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
                         onChange={(e) => handleChange('observaciones', e.target.value)}
                         icon='comment'
                     />
+
+                    {/* Text informativo sobre gastos */}
+                    <div style={{ marginTop: '10px', marginBottom: '10px', width: '100%' }}>
+                        <Text type="info" align="left">
+                            Al realizar la entrega se van a generar registros de gasto del costo de compra y del transporte si hubiera por separado.
+                        </Text>
+                    </div>
 
                     {/* Botón de realizar entrega */}
                     <Boton

@@ -12,19 +12,19 @@ function Text({
         switch (type) {
             case 'error':
                 return {
-                    icon: icon || 'x-circle',
+                    icon: icon || 'info-circle',
                     color: '#dc2626',
                     bgColor: 'rgba(220, 38, 38, 0.1)'
                 };
             case 'success':
                 return {
-                    icon: icon || 'check-circle',
+                    icon: icon || 'info-circle',
                     color: '#16a34a',
                     bgColor: 'rgba(22, 163, 74, 0.1)'
                 };
             case 'warning':
                 return {
-                    icon: icon || 'error-circle',
+                    icon: icon || 'info-circle',
                     color: '#ea990c',
                     bgColor: 'rgba(234, 142, 12, 0.1)'
                 };
