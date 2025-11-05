@@ -127,8 +127,9 @@ const UsuarioScreen = () => {
                 <div className={styles.content} style={{ padding: '10px', gap: '10px' }}>
                     <ItemView
                         title={nombreCompleto}
-                        description={isEmployee ? currentUser.codigo || 'Sin código' : currentUser.email || 'Sin email'}
+                        description={isEmployee ? (currentUser.cargo || 'Sin cargo') : currentUser.email || 'Sin email'}
                         description2={`${nombreEmpresa}${isEmployee && sucursal ? ` • ${sucursal.name}` : ''}`}
+                        flot5={isEmployee ? (currentUser.codigo || 'Sin código') : undefined}
                         circulo={true}
                         transparent={false}
                         style={{ padding: '0px', minHeight: 'auto'}}

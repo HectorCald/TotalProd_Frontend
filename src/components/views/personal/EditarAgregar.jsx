@@ -24,7 +24,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
     const [dataEdit, setDataEdit] = useState({
         first_name: '',
         last_name: '',
-        codigo: ''
+        codigo: '',
+        cargo: ''
     });
     const [estado, setEstado] = useState(true); // Siempre activo por defecto
     const [sucursalId, setSucursalId] = useState('');
@@ -172,7 +173,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             setDataEdit({
                 first_name: usuario.first_name || '',
                 last_name: usuario.last_name || '',
-                codigo: usuario.codigo || ''
+                codigo: usuario.codigo || '',
+                cargo: usuario.cargo || ''
             });
 
             // Cargar módulos seleccionados si existen
@@ -213,7 +215,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             setDataEdit({
                 first_name: '',
                 last_name: '',
-                codigo: ''
+                codigo: '',
+                cargo: ''
             });
             setSelectedModules([]);
             setEstado(true); // Siempre activo por defecto
@@ -256,6 +259,12 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             return;
         }
 
+        if (!dataEdit.cargo.trim()) {
+            mostrarNotificacion('error', 'El cargo es obligatorio');
+            setLoading(false);
+            return;
+        }
+
         if (!sucursalId) {
             mostrarNotificacion('error', 'La sucursal es obligatoria');
             setLoading(false);
@@ -288,6 +297,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             first_name: dataEdit.first_name,
             last_name: dataEdit.last_name,
             codigo: codigoFinal,
+            cargo: dataEdit.cargo,
             modules: selectedModules,
             is_active: estado,
             sucursal_id: sucursalId || null,
@@ -386,6 +396,14 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                          Una vez creado el personal con el código autogenerado, no es posible cambiarlo, intenta eliminarlo y crear uno nuevo.
                     </Text>
                     : ''}
+                    <InputNormal
+                        tipo="text"
+                        icon="briefcase"
+                        value={dataEdit.cargo}
+                        placeholder='Cargo (obligatorio)'
+                        onChange={(e) => setDataEdit({ ...dataEdit, cargo: e.target.value })}
+                        disabled={tipo === 'ver'}
+                    />
                     <Select
                         value={sucursalId}
                         onChange={(value) => setSucursalId(value)}
@@ -433,7 +451,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                                 style={{ marginTop: 'auto' }}
                                 onClick={handleSubmit}
                                 loading={loading}
-                                disabled={!dataEdit.first_name || !dataEdit.last_name || !sucursalId}
+                                disabled={!dataEdit.first_name || !dataEdit.last_name || !dataEdit.cargo || !sucursalId}
                             />
                         </div>
                     )}

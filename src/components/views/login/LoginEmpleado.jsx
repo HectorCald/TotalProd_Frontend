@@ -191,7 +191,7 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                         <p className={styles.subTitle}>INICIAR SESIÓN</p>
                         <ItemView
                             title={`${personalData.first_name} ${personalData.last_name}`}
-                            description={`Código: ${personalData.codigo}`}
+                            description={personalData.cargo || 'Sin cargo'}
                         />
                         <InputNormal
                             tipo="password"
@@ -224,7 +224,7 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                         <p className={styles.subTitle}>ESTABLECER CONTRASEÑA</p>
                         <ItemView
                             title={`${personalData.first_name} ${personalData.last_name}`}
-                            description={`Código: ${personalData.codigo}`}
+                            description={personalData.cargo || 'Sin cargo'}
                             icon="user"
                         />
                         <InputNormal

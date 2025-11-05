@@ -190,6 +190,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const nombreCompleto = isEmployee ?
         `${currentUser.first_name} ${currentUser.last_name}` :
         `${currentUser.firstName} ${currentUser.lastName}` || 'N/A';
+    
 
     // Obtener nombre de la empresa
     const nombreEmpresa = sucursal?.empresas?.name || 'N/A';
@@ -225,7 +226,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                 <div className={styles.content} style={{ padding: '10px', gap: '10px' }}>
                     <ItemView
                         title={nombreCompleto}
-                        description={isEmployee ? currentUser.codigo || 'Sin código' : currentUser.email || 'Sin email'}
+                        description={isEmployee ? `${currentUser?.codigo || 'Sin código'} • ${currentUser?.cargo || 'Sin cargo'}` : currentUser?.email || 'Sin email'}
                         description2={`${nombreEmpresa}${tipoApp !== 'N/A' ? ` • ${tipoApp}` : ''}${isEmployee && sucursal ? ` • ${sucursal.name}` : ''}`}
                         circulo={true}
                         transparent={false}

@@ -37,11 +37,13 @@ export const EmployeeProvider = ({ children }) => {
       if (employeeData) {
         try {
           const parsedEmployeeData = JSON.parse(employeeData);
-          setEmployee(parsedEmployeeData);
+          // Guardar solo la parte personal del objeto, no el objeto completo
+          const personalData = parsedEmployeeData.personal || parsedEmployeeData;
+          setEmployee(personalData);
           
           // Si el empleado tiene sucursal_id, cargar la sucursal
-          if (parsedEmployeeData.personal && parsedEmployeeData.personal.sucursal_id) {
-            const sucursalData = await sucursalesService.getById(parsedEmployeeData.personal.sucursal_id);
+          if (personalData.sucursal_id) {
+            const sucursalData = await sucursalesService.getById(personalData.sucursal_id);
             if (sucursalData.success) {
               setSucursalSeleccionada(sucursalData.data);
               localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursalData.data));
@@ -107,7 +109,6 @@ export const EmployeeProvider = ({ children }) => {
             // Si la sucursal tiene empresa pero no tiene logo_tipo, cargar la imagen
             if (sucursalData.data.empresas && sucursalData.data.empresas.id && !sucursalData.data.empresas.logo_tipo) {
               try {
-                console.log('🔄 EmployeeContext: Cargando imagen de empresa para empleado');
                 const EmpresaImagenService = (await import('../services/empresaImagenService')).default;
                 const imageResponse = await EmpresaImagenService.getImage(sucursalData.data.empresas.id);
                 
@@ -118,7 +119,6 @@ export const EmployeeProvider = ({ children }) => {
                                  imageResponse.data?.image_url;
                   
                   if (imageUrl) {
-                    console.log('✅ EmployeeContext: Imagen cargada y guardada en contexto');
                     // Actualizar la sucursal con la imagen
                     const updatedSucursal = {
                       ...sucursalData.data,

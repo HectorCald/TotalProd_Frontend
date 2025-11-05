@@ -177,7 +177,8 @@ function Personal({ isOpen, setIsOpen }) {
     // Filtrar personal localmente basado en la búsqueda
     const personalFiltrado = personal.filter(persona => 
         `${persona.first_name} ${persona.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (persona.codigo && persona.codigo.toLowerCase().includes(searchQuery.toLowerCase()))
+        (persona.codigo && persona.codigo.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (persona.cargo && persona.cargo.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     // Manejar error 403 con useEffect para evitar bucle infinito
@@ -227,28 +228,28 @@ function Personal({ isOpen, setIsOpen }) {
             personal.id === updatedPersonal.id ? updatedPersonal : personal
         ));
         
-        // Cerrar el modal de ver personal
-        setIsOpenVerPersona(false);
+        // NO cerrar el modal de ver personal - se queda abierto para ver los cambios
+        // El modal VerPersona maneja su propia actualización local
         mostrarNotificacion('success', 'Personal actualizado correctamente');
     };
 
     // Headers para la tabla
     const tableHeaders = [
         { key: 'nombre', label: 'Nombre', icon: 'user' },
+        { key: 'cargo', label: 'Cargo', icon: 'briefcase' },
         { key: 'codigo', label: 'Código', icon: 'id-card' },
         { key: 'estado', label: 'Estado', icon: 'check-circle' },
-        { key: 'sucursal', label: 'Sucursal', icon: 'store' },
-        { key: 'modulos', label: 'Modulos', icon: 'check-circle' }
+        { key: 'sucursal', label: 'Sucursal', icon: 'store' }
     ];
 
     // Datos para la tabla
     const tableData = personalFiltrado.map(persona => ({
         id: persona.id,
         nombre: `${persona.first_name} ${persona.last_name}`,
+        cargo: persona.cargo || '--',
         codigo: persona.codigo || '--',
         estado: persona.is_active ? 'Activo' : 'Inactivo',
-        sucursal: persona.sucursal?.name || 'Sin sucursal',
-        modulos: persona.modules?.length+' Submódulos'
+        sucursal: persona.sucursal?.name || 'Sin sucursal'
     }));
 
     // Función para obtener el badge de estado
@@ -332,7 +333,7 @@ function Personal({ isOpen, setIsOpen }) {
                                 <ItemView
                                     key={persona.id || index}
                                     title={`${persona.first_name} ${persona.last_name}`}
-                                    description={`Código: ${persona.codigo}`}
+                                    description={persona.cargo || 'Sin cargo'}
                                     arrow={true}
                                     onClick={() => handlePersonal(persona)}
                                     float2={persona.is_active ? 'Activo' : 'Inactivo'}

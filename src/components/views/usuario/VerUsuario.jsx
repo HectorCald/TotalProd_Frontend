@@ -141,6 +141,13 @@ function VerUsuario({ isOpen, setIsOpen }) {
                             onClick={handleCopyCode}
                         />
                     )}
+                    {isEmployee && (
+                        <Dato 
+                            label="Cargo" 
+                            value={usuario.cargo || 'N/A'} 
+                            icon='briefcase'
+                        />
+                    )}
                     <Dato label="Celular" value={usuario.phone || 'N/A'} icon='phone' />
 
                     <Dato

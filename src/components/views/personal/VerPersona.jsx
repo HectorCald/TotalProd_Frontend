@@ -16,6 +16,14 @@ import MapaModal from '../clientes/MapaModal';
 
 function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated, sucursales = [] }) {
 
+    // Estado local para el usuario (se actualiza cuando se edita)
+    const [localUsuario, setLocalUsuario] = useState(usuario);
+
+    // Actualizar el estado local cuando cambie el usuario prop
+    useEffect(() => {
+        setLocalUsuario(usuario);
+    }, [usuario]);
+
     // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -86,13 +94,13 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
 
     // Función para copiar código al portapapeles
     const handleCopyCode = async () => {
-        if (!usuario.codigo) {
+        if (!localUsuario?.codigo) {
             mostrarNotificacion('error', 'No hay código para copiar');
             return;
         }
 
         try {
-            await navigator.clipboard.writeText(usuario.codigo);
+            await navigator.clipboard.writeText(localUsuario.codigo);
             mostrarNotificacion('success', 'Código copiado al portapapeles');
         } catch (error) {
             console.error('Error al copiar:', error);
@@ -102,14 +110,14 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
 
     // Función para resetear contraseña
     const handleResetPassword = async () => {
-        if (!usuario.id) {
+        if (!localUsuario?.id) {
             mostrarNotificacion('error', 'ID del personal no válido');
             return;
         }
 
         setLoading(true);
         try {
-            const response = await personalService.resetPassword(usuario.id);
+            const response = await personalService.resetPassword(localUsuario.id);
 
             if (response.success) {
                 setIsResetPasswordOpen(false);
@@ -130,12 +138,28 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
         setIsMapModalOpen(true);
     };
 
+    // Función para manejar cuando se actualiza el personal (desde EditarAgregar)
+    const handlePersonalUpdated = (updatedPersonal) => {
+        // Actualizar el estado local con el personal actualizado
+        setLocalUsuario(updatedPersonal);
+        
+        // Notificar al componente padre (Personal.jsx) para actualizar la lista
+        // pero sin cerrar este modal
+        if (onProveedorUpdated) {
+            onProveedorUpdated(updatedPersonal);
+        }
+        
+        // Cerrar solo el modal de editar
+        setIsEditOpen(false);
+        mostrarNotificacion('success', 'Personal actualizado correctamente');
+    };
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>
-                    {usuario?.first_name} {usuario?.last_name}
+                    {localUsuario?.first_name} {localUsuario?.last_name}
                     <div className={styles.iconButton} >
                     </div>
 
@@ -144,17 +168,18 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 <div className={styles.content}>
                     <Dato 
                         label="Código" 
-                        value={usuario?.codigo || 'N/A'} 
+                        value={localUsuario?.codigo || 'N/A'} 
                         icon='copy'
                         onClick={handleCopyCode}
                     />
-                    <Dato label="Estado" value={usuario?.is_active ? 'Activo' : 'Inactivo'} especial={usuario?.is_active ? 'green' : 'red'} />
-                    <Dato label="Sucursal" value={usuario?.sucursal?.name || 'Sin sucursal asignada'} />
-                    <Dato label="Rastreo" value={usuario?.rastrear ? 'Activado' : 'Desactivado'} especial={usuario?.rastrear ? 'green' : 'gray'} />
+                    <Dato label="Cargo" value={localUsuario?.cargo || 'N/A'} icon='briefcase' />
+                    <Dato label="Estado" value={localUsuario?.is_active ? 'Activo' : 'Inactivo'} especial={localUsuario?.is_active ? 'green' : 'red'} />
+                    <Dato label="Sucursal" value={localUsuario?.sucursal?.name || 'Sin sucursal asignada'} />
+                    <Dato label="Rastreo" value={localUsuario?.rastrear ? 'Activado' : 'Desactivado'} especial={localUsuario?.rastrear ? 'green' : 'gray'} />
                 </div>
 
                 {/* Sección de ubicación - solo si tiene rastreo activado Y tiene coordenadas */}
-                {usuario?.rastrear && usuario?.ubicacion && (
+                {localUsuario?.rastrear && localUsuario?.ubicacion && (
                     <>
                         <p className={styles.subTitle}>UBICACIÓN</p>
                         <div className={styles.content}>
@@ -170,7 +195,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 )}
                 <p className={styles.subTitle}>CONFIGURACIÓN</p>
                 {/* Botón para ver módulos - solo si tiene módulos */}
-                {usuario?.modules && usuario.modules.length > 0 && (
+                {localUsuario?.modules && localUsuario.modules.length > 0 && (
 
                         <Boton
                             className='btn-gray'
@@ -181,7 +206,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 )}
 
                 {/* Botón para ver permisos - solo si tiene permisos */}
-                {usuario?.permisos && (
+                {localUsuario?.permisos && (
                         <Boton
                             className='btn-gray'
                             label='Ver Detalles de Permisos'
@@ -212,9 +237,9 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
             <EditarAgregar
                 isOpen={isEditOpen}
                 setIsOpen={setIsEditOpen}
-                usuario={usuario}
+                usuario={localUsuario}
                 tipo='editar'
-                onPersonalUpdated={onProveedorUpdated}
+                onPersonalUpdated={handlePersonalUpdated}
                 sucursales={sucursales}
             />
 
@@ -225,13 +250,13 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                     onClose={() => setIsDeleteOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Eliminar al personal {usuario?.first_name} {usuario?.last_name}? Esta acción es irreversible y puede afectar registros relacionados.</p>
+                    <p className={styles.subTitle}>¿Eliminar al personal {localUsuario?.first_name} {localUsuario?.last_name}? Esta acción es irreversible y puede afectar registros relacionados.</p>
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-red'
                             label='Si, eliminar'
                             style={{ marginTop: 'auto' }}
-                            onClick={() => handleEliminar(usuario?.id)}
+                            onClick={() => handleEliminar(localUsuario?.id)}
                             loading={loading}
                             segundosDisabled={5}
                         />
@@ -252,7 +277,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                     onClose={() => setIsResetPasswordOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Resetear la contraseña del personal {usuario?.first_name} {usuario?.last_name}? Se borrará la contraseña actual y el empleado podrá establecer una nueva ingresando con su código.</p>
+                    <p className={styles.subTitle}>¿Resetear la contraseña del personal {localUsuario?.first_name} {localUsuario?.last_name}? Se borrará la contraseña actual y el empleado podrá establecer una nueva ingresando con su código.</p>
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-default'
@@ -279,11 +304,11 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                     onClose={() => setIsModulesOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    {usuario?.modules && usuario.modules.length > 0 ? (
+                    {localUsuario?.modules && localUsuario.modules.length > 0 ? (
                         <>
                             <p className={styles.subTitle}>MÓDULOS Y SUBMÓDULOS</p>
                             <div className={styles.content}>
-                                {usuario.modules.map((module, index) => (
+                                {localUsuario.modules.map((module, index) => (
                                     <div key={module.id || index}>
                                         <Dato
                                             label={module.modulos?.name || 'Módulo'}
@@ -312,29 +337,29 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                     onClose={() => setIsPermisosOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    {usuario?.permisos ? (
+                    {localUsuario?.permisos ? (
                         <>
                             <p className={styles.subTitle}>PERMISOS DETALLADOS</p>
                             <div className={styles.content}>
                                 <Dato
                                     label="Crear"
-                                    value={usuario.permisos.crear ? 'Permitido' : 'No permitido'}
+                                    value={localUsuario.permisos.crear ? 'Permitido' : 'No permitido'}
                                 />
                                 <Dato
                                     label="Editar"
-                                    value={usuario.permisos.editar ? 'Permitido' : 'No permitido'}
+                                    value={localUsuario.permisos.editar ? 'Permitido' : 'No permitido'}
                                 />
                                 <Dato
                                     label="Eliminar"
-                                    value={usuario.permisos.eliminar ? 'Permitido' : 'No permitido'}
+                                    value={localUsuario.permisos.eliminar ? 'Permitido' : 'No permitido'}
                                 />
                                 <Dato
                                     label="Anular"
-                                    value={usuario.permisos.anular ? 'Permitido' : 'No permitido'}
+                                    value={localUsuario.permisos.anular ? 'Permitido' : 'No permitido'}
                                 />
                                 <Dato
                                     label="Reemplazar"
-                                    value={usuario.permisos.reemplazar ? 'Permitido' : 'No permitido'}
+                                    value={localUsuario.permisos.reemplazar ? 'Permitido' : 'No permitido'}
                                 />
                             </div>
                         </>
@@ -354,7 +379,7 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
             <MapaModal
                 isOpen={isMapModalOpen}
                 setIsOpen={setIsMapModalOpen}
-                initialLocation={usuario?.ubicacion}
+                initialLocation={localUsuario?.ubicacion}
                 readOnly={true}
             />
 
