@@ -570,6 +570,12 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     // Agrupar productos por producción
     const productosAgrupados = {};
     registros.forEach(registro => {
+      // Validar que el registro tenga producto_almacen e id válido
+      if (!registro.producto_almacen || !registro.producto_almacen.id) {
+        if (DEBUG_REPORTES) console.warn('Registro sin producto_almacen válido:', registro);
+        return;
+      }
+      
       const key = registro.producto_almacen.id;
       if (!productosAgrupados[key]) {
         productosAgrupados[key] = {
@@ -594,8 +600,13 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
 
     // Obtener recetas de todos los productos únicos
-    const productIds = Object.keys(productosAgrupados);
+    // Filtrar IDs válidos (no null, undefined, o vacíos)
+    const productIds = Object.keys(productosAgrupados)
+      .map(id => String(id))
+      .filter(id => id && id !== 'null' && id !== 'undefined' && id.trim() !== '');
+    
     if (productIds.length === 0) {
+      if (DEBUG_REPORTES) console.log('No hay productos válidos para obtener recetas');
       return {
         informacionSuperior: {
           'Tipo de Reporte': 'Producción (Damabrava)',
@@ -612,12 +623,27 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     // Obtener productos con recetas del backend
     let productosConRecetas = [];
     try {
+      if (DEBUG_REPORTES) console.log('Obteniendo recetas para productos:', productIds);
       const productosResponse = await productsAlmacenService.getByIdsWithRecipes(productIds);
-      if (productosResponse.success && productosResponse.data) {
+      if (productosResponse && productosResponse.success && productosResponse.data) {
         productosConRecetas = productosResponse.data;
+        if (DEBUG_REPORTES) console.log('Productos con recetas obtenidos:', productosConRecetas.length);
+      } else {
+        // Si el servicio retorna success: false, loguear pero continuar
+        const errorMessage = productosResponse?.message || 'No se pudieron obtener las recetas';
+        if (DEBUG_REPORTES) {
+          console.warn('Respuesta del servicio sin éxito:', {
+            success: productosResponse?.success,
+            message: errorMessage,
+            productIds: productIds
+          });
+        }
+        console.warn('No se pudieron obtener recetas para productos:', errorMessage);
       }
     } catch (error) {
       console.error('Error obteniendo recetas:', error);
+      if (DEBUG_REPORTES) console.error('Detalles del error:', error);
+      // Continuar sin recetas en lugar de fallar completamente
     }
 
     // Crear mapa de productos con recetas para acceso rápido
@@ -1125,12 +1151,69 @@ const Reportes = ({ isOpen, setIsOpen }) => {
           break;
 
         case 'balance':
-          // Generar reporte de balance (ingresos y gastos)
+          // Para balance, obtener ingresos y gastos y validar si hay datos
+          const movimientosBalance = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucuId);
+          const gastosBalance = await gastosService.getAllSinLimite();
+          if (DEBUG_REPORTES) console.log('API balance -> movimientos:', movimientosBalance?.data?.length ?? 0, 'gastos:', gastosBalance?.data?.length ?? 0);
+          
+          if (!movimientosBalance?.success && !gastosBalance?.success) {
+            mostrarNotificacion('error', 'No se pudieron obtener los datos para el balance');
+            return;
+          }
+          
+          // Filtrar movimientos por fecha
+          const fechaInicioObjBalance = new Date(fechaInicio);
+          const fechaFinObjBalance = new Date(fechaFin);
+          const fechaInicioStrBalance = new Date(fechaInicioObjBalance).toISOString().split('T')[0];
+          const fechaFinStrBalance = new Date(fechaFinObjBalance).toISOString().split('T')[0];
+          
+          const movimientosFiltradosBalance = (movimientosBalance?.data || []).filter(mov => {
+            const fechaMovimiento = new Date(mov.fecha);
+            const fMov = new Date(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
+            const fIni = new Date(fechaInicioObjBalance.getFullYear(), fechaInicioObjBalance.getMonth(), fechaInicioObjBalance.getDate());
+            const fFin = new Date(fechaFinObjBalance.getFullYear(), fechaFinObjBalance.getMonth(), fechaFinObjBalance.getDate());
+            return fMov >= fIni && fMov <= fFin;
+          });
+          
+          const gastosFiltradosBalance = (gastosBalance?.data || []).filter(g => {
+            const fechaG = g.fecha_gasto;
+            return fechaG >= fechaInicioStrBalance && fechaG <= fechaFinStrBalance;
+          });
+          
+          if (movimientosFiltradosBalance.length === 0 && gastosFiltradosBalance.length === 0) {
+            mostrarNotificacion('warning', 'No hay ingresos ni gastos en el período seleccionado');
+            if (DEBUG_REPORTES) console.warn('Sin datos en rango para balance');
+            return;
+          }
+          
           reporteData = await generarReporteBalance({ fechaInicio, fechaFin });
           break;
 
         case 'deudas':
-          // Generar reporte de deudas por rango de fechas agrupado por cliente
+          // Para deudas, obtener deudas por rango de fechas y validar si hay datos
+          const toYmd = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+          };
+          const fechaInicioStrDeudas = toYmd(new Date(fechaInicio));
+          const fechaFinStrDeudas = toYmd(new Date(fechaFin));
+          
+          const deudasResp = await deudasService.getByDateRange(fechaInicioStrDeudas, fechaFinStrDeudas, sucuId);
+          if (DEBUG_REPORTES) console.log('API deudas ->', deudasResp?.data?.length ?? 0);
+          
+          if (!deudasResp?.success || !Array.isArray(deudasResp.data)) {
+            mostrarNotificacion('error', 'No se pudieron obtener las deudas');
+            return;
+          }
+          
+          if (deudasResp.data.length === 0) {
+            mostrarNotificacion('warning', 'No hay deudas en el período seleccionado');
+            if (DEBUG_REPORTES) console.warn('Sin deudas en rango');
+            return;
+          }
+          
           reporteData = await generarReporteDeudas({ fechaInicio, fechaFin });
           break;
 

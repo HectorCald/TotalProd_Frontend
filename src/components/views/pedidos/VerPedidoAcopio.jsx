@@ -22,20 +22,28 @@ import movimientosAcopioService from '../../../services/movimientosAcopioService
 function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedidoActualizado }) {
     const { user, sucursalSeleccionada: sucursalActual } = useUser();
     const { employee } = useEmployee();
-    const [loading, setLoading] = useState(false);
+    // Estados de loading individuales para cada botón
+    const [loadingEliminar, setLoadingEliminar] = useState(false);
+    const [loadingAnular, setLoadingAnular] = useState(false);
+    const [loadingGastoCompra, setLoadingGastoCompra] = useState(false);
+    const [loadingGastoOtros, setLoadingGastoOtros] = useState(false);
+    const [loadingIngresar, setLoadingIngresar] = useState(false);
+    const [loadingVerEntrada, setLoadingVerEntrada] = useState(false);
+    
+    // Estado global para deshabilitar todos los botones cuando alguno esté cargando
+    const isAnyLoading = loadingEliminar || loadingAnular || loadingGastoCompra || loadingGastoOtros || loadingIngresar || loadingVerEntrada;
+    
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isEntregaAcopioOpen, setIsEntregaAcopioOpen] = useState(false);
     const [isGastoOpen, setIsGastoOpen] = useState(false);
     const [gasto, setGasto] = useState(null);
+    const [isGastoOtros, setIsGastoOtros] = useState(false); // Flag para saber si es gasto_otros
     const [isEntregaOpen, setIsEntregaOpen] = useState(false);
-    const [loadingGasto, setLoadingGasto] = useState(false);
-    const [loadingIngresar, setLoadingIngresar] = useState(false);
     const [isMovimientoOpen, setIsMovimientoOpen] = useState(false);
     const [productoCompleto, setProductoCompleto] = useState(null);
     const [isVerEntradaOpen, setIsVerEntradaOpen] = useState(false);
     const [movimientoEntrada, setMovimientoEntrada] = useState(null);
-    const [loadingVerEntrada, setLoadingVerEntrada] = useState(false);
 
     // Estado local para el pedido actual
     const [pedidoActual, setPedidoActual] = useState(pedido);
@@ -51,7 +59,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         if (!pedidoActual) return;
 
         try {
-            setLoading(true);
+            setLoadingEliminar(true);
             const response = await pedidosAcopioService.eliminar(pedidoActual.id);
 
             if (response.success) {
@@ -69,7 +77,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
             console.error('Error al eliminar pedido:', error);
             mostrarNotificacion('error', 'Error al eliminar el pedido');
         } finally {
-            setLoading(false);
+            setLoadingEliminar(false);
         }
     };
 
@@ -123,6 +131,11 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         return (pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && pedidoActual.gasto_id;
     };
 
+    const puedeVerGastoOtros = () => {
+        if (!pedidoActual) return false;
+        return (pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && pedidoActual.gasto_otros_id;
+    };
+
     const puedeVerEntrega = () => {
         if (!pedidoActual) return false;
         return (pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && pedidoActual.fecha_entregado;
@@ -172,7 +185,8 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
             cantidad_entregada_ud: pedidoActualizado.cantidad_entregada_ud,
             estado_entrega: pedidoActualizado.estado_entrega,
             observaciones_entrega: pedidoActualizado.observaciones_entrega,
-            gasto_id: pedidoActualizado.gasto_id
+            gasto_id: pedidoActualizado.gasto_id,
+            gasto_otros_id: pedidoActualizado.gasto_otros_id || null
         };
 
         // Guardar datos de entrega en localStorage para WhatsApp
@@ -217,7 +231,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         }
 
         try {
-            setLoading(true);
+            setLoadingAnular(true);
 
             const response = await pedidosAcopioService.anularEntrega(pedidoActual.id);
 
@@ -234,7 +248,8 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                     cantidad_entregada_ud: null,
                     estado_entrega: null,
                     observaciones_entrega: null,
-                    gasto_id: null
+                    gasto_id: null,
+                    gasto_otros_id: null
                 };
 
                 // Actualizar el estado local del pedido
@@ -250,7 +265,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
             console.error('Error al anular entrega:', error);
             mostrarNotificacion('error', 'Error al anular la entrega');
         } finally {
-            setLoading(false);
+            setLoadingAnular(false);
         }
     };
 
@@ -320,13 +335,14 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         }
 
         try {
-            setLoadingGasto(true);
+            setLoadingGastoCompra(true);
             // Obtener empresa_id de la sucursal seleccionada
             const empresaId = sucursalActual?.empresas?.id || null;
             const response = await gastosService.getById(pedidoActual.gasto_id, empresaId);
 
             if (response.success) {
                 setGasto(response.data);
+                setIsGastoOtros(false); // No es gasto_otros
                 setIsGastoOpen(true);
             } else {
                 mostrarNotificacion('error', response.message || 'Error al obtener información del gasto');
@@ -340,7 +356,40 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                 mostrarNotificacion('error', 'Error al obtener información del gasto');
             }
         } finally {
-            setLoadingGasto(false);
+            setLoadingGastoCompra(false);
+        }
+    };
+
+    // Función para abrir el modal del gasto de transporte/otros
+    const handleVerGastoOtros = async () => {
+        if (!pedidoActual || !pedidoActual.gasto_otros_id) {
+            mostrarNotificacion('error', 'No se encontró información del gasto de transporte/otros');
+            return;
+        }
+
+        try {
+            setLoadingGastoOtros(true);
+            // Obtener empresa_id de la sucursal seleccionada
+            const empresaId = sucursalActual?.empresas?.id || null;
+            const response = await gastosService.getById(pedidoActual.gasto_otros_id, empresaId);
+
+            if (response.success) {
+                setGasto(response.data);
+                setIsGastoOtros(true); // Es gasto_otros
+                setIsGastoOpen(true);
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al obtener información del gasto');
+            }
+        } catch (error) {
+            console.error('Error al obtener gasto:', error);
+            // Manejar errores de permisos (403)
+            if (error.status === 403) {
+                mostrarNotificacion('error', error.message || 'No tienes acceso al módulo de Gastos');
+            } else {
+                mostrarNotificacion('error', 'Error al obtener información del gasto');
+            }
+        } finally {
+            setLoadingGastoOtros(false);
         }
     };
 
@@ -397,6 +446,14 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         }
     }, [isVerEntradaOpen]);
 
+    // Efecto para limpiar el flag de gasto_otros cuando se cierre el modal
+    useEffect(() => {
+        if (!isGastoOpen) {
+            setIsGastoOtros(false);
+            setGasto(null);
+        }
+    }, [isGastoOpen]);
+
     if (!pedidoActual) return null;
     const detalles = getDetallesPedido();
 
@@ -450,6 +507,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                     className='btn-gray'
                     label='Ultimas entregas'
                     onClick={handleVerUltimasEntregas}
+                    disabled={isAnyLoading}
                 />
                 {/* Mostrar detalles de entrega si el pedido está entregado */}
                 {(pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && (
@@ -459,14 +517,25 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                                 className='btn-gray'
                                 label='Ver Entrega'
                                 onClick={handleVerEntrega}
+                                disabled={isAnyLoading}
                             />
                         )}
                         {puedeVerGasto() && (
                             <Boton
                                 className='btn-gray'
-                                label='Ver Gasto'
+                                label='Ver Gasto Compra'
                                 onClick={handleVerGasto}
-                                loading={loadingGasto}
+                                loading={loadingGastoCompra}
+                                disabled={isAnyLoading}
+                            />
+                        )}
+                        {puedeVerGastoOtros() && (
+                            <Boton
+                                className='btn-gray'
+                                label='Ver Gasto Transporte/Otros'
+                                onClick={handleVerGastoOtros}
+                                loading={loadingGastoOtros}
+                                disabled={isAnyLoading}
                             />
                         )}
                     </>
@@ -479,6 +548,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                                 label='Ver Entrada'
                                 onClick={handleVerEntrada}
                                 loading={loadingVerEntrada}
+                                disabled={isAnyLoading}
                             />
                         )}
                     </>
@@ -489,6 +559,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             className='btn-red'
                             label='Eliminar Pedido'
                             onClick={() => setIsEliminarOpen(true)}
+                            disabled={isAnyLoading}
                         />
                     )}
                     {puedeEntregarPedidoAcopio() && (
@@ -496,6 +567,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             className='btn-default'
                             label='Entregar Pedido'
                             onClick={handleEntregarPedidoAcopio}
+                            disabled={isAnyLoading}
                         />
                     )}
                     {puedeAnularEntregaAcopio() && (
@@ -503,7 +575,8 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             className='btn-orange'
                             label='Anular Entrega'
                             onClick={handleAnularEntregaAcopio}
-                            loading={loading}
+                            loading={loadingAnular}
+                            disabled={isAnyLoading}
                         />
                     )}
                     {puedeIngresarPedidoAcopio() && (
@@ -512,6 +585,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             label='Ingresar'
                             onClick={handleIngresarPedidoAcopio}
                             loading={loadingIngresar}
+                            disabled={isAnyLoading}
                         />
                     )}
                 </div>
@@ -542,7 +616,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             label='Sí, eliminar'
                             style={{ marginTop: 'auto' }}
                             onClick={handleEliminarPedido}
-                            loading={loading}
+                            loading={loadingEliminar}
                         />
                         <Boton
                             className='btn-default'

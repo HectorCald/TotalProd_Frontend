@@ -334,11 +334,31 @@ function PanelGastos({ isOpen, setIsOpen }) {
         { key: 'valor', label: 'Valor', icon: 'dollar' }
     ];
 
+    // Función helper para formatear fecha sin problemas de zona horaria
+    const formatearFecha = (fechaString) => {
+        if (!fechaString) return 'Sin fecha';
+        // Parsear directamente desde YYYY-MM-DD sin usar new Date para evitar problemas de zona horaria
+        const partes = fechaString.split('-');
+        if (partes.length === 3) {
+            const año = partes[0];
+            const mes = partes[1];
+            const dia = partes[2];
+            // Crear fecha en zona horaria local directamente
+            const fecha = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+            return fecha.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+        return fechaString;
+    };
+
     // Datos para la tabla
     const tableData = allGastos.map(gasto => ({
         id: gasto.id,
         concepto: gasto.concepto || 'Sin concepto',
-        fecha: new Date(gasto.fecha_gasto).toLocaleDateString(),
+        fecha: formatearFecha(gasto.fecha_gasto),
         metodo_pago: gasto.metodo_pago || 'Sin método de pago',
         proveedor: gasto.proveedor?.name || '--',
         valor: `Bs. ${(gasto.valor || 0).toFixed(2)}`
@@ -413,7 +433,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
                                             <ItemView
                                                 key={gasto.id || index}
                                                 title={gasto.concepto || 'Sin concepto'}
-                                                description={`${new Date(gasto.fecha_gasto).toLocaleDateString()} • ${gasto.metodo_pago || 'Sin método de pago'}${gasto.proveedor?.name ? ` • ${gasto.proveedor.name}` : ''}`}
+                                                description={`${formatearFecha(gasto.fecha_gasto)} • ${gasto.metodo_pago || 'Sin método de pago'}${gasto.proveedor?.name ? ` • ${gasto.proveedor.name}` : ''}`}
                                                 icon='money'
                                                 onClick={() => handleGasto(gasto)}
                                                 arrow={false}

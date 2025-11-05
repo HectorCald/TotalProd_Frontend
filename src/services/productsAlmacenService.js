@@ -351,15 +351,14 @@ class productsAlmacenService {
         };
       }
 
+      // Enviar IDs como cadena separada por comas para evitar problemas con el parser de Express
+      const idsString = productIds.join(',');
+      
       const params = new URLSearchParams({
         empresa_id: empresaId,
         sucu_id: sucuId,
-        with_recipes: 'true'
-      });
-
-      // Agregar IDs como parámetros
-      productIds.forEach(id => {
-        params.append('ids', id);
+        with_recipes: 'true',
+        ids: idsString
       });
 
       const response = await fetch(`${API_BASE_URL}/products-almacen/by-ids?${params}`, {

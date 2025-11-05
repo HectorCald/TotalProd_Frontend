@@ -44,6 +44,7 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
         unidadUD: 'caja',
         proveedor_id: '',
         costo: '',
+        transporte_otros: '',
         metodo_pago: '',
         estado_entrega: 'llego',
         observaciones: ''
@@ -105,6 +106,7 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
                 unidadUD: 'caja',
                 proveedor_id: '',
                 costo: '',
+                transporte_otros: '',
                 metodo_pago: '',
                 estado_entrega: 'llego',
                 observaciones: ''
@@ -257,6 +259,17 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
                         min="0"
                     />
 
+                    {/* Input de transporte/otros */}
+                    <InputNormal
+                        tipo="number"
+                        value={dataEntrega.transporte_otros}
+                        placeholder='Transporte/Otros'
+                        onChange={(e) => handleChange('transporte_otros', e.target.value)}
+                        icon='truck'
+                        step="0.01"
+                        min="0"
+                    />
+
                     {/* Selector de método de pago */}
                     <SelectorMetodoPago
                         value={dataEntrega.metodo_pago}
@@ -300,6 +313,7 @@ function EntregaPedidoAcopio({ isOpen, setIsOpen, pedido, onEntregaRealizada }) 
                             dataEntrega.metodo_pago.trim() === '' ||
                             !dataEntrega.estado_entrega
                         }
+                        // Nota: transporte_otros no es obligatorio, por lo que no se incluye en la validación
                     />
                 </div>
                 <Notification

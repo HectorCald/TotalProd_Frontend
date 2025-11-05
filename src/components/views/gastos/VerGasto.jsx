@@ -19,6 +19,26 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isEditarOpen, setIsEditarOpen] = useState(false);
 
+    // Función helper para formatear fecha sin problemas de zona horaria
+    const formatearFecha = (fechaString) => {
+        if (!fechaString) return 'Sin fecha';
+        // Parsear directamente desde YYYY-MM-DD sin usar new Date para evitar problemas de zona horaria
+        const partes = fechaString.split('-');
+        if (partes.length === 3) {
+            const año = partes[0];
+            const mes = partes[1];
+            const dia = partes[2];
+            // Crear fecha en zona horaria local directamente
+            const fecha = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+            return fecha.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+        return fechaString;
+    };
+
     // Función para preparar datos de descarga
     const prepararDatosDescarga = () => {
         if (!gasto) return { informacionSuperior: {}, tablaHeaders: [], tablaValores: [] };
@@ -26,7 +46,7 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
         // Información superior
         const informacionSuperior = {
             'Responsable': gasto?.user?.name || gasto?.personal?.name || 'Usuario desconocido',
-            'Fecha': new Date(gasto?.fecha_gasto).toLocaleString(),
+            'Fecha': formatearFecha(gasto?.fecha_gasto),
             'Concepto': gasto?.concepto || 'Sin concepto',
             'Valor': `Bs. ${(parseFloat(gasto?.valor) || 0).toFixed(2)}`,
             'Método de Pago': gasto?.metodo_pago || 'No especificado',
@@ -94,16 +114,39 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
                 />
 
                 <p className={styles.subTitle}>INFORMACIÓN DEL GASTO</p>
+
                 <ItemView
                     title={gasto?.concepto || 'Sin concepto'}
-                    description={`Fecha: ${new Date(gasto?.fecha_gasto).toLocaleDateString()}`}
                     description2={`Valor: Bs. ${(parseFloat(gasto?.valor) || 0).toFixed(2)}`}
                     transparent={false}
-                    circulo={false}
                     flot6="Gasto"
+                    icon='money'
                 />
-
+                {gasto?.proveedor?.name && (
+                    <ItemView
+                        title={gasto.proveedor.name}
+                        description="Proveedor"
+                        transparent={false}
+                        icon='truck'
+                    />
+                )}
                 <div className={styles.content}>
+                    <Dato
+                        label="Fecha de gasto"
+                        value={formatearFecha(gasto?.fecha_gasto) || 'No especificada'}
+                        vertical={false}
+                    />
+
+                    <Dato
+                        label="Sucursal"
+                        value={gasto?.sucursal?.name || 'No especificada'}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Método de Pago"
+                        value={gasto?.metodo_pago || 'No especificado'}
+                        vertical={false}
+                    />
                     <Dato
                         label="Valor"
                         value={`Bs. ${(parseFloat(gasto?.valor) || 0).toFixed(2)}`}
@@ -112,29 +155,11 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
                     />
                 </div>
 
-                <div className={styles.content}>
-                    <Dato
-                        label="Método de Pago"
-                        value={gasto?.metodo_pago || 'No especificado'}
-                        vertical={false}
-                    />
-                </div>
 
-                {gasto?.proveedor?.name && (
-                    <ItemView
-                        title={gasto.proveedor.name}
-                        description="Proveedor"
-                        transparent={false}
-                    />
-                )}
 
-                <div className={styles.content}>
-                    <Dato
-                        label="Sucursal"
-                        value={gasto?.sucursal?.name || 'No especificada'}
-                        vertical={false}
-                    />
-                </div>
+
+
+
 
                 <div className={styles.buttons}>
                     <Boton
@@ -157,7 +182,7 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Gasto"
                 subtitulo="Selecciona el formato que prefieras para descargar este gasto."
-                nombreArchivo={`Gasto_${new Date(gasto?.fecha_gasto).toLocaleDateString().replace(/\//g, '-')}_${gasto?.concepto?.replace(/[^a-zA-Z0-9]/g, '_') || 'gasto'}`}
+                nombreArchivo={`Gasto_${formatearFecha(gasto?.fecha_gasto).replace(/\//g, '-')}_${gasto?.concepto?.replace(/[^a-zA-Z0-9]/g, '_') || 'gasto'}`}
                 {...prepararDatosDescarga()}
             />
 
