@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import '../styles/Home.css';
+import styles from '../styles/Home.module.css';
 import Nav from '../components/ui/Nav';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
 import BarraLateral from '../components/ui/BarraLateral';
@@ -10,7 +10,9 @@ import InicioPC from '../components/screens/InicioPC';
 import Explorar from '../components/screens/Explorar';
 import ModalOffline from '../components/views/offline/ModalOffline';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import NoData from '../components/common/NoData';
 
+// Componentes de vistas modales para uso en Inicio.jsx y vistas
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
 import AlmacenMedioGeneral from '../components/views/almacen-general/AlmacenMedioGeneral';
 import ConteosMedio from '../components/views/conteos/ConteosMedio';
@@ -25,7 +27,7 @@ import PasoTipo from '../components/views/pasos/PasoTipo';
 
 const Home = () => {
   const { isLargeScreen } = useLayout();
-  const { user } = useUser();
+  const { user, error, loading, clearUser } = useUser();
   const [activeView, setActiveView] = useState(null);
   const [activeRoute, setActiveRoute] = useState('/dashboard/default');
   const [isOffline, setIsOffline] = useState(false);
@@ -143,7 +145,71 @@ const Home = () => {
     setShowPasoTipo(false);
   };
 
-  // Mostrar loading hasta obtener la información del usuario
+  // Función para reintentar carga de usuario
+  const handleRetry = () => {
+    // Recargar la página completamente
+    window.location.reload();
+  };
+
+  // Función para volver al login
+  const handleGoToLogin = () => {
+    // Limpiar context inmediatamente (igual que en Usuario.jsx)
+    clearUser();
+    
+    // Redireccionar inmediatamente sin delay
+    window.location.href = '/login';
+  };
+
+  // Mostrar loading mientras está cargando
+  if (loading) {
+    return <LoadingSpinner fullScreen={true} text="Cargando usuario..." icon="user" />;
+  }
+
+  // Si hay error, mostrar NoData con error
+  if (error) {
+    // Determinar el tipo de error y el mensaje apropiado
+    let errorTitle = "Error";
+    let errorDetail = error;
+    let errorIcon = "error-circle";
+    
+    // Verificar primero si es error de conexión (debe ser la primera verificación)
+    const isConnectionError = error.includes('No se pudo conectar') || 
+                              error.includes('conexión') || 
+                              error.includes('connection') ||
+                              error.includes('network') || 
+                              error.includes('fetch') ||
+                              error.includes('internet') ||
+                              error.includes('offline') ||
+                              error.includes('Failed to fetch') ||
+                              error.includes('NetworkError');
+    
+    if (isConnectionError) {
+      errorTitle = "Error";
+      errorDetail = error.includes('No se pudo conectar') 
+          ? error 
+          : "No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.";
+      errorIcon = "wifi-off";
+    }
+    
+    return (
+      <div className={styles.homePage}>
+        <Nav />
+        <NoData 
+          icon={errorIcon}
+          title={errorTitle}
+          detail={errorDetail}
+          isError={true}
+          minHeight="60vh"
+          showRetryButton={true}
+          showLoginButton={true}
+          onRetry={handleRetry}
+          onLogin={handleGoToLogin}
+        />
+      </div>
+    );
+  }
+
+  // Si no hay usuario después de cargar (sin error), mostrar loading
   if (!user) {
     return <LoadingSpinner fullScreen={true} text="Cargando usuario..." icon="user" />;
   }
@@ -154,12 +220,12 @@ const Home = () => {
   }
 
   return (
-    <div className="home-page">
+    <div className={styles.homePage}>
       <Nav />
       
       {/* Layout para pantallas grandes */}
       {isLargeScreen ? (
-        <div className="main-layout">
+        <div className={styles.mainLayout}>
           <BarraLateral 
             onMenuClick={handleMenuClick}
             activeRoute={activeRoute}
@@ -170,7 +236,7 @@ const Home = () => {
                          activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio'}
             onViewClose={handleViewClose}
           />
-          <div className="main-content">
+          <div className={styles.mainContent}>
             {renderScreen()}
           </div>
           
@@ -226,6 +292,7 @@ const Home = () => {
             onScreenChange={handleScreenChange}
             onViewOpen={handleViewOpen}
             isEmployee={false}
+            hasUserData={!!user}
           />
 
           {/* Vistas modales - Solo para pantallas pequeñas */}

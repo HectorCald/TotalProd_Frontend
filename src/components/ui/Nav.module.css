@@ -13,6 +13,18 @@
     background-color: var(--secondary-color);
 }
 
+.userSelectContainer {
+    display: flex;
+    align-items: center;
+    min-width: 220px;
+}
+
+@media (min-width: 1024px) {
+    .userSelectContainer {
+        padding-top: 17px;
+    }
+}
+
 .navContent {
     display: flex;
     align-items: center;

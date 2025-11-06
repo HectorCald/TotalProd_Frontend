@@ -112,8 +112,8 @@ const Nav = () => {
                             </div>
                         )}
                     </div>
-                    {isLargeScreen ? (
-              
+                    {isLargeScreen && currentUser ? (
+                        <div className={styles.userSelectContainer}>
                             <Select
                                 label="Administrador"
                                 placeholder={nombreCompleto}
@@ -124,7 +124,7 @@ const Nav = () => {
                                 placeholderAsValue={true}
                                 containerStyle={{ maxWidth: '300px', maxHeight: '40px' }}
                             />
-                       
+                        </div>
                     ) : null}
                 </div>
                 

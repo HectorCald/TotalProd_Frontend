@@ -1,11 +1,10 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { checkCacheStatus } from '../../utils/cacheUtils';
-import { getAvailableMainModules } from '../../constants/modules';
+import { getAvailableMainModules, getSectionTitle } from '../../constants/modules';
 import AtajoAnuncio from '../common/AtajoAnuncio';
 import InicioEmpleadoPC from './InicioEmpleadoPC';
 import ModalActualizacion from '../ui/ModalActualizacion';
-import styles from '../../styles/view.module.css';
-import './Inicio.css';
+import styles from './Screen.module.css';
 import PullToRefresh from '../common/PullToRefresh';
 import NoData from '../common/NoData';
 import { useEmployee } from '../../context/EmployeeContext';
@@ -13,7 +12,7 @@ import personalService from '../../services/personalService';
 import Notification from '../common/Notification';
 
 const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
-  const { setEmployeeFromService } = useEmployee();
+  const { setEmployeeFromService, sucursalSeleccionada } = useEmployee();
   const [notification, setNotification] = useState({ isVisible: false, type: 'info', text: '' });
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [oldVersion, setOldVersion] = useState(null);
@@ -99,44 +98,24 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
         }}
       >
           {(() => {
-            // Agrupar por secciones como en la barra lateral del empleado
-            const sectionMap = {
-              // INVENTARIO
-              'Almacen': 'INVENTARIO',
-              'Acopio': 'INVENTARIO',
-              // REGISTROS Y PEDIDOS
-              'Movimientos': 'REGISTROS Y PEDIDOS',
-              'Conteos': 'REGISTROS Y PEDIDOS',
-              'Pedidos': 'REGISTROS Y PEDIDOS',
-              'Cotizaciones': 'REGISTROS Y PEDIDOS',
-              // GESTIÓN
-              'Clientes': 'GESTIÓN',
-              'Proveedores': 'GESTIÓN',
-              // FINANZAS
-              'Gastos': 'FINANZAS',
-              'Deudas': 'FINANZAS',
-              'Balance': 'FINANZAS',
-              'Reportes': 'FINANZAS',
-              // CONFIGURACIÓN
-              'Precios': 'CONFIGURACIÓN',
-              // DAMABRAVA
-              'Damabrava': 'DAMABRAVA'
-            };
-
+            // Agrupar módulos por sección
             const buckets = new Map();
             availableMainModules.forEach((module) => {
-              const sectionTitle = sectionMap[module.key] || 'INVENTARIO';
+              const sectionKey = module.section || 'inventario';
+              const sectionTitle = getSectionTitle(sectionKey);
               if (!buckets.has(sectionTitle)) buckets.set(sectionTitle, []);
               buckets.get(sectionTitle).push(module);
             });
 
             // Orden sugerido de secciones
-            const order = ['INVENTARIO', 'REGISTROS Y PEDIDOS', 'GESTIÓN', 'FINANZAS', 'CONFIGURACIÓN', 'DAMABRAVA'];
-            const orderedSections = order.filter(title => buckets.has(title));
+            const sectionOrder = ['inventario', 'registros', 'gestion', 'finanzas', 'configuracion', 'damabrava'];
+            const orderedSections = sectionOrder
+              .map(key => getSectionTitle(key))
+              .filter(title => buckets.has(title));
 
             return orderedSections.map((title) => (
               <div key={title} className={styles.section}>
-                <p className={styles.subTitle}>{title}</p>
+                <p className={styles.subTitle} style={{ marginTop: '0', paddingBottom: '5px' }}>{title}</p>
                 {buckets.get(title).map((module, index) => {
                   const hasSingleSubmodule = Array.isArray(module.submodules) && module.submodules.length === 1;
                   const singleSub = hasSingleSubmodule ? module.submodules[0] : null;
@@ -178,8 +157,8 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
       </PullToRefresh>
 
       {/* Contenido para pantallas grandes */}
-      <div className="inicio-desktop">
-        <InicioEmpleadoPC onViewOpen={onViewOpen} />
+      <div className={styles.inicioDesktop}>
+        <InicioEmpleadoPC onViewOpen={onViewOpen} employee={employee} sucursalSeleccionada={sucursalSeleccionada} />
       </div>
       <Notification
         isVisible={notification.isVisible}

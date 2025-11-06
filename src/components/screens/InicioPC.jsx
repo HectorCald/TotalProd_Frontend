@@ -81,7 +81,7 @@ const InicioPC = ({ onViewOpen, sucuId = 1 }) => {
     <>
       <div className="inicio-pc-container">
       {/* Atajos de Acceso Rápido */}
-      <div className="atajoAnuncioOtros">
+      <div className="atajoAnuncioOtros" style={{ gap: '10px' }}>
         <AtajoAnuncio 
           title="Almacén General" 
           description="Administra tu almacén de productos terminados" 
@@ -95,7 +95,7 @@ const InicioPC = ({ onViewOpen, sucuId = 1 }) => {
           onClick={() => onViewOpen('almacenMedio')} 
         />
       </div>
-      <div className="atajoAnuncioOtros" style={{ marginTop: '10px' }}>
+      <div className="atajoAnuncioOtros" style={{ gap: '10px' }}>
         <AtajoAnuncio 
           title="Movimientos" 
           description="Gestiona movimientos de inventario" 
@@ -111,7 +111,7 @@ const InicioPC = ({ onViewOpen, sucuId = 1 }) => {
       </div>
 
       {/* Cards de Estadísticas lado a lado */}
-      <div style={{ marginTop: '5px', display: 'flex', gap: '10px' }}>
+      <div style={{ display: 'flex', gap: '10px' }}>
         <div style={{ flex: 1 }}>
           <SalesCard sucuId={sucuId} />
         </div>

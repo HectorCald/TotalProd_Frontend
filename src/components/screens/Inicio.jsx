@@ -12,7 +12,7 @@ import movimientosImage from '../../assets/movimientos.png';
 import pedidosImage from '../../assets/pedidos.png';
 import conteosImage from '../../assets/conteos.png';
 import cotizacionesImage from '../../assets/cotizaciones.png';  
-import './Inicio.css';
+import styles from './Screen.module.css';
 import PullToRefresh from '../common/PullToRefresh';
 import { useUser } from '../../context/UserContext';
 import UserService from '../../services/userService';
@@ -113,8 +113,8 @@ const Inicio = ({ onViewOpen }) => {
           minHeight: '100%',
         }}
       >
-          <p className="subTitle">Funciones</p>
-          <div className="funciones">
+          <p className={styles.subTitle} style={{ marginTop: '0' }}>FUNCIONES</p>
+          <div className={styles.funciones}>
             {FUNCTIONS.slice(0, 4).map((func) => (
               <Coleccion
                 key={func.name}
@@ -124,8 +124,8 @@ const Inicio = ({ onViewOpen }) => {
               />
             ))}
           </div>
-          <p className="subTitle">Atajos</p>
-          <div className="atajoAnuncio">
+          <p className={styles.subTitle}>ATAJOS</p>
+          <div className={styles.atajoAnuncio}>
             <AtajoAnuncio 
               title="Almacén General" 
               description="Administra tu almacén de productos terminados, realiza entradas y salidas." 
@@ -141,8 +141,8 @@ const Inicio = ({ onViewOpen }) => {
               />
             )}
           </div>
-          <p className="subTitle">Otros</p>
-          <div className="atajoAnuncioOtros">
+          <p className={styles.subTitle}>OTROS</p>
+          <div className={styles.atajoAnuncioOtros}>
             <AtajoAnuncio 
               title="Movimientos" 
               description="" 
@@ -156,8 +156,8 @@ const Inicio = ({ onViewOpen }) => {
               onClick={() => onViewOpen('pedidos')} 
             />
           </div>
-          <p className="subTitle">Extras</p>
-          <div className="atajoAnuncioOtros">
+          <p className={styles.subTitle}>EXTRAS</p>
+          <div className={styles.atajoAnuncioOtros}>
             <AtajoAnuncio 
               title="Conteos" 
               description="" 
@@ -175,7 +175,7 @@ const Inicio = ({ onViewOpen }) => {
       </PullToRefresh>
 
       {/* Contenido para pantallas grandes */}
-      <div className="inicio-desktop">
+      <div className={styles.inicioDesktop}>
         <InicioPC onViewOpen={onViewOpen} />
       </div>
 

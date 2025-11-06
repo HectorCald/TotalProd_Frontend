@@ -7,7 +7,7 @@ import Explorar from '../screens/Explorar';
 import UsuarioScreen from '../screens/UsuarioScreen';
 import Notification from '../common/Notification';
 
-function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee, employee, onMainModuleClick }) {
+function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee, employee, onMainModuleClick, hasUserData = true }) {
     const [notification, setNotification] = useState({
         isVisible: false,
         type: 'warning',
@@ -15,13 +15,14 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
     });
     const [isUsuarioOpen, setIsUsuarioOpen] = useState(false);
 
+    // Solo mostrar configuración si hay datos de usuario/empleado
     const navigationItems = isEmployee ? [
         { id: 'inicio', icon: 'home', title: '' },
-        { id: 'configuracion', icon: 'cog', title: '' },
+        ...(hasUserData ? [{ id: 'configuracion', icon: 'cog', title: '' }] : []),
     ] : [
         { id: 'inicio', icon: 'home', title: '' },
         { id: 'explorar', icon: 'category', title: '' },
-        { id: 'configuracion', icon: 'cog', title: '' },
+        ...(hasUserData ? [{ id: 'configuracion', icon: 'cog', title: '' }] : []),
     ];
 
     const activeIndex = Math.max(0, navigationItems.findIndex((item) => item.id === activeScreen));

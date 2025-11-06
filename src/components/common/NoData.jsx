@@ -1,5 +1,6 @@
 import React from 'react';
 import { BoxIcon } from 'boxicons-react';
+import Boton from './Boton';
 import styles from './NoData.module.css';
 
 const NoData = ({ 
@@ -8,7 +9,11 @@ const NoData = ({
     detail = 'No se encontraron elementos para mostrar',
     transparent = false,
     minHeight = '200px',
-    isError = false
+    isError = false,
+    showRetryButton = false,
+    showLoginButton = false,
+    onRetry = null,
+    onLogin = null
 }) => {
     return (
         <div 
@@ -24,6 +29,26 @@ const NoData = ({
                 </div>
                 <h3 className={`${styles.noDataTitle} ${isError ? styles.errorTitle : ''}`}>{title}</h3>
                 <p className={`${styles.noDataDetail} ${isError ? styles.errorDetail : ''}`}>{detail}</p>
+                
+                {(showRetryButton || showLoginButton) && (
+                    <div className={styles.buttonsContainer}>
+                        {showRetryButton && (
+                            <Boton
+                                label="Reintentar"
+                                onClick={onRetry || (() => {})}
+                                className="btn-default"
+                            />
+                        )}
+                        {showLoginButton && (
+                            <Boton
+                                label="Cerrar Seión"
+                                onClick={onLogin || (() => {})}
+                                className="btn-red"
+                                style={{ marginTop: '15px' }}
+                            />
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

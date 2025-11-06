@@ -67,6 +67,11 @@ const personalService = {
                 };
             }
 
+            // Log simple cuando la respuesta sea exitosa
+            if (data.success || response.ok) {
+                console.log('Información cargada del empleado');
+            }
+
             return data;
         } catch (error) {
             console.error('Error en personalService.getAll:', error);
@@ -97,18 +102,62 @@ const personalService = {
                 headers: getAuthHeaders()
             });
 
+            // Si hay error de conexión, el fetch puede lanzar excepción o la respuesta puede estar vacía
+            if (!response) {
+                return {
+                    success: false,
+                    message: 'No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.'
+                };
+            }
+
             const data = await response.json();
 
             if (!response.ok) {
+                // Verificar si es un error de conexión basado en el status code
+                // Los errores 0, 408, 504, etc. pueden indicar problemas de conexión
+                if (response.status === 0 || response.status === 408 || response.status >= 500) {
+                    return {
+                        success: false,
+                        message: 'No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.'
+                    };
+                }
                 return {
                     success: false,
                     message: data.message || 'Error del servidor'
                 };
             }
 
+            // Log simple cuando la respuesta sea exitosa
+            if (data.success || response.ok) {
+                console.log('Información cargada del empleado');
+            }
+
             return data;
         } catch (error) {
             console.error('Error en personalService.getById:', error);
+            
+            // Detectar si es un error de conexión
+            const errorMsg = error.message || error.toString() || '';
+            const errorName = error.name || '';
+            
+            if (
+                errorMsg.includes('Failed to fetch') ||
+                errorMsg.includes('NetworkError') ||
+                errorMsg.includes('Network request failed') ||
+                errorMsg.includes('ERR_INTERNET_DISCONNECTED') ||
+                errorMsg.includes('ERR_NETWORK_CHANGED') ||
+                errorMsg.includes('ERR_CONNECTION_REFUSED') ||
+                errorMsg.includes('ERR_CONNECTION_RESET') ||
+                errorMsg.includes('ERR_CONNECTION_TIMED_OUT') ||
+                errorName === 'TypeError' ||
+                errorName === 'NetworkError'
+            ) {
+                return {
+                    success: false,
+                    message: 'No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.'
+                };
+            }
+            
             return {
                 success: false,
                 message: 'Error de conexión con el servidor'

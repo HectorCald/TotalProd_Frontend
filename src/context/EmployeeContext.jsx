@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import personalService from '../services/personalService';
 import sucursalesService from '../services/sucursalesService';
 
@@ -17,6 +17,7 @@ export const EmployeeProvider = ({ children }) => {
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const loadingEmployeeRef = useRef(false); // Ref para evitar múltiples llamadas simultáneas
 
   // Cargar datos del empleado y sucursal al inicializar
   useEffect(() => {
@@ -79,8 +80,68 @@ export const EmployeeProvider = ({ children }) => {
   };
 
 
-  // Función para cargar datos completos del empleado
-  const loadEmployeeData = async (employeeId) => {
+  // Función helper para detectar errores de conexión
+  const isConnectionError = (error, errorMessage) => {
+    // Verificar si es un error de conexión
+    if (error) {
+      const errorMsg = error.message || error.toString() || '';
+      const errorName = error.name || '';
+      
+      // Errores típicos de conexión
+      if (
+        errorMsg.includes('Failed to fetch') ||
+        errorMsg.includes('NetworkError') ||
+        errorMsg.includes('Network request failed') ||
+        errorMsg.includes('ERR_INTERNET_DISCONNECTED') ||
+        errorMsg.includes('ERR_NETWORK_CHANGED') ||
+        errorMsg.includes('ERR_CONNECTION_REFUSED') ||
+        errorMsg.includes('ERR_CONNECTION_RESET') ||
+        errorMsg.includes('ERR_CONNECTION_TIMED_OUT') ||
+        errorName === 'TypeError' ||
+        errorName === 'NetworkError'
+      ) {
+        return true;
+      }
+    }
+    
+    // Verificar mensajes de error que indican conexión
+    if (errorMessage) {
+      const msg = errorMessage.toLowerCase();
+      if (
+        msg.includes('no se pudo conectar') ||
+        msg.includes('conexión') ||
+        msg.includes('connection') ||
+        msg.includes('network') ||
+        msg.includes('fetch') ||
+        msg.includes('internet') ||
+        msg.includes('offline') ||
+        msg.includes('verifica tu conexión')
+      ) {
+        return true;
+      }
+      
+      // Si el mensaje es genérico del servidor pero viene de un catch (error de red)
+      // y contiene "Error del servidor" o "Error del servidor al verificar", probablemente es conexión
+      if (
+        (msg.includes('error del servidor') || msg.includes('error del servidor al verificar')) &&
+        error && (error.name === 'TypeError' || error.name === 'NetworkError')
+      ) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  // Función para cargar datos completos del empleado (memoizada para evitar bucles)
+  const loadEmployeeData = useCallback(async (employeeId) => {
+    // Evitar múltiples llamadas simultáneas
+    if (loadingEmployeeRef.current) {
+      console.log('⚠️ [EmployeeContext] Ya hay una carga de empleado en progreso, ignorando llamada duplicada');
+      return { success: false, error: 'Carga ya en progreso' };
+    }
+    
+    loadingEmployeeRef.current = true;
     setLoading(true);
     setError(null);
     
@@ -139,33 +200,68 @@ export const EmployeeProvider = ({ children }) => {
         }
         
         setLoading(false);
+        loadingEmployeeRef.current = false;
         return { success: true, data: employeeData.data };
       } else {
         const errorMessage = employeeData?.error || employeeData?.message || 'Error desconocido al obtener empleado';
         console.error('No se pudo obtener el empleado:', errorMessage);
+        
+        // Detectar si es error de conexión - verificar primero antes de otros errores
+        // El servicio ya debería devolver "No se pudo conectar..." pero verificamos por si acaso
+        const msg = errorMessage.toLowerCase();
+        if (
+          msg.includes('no se pudo conectar') ||
+          msg.includes('verifica tu conexión') ||
+          msg.includes('error de conexión') ||
+          msg.includes('connection') ||
+          msg.includes('network') ||
+          msg.includes('fetch') ||
+          msg.includes('internet') ||
+          msg.includes('offline') ||
+          isConnectionError(null, errorMessage)
+        ) {
+          const connectionError = 'No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.';
+          setError(connectionError);
+          setLoading(false);
+          loadingEmployeeRef.current = false;
+          return { success: false, error: connectionError };
+        }
         
         // Si hay error al obtener el empleado, establecer error
         if (employeeData?.status === 400 || employeeData?.status === 500 || !employeeData?.success) {
           console.log('❌ Error al obtener empleado:', errorMessage);
           setError(errorMessage);
           setLoading(false);
+          loadingEmployeeRef.current = false;
           return { success: false, error: errorMessage };
         }
         
         setError(errorMessage);
         setLoading(false);
+        loadingEmployeeRef.current = false;
         return { success: false, error: errorMessage };
       }
     } catch (error) {
       console.error('Error al cargar datos del empleado:', error);
       
+      // Detectar si es error de conexión
+      if (isConnectionError(error, error.message)) {
+        const connectionError = 'No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.';
+        console.log('❌ Error de conexión al obtener empleado');
+        setError(connectionError);
+        setLoading(false);
+        loadingEmployeeRef.current = false;
+        return { success: false, error: connectionError };
+      }
+      
       // Si hay error de conexión o cualquier otro error, establecer error
-      console.log('❌ Error de conexión al obtener empleado:', error.message);
+      console.log('❌ Error al obtener empleado:', error.message);
       setError(error.message);
       setLoading(false);
+      loadingEmployeeRef.current = false;
       return { success: false, error: error.message };
     }
-  };
+  }, []); // Sin dependencias ya que solo usa funciones del servicio
 
   // Función para actualizar la imagen de empresa
   const updateEmpresaImage = (newImage) => {

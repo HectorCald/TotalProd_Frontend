@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { checkCacheStatus } from '../../utils/cacheUtils';
-import { BoxIcon } from 'boxicons-react';
+import { getAvailableMainModules } from '../../constants/modules';
 import Version from '../common/Version';
 import ModalActualizacion from '../ui/ModalActualizacion';
 import Notification from '../common/Notification';
+import NoData from '../common/NoData';
+import SalesCard from '../ui/SalesCard';
+import SalesChart from '../ui/SalesChart';
 import './InicioPC.css';
 
-const InicioEmpleadoPC = ({ onViewOpen }) => {
+const InicioEmpleadoPC = ({ onViewOpen, employee, sucursalSeleccionada }) => {
   const [notification, setNotification] = useState({
     isVisible: false,
     type: 'info',
@@ -16,6 +19,29 @@ const InicioEmpleadoPC = ({ onViewOpen }) => {
   const [oldVersion, setOldVersion] = useState(null);
   const [newVersion, setNewVersion] = useState(null);
   const checkingRef = useRef(false);
+
+  // Verificar si el empleado tiene el módulo de Movimientos Almacén
+  const hasMovimientosAlmacen = useMemo(() => {
+    if (!employee || !employee.modules || !Array.isArray(employee.modules)) {
+      return false;
+    }
+
+    const availableModules = getAvailableMainModules(employee.modules);
+    const movimientosModule = availableModules.find(module => module.key === 'Movimientos');
+    
+    if (!movimientosModule || !movimientosModule.submodules) {
+      return false;
+    }
+
+    // Verificar si tiene el submódulo movimientos_almacen (Almacén)
+    // El submódulo tiene props: { tipoMovimiento: 'almacen' } y name: 'Almacen'
+    return movimientosModule.submodules.some(submodule => {
+      // Verificar por nombre o por props
+      return (submodule.name === 'Almacen' || 
+              submodule.props?.tipoMovimiento === 'almacen' ||
+              (submodule.component === 'PanelMovimientos' && submodule.props?.tipoMovimiento === 'almacen'));
+    });
+  }, [employee]);
 
   const mostrarNotificacion = (tipo, texto) => {
     setNotification({
@@ -71,23 +97,37 @@ const InicioEmpleadoPC = ({ onViewOpen }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Obtener el ID de la sucursal
+  const sucuId = sucursalSeleccionada?.id || 1;
+
   return (
     <>
       <div className="inicio-pc-container">
-      {/* Mensaje de restricción para empleados */}
-      <div className="noData">
-        <BoxIcon
-          name="lock"
-          className="noDataIcon"
-        />
-        <p className="noDataTitle">Inicio para empleados</p>
-        <p className="noDataDescription">
-          Como empleado, no puedes ver los graficos o atajos de módulos en la pantalla de inicio usa el menú lateral para acceder a los módulos.
-        </p>
-      </div>
+        {hasMovimientosAlmacen ? (
+          <>
+            {/* Cards de Estadísticas lado a lado */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <SalesCard sucuId={sucuId} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <SalesChart sucuId={sucuId} />
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Mensaje de restricción para empleados */
+          <NoData
+            icon="lock"
+            title="Inicio para empleados"
+            detail="Como empleado, no puedes ver los gráficos o atajos de módulos en la pantalla de inicio. Usa el menú lateral para acceder a los módulos."
+            transparent={true}
+            minHeight="300px"
+          />
+        )}
 
-      {/* Componente de versión */}
-      <Version />
+        {/* Componente de versión */}
+        <Version />
       </div>
 
       <Notification

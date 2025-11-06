@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { BoxIcon } from 'boxicons-react';
 import { useLayout } from '../../context/LayoutContext';
 import { useModalStack } from '../../context/ModalStackContext';
-import { getAvailableMainModules } from '../../constants/modules';
+import { getAvailableMainModules, getSectionTitle } from '../../constants/modules';
 import styles from './BarraLateral.module.css';
 
 // Importar componentes de vistas para empleados
@@ -47,143 +47,55 @@ const BarraLateralEmpleado = ({
 
   // Obtener módulos disponibles para el empleado con memoización
   const availableMainModules = useMemo(() => {
-    const modules = getAvailableMainModules(employee?.modules || []);
-    return modules;
+    return getAvailableMainModules(employee?.modules || []);
   }, [employee?.modules]);
 
-  // Función para mapear módulos a opciones del menú
+  // Función para mapear módulos a opciones del menú (simplificada)
   const mapModuleToMenuOption = (module) => {
-    const iconMap = {
-      'Almacen': 'package',
-      'Acopio': 'leaf',
-      'Movimientos': 'transfer',
-      'Conteos': 'calculator',
-      'Pedidos': 'shopping-bag',
-      'Precios': 'dollar',
-      'Cotizaciones': 'file',
-      'Clientes': 'user',
-      'Proveedores': 'truck',
-      'Gastos': 'receipt',
-      'Deudas': 'receipt',
-      'Reportes': 'bar-chart-alt-2',
-      'Balance': 'trending-up',
-      'Damabrava': 'category'
-    };
-
-    const viewMap = {
-      'Almacen': 'almacenMedioGeneral',
-      'Acopio': 'almacenMedio',
-      'Movimientos': 'movimientos',
-      'Conteos': 'conteos',
-      'Pedidos': 'pedidos',
-      'Precios': 'precios',
-      'Clientes': 'clientes',
-      'Proveedores': 'proveedores',
-      'Gastos': 'gastos',
-      'Deudas': 'deudas',
-      'Reportes': 'reportes',
-      'Balance': 'balance',
-      'Damabrava': 'mi_produccion',
-      'Cotizaciones': 'cotizaciones'
-    };
-
-    const propsMap = {
-      'Almacen': { tipo: 'almacen' },
-      'Acopio': { tipo: 'acopio' },
-      'Movimientos': { tipo: 'almacen' },
-      'Conteos': { tipo: 'almacen' },
-      'Pedidos': { tipo: 'almacen' },
-      'Precios': { tipo: 'almacen' },
-      'Clientes': { tipo: 'almacen' },
-      'Proveedores': { tipo: 'almacen' },
-      'Gastos': { tipo: 'almacen' },
-      'Deudas': { tipo: 'almacen' },
-      'Reportes': { tipo: 'almacen' },
-      'Balance': { tipo: 'almacen' },
-      'Damabrava': { tipo: 'almacen' },
-      'Cotizaciones': { tipo: 'almacen' }
-    };
-
     // Si el módulo tiene submodules
     if (module.submodules && module.submodules.length > 0) {
-      // Si tiene solo un submódulo, mostrar el nombre del padre pero abrir directamente el submódulo
+      // Si tiene solo un submódulo, mostrar el nombre del submódulo y abrir directamente
       if (module.submodules.length === 1) {
         const submodule = module.submodules[0];
         return {
           id: module.key.toLowerCase(),
-          title: module.name, // Mostrar el nombre del módulo padre
-          icon: iconMap[module.key] || 'grid',
+          title: submodule.name || module.name,
+          icon: submodule.icon || module.icon || 'grid',
           action: 'openView',
-          view: submodule.component === 'AlmacenGeneral' ? 'almacenMedioGeneral' :
-                submodule.component === 'AlmacenAcopio' ? 'almacenMedio' :
-                submodule.component === 'AlmacenGeneralAuxiliar' ? 'almacenMedioGeneralAuxiliar' :
-                submodule.component === 'AlmacenAcopioAuxiliar' ? 'almacenMedioAuxiliar' :
-                submodule.component === 'Movimientos' ? 'movimientos' :
-                submodule.component === 'PanelConteos' ? 'conteos' :
-                submodule.component === 'PanelCotizaciones' ? 'cotizaciones' :
-                submodule.component === 'Pedidos' ? 'pedidos' :
-                submodule.component === 'Precios' ? 'precios' :
-                submodule.component === 'Clientes' ? 'clientes' :
-                submodule.component === 'Proveedores' ? 'proveedores' :
-                submodule.component === 'Gastos' ? 'gastos' :
-                submodule.component === 'Deudas' ? 'deudas' :
-                submodule.component === 'Reportes' ? 'reportes' :
-                submodule.component === 'Balance' ? 'balance' :
-                submodule.component === 'FormularioProduccion' ? 'formulario' :
-                submodule.component === 'VerificarProduccion' ? 'verificacion' :
-                submodule.component === 'MiProduccion' ? 'mi_produccion' :
-                submodule.component === 'Damabrava' ? 'mi_produccion' :
-                submodule.component === 'PanelCotizaciones' ? 'cotizaciones' : 'verificar_produccion',
-          props: submodule.props || propsMap[module.key] || { tipo: 'almacen' }
+          view: submodule.view,
+          props: submodule.props || {}
         };
       } else {
         // Si tiene múltiples submódulos, crear submenu desplegable
         return {
           id: module.key.toLowerCase(),
           title: module.name,
-          icon: iconMap[module.key] || 'grid',
+          icon: module.icon || 'grid',
           hasSubmenu: true,
           submenu: module.submodules.map((submodule, index) => ({
             id: `${module.key.toLowerCase()}-${submodule.name.toLowerCase().replace(/\s+/g, '-')}-${index}`,
             title: submodule.name,
             icon: submodule.icon || 'file',
             action: 'openView',
-            view: submodule.component === 'AlmacenGeneral' ? 'almacenMedioGeneral' :
-                  submodule.component === 'AlmacenAcopio' ? 'almacenMedio' :
-                  submodule.component === 'AlmacenGeneralAuxiliar' ? 'almacenMedioGeneralAuxiliar' :
-                  submodule.component === 'AlmacenAcopioAuxiliar' ? 'almacenMedioAuxiliar' :
-                  submodule.component === 'Movimientos' ? 'movimientos' :
-                  submodule.component === 'PanelConteos' ? 'conteos' :
-                  submodule.component === 'PanelCotizaciones' ? 'cotizaciones' :
-                  submodule.component === 'Pedidos' ? 'pedidos' :
-                  submodule.component === 'Clientes' ? 'clientes' :
-                  submodule.component === 'Proveedores' ? 'proveedores' :
-                  submodule.component === 'Gastos' ? 'gastos' :
-                  submodule.component === 'Deudas' ? 'deudas' :
-                  submodule.component === 'Reportes' ? 'reportes' :
-                  submodule.component === 'Balance' ? 'balance' :
-                  submodule.component === 'FormularioProduccion' ? 'formulario' :
-                  submodule.component === 'VerificarProduccion' ? 'verificacion' :
-                  submodule.component === 'MiProduccion' ? 'mi_produccion' :
-                  submodule.component === 'Damabrava' ? 'mi_produccion' : 'verificar_produccion',
-            props: submodule.props || propsMap[module.key] || { tipo: 'almacen' }
+            view: submodule.view,
+            props: submodule.props || {}
           }))
         };
       }
     } else {
-      // Módulo simple sin submenu
+      // Módulo simple sin submenu (no debería pasar, pero por si acaso)
       return {
         id: module.key.toLowerCase(),
         title: module.name,
-        icon: iconMap[module.key] || 'grid',
+        icon: module.icon || 'grid',
         action: 'openView',
-        view: viewMap[module.key] || 'almacenMedioGeneral',
-        props: propsMap[module.key] || { tipo: 'almacen' }
+        view: 'unknown',
+        props: {}
       };
     }
   };
 
-  // Opciones del menú para empleados con memoización (agrupadas por secciones como en BarraLateral)
+  // Opciones del menú para empleados con memoización (agrupadas por secciones)
   const EMPLOYEE_MENU_OPTIONS = useMemo(() => {
     // Sección de Dashboard siempre presente
     const dashboardSection = {
@@ -200,30 +112,7 @@ const BarraLateralEmpleado = ({
       ]
     };
 
-    // Mapear cada módulo disponible a una sección
-    const sectionMap = {
-      // INVENTARIO
-      'Almacen': 'inventario',
-      'Acopio': 'inventario',
-      //REGISTROS
-      'Movimientos': 'registros',
-      'Conteos': 'registros',
-      'Pedidos': 'registros',
-      'Cotizaciones': 'registros',
-      // GESTIÓN
-      'Clientes': 'gestion',
-      'Proveedores': 'gestion',
-      // FINANZAS
-      'Gastos': 'finanzas',
-      'Deudas': 'finanzas',
-      'Balance': 'finanzas',
-      'Reportes': 'finanzas',
-      // CONFIGURACIÓN
-      'Precios': 'configuracion',
-      // DAMABRAVA
-      'Damabrava': 'damabrava'
-    };
-
+    // Agrupar módulos por sección
     const buckets = {
       inventario: [],
       registros: [],
@@ -234,18 +123,23 @@ const BarraLateralEmpleado = ({
     };
 
     availableMainModules.forEach((mod) => {
-      const sectionKey = sectionMap[mod.key] || 'inventario';
-      buckets[sectionKey].push(mapModuleToMenuOption(mod));
+      const sectionKey = mod.section || 'inventario';
+      if (buckets[sectionKey]) {
+        buckets[sectionKey].push(mapModuleToMenuOption(mod));
+      }
     });
 
+    // Orden de secciones
+    const sectionOrder = ['inventario', 'registros', 'gestion', 'finanzas', 'configuracion', 'damabrava'];
     const sections = [
       dashboardSection,
-      ...(buckets.inventario.length > 0 ? [{ id: 'inventario', title: 'INVENTARIO', items: buckets.inventario }] : []),
-      ...(buckets.registros.length > 0 ? [{ id: 'registros', title: 'REGISTROS Y PEDIDOS', items: buckets.registros }] : []),
-      ...(buckets.gestion.length > 0 ? [{ id: 'gestion', title: 'GESTIÓN', items: buckets.gestion }] : []),
-      ...(buckets.finanzas.length > 0 ? [{ id: 'finanzas', title: 'FINANZAS', items: buckets.finanzas }] : []),
-      ...(buckets.configuracion.length > 0 ? [{ id: 'configuracion', title: 'CONFIGURACIÓN', items: buckets.configuracion }] : []),
-      ...(buckets.damabrava.length > 0 ? [{ id: 'damabrava', title: 'DAMABRAVA', items: buckets.damabrava }] : [])
+      ...sectionOrder
+        .filter(key => buckets[key] && buckets[key].length > 0)
+        .map(key => ({
+          id: key,
+          title: getSectionTitle(key),
+          items: buckets[key]
+        }))
     ];
 
     return sections;
@@ -491,14 +385,12 @@ const BarraLateralEmpleado = ({
       <PanelMovimientos
         isOpen={activeView === 'movimientos'}
         setIsOpen={handleCloseView}
-        tipoMovimiento={viewProps.tipo || 'almacen'}
         {...viewProps}
       />
   
       <PanelConteos
         isOpen={activeView === 'conteos'}
         setIsOpen={handleCloseView}
-        tipoConteo={viewProps.tipo || 'almacen'}
         {...viewProps}
       />
       
@@ -511,7 +403,6 @@ const BarraLateralEmpleado = ({
       <PanelPedidos
         isOpen={activeView === 'pedidos'}
         setIsOpen={handleCloseView}
-        tipoPedido={viewProps.tipo || 'almacen'}
         {...viewProps}
       />
 

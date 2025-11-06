@@ -1,0 +1,38 @@
+/* Estilos para el contenedor principal de Home */
+.homePage {
+  min-height: 100vh;
+  background: var(--secondary-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  position: relative;
+  padding-top: 50px;
+  padding-inline: 0;
+  overflow: hidden;
+}
+
+/* Contenedor principal para pantallas grandes */
+@media (min-width: 1024px) {
+  .homePage {
+    padding: 0;
+    padding-top: 50px;
+    width: 100%;
+  }
+  
+  .mainLayout {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: calc(100vh - 50px);
+  }
+  
+  .mainContent {
+    width: 100%;
+    padding: 20px;
+    overflow-y: auto;
+    background: var(--secondary-color);
+  }
+}
+

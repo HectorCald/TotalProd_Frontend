@@ -87,3 +87,11 @@
     opacity: 1 !important;
     font-weight: 500;
 }
+
+.buttonsContainer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 350px;
+    margin-top: 20px;
+}

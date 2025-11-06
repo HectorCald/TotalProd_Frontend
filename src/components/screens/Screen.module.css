@@ -1,0 +1,133 @@
+/* Contenido desktop - oculto por defecto (usado en Inicio/InicioEmpleado) */
+.inicioDesktop {
+  display: none;
+}
+
+/* Mostrar solo contenido desktop en pantallas grandes */
+@media (min-width: 1024px) {
+  .inicioDesktop {
+    display: block;
+  }
+}
+
+/* Título de sección - Estilo para Inicio/InicioEmpleado */
+.subTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--white-color);
+  width: 100%;
+  text-align: left;
+  border-top: 1px groove var(--quaternary-color);
+  padding-block: 10px;
+  margin-top: 10px;
+}
+
+/* Contenedor de contenido (usado en UsuarioScreen) */
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  background-color: var(--tertiary-color);
+  border-radius: 10px;
+  padding: 15px 20px;
+  gap: 10px;
+}
+
+/* Contenedor de funciones (usado en Inicio) */
+.funciones {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Contenedor de atajos anuncio (usado en Inicio) */
+.atajoAnuncio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  overflow-x: auto;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Contenedor de atajos anuncio otros (usado en Inicio) */
+.atajoAnuncioOtros {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  overflow-x: auto;
+  gap: 10px;
+}
+
+/* Sección (usado en InicioEmpleado) */
+.section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+/* Contenido del modal (usado en UsuarioScreen) */
+.modalContent {
+  padding: 20px;
+  padding-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  max-height: 93vh;
+  overflow-y: auto;
+}
+
+/* Scrollbar personalizado para pantallas pequeñas */
+.modalContent::-webkit-scrollbar {
+  width: 4px;
+}
+
+.modalContent::-webkit-scrollbar-track {
+  background: var(--tertiary-color);
+}
+
+.modalContent::-webkit-scrollbar-thumb {
+  background: var(--quinary-color);
+  border-radius: 2px;
+}
+
+/* Botones (usado en UsuarioScreen) */
+.buttons {
+  display: flex;
+  flex-direction: column;
+  flex-direction: column-reverse;
+  gap: 7px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+@media (min-width: 700px) {
+  .buttons {
+    flex-direction: row;
+  }
+}
+
+/* Funciones extras (usado en Explorar) */
+.funcionesExtras {
+  display: grid;
+  grid-template-columns: repeat(4, 70px);
+  gap: 15px;
+  justify-content: center;
+  align-items: start;
+  width: 100%;
+  background-color: var(--tertiary-color);
+  border-radius: 10px;
+  padding: 20px;
+}
+

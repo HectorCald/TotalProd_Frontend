@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
@@ -8,6 +8,50 @@ import MensajeError from '../../common/MensajeError';
 import ItemView from '../../common/ItemView';
 import personalService from '../../../services/personalService';
 
+// Clave para localStorage
+const SAVED_EMPLOYEES_KEY = 'savedEmployees';
+
+// Función para obtener empleados guardados
+const getSavedEmployees = () => {
+    try {
+        const saved = localStorage.getItem(SAVED_EMPLOYEES_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+        console.error('Error al leer empleados guardados:', error);
+        return [];
+    }
+};
+
+// Función para guardar empleado
+const saveEmployee = (employeeData) => {
+    try {
+        const saved = getSavedEmployees();
+        const employeeInfo = {
+            codigo: employeeData.codigo,
+            nombre: `${employeeData.first_name} ${employeeData.last_name}`,
+            cargo: employeeData.cargo || 'Sin cargo',
+            id: employeeData.id
+        };
+
+        // Verificar si ya existe (por código)
+        const existingIndex = saved.findIndex(emp => emp.codigo === employeeInfo.codigo);
+
+        if (existingIndex >= 0) {
+            // Actualizar el existente
+            saved[existingIndex] = employeeInfo;
+        } else {
+            // Agregar nuevo
+            saved.push(employeeInfo);
+        }
+
+        // Limitar a los últimos 10 empleados
+        const limited = saved.slice(-10);
+        localStorage.setItem(SAVED_EMPLOYEES_KEY, JSON.stringify(limited));
+    } catch (error) {
+        console.error('Error al guardar empleado:', error);
+    }
+};
+
 function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
     const [step, setStep] = useState(1); // 1: código, 2: contraseña
     const [codigo, setCodigo] = useState('');
@@ -16,6 +60,45 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [personalData, setPersonalData] = useState(null);
+    const [savedEmployees, setSavedEmployees] = useState([]);
+
+    // Cargar empleados guardados al abrir el modal
+    useEffect(() => {
+        if (isOpen) {
+            const saved = getSavedEmployees();
+            setSavedEmployees(saved);
+        }
+    }, [isOpen]);
+
+    // Función para seleccionar empleado guardado
+    const handleSelectSavedEmployee = async (employee) => {
+        setCodigo(employee.codigo);
+        setLoading(true);
+        try {
+            const response = await personalService.validateEmployeeCode(employee.codigo);
+
+            if (response.success) {
+                if (response.data.hasPassword) {
+                    // Ya tiene contraseña, proceder al login
+                    setPersonalData(response.data.personal);
+                    setStep(2);
+                } else {
+                    // No tiene contraseña, establecer contraseña
+                    setPersonalData(response.data.personal);
+                    setStep(3);
+                }
+            } else {
+                setErrorMessage(response.message || 'Código de empleado no válido');
+                setTimeout(() => setErrorMessage(''), 3000);
+            }
+        } catch (error) {
+            console.error('Error al validar código:', error);
+            setErrorMessage('Error de conexión con el servidor');
+            setTimeout(() => setErrorMessage(''), 3000);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Función para validar código de empleado
     const handleValidateCode = async () => {
@@ -34,7 +117,7 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
         setLoading(true);
         try {
             const response = await personalService.validateEmployeeCode(codigo);
-            
+
             if (response.success) {
                 if (response.data.hasPassword) {
                     // Ya tiene contraseña, proceder al login
@@ -81,7 +164,7 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
         setLoading(true);
         try {
             const response = await personalService.setPassword(personalData.id, password);
-            
+
             if (response.success) {
                 setErrorMessage('');
                 setStep(2); // Ir al login
@@ -109,10 +192,18 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
         setLoading(true);
         try {
             const response = await personalService.loginEmployee(codigo, password);
-            
+
             if (response.success) {
                 // El token ya se guardó en personalService.loginEmployee
-                
+
+                // Guardar empleado en localStorage para acceso rápido
+                if (response.data.personal) {
+                    saveEmployee({
+                        ...response.data.personal,
+                        codigo: codigo
+                    });
+                }
+
                 // Si el empleado tiene rastreo activado, obtener y actualizar ubicación
                 if (response.data.personal && response.data.personal.rastrear) {
                     try {
@@ -130,7 +221,7 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                         // No mostrar error al usuario, solo log
                     }
                 }
-                
+
                 onLoginSuccess(response.data);
                 setIsOpen(false);
             } else {
@@ -159,16 +250,32 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
 
     return (
         <ViewModal isOpen={isOpen} setIsOpen={handleClose}>
-            <HeaderModal 
-                title="Acceso de Empleado" 
-                onClose={handleClose} 
+            <HeaderModal
+                title="Acceso de Empleado"
+                onClose={handleClose}
             />
             <div className={styles.modalContent}>
                 <MensajeError mensaje={errorMessage} />
-                
+
                 {step === 1 && (
                     <>
+                        {savedEmployees.length > 0 && (
+                            <div style={{ marginBottom: '10px' }}>
+                                <p className={styles.subTitle} style={{ marginBottom: '10px' }}>EMPLEADOS RECIENTES</p>
+                                {savedEmployees.map((employee, index) => (
+                                    <ItemView
+                                        key={`${employee.codigo}-${index}`}
+                                        title={employee.nombre}
+                                        description={employee.cargo}
+                                        onClick={() => handleSelectSavedEmployee(employee)}
+                                        arrow={true}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
                         <p className={styles.subTitle}>INGRESE SU CÓDIGO DE EMPLEADO</p>
+
                         <InputNormal
                             tipo="text"
                             icon="hash"

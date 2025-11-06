@@ -388,7 +388,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         { key: 'responsable', label: 'Responsable', icon: 'user' },
         { key: 'lote', label: 'Lote', icon: 'hash' },
         { key: 'proceso', label: 'Proceso', icon: 'cog' },
-        { key: 'terminados', label: 'Terminados', icon: 'check-circle' },
+        { key: 'cantidad', label: 'Cantidad', icon: 'check-circle' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
         { key: 'estado', label: 'Estado', icon: 'check-circle' }
     ];
@@ -402,7 +402,9 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         proceso: registro.proceso === 'cernido' ? 'Cernido' : 
                  registro.proceso === 'seleccionado' ? 'Seleccionado' : 
                  registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso,
-        terminados: `${registro.terminados || '0'} ud`,
+        cantidad: registro.estado === 'verificado' || registro.estado === 'Ingresado' 
+            ? `${registro.cantidad_verificada || '0'} ud`
+            : `${registro.terminados || '0'} ud`,
         fecha: new Date(registro.fecha).toLocaleDateString(),
         estado: registro.estado === 'pendiente' ? 'Pendiente' : 
                 registro.estado === 'verificado' ? 'Verificado' : 
@@ -510,7 +512,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                                 responsable: '20%',
                                 lote: '10%',
                                 proceso: '15%',
-                                terminados: '15%',
+                                cantidad: '10%',
                                 fecha: '10%',
                                 estado: '15%'
                             }}
@@ -535,11 +537,15 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                             {allRegistros.length > 0 ? (
                                 <>
                                     {allRegistros.map((registro, index) => {
+                                        const cantidad = registro.estado === 'verificado' || registro.estado === 'Ingresado' 
+                                            ? (registro.cantidad_verificada || 0)
+                                            : (registro.terminados || 0);
+                                        
                                         return (
                                             <ItemView
                                                 key={registro.id || index}
                                                 title={registro.producto_almacen?.name || 'Sin producto'}
-                                                description={`${registro.terminados || '0'} terminados • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
+                                                description={`${cantidad} ud • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
                                                 icon="file"
                                                 onClick={() => handleRegistro(registro)}
                                                 arrow={false}

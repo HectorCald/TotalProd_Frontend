@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -98,18 +98,38 @@ const SalesCard = ({ sucuId }) => {
         };
     };
 
-    const opcionesGrafico = {
+    // Obtener datos del mes hovereado
+    const obtenerDatosMesHovereado = useCallback((mesIndex) => {
+        const meses = [
+            'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+            'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+        ];
+        const datosPorMes = procesarDatosParaGrafico(movimientos);
+        const datosMes = datosPorMes[mesIndex];
+        
+        return {
+            mes: datosMes ? datosMes.mes : mesIndex + 1,
+            cantidad: datosMes ? datosMes.cantidad : 0,
+            nombreMes: meses[mesIndex]
+        };
+    }, [movimientos]);
+
+    // Callback para manejar el hover del gráfico
+    const handleHover = useCallback((event, activeElements) => {
+        if (activeElements && activeElements.length > 0) {
+            const dataIndex = activeElements[0].index;
+            const datosHovereado = obtenerDatosMesHovereado(dataIndex);
+            setHoveredData(datosHovereado);
+        } else {
+            setHoveredData(null);
+        }
+    }, [obtenerDatosMesHovereado]);
+
+    // Memoizar opciones del gráfico para evitar recreaciones innecesarias
+    const opcionesGrafico = useMemo(() => ({
         responsive: true,
         maintainAspectRatio: false,
-        onHover: (event, activeElements) => {
-            if (activeElements && activeElements.length > 0) {
-                const dataIndex = activeElements[0].index;
-                const datosHovereado = obtenerDatosMesHovereado(dataIndex);
-                setHoveredData(datosHovereado);
-            } else {
-                setHoveredData(null);
-            }
-        },
+        onHover: handleHover,
         interaction: {
             intersect: false,
             mode: 'index'
@@ -173,7 +193,7 @@ const SalesCard = ({ sucuId }) => {
                 hoverBackgroundColor: 'rgb(59, 130, 246)'
             }
         }
-    };
+    }), [handleHover]);
 
     // Calcular total del mes actual
     const calcularTotalMesActual = (movimientos) => {
@@ -224,24 +244,8 @@ const SalesCard = ({ sucuId }) => {
         };
     };
 
-    // Obtener datos del mes hovereado
-    const obtenerDatosMesHovereado = (mesIndex) => {
-        const meses = [
-            'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
-            'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
-        ];
-        const datosPorMes = procesarDatosParaGrafico(movimientos);
-        const datosMes = datosPorMes[mesIndex];
-        
-        return {
-            mes: datosMes ? datosMes.mes : mesIndex + 1,
-            cantidad: datosMes ? datosMes.cantidad : 0,
-            nombreMes: meses[mesIndex]
-        };
-    };
-
     // Procesar datos para el gráfico
-    const datosGrafico = React.useMemo(() => {
+    const datosGrafico = useMemo(() => {
         if (!movimientos || movimientos.length === 0) {
             return configurarGrafico([]);
         }
@@ -251,7 +255,7 @@ const SalesCard = ({ sucuId }) => {
     }, [movimientos]);
 
     // Calcular total del mes actual
-    const totalMesActual = React.useMemo(() => {
+    const totalMesActual = useMemo(() => {
         return calcularTotalMesActual(movimientos);
     }, [movimientos]);
 
@@ -270,8 +274,15 @@ const SalesCard = ({ sucuId }) => {
         }
     }, []);
 
+    // Memoizar datos del mes actual para evitar recálculos innecesarios
+    const datosMesActual = useMemo(() => {
+        return obtenerDatosMesActual();
+    }, [movimientos]);
+
     // Obtener datos a mostrar (hovereado o mes actual)
-    const datosAMostrar = hoveredData || obtenerDatosMesActual();
+    const datosAMostrar = useMemo(() => {
+        return hoveredData || datosMesActual;
+    }, [hoveredData, datosMesActual]);
 
     return (
         <div className={styles.salesCard}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from '../../styles/view.module.css';
+import styles from './Screen.module.css';
 import ItemLine from '../common/ItemLine';
 import ItemView from '../common/ItemView';
 import Version from '../common/Version';
@@ -122,8 +122,8 @@ const UsuarioScreen = () => {
 
     return (
         <>
-            <div className={styles.container}>
-                <p className={styles.subTitle} style={{ marginTop: '10px' }}>INFORMACIÓN PERSONAL</p>
+            <div style={{ paddingInline: '15px', width: '100%' }}>
+                <p className={styles.subTitle} style={{ marginTop: '0' }}>INFORMACIÓN PERSONAL</p>
                 <div className={styles.content} style={{ padding: '10px', gap: '10px' }}>
                     <ItemView
                         title={nombreCompleto}

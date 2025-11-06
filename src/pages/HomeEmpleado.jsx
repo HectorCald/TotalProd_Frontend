@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useEmployee } from '../context/EmployeeContext';
 import { useLayout } from '../context/LayoutContext';
+import styles from '../styles/Home.module.css';
+import modalStyles from '../styles/view.module.css';
 import Nav from '../components/ui/Nav';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
 import BarraLateralEmpleado from '../components/ui/BarraLateralEmpleado';
@@ -8,35 +10,34 @@ import InicioEmpleadoPC from '../components/screens/InicioEmpleadoPC';
 import InicioEmpleado from '../components/screens/InicioEmpleado';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import NoData from '../components/common/NoData';
-import { getAvailableModules, getAvailableMainModules } from '../constants/modules';
-import '../styles/Home.css';
-import styles from '../styles/view.module.css';
 import ItemView from '../components/common/ItemView';
 import ViewModal from '../components/ui/ViewModal';
 import HeaderModal from '../components/common/HeaderModal';
 import ModalOffline from '../components/views/offline/ModalOffline';
+import personalService from '../services/personalService';
+
+// Componentes de vistas modales para uso en InicioEmpleado.jsx y renderSubModuleComponent
 import AlmacenGeneral from '../components/views/almacen-general/AlmacenGeneral';
 import AlmacenAcopio from '../components/views/almacen-acopio/AlmacenAcopio';
 import AlmacenGeneralAuxiliar from '../components/views/almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import AlmacenAcopioAuxiliar from '../components/views/almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
 import PanelMovimientos from '../components/views/movimientos/PanelMovimientos';
-import Pedidos from '../components/views/pedidos/PanelPedidos';
+import PanelPedidos from '../components/views/pedidos/PanelPedidos';
+import PanelConteos from '../components/views/conteos/PanelConteos';
+import PanelCotizaciones from '../components/views/cotizaciones/PanelCotizaciones';
 import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
 import Precios from '../components/views/precios/Precios';
 import Gastos from '../components/views/gastos/PanelGastos';
+import Deudas from '../components/views/deudas/PanelDeudas';
+import Balance from '../components/views/balance/Balance';
+import Reportes from '../components/views/reportes/Reportes';
 import FormularioProduccion from '../components/views/damabrava/produccion/FormularioProduccion';
 import VerificarProduccion from '../components/views/damabrava/produccion/VerificarProduccion';
 import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
-import Balance from '../components/views/balance/Balance';
-import Reportes from '../components/views/reportes/Reportes';
-import Deudas from '../components/views/deudas/PanelDeudas';
-import PanelConteos from '../components/views/conteos/PanelConteos';
-import PanelCotizaciones from '../components/views/cotizaciones/PanelCotizaciones';
-import personalService from '../services/personalService';
 
 const HomeEmpleado = () => {
-    const { employee, sucursalSeleccionada, loading, error } = useEmployee();
+    const { employee, sucursalSeleccionada, loading, error, clearEmployee } = useEmployee();
     const { isLargeScreen } = useLayout();
     const [activeScreen, setActiveScreen] = useState('inicio');
     const [activeView, setActiveView] = useState(null);
@@ -231,15 +232,47 @@ const HomeEmpleado = () => {
         return <LoadingSpinner fullScreen={true} text="Cargando empleado..." icon="user"/>;
     }
 
+    // Función para reintentar carga de empleado
+    const handleRetry = () => {
+        // Recargar la página completamente
+        window.location.reload();
+    };
+
+    // Función para volver al login
+    const handleGoToLogin = () => {
+        // Limpiar context inmediatamente (igual que en Usuario.jsx)
+        clearEmployee();
+        
+        // Redireccionar inmediatamente sin delay
+        window.location.href = '/login';
+    };
+
     // Si hay error, mostrar NoData con error
     if (error) {
         
         // Determinar el tipo de error y el mensaje apropiado
-        let errorTitle = "Error al cargar datos del empleado";
+        let errorTitle = "Error";
         let errorDetail = error;
         let errorIcon = "error-circle";
         
-        if (error.includes('inactiva') || error.includes('inactivo')) {
+        // Verificar primero si es error de conexión (debe ser la primera verificación)
+        const isConnectionError = error.includes('No se pudo conectar') || 
+                                  error.includes('conexión') || 
+                                  error.includes('connection') ||
+                                  error.includes('network') || 
+                                  error.includes('fetch') ||
+                                  error.includes('internet') ||
+                                  error.includes('offline') ||
+                                  error.includes('Failed to fetch') ||
+                                  error.includes('NetworkError');
+        
+        if (isConnectionError) {
+            errorTitle = "Error";
+            errorDetail = error.includes('No se pudo conectar') 
+                ? error 
+                : "No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.";
+            errorIcon = "wifi-off";
+        } else if (error.includes('inactiva') || error.includes('inactivo')) {
             errorTitle = "Cuenta inactiva";
             errorDetail = "Su cuenta de empleado está inactiva. Contacte al administrador para reactivar su acceso al sistema.";
             errorIcon = "user-x";
@@ -247,14 +280,10 @@ const HomeEmpleado = () => {
             errorTitle = "Plan no activo";
             errorDetail = "La empresa no tiene un plan activo. Contacta al administrador para actualizar el plan y acceder a esta función.";
             errorIcon = "lock";
-        } else if (error.includes('conexión') || error.includes('network') || error.includes('fetch')) {
-            errorTitle = "Error de conexión";
-            errorDetail = `${error}. Por favor, verifica tu conexión e intenta nuevamente.`;
-            errorIcon = "wifi-off";
         }
         
         return (
-            <div className="home-page">
+            <div className={styles.homePage}>
                 <Nav />
                 <NoData 
                     icon={errorIcon}
@@ -262,6 +291,10 @@ const HomeEmpleado = () => {
                     detail={errorDetail}
                     isError={true}
                     minHeight="60vh"
+                    showRetryButton={true}
+                    showLoginButton={true}
+                    onRetry={handleRetry}
+                    onLogin={handleGoToLogin}
                 />
             </div>
         );
@@ -368,10 +401,10 @@ const HomeEmpleado = () => {
                 return <AlmacenAcopio isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'AlmacenAcopioAuxiliar':
                 return <AlmacenAcopioAuxiliar isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
-            case 'Movimientos':
-                return <PanelMovimientos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoMovimiento={currentSubModule.props?.tipo} />;
-            case 'Pedidos':
-                return <Pedidos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoPedido={currentSubModule.props?.tipo} />;
+            case 'PanelMovimientos':
+                return <PanelMovimientos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoMovimiento={currentSubModule.props?.tipoMovimiento || currentSubModule.props?.tipo} />;
+            case 'PanelPedidos':
+                return <PanelPedidos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoPedido={currentSubModule.props?.tipoPedido || currentSubModule.props?.tipo} />;
             case 'Precios':
                 return <Precios isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Clientes':
@@ -407,19 +440,19 @@ const HomeEmpleado = () => {
         const currentScreen = activeRoute === '/dashboard/default' ? 'inicio' : 'inicio';
         switch (currentScreen) {
             case 'inicio':
-                return isLargeScreen ? <InicioEmpleadoPC onViewOpen={handleViewOpen} /> : <InicioEmpleado employee={employee} onMainModuleClick={handleMainModuleClick} onViewOpen={handleViewOpen} />;
+                return isLargeScreen ? <InicioEmpleadoPC onViewOpen={handleViewOpen} employee={employee} sucursalSeleccionada={sucursalSeleccionada} /> : <InicioEmpleado employee={employee} onMainModuleClick={handleMainModuleClick} onViewOpen={handleViewOpen} />;
             default:
-                return isLargeScreen ? <InicioEmpleadoPC onViewOpen={handleViewOpen} /> : <InicioEmpleado employee={employee} onMainModuleClick={handleMainModuleClick} onViewOpen={handleViewOpen} />;
+                return isLargeScreen ? <InicioEmpleadoPC onViewOpen={handleViewOpen} employee={employee} sucursalSeleccionada={sucursalSeleccionada} /> : <InicioEmpleado employee={employee} onMainModuleClick={handleMainModuleClick} onViewOpen={handleViewOpen} />;
         }
     };
 
     return (
-        <div className="home-page">
+        <div className={styles.homePage}>
             <Nav />
             
             {/* Layout para pantallas grandes */}
             {isLargeScreen ? (
-                <div className="main-layout">
+                <div className={styles.mainLayout}>
                     <BarraLateralEmpleado 
                         onMenuClick={handleMenuClick}
                         activeRoute={activeRoute}
@@ -430,7 +463,7 @@ const HomeEmpleado = () => {
                         onViewClose={handleViewClose}
                         employee={employee}
                     />
-                    <div className="main-content">
+                    <div className={styles.mainContent}>
                         {renderScreen()}
                     </div>
                 </div>
@@ -443,6 +476,7 @@ const HomeEmpleado = () => {
                         isEmployee={true}
                         employee={employee}
                         onMainModuleClick={handleMainModuleClick}
+                        hasUserData={!!employee}
                     />
 
                     {/* Modal de opciones de módulo */}
@@ -456,7 +490,7 @@ const HomeEmpleado = () => {
                                     setIsSubModuleOpen(false);
                                 }}
                             />
-                            <div className={styles.modalContent}>
+                            <div className={modalStyles.modalContent}>
                                 {selectedModule.submodules.map((submodule, index) => (
                                     <ItemView
                                         key={index}

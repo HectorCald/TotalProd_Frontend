@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ModuloExtra from '../common/ModuloExtra';
 import { EXTRAS } from '../../constants/extras';
+import styles from './Screen.module.css';
 import Precios from '../views/precios/Precios';
 import Sucursales from '../views/sucursales/Sucursales';
 import PanelGastos from '../views/gastos/PanelGastos';
@@ -74,8 +75,8 @@ const Explorar = () => {
 
   return (
     <div style={{ paddingInline: '15px', width: '100%' }}>
-      <p className="subTitle">Otras Funciones</p>
-      <div className="funciones-extras">
+      <p className={styles.subTitle} style={{ marginTop: '0' }}>OTRAS FUNCIONES</p>
+      <div className={styles.funcionesExtras}>
         {EXTRAS.map((extra) => (
           <ModuloExtra
             key={extra.title}
@@ -87,8 +88,8 @@ const Explorar = () => {
       </div>
       {isDamabrava() && (
         <>
-          <p className="subTitle">Funciones Damabrava</p>
-          <div className="funciones-extras">
+          <p className={styles.subTitle}>FUNCIONES DAMABRAVA</p>
+          <div className={styles.funcionesExtras}>
             {EXTRAS_DAMABRAVA.map((extra) => (
               <ModuloExtra
                 key={extra.title}
