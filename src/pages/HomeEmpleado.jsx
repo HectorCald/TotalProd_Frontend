@@ -35,6 +35,7 @@ import Reportes from '../components/views/reportes/Reportes';
 import FormularioProduccion from '../components/views/damabrava/produccion/FormularioProduccion';
 import VerificarProduccion from '../components/views/damabrava/produccion/VerificarProduccion';
 import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
+import Reglas from '../components/views/damabrava/reglas/Reglas';
 
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, error, clearEmployee } = useEmployee();
@@ -427,6 +428,8 @@ const HomeEmpleado = () => {
                 return <PanelConteos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoConteo={currentSubModule.props?.tipo || 'almacen'} />;
             case 'MiProduccion':
                 return <MiProduccion isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'Reglas':
+                return <Reglas isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'PanelCotizaciones':
                 return <PanelCotizaciones isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             default:

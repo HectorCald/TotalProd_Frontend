@@ -28,6 +28,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isCancelarEntregaOpen, setIsCancelarEntregaOpen] = useState(false);
+    const [isIngresarPedidoOpen, setIsIngresarPedidoOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [modoAlmacen, setModoAlmacen] = useState('pedido'); // 'pedido' o 'entregar'
     const [isVerMovimientoOpen, setIsVerMovimientoOpen] = useState(false);
@@ -314,8 +315,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             setLoading(false);
         }
     };
-    // Función para ingresar pedido
-    const handleIngresarPedido = async () => {
+    // Función para confirmar y ejecutar el ingreso del pedido
+    const handleConfirmarIngreso = async () => {
         if (!pedidoActual) return;
 
         try {
@@ -332,6 +333,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                     if (onPedidoActualizado) {
                         onPedidoActualizado(pedidoActualizado);
                     }
+                    setIsIngresarPedidoOpen(false);
                     setIsOpen(false);
                     return;
                 } else {
@@ -376,7 +378,8 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         onPedidoActualizado(pedidoActualizado);
                     }
 
-                    // Cerrar modal y regresar a PanelPedidos
+                    // Cerrar modales y regresar a PanelPedidos
+                    setIsIngresarPedidoOpen(false);
                     setIsOpen(false);
                 } else {
                     mostrarNotificacion('error', 'Error al actualizar estado del pedido: ' + estadoResponse.message);
@@ -717,8 +720,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         <Boton
                             className='btn-green'
                             label={sucursalActual?.almacen_sucursal_id ? 'Finalizar Pedido' : 'Ingresar Pedido'}
-                            onClick={handleIngresarPedido}
-                            loading={loading}
+                            onClick={() => setIsIngresarPedidoOpen(true)}
                             disabled={loadingSalida}
                         />
                     )}
@@ -856,6 +858,51 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsCancelarEntregaOpen(false)}
                         />
+                    </div>
+                </div>
+            </ViewModal>
+
+            {/* Modal de ingresar pedido */}
+            <ViewModal isOpen={isIngresarPedidoOpen} setIsOpen={setIsIngresarPedidoOpen}>
+                <HeaderModal
+                    title="Ingresar Pedido"
+                    onClose={() => setIsIngresarPedidoOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>
+                        ¿Estás seguro que deseas ingresar este pedido? Esta acción registrará el ingreso de todos los productos.
+                    </p>
+                    <div style={{ marginTop: '10px', width: '100%' }}>
+                        <Text type="info" align="left">
+                            Se ingresarán automáticamente todas las cantidades de los productos del pedido al almacén.
+                        </Text>
+                    </div>
+                    {/* Botón para ver productos */}
+                    {detalles.length > 0 && (
+                        <div style={{ marginTop: '15px', width: '100%' }}>
+                            <Boton
+                                className='btn-gray'
+                                label={`Ver Productos (${detalles.length})`}
+                                onClick={() => setIsProductosOpen(true)}
+                            />
+                        </div>
+                    )}
+                    <div className={styles.buttons}>
+                    <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsIngresarPedidoOpen(false)}
+                        />
+                        <Boton
+                            className='btn-green'
+                            label='Sí, ingresar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleConfirmarIngreso}
+                            loading={loading}
+                            segundosDisabled={5}
+                        />
+                        
                     </div>
                 </div>
             </ViewModal>

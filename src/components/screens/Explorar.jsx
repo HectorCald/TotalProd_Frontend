@@ -13,6 +13,7 @@ import { EXTRAS as EXTRAS_DAMABRAVA } from '../../constants/damabravaFunctions';
 import FormularioProduccion from '../views/damabrava/produccion/FormularioProduccion';
 import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
 import MiProduccion from '../views/damabrava/produccion/MiProduccion';
+import Reglas from '../views/damabrava/reglas/Reglas';
 import ImportExport from '../views/exportar-importar/ImportExport';
 import { isDamabrava } from '../../utils/empresaHelper';
 
@@ -26,6 +27,7 @@ const Explorar = () => {
   const [isOpenFormularioProduccion, setIsOpenFormularioProduccion] = useState(false);
   const [isOpenVerificarProduccion, setIsOpenVerificarProduccion] = useState(false);
   const [isOpenMiProduccion, setIsOpenMiProduccion] = useState(false);
+  const [isOpenReglas, setIsOpenReglas] = useState(false);
   const [isOpenImportExport, setIsOpenImportExport] = useState(false);
   const [notification, setNotification] = useState({
     isVisible: false,
@@ -65,6 +67,8 @@ const Explorar = () => {
       setIsOpenVerificarProduccion(true);
     } else if (viewName === 'miProduccion') {
       setIsOpenMiProduccion(true);
+    } else if (viewName === 'reglas') {
+      setIsOpenReglas(true);
     } else if (viewName === 'importar-exportar') {
       setIsOpenImportExport(true);
     } else {
@@ -114,6 +118,7 @@ const Explorar = () => {
           <FormularioProduccion isOpen={isOpenFormularioProduccion} setIsOpen={setIsOpenFormularioProduccion} />
           <VerificarProduccion isOpen={isOpenVerificarProduccion} setIsOpen={setIsOpenVerificarProduccion} />
           <MiProduccion isOpen={isOpenMiProduccion} setIsOpen={setIsOpenMiProduccion} />
+          <Reglas isOpen={isOpenReglas} setIsOpen={setIsOpenReglas} />
         </>
       )}
       <ImportExport isOpen={isOpenImportExport} setIsOpen={setIsOpenImportExport} />

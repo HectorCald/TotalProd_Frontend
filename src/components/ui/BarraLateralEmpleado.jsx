@@ -22,6 +22,7 @@ import Balance from '../views/balance/Balance';
 import FormularioProduccion from '../views/damabrava/produccion/FormularioProduccion';
 import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
 import MiProduccion from '../views/damabrava/produccion/MiProduccion';
+import Reglas from '../views/damabrava/reglas/Reglas';
 import PanelConteos from '../views/conteos/PanelConteos';
 import PanelCotizaciones from '../views/cotizaciones/PanelCotizaciones';
 
@@ -54,13 +55,14 @@ const BarraLateralEmpleado = ({
   const mapModuleToMenuOption = (module) => {
     // Si el módulo tiene submodules
     if (module.submodules && module.submodules.length > 0) {
-      // Si tiene solo un submódulo, mostrar el nombre del submódulo y abrir directamente
+      // Si tiene solo un submódulo, mostrar el nombre del módulo y abrir directamente
       if (module.submodules.length === 1) {
         const submodule = module.submodules[0];
         return {
           id: module.key.toLowerCase(),
-          title: submodule.name || module.name,
-          icon: submodule.icon || module.icon || 'grid',
+          title: module.name,
+          submoduleName: submodule.name,
+          icon: module.icon || submodule.icon || 'grid',
           action: 'openView',
           view: submodule.view,
           props: submodule.props || {}
@@ -304,7 +306,12 @@ const BarraLateralEmpleado = ({
                   />
                   {!sidebarCollapsed && (
                     <>
-                      <span className={styles.menuText}>{item.title}</span>
+                      <div className={styles.menuTextContainer}>
+                        <span className={styles.menuText}>{item.title}</span>
+                        {item.submoduleName && item.submoduleName !== item.title && (
+                          <span className={styles.submoduleName}>{item.submoduleName}</span>
+                        )}
+                      </div>
                       {item.hasSubmenu && (
                         <BoxIcon 
                           name={isMenuExpanded(item.id) ? "chevron-up" : "chevron-down"} 
@@ -459,6 +466,11 @@ const BarraLateralEmpleado = ({
       />
       <MiProduccion
         isOpen={activeView === 'mi_produccion'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <Reglas
+        isOpen={activeView === 'reglas'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

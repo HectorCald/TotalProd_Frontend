@@ -129,8 +129,14 @@
   font-size: 15px !important;
 }
 
-.menuText {
+.menuTextContainer {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menuText {
   font-size: 14px;
   font-weight: 400;
   white-space: nowrap;
@@ -139,7 +145,18 @@
   line-height: 1.2;
 }
 
-.sidebar.collapsed .menuText {
+.submoduleName {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--primary-color);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.3s ease;
+  line-height: 1.2;
+}
+
+.sidebar.collapsed .menuText,
+.sidebar.collapsed .submoduleName {
   opacity: 0;
   width: 0;
 }

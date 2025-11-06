@@ -9,13 +9,15 @@ function DescargaConteoBuilder({
     productos = [], 
     quantityInputs = {}, 
     quantityInputsText = {},
-    justificationInputsText = {}
+    justificationInputsText = {},
+    tipo = 'acopio', // 'acopio' o 'almacen'
+    detalles = [] // Para almacén: detalles completos con producto_almacen
 }) {
     const [informacionSuperior, setInformacionSuperior] = useState({});
     const [tablaHeaders, setTablaHeaders] = useState([]);
     const [tablaValores, setTablaValores] = useState([]);
-    const [nombreArchivo, setNombreArchivo] = useState('Pesaje de Materia Prima');
-    const [tituloDocumento, setTituloDocumento] = useState('PESAJE DE MATERIA PRIMA');
+    const [nombreArchivo, setNombreArchivo] = useState(tipo === 'almacen' ? 'Conteo de Almacén' : 'Pesaje de Materia Prima');
+    const [tituloDocumento, setTituloDocumento] = useState(tipo === 'almacen' ? 'CONTEO DE ALMACÉN' : 'PESAJE DE MATERIA PRIMA');
 
     const { user } = useUser();
     const { employee } = useEmployee();
@@ -47,50 +49,109 @@ function DescargaConteoBuilder({
             minute: '2-digit'
         });
 
-        // Contar productos
-        const cantidadProductos = productos.length;
+        if (tipo === 'almacen') {
+            // Lógica para conteo de almacén
+            const cantidadProductos = detalles.length;
 
-        // Construir información superior
-        const infoSup = {
-            'Responsable': responsable,
-            'Hora de pesaje': hora,
-            'Fecha de pesaje': fecha,
-            'Cantidad de productos': cantidadProductos.toString()
-        };
+            const infoSup = {
+                'Responsable': responsable,
+                'Hora de conteo': hora,
+                'Fecha de conteo': fecha,
+                'Cantidad de productos': cantidadProductos.toString()
+            };
 
-        // Ordenar productos alfabéticamente por nombre
-        const productosOrdenados = [...productos].sort((a, b) => 
-            (a?.name || '').localeCompare(b?.name || '', 'es', { sensitivity: 'base' })
-        );
+            // Ordenar detalles alfabéticamente por nombre
+            const detallesOrdenados = [...detalles].sort((a, b) => {
+                const nombreA = a.producto_almacen?.name || '';
+                const nombreB = b.producto_almacen?.name || '';
+                return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+            });
 
-        // Construir headers
-        const headers = ['Producto', 'Peso sistema', 'Peso real', 'Cantidad ud', 'Merma', 'Observaciones'];
+            // Headers para almacén
+            const headers = ['Producto', 'Sistema', 'Físico', 'Stock grup sist.', 'Stock grup fís.'];
 
-        // Construir valores
-        const valores = productosOrdenados.map(p => {
-            const rawQty = parseFloat(p.quantity || 0);
-            const pesoSistema = rawQty.toFixed(2); // Solo número, sin unidades
-            
-            // Los demás campos vacíos
-            const pesoReal = '';
-            const cantidadUd = '';
-            const merma = '';
-            const observaciones = justificationInputsText[p.id] || '';
+            // Construir valores para almacén
+            const valores = detallesOrdenados.map(d => {
+                const nombreProducto = d.producto_almacen?.name || 'Sin producto';
+                const sistema = Number(d.sistema ?? 0);
+                const fisico = Number(d.fisico ?? 0);
+                const grup = Number(d.producto_almacen?.grup || 0);
 
-            return [
-                p.name || 'Sin producto',
-                pesoSistema,
-                pesoReal,
-                cantidadUd,
-                merma,
-                observaciones
-            ];
-        });
+                let stockGrupSist = '--';
+                let stockGrupFis = '--';
 
-        setInformacionSuperior(infoSup);
-        setTablaHeaders(headers);
-        setTablaValores(valores);
-    }, [isOpen, productos, quantityInputs, quantityInputsText, justificationInputsText, user, employee]);
+                if (grup > 0) {
+                    const sysG = Math.floor(sistema / grup);
+                    const sysU = sistema % grup;
+                    const fisG = Math.floor(fisico / grup);
+                    const fisU = fisico % grup;
+
+                    stockGrupSist = sysU > 0 ? `${sysG} g. ${sysU} u.` : `${sysG} g.`;
+                    stockGrupFis = fisU > 0 ? `${fisG} g. ${fisU} u.` : `${fisG} g.`;
+                }
+
+                return [
+                    nombreProducto,
+                    `${sistema} ud`,
+                    `${fisico} ud`,
+                    stockGrupSist,
+                    stockGrupFis
+                ];
+            });
+
+            setInformacionSuperior(infoSup);
+            setTablaHeaders(headers);
+            setTablaValores(valores);
+            setNombreArchivo('Conteo de Almacén');
+            setTituloDocumento('CONTEO DE ALMACÉN');
+        } else {
+            // Lógica para conteo de acopio (materia prima)
+            const cantidadProductos = productos.length;
+
+            const infoSup = {
+                'Responsable': responsable,
+                'Hora de pesaje': hora,
+                'Fecha de pesaje': fecha,
+                'Cantidad de productos': cantidadProductos.toString()
+            };
+
+            // Ordenar productos alfabéticamente por nombre
+            const productosOrdenados = [...productos].sort((a, b) => 
+                (a?.name || '').localeCompare(b?.name || '', 'es', { sensitivity: 'base' })
+            );
+
+            // Construir headers
+            const headers = ['Producto', 'Peso sistema', 'Peso real', 'Cantidad ud', 'Merma', 'Observaciones'];
+
+            // Construir valores
+            const valores = productosOrdenados.map(p => {
+                const rawQty = parseFloat(p.quantity || 0);
+                const pesoSistema = rawQty.toFixed(2); // Solo número, sin unidades
+                
+                // Los demás campos vacíos
+                const pesoReal = '';
+                const cantidadUd = '';
+                const merma = '';
+                const observaciones = justificationInputsText[p.id] || '';
+
+                return [
+                    p.name || 'Sin producto',
+                    pesoSistema,
+                    pesoReal,
+                    cantidadUd,
+                    merma,
+                    observaciones
+                ];
+            });
+
+            setInformacionSuperior(infoSup);
+            setTablaHeaders(headers);
+            setTablaValores(valores);
+            setNombreArchivo('Pesaje de Materia Prima');
+            setTituloDocumento('PESAJE DE MATERIA PRIMA');
+        }
+
+    }, [isOpen, productos, quantityInputs, quantityInputsText, justificationInputsText, user, employee, tipo, detalles]);
 
     return (
         <ModalDescarga

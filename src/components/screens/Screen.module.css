@@ -21,6 +21,12 @@
   padding-block: 10px;
   margin-top: 10px;
 }
+.subTitle2 {
+  font-size: 13px;
+  font-weight: 400;
+  color: gray;
+  line-height: 1.2;
+}
 
 /* Contenedor de contenido (usado en UsuarioScreen) */
 .content {

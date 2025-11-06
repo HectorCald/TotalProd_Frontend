@@ -232,7 +232,7 @@ const UsuarioScreen = () => {
                     onClose={() => setIsLogoutOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Estas seguro de que deseas cerrar sesión?, esta accion eliminara toda la información del usuario en el dispositivo.</p>
+                    <p className={styles.subTitle2}>¿Estas seguro de que deseas cerrar sesión?, esta accion eliminara toda la información del usuario en el dispositivo.</p>
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-default'

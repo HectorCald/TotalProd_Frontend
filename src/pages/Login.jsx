@@ -37,6 +37,22 @@ const Login = () => {
         }, 5000);
     };
 
+    // Función helper para normalizar texto (eliminar acentos y convertir a minúsculas)
+    const normalizeText = (text) => {
+        return text
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+            .replace(/\s+/g, ''); // Eliminar espacios
+    };
+
+    // Función para verificar si el nombre contiene "damabrava"
+    const containsDamabrava = (name) => {
+        const normalizedName = normalizeText(name);
+        const normalizedForbidden = normalizeText('damabrava');
+        return normalizedName.includes(normalizedForbidden);
+    };
+
     // estado para el modo de registro y login
     const [isRegister, setIsRegister] = useState(false);
     const [formDataLogin, setFormDataLogin] = useState({
@@ -190,6 +206,14 @@ const Login = () => {
 
             setErrorMessage('Todos los campos son requeridos')
 
+            setTimeout(() => {
+                setErrorMessage('')
+            }, 3000);
+            return;
+        }
+        // Validar que el nombre de la empresa no contenga "damabrava" en cualquier variación
+        if (containsDamabrava(trimmedData.nameStore)) {
+            setErrorMessage('El nombre de la empresa no está permitido')
             setTimeout(() => {
                 setErrorMessage('')
             }, 3000);

@@ -13,6 +13,7 @@ import imageBalance from '../assets/balance.png';
 import imageDamabrava from '../assets/damabrava/damabrava.png';
 import imageConteos from '../assets/conteos.png';
 import imageCotizaciones from '../assets/cotizaciones.png';
+import imageReglas from '../assets/reglas.png';
 
 // Mapeo de componentes a vistas (para simplificar el uso)
 const COMPONENT_TO_VIEW = {
@@ -34,6 +35,7 @@ const COMPONENT_TO_VIEW = {
     'FormularioProduccion': 'formulario',
     'VerificarProduccion': 'verificacion',
     'MiProduccion': 'mi_produccion',
+    'Reglas': 'reglas',
 };
 
 // Mapeo de nombres de módulos del backend a claves del frontend
@@ -72,7 +74,8 @@ const getSubmoduleKey = (moduleKey, submoduleName) => {
         'Damabrava': {
             'Formulario': 'formulario',
             'Verificación': 'verificar',
-            'Mi Producción': 'mi_produccion'
+            'Mi Producción': 'mi_produccion',
+            'Reglas': 'reglas'
         },
         'Cotizaciones': {
             'Cotizaciones': 'gestionar'
@@ -383,6 +386,13 @@ export const MODULES = {
             description: 'Visualiza tu producción.',
             icon: 'archive',
             component: 'MiProduccion',
+            props: {}
+        },
+        reglas: {
+            name: 'Reglas',
+            description: 'Gestiona las reglas de producción.',
+            icon: 'file',
+            component: 'Reglas',
             props: {}
         },
     },

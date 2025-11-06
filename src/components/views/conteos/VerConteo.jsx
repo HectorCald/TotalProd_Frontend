@@ -16,6 +16,8 @@ import AlmacenAcopioAuxiliar from '../almacen-acopio-auxiliar/AlmacenAcopio-Auxi
 import Select from '../../common/Select';
 import NoData from '../../common/NoData';
 import Text from '../../common/Text';
+import { BoxIcon } from 'boxicons-react';
+import DescargaConteoBuilder from '../almacen-acopio-auxiliar/DescargaConteoBuilder';
 
 function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplaced }) {
     const { isLargeScreen } = useLayout();
@@ -25,6 +27,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
     const fechaLocal = fechaObj ? fechaObj.toLocaleDateString() : '--';
     const horaLocal = fechaObj ? fechaObj.toLocaleTimeString() : '--';
     const [isProductosOpen, setIsProductosOpen] = useState(false);
+    const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     // Filtros de modal (desktop)
     const [filtroFisico, setFiltroFisico] = useState('todos'); // igual | mayor | menor | todos
 
@@ -282,12 +285,69 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
             mostrarNotificacion('error', 'Error al cargar datos del conteo');
         }
     };
+
+    // Datos preparados para DescargaConteoBuilder (solo para conteos de acopio)
+    const productosDescarga = useMemo(() => {
+        if (conteo?.tipo !== 'acopio') return [];
+        return detalles
+            .filter(d => d.producto_acopio?.id)
+            .map(d => ({
+                id: d.producto_acopio.id,
+                name: d.producto_acopio.name || 'Sin nombre',
+                quantity: Number(d.sistema ?? 0)
+            }));
+    }, [detalles, conteo?.tipo]);
+
+    const quantityInputsDescarga = useMemo(() => {
+        if (conteo?.tipo !== 'acopio') return {};
+        const inputs = {};
+        detalles.forEach(d => {
+            if (d.producto_acopio?.id) {
+                inputs[d.producto_acopio.id] = Number(d.sistema ?? 0);
+            }
+        });
+        return inputs;
+    }, [detalles, conteo?.tipo]);
+
+    const quantityInputsTextDescarga = useMemo(() => {
+        if (conteo?.tipo !== 'acopio') return {};
+        const inputs = {};
+        detalles.forEach(d => {
+            if (d.producto_acopio?.id) {
+                const sistema = Number(d.sistema ?? 0);
+                inputs[d.producto_acopio.id] = Number.isFinite(sistema) ? sistema.toFixed(2) : '0.00';
+            }
+        });
+        return inputs;
+    }, [detalles, conteo?.tipo]);
+
+    const justificationInputsTextDescarga = useMemo(() => {
+        if (conteo?.tipo !== 'acopio') return {};
+        const inputs = {};
+        detalles.forEach(d => {
+            if (d.producto_acopio?.id) {
+                inputs[d.producto_acopio.id] = d.justificacion || '';
+            }
+        });
+        return inputs;
+    }, [detalles, conteo?.tipo]);
+
     return (
         <>
             <View isOpen={isOpen} setIsOpen={setIsOpen}>
                 <HeaderView onBack={() => setIsOpen(false)} />
                 <div className={styles.container}>
-                    <h1 className={styles.title}>Conteo • {tipoNombre}</h1>
+                    <h1 className={styles.title}>
+                        Conteo • {tipoNombre}
+                        <div className={styles.iconButton}>
+                            <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
+                                <BoxIcon
+                                    name='download'
+                                    className={styles.iconDownload}
+                                />
+                            </button>
+                        </div>
+                    </h1>
                     <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
                     <ItemView
                         title={conteo?.user?.name || conteo?.personal?.name || 'Usuario desconocido'}
@@ -557,6 +617,17 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                     onClose={() => setNotification(prev => ({ ...prev, isVisible: false }))}
                 />
 
+                {/* Modal de descarga - para ambos tipos de conteo */}
+                <DescargaConteoBuilder
+                    isOpen={isDescargaOpen}
+                    setIsOpen={setIsDescargaOpen}
+                    productos={productosDescarga}
+                    quantityInputs={quantityInputsDescarga}
+                    quantityInputsText={quantityInputsTextDescarga}
+                    justificationInputsText={justificationInputsTextDescarga}
+                    tipo={conteo?.tipo || 'acopio'}
+                    detalles={conteo?.tipo === 'almacen' ? detalles : []}
+                />
 
             </View>
             {/* Componentes de almacén para repetir conteo */}

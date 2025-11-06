@@ -340,6 +340,13 @@ const MENU_OPTIONS_BASE = [
         action: 'openView',
         viewName: 'mi_produccion'
       },
+      {
+        id: 'Reglas',
+        title: 'Reglas',
+        icon: 'file',
+        action: 'openView',
+        viewName: 'reglas'
+      },
     ]
   }] : [])
 ];
