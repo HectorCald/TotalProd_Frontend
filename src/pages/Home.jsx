@@ -139,26 +139,6 @@ const Home = () => {
     }
   }, [user]);
 
-  // Si no hay usuario pero hay token, significa que el usuario fue eliminado
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!user && token) {
-      // Esperar un poco para evitar que se ejecute durante la carga inicial
-      const timer = setTimeout(() => {
-        if (!user) {
-          // Borrar token y redirigir al login
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('sucursalSeleccionada');
-          localStorage.removeItem('userData');
-          window.location.href = '/login';
-        }
-      }, 2000); // Esperar 2 segundos para dar tiempo a que cargue el usuario
-
-      return () => clearTimeout(timer);
-    }
-  }, [user]);
-
   const handlePasoTipoComplete = () => {
     setShowPasoTipo(false);
   };

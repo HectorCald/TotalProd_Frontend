@@ -15,10 +15,13 @@ import Notification from '../../common/Notification';
 import styles from '../../../styles/view.module.css';
 import Boton from '../../common/Boton';
 import DateRangePicker from '../../common/DateRangePicker';
-import { isDamabrava } from '../../../utils/empresaHelper';
+import { isDamabrava, isSoloVentas } from '../../../utils/empresaHelper';
+import { useUser } from '../../../context/UserContext';
 
 const Reportes = ({ isOpen, setIsOpen }) => {
   const DEBUG_REPORTES = false;
+  const { user } = useUser();
+  const soloVentas = isSoloVentas(user);
   // Estados para el rango de fechas
   const [fechaInicio, setFechaInicio] = useState(new Date());
   const [fechaFin, setFechaFin] = useState(new Date());
@@ -137,7 +140,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   const opcionesArea = [
     { value: 'ventas', label: 'Ventas', icon: 'money' },
     { value: 'almacen_general', label: 'Almacen General', icon: 'store' },
-    { value: 'materia_Prima', label: 'Materia Prima', icon: 'leaf' },
+    ...(soloVentas ? [] : [{ value: 'materia_Prima', label: 'Materia Prima', icon: 'leaf' }]),
     { value: 'deudas', label: 'Deudas', icon: 'credit-card' },
     { value: 'pedidos', label: 'Pedidos', icon: 'cart' },
     { value: 'gastos', label: 'Gastos', icon: 'receipt' },
