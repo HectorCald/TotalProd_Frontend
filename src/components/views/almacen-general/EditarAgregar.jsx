@@ -26,6 +26,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
     category_id: '',
     grup: '',
     stock_minimo: '',
+    costo_produccion: '',
     prices: {} // Objeto para almacenar los precios por tipo
   });
 
@@ -96,6 +97,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         category_id: data.category_id || '',
         grup: data.grup || '',
         stock_minimo: data.stock_minimo !== undefined && data.stock_minimo !== null ? data.stock_minimo : '',
+        costo_produccion: data.costo_produccion !== undefined && data.costo_produccion !== null ? data.costo_produccion : '',
         prices: prices
       });
 
@@ -128,6 +130,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         category_id: '',
         grup: '',
         stock_minimo: '',
+        costo_produccion: '',
         prices: {}
       });
       setHasReceta(false);
@@ -243,6 +246,7 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         category_id: dataMov.category_id,
         grup: dataMov.grup ? parseInt(dataMov.grup) : null,
         stock_minimo: dataMov.stock_minimo ? parseFloat(dataMov.stock_minimo) : 0,
+        costo_produccion: dataMov.costo_produccion ? parseFloat(dataMov.costo_produccion) : null,
         prices: dataMov.prices,
         receta: (!soloVentas && hasReceta) ? recetaGuardada : null // Incluir receta solo si no es solo ventas y está marcado el switch
       };
@@ -333,6 +337,15 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
               min="1"
             />
 
+            <InputNormal
+              tipo="number"
+              value={dataMov.costo_produccion}
+              placeholder='Costo de producción (opcional)'
+              onChange={(e) => handleChange('costo_produccion', e.target.value)}
+              icon='dollar'
+              step="0.01"
+              min="0"
+            />
 
           <Boton
             className='btn-gray'

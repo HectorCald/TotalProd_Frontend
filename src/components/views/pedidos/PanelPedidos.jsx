@@ -466,8 +466,8 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                     hour: '2-digit',
                     minute: '2-digit'
                 }),
-                cliente: pedido.cliente?.name || 'Cliente desconocido',
-                observaciones: pedido.observaciones || 'Sin observaciones',
+                cliente: pedido.cliente?.name || '--',
+                observaciones: pedido.observaciones || '--',
                 estado: pedido.estado
             };
         }
@@ -522,14 +522,14 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                     onScroll={handleScroll}
                                     columnWidths={tipoPedido === 'almacen' ? {
                                         numero_pedido: '3%',
-                                        sucursal: '20%',
+                                        sucursal: '15%',
                                         usuario: '15%',
                                         fecha: '15%',
                                         estado: '10%',
                                         cliente: '15%',
                                         observaciones: '15%'
                                     } : {
-                                        producto: '20%',
+                                        producto: '15%',
                                         usuario: '15%',
                                         fecha: '15%',
                                         estado: '10%',

@@ -222,6 +222,12 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                 : `${productoActual.stock_minimo} unidades`)
                             : 'No establecido'}
                     />
+                    <Dato
+                        label="Costo de producción"
+                        value={productoActual.costo_produccion !== undefined && productoActual.costo_produccion !== null 
+                            ? `Bs. ${productoActual.costo_produccion}` 
+                            : 'No establecido'}
+                    />
                 </div>
 
 

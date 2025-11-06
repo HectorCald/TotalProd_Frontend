@@ -90,15 +90,10 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                 setIsAnularOpen(false);
                 // NO cerrar VerMovimientoAcopio, solo actualizar el estado
 
-                // Mostrar notificación con información del pedido si fue actualizado
-                if (response.pedidoActualizado) {
-                    mostrarNotificacion('success', `Movimiento anulado. Pedido #${response.pedidoActualizado.id.slice(-8)} actualizado de "${response.pedidoActualizado.estadoAnterior}" a "${response.pedidoActualizado.estadoNuevo}"`);
-                } else {
-                    mostrarNotificacion('success', response.message || 'Movimiento anulado correctamente');
-                }
-
+                // No mostrar notificación aquí, se muestra en PanelMovimientos.jsx
                 if (onMovimientoAnulado) {
-                    onMovimientoAnulado(movimientoActual.id);
+                    // Pasar el ID del movimiento anulado y los IDs de las salidas eliminadas
+                    onMovimientoAnulado(movimientoActual.id, response.salidasEliminadas || []);
                 }
             } else {
                 const msg = response.message || 'Error al anular el movimiento';
@@ -231,8 +226,19 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                         />
                     </div>
                 )}
+                
+                {/* Mensaje informativo si el movimiento está asociado a una entrada que restó ingredientes */}
+                {movimientoActual?.movimiento_entrada_id && (
+                    <div style={{ marginTop: '10px', marginBottom: '10px', width: '100%' }}>
+                        <Text type="info" align="left">
+                            Este movimiento no se puede anular porque está asociado a un movimiento de entrada que restó ingredientes. Para anular este movimiento, primero debes anular la entrada asociada.
+                        </Text>
+                    </div>
+                )}
+
                 <div className={styles.buttons}>
-                    {movimientoActual?.estado === 'anulado' ? (
+                    {/* No mostrar botones si tiene movimiento_entrada_id (es una salida asociada a una entrada) */}
+                    {movimientoActual?.movimiento_entrada_id ? null : movimientoActual?.estado === 'anulado' ? (
                         <Boton
                             className='btn-red'
                             label='Eliminar Movimiento'

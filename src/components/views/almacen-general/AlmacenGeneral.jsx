@@ -165,6 +165,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 stock: producto.stock || 0,
                 grup: producto.grup || 0,
                 stock_minimo: producto.stock_minimo || 0,
+                costo_produccion: producto.costo_produccion || null,
                 created_at: producto.created_at,
                 empresa_id: producto.empresa_id,
 
