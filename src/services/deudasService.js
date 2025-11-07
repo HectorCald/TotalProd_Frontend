@@ -21,6 +21,16 @@ const getSucuId = () => {
   return null;
 };
 
+// Función helper para obtener empresa_id
+const getEmpresaId = () => {
+  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+  if (sucursalSeleccionada) {
+    const parsed = JSON.parse(sucursalSeleccionada);
+    return parsed.empresas?.id;
+  }
+  return null;
+};
+
 // Función helper para obtener personal_id del token
 const getPersonalId = () => {
   const token = localStorage.getItem('token');
@@ -217,19 +227,13 @@ class deudasService {
     // Actualizar una deuda
     static async update(id, updateData) {
         try {
-            const payload = { ...updateData };
-
-            if (payload.monto_total !== undefined && payload.saldo_pendiente === undefined) {
-                payload.saldo_pendiente = payload.monto_total;
-            }
-
             const response = await fetch(`${API_BASE_URL}/deudas/${id}`, {
                 method: 'PUT',
                 headers: {
                     ...getAuthHeaders(),
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(payload),
+                body: JSON.stringify(updateData),
             });
 
             const data = await response.json();

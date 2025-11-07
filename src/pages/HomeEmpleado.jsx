@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useEmployee } from '../context/EmployeeContext';
 import { useLayout } from '../context/LayoutContext';
 import styles from '../styles/Home.module.css';
@@ -47,21 +47,25 @@ const HomeEmpleado = () => {
     const [selectedModule, setSelectedModule] = useState(null);
     const [currentSubModule, setCurrentSubModule] = useState(null);
     const [isSubModuleOpen, setIsSubModuleOpen] = useState(false);
+    const [isOffline, setIsOffline] = useState(false);
     const [showOfflineModal, setShowOfflineModal] = useState(false);
     const [lastLocationUpdate, setLastLocationUpdate] = useState(0);
 
     // Detectar cambios en la conexión
     useEffect(() => {
         const handleOnline = () => {
+            setIsOffline(false);
             setShowOfflineModal(false);
         };
 
         const handleOffline = () => {
+            setIsOffline(true);
             setShowOfflineModal(true);
         };
 
         // Verificar estado inicial
         if (!navigator.onLine) {
+            setIsOffline(true);
             setShowOfflineModal(true);
         }
 
@@ -77,7 +81,7 @@ const HomeEmpleado = () => {
     }, []);
 
     // Función para actualizar ubicación del empleado
-    const updateEmployeeLocation = useCallback(async () => {
+    const updateEmployeeLocation = async () => {
         if (!employee || !employee.rastrear) {
             return;
         }
@@ -104,17 +108,17 @@ const HomeEmpleado = () => {
         } catch (error) {
             console.error('❌ Error al actualizar ubicación:', error);
         }
-    }, [employee, lastLocationUpdate]);
+    };
 
     // Función específica para móviles - detectar cuando la app vuelve del background
-    const handleMobileAppResume = useCallback(() => {
+    const handleMobileAppResume = () => {
         if (!employee || !employee.rastrear) return;
         
         // Delay más largo para móviles para asegurar que la app esté completamente activa
         setTimeout(() => {
             updateEmployeeLocation();
         }, 1000);
-    }, [employee, updateEmployeeLocation]);
+    };
 
     // Actualizar ubicación cuando el empleado tiene rastreo activado
     useEffect(() => {
@@ -122,7 +126,7 @@ const HomeEmpleado = () => {
 
         // Actualizar ubicación inmediatamente al cargar
         updateEmployeeLocation();
-    }, [employee, updateEmployeeLocation]); // Solo cuando cambie el ID o el estado de rastreo
+    }, [employee?.id, employee?.rastrear]); // Solo cuando cambie el ID o el estado de rastreo
 
     // Actualizar ubicación cada vez que cambie la pantalla activa
     useEffect(() => {
@@ -130,7 +134,7 @@ const HomeEmpleado = () => {
         
         // Actualizar ubicación cuando cambie la pantalla
         updateEmployeeLocation();
-    }, [activeScreen, activeView, employee, updateEmployeeLocation]); // Incluir employee.id para evitar loops
+    }, [activeScreen, activeView, employee?.id]); // Incluir employee.id para evitar loops
 
     // Actualizar ubicación cuando la ventana vuelve a tener foco (usuario regresa a la app)
     useEffect(() => {
@@ -177,7 +181,7 @@ const HomeEmpleado = () => {
                 document.removeEventListener('resume', handleAppStateChange, false);
             }
         };
-    }, [employee, updateEmployeeLocation]);
+    }, [employee?.id, employee?.rastrear]);
 
     // Detectar cambios de estado de la app específicamente para móviles
     useEffect(() => {
@@ -211,11 +215,17 @@ const HomeEmpleado = () => {
                 document.removeEventListener('resume', handleAppStateChange, false);
             }
         };
-    }, [employee, handleMobileAppResume]);
+    }, [employee?.id, employee?.rastrear]);
 
     const handleRetryConnection = () => {
         // Verificar conexión nuevamente
-        setShowOfflineModal(!navigator.onLine);
+        if (navigator.onLine) {
+            setIsOffline(false);
+            setShowOfflineModal(false);
+        } else {
+            // Mantener modal abierto si sigue sin conexión
+            setShowOfflineModal(true);
+        }
     };
 
     // Mostrar loading mientras está cargando

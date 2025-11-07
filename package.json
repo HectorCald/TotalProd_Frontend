@@ -32,7 +32,7 @@
   },
   "scripts": {
     "start": "set BROWSER=none && react-scripts start",
-    "build": "cross-env DISABLE_ESLINT_PLUGIN=true react-scripts build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -58,7 +58,6 @@
   "devDependencies": {
     "@tauri-apps/api": "^2.9.0",
     "@tauri-apps/cli": "^2.9.3",
-    "cross-env": "^7.0.3",
     "workbox-webpack-plugin": "^7.3.0"
   }
 }

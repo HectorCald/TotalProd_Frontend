@@ -85,7 +85,7 @@ function App() {
 
 function AppContent({ token, tokenType }) {
   const { user, sucursalSeleccionada: userSucursal, seleccionarSucursal, loadUserData } = useUser();
-  const { sucursalSeleccionada: employeeSucursal, loadEmployeeData } = useEmployee();
+  const { employee, sucursalSeleccionada: employeeSucursal, loadEmployeeData } = useEmployee();
   const [showSucursalModal, setShowSucursalModal] = useState(false);
   const [userDataFetched, setUserDataFetched] = useState(false);
   const [employeeDataFetched, setEmployeeDataFetched] = useState(false);
