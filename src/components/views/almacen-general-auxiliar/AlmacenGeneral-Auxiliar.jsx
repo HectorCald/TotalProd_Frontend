@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -12,7 +12,6 @@ import productsAlmacenService from '../../../services/productsAlmacenService';
 import pricesTypesService from '../../../services/pricesTypesService';
 import sucursalesService from '../../../services/sucursalesService';
 import LoadingSpinner from '../../common/LoadingSpinner';
-import { useUser } from '../../../context/UserContext';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroDiferenciaConteo from '../../mixed/FiltroDiferenciaConteo';
@@ -22,37 +21,24 @@ import conteosService from '../../../services/conteosService';
 import CanastaCotizacion from './CanastaCotizacion';
 import DescargaCotizacionBuilder from '../cotizaciones/DescargaCotizacionBuilder';
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
+import useLoadingManager from '../almacen-general/hooks/useLoadingManager';
+import useProductosFiltrados from '../almacen-general/hooks/useProductosFiltrados';
+import useCanastaActions from '../almacen-general/hooks/useCanastaActions';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 
 function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
-    const { sucursalSeleccionada: sucursalActual } = useUser();
     const { isLargeScreen } = useLayout();
 
     // Determinar si es modo carrito (para panel lateral)
     const isCartMode = tipo === 'cotizar' && isLargeScreen;
-
-    // Estados para búsqueda local
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-
-    // Estados para productos
-    const [isLoading, setIsLoading] = useState(false);
-    
-    // Estados para RefreshIndicator (solo PC)
-    const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [activeRequests, setActiveRequests] = useState(0);
 
     // UI envío y notificación
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [notif, setNotif] = useState({ visible: false, text: '', type: 'success' });
 
     // Estados para filtros locales
-    const [categoriaFiltro, setCategoriaFiltro] = useState(null);
-    const [categoriaFiltroNombre, setCategoriaFiltroNombre] = useState('Categorías');
-    const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
     const [isOpenCategoria, setOpenCategoria] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [isOpenDiferencia, setOpenDiferencia] = useState(false);
@@ -74,6 +60,19 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const [isDescargaCotizacionOpen, setIsDescargaCotizacionOpen] = useState(false);
     const [cotizacionIdParaDescarga, setCotizacionIdParaDescarga] = useState(null);
 
+    const {
+        handleAgregarACanasta: agregarProductoCotizacion,
+        getCantidadEnCanasta: getCantidadEnCanastaCotizaciones,
+    } = useCanastaActions({
+        setProductosCanasta: setProductosCanastaCotizaciones,
+        productosCanasta: productosCanastaCotizaciones,
+        pedidosConfig: {
+            precioGetterName: 'getPrecioSeleccionadoCanastaCotizaciones',
+            modoGetterName: 'getModoAgrupacionCanastaCotizaciones',
+            extraItemFields: () => ({}),
+        },
+    });
+
     // Estados locales para inputs de conteo (solo UI)
     const [stockInputs, setStockInputs] = useState({}); // { [productoId]: number }
     const [groupInputs, setGroupInputs] = useState({}); // { [productoId]: number }
@@ -85,6 +84,19 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     
     // Estado para verificar si se está repitiendo un conteo
     const [isRepeatingConteo, setIsRepeatingConteo] = useState(false);
+
+    const shouldShowSpinner = useCallback(() => productos.length === 0, [productos.length]);
+    const enableRefreshIndicator = useCallback(() => isLargeScreen, [isLargeScreen]);
+    const {
+        isLoading,
+        showRefreshIndicator,
+        isRefreshing,
+        handleLoadingStart,
+        handleLoadingEnd,
+    } = useLoadingManager({
+        shouldShowSpinner,
+        enableRefreshIndicator,
+    });
 
     // Funciones para manejar localStorage
     const saveToLocalStorage = useCallback((stockInputs, groupInputs, stockInputsText, groupInputsText) => {
@@ -133,45 +145,6 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         }
     }, []);
 
-    // Función para manejar cuando inicia la carga
-    const handleLoadingStart = useCallback(() => {
-        // Solo mostrar loading si no hay datos cargados
-        if (productos.length === 0) {
-            setIsLoading(true);
-        }
-        // Incrementar contador de peticiones activas
-        setActiveRequests(prev => {
-            const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
-            if (isLargeScreen && newCount > 0) {
-                setShowRefreshIndicator(true);
-                setIsRefreshing(true);
-            }
-            return newCount;
-        });
-    }, [productos.length, isLargeScreen]);
-
-    // Función para manejar cuando termina la carga
-    const handleLoadingEnd = useCallback(() => {
-        // Decrementar contador de peticiones activas
-        setActiveRequests(prev => {
-            const newCount = Math.max(0, prev - 1);
-            // Solo ocultar loading y RefreshIndicator cuando no hay peticiones activas
-            if (newCount === 0) {
-                setIsLoading(false);
-                if (isLargeScreen) {
-                    setTimeout(() => {
-                        setIsRefreshing(false);
-                        setTimeout(() => {
-                            setShowRefreshIndicator(false);
-                        }, 500);
-                    }, 300);
-                }
-            }
-            return newCount;
-        });
-    }, [isLargeScreen]);
-
 
     useEffect(() => {
         if (!isOpen) {
@@ -179,27 +152,6 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             localStorage.removeItem('isRepeatingConteo');
         }
     }, [isOpen]);
-
-    // Mapear Información
-    const productosMapeados = useMemo(() => {
-        return productos.map(producto => ({
-            id: producto.id,
-            name: producto.name || '',
-            codigo_barras: producto.codigo_barras || '',
-            description: producto.description || '',
-            stock: producto.stock || 0,
-            grup: producto.grup || 0,
-            stock_minimo: producto.stock_minimo || 0,
-            created_at: producto.created_at,
-            empresa_id: producto.empresa_id,
-            category_id: producto.category_id || '',
-            category_name: producto.category_name || 'Sin categoría',
-            category_almacen: producto.category_almacen || null,
-            price_product: producto.price_product || [],
-            recetas: producto.recetas || [],
-            productos_sucursal: producto.productos_sucursal || []
-        }));
-    }, [productos]);
 
     const preciosTipos = preciosData.map(precio => ({
         value: precio.id,
@@ -209,14 +161,6 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         default_value: precio.default_value
     }));
 
-    const sucursales = sucursalesData
-        .filter(sucursal => sucursal.id !== sucursalActual?.id)
-        .map(sucursal => ({
-            value: sucursal.id,
-            label: sucursal.name,
-            id: sucursal.id,
-            name: sucursal.name
-        }));
 
     // Handlers de carga de datos
     const handleProductosLoaded = useCallback((data) => {
@@ -244,14 +188,32 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         setSucursalesLoaded(true);
     }, []);
 
+    const {
+        productosMapeados,
+        productosFiltrados,
+        searchQuery,
+        isSearchExpanded,
+        categoriaFiltro,
+        categoriaFiltroNombre,
+        ordenamiento,
+        handleSearchChange,
+        handleSearchClear,
+        handleSearchToggle,
+        handleCategoriaFilter,
+        handleOrdenamiento,
+        getCategoriaNombre,
+        getOrdenamientoNombre,
+        resetFilters,
+    } = useProductosFiltrados({
+        productos,
+        paginaTamano: 30,
+    });
+
     // Efecto para resetear búsqueda y filtros cuando se abre
     useEffect(() => {
         if (isOpen) {
-            setSearchQuery('');
-            setCategoriaFiltro(null);
-            setCategoriaFiltroNombre('Categorías');
-            setOrdenamiento('nombre_asc');
-            
+            resetFilters();
+
             // Resetear estados de carga
             setProductosLoaded(false);
             setPreciosLoaded(false);
@@ -280,7 +242,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             }
 
         }
-    }, [isOpen, tipo, loadFromLocalStorage, isLargeScreen]);
+    }, [isOpen, tipo, loadFromLocalStorage, isLargeScreen, resetFilters]);
 
     // Efecto para guardar cambios en localStorage (solo en modo conteo)
     useEffect(() => {
@@ -288,72 +250,6 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             saveToLocalStorage(stockInputs, groupInputs, stockInputsText, groupInputsText);
         }
     }, [stockInputs, groupInputs, stockInputsText, groupInputsText, tipo, isOpen, saveToLocalStorage]);
-
-    // Buscador expandible
-    const handleSearchChange = (value) => {
-        setSearchQuery(value);
-    };
-    const handleSearchClear = () => {
-        setSearchQuery('');
-    };
-    const handleSearchToggle = (isExpanded) => {
-        setIsSearchExpanded(isExpanded);
-    };
-
-    // Filtros locales
-    const handleCategoriaFilter = (categoriaId, categoriaNombre = null) => {
-        setCategoriaFiltro(categoriaId);
-        if (categoriaId === null) {
-            setCategoriaFiltroNombre('Categorías');
-        } else if (categoriaId === '') {
-            setCategoriaFiltroNombre('Sin categoría');
-        } else if (categoriaNombre) {
-            setCategoriaFiltroNombre(categoriaNombre);
-        }
-    };
-    const handleOrdenamiento = (orden) => {
-        setOrdenamiento(orden);
-    };
-
-    const productosFiltrados = useMemo(() => {
-        return productosMapeados.filter(producto => {
-            const matchesSearch = !searchQuery ||
-                producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                (producto.codigo_barras && producto.codigo_barras.toLowerCase().includes(searchQuery.toLowerCase()));
-            const matchesCategoria = categoriaFiltro === null ||
-                (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
-            return matchesSearch && matchesCategoria;
-        }).sort((a, b) => {
-            switch (ordenamiento) {
-                case 'nombre_asc':
-                    return a.name.localeCompare(b.name);
-                case 'nombre_desc':
-                    return b.name.localeCompare(a.name);
-                case 'stock_asc':
-                    return (a.stock || 0) - (b.stock || 0);
-                case 'stock_desc':
-                    return (b.stock || 0) - (a.stock || 0);
-                default:
-                    return a.name.localeCompare(b.name);
-            }
-        });
-    }, [productosMapeados, searchQuery, categoriaFiltro, ordenamiento]);
-
-    const getCategoriaNombre = () => {
-        if (categoriaFiltro === null) return 'Categorías';
-        if (categoriaFiltro === '') return 'Sin categoría';
-        return categoriaFiltroNombre || 'Categorías';
-    };
-    const getOrdenamientoNombre = () => {
-        const ordenamientos = {
-            'nombre_asc': 'Nombre A-Z',
-            'nombre_desc': 'Nombre Z-A',
-            'stock_asc': 'Stock ↑',
-            'stock_desc': 'Stock ↓'
-        };
-        return ordenamientos[ordenamiento] || 'Ordenamiento';
-    };
 
     const getDiferenciaNombre = () => {
         const map = {
@@ -605,84 +501,8 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     // Función para manejar el click en un producto (solo para modo cotizar)
     const handleProductoClick = (producto) => {
         if (tipo === 'cotizar') {
-            handleAgregarACanastaCotizaciones(producto);
+            agregarProductoCotizacion(producto);
         }
-    };
-
-    // Función para redondear precios según las reglas especificadas
-    const redondearPrecio = (precio) => {
-        const decimal = precio % 1;
-        if (decimal >= 0.5) {
-            return Math.ceil(precio);
-        } else {
-            return Math.floor(precio);
-        }
-    };
-
-    // Función para agregar producto a la canasta de cotizaciones
-    const handleAgregarACanastaCotizaciones = (producto) => {
-        const productoExistente = productosCanastaCotizaciones.find(p => p.id === producto.id);
-
-        // Obtener el precio correcto según el tipo seleccionado
-        let precioProducto = 0;
-        let precioActual = null;
-
-        // Intentar obtener el precio seleccionado de la canasta de cotizaciones
-        if (window.getPrecioSeleccionadoCanastaCotizaciones) {
-            precioActual = window.getPrecioSeleccionadoCanastaCotizaciones();
-        }
-
-        if (precioActual && producto.price_product && producto.price_product.length > 0) {
-            // Buscar el precio del tipo seleccionado
-            const precioTipo = producto.price_product.find(pp => pp.prices_types?.id === precioActual);
-            precioProducto = precioTipo ? precioTipo.valor : (producto.price_product[0]?.valor || 0);
-        } else {
-            // Si no hay precio seleccionado, usar el primer precio
-            precioProducto = producto.price_product && producto.price_product.length > 0
-                ? producto.price_product[0].valor
-                : 0;
-        }
-
-        if (productoExistente) {
-            // Si ya existe, aumentar la cantidad
-            setProductosCanastaCotizaciones(prev => prev.map(p =>
-                p.id === producto.id
-                    ? { ...p, cantidad: p.cantidad + 1 }
-                    : p
-            ));
-        } else {
-            // Si no existe, agregarlo nuevo con el precio correcto
-            // Obtener el modo de agrupación desde la canasta de cotizaciones
-            let cantidadInicial = 1;
-            let precioFinal = precioProducto;
-            let stockMostrado = producto.stock;
-
-            let modoAgrupacionActual = null;
-            if (window.getModoAgrupacionCanastaCotizaciones) {
-                modoAgrupacionActual = window.getModoAgrupacionCanastaCotizaciones();
-            }
-            
-            if (modoAgrupacionActual === 'agrupado' && producto.grup) {
-                cantidadInicial = 1; // 1 grupo
-                precioFinal = precioProducto * (producto.grup || 1); // precio por grupo
-                // Aplicar redondeo al precio por grupo
-                precioFinal = redondearPrecio(precioFinal);
-                stockMostrado = Math.floor((producto.stock || 0) / (producto.grup || 1)); // stock en grupos
-            }
-
-            setProductosCanastaCotizaciones(prev => [...prev, {
-                ...producto,
-                cantidad: cantidadInicial,
-                precio: precioFinal,
-                stock: stockMostrado,
-                stockOriginal: producto.stock
-            }]);
-        }
-    };
-
-    const getCantidadEnCanastaCotizaciones = (productoId) => {
-        const producto = productosCanastaCotizaciones.find(p => p.id === productoId);
-        return producto ? producto.cantidad : 0;
     };
 
     return (

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import styles from '../almacen-general/CanastaMovimientos.module.css';
+import React, { useState, useEffect, useCallback } from 'react';
+import styles from '../../styles/Canasta.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
 import Boton from '../../common/Boton';
@@ -10,18 +10,14 @@ import Clientes from '../clientes/Clientes';
 import Notification from '../../common/Notification';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
-import InputNormal from '../../common/InputNormal';
 import InputDate from '../../common/InputDate';
 import cotizacionesService from '../../../services/cotizacionesService';
+import useCanastaProductos from '../almacen-general/hooks/useCanastaProductos';
 
 function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
-    const [animarCantidad, setAnimarCantidad] = useState({});
-    const [precioSeleccionado, setPrecioSeleccionado] = useState('');
-    const [modoAgrupacion, setModoAgrupacion] = useState('agrupado'); // 'agrupado' o 'no_agrupado'
-
     // Estados para clientes (para cotizaciones)
     const [clienteSeleccionado, setClienteSeleccionado] = useState('');
     const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
@@ -49,108 +45,82 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 3000);
     };
-    // Referencias para el auto-focus en inputs de cantidad
-    const cantidadInputRefs = useRef({});
-    useEffect(() => {
-        if (isCartMode && productosCanasta.length > 0) {
-            // Encontrar el último producto agregado (el más reciente)
-            const ultimoProducto = productosCanasta[productosCanasta.length - 1];
-            const inputRef = cantidadInputRefs.current[ultimoProducto.id];
 
-            if (inputRef) {
-                // Pequeño delay para asegurar que el DOM se haya actualizado
-                setTimeout(() => {
-                    inputRef.focus();
-                    inputRef.select(); // Seleccionar todo el texto para facilitar la edición
-                }, 100);
-            }
-        }
-    }, [productosCanasta.length, isCartMode]);
+    const resolvePrecioInicial = useCallback((tipos) => {
+        return tipos && tipos.length > 0 ? tipos[0].value : null;
+    }, []);
 
-    // Inicializar precio seleccionado
-    useEffect(() => {
-        if (isOpen && preciosTipos.length > 0 && !precioSeleccionado) {
-            // Para cotizaciones, seleccionar el primer precio por defecto
-            if (preciosTipos.length > 0) {
-                setPrecioSeleccionado(preciosTipos[0].value);
-            }
-        }
-    }, [isOpen, preciosTipos, precioSeleccionado]);
+    const syncProductoCotizacion = useCallback(({
+        productoCarrito,
+        productoActualizado,
+        modoAgrupacion,
+        precioSeleccionado,
+        obtenerPrecioPorTipo
+    }) => {
+        const productoModificado = { ...productoCarrito };
 
-    // Guardar en localStorage cuando cambie la canasta
-    useEffect(() => {
-        if (productosCanasta.length > 0) {
-            localStorage.setItem('canastaCotizaciones', JSON.stringify(productosCanasta));
-        }
-    }, [productosCanasta]);
+        if (productoActualizado) {
+            const stockActual = productoActualizado.stock ?? productoCarrito.stockOriginal ?? productoCarrito.stock;
+            if (stockActual !== productoCarrito.stockOriginal) {
+                productoModificado.stockOriginal = stockActual;
+                if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
+                    productoModificado.stock = Math.floor(stockActual / (productoCarrito.grup || 1));
+                } else {
+                    productoModificado.stock = stockActual;
+                }
 
-    // Cargar canasta desde localStorage al abrir el modal
-    useEffect(() => {
-        if (isOpen) {
-            const canastaGuardada = localStorage.getItem('canastaCotizaciones');
-            if (canastaGuardada) {
-                try {
-                    const productosGuardados = JSON.parse(canastaGuardada);
-                    setProductosCanasta(productosGuardados);
-                } catch (error) {
-                    console.error('Error al cargar canasta desde localStorage:', error);
+                if (productoCarrito.cantidad > productoModificado.stock) {
+                    mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoModificado.stock}`);
+                    productoModificado.cantidad = productoModificado.stock;
                 }
             }
+
+            if (productoActualizado.price_product && precioSeleccionado) {
+                const precioCalculado = obtenerPrecioPorTipo(
+                    { ...productoCarrito, price_product: productoActualizado.price_product },
+                    precioSeleccionado,
+                    modoAgrupacion
+                );
+                productoModificado.precio = precioCalculado;
+                productoModificado.price_product = productoActualizado.price_product;
+            }
         }
-    }, [isOpen]);
 
-    // Sincronizar stock y precios del carrito con productos actualizados
-    useEffect(() => {
-        if (productosActualizados.length > 0 && productosCanasta.length > 0) {
-            setProductosCanasta(prevCanasta => {
-                return prevCanasta.map(productoCarrito => {
-                    const productoActualizado = productosActualizados.find(p => p.id === productoCarrito.id);
-                    if (productoActualizado) {
-                        let productoModificado = { ...productoCarrito };
+        return productoModificado;
+    }, [mostrarNotificacion]);
 
-                        // Si el stock cambió, actualizar el stock en el carrito
-                        if (productoActualizado.stock !== productoCarrito.stockOriginal) {
-                            // Actualizar el stockOriginal con el nuevo stock del backend
-                            productoModificado.stockOriginal = productoActualizado.stock;
-
-                            // Recalcular el stock mostrado según el modo de agrupación actual
-                            if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
-                                productoModificado.stock = Math.floor(productoActualizado.stock / productoCarrito.grup);
-                            } else {
-                                productoModificado.stock = productoActualizado.stock;
-                            }
-
-                            // Si la cantidad en el carrito excede el nuevo stock, ajustar
-                            if (productoCarrito.cantidad > productoModificado.stock) {
-                                mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoModificado.stock}`);
-                                productoModificado.cantidad = productoModificado.stock;
-                            }
-                        }
-
-                        // Si los precios cambiaron, actualizar el precio en el carrito según el tipo seleccionado
-                        if (productoActualizado.price_product && precioSeleccionado) {
-                            const precioTipo = productoActualizado.price_product.find(pp => pp.prices_types?.id === precioSeleccionado);
-                            if (precioTipo) {
-                                const precioUnit = precioTipo.valor;
-                                let precioFinal = (modoAgrupacion === 'agrupado' && productoCarrito.grup) ? (precioUnit * (productoCarrito.grup || 1)) : precioUnit;
-
-                                // Aplicar redondeo si está en modo agrupado
-                                if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
-                                    precioFinal = redondearPrecio(precioFinal);
-                                }
-
-                                productoModificado.precio = precioFinal;
-                                productoModificado.price_product = productoActualizado.price_product; // Actualizar también la estructura de precios
-                            }
-                        }
-
-                        return productoModificado;
-                    }
-                    return productoCarrito;
-                });
-            });
+    const {
+        precioSeleccionado,
+        modoAgrupacion,
+        animarCantidad,
+        registerCantidadInputRef,
+        handleCambiarTipoPrecio: cambiarTipoPrecio,
+        handleCambiarModoAgrupacion: cambiarModoAgrupacion,
+        handleActualizarPrecioManual: actualizarPrecioManual,
+        triggerAnimacionCantidad,
+        prepararProductos
+    } = useCanastaProductos({
+        isOpen,
+        productosCanasta,
+        setProductosCanasta,
+        preciosTipos,
+        productosActualizados,
+        localStorageKey: 'canastaCotizaciones',
+        shouldPersistLocalStorage: true,
+        shouldLoadLocalStorage: true,
+        resolveInitialPrecioId: resolvePrecioInicial,
+        exposeGlobals: {
+            precioGetterName: 'getPrecioSeleccionadoCanastaCotizaciones',
+            modoGetterName: 'getModoAgrupacionCanastaCotizaciones'
+        },
+        isCartMode,
+        onSyncProducto: syncProductoCotizacion,
+        onAfterModoAgrupacionChange: ({ producto, cantidadNueva }) => {
+            if (producto?.name && cantidadNueva !== undefined) {
+                mostrarNotificacion('warning', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${cantidadNueva} grupos`);
+            }
         }
-    }, [productosActualizados, precioSeleccionado, modoAgrupacion]);
+    });
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
@@ -174,18 +144,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
 
         // Si debe animar, activar la animación
         if (animar) {
-            setAnimarCantidad(prev => ({
-                ...prev,
-                [productoId]: true
-            }));
-
-            // Desactivar la animación después de 300ms
-            setTimeout(() => {
-                setAnimarCantidad(prev => ({
-                    ...prev,
-                    [productoId]: false
-                }));
-            }, 300);
+            triggerAnimacionCantidad(productoId);
         }
 
         setProductosCanasta(prev => prev.map(p =>
@@ -209,87 +168,15 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
     };
 
     const handleActualizarPrecio = (productoId, nuevoPrecio) => {
-        setProductosCanasta(prev => prev.map(p => p.id === productoId ? { ...p, precio: parseFloat(nuevoPrecio) || 0 } : p));
-    };
-
-    // Función para redondear precios según las reglas especificadas
-    const redondearPrecio = (precio) => {
-        const decimal = precio % 1;
-        if (decimal >= 0.5) {
-            return Math.ceil(precio);
-        } else {
-            return Math.floor(precio);
-        }
+        actualizarPrecioManual(productoId, nuevoPrecio);
     };
 
     const handleCambiarTipoPrecio = (nuevoTipoPrecio) => {
-        setPrecioSeleccionado(nuevoTipoPrecio);
-        setProductosCanasta(prev => prev.map(producto => {
-            const precioProducto = producto.price_product?.find(pp => pp.prices_types?.id === nuevoTipoPrecio);
-            const precioUnit = precioProducto?.valor || 0;
-            let nuevoPrecio = (modoAgrupacion === 'agrupado' && producto.grup) ? (precioUnit * (producto.grup || 1)) : precioUnit;
-
-            // Aplicar redondeo si está en modo agrupado
-            if (modoAgrupacion === 'agrupado' && producto.grup) {
-                nuevoPrecio = redondearPrecio(nuevoPrecio);
-            }
-
-            return {
-                ...producto,
-                precio: nuevoPrecio
-            };
-        }));
+        cambiarTipoPrecio(nuevoTipoPrecio);
     };
 
     const handleCambiarModoAgrupacion = (nuevoModo) => {
-        if (nuevoModo === modoAgrupacion) return;
-        setModoAgrupacion(nuevoModo);
-
-        // Actualizar productos según el nuevo modo - SOLO cambiar precio y stock, NO la cantidad
-        setProductosCanasta(prev => prev.map(producto => {
-            // Usar stockOriginal si existe, sino usar stock
-            // Si no hay stockOriginal, establecerlo ahora
-            const stockOriginalEnUnidades = producto.stockOriginal || producto.stock;
-            if (!producto.stockOriginal) {
-                producto.stockOriginal = producto.stock;
-            }
-
-            if (nuevoModo === 'agrupado' && producto.grup) {
-                // Cambiar a modo agrupado
-                const stockEnGrupos = Math.floor(stockOriginalEnUnidades / producto.grup);
-                const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
-                let precioPorGrupo = precioUnitario * (producto.grup || 1);
-
-                // Aplicar redondeo al precio por grupo
-                precioPorGrupo = redondearPrecio(precioPorGrupo);
-
-                // Si la cantidad actual excede el stock disponible en grupos, ajustar al máximo
-                let cantidadFinal = producto.cantidad;
-                if (producto.cantidad > stockEnGrupos) {
-                    cantidadFinal = stockEnGrupos;
-                    mostrarNotificacion('warning', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${stockEnGrupos} grupos`);
-                }
-
-                return {
-                    ...producto,
-                    cantidad: cantidadFinal,
-                    precio: precioPorGrupo,
-                    stock: stockEnGrupos,
-                    stockOriginal: stockOriginalEnUnidades // Mantener el stock original
-                };
-            } else {
-                // Cambiar a modo no agrupado - SOLO cambiar precio y stock, NO la cantidad
-                const precioUnitario = (modoAgrupacion === 'agrupado' && producto.grup) ? ((producto.precio || 0) / (producto.grup || 1)) : (producto.precio || 0);
-
-                return {
-                    ...producto,
-                    cantidad: producto.cantidad, // NO CAMBIAR LA CANTIDAD
-                    precio: precioUnitario,
-                    stock: stockOriginalEnUnidades, // Stock original en unidades
-                    stockOriginal: stockOriginalEnUnidades // Mantener el stock original
-                };
-            }
-        }));
+        cambiarModoAgrupacion(nuevoModo);
     };
 
     const handleClienteSeleccionado = (cliente) => {
@@ -305,25 +192,6 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         setIsLimpiarModalOpen(false);
         setIsOpen(false);
     };
-
-    // Preparar productos respetando agrupación
-    const prepararProductos = () => {
-        return productosCanasta.map(producto => {
-            let cantidadEnUnidades = producto.cantidad;
-            let precioPorUnidad = producto.precio || 0;
-
-            if (modoAgrupacion === 'agrupado' && producto.grup) {
-                cantidadEnUnidades = producto.cantidad * producto.grup;
-                precioPorUnidad = producto.precio / producto.grup;
-            }
-            return {
-                id: producto.id,
-                cantidad: cantidadEnUnidades,
-                precio: precioPorUnidad
-            };
-        });
-    };
-
     // Validaciones para cotizaciones
     const validarCotizacion = () => {
         // Para cotizaciones, el método de pago y fecha de vencimiento son opcionales
@@ -389,14 +257,6 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
             setLoadingConfirmar(false);
         }
     };
-
-    // Exponer las funciones para que AlmacenGeneral-Auxiliar pueda acceder al precio seleccionado y modo de agrupación
-    useEffect(() => {
-        // Guardar las referencias a las funciones en el window para acceso global
-        window.getPrecioSeleccionadoCanastaCotizaciones = () => precioSeleccionado;
-        window.getModoAgrupacionCanastaCotizaciones = () => modoAgrupacion;
-    }, [precioSeleccionado, modoAgrupacion]);
-
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
             {!isCartMode && <HeaderView onBack={() => setIsOpen(false)} />}
@@ -411,15 +271,16 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
 
                 {/* Selectores de precio y agrupación */}
                 <div className={styles.controlesGenerales}>
-                        <Select
-                            value={precioSeleccionado}
-                            onChange={handleCambiarTipoPrecio}
-                            options={preciosTipos}
-                            placeholder="Precio"
-                            disabled={loadingPrecios}
-                            icon='dollar'
-                        />
+                    <Select
+                        value={precioSeleccionado}
+                        onChange={handleCambiarTipoPrecio}
+                        options={preciosTipos}
+                        placeholder="Precio"
+                        disabled={loadingPrecios}
+                        icon='dollar'
+                    />
 
+                    {productosCanasta.some(producto => producto.grup) && (
                         <Select
                             value={modoAgrupacion}
                             onChange={handleCambiarModoAgrupacion}
@@ -430,7 +291,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                             placeholder="Modalidad"
                             icon='package'
                         />
-                    
+                    )}
                 </div>
 
                 {productosCanasta.length > 0 ? (
@@ -491,11 +352,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                                                 className={styles.cantidad}
                                             >
                                                 <input
-                                                    ref={(el) => {
-                                                        if (el) {
-                                                            cantidadInputRefs.current[producto.id] = el;
-                                                        }
-                                                    }}
+                                                    ref={registerCantidadInputRef(producto.id)}
                                                     type="number"
                                                     value={producto.cantidad}
                                                     min="1"

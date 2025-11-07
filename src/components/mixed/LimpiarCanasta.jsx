@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ViewModal from '../ui/ViewModal';
 import HeaderModal from '../common/HeaderModal';
 import Boton from '../common/Boton';
-import styles from '../views/almacen-general/CanastaMovimientos.module.css';
+import styles from '../styles/Canasta.module.css';
 
 function LimpiarCanasta({ isOpen, setIsOpen, onConfirmar, titulo = "Limpiar Canasta", mensaje = "¿Estás seguro que deseas limpiar toda la canasta? Esta acción no se puede deshacer." }) {
     return (

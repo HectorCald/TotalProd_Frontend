@@ -6,13 +6,12 @@
     width: 100%;
     height: calc(100vh - 50px);
     padding: 15px;
-    padding-top:0;
+    padding-top: 0;
     box-sizing: border-box;
     gap: 10px;
     overflow-y: auto;
 }
 
-/* Cuando está en modo panel lateral (sin HeaderView), ajustar altura y padding */
 .cartPanel {
     height: 100vh !important;
     padding-top: 35px !important;
@@ -23,20 +22,84 @@
     font-weight: 600;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     width: 100%;
     color: var(--white-color);
 }
+
+.titleButtons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.whatsappButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .subTitle {
     font-size: 13px;
     font-weight: 400;
     color: gray;
     line-height: 1.2;
 }
+
 .content {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    background-color: var(--tertiary-color);
+    border-radius: 10px;
+    padding: 20px;
     gap: 20px;
-    max-height: auto;
+}
+
+.productosContainer {
+    flex: 1;
+    overflow-y: auto;
+    width: 100%;
+    padding-bottom: 20px;
+}
+
+.productosList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    border-radius: 10px;
+    background: none;
+    padding-inline: 5px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.productosList::-webkit-scrollbar {
+    width: 4px;
+}
+
+.productosList::-webkit-scrollbar-track {
+    background: var(--tertiary-color);
+}
+
+.productosList::-webkit-scrollbar-thumb {
+    background: var(--quinary-color);
+    border-radius: 2px;
+}
+
+.floatingElements {
+    position: sticky;
+    bottom: 0;
+    background: var(--primary-color);
+    border-radius: 10px 10px 0 0;
+    padding: 15px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .controlesGenerales {
@@ -61,39 +124,15 @@
     gap: 10px;
 }
 
-.productosList {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    height: 100%;
-    overflow-y: auto;
-    width: 100%;
-    border-radius: 10px;
-    background:none;
-    padding-inline: 5px;
-}
-/* Scrollbar personalizado para pantallas grandes */
-.productosList::-webkit-scrollbar {
-    width: 4px;
-}
-
-.productosList::-webkit-scrollbar-track {
-    background: var(--tertiary-color);
-}
-
-.productosList::-webkit-scrollbar-thumb {
-    background: var(--quinary-color);
-    border-radius: 2px;
-}
-
 .productoInfoContent {
     display: flex;
     align-items: center;
     gap: 10px;
 }
+
 .productoItem {
     background: var(--tertiary-color);
-    padding:15px;
+    padding: 15px;
     width: 100%;
     gap: 5px;
     display: flex;
@@ -112,6 +151,7 @@
     overflow: hidden;
     transition: all 0.3s ease;
 }
+
 .productoIcon {
     font-size: 20px !important;
     color: var(--primary-color) !important;
@@ -137,6 +177,7 @@
     line-height: 1.2;
     margin-bottom: 3px;
 }
+
 .descripcion {
     font-size: 13px;
     font-weight: 400;
@@ -202,6 +243,7 @@
     padding: 5px;
     max-width: 55px;
 }
+
 .precioInput:focus {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 8px;
@@ -215,6 +257,17 @@
 
 .precioInput[type=number] {
     -moz-appearance: textfield;
+}
+
+.medidaControl {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tertiary-color);
+    padding: 0 10px;
+    border-radius: 8px;
+    max-width: 180px;
+    width: 100%;
 }
 
 .cantidadControl {
@@ -242,19 +295,14 @@
     cursor: pointer;
     transition: background-color 0.2s ease;
     border-radius: 50%;
+}
 
-    .iconMinus {
-        font-size: 20px !important;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .iconPlus {
-        font-size: 20px !important;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
+.btnCantidad .iconMinus,
+.btnCantidad .iconPlus {
+    font-size: 20px !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .btnCantidad:disabled {
@@ -350,7 +398,7 @@
 }
 
 .btnEliminar {
-    background:none;
+    background: none;
     border: none;
     color: var(--error-color);
     width: 36px;
@@ -377,6 +425,7 @@
     width: 100%;
     margin-top: auto;
 }
+
 @media (min-width: 700px) {
     .buttons {
         flex-direction: row;
@@ -416,6 +465,8 @@
     background: none;
     display: flex;
     gap: 10px;
+    justify-content: center;
+    align-items: center;
 }
 
 .icon {
@@ -427,33 +478,120 @@
     color: var(--error-color) !important;
     cursor: pointer;
 }
-.content {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    width: 100%;
-    background-color: var(--tertiary-color);
-    border-radius: 10px;
-    padding: 20px;
-    gap: 20px;
-}
 
-.buttons {
-    display: flex;
-    gap: 7px;
-}
 .modalContent {
     padding: 20px;
     padding-top: 0;
     display: flex;
     flex-direction: column;
-    gap: 15px; 
+    gap: 15px;
     height: 100%;
-    max-height: 83vh;
+    max-height: 90vh;
     overflow-y: auto;
 }
-.horizontal{
+
+.resumenPedido {
     display: flex;
-    gap:7px;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
 }
+
+.itemResumen {
+    background: var(--tertiary-color);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.itemInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.itemNombre {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.itemDetalle {
+    font-size: 14px;
+    color: #666;
+    background: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.horizontal {
+    display: flex;
+    gap: 7px;
+}
+
+.observacionesGenerales {
+    width: 100%;
+    padding: 0 15px 15px;
+    box-sizing: border-box;
+}
+
+/* Variantes específicas */
+.acopio .productoItem {
+    gap: 10px;
+    position: static;
+}
+
+.acopio .productoIcon {
+    width: 40px;
+    height: 40px;
+}
+
+.acopio .productoNombre {
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1;
+}
+
+.acopio .btnCantidad {
+    background: var(--quaternary-color);
+    min-width: 32px;
+    min-height: 32px;
+    max-width: none;
+    max-height: none;
+}
+
+.acopio .btnCantidad:disabled {
+    background: #6c757d;
+}
+
+.acopio .cantidad {
+    min-width: 50px;
+}
+
+.acopio .btnEliminar {
+    color: gray;
+    position: static;
+}
+
+.acopio .btnEliminarIcon {
+    color: gray !important;
+}
+
+.acopio .buttons {
+    flex-direction: row;
+}
+
+.acopio .totalGeneral {
+    background: var(--tertiary-color);
+    border-radius: 8px;
+    padding: 10px;
+    border-top: none;
+    margin-bottom: 10px;
+}
+
+.acopio .totalGeneralValue {
+    color: var(--accent-color);
+}
+
+.acopio .iconTrash {
+    color: var(--error-color) !important;
+}
+

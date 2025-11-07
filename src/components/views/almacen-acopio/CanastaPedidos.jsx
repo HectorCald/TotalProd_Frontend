@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styles from './CanastaPedidos.module.css';
+import styles from '../../styles/Canasta.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
 import ViewModal from '../../ui/ViewModal';
@@ -221,7 +221,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
             {!isCartMode && <HeaderView onBack={() => setIsOpen(false)} />}
-            <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
+            <div className={`${styles.container} ${styles.acopio} ${isCartMode ? styles.cartPanel : ''}`}>
                 <h1 className={styles.title}>Canasta de Pedidos
                     <div className={styles.titleButtons}>
                         {isCartMode && onWhatsAppSelect && (

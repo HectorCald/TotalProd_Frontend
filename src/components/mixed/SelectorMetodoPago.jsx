@@ -1,6 +1,5 @@
 import React from 'react';
 import Select from '../common/Select';
-import styles from '../views/almacen-general/CanastaMovimientos.module.css';
 
 const STORAGE_KEY = 'selectorMetodoPagoPreferencia';
 
