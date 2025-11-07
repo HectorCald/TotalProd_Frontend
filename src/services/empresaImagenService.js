@@ -32,7 +32,7 @@ class EmpresaImagenService {
             // Verificar si la respuesta es JSON antes de parsear
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
-                const text = await response.text();
+                await response.text();
                 throw new Error(`Error del servidor: ${response.status} ${response.statusText}. La imagen puede ser demasiado grande o el servidor no está disponible.`);
             }
             
@@ -64,7 +64,7 @@ class EmpresaImagenService {
             // Verificar si la respuesta es JSON antes de parsear
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
-                const text = await response.text();
+                await response.text();
                 throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
             }
             
@@ -101,7 +101,7 @@ class EmpresaImagenService {
             // Verificar si la respuesta es JSON antes de parsear
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
-                const text = await response.text();
+                await response.text();
                 throw new Error(`Error del servidor: ${response.status} ${response.statusText}. La imagen puede ser demasiado grande o el servidor no está disponible.`);
             }
             
@@ -141,7 +141,7 @@ class EmpresaImagenService {
             // Verificar si la respuesta es JSON antes de parsear
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
-                const text = await response.text();
+                await response.text();
                 throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
             }
             
@@ -185,7 +185,7 @@ class EmpresaImagenService {
             // Verificar si la respuesta es JSON antes de parsear
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
-                const text = await response.text();
+                await response.text();
                 throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
             }
             

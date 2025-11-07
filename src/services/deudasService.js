@@ -21,16 +21,6 @@ const getSucuId = () => {
   return null;
 };
 
-// Función helper para obtener empresa_id
-const getEmpresaId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.empresas?.id;
-  }
-  return null;
-};
-
 // Función helper para obtener personal_id del token
 const getPersonalId = () => {
   const token = localStorage.getItem('token');
