@@ -442,6 +442,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                     <Table
                                         headers={tableHeaders}
                                         data={tableData}
+                                        onScroll={handleScroll}
                                         onRowClick={(deuda) => {
                                             // Buscar la deuda original sin formatear
                                             const deudaOriginal = allDeudas.find(d => d.id === deuda.id);
