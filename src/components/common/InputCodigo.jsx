@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './InputCodigo.module.css';
 
 const InputCodigo = ({ 
@@ -10,7 +10,7 @@ const InputCodigo = ({
   placeholder = ''
 }) => {
   const inputRefs = useRef([]);
-  const [localValues, setLocalValues] = React.useState(Array(cantidad).fill(''));
+  const [localValues, setLocalValues] = useState(Array(cantidad).fill(''));
 
   // Sincronizar el value externo con los valores locales
   useEffect(() => {
@@ -108,19 +108,19 @@ const InputCodigo = ({
   };
 
   // Función para limpiar todos los inputs
-  const clearInputs = () => {
+  const clearInputs = useCallback(() => {
     setLocalValues(Array(cantidad).fill(''));
     if (onChange) {
       onChange('');
     }
-  };
+  }, [cantidad, onChange]);
 
   // Limpiar inputs cuando se desmonte el componente
   useEffect(() => {
     return () => {
       clearInputs();
     };
-  }, []);
+  }, [clearInputs]);
 
   return (
     <div className={styles.container}>

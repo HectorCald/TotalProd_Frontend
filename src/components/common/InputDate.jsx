@@ -1,6 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import styles from './InputDate.module.css';
-import { BoxIcon } from 'boxicons-react';
 import Select from './Select';
 
 function clamp(value, min, max) {
@@ -92,7 +91,7 @@ function InputDate({
     // Sync local parts when external value changes (e.g., form reset)
     useEffect(() => {
         setParts(parsedFromValue);
-    }, [parsedFromValue.year, parsedFromValue.month, parsedFromValue.day, parsedFromValue.hour, parsedFromValue.minute]);
+    }, [parsedFromValue]);
 
     const years = useMemo(() => {
         const now = new Date();
@@ -122,19 +121,6 @@ function InputDate({
     const days = useMemo(() => Array.from({ length: daysCount }, (_, i) => String(i + 1).padStart(2, '0')), [daysCount]);
     const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')), []);
     const minutes = useMemo(() => Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')), []);
-
-    const isComplete = useMemo(() => {
-        if (mode === 'month') {
-            return Boolean(parts.year && parts.month);
-        }
-        if (mode === 'date') {
-            return Boolean(parts.year && parts.month && parts.day);
-        }
-        if (mode === 'time') {
-            return parts.hour !== '' && parts.minute !== '' && parts.hour != null && parts.minute != null;
-        }
-        return Boolean(parts.year && parts.month && parts.day && parts.hour !== '' && parts.minute !== '' && parts.hour != null && parts.minute != null);
-    }, [mode, parts.year, parts.month, parts.day, parts.hour, parts.minute]);
 
     function emit(nextParts) {
         const next = formatValueByMode(mode, nextParts);

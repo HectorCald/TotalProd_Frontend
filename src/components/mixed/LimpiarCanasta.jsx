@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import ViewModal from '../ui/ViewModal';
 import HeaderModal from '../common/HeaderModal';
 import Boton from '../common/Boton';

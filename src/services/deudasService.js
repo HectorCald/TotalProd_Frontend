@@ -227,13 +227,19 @@ class deudasService {
     // Actualizar una deuda
     static async update(id, updateData) {
         try {
+            const payload = { ...updateData };
+
+            if (payload.monto_total !== undefined && payload.saldo_pendiente === undefined) {
+                payload.saldo_pendiente = payload.monto_total;
+            }
+
             const response = await fetch(`${API_BASE_URL}/deudas/${id}`, {
                 method: 'PUT',
                 headers: {
                     ...getAuthHeaders(),
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(updateData),
+                body: JSON.stringify(payload),
             });
 
             const data = await response.json();

@@ -4,7 +4,6 @@ import Login from './pages/Login';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from './pages/Home';
 import HomeEmpleado from './pages/HomeEmpleado';
-import Loading from './components/common/LoadingSpinner';
 import { UserProvider, useUser } from './context/UserContext';
 import { EmployeeProvider, useEmployee } from './context/EmployeeContext';
 import { ModalStackProvider } from './context/ModalStackContext';
@@ -15,7 +14,6 @@ import SeleccionarSucursal from './components/views/sucursales/SeleccionarSucurs
 function App() {
   const [token, setToken] = useState(null);
   const [tokenType, setTokenType] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Registrar Service Worker
@@ -70,7 +68,6 @@ function App() {
     }
 
     document.documentElement.setAttribute('data-theme', themeToApply);
-    setLoading(false);
   }, []);
 
   return (
@@ -87,8 +84,8 @@ function App() {
 }
 
 function AppContent({ token, tokenType }) {
-  const { user, sucursalSeleccionada: userSucursal, loading, seleccionarSucursal, loadUserData } = useUser();
-  const { employee, sucursalSeleccionada: employeeSucursal, loading: employeeLoading, loadEmployeeData } = useEmployee();
+  const { user, sucursalSeleccionada: userSucursal, seleccionarSucursal, loadUserData } = useUser();
+  const { employee, sucursalSeleccionada: employeeSucursal, loadEmployeeData } = useEmployee();
   const [showSucursalModal, setShowSucursalModal] = useState(false);
   const [userDataFetched, setUserDataFetched] = useState(false);
   const [employeeDataFetched, setEmployeeDataFetched] = useState(false);

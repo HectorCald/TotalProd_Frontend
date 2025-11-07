@@ -125,8 +125,13 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
 
     // Función para manejar cuando se actualiza una deuda
     const handleDeudaUpdated = (deudaActualizada) => {
-        setDeudaActual(deudaActualizada);
-        if (onDeudaActualizada) onDeudaActualizada(deudaActualizada);
+        const deudaNormalizada = deudaActualizada ? {
+            ...deudaActualizada,
+            saldo_pendiente: deudaActualizada?.saldo_pendiente ?? deudaActualizada?.monto_total
+        } : deudaActualizada;
+
+        setDeudaActual(deudaNormalizada);
+        if (onDeudaActualizada) onDeudaActualizada(deudaNormalizada);
         setIsEditarOpen(false);
     };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InputSugerencias.module.css';
 import { BoxIcon } from 'boxicons-react';
 
@@ -33,18 +33,21 @@ function InputSugerencias({
 
     // Normalización flexible: sin acentos, sin mayúsculas, guiones->espacio.
     // Además generamos una variante sin espacios para coincidencias independientes de espacios.
-    const normalizeText = (text) => {
+    const normalizeText = useCallback((text) => {
         if (!text) return '';
-        return text
-            .toLowerCase()
+        const base = caseSensitive ? text : text.toLowerCase();
+        return base
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .replace(/[-]/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
-    };
+    }, [caseSensitive]);
 
-    const normalizeNoSpaces = (text) => normalizeText(text).replace(/\s+/g, '');
+    const normalizeNoSpaces = useCallback(
+        (text) => normalizeText(text).replace(/\s+/g, ''),
+        [normalizeText],
+    );
 
     // Filtrar sugerencias basado en el valor del input
     useEffect(() => {
@@ -107,7 +110,7 @@ function InputSugerencias({
 
         setSugerenciasFiltradas(resultado);
         setIndiceSugerenciaActiva(-1);
-    }, [value, sugerencias, minCaracteres, buscarCampo, maxSugerencias, isFocused]);
+    }, [buscarCampo, isFocused, maxSugerencias, minCaracteres, normalizeNoSpaces, normalizeText, sugerencias, value]);
 
     // Manejar interacciones fuera del componente (click/touch/pointer)
     useEffect(() => {
@@ -200,6 +203,8 @@ function InputSugerencias({
                 setIsFocused(false);
                 setIndiceSugerenciaActiva(-1);
                 inputRef.current?.blur();
+                break;
+            default:
                 break;
         }
     };

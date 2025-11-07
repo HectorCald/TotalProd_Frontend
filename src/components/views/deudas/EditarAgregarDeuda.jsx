@@ -94,8 +94,8 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
     setDataDeuda(prev => {
       const newData = { ...prev, [field]: value };
       
-      // Si se cambia el monto total y no hay saldo pendiente, establecer el saldo igual al monto
-      if (field === 'monto_total' && (!prev.saldo_pendiente || prev.saldo_pendiente === prev.monto_total)) {
+      // Mantener saldo pendiente sincronizado con el monto total editable
+      if (field === 'monto_total') {
         newData.saldo_pendiente = value;
       }
       
@@ -156,6 +156,7 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
           fecha_deuda: dataDeuda.fecha_deuda,
           fecha_vencimiento: dataDeuda.fecha_vencimiento,
           monto_total: parseFloat(dataDeuda.monto_total),
+          saldo_pendiente: dataDeuda.saldo_pendiente !== '' ? parseFloat(dataDeuda.saldo_pendiente) : parseFloat(dataDeuda.monto_total),
           concepto: dataDeuda.concepto.trim(),
           estado: dataDeuda.estado,
           cliente_id: dataDeuda.cliente_id || null

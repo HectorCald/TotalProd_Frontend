@@ -93,8 +93,8 @@ function Carousel({ children }) {
     };
 
     useEffect(() => {
-        const handleGlobalMouseMove = (e) => handleMouseMove(e);
-        const handleGlobalMouseUp = () => handleMouseUp();
+        const handleGlobalMouseMove = handleMouseMove;
+        const handleGlobalMouseUp = handleMouseUp;
 
         if (isDragging) {
             document.addEventListener('mousemove', handleGlobalMouseMove);
@@ -105,7 +105,7 @@ function Carousel({ children }) {
             document.removeEventListener('mousemove', handleGlobalMouseMove);
             document.removeEventListener('mouseup', handleGlobalMouseUp);
         };
-    }, [isDragging, startX, currentX]);
+    }, [handleMouseMove, handleMouseUp, isDragging]);
 
     const getTransform = () => {
         // Calcular el ancho total incluyendo el gap (20px)

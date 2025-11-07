@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import { useCallback, useEffect } from 'react';
 
 // Cache global con expiración de 1 segundo
 const fetchCache = new Map();
@@ -6,19 +6,7 @@ const fetchCache = new Map();
 function FetchData({ service, method = 'getAll', methodParams = [], isOpen, onDataLoaded, onLoadingStart, onLoadingEnd, onError, serviceName }) {
     const cacheKey = `${serviceName || service.constructor.name}-${method}-${JSON.stringify(methodParams)}`;
 
-    useEffect(() => {
-        if (isOpen && !fetchCache.has(cacheKey)) {
-            fetchCache.set(cacheKey, true);
-            fetchData();
-            
-            // Limpiar cache después de 1 segundo
-            setTimeout(() => {
-                fetchCache.delete(cacheKey);
-            }, 1000);
-        }
-    }, [isOpen, cacheKey]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         if (onLoadingStart) onLoadingStart();
         
         try {
@@ -37,7 +25,19 @@ function FetchData({ service, method = 'getAll', methodParams = [], isOpen, onDa
         } finally {
             if (onLoadingEnd) onLoadingEnd();
         }
-    };
+    }, [method, methodParams, onDataLoaded, onError, onLoadingEnd, onLoadingStart, service, serviceName]);
+
+    useEffect(() => {
+        if (isOpen && !fetchCache.has(cacheKey)) {
+            fetchCache.set(cacheKey, true);
+            fetchData();
+            
+            // Limpiar cache después de 1 segundo
+            setTimeout(() => {
+                fetchCache.delete(cacheKey);
+            }, 1000);
+        }
+    }, [cacheKey, fetchData, isOpen]);
 
     return null;
 }

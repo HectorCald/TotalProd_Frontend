@@ -1,4 +1,4 @@
-import React, { useState, forwardRef } from 'react';
+import React, { useEffect, useState, forwardRef } from 'react';
 import styles from './InputNormal.module.css';
 import { BoxIcon } from 'boxicons-react';
 
@@ -12,13 +12,13 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
     const labelUp = hasValue || isFocused;
 
     // Actualizar isFocused cuando value cambie
-    React.useEffect(() => {
+    useEffect(() => {
         if (hasValue) {
             setIsFocused(true);
         }
-    }, [value]);
+    }, [hasValue]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (isDisabled) {
             setIsFocused(false);
         }

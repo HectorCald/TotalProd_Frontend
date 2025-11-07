@@ -13,7 +13,6 @@ import imageBalance from '../assets/balance.png';
 import imageDamabrava from '../assets/damabrava/damabrava.png';
 import imageConteos from '../assets/conteos.png';
 import imageCotizaciones from '../assets/cotizaciones.png';
-import imageReglas from '../assets/reglas.png';
 
 // Mapeo de componentes a vistas (para simplificar el uso)
 const COMPONENT_TO_VIEW = {
