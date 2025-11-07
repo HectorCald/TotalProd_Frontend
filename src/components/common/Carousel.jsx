@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styles from './Carousel.module.css';
 
 function Carousel({ children }) {
@@ -18,13 +18,13 @@ function Carousel({ children }) {
         }
     }, [screens.length, currentIndex]);
 
-    const goNext = () => {
+    const goNext = useCallback(() => {
         setCurrentIndex((prev) => (prev + 1) % screens.length);
-    };
+    }, [screens.length]);
 
-    const goPrev = () => {
+    const goPrev = useCallback(() => {
         setCurrentIndex((prev) => (prev - 1 + screens.length) % screens.length);
-    };
+    }, [screens.length]);
 
     const goToSlide = (index) => {
         setCurrentIndex(index);
@@ -36,14 +36,14 @@ function Carousel({ children }) {
         setCurrentX(e.clientX);
     };
 
-    const handleMouseMove = (e) => {
+    const handleMouseMove = useCallback((e) => {
         if (!isDragging) return;
         setCurrentX(e.clientX);
         const offset = e.clientX - startX;
         setDragOffset(offset);
-    };
+    }, [isDragging, startX]);
 
-    const handleMouseUp = () => {
+    const handleMouseUp = useCallback(() => {
         if (!isDragging) return;
         setIsDragging(false);
         
@@ -59,7 +59,7 @@ function Carousel({ children }) {
         }
         
         setDragOffset(0);
-    };
+    }, [currentX, goNext, goPrev, isDragging, startX]);
 
     const handleTouchStart = (e) => {
         setIsDragging(true);
@@ -67,14 +67,14 @@ function Carousel({ children }) {
         setCurrentX(e.touches[0].clientX);
     };
 
-    const handleTouchMove = (e) => {
+    const handleTouchMove = useCallback((e) => {
         if (!isDragging) return;
         setCurrentX(e.touches[0].clientX);
         const offset = e.touches[0].clientX - startX;
         setDragOffset(offset);
-    };
+    }, [isDragging, startX]);
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = useCallback(() => {
         if (!isDragging) return;
         setIsDragging(false);
         
@@ -90,7 +90,7 @@ function Carousel({ children }) {
         }
         
         setDragOffset(0);
-    };
+    }, [currentX, goNext, goPrev, isDragging, startX]);
 
     useEffect(() => {
         const handleGlobalMouseMove = handleMouseMove;
