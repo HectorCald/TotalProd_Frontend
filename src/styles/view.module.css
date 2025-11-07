@@ -12,22 +12,9 @@
     gap: 10px;
     overflow-y: auto;
 }
-/* Scrollbar personalizado para pantallas grandes */
-.container::-webkit-scrollbar {
-    width: 4px;
-}
-
-.container::-webkit-scrollbar-track {
-    background: var(--tertiary-color);
-}
-
-.container::-webkit-scrollbar-thumb {
-    background: var(--quinary-color);
-    border-radius: 2px;
-}
 
 .title {
-    font-size: 18px !important;
+    font-size: 16px !important;
     font-weight: 600;
     display: flex;
     justify-content: space-between;

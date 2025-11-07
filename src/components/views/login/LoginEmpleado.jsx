@@ -267,6 +267,8 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                                         key={`${employee.codigo}-${index}`}
                                         title={employee.nombre}
                                         description={employee.cargo}
+                                        icon="user"
+                                        colorIcon="gris"
                                         onClick={() => handleSelectSavedEmployee(employee)}
                                         arrow={true}
                                     />
@@ -274,7 +276,8 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                             </div>
                         )}
 
-                        <p className={styles.subTitle}>INGRESE SU CÓDIGO DE EMPLEADO</p>
+
+                        <p className={styles.subTitle}>INGRESA TU CÓDIGO DE EMPLEADO</p>
 
                         <InputNormal
                             tipo="text"
@@ -282,14 +285,17 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                             value={codigo}
                             placeholder="Código de empleado"
                             onChange={(e) => setCodigo(e.target.value)}
+                            readonly={loading}
                         />
-                        <Boton
-                            className="btn-original"
-                            label="Validar Código"
-                            onClick={handleValidateCode}
-                            loading={loading}
-                            disabled={!codigo.trim() || codigo.length < 8}
-                        />
+                        <div className={styles.buttons}>
+                            <Boton
+                                className="btn-original"
+                                label="Validar Código"
+                                onClick={handleValidateCode}
+                                loading={loading}
+                                disabled={!codigo.trim() || codigo.length < 8}
+                            />
+                        </div>
                     </>
                 )}
 
@@ -307,22 +313,24 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                             placeholder="Contraseña"
                             onChange={(e) => setPassword(e.target.value)}
                         />
-                        <Boton
-                            className="btn-original"
-                            label="Iniciar Sesión"
-                            onClick={handleEmployeeLogin}
-                            loading={loading}
-                            disabled={!password.trim()}
-                        />
-                        <Boton
-                            className="btn-default"
-                            label="Cambiar Código"
-                            onClick={() => {
-                                setStep(1);
-                                setPassword('');
-                                setPersonalData(null);
-                            }}
-                        />
+                        <div className={styles.buttons}>
+                            <Boton
+                                className="btn-original"
+                                label="Iniciar Sesión"
+                                onClick={handleEmployeeLogin}
+                                loading={loading}
+                                disabled={!password.trim()}
+                            />
+                            <Boton
+                                className="btn-default"
+                                label="Cambiar Código"
+                                onClick={() => {
+                                    setStep(1);
+                                    setPassword('');
+                                    setPersonalData(null);
+                                }}
+                            />
+                        </div>
                     </>
                 )}
 
@@ -348,23 +356,25 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                             placeholder="Confirmar contraseña"
                             onChange={(e) => setConfirmPassword(e.target.value)}
                         />
-                        <Boton
-                            className="btn-original"
-                            label="Establecer Contraseña"
-                            onClick={handleSetPassword}
-                            loading={loading}
-                            disabled={!password.trim() || !confirmPassword.trim() || password !== confirmPassword}
-                        />
-                        <Boton
-                            className="btn-default"
-                            label="Cambiar Código"
-                            onClick={() => {
-                                setStep(1);
-                                setPassword('');
-                                setConfirmPassword('');
-                                setPersonalData(null);
-                            }}
-                        />
+                        <div className={styles.buttons}>
+                            <Boton
+                                className="btn-original"
+                                label="Establecer Contraseña"
+                                onClick={handleSetPassword}
+                                loading={loading}
+                                disabled={!password.trim() || !confirmPassword.trim() || password !== confirmPassword}
+                            />
+                            <Boton
+                                className="btn-default"
+                                label="Cambiar Código"
+                                onClick={() => {
+                                    setStep(1);
+                                    setPassword('');
+                                    setConfirmPassword('');
+                                    setPersonalData(null);
+                                }}
+                            />
+                        </div>
                     </>
                 )}
             </div>

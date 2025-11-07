@@ -19,6 +19,7 @@ import FiltroTipoMovimiento from '../../mixed/FiltroTipoMovimiento';
 import FiltroEstadoMovimiento from '../../mixed/FiltroEstadoMovimiento';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import FiltroCliente from '../../mixed/FiltroCliente';
 
 // Función helper para normalizar texto (quitar acentos)
 const normalizeText = (text) => {
@@ -64,6 +65,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [filtroTipo, setFiltroTipo] = useState(null);
     const [filtroEstado, setFiltroEstado] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
+    const [filtroCliente, setFiltroCliente] = useState(null);
 
     // Estados para movimientos
     const [movimientos, setMovimientos] = useState([]);
@@ -74,7 +76,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
 
     // Función para cargar movimientos
-    const cargarMovimientos = async (page = 1, search = '', filtro = null, estado = null, orden = 'fecha_desc') => {
+    const cargarMovimientos = async (page = 1, search = '', filtro = null, estado = null, orden = 'fecha_desc', clienteId = null) => {
         // Solo mostrar loading si no hay datos cargados Y es página 1
         if (page === 1 && allMovimientos.length === 0) {
             setIsLoading(true);
@@ -99,8 +101,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
         try {
             const response = tipoMovimiento === 'acopio'
-                ? await movimientosAcopioService.getAll(page, 30, filtro, estado, orden, null, normalizedSearch)
-                : await movimientosAlmacenService.getAll(page, 30, filtro, estado, orden, null, normalizedSearch);
+                ? await movimientosAcopioService.getAll(page, 30, filtro, estado, orden, clienteId, null, normalizedSearch)
+                : await movimientosAlmacenService.getAll(page, 30, filtro, estado, orden, clienteId, null, normalizedSearch);
 
             if (response.success) {
                 const newData = response.data || [];
@@ -164,9 +166,9 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     // Cargar movimientos cuando se abre el modal - solo si no hay datos cargados
     useEffect(() => {
         if (isOpen && !movimientosLoaded) {
-            cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
+            cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente?.id || null);
         }
-    }, [isOpen, movimientosLoaded]);
+    }, [isOpen, movimientosLoaded, filtroCliente]);
 
     // Resetear flags cuando se abre el modal (NO los datos)
     useEffect(() => {
@@ -180,9 +182,9 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     // Cargar movimientos cuando cambia la página (para paginación)
     useEffect(() => {
         if (isOpen && currentPage > 1) {
-            cargarMovimientos(currentPage, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
+            cargarMovimientos(currentPage, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente?.id || null);
         }
-    }, [currentPage]);
+    }, [currentPage, filtroCliente]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -200,7 +202,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setMovimientosLoaded(false);
 
         // La función cargarMovimientos ya maneja el RefreshIndicator
-        await cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
+        await cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente?.id || null);
     };
 
     // Estados para la notificación
@@ -226,6 +228,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [isOpenFiltroOrden, setIsOpenFiltroOrden] = useState(false);
     const [isOpenFiltroTipo, setIsOpenFiltroTipo] = useState(false);
     const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
+    const [isOpenFiltroCliente, setIsOpenFiltroCliente] = useState(false);
 
     // Función para manejar el click en un movimiento
     const handleRegistro = (movimiento) => {
@@ -260,6 +263,12 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setCurrentPage(1);
     };
 
+    // Función para manejar filtro de cliente
+    const handleFiltroCliente = (cliente) => {
+        setFiltroCliente(cliente);
+        setCurrentPage(1);
+    };
+
     // Funciones para el buscador expandible
     const handleSearchChange = (value) => {
         setSearchQuery(value);
@@ -289,11 +298,12 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setFiltroEstado(null);
             setOrdenamiento('fecha_desc');
             setSearchQuery('');
+            setFiltroCliente(null);
             setMovimientosLoaded(false);
             setCurrentTipoMovimiento(tipoMovimiento);
             // Cargar datos del nuevo tipo si el panel está abierto
             if (isOpen) {
-                cargarMovimientos(1, '', null, null, 'fecha_desc');
+                cargarMovimientos(1, '', null, null, 'fecha_desc', null);
             }
         }
     }, [tipoMovimiento, currentTipoMovimiento, isOpen]);
@@ -305,9 +315,9 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setCurrentPage(1);
             setMovimientosLoaded(false);
             // Cargar movimientos inmediatamente después de limpiar
-            cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento);
+            cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente?.id || null);
         }
-    }, [debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento]);
+    }, [debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente, isOpen]);
 
     // Efecto para manejar errores de SWR
     useEffect(() => {
@@ -369,6 +379,12 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         return 'Todos los estados';
     };
 
+    // Función para obtener el nombre del filtro de cliente
+    const getClienteNombre = () => {
+        if (!filtroCliente) return 'Todos los clientes';
+        return filtroCliente.name || 'Cliente seleccionado';
+    };
+
     // Función para obtener el nombre del ordenamiento
     const getOrdenamientoNombre = () => {
         const ordenamientos = {
@@ -390,6 +406,11 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             label: getEstadoNombre(),
             active: filtroEstado !== null,
             onClick: () => setIsOpenFiltroEstado(true)
+        },
+        {
+            label: getClienteNombre(),
+            active: filtroCliente !== null,
+            onClick: () => setIsOpenFiltroCliente(true)
         },
         {
             label: getOrdenamientoNombre(),
@@ -629,6 +650,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 isOpen={isOpenFiltroTipo}
                 setIsOpen={setIsOpenFiltroTipo}
                 onTipoSeleccionado={handleFiltroTipo}
+            />
+
+            {/* Filtro de clientes */}
+            <FiltroCliente
+                isOpen={isOpenFiltroCliente}
+                setIsOpen={setIsOpenFiltroCliente}
+                onClienteSeleccionado={handleFiltroCliente}
+                clienteSeleccionado={filtroCliente}
             />
 
             {/* Filtro de estado de movimiento */}

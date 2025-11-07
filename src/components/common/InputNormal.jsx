@@ -2,9 +2,10 @@ import React, { useState, forwardRef } from 'react';
 import styles from './InputNormal.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, label, error, buttonIcon, buttonIconClick, onKeyPress, readonly = false, onClick }, ref) => {
+const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, label, error, buttonIcon, buttonIconClick, onKeyPress, readonly = false, disabled = false, onClick }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const isDisabled = readonly || disabled;
     
     // Determinar si la label debe estar arriba (cuando hay valor o está en foco)
     const hasValue = value !== '' && value !== null && value !== undefined;
@@ -17,15 +18,28 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
         }
     }, [value]);
 
+    React.useEffect(() => {
+        if (isDisabled) {
+            setIsFocused(false);
+        }
+    }, [isDisabled]);
+
     const handleShowPassword = () => {
         setShowPassword(!showPassword);
     }
 
-    const handleFocus = () => {
+    const handleFocus = (e) => {
+        if (isDisabled) {
+            e.target.blur();
+            return;
+        }
         setIsFocused(true);
     }
 
     const handleBlur = () => {
+        if (isDisabled) {
+            return;
+        }
         if (!hasValue) {
             setIsFocused(false);
         }
@@ -57,9 +71,10 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
         <div style={{ width: '100%', position: 'relative' }}>
             {icon && (
                 <span
-                    className={styles.inputIcon}
+                    className={`${styles.inputIcon} ${isDisabled ? styles.inputIconDisabled : ''}`}
                     style={{
-                        color: isFocused ? 'var(--primary-color)' : ''
+                        color: isDisabled ? '' : (isFocused ? 'var(--primary-color)' : ''),
+                        pointerEvents: isDisabled ? 'none' : undefined
                     }}
                 >
                     <BoxIcon name={icon} className={styles.icon} />
@@ -67,7 +82,7 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
             )}
             {placeholder && (
                 <label 
-                    className={`${styles.inputLabel} ${labelUp ? styles.inputLabelUp : ''}`}
+                    className={`${styles.inputLabel} ${labelUp ? styles.inputLabelUp : ''} ${isDisabled ? styles.inputLabelDisabled : ''}`}
                     style={{
                         paddingLeft: icon ? '50px' : '15px'
                     }}
@@ -77,7 +92,7 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
             )}
             <input
                 ref={ref}
-                className={styles.input}
+                className={`${styles.input} ${isDisabled ? styles.inputDisabled : ''}`}
                 type={inputType}
                 {...(tipo === 'number'
                     ? { inputMode: 'decimal' }
@@ -88,18 +103,20 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 onClick={onClick}
+                readOnly={readonly}
+                disabled={disabled}
+                tabIndex={isDisabled ? -1 : undefined}
                 onWheel={(e) => {
                     // Prevenir que el scroll cambie el valor en inputs de tipo number
                     if (tipo === 'number') {
                         e.target.blur();
                     }
                 }}
-                readOnly={readonly}
                 style={{
                     paddingRight: buttonIcon ? '50px' : '15px',
                     paddingLeft: icon ? '50px' : '15px',
-                    opacity: readonly ? 0.5 : 1,
-                    cursor: readonly && onClick ? 'pointer' : readonly ? 'not-allowed' : 'text'
+                    opacity: isDisabled ? 0.5 : 1,
+                    cursor: isDisabled ? 'not-allowed' : 'text'
                 }}
 
             />
@@ -108,7 +125,9 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                     className={styles.inputView}
                     onClick={handleShowPassword}
                     style={{
-                        color: isFocused ? 'var(--primary-color)' : ''
+                        color: isDisabled ? 'var(--quinary-color)' : (isFocused ? 'var(--primary-color)' : ''),
+                        pointerEvents: isDisabled ? 'none' : undefined,
+                        opacity: isDisabled ? 0.6 : 1
                     }}
                 >
                     {showPassword ? <BoxIcon name="hide" /> : <BoxIcon name="show" />}

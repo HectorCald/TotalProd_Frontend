@@ -444,7 +444,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         <>
                             {(registroActual?.cantidad_ingresada || 0) < (registroActual?.cantidad_verificada || 0) && (
                                 <Boton
-                                    className='btn-blue'
+                                    className='btn-default'
                                     label='Ingresar Producción'
                                     style={{ marginTop: 'auto' }}
                                     onClick={handleOpenIngreso}
@@ -453,7 +453,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                             )}
                             {(registroActual?.cantidad_ingresada || 0) === 0 && (
                                 <Boton
-                                    className='btn-red'
+                                    className='btn-orange'
                                     label='Anular Verificación'
                                     style={{ marginTop: 'auto' }}
                                     onClick={() => setIsAnularOpen(true)}
@@ -556,10 +556,10 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas anular la verificación de este registro? Esta acción volverá el registro al estado pendiente y eliminará los datos de verificación.
+                        ¿Estás seguro que deseas anular la verificación de este registro? Esta acción no se puede deshacer.
                     </p>
 
-                    <div style={{ marginTop: '15px', marginBottom: '10px', width: '100%' }}>
+                    <div style={{ marginTop: '10px', width: '100%' }}>
                         <Text type="error" align="left">
                             Al anular la verificación se regresará la materia prima de la receta del monto verificado. Si terminados es {registroActual?.terminados || 0} y se verificó {registroActual?.cantidad_verificada || 0}, se devolverá la materia prima de la receta pero de la diferencia de {Math.max(0, (registroActual?.cantidad_verificada || 0) - (registroActual?.terminados || 0))}.
                         </Text>
@@ -573,7 +573,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                             onClick={() => setIsAnularOpen(false)}
                         />
                         <Boton
-                            className='btn-red'
+                            className='btn-orange'
                             label='Si, Anular'
                             style={{ marginTop: 'auto' }}
                             onClick={handleAnular}
@@ -592,9 +592,9 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 />
                 <div className={styles.modalContent}>
                     <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas eliminar permanentemente este registro de producción? Esta acción no se puede deshacer.
+                        ¿Estás seguro que deseas eliminar este registro? Esta acción no se puede deshacer.
                     </p>
-                    <div style={{ marginTop: '15px', marginBottom: '10px', width: '100%' }}>
+                    <div style={{ marginTop: '10px', width: '100%' }}>
                         <Text type="error" align="left">
                             Al eliminar el registro de producción se devolverá el peso total de la materia prima de la receta del producto según terminados hayan ({registroActual?.terminados || 0}).
                         </Text>

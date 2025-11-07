@@ -1016,7 +1016,7 @@ function ModalDescarga({
                 onClose={() => setIsOpen(false)}
             />
             <div className={styles.modalContent}>
-                <p className={styles.subTitle}>SELECCIONA EL FORMATO QUE PREFERIAS PARA DESCARGAR.</p>
+                <p className={styles.subTitle}>DEFINIR EL NOMBRE Y TÍTULO DEL DOCUMENTO</p>
                 <InputNormal
                     label="Nombre del archivo"
                     value={nombreArchivoState}
@@ -1035,7 +1035,8 @@ function ModalDescarga({
                     style={{ width: '300px' }}
                     icon="text"
                 />
-                <div className={styles.contentModal} style={{ gap: '20px', marginTop: '15px' }}>
+                <p className={styles.subTitle}>OPCIONES ADICIONALES</p>
+                <div className={styles.contentModal} style={{ gap: '20px'}}>
                     {clienteInfo && (
 
                         <Switch
@@ -1063,7 +1064,7 @@ function ModalDescarga({
 
                         <Switch
                             title="Logos"
-                            subtitle="Incluir logo de la empresa y marca de agua"
+                            subtitle="Incluir logo de la empresa y marca de agua (PDF)"
                             checked={incluirLogos}
                             onChange={handleIncluirLogosChange}
                             icon="image"
@@ -1071,8 +1072,6 @@ function ModalDescarga({
 
                     )}
                 </div>
-
-
                 <div className={styles.buttons}>
                     <Boton
                         className='btn-default'

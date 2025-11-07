@@ -112,14 +112,14 @@ export const MODULES = {
         realizar_salidas: {
             name: 'Salida o Venta',
             description: 'Realizar salida de productos en almacén',
-            icon: 'minus',
+            icon: 'up-arrow-alt',
             component: 'AlmacenGeneral',
             props: { tipo: 'salida' }
         },
         realizar_entradas: {
             name: 'Entrada',
             description: 'Realizar entrada de productos en almacén',
-            icon: 'plus',
+            icon: 'down-arrow-alt',
             component: 'AlmacenGeneral',
             props: { tipo: 'entrada' }
         },
@@ -161,14 +161,14 @@ export const MODULES = {
         realizar_entradas: {
             name: 'Entrada',
             description: 'Realizar entrada de productos en almacén',
-            icon: 'plus',
+            icon: 'down-arrow-alt',
             component: 'AlmacenAcopio',
             props: { tipo: 'entrada' }
         },
         realizar_salidas: {
             name: 'Salida',
             description: 'Realizar salida de productos en almacén',
-            icon: 'minus',
+            icon: 'up-arrow-alt',
             component: 'AlmacenAcopio',
             props: { tipo: 'salida' }
         },
@@ -270,7 +270,7 @@ export const MODULES = {
         gestionar: {
             name: 'Precios',
             description: 'Administra tus precios de productos.',
-            icon: 'file',
+            icon: 'dollar',
             component: 'Precios',
             props: { tipo: 'almacen' }
         },
@@ -284,7 +284,7 @@ export const MODULES = {
         gestionar: {
             name: 'Clientes',
             description: 'Administra tus clientes.',
-            icon: 'file',
+            icon: 'user-pin',
             component: 'Clientes',
             props: { tipo: 'almacen' }
         },
@@ -298,7 +298,7 @@ export const MODULES = {
         gestionar: {
             name: 'Proveedores',
             description: 'Administra tus proveedores.',
-            icon: 'file',
+            icon: 'truck',
             component: 'Proveedores',
             props: { tipo: 'almacen' }
         },
@@ -307,12 +307,12 @@ export const MODULES = {
         name: 'Gastos',
         imagen: imagenGastos,
         descripcion: 'Administra tus gastos.',
-        icon: 'receipt',
+        icon: 'wallet',
         section: 'finanzas',
         gestionar: {
             name: 'Gastos',
             description: 'Administra tus gastos.',
-            icon: 'file',
+            icon: 'wallet',
             component: 'Gastos',
             props: { tipo: 'almacen' }
         },
@@ -391,7 +391,7 @@ export const MODULES = {
         reglas: {
             name: 'Reglas',
             description: 'Gestiona las reglas de producción.',
-            icon: 'file',
+            icon: 'book',
             component: 'Reglas',
             props: {}
         },

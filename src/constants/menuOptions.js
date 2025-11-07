@@ -33,7 +33,7 @@ const MENU_OPTIONS_BASE = [
           {
             id: 'almacen-salidas',
             title: 'Salida o Venta',
-            icon: 'minus',
+            icon: 'up-arrow-alt',
             action: 'openView',
             viewName: 'almacenMedioGeneral',
             props: { tipo: 'salida' }
@@ -41,7 +41,7 @@ const MENU_OPTIONS_BASE = [
           {
             id: 'almacen-entradas',
             title: 'Entrada',
-            icon: 'plus',
+            icon: 'down-arrow-alt',
             action: 'openView',
             viewName: 'almacenMedioGeneral',
             props: { tipo: 'entrada' }
@@ -91,7 +91,7 @@ const MENU_OPTIONS_BASE = [
           {
             id: 'acopio-entradas',
             title: 'Entrada',
-            icon: 'plus',
+            icon: 'down-arrow-alt',
             action: 'openView',
             viewName: 'almacenMedio',
             props: { tipo: 'entrada' }
@@ -99,7 +99,7 @@ const MENU_OPTIONS_BASE = [
           {
             id: 'acopio-salidas',
             title: 'Salida',
-            icon: 'minus',
+            icon: 'up-arrow-alt',
             action: 'openView',
             viewName: 'almacenMedio',
             props: { tipo: 'salida' }

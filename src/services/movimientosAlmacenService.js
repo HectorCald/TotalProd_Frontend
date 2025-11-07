@@ -137,7 +137,7 @@ class movimientosAlmacenService {
   }
 
   // Obtener todos los movimientos de la sucursal
-  static async getAll(page = 1, limit = 10, tipo = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null, search = null) {
+  static async getAll(page = 1, limit = 10, tipo = null, estado = null, ordenamiento = 'fecha_desc', clienteId = null, sucuIdParam = null, search = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -161,6 +161,9 @@ class movimientosAlmacenService {
       }
       if (ordenamiento) {
         params.append('ordenamiento', ordenamiento);
+      }
+      if (clienteId) {
+        params.append('cliente', clienteId);
       }
       if (search && search.trim() !== '') {
         params.append('search', search);

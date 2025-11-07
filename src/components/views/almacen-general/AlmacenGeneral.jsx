@@ -380,24 +380,21 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Efecto para cargar productos del movimiento automáticamente cuando se está repitiendo
     useEffect(() => {
-        if (isOpen && tipo === 'salida' && localStorage.getItem('productosMovimientoEditando')) {
-            // Si se está repitiendo un movimiento, cargar los productos del movimiento automáticamente
-            if (productos.length > 0) {
-                const productosMovimiento = localStorage.getItem('productosMovimientoEditando');
-                if (productosMovimiento) {
-                    try {
-                        const productosParaRepetir = JSON.parse(productosMovimiento);
-                        // Agregar cada producto a la canasta de salidas con la cantidad específica del movimiento
-                        productosParaRepetir.forEach(productoMovimiento => {
-                            const productoCompleto = productos.find(p => p.id === productoMovimiento.id);
-                            if (productoCompleto) {
-                                handleAgregarACanastaMovimientos(productoCompleto, 'salida', null, productoMovimiento.cantidad);
-                            }
-                        });
-                        // NO limpiar aquí - se limpiará cuando se cierre el modal
-                    } catch (error) {
-                        console.error('Error al cargar productos del movimiento para repetir:', error);
-                    }
+        if (isOpen && tipo === 'salida') {
+            const productosMovimientoStorage = localStorage.getItem('productosMovimientoRepitiendo') || localStorage.getItem('productosMovimientoEditando');
+            if (productosMovimientoStorage && productos.length > 0) {
+                try {
+                    const productosParaRepetir = JSON.parse(productosMovimientoStorage);
+                    // Agregar cada producto a la canasta de salidas con la cantidad específica del movimiento
+                    productosParaRepetir.forEach(productoMovimiento => {
+                        const productoCompleto = productos.find(p => p.id === productoMovimiento.id);
+                        if (productoCompleto) {
+                            handleAgregarACanastaMovimientos(productoCompleto, 'salida', null, productoMovimiento.cantidad);
+                        }
+                    });
+                    // NO limpiar aquí - se limpiará cuando se cierre el modal
+                } catch (error) {
+                    console.error('Error al cargar productos del movimiento para repetir:', error);
                 }
             }
         }
@@ -451,6 +448,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         // Variables de edición de pedidos
         localStorage.removeItem('pedidoIdEditando');
         localStorage.removeItem('precioIdEditando');
+        localStorage.removeItem('precioIdRepitiendo');
         localStorage.removeItem('pedidoAgrupadoEditando');
         localStorage.removeItem('productosPedidoEditando');
 
@@ -464,6 +462,12 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         localStorage.removeItem('precioIdEntregando');
 
         // Variables de repetición de movimientos
+        localStorage.removeItem('movimientoAgrupadoRepitiendo');
+        localStorage.removeItem('metodoPagoRepitiendo');
+        localStorage.removeItem('clienteIdRepitiendo');
+        localStorage.removeItem('clienteNameRepitiendo');
+        localStorage.removeItem('productosMovimientoRepitiendo');
+        // Claves antiguas (compatibilidad)
         localStorage.removeItem('movimientoAgrupadoEditando');
         localStorage.removeItem('metodoPagoEditando');
         localStorage.removeItem('clienteIdEditando');
@@ -937,7 +941,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     return (
         <>
-            <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!pedidoIdEditando && !localStorage.getItem('pedidoIdEntregando') && !localStorage.getItem('productosMovimientoEditando') && !isVentaCotizacion}>
+            <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!pedidoIdEditando && !localStorage.getItem('pedidoIdEntregando') && !(localStorage.getItem('productosMovimientoRepitiendo') || localStorage.getItem('productosMovimientoEditando')) && !isVentaCotizacion}>
                 <HeaderView
                     onBack={() => {
                         limpiarLocalStorage();

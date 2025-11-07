@@ -134,7 +134,7 @@ function CodigoPromocional({ isOpen, setIsOpen }) {
         <View isOpen={isOpen} setIsOpen={setIsOpen}isMainView={true}>
             <HeaderView onBack={() => setIsOpen(false)} title='Codigo Promocional' />
             <div className={styles.container}>
-                <p className={styles.subTitle}>Ingresa el codigo promocional para reclamar tu recompensa</p>
+                <p className={styles.subTitle}>INGRESA EL CÓDIGO PROMOCIONAL Y VALIDA</p>
                 <InputNormal
                     id='codigoPromocional'
                     icon='purchase-tag-alt'

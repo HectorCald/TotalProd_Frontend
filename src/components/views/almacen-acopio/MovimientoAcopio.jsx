@@ -250,7 +250,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         const mes = String(hoy.getMonth() + 1).padStart(2, '0');
         const dia = String(hoy.getDate()).padStart(2, '0');
         const fechaLocal = `${año}-${mes}-${dia}`;
-        
+
         const gastoData = {
           fecha_gasto: fechaLocal, // Fecha actual en formato YYYY-MM-DD (zona horaria local)
           valor: parseFloat(dataMov.costo),
@@ -315,7 +315,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
     <>
       <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
         <HeaderModal
-          title={`${tipo === 'entrada' ? 'Entrada' : 'Salida'} - ${producto?.name}`}
+          title={producto?.name}
           onClose={() => setIsOpen(false)}
         />
 
@@ -324,7 +324,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
           <div className={styles.content}>
             <Dato
-              label="Cantidad"
+              label="Cantidad Actual"
               value={`${parseFloat(producto?.quantity || 0).toFixed(2)} ${producto?.type_measure?.code || ''}`}
             />
             <Dato
@@ -333,8 +333,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
             />
           </div>
 
-          <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
-
+          <p className={styles.subTitle}>INFORMACIÓN DE LA {tipo === 'entrada' ? 'ENTRADA' : 'SALIDA'}</p>
           <InputNormal
             tipo="number"
             value={dataMov.quantity}
@@ -393,12 +392,12 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
 
           {/* Selector de cliente para salidas */}
           {tipo === 'salida' && (
-              <Boton
-                className='btn-gray'
-                label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
-                onClick={() => setIsClientesSeleccionOpen(true)}
-              />
-         
+            <Boton
+              className='btn-gray'
+              label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
+              onClick={() => setIsClientesSeleccionOpen(true)}
+            />
+
           )}
           {/* Switch para restar materia prima (solo para entradas y si tiene receta) */}
           {tipo === 'entrada' && tieneReceta && (
@@ -462,19 +461,20 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
               ))}
             </>
           )}
-
-          <Boton
-            className='btn-original'
-            label={`Registrar ${tipo === 'entrada' ? 'entrada' : 'salida'}`}
-            style={{ marginTop: 'auto' }}
-            onClick={handleSubmit}
-            loading={loading}
-            disabled={
-              !dataMov.quantity ||
-              dataMov.quantity <= 0 ||
-              (tipo === 'entrada' && registrarGasto && (!dataMov.costo || dataMov.costo <= 0 || !dataMov.metodo_pago || dataMov.metodo_pago.trim() === ''))
-            }
-          />
+          <div className={styles.buttons}>
+            <Boton
+              className='btn-original'
+              label={`Registrar ${tipo === 'entrada' ? 'Entrada' : 'Salida'}`}
+              style={{ marginTop: 'auto' }}
+              onClick={handleSubmit}
+              loading={loading}
+              disabled={
+                !dataMov.quantity ||
+                dataMov.quantity <= 0 ||
+                (tipo === 'entrada' && registrarGasto && (!dataMov.costo || dataMov.costo <= 0 || !dataMov.metodo_pago || dataMov.metodo_pago.trim() === ''))
+              }
+            />
+          </div>
         </div>
         <Proveedores
           isOpen={isProveedoresSeleccionOpen}

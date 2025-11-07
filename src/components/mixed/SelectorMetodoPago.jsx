@@ -2,6 +2,8 @@ import React from 'react';
 import Select from '../common/Select';
 import styles from '../views/almacen-general/CanastaMovimientos.module.css';
 
+const STORAGE_KEY = 'selectorMetodoPagoPreferencia';
+
 function SelectorMetodoPago({ value, onChange, disabled = false, placeholder = 'Método de pago (obligatorio)' }) {
     // Opciones de métodos de pago
     const metodosPago = [
@@ -11,15 +13,33 @@ function SelectorMetodoPago({ value, onChange, disabled = false, placeholder = '
         { value: 'credito', label: 'A crédito', icon: 'credit-card-alt' }
     ];
 
-    // Establecer valor por defecto si no hay valor
-    const valorActual = value || 'efectivo';
+    const storedValueRef = React.useRef(null);
 
-    // Si no hay valor y onChange existe, establecer el valor por defecto
+    if (storedValueRef.current === null && typeof window !== 'undefined') {
+        storedValueRef.current = localStorage.getItem(STORAGE_KEY);
+    }
+
+    // Establecer valor por defecto si no hay valor
+    const valorActual = value || storedValueRef.current || 'efectivo';
+
+    // Si no hay valor y onChange existe, establecer el valor almacenado o el valor por defecto
     React.useEffect(() => {
         if (!value && onChange) {
-            onChange('efectivo');
+            if (storedValueRef.current) {
+                onChange(storedValueRef.current);
+            } else {
+                onChange('efectivo');
+            }
         }
     }, [value, onChange]);
+
+    // Guardar en localStorage cuando el valor cambie
+    React.useEffect(() => {
+        if (value && typeof window !== 'undefined') {
+            storedValueRef.current = value;
+            localStorage.setItem(STORAGE_KEY, value);
+        }
+    }, [value]);
 
     return (
         <Select

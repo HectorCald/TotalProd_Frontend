@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
@@ -17,6 +17,7 @@ import Table from '../../common/Table';
 // import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
 import FiltroEstadoDeuda from '../../mixed/FiltroEstadoDeuda';
+import FiltroCliente from '../../mixed/FiltroCliente';
 import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
@@ -68,7 +69,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     const [activeRequests, setActiveRequests] = useState(0);
 
     // Cargar deudas (similar a PanelMovimientos)
-    const cargarDeudas = async (page = 1, limit = 10, search = '', estado = null, cliente = null, orden = 'fecha_desc') => {
+    const cargarDeudas = async (page = 1, limit = 30, search = '', estado = null, clienteId = null, orden = 'fecha_desc') => {
         // Loading flags
         if (page === 1 && allDeudas.length === 0) {
             setIsLoading(true);
@@ -90,7 +91,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         const normalizedSearch = normalizeText(search);
 
         try {
-            const response = await deudasService.getAll(page, limit, normalizedSearch, estado, cliente, orden);
+            const response = await deudasService.getAll(page, limit, normalizedSearch, estado, clienteId, orden);
             if (response.success) {
                 const newData = response.data || [];
                 setDeudas(newData);
@@ -98,6 +99,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
 
                 if (page === 1) {
                     setAllDeudas(newData.length > 0 ? newData : []);
+                    setDeudasLoaded(true);
                 } else {
                     setAllDeudas(prev => {
                         const existingIds = new Set(prev.map(d => d.id));
@@ -138,24 +140,27 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     const [deudasLoaded, setDeudasLoaded] = useState(false);
     useEffect(() => {
         if (isOpen && !deudasLoaded) {
-            cargarDeudas(1, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento);
-            setDeudasLoaded(true);
+            cargarDeudas(1, 30, debouncedSearchQuery, filtroEstado, filtroCliente?.id || null, ordenamiento);
         }
-    }, [isOpen, deudasLoaded, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento]);
+    }, [isOpen, deudasLoaded, filtroCliente]);
 
     // Resetear flags cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
+            setDeudasLoaded(false);
             setCurrentPage(1);
+        } else {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
         }
     }, [isOpen]);
 
     // Cargar al cambiar de página
     useEffect(() => {
         if (isOpen && currentPage > 1) {
-            cargarDeudas(currentPage, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento);
+            cargarDeudas(currentPage, 30, debouncedSearchQuery, filtroEstado, filtroCliente?.id || null, ordenamiento);
         }
-    }, [currentPage]);
+    }, [currentPage, filtroCliente]);
 
 
     // Estados para la notificación
@@ -192,14 +197,14 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         setAllDeudas([]);
         setCurrentPage(1);
         setDeudasLoaded(false);
-        await cargarDeudas(1, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento);
+        await cargarDeudas(1, 30, debouncedSearchQuery, filtroEstado, filtroCliente?.id || null, ordenamiento);
     };
 
 
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading && !isLoadingMore) {
             setCurrentPage(prev => prev + 1);
         }
     };
@@ -207,10 +212,10 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     // (Ordenamiento por UI removido; se mantiene estado por compatibilidad)
 
     // Función para manejar filtro de estado
-    const handleFiltroEstado = useCallback((estado) => {
+    const handleFiltroEstado = (estado) => {
         setFiltroEstado(estado);
         setCurrentPage(1);
-    }, []);
+    };
 
     // Función para manejar filtro de cliente
     const handleFiltroCliente = (cliente) => {
@@ -244,9 +249,9 @@ function PanelDeudas({ isOpen, setIsOpen }) {
             setAllDeudas([]);
             setCurrentPage(1);
             setDeudasLoaded(false);
-            cargarDeudas(1, 10, debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento);
+            cargarDeudas(1, 30, debouncedSearchQuery, filtroEstado, filtroCliente?.id || null, ordenamiento);
         }
-    }, [debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento]);
+    }, [debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento, isOpen]);
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -325,11 +330,21 @@ function PanelDeudas({ isOpen, setIsOpen }) {
 
     // (Nombre de ordenamiento removido junto con filtro de UI)
 
+    const getClienteNombre = () => {
+        if (!filtroCliente) return 'Todos los clientes';
+        return filtroCliente.name || 'Cliente seleccionado';
+    };
+
     const opciones = [
         {
             label: getEstadoNombre(),
             active: filtroEstado !== null,
             onClick: () => setOpenEstado(true)
+        },
+        {
+            label: getClienteNombre(),
+            active: filtroCliente !== null,
+            onClick: () => setOpenCliente(true)
         }
     ];
 
@@ -460,6 +475,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                     maxHeight: 'calc(100% - 80px)',
                                     minHeight: 'calc(100% - 80px)'
                                 }}
+                                onScroll={handleScroll}
                             >
                                     {allDeudas.length > 0 ? (
                                         allDeudas.map((deuda, index) => {
@@ -552,7 +568,12 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                 onEstadoSeleccionado={handleFiltroEstado}
             />
 
-            {null}
+            <FiltroCliente
+                isOpen={isOpenCliente}
+                setIsOpen={setOpenCliente}
+                onClienteSeleccionado={handleFiltroCliente}
+                clienteSeleccionado={filtroCliente}
+            />
         </View>
     );
 }

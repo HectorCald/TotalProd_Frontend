@@ -293,6 +293,7 @@ const Home = () => {
             onViewOpen={handleViewOpen}
             isEmployee={false}
             hasUserData={!!user}
+            user={user}
           />
 
           {/* Vistas modales - Solo para pantallas pequeñas */}

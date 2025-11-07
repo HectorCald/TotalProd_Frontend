@@ -81,10 +81,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     setPrecioSeleccionado(preciosTipos[0].value);
                 }
             } else {
-                // Para repeticiones de movimientos, verificar precioIdEditando
-                const precioIdEditando = localStorage.getItem('precioIdEditando');
-                if (precioIdEditando && preciosTipos.find(p => p.value === precioIdEditando)) {
-                    setPrecioSeleccionado(precioIdEditando);
+                // Para repeticiones de movimientos, verificar precioIdRepitiendo
+                const precioIdRepitiendo = localStorage.getItem('precioIdRepitiendo') || localStorage.getItem('precioIdEditando');
+                if (precioIdRepitiendo && preciosTipos.find(p => p.value === precioIdRepitiendo)) {
+                    setPrecioSeleccionado(precioIdRepitiendo);
                 } else if (preciosTipos.length > 0) {
                     setPrecioSeleccionado(preciosTipos[0].value);
                 }
@@ -105,7 +105,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     // Inicializar modo de agrupación desde el movimiento al abrir en repetición
     useEffect(() => {
         if (isOpen) {
-            const modoMovimiento = localStorage.getItem('movimientoAgrupadoEditando');
+            const modoMovimiento = localStorage.getItem('movimientoAgrupadoRepitiendo') || localStorage.getItem('movimientoAgrupadoEditando');
             if (modoMovimiento === 'agrupado' || modoMovimiento === 'no_agrupado') {
                 setModoAgrupacion(modoMovimiento);
             }
@@ -132,8 +132,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     // Cargar información del cliente del movimiento cuando es una repetición
     useEffect(() => {
         if (isOpen) {
-            const clienteId = localStorage.getItem('clienteIdEditando');
-            const clienteName = localStorage.getItem('clienteNameEditando');
+            const clienteId = localStorage.getItem('clienteIdRepitiendo') || localStorage.getItem('clienteIdEditando');
+            const clienteName = localStorage.getItem('clienteNameRepitiendo') || localStorage.getItem('clienteNameEditando');
 
             if (clienteId && clienteName) {
                 setClienteSeleccionadoData({
@@ -151,7 +151,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     // Cargar método de pago del movimiento cuando es una repetición
     useEffect(() => {
         if (isOpen) {
-            const metodoPago = localStorage.getItem('metodoPagoEditando');
+            const metodoPago = localStorage.getItem('metodoPagoRepitiendo') || localStorage.getItem('metodoPagoEditando');
             if (metodoPago) {
                 setMetodoPagoSeleccionado(metodoPago);
             }
@@ -662,7 +662,13 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 setMetodoPagoSeleccionado('');
                 localStorage.removeItem('canastaSalidas');
 
-                // Limpiar variables específicas de repetición (excepto productosMovimientoEditando que se limpia al cerrar el almacén)
+                // Limpiar variables específicas de repetición (excepto productosMovimientoRepitiendo que se limpia al cerrar el almacén)
+                localStorage.removeItem('precioIdRepitiendo');
+                localStorage.removeItem('movimientoAgrupadoRepitiendo');
+                localStorage.removeItem('clienteIdRepitiendo');
+                localStorage.removeItem('clienteNameRepitiendo');
+                localStorage.removeItem('metodoPagoRepitiendo');
+                // Claves antiguas (compatibilidad)
                 localStorage.removeItem('precioIdEditando');
                 localStorage.removeItem('movimientoAgrupadoEditando');
                 localStorage.removeItem('clienteIdEditando');

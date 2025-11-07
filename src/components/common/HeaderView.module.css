@@ -41,7 +41,7 @@
 }
 
 .headerViewTitle {
-    font-size: 18px;
+    font-size: 16px;
     color: var(--white-color);
     font-weight: 600;
     flex: 1;

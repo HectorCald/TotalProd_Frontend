@@ -1,6 +1,8 @@
 /* Estilos para el contenedor principal de Home */
 .homePage {
-  min-height: 100vh;
+  max-height: calc(100vh - 50px);
+  margin-top: 50px;
+  height: 100%;
   background: var(--secondary-color);
   display: flex;
   flex-direction: column;
@@ -8,8 +10,6 @@
   justify-content: flex-start;
   width: 100%;
   position: relative;
-  padding-top: 50px;
-  padding-inline: 0;
   overflow: hidden;
 }
 
@@ -17,7 +17,6 @@
 @media (min-width: 1024px) {
   .homePage {
     padding: 0;
-    padding-top: 50px;
     width: 100%;
   }
   

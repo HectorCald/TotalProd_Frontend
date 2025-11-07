@@ -21,6 +21,11 @@
     justify-content: center;
 }
 
+.inputDisabled{
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .inputLabel{
     position: absolute;
     left: -9px;
@@ -37,6 +42,12 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.inputLabelDisabled{
+    color: var(--quinary-color);
+    opacity: 0.6;
 }
 
 .inputLabelUp{
@@ -97,6 +108,10 @@
   align-items: center;
   justify-content: center;
   z-index: 2;
+}
+.inputIconDisabled{
+  color: var(--quinary-color);
+  opacity: 0.6;
 }
 .icon{
   font-size: 20px !important;

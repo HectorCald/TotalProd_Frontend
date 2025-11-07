@@ -25,7 +25,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
-    const [modoAlmacen, setModoAlmacen] = useState('editar'); // 'editar' para editar movimiento
+    const [modoAlmacen, setModoAlmacen] = useState('repetir'); // 'repetir' para repetir movimiento
 
     // Estado local para el movimiento actual
     const [movimientoActual, setMovimientoActual] = useState(movimiento);
@@ -256,24 +256,38 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
 
         // Limpiar completamente la canasta de salidas en localStorage
         localStorage.removeItem('canastaSalidas');
+        localStorage.removeItem('movimientoIdRepitiendo');
         localStorage.removeItem('movimientoIdEditando');
+        localStorage.removeItem('precioIdRepitiendo');
         localStorage.removeItem('precioIdEditando');
+        localStorage.removeItem('movimientoAgrupadoRepitiendo');
         localStorage.removeItem('movimientoAgrupadoEditando');
+        localStorage.removeItem('clienteIdRepitiendo');
         localStorage.removeItem('clienteIdEditando');
+        localStorage.removeItem('clienteNameRepitiendo');
         localStorage.removeItem('clienteNameEditando');
+        localStorage.removeItem('metodoPagoRepitiendo');
         localStorage.removeItem('metodoPagoEditando');
+        localStorage.removeItem('productosMovimientoRepitiendo');
         localStorage.removeItem('productosMovimientoEditando');
 
         // Guardar datos del movimiento para repetir (como nueva salida)
-        localStorage.setItem('precioIdEditando', movimientoActual.precio_id || '');
-        localStorage.setItem('movimientoAgrupadoEditando', movimientoActual.agrupado ? 'agrupado' : 'no_agrupado');
-        localStorage.setItem('metodoPagoEditando', movimientoActual.metodo_pago || '');
+        localStorage.setItem('precioIdRepitiendo', movimientoActual.precio_id || '');
+        localStorage.removeItem('precioIdEditando');
+        localStorage.setItem('movimientoAgrupadoRepitiendo', movimientoActual.agrupado ? 'agrupado' : 'no_agrupado');
+        localStorage.removeItem('movimientoAgrupadoEditando');
+        localStorage.setItem('metodoPagoRepitiendo', movimientoActual.metodo_pago || '');
+        localStorage.removeItem('metodoPagoEditando');
 
         // Guardar información del cliente si existe
         if (movimientoActual.cliente?.id) {
-            localStorage.setItem('clienteIdEditando', movimientoActual.cliente.id);
-            localStorage.setItem('clienteNameEditando', movimientoActual.cliente.name || '');
+            localStorage.setItem('clienteIdRepitiendo', movimientoActual.cliente.id);
+            localStorage.setItem('clienteNameRepitiendo', movimientoActual.cliente.name || '');
+            localStorage.removeItem('clienteIdEditando');
+            localStorage.removeItem('clienteNameEditando');
         } else {
+            localStorage.removeItem('clienteIdRepitiendo');
+            localStorage.removeItem('clienteNameRepitiendo');
             localStorage.removeItem('clienteIdEditando');
             localStorage.removeItem('clienteNameEditando');
         }
@@ -309,7 +323,8 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 };
             })
             .filter(Boolean);
-        localStorage.setItem('productosMovimientoEditando', JSON.stringify(productosMovimiento));
+        localStorage.setItem('productosMovimientoRepitiendo', JSON.stringify(productosMovimiento));
+        localStorage.removeItem('productosMovimientoEditando');
 
         // Abrir AlmacenGeneral en modo salida normal
         setModoAlmacen('salida');
@@ -695,6 +710,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     setIsAlmacenOpen(isOpen);
                     // Limpiar productos del movimiento cuando se cierra AlmacenGeneral
                     if (!isOpen) {
+                        localStorage.removeItem('productosMovimientoRepitiendo');
                         localStorage.removeItem('productosMovimientoEditando');
                     }
                 }}

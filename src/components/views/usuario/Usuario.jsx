@@ -298,6 +298,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         </>
                     )}
 
+                    {/*
                     <ComponenteFull
                         title="Comentarios"
                         subtitle="Envía tus comentarios y sugerencias"
@@ -305,6 +306,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                         type="arrow"
                         onClick={handleComentarios}
                     />
+                    */}
 
                     <ItemLine
                         icon='power-off'

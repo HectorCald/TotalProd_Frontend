@@ -18,6 +18,7 @@ import PlanInfo from '../views/usuario/PlanInfo';
 import Comentarios from '../views/comentarios/Comentarios';
 import ImagenEmpresa from '../views/usuario/ImagenEmpresa';
 import Notification from '../common/Notification';
+import AtajosEmpleado from '../views/usuario/AtajosEmpleado';
 
 const UsuarioScreen = () => {
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
@@ -27,6 +28,7 @@ const UsuarioScreen = () => {
     const [isOpenCodigoPromocional, setIsOpenCodigoPromocional] = useState(false);
     const [isOpenComentarios, setIsOpenComentarios] = useState(false);
     const [isOpenImagenEmpresa, setIsOpenImagenEmpresa] = useState(false);
+    const [isOpenAtajo, setIsOpenAtajo] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [empresaImage, setEmpresaImage] = useState(null);
     const [loadingImage, setLoadingImage] = useState(false);
@@ -180,7 +182,15 @@ const UsuarioScreen = () => {
                         onClick={() => setIsOpenCambiarContraseña(true)}
                     />
 
-                    {!isEmployee && (
+                    {isEmployee ? (
+                        <ComponenteFull
+                            title="Atajos de módulos"
+                            subtitle="Configura accesos rápidos"
+                            icon="grid"
+                            type="arrow"
+                            onClick={() => setIsOpenAtajo(true)}
+                        />
+                    ) : (
                         <>
                             <ComponenteFull
                                 title="Código promocional"
@@ -200,6 +210,7 @@ const UsuarioScreen = () => {
                         </>
                     )}
 
+                    {/*
                     <ComponenteFull
                         title="Comentarios"
                         subtitle="Envía tus comentarios y sugerencias"
@@ -207,6 +218,7 @@ const UsuarioScreen = () => {
                         type="arrow"
                         onClick={() => setIsOpenComentarios(true)}
                     />
+                    */}
 
                     <ItemLine
                         icon='power-off'
@@ -277,6 +289,10 @@ const UsuarioScreen = () => {
                 type={notification.type}
                 text={notification.text}
             />
+
+            {isEmployee && (
+                <AtajosEmpleado isOpen={isOpenAtajo} setIsOpen={setIsOpenAtajo} />
+            )}
         </>
     );
 };
