@@ -1,18 +1,33 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
-// Cache global con expiración de 1 segundo
-const fetchCache = new Map();
+function FetchData({
+    service,
+    method = 'getAll',
+    methodParams = [],
+    isOpen,
+    onDataLoaded,
+    onLoadingStart,
+    onLoadingEnd,
+    onError,
+    serviceName
+}) {
+    const lastFetchKeyRef = useRef(null);
 
-function FetchData({ service, method = 'getAll', methodParams = [], isOpen, onDataLoaded, onLoadingStart, onLoadingEnd, onError, serviceName }) {
     const cacheKey = `${serviceName || service.constructor.name}-${method}-${JSON.stringify(methodParams)}`;
 
     const fetchData = useCallback(async () => {
         if (onLoadingStart) onLoadingStart();
-        
+
         try {
             const response = await service[method](...methodParams);
             if (response.success) {
-                console.log('✅ Petición completada:', serviceName || service.constructor.name, '-', response.data?.length, 'elementos');
+                console.log(
+                    '✅ Petición completada:',
+                    serviceName || service.constructor.name,
+                    '-',
+                    response.data?.length,
+                    'elementos'
+                );
                 if (onDataLoaded) {
                     onDataLoaded(response.data);
                 }
@@ -28,14 +43,15 @@ function FetchData({ service, method = 'getAll', methodParams = [], isOpen, onDa
     }, [method, methodParams, onDataLoaded, onError, onLoadingEnd, onLoadingStart, service, serviceName]);
 
     useEffect(() => {
-        if (isOpen && !fetchCache.has(cacheKey)) {
-            fetchCache.set(cacheKey, true);
-            fetchData();
-            
-            // Limpiar cache después de 1 segundo
-            setTimeout(() => {
-                fetchCache.delete(cacheKey);
-            }, 1000);
+        if (isOpen) {
+            const shouldFetch = lastFetchKeyRef.current !== cacheKey;
+
+            if (shouldFetch) {
+                lastFetchKeyRef.current = cacheKey;
+                fetchData();
+            }
+        } else {
+            lastFetchKeyRef.current = null;
         }
     }, [cacheKey, fetchData, isOpen]);
 
