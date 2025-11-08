@@ -425,7 +425,11 @@ const HomeEmpleado = () => {
             case 'Deudas':
                 return <Deudas isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'PanelConteos':
-                return <PanelConteos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoConteo={currentSubModule.props?.tipo || 'almacen'} />;
+                return <PanelConteos
+                    isOpen={isSubModuleOpen}
+                    setIsOpen={setIsSubModuleOpen}
+                    tipoConteo={currentSubModule.props?.tipoConteo ?? currentSubModule.props?.tipo ?? 'almacen'}
+                />;
             case 'MiProduccion':
                 return <MiProduccion isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Reglas':
