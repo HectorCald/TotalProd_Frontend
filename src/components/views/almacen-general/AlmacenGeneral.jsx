@@ -33,7 +33,7 @@ import limpiarAlmacenLocalStorage from './helpers/limpiarAlmacenLocalStorage';
 import useCanastaActions from './hooks/useCanastaActions';
 
 
-function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null, isRepitiendoMovimiento = false, isVentaCotizacionProp = false }) {
+function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null, isRepitiendoMovimiento = false, isVentaCotizacionProp = false, onMovimientoEditado = null }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
     const { isLargeScreen } = useLayout();
 
@@ -165,7 +165,39 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Función para manejar cuando se cargan los productos
     const handleProductosLoaded = useCallback((data) => {
-        setProductos(data);
+        let productosProcesados = data;
+
+        const productosEdicionStorage = localStorage.getItem('productosEdicion');
+        if (productosEdicionStorage) {
+            try {
+                const productosEdicion = JSON.parse(productosEdicionStorage);
+                if (Array.isArray(productosEdicion) && productosEdicion.length > 0) {
+                    const cantidadesMap = productosEdicion.reduce((acc, productoEdicion) => {
+                        const idProducto = productoEdicion?.id;
+                        const cantidad = Number(productoEdicion?.cantidad) || 0;
+                        if (!idProducto || cantidad <= 0) return acc;
+                        acc[idProducto] = (acc[idProducto] || 0) + cantidad;
+                        return acc;
+                    }, {});
+
+                    if (Object.keys(cantidadesMap).length > 0) {
+                        productosProcesados = data.map((producto) => {
+                            const extra = cantidadesMap[producto.id];
+                            if (!extra) return producto;
+                            const stockActual = Number(producto.stock) || 0;
+                            return {
+                                ...producto,
+                                stock: stockActual + extra
+                            };
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error aplicando stock temporal de edición:', error);
+            }
+        }
+
+        setProductos(productosProcesados);
         setProductosLoaded(true);
     }, []);
 
@@ -174,7 +206,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         try {
             const response = await productsAlmacenService.getAll();
             if (response.success) {
-                setProductos(response.data);
+                handleProductosLoaded(response.data);
             }
         } catch (error) {
             console.error('Error al refrescar productos:', error);
@@ -760,6 +792,9 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         productosActualizados={productos}
                         isCartMode={isCartMode && isLargeScreen}
                         onPedidoActualizado={onPedidoActualizado}
+                    isEditandoMovimiento={!!localStorage.getItem('fechaMovimientoEditando')}
+                    movimientoIdEditando={localStorage.getItem('movimientoIdEditando')}
+                    onMovimientoEditado={onMovimientoEditado}
                         onCerrarCanasta={(productosActualizados, precioId, movimientoId, pedidoActualizadoData) => {
                             // Si es una entrega, llamar a la función de entrega
                             if (onEntregaConfirmada && localStorage.getItem('pedidoIdEntregando')) {

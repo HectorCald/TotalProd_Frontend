@@ -24,7 +24,9 @@ function useAutoCargaCanastas({
                     onAgregarProductoMovimiento?.(productoCompleto, 'salida', null, productoPedido.cantidad);
                 }
             });
-            localStorage.removeItem('productosPedidoEntregando');
+            setTimeout(() => {
+                localStorage.removeItem('productosPedidoEntregando');
+            }, 1000);
         } catch (error) {
             console.error('Error al cargar productos del pedido:', error);
         }
@@ -71,15 +73,16 @@ function useAutoCargaCanastas({
                     onAgregarProductoMovimiento?.(productoCompleto, 'salida', null, productoMovimiento.cantidad);
                 }
             });
+            setTimeout(() => {
+                if (productosMovimientoRepitiendo) {
+                    localStorage.removeItem('productosMovimientoRepitiendo');
+                }
+                if (productosMovimientoEditando) {
+                    localStorage.removeItem('productosMovimientoEditando');
+                }
+            }, 1000);
         } catch (error) {
-            console.error('Error al cargar productos del movimiento para repetir:', error);
-        } finally {
-            if (productosMovimientoRepitiendo) {
-                localStorage.removeItem('productosMovimientoRepitiendo');
-            }
-            if (productosMovimientoEditando) {
-                localStorage.removeItem('productosMovimientoEditando');
-            }
+            console.error('Error al cargar productos del movimiento para repetir/editar:', error);
         }
     }, [isOpen, productos, tipo, onAgregarProductoMovimiento]);
 

@@ -17,7 +17,7 @@ import InputNormal from '../../common/InputNormal';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import useEntregaMovimientos from './hooks/useEntregaMovimientos';
 
-function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null }) {
+function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null, isEditandoMovimiento = false, movimientoIdEditando = null, onMovimientoEditado = null }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
@@ -347,12 +347,19 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
-        // Limpiar también el localStorage
         localStorage.removeItem('canastaSalidas');
         localStorage.removeItem('descuentoMovimientoRepitiendo');
         localStorage.removeItem('aumentoMovimientoRepitiendo');
         localStorage.removeItem('descuentoMovimientoEditando');
         localStorage.removeItem('aumentoMovimientoEditando');
+        setDescuento('');
+        setAumento('');
+        setClienteSeleccionado('');
+        setClienteSeleccionadoData(null);
+        if (isEditandoMovimiento && movimientoIdEditando) {
+            localStorage.removeItem('movimientoIdEditando');
+        }
+        localStorage.removeItem('productosEdicion');
         setIsLimpiarModalOpen(false);
         setIsOpen(false);
     };
@@ -405,6 +412,26 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             if (!validarMovimiento()) {
                 setLoadingConfirmar(false);
                 return;
+            }
+
+            const fechaMovimientoEditando = isEditandoMovimiento ? localStorage.getItem('fechaMovimientoEditando') : null;
+
+            if (isEditandoMovimiento && movimientoIdEditando) {
+                const anulacionResp = await movimientosAlmacenService.anular(movimientoIdEditando);
+                if (!anulacionResp?.success) {
+                    const mensajeError = anulacionResp?.message || 'Error al anular el movimiento anterior';
+                    mostrarNotificacion('error', mensajeError);
+                    setLoadingConfirmar(false);
+                    return;
+                }
+
+                const eliminacionResp = await movimientosAlmacenService.eliminar(movimientoIdEditando);
+                if (!eliminacionResp?.success) {
+                    const mensajeEliminar = eliminacionResp?.message || 'Error al eliminar el movimiento anterior';
+                    mostrarNotificacion('error', mensajeEliminar);
+                    setLoadingConfirmar(false);
+                    return;
+                }
             }
 
             let pedidoActualizado = null;
@@ -460,7 +487,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 agrupado: modoAgrupacion === 'agrupado',
                 descuento: parseFloat(descuento) || 0,
                 aumento: parseFloat(aumento) || 0,
-                productos: prepararProductos()
+                productos: prepararProductos(),
+                ...(fechaMovimientoEditando ? { fecha: fechaMovimientoEditando } : {})
             };
             const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
             movimientoId = (movimientoResponse && movimientoResponse.success) ? movimientoResponse.data?.id : null;
@@ -488,6 +516,15 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         const descuentoValue = parseFloat(descuento) || 0;
                         const aumentoValue = parseFloat(aumento) || 0;
                         const totalMovimiento = subtotalMovimiento - descuentoValue + aumentoValue;
+                        const fechaDeudaBase = (() => {
+                            if (fechaMovimientoEditando) {
+                                const fechaParsed = new Date(fechaMovimientoEditando);
+                                if (!isNaN(fechaParsed.getTime())) {
+                                    return fechaParsed.toISOString().split('T')[0];
+                                }
+                            }
+                            return new Date().toISOString().split('T')[0];
+                        })();
                         let concepto = 'Venta a crédito';
                         let destinoSucursalId = null;
 
@@ -500,7 +537,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
                         // Crear nueva deuda
                         const deudaData = {
-                            fecha_deuda: new Date().toISOString().split('T')[0],
+                            fecha_deuda: fechaDeudaBase,
                             fecha_vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                             monto_total: totalMovimiento,
                             saldo_pendiente: totalMovimiento,
@@ -587,6 +624,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 localStorage.removeItem('aumentoMovimientoRepitiendo');
                 localStorage.removeItem('descuentoMovimientoEditando');
                 localStorage.removeItem('aumentoMovimientoEditando');
+                localStorage.removeItem('fechaMovimientoEditando');
+                if (isEditandoMovimiento && movimientoIdEditando) {
+                    localStorage.removeItem('movimientoIdEditando');
+                }
+                localStorage.removeItem('productosEdicion');
 
                 // Solo cerrar la canasta en móvil, no en PC (modo carrito)
                 // En PC (isCartMode && isLargeScreen), mantener abierto para mostrar modal de descarga
@@ -597,6 +639,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 if (onCerrarCanasta) {
                     onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId, pedidoActualizado);
                 }
+
+        if (!isEditandoMovimiento && onMovimientoEditado) {
+            onMovimientoEditado(movimientoId, movimientoIdEditando);
+        }
             } else {
                 mostrarNotificacion('error', 'Error al crear el movimiento');
             }
@@ -823,7 +869,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         <div className={styles.buttons}>
                             <Boton
                                 className='btn-original'
-                                label={esEntrega ? 'Entregar Pedido' : 'Confirmar Salida'}
+                                label={esEntrega ? 'Entregar Pedido' : (isEditandoMovimiento ? 'Actualizar Movimiento' : 'Confirmar Salida')}
                                 onClick={handleConfirmar}
                                 loading={loadingConfirmar}
                                 disabled={

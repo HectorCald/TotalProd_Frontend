@@ -17,7 +17,7 @@ import ModalTable from '../../common/ModalTable';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import Text from '../../common/Text';
 
-function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado, onMovimientoActualizado }) {
+function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado, onMovimientoActualizado, onMovimientoEditado }) {
     const { isLargeScreen } = useLayout();
     const [loading, setLoading] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
@@ -94,6 +94,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             });
     }, [movimientoActual?.productos, movimientoActual?.agrupado, movimientoActual?.estado, movimiento?.productos]);
 
+    const obtenerProductosFuente = () => {
+        const productosAct = movimientoActual?.productos || [];
+        const productosOriginales = movimiento?.productos || [];
+        const productosActInvalidos =
+            movimientoActual?.estado === 'anulado' &&
+            (!productosAct.length || productosAct.some(p => !p?.producto?.id || p.precio_unitario === 0));
+        return productosActInvalidos ? productosOriginales : productosAct;
+    };
 
     // Handle para anular movimiento
     const handleAnular = async () => {
@@ -266,6 +274,10 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         localStorage.removeItem('clienteNameRepitiendo');
         localStorage.removeItem('metodoPagoRepitiendo');
         localStorage.removeItem('productosMovimientoRepitiendo');
+        localStorage.removeItem('productosMovimientoEditando');
+        localStorage.removeItem('fechaMovimientoEditando');
+        localStorage.removeItem('movimientoIdEditando');
+        localStorage.removeItem('productosEdicion');
 
         // Guardar datos del movimiento para repetir (como nueva salida)
         localStorage.setItem('precioIdRepitiendo', movimientoActual.precio_id || '');
@@ -296,14 +308,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         }
 
         // Guardar productos del movimiento para cargar automáticamente (robusto post-anulación)
-        const productosFuente = (() => {
-            const productosAct = movimientoActual?.productos || [];
-            const productosOriginales = movimiento?.productos || [];
-            const productosActInvalidos =
-                movimientoActual?.estado === 'anulado' &&
-                (!productosAct.length || productosAct.some(p => !p?.producto?.id || p.precio_unitario === 0));
-            return productosActInvalidos ? productosOriginales : productosAct;
-        })();
+        const productosFuente = obtenerProductosFuente();
 
         const productosMovimiento = (productosFuente || [])
             .map((productoMovimiento) => {
@@ -333,6 +338,64 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         setIsAlmacenOpen(true);
     };
 
+    const handleEditarMovimiento = () => {
+        handleRepetirMovimiento();
+        if (movimientoActual?.fecha) {
+            try {
+                const fechaMovimiento = new Date(movimientoActual.fecha);
+                if (!isNaN(fechaMovimiento.getTime())) {
+                    localStorage.setItem('fechaMovimientoEditando', fechaMovimiento.toISOString());
+                } else {
+                    localStorage.removeItem('fechaMovimientoEditando');
+                }
+            } catch (error) {
+                localStorage.removeItem('fechaMovimientoEditando');
+            }
+        } else {
+            localStorage.removeItem('fechaMovimientoEditando');
+        }
+        if (movimientoActual?.id) {
+            localStorage.setItem('movimientoIdEditando', movimientoActual.id);
+        } else {
+            localStorage.removeItem('movimientoIdEditando');
+        }
+
+        const productosMovimientoRepetidos = localStorage.getItem('productosMovimientoRepitiendo');
+        if (productosMovimientoRepetidos) {
+            localStorage.setItem('productosMovimientoEditando', productosMovimientoRepetidos);
+        }
+
+        const productosFuente = obtenerProductosFuente();
+        if (productosFuente && productosFuente.length > 0) {
+            const productosEdicion = productosFuente
+                .map((productoMovimiento) => {
+                    const productoBase = productoMovimiento?.producto;
+                    if (!productoBase?.id) return null;
+                    const cantidadOriginal = Number(productoMovimiento?.cantidad) || 0;
+                    return {
+                        ...productoBase,
+                        cantidad: cantidadOriginal
+                    };
+                })
+                .filter(Boolean);
+
+            if (productosEdicion.length > 0) {
+                localStorage.setItem('productosEdicion', JSON.stringify(productosEdicion));
+            } else {
+                localStorage.removeItem('productosEdicion');
+            }
+        } else {
+            localStorage.removeItem('productosEdicion');
+        }
+    };
+
+    const handleMovimientoEditadoFinalizado = (nuevoMovimientoId, movimientoAnteriorId) => {
+        setIsAlmacenOpen(false);
+        setIsOpen(false);
+        if (onMovimientoEditado) {
+            onMovimientoEditado(nuevoMovimientoId, movimientoAnteriorId);
+        }
+    };
 
 
     if (!movimientoActual) return null;
@@ -520,9 +583,9 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                             )}
                             <Boton
                                 className='btn-gray'
-                                label='Editar'
+                                label='Editar Movimiento'
                                 style={{ marginTop: 'auto' }}
-                                onClick={() => {}}
+                                onClick={handleEditarMovimiento}
                             />
                             {!movimientoActual?.tiene_pedido_relacionado && (
                                 <Boton
@@ -724,10 +787,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     localStorage.removeItem('aumentoMovimientoRepitiendo');
                     localStorage.removeItem('descuentoMovimientoEditando');
                     localStorage.removeItem('aumentoMovimientoEditando');
+                    localStorage.removeItem('fechaMovimientoEditando');
+                    localStorage.removeItem('movimientoIdEditando');
+                    localStorage.removeItem('productosEdicion');
                     }
                 }}
                 tipo="salida"
                 isRepitiendoMovimiento={modoAlmacen === 'salida'}
+                onMovimientoEditado={handleMovimientoEditadoFinalizado}
             />
         </View>
     );

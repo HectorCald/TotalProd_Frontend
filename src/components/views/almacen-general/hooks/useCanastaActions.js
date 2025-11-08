@@ -108,11 +108,6 @@ function useCanastaActions({
     }, [pedidosExtraItemFields, pedidosModoGetterName, pedidosPrecioGetterName, setProductosCanasta]);
 
     const handleAgregarACanastaMovimientos = useCallback((producto, tipoMovimiento, precioSeleccionado = null, cantidadEspecifica = null) => {
-        if (tipoMovimiento === 'salida' && (!producto.stock || producto.stock <= 0)) {
-            mostrarNotificacion?.('error', 'Stock insuficiente');
-            return;
-        }
-
         const esEntrada = tipoMovimiento === 'entrada';
         const setCanastaActual = esEntrada ? setProductosCanastaEntradas : setProductosCanastaSalidas;
         const canastaActual = esEntrada ? productosCanastaEntradas : productosCanastaSalidas;
@@ -149,25 +144,6 @@ function useCanastaActions({
                     );
                 }
 
-                let stockParaValidar = producto.stock;
-                let modoAgrupacionActual = null;
-
-                if (tipoMovimiento === 'entrada' && entradaModoGetterName && typeof window[entradaModoGetterName] === 'function') {
-                    modoAgrupacionActual = window[entradaModoGetterName]();
-                } else if (tipoMovimiento === 'salida' && salidaModoGetterName && typeof window[salidaModoGetterName] === 'function') {
-                    modoAgrupacionActual = window[salidaModoGetterName]();
-                } else if (localStorage.getItem('pedidoAgrupadoEntregando')) {
-                    modoAgrupacionActual = localStorage.getItem('pedidoAgrupadoEntregando');
-                }
-
-                if (modoAgrupacionActual === 'agrupado' && producto.grup) {
-                    stockParaValidar = Math.floor(producto.stock / producto.grup);
-                }
-
-                if (tipoMovimiento === 'salida' && productoExistente.cantidad >= stockParaValidar) {
-                    mostrarNotificacion?.('error', 'Stock insuficiente');
-                    return prev;
-                }
 
                 return prev.map(p =>
                     p.id === producto.id

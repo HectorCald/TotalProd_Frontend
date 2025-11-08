@@ -88,6 +88,10 @@ class movimientosAlmacenService {
         personal_id: personalId
       };
 
+      if (dataToSend.fecha instanceof Date) {
+        dataToSend.fecha = dataToSend.fecha.toISOString();
+      }
+
       // Mostrar warning si hay muchos productos
       if (validation.warning) {
         console.warn(validation.warning);

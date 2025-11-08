@@ -45,6 +45,26 @@ const getPersonalId = () => {
   return null;
 };
 
+const normalizeDate = (value, { keepTime = false } = {}) => {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return keepTime ? value.toISOString() : value.toISOString().split('T')[0];
+  }
+
+  if (typeof value === 'string') {
+    if (!keepTime && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) {
+      return keepTime ? parsed.toISOString() : parsed.toISOString().split('T')[0];
+    }
+  }
+
+  return null;
+};
+
 class deudasService {
     // Obtener todas las deudas con paginación y filtros
     static async getAll(page = 1, limit = 10, search = '', estado = null, cliente = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
@@ -198,6 +218,24 @@ class deudasService {
                 personal_id: personalId
             };
 
+      if (dataToSend.fecha_deuda) {
+        const fechaNormalizada = normalizeDate(dataToSend.fecha_deuda);
+        if (fechaNormalizada) {
+          dataToSend.fecha_deuda = fechaNormalizada;
+        } else {
+          delete dataToSend.fecha_deuda;
+        }
+      }
+
+      if (dataToSend.fecha_vencimiento) {
+        const vencimientoNormalizado = normalizeDate(dataToSend.fecha_vencimiento);
+        if (vencimientoNormalizado) {
+          dataToSend.fecha_vencimiento = vencimientoNormalizado;
+        } else {
+          delete dataToSend.fecha_vencimiento;
+        }
+      }
+
             const response = await fetch(`${API_BASE_URL}/deudas`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
@@ -227,13 +265,33 @@ class deudasService {
     // Actualizar una deuda
     static async update(id, updateData) {
         try {
-            const response = await fetch(`${API_BASE_URL}/deudas/${id}`, {
+      const payload = { ...updateData };
+
+      if (payload.fecha_deuda) {
+        const fechaNormalizada = normalizeDate(payload.fecha_deuda);
+        if (fechaNormalizada) {
+          payload.fecha_deuda = fechaNormalizada;
+        } else {
+          delete payload.fecha_deuda;
+        }
+      }
+
+      if (payload.fecha_vencimiento) {
+        const vencimientoNormalizado = normalizeDate(payload.fecha_vencimiento);
+        if (vencimientoNormalizado) {
+          payload.fecha_vencimiento = vencimientoNormalizado;
+        } else {
+          delete payload.fecha_vencimiento;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/deudas/${id}`, {
                 method: 'PUT',
                 headers: {
                     ...getAuthHeaders(),
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(updateData),
+        body: JSON.stringify(payload),
             });
 
             const data = await response.json();
@@ -440,7 +498,12 @@ class deudasService {
     static async createPagoParcial(deudaId, { monto, fecha = null }) {
         try {
             const body = { monto };
-            if (fecha) body.fecha = fecha;
+      if (fecha) {
+        const fechaNormalizada = normalizeDate(fecha, { keepTime: true });
+        if (fechaNormalizada) {
+          body.fecha = fechaNormalizada;
+        }
+      }
 
             const response = await fetch(`${API_BASE_URL}/deudas/${deudaId}/pagos-parciales`, {
                 method: 'POST',

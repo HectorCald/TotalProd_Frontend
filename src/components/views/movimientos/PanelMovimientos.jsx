@@ -363,6 +363,11 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         mostrarNotificacion('success', 'Movimiento eliminado correctamente');
     };
 
+    const handleMovimientoEditado = () => {
+        handleRefresh();
+        mostrarNotificacion('success', 'Movimiento actualizado correctamente');
+    };
+
     // Función para obtener el nombre del tipo de filtro
     const getTipoNombre = () => {
         if (filtroTipo === null) return 'Todos los tipos';
@@ -508,7 +513,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
-                title={tipoMovimiento === 'acopio' ? 'Mov. Materia Prima' : 'Mov. Almacén'}
+                title={tipoMovimiento === 'acopio' ? 'Movimientos Materia Prima' : 'Movimientos Almacén'}
             />
             <div className={styles.container}>
                 {isLoading ? (
@@ -636,6 +641,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     movimiento={infoMovimiento}
                     onMovimientoAnulado={handleMovimientoAnulado}
                     onMovimientoEliminado={handleMovimientoEliminado}
+                    onMovimientoEditado={handleMovimientoEditado}
                 />
             )}
 

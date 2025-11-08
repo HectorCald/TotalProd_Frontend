@@ -32,6 +32,9 @@ const ENTITIES = {
         'aumentoMovimientoRepitiendo',
         'descuentoMovimientoEditando',
         'aumentoMovimientoEditando',
+        'fechaMovimientoEditando',
+        'movimientoIdEditando',
+        'productosEdicion',
     ],
     cotizacion: [
         'productosCotizacionVendiendo',
