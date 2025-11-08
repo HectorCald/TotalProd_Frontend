@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from '../../styles/Canasta.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
@@ -28,18 +28,24 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
     // Estado para notificaciones
     const [notification, setNotification] = useState({ isVisible: false, type: 'error', text: '' });
-    const mostrarNotificacion = (tipo, texto) => {
+    const notificationTimeoutRef = useRef(null);
+    const mostrarNotificacion = useCallback((tipo, texto) => {
         setNotification({
             isVisible: true,
             type: tipo,
             text: texto
         });
 
+        if (notificationTimeoutRef.current) {
+            clearTimeout(notificationTimeoutRef.current);
+        }
+
         // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
+        notificationTimeoutRef.current = setTimeout(() => {
             setNotification(prev => ({ ...prev, isVisible: false }));
+            notificationTimeoutRef.current = null;
         }, 3000);
-    };
+    }, []);
 
     const {
         isEditing,
@@ -60,27 +66,43 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         precioSeleccionado,
         obtenerPrecioPorTipo
     }) => {
-        let productoModificado = { ...productoCarrito };
+        let productoModificado = productoCarrito;
+        let huboCambios = false;
 
         if (productoActualizado.stock !== undefined && productoActualizado.stock !== productoCarrito.stock) {
             if (productoCarrito.cantidad > productoActualizado.stock) {
                 mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoActualizado.stock}`);
-                productoModificado.cantidad = productoActualizado.stock;
+                productoModificado = {
+                    ...productoModificado,
+                    cantidad: productoActualizado.stock
+                };
+                huboCambios = true;
             }
-            productoModificado.stock = productoActualizado.stock;
+            productoModificado = {
+                ...productoModificado,
+                stock: productoActualizado.stock
+            };
+            huboCambios = true;
         }
 
         if (productoActualizado.price_product && precioSeleccionado) {
+            const base = productoModificado === productoCarrito ? { ...productoModificado } : productoModificado;
             const precioCalculado = obtenerPrecioPorTipo(
-                { ...productoCarrito, price_product: productoActualizado.price_product },
+                { ...base, price_product: productoActualizado.price_product },
                 precioSeleccionado,
                 modoAgrupacion
             );
-            productoModificado.precio = precioCalculado;
-            productoModificado.price_product = productoActualizado.price_product;
+            if (precioCalculado !== productoCarrito.precio || productoActualizado.price_product !== productoCarrito.price_product) {
+                productoModificado = {
+                    ...base,
+                    precio: precioCalculado,
+                    price_product: productoActualizado.price_product
+                };
+                huboCambios = true;
+            }
         }
 
-        return productoModificado;
+        return huboCambios ? productoModificado : productoCarrito;
     }, [mostrarNotificacion]);
 
     const {
@@ -129,6 +151,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         cambiarTipoPrecio(precioSeleccionado);
     }, [cambiarTipoPrecio, precioSeleccionado, productosCanasta]);
 
+    useEffect(() => {
+        return () => {
+            if (notificationTimeoutRef.current) {
+                clearTimeout(notificationTimeoutRef.current);
+            }
+        };
+    }, []);
 
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {

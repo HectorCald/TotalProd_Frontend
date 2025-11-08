@@ -272,6 +272,20 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         localStorage.setItem('movimientoAgrupadoRepitiendo', movimientoActual.agrupado ? 'agrupado' : 'no_agrupado');
         localStorage.setItem('metodoPagoRepitiendo', movimientoActual.metodo_pago || '');
 
+        const descuentoMovimiento = parseFloat(movimientoActual?.descuento ?? movimiento?.descuento ?? 0);
+        if (!isNaN(descuentoMovimiento) && descuentoMovimiento > 0) {
+            localStorage.setItem('descuentoMovimientoRepitiendo', descuentoMovimiento.toString());
+        } else {
+            localStorage.removeItem('descuentoMovimientoRepitiendo');
+        }
+
+        const aumentoMovimiento = parseFloat(movimientoActual?.aumento ?? movimiento?.aumento ?? 0);
+        if (!isNaN(aumentoMovimiento) && aumentoMovimiento > 0) {
+            localStorage.setItem('aumentoMovimientoRepitiendo', aumentoMovimiento.toString());
+        } else {
+            localStorage.removeItem('aumentoMovimientoRepitiendo');
+        }
+
         // Guardar información del cliente si existe
         if (movimientoActual.cliente?.id) {
             localStorage.setItem('clienteIdRepitiendo', movimientoActual.cliente.id);
@@ -504,6 +518,12 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                     onClick={handleRepetirMovimiento}
                                 />
                             )}
+                            <Boton
+                                className='btn-gray'
+                                label='Editar'
+                                style={{ marginTop: 'auto' }}
+                                onClick={() => {}}
+                            />
                             {!movimientoActual?.tiene_pedido_relacionado && (
                                 <Boton
                                     className='btn-red'
@@ -700,6 +720,10 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     if (!isOpen) {
                         localStorage.removeItem('productosMovimientoRepitiendo');
                         localStorage.removeItem('productosMovimientoEditando');
+                    localStorage.removeItem('descuentoMovimientoRepitiendo');
+                    localStorage.removeItem('aumentoMovimientoRepitiendo');
+                    localStorage.removeItem('descuentoMovimientoEditando');
+                    localStorage.removeItem('aumentoMovimientoEditando');
                     }
                 }}
                 tipo="salida"

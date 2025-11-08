@@ -215,6 +215,19 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
     }, [esEntrega, isOpen, modoAgrupacionEntregando, setModoAgrupacion]);
 
+    useEffect(() => {
+        if (isOpen && !esEntrega) {
+            const descuentoRepitiendo = localStorage.getItem('descuentoMovimientoRepitiendo') || localStorage.getItem('descuentoMovimientoEditando');
+            const aumentoRepitiendo = localStorage.getItem('aumentoMovimientoRepitiendo') || localStorage.getItem('aumentoMovimientoEditando');
+
+            setDescuento(descuentoRepitiendo ?? '');
+            setAumento(aumentoRepitiendo ?? '');
+        } else if (!isOpen && !esEntrega) {
+            setDescuento('');
+            setAumento('');
+        }
+    }, [esEntrega, isOpen]);
+
     // Cargar información del cliente del movimiento cuando es una repetición
     useEffect(() => {
         if (isOpen && !esEntrega) {
@@ -336,6 +349,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         setProductosCanasta([]);
         // Limpiar también el localStorage
         localStorage.removeItem('canastaSalidas');
+        localStorage.removeItem('descuentoMovimientoRepitiendo');
+        localStorage.removeItem('aumentoMovimientoRepitiendo');
+        localStorage.removeItem('descuentoMovimientoEditando');
+        localStorage.removeItem('aumentoMovimientoEditando');
         setIsLimpiarModalOpen(false);
         setIsOpen(false);
     };
@@ -566,6 +583,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 localStorage.removeItem('clienteIdEditando');
                 localStorage.removeItem('clienteNameEditando');
                 localStorage.removeItem('metodoPagoEditando');
+                localStorage.removeItem('descuentoMovimientoRepitiendo');
+                localStorage.removeItem('aumentoMovimientoRepitiendo');
+                localStorage.removeItem('descuentoMovimientoEditando');
+                localStorage.removeItem('aumentoMovimientoEditando');
 
                 // Solo cerrar la canasta en móvil, no en PC (modo carrito)
                 // En PC (isCartMode && isLargeScreen), mantener abierto para mostrar modal de descarga

@@ -28,6 +28,10 @@ const ENTITIES = {
         'productosMovimientoRepitiendo',
         'productosMovimientoEditando',
         'movimientoAgrupadoEditando',
+        'descuentoMovimientoRepitiendo',
+        'aumentoMovimientoRepitiendo',
+        'descuentoMovimientoEditando',
+        'aumentoMovimientoEditando',
     ],
     cotizacion: [
         'productosCotizacionVendiendo',

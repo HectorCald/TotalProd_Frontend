@@ -461,7 +461,17 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     return (
         <>
-            <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!pedidoIdEditando && !localStorage.getItem('pedidoIdEntregando') && !(localStorage.getItem('productosMovimientoRepitiendo') || localStorage.getItem('productosMovimientoEditando')) && !isVentaCotizacion}>
+            <View
+                isOpen={isOpen}
+                setIsOpen={setIsOpen}
+                isMainView={
+                    !pedidoIdEditando &&
+                    !localStorage.getItem('pedidoIdEntregando') &&
+                    !(localStorage.getItem('productosMovimientoRepitiendo') || localStorage.getItem('productosMovimientoEditando')) &&
+                    !isVentaCotizacion &&
+                    !isRepitiendoMovimiento
+                }
+            >
                 <HeaderView
                     onBack={() => {
                         limpiarAlmacenLocalStorage();

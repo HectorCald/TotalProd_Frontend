@@ -57,9 +57,9 @@ function useAutoCargaCanastas({
         if (!isOpen || tipo !== 'salida') return;
         if (productos.length === 0) return;
 
-        const productosMovimientoStorage =
-            localStorage.getItem('productosMovimientoRepitiendo') ||
-            localStorage.getItem('productosMovimientoEditando');
+        const productosMovimientoRepitiendo = localStorage.getItem('productosMovimientoRepitiendo');
+        const productosMovimientoEditando = localStorage.getItem('productosMovimientoEditando');
+        const productosMovimientoStorage = productosMovimientoRepitiendo || productosMovimientoEditando;
 
         if (!productosMovimientoStorage) return;
 
@@ -73,6 +73,13 @@ function useAutoCargaCanastas({
             });
         } catch (error) {
             console.error('Error al cargar productos del movimiento para repetir:', error);
+        } finally {
+            if (productosMovimientoRepitiendo) {
+                localStorage.removeItem('productosMovimientoRepitiendo');
+            }
+            if (productosMovimientoEditando) {
+                localStorage.removeItem('productosMovimientoEditando');
+            }
         }
     }, [isOpen, productos, tipo, onAgregarProductoMovimiento]);
 
