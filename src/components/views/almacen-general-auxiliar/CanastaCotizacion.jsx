@@ -192,6 +192,18 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         setIsLimpiarModalOpen(false);
         setIsOpen(false);
     };
+
+    const handleBack = () => {
+        setIsOpen(false);
+    };
+
+    const headerRightContent = (
+        <div className={styles.titleButtons}>
+            <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
+                <BoxIcon name='trash' className={styles.iconTrash} />
+            </button>
+        </div>
+    );
     // Validaciones para cotizaciones
     const validarCotizacion = () => {
         // Para cotizaciones, el método de pago y fecha de vencimiento son opcionales
@@ -259,16 +271,13 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
     };
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
-            {!isCartMode && <HeaderView onBack={() => setIsOpen(false)} />}
+            <HeaderView
+                title="Canasta de Cotizaciones"
+                onBack={handleBack}
+                showBackButton={!isCartMode}
+                rightContent={headerRightContent}
+            />
             <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
-                <h1 className={styles.title}>Canasta de Cotizaciones
-                    <div className={styles.iconButton}>
-                        <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
-                            <BoxIcon name='trash' className={styles.iconTrash} />
-                        </button>
-                    </div>
-                </h1>
-
                 {/* Selectores de precio y agrupación */}
                 <div className={styles.controlesGenerales}>
                     <Select

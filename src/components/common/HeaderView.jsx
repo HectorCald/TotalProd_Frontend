@@ -5,7 +5,7 @@ import SearchHeader from './SearchHeader';
 
 const HeaderView = ({
     title, 
-    onBack, 
+    onBack = () => {}, 
     // Props para el buscador
     showSearch = false,
     searchPlaceholder = 'Buscar...',
@@ -15,19 +15,28 @@ const HeaderView = ({
     searchExpanded = false,
     onSearchToggle = () => {},
     // Prop para ajustar el header cuando hay canasta abierta
-    withCart = false
+    withCart = false,
+    // Prop para ocultar la flecha de regreso
+    showBackButton = true,
+    // Contenido adicional a la derecha (botones, etc.)
+    rightContent = null
 }) => {
     return (
         <div className={`${styles.headerView} ${withCart ? styles.headerViewWithCart : ''}`}>
             <div className={styles.headerLeft}>
-                <button className={styles.headerViewButton} onClick={onBack}>
-                    <BoxIcon name='left-arrow-alt' className={styles.icon}/>
-                </button>
+                {showBackButton ? (
+                    <button className={styles.headerViewButton} onClick={onBack}>
+                        <BoxIcon name='left-arrow-alt' className={styles.icon}/>
+                    </button>
+                ) : (
+                    <span className={styles.headerPlaceholder} />
+                )}
             </div>
             
             {title && <h1 className={styles.headerViewTitle}>{title}</h1>}
             
             <div className={styles.headerRight}>
+                {rightContent}
                 {/* Buscador expandible */}
                 {showSearch && (
                     <div className={styles.searchWrapper}>

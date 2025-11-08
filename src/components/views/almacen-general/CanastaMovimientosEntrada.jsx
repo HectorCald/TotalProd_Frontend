@@ -143,6 +143,18 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         setIsOpen(false);
     };
 
+    const handleBack = () => {
+        setIsOpen(false);
+    };
+
+    const headerRightContent = (
+        <div className={styles.titleButtons}>
+            <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
+                <BoxIcon name='trash' className={styles.iconTrash} />
+            </button>
+        </div>
+    );
+
     // Validar (entradas no requieren campos adicionales)
     const validarMovimiento = () => {
         return true;
@@ -255,15 +267,13 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
-            {!isCartMode && <HeaderView onBack={() => setIsOpen(false)} />}
+            <HeaderView
+                title="Canasta de Entradas"
+                onBack={handleBack}
+                showBackButton={!isCartMode}
+                rightContent={headerRightContent}
+            />
             <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
-                <h1 className={styles.title}>Canasta de Entradas
-                    <div className={styles.iconButton}>
-                        <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
-                            <BoxIcon name='trash' className={styles.iconTrash} />
-                        </button>
-                    </div>
-                </h1>
                 {/* Selectores de precio y agrupación */}
                 <div className={styles.controlesGenerales}>
                     <Select

@@ -364,6 +364,18 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         setIsOpen(false);
     };
 
+    const handleBack = () => {
+        setIsOpen(false);
+    };
+
+    const headerRightContent = (
+        <div className={styles.titleButtons}>
+            <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
+                <BoxIcon name='trash' className={styles.iconTrash} />
+            </button>
+        </div>
+    );
+
     // Validaciones: para salidas/metodo de pago y crédito
     const validarMovimiento = () => {
         // VALIDAR STOCK ANTES DE CUALQUIER OTRA VALIDACIÓN (este componente es solo para salidas)
@@ -640,9 +652,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId, pedidoActualizado);
                 }
 
-        if (!isEditandoMovimiento && onMovimientoEditado) {
-            onMovimientoEditado(movimientoId, movimientoIdEditando);
-        }
+                if (isEditandoMovimiento && onMovimientoEditado) {
+                    onMovimientoEditado(movimientoId, movimientoIdEditando);
+                }
             } else {
                 mostrarNotificacion('error', 'Error al crear el movimiento');
             }
@@ -657,16 +669,13 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
-            {!isCartMode && <HeaderView onBack={() => setIsOpen(false)} />}
+            <HeaderView
+                title="Canasta de Salidas"
+                onBack={handleBack}
+                showBackButton={!isCartMode}
+                rightContent={headerRightContent}
+            />
             <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
-                <h1 className={styles.title}>Canasta de Salidas
-                    <div className={styles.iconButton}>
-                        <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
-                            <BoxIcon name='trash' className={styles.iconTrash} />
-                        </button>
-                    </div>
-                </h1>
-
                 {/* Selectores de precio y agrupación */}
                 <div className={styles.controlesGenerales}>
 

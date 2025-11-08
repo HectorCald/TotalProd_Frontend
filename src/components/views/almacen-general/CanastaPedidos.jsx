@@ -200,6 +200,21 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         setIsOpen(false);
     };
 
+    const handleBack = () => {
+        if (isEditing) {
+            clearEdicionStorage();
+        }
+        setIsOpen(false);
+    };
+
+    const headerRightContent = (
+        <div className={styles.titleButtons}>
+            <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
+                <BoxIcon name='trash' className={styles.iconTrash} />
+            </button>
+        </div>
+    );
+
     // Función para crear un nuevo pedido
     const handleCrearPedido = async () => {
         setLoadingConfirmar(true);
@@ -315,21 +330,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
-            {!isCartMode && <HeaderView onBack={() => {
-                if (isEditing) {
-                    clearEdicionStorage();
-                }
-                setIsOpen(false);
-            }} />}
+            <HeaderView
+                title="Canasta de Pedidos"
+                onBack={handleBack}
+                showBackButton={!isCartMode}
+                rightContent={headerRightContent}
+            />
             <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
-                <h1 className={styles.title}>Canasta de Pedidos
-                    <div className={styles.iconButton}>
-                        <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
-                            <BoxIcon name='trash' className={styles.iconTrash} />
-                        </button>
-                    </div>
-                </h1>
-
                 {/* Selectores de precio y agrupación */}
                 <div className={styles.controlesGenerales}>
                     <Select

@@ -218,35 +218,39 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
 
 
+    const headerRightContent = (
+        <div className={styles.titleButtons}>
+            {isCartMode && onWhatsAppSelect && (
+
+                <Select
+                    icon="whatsapp"
+                    iconOnly={true}
+                    options={[
+                        { value: 'historial', label: 'Historial', icon: 'history' },
+                        { value: 'ultimo-pedido', label: 'Último pedido', icon: 'time-five' }
+                    ]}
+                    onChange={onWhatsAppSelect}
+                    dropdownDirection="right"
+                    containerStyle={{ background: 'none', width: 'fit-content' }}
+                />
+
+            )}
+
+            <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
+                <BoxIcon name='trash' className={styles.iconTrash} />
+            </button>
+        </div>
+    );
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isCart={isCartMode}>
-            {!isCartMode && <HeaderView onBack={() => setIsOpen(false)} />}
+            <HeaderView
+                title="Canasta de Pedidos"
+                onBack={() => setIsOpen(false)}
+                showBackButton={!isCartMode}
+                rightContent={headerRightContent}
+            />
             <div className={`${styles.container} ${styles.acopio} ${isCartMode ? styles.cartPanel : ''}`}>
-                <h1 className={styles.title}>Canasta de Pedidos
-                    <div className={styles.titleButtons}>
-                        {isCartMode && onWhatsAppSelect && (
-
-                            <Select
-                                icon="whatsapp"
-                                iconOnly={true}
-                                options={[
-                                    { value: 'historial', label: 'Historial', icon: 'history' },
-                                    { value: 'ultimo-pedido', label: 'Último pedido', icon: 'time-five' }
-                                ]}
-                                onChange={onWhatsAppSelect}
-                                dropdownDirection="right"
-                                containerStyle={{ background: 'none', width:'fit-content' }}
-                            />
-
-                        )}
-
-                        <button className={styles.iconButton} onClick={() => setIsLimpiarModalOpen(true)}>
-                            <BoxIcon name='trash' className={styles.iconTrash} />
-                        </button>
-
-                    </div>
-                </h1>
-
                 {productosCanasta.length > 0 ? (
                     <>
                         <div className={styles.productosList}>

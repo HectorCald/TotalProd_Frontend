@@ -311,7 +311,6 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                     <Dato
                         label="Concepto"
                         value={deudaActual?.concepto || 'Sin concepto'}
-                        vertical={false}
                     />
                     <Dato
                         label="Fecha de deuda"

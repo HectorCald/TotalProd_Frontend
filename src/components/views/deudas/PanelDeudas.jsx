@@ -461,9 +461,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                     />
                                     {/* Indicador de carga para más elementos */}
                                     {isLoadingMore && (
-                                        <div className={styles.loadingMore}>
-                                            <p>Cargando más deudas...</p>
-                                        </div>
+                                        <LoadingSpinner />
                                     )}
                                 </div>
                             </>
@@ -508,9 +506,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                     )}
                                     {/* Indicador de carga para más elementos */}
                                     {isLoadingMore && (
-                                        <div className={styles.loadingMore}>
-                                            <p>Cargando más deudas...</p>
-                                        </div>
+                                        <LoadingSpinner />
                                     )}
                              
                             </PullToRefresh>
