@@ -33,7 +33,8 @@ function ModalDescarga({
     esMovimiento = false,
     clienteInfo = null, // { nombre: string, numeroOrden: number }
     separarColumnas = false, // Prop para separar columnas con líneas
-    columnWidths = null // { [key: string]: string } - Anchos personalizados para columnas
+    columnWidths = null, // { [key: string]: string } - Anchos personalizados para columnas
+    onSaveDocumentNames = null
 }) {
     const [nombreArchivoState, setNombreArchivoState] = useState(nombreArchivo);
     const [tituloDocumentoState, setTituloDocumentoState] = useState(tituloDocumento);
@@ -46,6 +47,31 @@ function ModalDescarga({
     });
     const [empresaImage, setEmpresaImage] = useState(null);
     const [empresaImageBase64, setEmpresaImageBase64] = useState(null);
+
+    const getClienteSuffix = () => {
+        if (!clienteInfo) return '';
+        return ` ${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden}`;
+    };
+
+    const sanitizeDocumentValue = (value) => {
+        if (value == null) return '';
+        const suffix = getClienteSuffix();
+        let cleaned = value;
+        if (suffix && cleaned.endsWith(suffix)) {
+            cleaned = cleaned.slice(0, -suffix.length);
+        }
+        return cleaned.trim();
+    };
+
+    const persistDocumentNames = () => {
+        if (!onSaveDocumentNames) return;
+        const baseNombre = sanitizeDocumentValue(nombreArchivoState);
+        const baseTitulo = sanitizeDocumentValue(tituloDocumentoState);
+        onSaveDocumentNames({
+            nombreArchivo: baseNombre,
+            tituloDocumento: baseTitulo
+        });
+    };
 
     // Obtener contexto de usuario
     const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
@@ -1000,14 +1026,34 @@ function ModalDescarga({
         if (!autoDownloadType) return;
         try {
             if (autoDownloadType === 'excel') {
+                persistDocumentNames();
                 handleDescargaExcel();
             } else if (autoDownloadType === 'pdf') {
+                persistDocumentNames();
                 handleDescargaPDF();
             }
         } finally {
             if (onAutoDownloadDone) onAutoDownloadDone();
         }
     }, [autoDownloadType]);
+
+    const handleExcelDownloadClick = () => {
+        persistDocumentNames();
+        if (onExcel) {
+            onExcel();
+            return;
+        }
+        handleDescargaExcel();
+    };
+
+    const handlePdfDownloadClick = () => {
+        persistDocumentNames();
+        if (onPDF) {
+            onPDF();
+            return;
+        }
+        handleDescargaPDF();
+    };
 
     return (
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -1078,7 +1124,7 @@ function ModalDescarga({
                         label='Archivo Excel'
                         style={{ marginTop: 'auto' }}
                         icon={excelIcon}
-                        onClick={onExcel || handleDescargaExcel}
+                        onClick={handleExcelDownloadClick}
                         loading={loading}
                         disabled={loading}
                     />
@@ -1087,7 +1133,7 @@ function ModalDescarga({
                         label='Archivo PDF'
                         style={{ marginTop: 'auto' }}
                         icon={pdfIcon}
-                        onClick={onPDF || handleDescargaPDF}
+                        onClick={handlePdfDownloadClick}
                         loading={loading}
                         disabled={loading}
                     />

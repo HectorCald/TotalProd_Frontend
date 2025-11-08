@@ -106,7 +106,11 @@ function DescargaConteoBuilder({
             setTituloDocumento('CONTEO DE ALMACÉN');
         } else {
             // Lógica para conteo de acopio (materia prima)
-            const cantidadProductos = productos.length;
+            const productosFiltrados = productos.filter(p => {
+                const categoriaNombre = p?.category?.name?.toLowerCase?.() || '';
+                return categoriaNombre !== 'materiales y suministros';
+            });
+            const cantidadProductos = productosFiltrados.length;
 
             const infoSup = {
                 'Responsable': responsable,
@@ -116,7 +120,7 @@ function DescargaConteoBuilder({
             };
 
             // Ordenar productos alfabéticamente por nombre
-            const productosOrdenados = [...productos].sort((a, b) => 
+            const productosOrdenados = [...productosFiltrados].sort((a, b) => 
                 (a?.name || '').localeCompare(b?.name || '', 'es', { sensitivity: 'base' })
             );
 

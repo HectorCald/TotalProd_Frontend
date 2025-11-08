@@ -581,12 +581,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                     onClick={handleRepetirMovimiento}
                                 />
                             )}
-                            <Boton
-                                className='btn-gray'
-                                label='Editar Movimiento'
-                                style={{ marginTop: 'auto' }}
-                                onClick={handleEditarMovimiento}
-                            />
+                            {movimientoActual?.type === 'salida' && (
+                                <Boton
+                                    className='btn-gray'
+                                    label='Editar Movimiento'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={handleEditarMovimiento}
+                                />
+                            )}
                             {!movimientoActual?.tiene_pedido_relacionado && (
                                 <Boton
                                     className='btn-red'
