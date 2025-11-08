@@ -34,6 +34,7 @@ function useCanastaProductos({
     const [modoAgrupacion, setModoAgrupacion] = useState('agrupado');
     const [animarCantidad, setAnimarCantidad] = useState({});
     const cantidadInputRefs = useRef({});
+    const lastFocusedProductoIdRef = useRef(null);
     const animationTimeoutsRef = useRef({});
 
     const redondearPrecio = useCallback((precio) => {
@@ -366,10 +367,17 @@ function useCanastaProductos({
 
     useEffect(() => {
         if (!isCartMode) return;
-        if (!productosCanasta || productosCanasta.length === 0) return;
+        if (!productosCanasta || productosCanasta.length === 0) {
+            lastFocusedProductoIdRef.current = null;
+            return;
+        }
 
         const ultimoProducto = productosCanasta[productosCanasta.length - 1];
         if (!ultimoProducto) return;
+
+        if (lastFocusedProductoIdRef.current === ultimoProducto.id) {
+            return;
+        }
 
         const inputRef = cantidadInputRefs.current[ultimoProducto.id];
         if (!inputRef) return;
@@ -380,6 +388,8 @@ function useCanastaProductos({
                 inputRef.select();
             }
         }, 100);
+
+        lastFocusedProductoIdRef.current = ultimoProducto.id;
 
         return () => clearTimeout(timeoutId);
     }, [isCartMode, productosCanasta]);

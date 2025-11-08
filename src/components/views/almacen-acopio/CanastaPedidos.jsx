@@ -51,23 +51,34 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
     // Referencias para el auto-focus en inputs de cantidad
     const cantidadInputRefs = useRef({});
+    const lastFocusedProductoIdRef = useRef(null);
 
     // Auto-focus en input de cantidad cuando se agrega un producto nuevo (solo en pantallas grandes)
     useEffect(() => {
-        if (isCartMode && productosCanasta.length > 0) {
-            // Encontrar el último producto agregado (el más reciente)
-            const ultimoProducto = productosCanasta[productosCanasta.length - 1];
-            const inputRef = cantidadInputRefs.current[ultimoProducto.id];
-
-            if (inputRef) {
-                // Pequeño delay para asegurar que el DOM se haya actualizado
-                setTimeout(() => {
-                    inputRef.focus();
-                    inputRef.select(); // Seleccionar todo el texto para facilitar la edición
-                }, 100);
-            }
+        if (!isCartMode) return;
+        if (!productosCanasta || productosCanasta.length === 0) {
+            lastFocusedProductoIdRef.current = null;
+            return;
         }
-    }, [productosCanasta.length, isCartMode]);
+
+        const ultimoProducto = productosCanasta[productosCanasta.length - 1];
+        if (!ultimoProducto) return;
+
+        if (lastFocusedProductoIdRef.current === ultimoProducto.id) {
+            return;
+        }
+
+        const inputRef = cantidadInputRefs.current[ultimoProducto.id];
+
+        if (inputRef) {
+            // Pequeño delay para asegurar que el DOM se haya actualizado
+            setTimeout(() => {
+                inputRef.focus();
+                inputRef.select(); // Seleccionar todo el texto para facilitar la edición
+            }, 100);
+            lastFocusedProductoIdRef.current = ultimoProducto.id;
+        }
+    }, [productosCanasta, isCartMode]);
 
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
