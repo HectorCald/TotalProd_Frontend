@@ -26,6 +26,7 @@ import Reglas from '../views/damabrava/reglas/Reglas';
 import PanelConteos from '../views/conteos/PanelConteos';
 import PanelCotizaciones from '../views/cotizaciones/PanelCotizaciones';
 import PanelHistorial from '../views/historial/PanelHistorial';
+import Personal from '../views/personal/Personal';
 
 const BarraLateralEmpleado = ({ 
   onMenuClick, 
@@ -477,6 +478,11 @@ const BarraLateralEmpleado = ({
       />
       <Reglas
         isOpen={activeView === 'reglas'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <Personal
+        isOpen={activeView === 'personal'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

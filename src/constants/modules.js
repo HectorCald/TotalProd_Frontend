@@ -14,6 +14,7 @@ import imageDamabrava from '../assets/damabrava/damabrava.png';
 import imageConteos from '../assets/conteos.png';
 import imageCotizaciones from '../assets/cotizaciones.png';
 import imageHistorial from '../assets/historial.png';
+import imagenPersonal from '../assets/personal.png';
 
 // Mapeo de componentes a vistas (para simplificar el uso)
 const COMPONENT_TO_VIEW = {
@@ -37,6 +38,7 @@ const COMPONENT_TO_VIEW = {
     'MiProduccion': 'mi_produccion',
     'Reglas': 'reglas',
     'PanelHistorial': 'historial',
+    'Personal': 'personal',
 };
 
 // Mapeo de nombres de módulos del backend a claves del frontend
@@ -55,7 +57,8 @@ const BACKEND_TO_FRONTEND_MODULE = {
     'Balance': 'Balance',
     'Damabrava': 'Damabrava',
     'Historial': 'Historial',
-    'Cotizaciones': 'Cotizaciones'
+    'Cotizaciones': 'Cotizaciones',
+    'Personal': 'Personal'
 };
 
 // Mapeo de nombres de submódulos del backend a claves del frontend
@@ -305,6 +308,21 @@ export const MODULES = {
             props: { tipo: 'almacen' }
         },
     },
+    Personal: {
+        name: 'Personal',
+        imagen: imagenPersonal,
+        descripcion: 'Administra el personal de tu empresa.',
+        icon: 'user-circle',
+        section: 'gestion',
+        gestionar: {
+            name: 'Personal',
+            description: 'Gestiona la información del personal.',
+            icon: 'user-circle',
+            component: 'Personal',
+            props: {},
+            view: 'personal'
+        },
+    },
     Gastos: {
         name: 'Gastos',
         imagen: imagenGastos,
@@ -420,7 +438,7 @@ export const MODULES = {
         icon: 'history',
         section: 'configuracion',
         ver_historial: {
-            name: 'Ver Historial',
+            name: 'Historial',
             description: 'Revisa las acciones registradas en el sistema.',
             icon: 'history',
             component: 'PanelHistorial',

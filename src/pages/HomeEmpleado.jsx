@@ -37,6 +37,7 @@ import FormularioProduccion from '../components/views/damabrava/produccion/Formu
 import VerificarProduccion from '../components/views/damabrava/produccion/VerificarProduccion';
 import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
 import Reglas from '../components/views/damabrava/reglas/Reglas';
+import Personal from '../components/views/personal/Personal';
 
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, error, clearEmployee } = useEmployee();
@@ -437,8 +438,10 @@ const HomeEmpleado = () => {
                 return <Reglas isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'PanelCotizaciones':
                 return <PanelCotizaciones isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
-        case 'PanelHistorial':
-            return <PanelHistorial isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'PanelHistorial':
+                return <PanelHistorial isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'Personal':
+                return <Personal isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             default:
                 console.log('⚠️ Componente no encontrado:', currentSubModule.component);
                 return null;
