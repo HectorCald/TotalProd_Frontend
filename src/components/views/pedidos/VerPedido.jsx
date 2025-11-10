@@ -21,6 +21,7 @@ import deudasService from '../../../services/deudasService';
 import VerMovimiento from '../movimientos/VerMovimiento';
 import { formatPedidoLog, prepareLogPayload } from '../../../utils/logFormatters';
 import useHistorialLogger from '../../ui/HistorialLogger';
+import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 
 function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, onPedidoActualizado }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
@@ -694,8 +695,13 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         vertical={false}
                     />
                     <Dato
-                        label="Fecha y hora"
-                        value={`${new Date(pedidoActual.fecha || pedidoActual.created_at).toLocaleString()}`}
+                        label="Fecha"
+                        value={formatFechaLiteral(pedidoActual?.fecha || pedidoActual?.created_at)}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Hora"
+                        value={formatHoraSinSegundos(pedidoActual?.fecha || pedidoActual?.created_at)}
                         vertical={false}
                     />
                     <Dato
@@ -889,7 +895,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 pedidoId={pedidoActual?.id}
                 pedidoData={pedidoActual}
                 tipo="almacen"
-                nombreArchivoDefault={localStorage.getItem('nombreArchivoPedidos') || `Pedido_Almacen_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`}
+                nombreArchivoDefault={localStorage.getItem('nombreArchivoPedidos') || `Pedido_Almacen_${formatFechaLiteral(Date.now()).replace(/\s+/g, '_')}`}
                 tituloDocumentoDefault={localStorage.getItem('tituloDocumentoPedidos') || `Pedido de Almacén Nº ${pedidoActual?.numero_pedido || ''}`}
                 esPedido={true}
             />

@@ -18,6 +18,7 @@ import IngresoProduccion from './IngresoProduccion';
 import VerMovimiento from '../../movimientos/VerMovimiento';
 import NoData from '../../../common/NoData';
 import Text from '../../../common/Text';
+import { formatFechaLiteral, formatHoraSinSegundos, formatFechaHoraLiteral } from '../../../../utils/dateUtils';
 
 function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegistroEliminado, onRegistroVerificado }) {
     const [loading, setLoading] = useState(false);
@@ -93,7 +94,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     registroActual?.proceso === 'ninguno' ? 'Ninguno' : registroActual?.proceso,
             'Microondas': `${registroActual?.microondas || '0'} min`,
             'Terminados': `${registroActual?.terminados || '0'} ud`,
-            'Fecha de Registro': new Date(registroActual?.fecha).toLocaleString(),
+            'Fecha de Registro': formatFechaHoraLiteral(registroActual?.fecha),
             'Fecha de Vencimiento': formatMesAnio(registroActual?.vencimiento),
             'Estado': registroActual?.estado === 'pendiente' ? 'Pendiente' :
                 registroActual?.estado === 'verificado' ? 'Verificado' :
@@ -107,7 +108,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
         }
 
         if (registroActual?.fecha_verificado) {
-            informacionSuperior['Fecha de Verificación'] = new Date(registroActual.fecha_verificado).toLocaleDateString();
+            informacionSuperior['Fecha de Verificación'] = formatFechaLiteral(registroActual.fecha_verificado);
         }
 
         if (registroActual?.cantidad_verificada) {
@@ -368,7 +369,12 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     />
                     <Dato
                         label="Fecha de Registro"
-                        value={new Date(registroActual?.fecha).toLocaleString()}
+                        value={formatFechaLiteral(registroActual?.fecha)}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Hora de Registro"
+                        value={formatHoraSinSegundos(registroActual?.fecha)}
                         vertical={false}
                     />
                 </div>
@@ -380,7 +386,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         <div className={styles.content}>
                             <Dato
                                 label="Fecha de Verificación"
-                                value={new Date(registroActual.fecha_verificado).toLocaleDateString()}
+                                value={formatFechaLiteral(registroActual.fecha_verificado)}
                                 vertical={false}
                             />
 
@@ -470,7 +476,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Registro de Producción"
                 subtitulo="Selecciona el formato que prefieras para descargar este registro."
-                nombreArchivo={`Registro_Produccion_${registroActual?.lote || '0'}_${new Date(registroActual?.fecha).toLocaleDateString().replace(/\//g, '-')}`}
+                nombreArchivo={`Registro_Produccion_${registroActual?.lote || '0'}_${formatFechaLiteral(registroActual?.fecha).replace(/\s+/g, '_')}`}
                 {...prepararDatosDescarga()}
             />
 
@@ -670,7 +676,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                                             : `${movimiento.productos.length} productos`
                                         : 'Sin productos'
                                     }
-                                    description={`${movimiento.observaciones || 'Sin observaciones'} • ${new Date(movimiento.fecha).toLocaleDateString()}`}
+                                    description={`${movimiento.observaciones || 'Sin observaciones'} • ${formatFechaLiteral(movimiento.fecha)}`}
                                     circulo={false}
                                     onClick={() => handleMovimientoClick(movimiento)}
                                     arrow={false}

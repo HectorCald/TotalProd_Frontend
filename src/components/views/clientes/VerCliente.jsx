@@ -126,12 +126,10 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
         setLoadingMovimientosList(isLoading);
     }, []);
 
-    // Limpiar movimientos cuando se cierra el modal
+    // Resetear movimientos cuando cambia el cliente
     useEffect(() => {
-        if (!isMovimientosOpen) {
-            setMovimientos([]);
-        }
-    }, [isMovimientosOpen]);
+        setMovimientos([]);
+    }, [usuario?.id]);
 
 
     return (

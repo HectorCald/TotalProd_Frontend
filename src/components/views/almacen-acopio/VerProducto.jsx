@@ -16,6 +16,7 @@ import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
 import { formatProductoAcopioLog, prepareLogPayload } from '../../../utils/logFormatters';
 import useHistorialLogger from '../../ui/HistorialLogger';
+import VerMovimientoAcopio from '../movimientos/VerMovimientoAcopio';
 
 
 function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductDeleted, typeMeasures = [] }) {
@@ -28,6 +29,8 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
     const [movimientos, setMovimientos] = useState([]);
     const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
     const [movimientosLoaded, setMovimientosLoaded] = useState(false);
+    const [isVerMovimientoOpen, setIsVerMovimientoOpen] = useState(false);
+    const [movimientoSeleccionado, setMovimientoSeleccionado] = useState(null);
 
     // Estado local para el producto actual
     const [productoActual, setProductoActual] = useState(registro);
@@ -40,6 +43,12 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
     useEffect(() => {
         setProductoActual(registro);
     }, [registro]);
+
+    // Resetear movimientos cuando cambia el producto
+    useEffect(() => {
+        setMovimientos([]);
+        setMovimientosLoaded(false);
+    }, [registro?.id]);
 
     // Agrupar movimientos por fecha usando useMemo
     const groupedMovements = useMemo(() => {
@@ -97,6 +106,12 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         setMovimientos(limitedMovements);
         setMovimientosLoaded(true);
     }, []);
+
+    const handleMovimientoClick = (movimiento) => {
+        setMovimientoSeleccionado(movimiento);
+        setIsMovimientosOpen(false);
+        setIsVerMovimientoOpen(true);
+    };
 
     // Función para manejar la actualización del producto localmente
     const handleProductUpdatedLocal = (updatedProduct) => {
@@ -244,7 +259,6 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     label='Movimientos'
                     onClick={() => {
                         setIsMovimientosOpen(true);
-                        setMovimientosLoaded(false); // Reset para cargar movimientos
                     }}
                 />
 
@@ -406,6 +420,10 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                                             }
                                             icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
                                             arrow={false}
+                                            colorIcon={movimiento.type === 'entrada' ? 'verde' : 'rojo'}
+                                            flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
+                                            flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
+                                            onClick={() => handleMovimientoClick(movimiento)}
                                         />
                                     ))}
                                 </>
@@ -442,6 +460,12 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     onLoadingEnd={() => setLoadingMovimientosList(false)}
                 />
             )}
+
+            <VerMovimientoAcopio
+                isOpen={isVerMovimientoOpen}
+                setIsOpen={setIsVerMovimientoOpen}
+                movimiento={movimientoSeleccionado}
+            />
         </View>
     );
 }

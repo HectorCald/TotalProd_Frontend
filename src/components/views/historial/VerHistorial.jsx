@@ -5,20 +5,13 @@ import HeaderModal from '../../common/HeaderModal';
 import View from '../../ui/View';
 import ViewModal from '../../ui/ViewModal';
 import Dato from '../../common/Dato';
+import ListaProfesional from '../../common/ListaProfesional';
 import Boton from '../../common/Boton';
 import Notification from '../../common/Notification';
 import ItemView from '../../common/ItemView';
 import VerCliente from '../clientes/VerCliente';
 import clientService from '../../../services/clientService';
-
-const formatDateTime = (value) => {
-  if (!value) return '--';
-  try {
-    return new Date(value).toLocaleString();
-  } catch (error) {
-    return String(value);
-  }
-};
+import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 
 const stringifyValue = (value) => {
   if (value === null || value === undefined) {
@@ -94,7 +87,146 @@ function VerHistorial({ isOpen, setIsOpen, registro }) {
     return Object.entries(detallesParseados.campos || {});
   }, [detallesParseados.campos]);
 
-  const buildCampoValue = (info) => {
+  const valueHasStructure = (value) => {
+    if (Array.isArray(value)) {
+      if (value.length === 0) return false;
+      return value.length > 1 || value.some(item => item && typeof item === 'object');
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.values(value).some(inner => {
+        if (inner === value) {
+          return false;
+        }
+        if (Array.isArray(inner)) {
+          return inner.length > 0;
+        }
+        if (inner && typeof inner === 'object') {
+          return valueHasStructure(inner) || Object.keys(inner).length > 0;
+        }
+        return false;
+      });
+    }
+
+    return false;
+  };
+
+  const shouldRenderAsList = (info) => {
+    if (Array.isArray(info)) return info.length > 0;
+
+    if (info && typeof info === 'object') {
+      if (info.antes !== undefined || info.despues !== undefined) {
+        return valueHasStructure(info.antes) || valueHasStructure(info.despues);
+      }
+
+      return valueHasStructure(info);
+    }
+
+    return false;
+  };
+
+  const buildObjectNode = (item, index) => {
+    const primaryLabel = item?.nombre || item?.producto || item?.label;
+    const cantidad = item?.cantidad !== undefined ? stringifyValue(item.cantidad) : null;
+    const unidad = item?.unidad ? stringifyValue(item.unidad) : null;
+
+    const parts = [];
+    if (primaryLabel) parts.push(primaryLabel);
+    if (cantidad && unidad) {
+      parts.push(`${cantidad} ${unidad}`);
+    } else if (cantidad) {
+      parts.push(`Cantidad: ${cantidad}`);
+    } else if (unidad) {
+      parts.push(`Unidad: ${unidad}`);
+    }
+
+    const excludedKeys = new Set(['nombre', 'producto', 'label', 'cantidad', 'unidad', 'children', 'items']);
+
+    const extraChildren = Object.entries(item || {})
+      .filter(([key]) => !excludedKeys.has(key))
+      .map(([key, val]) => {
+        if (Array.isArray(val) || (val && typeof val === 'object')) {
+          const children = normalizeListItems(val);
+          return {
+            label: key,
+            children: children.length > 0 ? children : undefined
+          };
+        }
+
+        return { label: `${key}: ${stringifyValue(val)}` };
+      })
+      .filter(child => child.label || (child.children && child.children.length > 0));
+
+    return {
+      label: parts.length > 0 ? parts.join(' — ') : `Elemento ${index + 1}`,
+      children: extraChildren.length > 0 ? extraChildren : undefined
+    };
+  };
+
+  const normalizeListItems = (value) => {
+    if (Array.isArray(value)) {
+      return value.map((item, index) => {
+        if (item && typeof item === 'object') {
+          return buildObjectNode(item, index);
+        }
+        return { label: stringifyValue(item) };
+      });
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.entries(value).map(([key, val]) => {
+        if (Array.isArray(val) || (val && typeof val === 'object')) {
+          const children = normalizeListItems(val);
+          return {
+            label: key,
+            children: children.length > 0 ? children : undefined
+          };
+        }
+        return { label: `${key}: ${stringifyValue(val)}` };
+      });
+    }
+
+    if (value === null || value === undefined || value === '') {
+      return [];
+    }
+
+    return [{ label: stringifyValue(value) }];
+  };
+
+  const buildListItemsFromInfo = (info) => {
+    if (Array.isArray(info)) {
+      return normalizeListItems(info);
+    }
+
+    if (!info || typeof info !== 'object') {
+      return [];
+    }
+
+    if (info.antes !== undefined || info.despues !== undefined) {
+      const result = [];
+      if (info.antes !== undefined) {
+        const children = normalizeListItems(info.antes);
+        result.push({
+          label: 'Antes',
+          children: children.length > 0 ? children : undefined
+        });
+      }
+
+      if (info.despues !== undefined) {
+        const children = normalizeListItems(info.despues);
+        result.push({
+          label: 'Después',
+          children: children.length > 0 ? children : undefined
+        });
+      }
+
+      return result;
+    }
+
+    return normalizeListItems(info);
+  };
+
+  const buildTextoCampo = (info) => {
     if (!info || (info.antes === undefined && info.despues === undefined)) {
       return 'Sin datos';
     }
@@ -110,6 +242,25 @@ function VerHistorial({ isOpen, setIsOpen, registro }) {
     }
 
     return partes.join('  |  ');
+  };
+
+  const obtenerRepresentacionCampo = (info) => {
+    if (info === null || info === undefined || info === '') {
+      return { tipo: 'texto', valor: 'Sin datos' };
+    }
+
+    if (shouldRenderAsList(info)) {
+      const items = buildListItemsFromInfo(info);
+      if (items.length > 0) {
+        return { tipo: 'lista', valor: items };
+      }
+    }
+
+    if (typeof info === 'object' && (info.antes !== undefined || info.despues !== undefined)) {
+      return { tipo: 'texto', valor: buildTextoCampo(info) };
+    }
+
+    return { tipo: 'texto', valor: stringifyValue(info) };
   };
 
   const otherDetalleKeys = useMemo(() => {
@@ -203,8 +354,11 @@ function VerHistorial({ isOpen, setIsOpen, registro }) {
           <Dato label="Módulo" value={registro?.modulo || '--'} />
           <Dato label="Acción" value={registro?.accion || '--'} />
           <Dato label="Lugar afectado" value={registro?.lugar_afectado || '--'} />
+          {/*
           <Dato label="Registro asociado" value={registro?.registro_id ? 'Disponible' : 'No disponible'} />
-          <Dato label="Fecha" value={formatDateTime(registro?.fecha)} />
+          */}
+          <Dato label="Fecha" value={formatFechaLiteral(registro?.fecha)} />
+          <Dato label="Hora" value={formatHoraSinSegundos(registro?.fecha)} />
         </div>
 
         {detallesParseados.comentario && (
@@ -268,13 +422,30 @@ function VerHistorial({ isOpen, setIsOpen, registro }) {
           <p className={styles.subTitle}>CAMPOS AFECTADOS</p>
           {camposEntries.length > 0 ? (
             <div className={styles.content}>
-              {camposEntries.map(([campo, info]) => (
-                <Dato
-                  key={campo}
-                  label={campo}
-                  value={buildCampoValue(info)}
-                />
-              ))}
+              {camposEntries.map(([campo, info]) => {
+                const representacion = obtenerRepresentacionCampo(info);
+
+                if (representacion.tipo === 'lista') {
+                  return (
+                    <div key={campo} className={styles.campoLista}>
+                      <Dato
+                        label={campo}
+                        value={null}
+                        containerStyle={{ paddingBottom: 0, borderBottom: 'none' }}
+                      />
+                      <ListaProfesional items={representacion.valor} />
+                    </div>
+                  );
+                }
+
+                return (
+                  <Dato
+                    key={campo}
+                    label={campo}
+                    value={representacion.valor}
+                  />
+                );
+              })}
             </div>
           ) : (
             <p className={styles.subTitle} style={{ fontWeight: 400 }}>

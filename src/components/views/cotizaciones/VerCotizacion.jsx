@@ -14,6 +14,7 @@ import { useLayout } from '../../../context/LayoutContext';
 import ModalTable from '../../common/ModalTable';
 import DescargaCotizacionBuilder from './DescargaCotizacionBuilder';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
+import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 
 function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onCotizacionEliminada, onCotizacionActualizada }) {
     const { isLargeScreen } = useLayout();
@@ -261,8 +262,13 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                         vertical={false}
                     />
                     <Dato
-                        label="Fecha y hora"
-                        value={`${new Date(cotizacionActual?.fecha).toLocaleString()}`}
+                        label="Fecha"
+                        value={formatFechaLiteral(cotizacionActual?.fecha)}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Hora"
+                        value={formatHoraSinSegundos(cotizacionActual?.fecha)}
                         vertical={false}
                     />
                     <Dato
@@ -291,7 +297,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                     {cotizacionActual?.fecha_vencimiento && (
                         <Dato
                             label="Fecha de vencimiento"
-                            value={new Date(cotizacionActual.fecha_vencimiento).toLocaleDateString()}
+                            value={formatFechaLiteral(cotizacionActual.fecha_vencimiento)}
                             vertical={false}
                         />
                     )}

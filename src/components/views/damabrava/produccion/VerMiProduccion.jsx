@@ -10,6 +10,7 @@ import { FaStar, FaRegStar } from 'react-icons/fa';
 import ItemView from '../../../common/ItemView';
 import Notification from '../../../common/Notification';
 import ModalDescarga from '../../../ui/ModalDescarga';
+import { formatFechaLiteral, formatHoraSinSegundos, formatFechaHoraLiteral } from '../../../../utils/dateUtils';
 
 function VerMiProduccion({ isOpen, setIsOpen, registro }) {
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
@@ -87,8 +88,8 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                     registro?.proceso === 'ninguno' ? 'Ninguno' : registro?.proceso,
             'Microondas': `${registro?.microondas || '0'} min`,
             'Terminados': `${registro?.terminados || '0'} ud`,
-            'Fecha de Registro': new Date(registro?.fecha).toLocaleString(),
-            'Fecha de Vencimiento': new Date(registro?.vencimiento).toLocaleDateString(),
+            'Fecha de Registro': formatFechaHoraLiteral(registro?.fecha),
+            'Fecha de Vencimiento': formatFechaLiteral(registro?.vencimiento),
             'Estado': registro?.estado === 'pendiente' ? 'Pendiente' :
                 registro?.estado === 'verificado' ? 'Verificado' :
                     registro?.estado === 'Ingresado' ? 'Ingresado' :
@@ -101,7 +102,7 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
         }
 
         if (registro?.fecha_verificado) {
-            informacionSuperior['Fecha de Verificación'] = new Date(registro.fecha_verificado).toLocaleDateString();
+            informacionSuperior['Fecha de Verificación'] = formatFechaLiteral(registro.fecha_verificado);
         }
 
         if (registro?.cantidad_verificada) {
@@ -180,16 +181,17 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                     />
                     <Dato
                         label="Fecha de Vencimiento"
-                        value={new Date(registro?.vencimiento).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: '2-digit' // o 'long' si lo quieres con nombre: "octubre"
-                        })}
-
+                        value={formatFechaLiteral(registro?.vencimiento)}
                         vertical={false}
                     />
                     <Dato
                         label="Fecha de Registro"
-                        value={new Date(registro?.fecha).toLocaleString()}
+                        value={formatFechaLiteral(registro?.fecha)}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Hora de Registro"
+                        value={formatHoraSinSegundos(registro?.fecha)}
                         vertical={false}
                     />
                 </div>
@@ -201,7 +203,7 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                         <div className={styles.content}>
                             <Dato
                                 label="Fecha de Verificación"
-                                value={new Date(registro.fecha_verificado).toLocaleDateString()}
+                                value={formatFechaLiteral(registro.fecha_verificado)}
                                 vertical={false}
                             />
 
@@ -243,7 +245,7 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Mi Registro de Producción"
                 subtitulo="Selecciona el formato que prefieras para descargar este registro."
-                nombreArchivo={`Mi_Registro_Produccion_${registro?.lote || '0'}_${new Date(registro?.fecha).toLocaleDateString().replace(/\//g, '-')}`}
+                nombreArchivo={`Mi_Registro_Produccion_${registro?.lote || '0'}_${formatFechaLiteral(registro?.fecha).replace(/\s+/g, '_')}`}
                 {...prepararDatosDescarga()}
             />
 

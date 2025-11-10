@@ -19,6 +19,7 @@ import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import gastosService from '../../../services/gastosService';
 import productsAcopioService from '../../../services/productsAcopioService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
+import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 
 function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedidoActualizado }) {
     const { user, sucursalSeleccionada: sucursalActual } = useUser();
@@ -192,10 +193,11 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         };
 
         // Guardar datos de entrega en localStorage para WhatsApp
+        const now = new Date();
         const entregaParaHistorial = {
             id: Date.now(),
-            fecha: new Date().toLocaleDateString('es-ES'),
-            hora: new Date().toLocaleTimeString('es-ES'),
+            fecha: formatFechaLiteral(now),
+            hora: formatHoraSinSegundos(now),
             productos: [{
                 nombre: pedidoActualizado.producto_acopio?.name || 'Producto desconocido',
                 cantidad_ud: pedidoActualizado.cantidad_entregada_ud || 0,
@@ -490,8 +492,13 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                 />
                 <div className={styles.content}>
                     <Dato
-                        label="Fecha y hora"
-                        value={`${new Date(pedidoActual.fecha || pedidoActual.created_at).toLocaleString()}`}
+                        label="Fecha"
+                        value={formatFechaLiteral(pedidoActual?.fecha || pedidoActual?.created_at)}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Hora"
+                        value={formatHoraSinSegundos(pedidoActual?.fecha || pedidoActual?.created_at)}
                         vertical={false}
                     />
                     <Dato
@@ -719,11 +726,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             />
                             <Dato
                                 label="Fecha"
-                                value={gasto.fecha_gasto ? new Date(gasto.fecha_gasto).toLocaleDateString('es-ES', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit'
-                                }) : 'No especificada'}
+                                value={gasto.fecha_gasto ? formatFechaLiteral(gasto.fecha_gasto) : 'No especificada'}
                             />
                             {gasto.observaciones && (
                                 <Dato
@@ -768,11 +771,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             />
                             <Dato
                                 label="Fecha de Entrega"
-                                value={pedidoActual.fecha_entregado ? new Date(pedidoActual.fecha_entregado).toLocaleDateString('es-ES', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit'
-                                }) : 'No especificada'}
+                                value={pedidoActual.fecha_entregado ? formatFechaLiteral(pedidoActual.fecha_entregado) : 'No especificada'}
                             />
                             {pedidoActual.observaciones_entrega && (
                                 <Dato
@@ -809,13 +808,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             />
                             <Dato
                                 label="Fecha y Hora"
-                                value={movimientoEntrada.date ? new Date(movimientoEntrada.date).toLocaleString('es-ES', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                }) : 'No especificada'}
+                                value={movimientoEntrada.date ? `${formatFechaLiteral(movimientoEntrada.date)} ${formatHoraSinSegundos(movimientoEntrada.date)}` : 'No especificada'}
                             />
                             {movimientoEntrada.observations && (
                                 <Dato

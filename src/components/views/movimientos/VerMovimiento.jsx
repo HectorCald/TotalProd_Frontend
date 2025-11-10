@@ -18,6 +18,7 @@ import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import Text from '../../common/Text';
 import useHistorialLogger from '../../ui/HistorialLogger';
 import { formatMovimientoLog, prepareLogPayload } from '../../../utils/logFormatters';
+import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 
 function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado, onMovimientoActualizado, onMovimientoEditado }) {
     const { isLargeScreen } = useLayout();
@@ -477,16 +478,13 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         vertical={false}
                     />
                     <Dato
-                        label="Fecha y hora"
-                        value={(() => {
-                            if (!movimientoActual?.fecha) return 'Fecha no disponible';
-                            try {
-                                const fecha = new Date(movimientoActual.fecha);
-                                return isNaN(fecha.getTime()) ? 'Fecha inválida' : fecha.toLocaleString();
-                            } catch (error) {
-                                return 'Fecha inválida';
-                            }
-                        })()}
+                        label="Fecha"
+                        value={formatFechaLiteral(movimientoActual?.fecha)}
+                        vertical={false}
+                    />
+                    <Dato
+                        label="Hora"
+                        value={formatHoraSinSegundos(movimientoActual?.fecha)}
                         vertical={false}
                     />
                     <Dato

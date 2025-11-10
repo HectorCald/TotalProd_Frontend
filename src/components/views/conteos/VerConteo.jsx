@@ -20,14 +20,14 @@ import { BoxIcon } from 'boxicons-react';
 import DescargaConteoBuilder from '../almacen-acopio-auxiliar/DescargaConteoBuilder';
 import useHistorialLogger from '../../ui/HistorialLogger';
 import { formatConteoLog, prepareLogPayload } from '../../../utils/logFormatters';
+import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 
 function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplaced }) {
     const { isLargeScreen } = useLayout();
     const detalles = conteo?.detalles || [];
     const tipoNombre = conteo?.tipo === 'almacen' ? 'Almacén' : 'Materia Prima';
-    const fechaObj = conteo ? new Date(conteo.fecha) : null;
-    const fechaLocal = fechaObj ? fechaObj.toLocaleDateString() : '--';
-    const horaLocal = fechaObj ? fechaObj.toLocaleTimeString() : '--';
+    const fechaLocal = formatFechaLiteral(conteo?.fecha);
+    const horaLocal = formatHoraSinSegundos(conteo?.fecha);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     // Filtros de modal (desktop)

@@ -12,6 +12,7 @@ import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
 import Text from '../../common/Text';
+import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 
 function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
     const [loading, setLoading] = useState(false);
@@ -175,16 +176,12 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                         value={movimientoActual?.type === 'entrada' ? 'Entrada' : 'Salida'}
                     />
                     <Dato
-                        label="Fecha y hora"
-                        value={(() => {
-                            if (!movimientoActual?.date) return 'Fecha no disponible';
-                            try {
-                                const fecha = new Date(movimientoActual.date);
-                                return isNaN(fecha.getTime()) ? 'Fecha inválida' : fecha.toLocaleString();
-                            } catch (error) {
-                                return 'Fecha inválida';
-                            }
-                        })()}
+                        label="Fecha"
+                        value={formatFechaLiteral(movimientoActual?.date)}
+                    />
+                    <Dato
+                        label="Hora"
+                        value={formatHoraSinSegundos(movimientoActual?.date)}
                     />
                     <Dato
                         label="Cantidad"
