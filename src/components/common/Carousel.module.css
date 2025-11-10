@@ -47,6 +47,10 @@
     padding: 0;
     transition: all 0.3s ease;
 }
+.dot:hover {
+    background-color: var(--senary-color);
+    transform: scale(1.3);
+}
 
 .activeDot {
     background-color: var(--primary-color);

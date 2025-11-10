@@ -251,28 +251,36 @@ function ModalDescarga({
                         // Limpiar unidades de los valores
                         const valoresLimpios = seccion.valores.map(row =>
                             row.map((cell, index) => {
+                                if (cell === null || cell === undefined) return '';
+                                const raw = cell.toString().trim();
+                                if (raw === '') return '';
+
                                 if (index === 1) { // Columna de cantidad (segunda columna)
-                                    // Solo quitar unidades de cantidad: "u", "gr", "kg", "ml"
-                                    return cell.toString()
-                                        .replace(/\s*u\s*$/, '') // Quitar "u" al final
-                                        .replace(/\s*gr\s*$/, '') // Quitar "gr" al final
-                                        .replace(/\s*kg\s*$/, '') // Quitar "kg" al final
-                                        .replace(/\s*ml\s*$/, '') // Quitar "ml" al final
+                                    const cleaned = raw
+                                        .replace(/\s*u\s*$/i, '')
+                                        .replace(/\s*gr\s*$/i, '')
+                                        .replace(/\s*kg\s*$/i, '')
+                                        .replace(/\s*ml\s*$/i, '')
                                         .trim();
+                                    const numeric = parseFloat(cleaned.replace(',', '.'));
+                                    return Number.isNaN(numeric) ? cleaned : numeric;
                                 } else if (index === 2) { // Columna de precio unitario (tercera columna)
-                                    // Quitar "Bs." del precio unitario y cambiar punto por coma
-                                    return cell.toString()
-                                        .replace(/Bs\.\s*/, '') // Quitar "Bs." al inicio
-                                        .replace(/\./g, ',') // Cambiar punto por coma
+                                    const cleaned = raw
+                                        .replace(/Bs\.\s*/i, '')
+                                        .replace(',', '.')
                                         .trim();
+                                    const numeric = parseFloat(cleaned);
+                                    return Number.isNaN(numeric) ? cleaned : numeric;
                                 } else if (index === 3) { // Columna de subtotal (cuarta columna)
-                                    // Cambiar punto por coma en subtotal
-                                    return cell.toString()
-                                        .replace(/\./g, ',') // Cambiar punto por coma
+                                    const cleaned = raw
+                                        .replace(/Bs\.\s*/i, '')
+                                        .replace(',', '.')
                                         .trim();
+                                    const numeric = parseFloat(cleaned);
+                                    return Number.isNaN(numeric) ? cleaned : numeric;
                                 }
                                 // Columna de producto (primera) sin cambios
-                                return cell;
+                                return raw;
                             })
                         );
                         allData.push(...valoresLimpios);
@@ -285,24 +293,35 @@ function ModalDescarga({
                     allData.push(tablaHeaders);
                     const valoresLimpios = tablaValores.map(row =>
                         row.map((cell, index) => {
+                            if (cell === null || cell === undefined) return '';
+                            const raw = cell.toString().trim();
+                            if (raw === '') return '';
+
                             if (index === 1) {
-                                return cell.toString()
-                                    .replace(/\s*u\s*$/, '')
-                                    .replace(/\s*gr\s*$/, '')
-                                    .replace(/\s*kg\s*$/, '')
-                                    .replace(/\s*ml\s*$/, '')
+                                const cleaned = raw
+                                    .replace(/\s*u\s*$/i, '')
+                                    .replace(/\s*gr\s*$/i, '')
+                                    .replace(/\s*kg\s*$/i, '')
+                                    .replace(/\s*ml\s*$/i, '')
                                     .trim();
+                                const numeric = parseFloat(cleaned.replace(',', '.'));
+                                return Number.isNaN(numeric) ? cleaned : numeric;
                             } else if (index === 2) {
-                                return cell.toString()
-                                    .replace(/Bs\.\s*/, '')
-                                    .replace(/\./g, ',')
+                                const cleaned = raw
+                                    .replace(/Bs\.\s*/i, '')
+                                    .replace(',', '.')
                                     .trim();
+                                const numeric = parseFloat(cleaned);
+                                return Number.isNaN(numeric) ? cleaned : numeric;
                             } else if (index === 3) {
-                                return cell.toString()
-                                    .replace(/\./g, ',')
+                                const cleaned = raw
+                                    .replace(/Bs\.\s*/i, '')
+                                    .replace(',', '.')
                                     .trim();
+                                const numeric = parseFloat(cleaned);
+                                return Number.isNaN(numeric) ? cleaned : numeric;
                             }
-                            return cell;
+                            return raw;
                         })
                     );
                     allData.push(...valoresLimpios);
@@ -312,28 +331,36 @@ function ModalDescarga({
                 // Limpiar unidades de los valores
                 const valoresLimpios = tablaValores.map(row =>
                     row.map((cell, index) => {
+                        if (cell === null || cell === undefined) return '';
+                        const raw = cell.toString().trim();
+                        if (raw === '') return '';
+
                         if (index === 1) { // Columna de cantidad (segunda columna)
-                            // Solo quitar unidades de cantidad: "u", "gr", "kg", "ml"
-                            return cell.toString()
-                                .replace(/\s*u\s*$/, '') // Quitar "u" al final
-                                .replace(/\s*gr\s*$/, '') // Quitar "gr" al final
-                                .replace(/\s*kg\s*$/, '') // Quitar "kg" al final
-                                .replace(/\s*ml\s*$/, '') // Quitar "ml" al final
+                            const cleaned = raw
+                                .replace(/\s*u\s*$/i, '')
+                                .replace(/\s*gr\s*$/i, '')
+                                .replace(/\s*kg\s*$/i, '')
+                                .replace(/\s*ml\s*$/i, '')
                                 .trim();
+                            const numeric = parseFloat(cleaned.replace(',', '.'));
+                            return Number.isNaN(numeric) ? cleaned : numeric;
                         } else if (index === 2) { // Columna de precio unitario (tercera columna)
-                            // Quitar "Bs." del precio unitario y cambiar punto por coma
-                            return cell.toString()
-                                .replace(/Bs\.\s*/, '') // Quitar "Bs." al inicio
-                                .replace(/\./g, ',') // Cambiar punto por coma
+                            const cleaned = raw
+                                .replace(/Bs\.\s*/i, '')
+                                .replace(',', '.')
                                 .trim();
+                            const numeric = parseFloat(cleaned);
+                            return Number.isNaN(numeric) ? cleaned : numeric;
                         } else if (index === 3) { // Columna de subtotal (cuarta columna)
-                            // Cambiar punto por coma en subtotal
-                            return cell.toString()
-                                .replace(/\./g, ',') // Cambiar punto por coma
+                            const cleaned = raw
+                                .replace(/Bs\.\s*/i, '')
+                                .replace(',', '.')
                                 .trim();
+                            const numeric = parseFloat(cleaned);
+                            return Number.isNaN(numeric) ? cleaned : numeric;
                         }
                         // Columna de producto (primera) sin cambios
-                        return cell;
+                        return raw;
                     })
                 );
                 allData.push(...valoresLimpios);
@@ -1069,7 +1096,6 @@ function ModalDescarga({
                     onChange={(e) => handleNombreArchivoChange(e.target.value)}
                     onBlur={() => { }}
                     placeholder="Nombre del archivo"
-                    style={{ width: '300px' }}
                     icon="file"
                 />
                 <InputNormal
@@ -1078,7 +1104,6 @@ function ModalDescarga({
                     onChange={(e) => handleTituloDocumentoChange(e.target.value)}
                     onBlur={() => { }}
                     placeholder="Título del documento"
-                    style={{ width: '300px' }}
                     icon="text"
                 />
                 <p className={styles.subTitle}>OPCIONES ADICIONALES</p>
