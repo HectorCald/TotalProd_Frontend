@@ -11,6 +11,9 @@ import NoData from '../../../common/NoData';
 import PullToRefresh from '../../../common/PullToRefresh';
 import RefreshIndicator from '../../../common/RefreshIndicator';
 import ReglasMedio from './ReglasMedio';
+import Notification from '../../../common/Notification';
+import FetchData from '../../../mixed/FetchData';
+import reglasProduccionDamabravaService from '../../../../services/reglasProduccionDamabravaService';
 
 function Reglas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -27,13 +30,43 @@ function Reglas({ isOpen, setIsOpen }) {
 
     // Estado para el modal de nueva regla
     const [isOpenReglasMedio, setIsOpenReglasMedio] = useState(false);
+    const [reloadToken, setReloadToken] = useState(0);
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
 
-    // Función para simular carga de datos con delay
-    const cargarReglas = useCallback(async () => {
-        setIsLoading(true);
-        
-        // Incrementar contador de peticiones activas
-        setActiveRequests(prev => {
+    const mostrarNotificacion = (type, text) => {
+        setNotification({
+            isVisible: true,
+            type,
+            text
+        });
+
+        setTimeout(() => {
+            setNotification((prev) => ({
+                ...prev,
+                isVisible: false
+            }));
+        }, 3000);
+    };
+
+    const handleReglasLoaded = useCallback((data) => {
+        setReglas(Array.isArray(data) ? data : []);
+        setError(null);
+    }, []);
+
+    const handleError = useCallback((err) => {
+        console.error('Error cargando reglas:', err);
+        setError(err);
+    }, []);
+
+    const handleLoadingStart = useCallback(() => {
+        if (reglas.length === 0) {
+            setIsLoading(true);
+        }
+        setActiveRequests((prev) => {
             const newCount = prev + 1;
             if (isLargeScreen && newCount > 0) {
                 setShowRefreshIndicator(true);
@@ -41,60 +74,86 @@ function Reglas({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
+    }, [reglas.length, isLargeScreen]);
 
-        try {
-            // Simular delay de 1 segundo
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Simular datos vacíos por ahora
-            setReglas([]);
-            setError(null);
-        } catch (e) {
-            setError(e);
-        } finally {
-            setIsLoading(false);
-            
-            // Decrementar contador de peticiones activas
-            setActiveRequests(prev => {
-                const newCount = Math.max(0, prev - 1);
-                if (newCount === 0 && isLargeScreen) {
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
+        setActiveRequests((prev) => {
+            const newCount = Math.max(0, prev - 1);
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
                     setTimeout(() => {
-                        setIsRefreshing(false);
-                        setTimeout(() => {
-                            setShowRefreshIndicator(false);
-                        }, 500);
-                    }, 300);
-                }
-                return newCount;
-            });
-        }
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
     }, [isLargeScreen]);
 
-    // Cargar datos cuando se abre
     useEffect(() => {
-        if (isOpen) {
-            cargarReglas();
+        if (!isOpen) {
+            setNotification((prev) => ({ ...prev, isVisible: false }));
         }
-    }, [isOpen, cargarReglas]);
+    }, [isOpen]);
 
-    // Función para manejar refresh
     const handleRefresh = async () => {
-        await cargarReglas();
+        try {
+            const response = await reglasProduccionDamabravaService.getAll();
+            if (response.success) {
+                handleReglasLoaded(response.data);
+            }
+        } catch (refreshError) {
+            console.error('Error al refrescar reglas:', refreshError);
+        }
+    };
+
+    const handleReglaRegistrada = (nuevaRegla) => {
+        if (nuevaRegla) {
+            setReglas((prev) => [nuevaRegla, ...prev]);
+        }
+        setReloadToken((prev) => prev + 1);
+        mostrarNotificacion('success', 'Regla registrada correctamente.');
     };
 
     // Headers para la tabla
     const tableHeaders = [
         { key: 'nombre', label: 'Nombre', icon: 'file' },
         { key: 'tipo', label: 'Tipo', icon: 'category' },
-        { key: 'descripcion', label: 'Descripción', icon: 'comment' },
+        { key: 'detalle', label: 'Detalle', icon: 'comment' },
     ];
+
+    const obtenerTipoRegla = (regla) => {
+        if (regla.general === true) return 'General';
+        if (regla.general === false) return 'Especial';
+        return 'Por gramaje';
+    };
+
+    const obtenerNombreRegla = (regla) => {
+        if (regla.general === true) return 'Regla general';
+        if (regla.general === false) {
+            return regla.producto_almacen?.name || 'Regla especial';
+        }
+        return 'Regla por gramaje';
+    };
+
+    const obtenerDetalleRegla = (regla) => {
+        if (regla.general === true) {
+            return 'Aplica a todos los productos';
+        }
+        if (regla.general === false) {
+            return regla.contiene || 'Aplicación específica';
+        }
+        return `Gramaje: ${regla.desde_gramaje ?? '--'} - ${regla.hasta_gramaje ?? '--'}`;
+    };
 
     // Datos para la tabla
     const tableData = reglas.map(regla => ({
         id: regla.id,
-        nombre: regla.nombre || 'Sin nombre',
-        tipo: regla.tipo || '--',
-        descripcion: regla.descripcion || '--',
+        nombre: obtenerNombreRegla(regla),
+        tipo: obtenerTipoRegla(regla),
+        detalle: obtenerDetalleRegla(regla),
     }));
 
     return (
@@ -158,8 +217,8 @@ function Reglas({ isOpen, setIsOpen }) {
                             reglas.map((regla, index) => (
                                 <ItemView
                                     key={regla.id || index}
-                                    title={regla.nombre || 'Sin nombre'}
-                                    description={regla.descripcion || 'Sin descripción'}
+                                    title={obtenerNombreRegla(regla)}
+                                    description={obtenerDetalleRegla(regla)}
                                     arrow={true}
                                     onClick={() => {
                                         // Por ahora no hacer nada
@@ -190,7 +249,25 @@ function Reglas({ isOpen, setIsOpen }) {
             <ReglasMedio
                 isOpen={isOpenReglasMedio}
                 setIsOpen={setIsOpenReglasMedio}
+                onReglaRegistrada={handleReglaRegistrada}
             />
+            <Notification
+                isVisible={notification.isVisible}
+                type={notification.type}
+                text={notification.text}
+            />
+            {isOpen && (
+                <FetchData
+                    service={reglasProduccionDamabravaService}
+                    serviceName="reglasProduccionDamabravaService"
+                    isOpen={isOpen}
+                    methodParams={[reloadToken]}
+                    onDataLoaded={handleReglasLoaded}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
+                    onError={handleError}
+                />
+            )}
         </View>
     );
 }

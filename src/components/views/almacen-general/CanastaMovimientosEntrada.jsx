@@ -48,7 +48,10 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         precioSeleccionado,
         obtenerPrecioPorTipo
     }) => {
-        let productoModificado = { ...productoCarrito };
+        let productoModificado = {
+            ...productoCarrito,
+            precioManual: productoCarrito.precioManual === true
+        };
         const stockActual = productoActualizado.stock ?? productoCarrito.stockOriginal ?? productoCarrito.stock;
 
         if (stockActual !== productoCarrito.stockOriginal) {
@@ -66,13 +69,15 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         }
 
         if (productoActualizado.price_product && precioSeleccionado) {
-            const precioCalculado = obtenerPrecioPorTipo(
-                { ...productoCarrito, price_product: productoActualizado.price_product },
-                precioSeleccionado,
-                modoAgrupacion
-            );
-            productoModificado.precio = precioCalculado;
             productoModificado.price_product = productoActualizado.price_product;
+            if (productoCarrito.precioManual !== true) {
+                const precioCalculado = obtenerPrecioPorTipo(
+                    { ...productoCarrito, price_product: productoActualizado.price_product },
+                    precioSeleccionado,
+                    modoAgrupacion
+                );
+                productoModificado.precio = precioCalculado;
+            }
         }
 
         return productoModificado;

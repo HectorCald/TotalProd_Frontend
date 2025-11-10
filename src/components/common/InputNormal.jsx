@@ -62,6 +62,10 @@ const InputNormal = forwardRef(({
         if (tipo === 'number') {
             const raw = e.target.value;
             const normalized = raw.replace(/,/g, '.');
+            const isValidNumber = normalized === '' || /^-?\d*\.?\d*$/.test(normalized);
+            if (!isValidNumber) {
+                return;
+            }
             if (onChange) {
                 onChange({
                     ...e,

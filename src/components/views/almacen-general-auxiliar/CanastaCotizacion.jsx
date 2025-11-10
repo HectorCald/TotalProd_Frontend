@@ -57,7 +57,10 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         precioSeleccionado,
         obtenerPrecioPorTipo
     }) => {
-        const productoModificado = { ...productoCarrito };
+        const productoModificado = {
+            ...productoCarrito,
+            precioManual: productoCarrito.precioManual === true
+        };
 
         if (productoActualizado) {
             const stockActual = productoActualizado.stock ?? productoCarrito.stockOriginal ?? productoCarrito.stock;
@@ -76,13 +79,15 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
             }
 
             if (productoActualizado.price_product && precioSeleccionado) {
-                const precioCalculado = obtenerPrecioPorTipo(
-                    { ...productoCarrito, price_product: productoActualizado.price_product },
-                    precioSeleccionado,
-                    modoAgrupacion
-                );
-                productoModificado.precio = precioCalculado;
                 productoModificado.price_product = productoActualizado.price_product;
+                if (productoCarrito.precioManual !== true) {
+                    const precioCalculado = obtenerPrecioPorTipo(
+                        { ...productoCarrito, price_product: productoActualizado.price_product },
+                        precioSeleccionado,
+                        modoAgrupacion
+                    );
+                    productoModificado.precio = precioCalculado;
+                }
             }
         }
 

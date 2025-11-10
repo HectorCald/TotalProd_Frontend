@@ -71,11 +71,20 @@ function useCanastaProductos({
             let huboCambios = false;
             const actualizados = prev.map(producto => {
                 const nuevoPrecio = obtenerPrecioPorTipo(producto, nuevoTipoPrecio);
+                const esPrecioManual = producto.precioManual === true;
                 if (nuevoPrecio !== producto.precio) {
                     huboCambios = true;
                     return {
                         ...producto,
-                        precio: nuevoPrecio
+                        precio: nuevoPrecio,
+                        precioManual: false
+                    };
+                }
+                if (esPrecioManual) {
+                    huboCambios = true;
+                    return {
+                        ...producto,
+                        precioManual: false
                     };
                 }
                 return producto;
@@ -100,6 +109,7 @@ function useCanastaProductos({
             let huboCambios = false;
             const actualizados = prev.map(producto => {
                 const stockOriginalEnUnidades = producto.stockOriginal ?? producto.stock;
+                const esPrecioManual = producto.precioManual === true;
                 const productoActualizado = {
                     ...producto,
                     stockOriginal: stockOriginalEnUnidades
@@ -108,7 +118,15 @@ function useCanastaProductos({
                 if (nuevoModo === 'agrupado' && producto.grup) {
                     const stockEnGrupos = Math.floor((stockOriginalEnUnidades || 0) / (producto.grup || 1));
                     productoActualizado.stock = stockEnGrupos;
-                    productoActualizado.precio = obtenerPrecioPorTipo(producto, precioSeleccionado, 'agrupado');
+                    if (esPrecioManual) {
+                        const precioActual = producto.precio || 0;
+                        const precioConvertido = modoAgrupacion === 'agrupado'
+                            ? precioActual
+                            : (precioActual * (producto.grup || 1));
+                        productoActualizado.precio = precioConvertido;
+                    } else {
+                        productoActualizado.precio = obtenerPrecioPorTipo(producto, precioSeleccionado, 'agrupado');
+                    }
 
                     if (producto.cantidad > stockEnGrupos) {
                         const cantidadAnterior = producto.cantidad;
@@ -126,7 +144,15 @@ function useCanastaProductos({
                     }
                 } else {
                     productoActualizado.stock = stockOriginalEnUnidades;
-                    productoActualizado.precio = obtenerPrecioPorTipo(producto, precioSeleccionado, 'no_agrupado');
+                    if (esPrecioManual && producto.grup) {
+                        const precioActual = producto.precio || 0;
+                        const precioConvertido = modoAgrupacion === 'agrupado'
+                            ? (precioActual / (producto.grup || 1))
+                            : precioActual;
+                        productoActualizado.precio = precioConvertido;
+                    } else {
+                        productoActualizado.precio = obtenerPrecioPorTipo(producto, precioSeleccionado, 'no_agrupado');
+                    }
                 }
 
                 // Detectar si hubo cambios significativos (precio/stock/cantidad)
@@ -134,7 +160,8 @@ function useCanastaProductos({
                     productoActualizado.stock !== producto.stock ||
                     productoActualizado.precio !== producto.precio ||
                     productoActualizado.cantidad !== producto.cantidad ||
-                    productoActualizado.stockOriginal !== producto.stockOriginal
+                    productoActualizado.stockOriginal !== producto.stockOriginal ||
+                    productoActualizado.precioManual !== producto.precioManual
                 ) {
                     huboCambios = true;
                     return productoActualizado;
@@ -157,7 +184,11 @@ function useCanastaProductos({
         const precioNormalizado = parseFloat(nuevoPrecio);
         setProductosCanasta(prev => prev.map(producto =>
             producto.id === productoId
-                ? { ...producto, precio: Number.isNaN(precioNormalizado) ? 0 : precioNormalizado }
+                ? {
+                    ...producto,
+                    precio: Number.isNaN(precioNormalizado) ? 0 : precioNormalizado,
+                    precioManual: true
+                }
                 : producto
         ));
     }, [setProductosCanasta]);
@@ -318,7 +349,8 @@ function useCanastaProductos({
                             resultado.precio !== productoCarrito.precio ||
                             resultado.cantidad !== productoCarrito.cantidad ||
                             resultado.stockOriginal !== productoCarrito.stockOriginal ||
-                            resultado.price_product !== productoCarrito.price_product
+                            resultado.price_product !== productoCarrito.price_product ||
+                            resultado.precioManual !== productoCarrito.precioManual
                         );
 
                         if (cambioDetectado) {
@@ -336,9 +368,15 @@ function useCanastaProductos({
                     stock: productoActualizado.stock,
                     price_product: productoActualizado.price_product
                 };
-                const precioRecalculado = obtenerPrecioPorTipo(productoModificado, precioSeleccionado);
-                if (precioRecalculado !== productoModificado.precio) {
-                    productoModificado.precio = precioRecalculado;
+                if (productoCarrito.precioManual === true) {
+                    if (productoActualizado.price_product) {
+                        productoModificado.price_product = productoActualizado.price_product;
+                    }
+                } else {
+                    const precioRecalculado = obtenerPrecioPorTipo(productoModificado, precioSeleccionado);
+                    if (precioRecalculado !== productoModificado.precio) {
+                        productoModificado.precio = precioRecalculado;
+                    }
                 }
 
                 if (
