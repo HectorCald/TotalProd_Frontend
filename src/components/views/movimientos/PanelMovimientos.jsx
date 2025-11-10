@@ -477,7 +477,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Headers para la tabla
     const tableHeaders = [
-        { key: 'numero_orden', label: 'Nº Orden', icon: 'hash' },
+        { key: 'numero_orden', label: 'Orden', icon: 'hash' },
         { key: 'producto', label: 'Producto', icon: 'package' },
         { key: 'tipo', label: 'Tipo', icon: 'transfer' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
@@ -631,7 +631,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                         {allMovimientos.map((movimiento, index) => {
                                             const numeroOrdenFormateado = obtenerNumeroOrdenFormateado(movimiento?.numero_orden);
                                             const numeroOrdenLabel = numeroOrdenFormateado !== '--'
-                                                ? `Orden Nº ${numeroOrdenFormateado}`
+                                                ? `Nº ${numeroOrdenFormateado}`
                                                 : '';
                                             const totalLabel = obtenerTotalFormateado(movimiento);
                                             return (

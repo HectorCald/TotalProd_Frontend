@@ -92,7 +92,8 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         handleCambiarModoAgrupacion: cambiarModoAgrupacion,
         handleActualizarPrecioManual: actualizarPrecioManual,
         triggerAnimacionCantidad,
-        prepararProductos
+        prepararProductos,
+        obtenerPrecioAutomatico
     } = useCanastaProductos({
         isOpen,
         productosCanasta,
@@ -103,6 +104,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         shouldPersistLocalStorage: true,
         shouldLoadLocalStorage: true,
         isCartMode,
+        autoFocusCantidad: true,
         exposeGlobals: {
             precioGetterName: 'getPrecioSeleccionadoCanastaMovimientosEntrada',
             modoGetterName: 'getModoAgrupacionCanastaMovimientosEntrada'
@@ -118,7 +120,15 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         if (animar) {
             triggerAnimacionCantidad(productoId);
         }
-        setProductosCanasta(prev => prev.map(p => p.id === productoId ? { ...p, cantidad: nuevaCantidad } : p));
+        setProductosCanasta(prev => prev.map(p =>
+            p.id === productoId
+                ? {
+                    ...p,
+                    cantidad: nuevaCantidad,
+                    ...(p.cantidadTemp !== undefined ? { cantidadTemp: undefined } : {})
+                }
+                : p
+        ));
     };
 
     const handleEliminarProducto = (productoId) => {
@@ -133,6 +143,33 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
 
     const handleActualizarPrecio = (productoId, nuevoPrecio) => {
         actualizarPrecioManual(productoId, nuevoPrecio);
+    };
+
+    const handlePrecioTempChange = (productoId, valor) => {
+        setProductosCanasta(prev => prev.map(p =>
+            p.id === productoId
+                ? { ...p, precioTemp: valor }
+                : p
+        ));
+    };
+
+    const handlePrecioBlur = (producto, valor) => {
+        if (valor === '') {
+            const precioAutomatico = obtenerPrecioAutomatico(producto);
+            setProductosCanasta(prev => prev.map(p =>
+                p.id === producto.id
+                    ? {
+                        ...p,
+                        precio: precioAutomatico,
+                        precioManual: false,
+                        precioTemp: undefined
+                    }
+                    : p
+            ));
+            return;
+        }
+
+        handleActualizarPrecio(producto.id, valor);
     };
 
     const handleProveedorSeleccionado = (proveedor) => {
@@ -330,7 +367,19 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                     <div className={styles.productoControles}>
                                         <div className={styles.precioControl}>
                                             <label className={styles.precioLabel}>Precio (Bs.)</label>
-                                            <input type="number" step="0.01" min="0" value={producto.precio || 0} onChange={(e) => handleActualizarPrecio(producto.id, e.target.value)} className={styles.precioInput} />
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={producto.precioTemp !== undefined ? producto.precioTemp : (producto.precio ?? '')}
+                                                onChange={(e) => {
+                                                    handlePrecioTempChange(producto.id, e.target.value);
+                                                }}
+                                                onBlur={(e) => {
+                                                    handlePrecioBlur(producto, e.target.value);
+                                                }}
+                                                className={styles.precioInput}
+                                            />
                                         </div>
 
                                         <div className={styles.cantidadControl}>
@@ -338,14 +387,43 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                                 <BoxIcon name='minus' className={styles.iconMinus} />
                                             </button>
                                             <motion.span animate={animarCantidad[producto.id] ? { scale: [1, 1.3, 0.9, 1] } : { scale: 1 }} transition={{ duration: 0.3 }} className={styles.cantidad}>
-                                                <input
+                                            <input
                                                 ref={registerCantidadInputRef(producto.id)}
-                                                    type="number"
-                                                    value={producto.cantidad}
-                                                    min="1"
-                                                    onChange={(e) => { const nuevaCantidad = parseInt(e.target.value) || 1; handleActualizarCantidad(producto.id, nuevaCantidad, false); }}
-                                                    onBlur={(e) => { const nuevaCantidad = parseInt(e.target.value) || 1; if (nuevaCantidad < 1) { handleActualizarCantidad(producto.id, 1, false); } }}
-                                                />
+                                                type="number"
+                                                min="1"
+                                                value={producto.cantidadTemp !== undefined ? producto.cantidadTemp : producto.cantidad}
+                                                onChange={(e) => {
+                                                    const valor = e.target.value;
+                                                    if (valor === '') {
+                                                        setProductosCanasta(prev => prev.map(prod =>
+                                                            prod.id === producto.id
+                                                                ? { ...prod, cantidadTemp: '' }
+                                                                : prod
+                                                        ));
+                                                        return;
+                                                    }
+                                                    const nuevaCantidad = parseInt(valor, 10);
+                                                    if (Number.isNaN(nuevaCantidad)) {
+                                                        return;
+                                                    }
+                                                    handleActualizarCantidad(producto.id, nuevaCantidad, false);
+                                                }}
+                                                onBlur={(e) => {
+                                                    const valor = e.target.value;
+                                                    if (valor === '') {
+                                                        setProductosCanasta(prev => prev.map(prod =>
+                                                            prod.id === producto.id
+                                                                ? { ...prod, cantidadTemp: undefined }
+                                                                : prod
+                                                        ));
+                                                        return;
+                                                    }
+                                                    const nuevaCantidad = parseInt(valor, 10);
+                                                    if (Number.isNaN(nuevaCantidad) || nuevaCantidad < 1) {
+                                                        handleActualizarCantidad(producto.id, 1, false);
+                                                    }
+                                                }}
+                                            />
                                             </motion.span>
                                             <button className={styles.btnCantidad} onClick={() => handleActualizarCantidad(producto.id, producto.cantidad + 1, true)}>
                                                 <BoxIcon name='plus' className={styles.iconPlus} />

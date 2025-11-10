@@ -160,9 +160,9 @@
 }
 .flot {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 5px;
     margin-left: 1px;
 }

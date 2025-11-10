@@ -29,12 +29,14 @@ function useCanastaProductos({
     onSyncProducto,
     onAfterModoAgrupacionChange,
     onPrecioChangeApplied,
+    autoFocusCantidad = false,
 }) {
     const [precioSeleccionado, setPrecioSeleccionado] = useState('');
     const [modoAgrupacion, setModoAgrupacion] = useState('agrupado');
     const [animarCantidad, setAnimarCantidad] = useState({});
     const cantidadInputRefs = useRef({});
-    const lastFocusedProductoIdRef = useRef(null);
+    const lastFocusedProductoInfoRef = useRef({ id: null, cantidad: null });
+    const prevProductosRef = useRef([]);
     const animationTimeoutsRef = useRef({});
 
     const redondearPrecio = useCallback((precio) => {
@@ -77,14 +79,16 @@ function useCanastaProductos({
                     return {
                         ...producto,
                         precio: nuevoPrecio,
-                        precioManual: false
+                        precioManual: false,
+                        ...(producto.precioTemp !== undefined ? { precioTemp: undefined } : {})
                     };
                 }
                 if (esPrecioManual) {
                     huboCambios = true;
                     return {
                         ...producto,
-                        precioManual: false
+                        precioManual: false,
+                        ...(producto.precioTemp !== undefined ? { precioTemp: undefined } : {})
                     };
                 }
                 return producto;
@@ -154,6 +158,9 @@ function useCanastaProductos({
                         productoActualizado.precio = obtenerPrecioPorTipo(producto, precioSeleccionado, 'no_agrupado');
                     }
                 }
+                if (productoActualizado.precioTemp !== undefined) {
+                    productoActualizado.precioTemp = undefined;
+                }
 
                 // Detectar si hubo cambios significativos (precio/stock/cantidad)
                 if (
@@ -187,11 +194,17 @@ function useCanastaProductos({
                 ? {
                     ...producto,
                     precio: Number.isNaN(precioNormalizado) ? 0 : precioNormalizado,
-                    precioManual: true
+                    precioManual: true,
+                    ...(producto.precioTemp !== undefined ? { precioTemp: undefined } : {})
                 }
                 : producto
         ));
     }, [setProductosCanasta]);
+
+    const obtenerPrecioAutomatico = useCallback((producto) => {
+        if (!producto) return 0;
+        return obtenerPrecioPorTipo(producto, precioSeleccionado);
+    }, [obtenerPrecioPorTipo, precioSeleccionado]);
 
     const triggerAnimacionCantidad = useCallback((productoId) => {
         if (!productoId) return;
@@ -220,6 +233,22 @@ function useCanastaProductos({
             delete cantidadInputRefs.current[productoId];
         }
     }, []);
+
+    const clearProductoFocusFlag = useCallback((productoId) => {
+        if (!setProductosCanasta) return;
+        setProductosCanasta(prev => prev.map(producto => {
+            if (!producto || typeof producto !== 'object') return producto;
+            if (producto.id !== productoId) {
+                if (producto.__shouldFocus) {
+                    const { __shouldFocus, ...resto } = producto;
+                    return resto;
+                }
+                return producto;
+            }
+            const { __shouldFocus, ...resto } = producto;
+            return resto;
+        }));
+    }, [setProductosCanasta]);
 
     const prepararProductos = useCallback(() => {
         return (productosCanasta || []).map(producto => {
@@ -308,7 +337,11 @@ function useCanastaProductos({
         }
 
         try {
-            localStorage.setItem(localStorageKey, JSON.stringify(productosCanasta));
+            const productosParaGuardar = productosCanasta.map(producto => {
+                const { cantidadTemp, precioTemp, __shouldFocus, ...resto } = producto;
+                return resto;
+            });
+            localStorage.setItem(localStorageKey, JSON.stringify(productosParaGuardar));
         } catch (error) {
             console.error('Error al guardar canasta en localStorage:', error);
         }
@@ -404,20 +437,51 @@ function useCanastaProductos({
     ]);
 
     useEffect(() => {
-        if (!isCartMode) return;
+        if (!autoFocusCantidad && !isCartMode) {
+            prevProductosRef.current = productosCanasta
+                ? productosCanasta.map(producto => ({ id: producto.id, cantidad: producto.cantidad }))
+                : [];
+            return;
+        }
+
         if (!productosCanasta || productosCanasta.length === 0) {
-            lastFocusedProductoIdRef.current = null;
+            lastFocusedProductoInfoRef.current = { id: null, cantidad: null };
+            prevProductosRef.current = [];
             return;
         }
 
-        const ultimoProducto = productosCanasta[productosCanasta.length - 1];
-        if (!ultimoProducto) return;
+        const prevProductos = prevProductosRef.current || [];
+        const prevMap = new Map(prevProductos.map(({ id, cantidad }) => [id, cantidad]));
 
-        if (lastFocusedProductoIdRef.current === ultimoProducto.id) {
+        let productoObjetivo = productosCanasta.find(producto => producto.__shouldFocus);
+
+        if (!productoObjetivo) {
+            for (let i = productosCanasta.length - 1; i >= 0; i--) {
+                const producto = productosCanasta[i];
+                if (!prevMap.has(producto.id)) {
+                    productoObjetivo = producto;
+                    break;
+                }
+            }
+        }
+
+        prevProductosRef.current = productosCanasta.map(producto => ({
+            id: producto.id,
+            cantidad: producto.cantidad
+        }));
+
+        if (!productoObjetivo) {
             return;
         }
 
-        const inputRef = cantidadInputRefs.current[ultimoProducto.id];
+        const lastFocused = lastFocusedProductoInfoRef.current;
+        if (!productosCanasta.find(producto => producto.__shouldFocus)) {
+            if (lastFocused && lastFocused.id === productoObjetivo.id && lastFocused.cantidad === productoObjetivo.cantidad) {
+                return;
+            }
+        }
+
+        const inputRef = cantidadInputRefs.current[productoObjetivo.id];
         if (!inputRef) return;
 
         const timeoutId = setTimeout(() => {
@@ -425,12 +489,18 @@ function useCanastaProductos({
             if (typeof inputRef.select === 'function') {
                 inputRef.select();
             }
+            if (productoObjetivo.__shouldFocus) {
+                clearProductoFocusFlag(productoObjetivo.id);
+            }
         }, 100);
 
-        lastFocusedProductoIdRef.current = ultimoProducto.id;
+        lastFocusedProductoInfoRef.current = {
+            id: productoObjetivo.id,
+            cantidad: productoObjetivo.cantidad
+        };
 
         return () => clearTimeout(timeoutId);
-    }, [isCartMode, productosCanasta]);
+    }, [autoFocusCantidad, clearProductoFocusFlag, isCartMode, productosCanasta]);
 
     useEffect(() => {
         if (!exposeGlobals) return;
@@ -475,6 +545,7 @@ function useCanastaProductos({
         handleActualizarPrecioManual,
         triggerAnimacionCantidad,
         prepararProductos,
+        obtenerPrecioAutomatico,
     };
 }
 

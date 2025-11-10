@@ -41,7 +41,15 @@ function useCanastaActions({
 
     const handleAgregarACanasta = useCallback((producto, cantidadEspecifica = null) => {
         setProductosCanasta(prev => {
-            const productoExistente = prev.find(p => p.id === producto.id);
+            const prevSanitizados = prev.map(p => {
+                if (p.__shouldFocus) {
+                    const { __shouldFocus, ...rest } = p;
+                    return rest;
+                }
+                return p;
+            });
+
+            const productoExistente = prevSanitizados.find(p => p.id === producto.id);
 
             let precioProducto = 0;
             let precioActual = null;
@@ -61,16 +69,16 @@ function useCanastaActions({
 
             if (productoExistente) {
                 if (cantidadEspecifica !== null) {
-                    return prev.map(p =>
+                    return prevSanitizados.map(p =>
                         p.id === producto.id
-                            ? { ...p, cantidad: cantidadEspecifica }
+                            ? { ...p, cantidad: cantidadEspecifica, __shouldFocus: true }
                             : p
                     );
                 }
 
-                return prev.map(p =>
+                return prevSanitizados.map(p =>
                     p.id === producto.id
-                        ? { ...p, cantidad: p.cantidad + 1 }
+                        ? { ...p, cantidad: p.cantidad + 1, __shouldFocus: true }
                         : p
                 );
             }
@@ -94,13 +102,14 @@ function useCanastaActions({
             }
 
             return [
-                ...prev,
+                ...prevSanitizados,
                 {
                     ...producto,
                     cantidad: cantidadInicial,
                     precio: precioFinal,
                     stock: stockMostrado,
                     stockOriginal: producto.stock,
+                    __shouldFocus: true,
                     ...pedidosExtraItemFields(producto),
                 }
             ];
@@ -113,7 +122,15 @@ function useCanastaActions({
         const canastaActual = esEntrada ? productosCanastaEntradas : productosCanastaSalidas;
 
         setCanastaActual(prev => {
-            const productoExistente = prev.find(p => p.id === producto.id);
+            const prevSanitizados = prev.map(p => {
+                if (p.__shouldFocus) {
+                    const { __shouldFocus, ...rest } = p;
+                    return rest;
+                }
+                return p;
+            });
+
+            const productoExistente = prevSanitizados.find(p => p.id === producto.id);
 
             let precioProducto = 0;
             let precioActual = precioSeleccionado;
@@ -137,17 +154,17 @@ function useCanastaActions({
 
             if (productoExistente) {
                 if (cantidadEspecifica !== null) {
-                    return prev.map(p =>
+                    return prevSanitizados.map(p =>
                         p.id === producto.id
-                            ? { ...p, cantidad: cantidadEspecifica }
+                            ? { ...p, cantidad: cantidadEspecifica, __shouldFocus: true }
                             : p
                     );
                 }
 
 
-                return prev.map(p =>
+                return prevSanitizados.map(p =>
                     p.id === producto.id
-                        ? { ...p, cantidad: p.cantidad + 1 }
+                        ? { ...p, cantidad: p.cantidad + 1, __shouldFocus: true }
                         : p
                 );
             }
@@ -175,13 +192,14 @@ function useCanastaActions({
             }
 
             return [
-                ...prev,
+                ...prevSanitizados,
                 {
                     ...producto,
                     cantidad: cantidadInicial,
                     precio: precioFinal,
                     stock: stockMostrado,
                     stockOriginal: producto.stock,
+                    __shouldFocus: true,
                 }
             ];
         });

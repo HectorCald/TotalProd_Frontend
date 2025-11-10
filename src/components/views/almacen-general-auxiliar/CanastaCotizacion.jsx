@@ -103,7 +103,8 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         handleCambiarModoAgrupacion: cambiarModoAgrupacion,
         handleActualizarPrecioManual: actualizarPrecioManual,
         triggerAnimacionCantidad,
-        prepararProductos
+        prepararProductos,
+        obtenerPrecioAutomatico
     } = useCanastaProductos({
         isOpen,
         productosCanasta,
@@ -119,6 +120,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
             modoGetterName: 'getModoAgrupacionCanastaCotizaciones'
         },
         isCartMode,
+        autoFocusCantidad: true,
         onSyncProducto: syncProductoCotizacion,
         onAfterModoAgrupacionChange: ({ producto, cantidadNueva }) => {
             if (producto?.name && cantidadNueva !== undefined) {
@@ -154,7 +156,11 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
 
         setProductosCanasta(prev => prev.map(p =>
             p.id === productoId
-                ? { ...p, cantidad: nuevaCantidad }
+                ? {
+                    ...p,
+                    cantidad: nuevaCantidad,
+                    ...(p.cantidadTemp !== undefined ? { cantidadTemp: undefined } : {})
+                }
                 : p
         ));
     };
@@ -174,6 +180,33 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
 
     const handleActualizarPrecio = (productoId, nuevoPrecio) => {
         actualizarPrecioManual(productoId, nuevoPrecio);
+    };
+
+    const handlePrecioTempChange = (productoId, valor) => {
+        setProductosCanasta(prev => prev.map(p =>
+            p.id === productoId
+                ? { ...p, precioTemp: valor }
+                : p
+        ));
+    };
+
+    const handlePrecioBlur = (producto, valor) => {
+        if (valor === '') {
+            const precioAutomatico = obtenerPrecioAutomatico(producto);
+            setProductosCanasta(prev => prev.map(p =>
+                p.id === producto.id
+                    ? {
+                        ...p,
+                        precio: precioAutomatico,
+                        precioManual: false,
+                        precioTemp: undefined
+                    }
+                    : p
+            ));
+            return;
+        }
+
+        handleActualizarPrecio(producto.id, valor);
     };
 
     const handleCambiarTipoPrecio = (nuevoTipoPrecio) => {
@@ -346,8 +379,13 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                                                 type="number"
                                                 step="0.01"
                                                 min="0"
-                                                value={producto.precio || 0}
-                                                onChange={(e) => handleActualizarPrecio(producto.id, e.target.value)}
+                                                value={producto.precioTemp !== undefined ? producto.precioTemp : (producto.precio ?? '')}
+                                                onChange={(e) => {
+                                                    handlePrecioTempChange(producto.id, e.target.value);
+                                                }}
+                                                onBlur={(e) => {
+                                                    handlePrecioBlur(producto, e.target.value);
+                                                }}
                                                 className={styles.precioInput}
                                             />
                                         </div>
@@ -368,15 +406,36 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                                                 <input
                                                     ref={registerCantidadInputRef(producto.id)}
                                                     type="number"
-                                                    value={producto.cantidad}
                                                     min="1"
+                                                    value={producto.cantidadTemp !== undefined ? producto.cantidadTemp : producto.cantidad}
                                                     onChange={(e) => {
-                                                        const nuevaCantidad = parseInt(e.target.value) || 1;
+                                                        const valor = e.target.value;
+                                                        if (valor === '') {
+                                                            setProductosCanasta(prev => prev.map(prod =>
+                                                                prod.id === producto.id
+                                                                    ? { ...prod, cantidadTemp: '' }
+                                                                    : prod
+                                                            ));
+                                                            return;
+                                                        }
+                                                        const nuevaCantidad = parseInt(valor, 10);
+                                                        if (Number.isNaN(nuevaCantidad)) {
+                                                            return;
+                                                        }
                                                         handleActualizarCantidad(producto.id, nuevaCantidad, false);
                                                     }}
                                                     onBlur={(e) => {
-                                                        const nuevaCantidad = parseInt(e.target.value) || 1;
-                                                        if (nuevaCantidad < 1) {
+                                                        const valor = e.target.value;
+                                                        if (valor === '') {
+                                                            setProductosCanasta(prev => prev.map(prod =>
+                                                                prod.id === producto.id
+                                                                    ? { ...prod, cantidadTemp: undefined }
+                                                                    : prod
+                                                            ));
+                                                            return;
+                                                        }
+                                                        const nuevaCantidad = parseInt(valor, 10);
+                                                        if (Number.isNaN(nuevaCantidad) || nuevaCantidad < 1) {
                                                             handleActualizarCantidad(producto.id, 1, false);
                                                         }
                                                     }}

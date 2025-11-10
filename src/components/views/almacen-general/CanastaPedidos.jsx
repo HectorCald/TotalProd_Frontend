@@ -114,7 +114,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         handleCambiarModoAgrupacion: cambiarModoAgrupacion,
         handleActualizarPrecioManual: actualizarPrecioManual,
         triggerAnimacionCantidad,
-        prepararProductos
+        prepararProductos,
+        obtenerPrecioAutomatico
     } = useCanastaProductos({
         isOpen,
         productosCanasta,
@@ -131,6 +132,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             modoGetterName: 'getModoAgrupacionCanastaPedidos'
         },
         isCartMode,
+        autoFocusCantidad: true,
         onSyncProducto: syncProductoPedido,
         onAfterModoAgrupacionChange: ({ producto, cantidadNueva }) => {
             if (producto?.grup) {
@@ -168,7 +170,14 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         if (animar) {
             triggerAnimacionCantidad(productoId);
         }
-        setProductosCanasta(prev => prev.map(p => p.id === productoId ? { ...p, cantidad: nuevaCantidad } : p));
+        setProductosCanasta(prev => prev.map(p => p.id === productoId
+            ? {
+                ...p,
+                cantidad: nuevaCantidad,
+                ...(p.cantidadTemp !== undefined ? { cantidadTemp: undefined } : {})
+            }
+            : p
+        ));
     };
 
     const handleEliminarProducto = (productoId) => {
@@ -185,6 +194,32 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
     const handleActualizarPrecio = (productoId, nuevoPrecio) => {
         actualizarPrecioManual(productoId, nuevoPrecio);
+    };
+
+    const handlePrecioTempChange = (productoId, valor) => {
+        setProductosCanasta(prev => prev.map(p =>
+            p.id === productoId
+                ? { ...p, precioTemp: valor }
+                : p
+        ));
+    };
+
+    const handlePrecioBlur = (producto, valor) => {
+        if (valor === '') {
+            const precioAutomatico = obtenerPrecioAutomatico(producto);
+            setProductosCanasta(prev => prev.map(p =>
+                p.id === producto.id
+                    ? {
+                        ...p,
+                        precio: precioAutomatico,
+                        precioManual: false,
+                        precioTemp: undefined
+                    }
+                    : p
+            ));
+            return;
+        }
+        handleActualizarPrecio(producto.id, valor);
     };
 
     const handleClienteSeleccionado = (cliente) => {
@@ -399,8 +434,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                 type="number"
                                                 step="0.01"
                                                 min="0"
-                                                value={producto.precio || 0}
-                                                onChange={(e) => handleActualizarPrecio(producto.id, e.target.value)}
+                                                value={producto.precioTemp !== undefined ? producto.precioTemp : (producto.precio ?? '')}
+                                                onChange={(e) => {
+                                                    handlePrecioTempChange(producto.id, e.target.value);
+                                                }}
+                                                onBlur={(e) => {
+                                                    handlePrecioBlur(producto, e.target.value);
+                                                }}
                                                 className={styles.precioInput}
                                             />
                                         </div>
@@ -421,15 +461,36 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                                 <input
                                                     ref={registerCantidadInputRef(producto.id)}
                                                     type="number"
-                                                    value={producto.cantidad}
                                                     min="1"
+                                                    value={producto.cantidadTemp !== undefined ? producto.cantidadTemp : producto.cantidad}
                                                     onChange={(e) => {
-                                                        const nuevaCantidad = parseInt(e.target.value) || 1;
+                                                        const valor = e.target.value;
+                                                        if (valor === '') {
+                                                            setProductosCanasta(prev => prev.map(p =>
+                                                                p.id === producto.id
+                                                                    ? { ...p, cantidadTemp: '' }
+                                                                    : p
+                                                            ));
+                                                            return;
+                                                        }
+                                                        const nuevaCantidad = parseInt(valor, 10);
+                                                        if (Number.isNaN(nuevaCantidad)) {
+                                                            return;
+                                                        }
                                                         handleActualizarCantidad(producto.id, nuevaCantidad, false);
                                                     }}
                                                     onBlur={(e) => {
-                                                        const nuevaCantidad = parseInt(e.target.value) || 1;
-                                                        if (nuevaCantidad < 1) {
+                                                        const valor = e.target.value;
+                                                        if (valor === '') {
+                                                            setProductosCanasta(prev => prev.map(p =>
+                                                                p.id === producto.id
+                                                                    ? { ...p, cantidadTemp: undefined }
+                                                                    : p
+                                                            ));
+                                                            return;
+                                                        }
+                                                        const nuevaCantidad = parseInt(valor, 10);
+                                                        if (Number.isNaN(nuevaCantidad) || nuevaCantidad < 1) {
                                                             handleActualizarCantidad(producto.id, 1, false);
                                                         }
                                                     }}
