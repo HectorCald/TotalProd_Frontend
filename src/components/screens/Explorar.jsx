@@ -6,6 +6,7 @@ import Precios from '../views/precios/Precios';
 import Sucursales from '../views/sucursales/Sucursales';
 import PanelGastos from '../views/gastos/PanelGastos';
 import PanelDeudas from '../views/deudas/PanelDeudas';
+import PanelHistorial from '../views/historial/PanelHistorial';
 import Balance from '../views/balance/Balance';
 import Reportes from '../views/reportes/Reportes';
 import Notification from '../common/Notification';
@@ -24,6 +25,7 @@ const Explorar = () => {
   const [isOpenDeudas, setIsOpenDeudas] = useState(false);
   const [isOpenBalance, setIsOpenBalance] = useState(false);
   const [isOpenReportes, setIsOpenReportes] = useState(false);
+  const [isOpenHistorial, setIsOpenHistorial] = useState(false);
   const [isOpenFormularioProduccion, setIsOpenFormularioProduccion] = useState(false);
   const [isOpenVerificarProduccion, setIsOpenVerificarProduccion] = useState(false);
   const [isOpenMiProduccion, setIsOpenMiProduccion] = useState(false);
@@ -61,6 +63,8 @@ const Explorar = () => {
       setIsOpenBalance(true);
     } else if (viewName === 'reportes') {
       setIsOpenReportes(true);
+    } else if (viewName === 'historial') {
+      setIsOpenHistorial(true);
     } else if (viewName === 'formulario') {
       setIsOpenFormularioProduccion(true);
     } else if (viewName === 'verificacion') {
@@ -111,6 +115,7 @@ const Explorar = () => {
       <Sucursales isOpen={isOpenSucursales} setIsOpen={setIsOpenSucursales} />
       <PanelGastos isOpen={isOpenGastos} setIsOpen={setIsOpenGastos} />
       <PanelDeudas isOpen={isOpenDeudas} setIsOpen={setIsOpenDeudas} />
+      <PanelHistorial isOpen={isOpenHistorial} setIsOpen={setIsOpenHistorial} />
       <Balance isOpen={isOpenBalance} setIsOpen={setIsOpenBalance} />
       <Reportes isOpen={isOpenReportes} setIsOpen={setIsOpenReportes} />
       {isDamabrava() && (

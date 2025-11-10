@@ -47,7 +47,7 @@ const getPersonalId = () => {
 
 class gastosService {
     // Obtener todos los gastos con paginación y filtros
-    static async getAll(page = 1, limit = 10, search = '', metodoPago = null, proveedor = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+    static async getAll(page = 1, limit = 30, search = '', metodoPago = null, proveedor = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
         try {
             const sucuId = sucuIdParam || getSucuId();
             if (!sucuId) {

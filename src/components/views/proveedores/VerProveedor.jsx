@@ -16,9 +16,14 @@ import ItemLine from '../../common/ItemLine';
 import MapaModal from '../clientes/MapaModal';
 import { useUser } from '../../../context/UserContext';
 import NoData from '../../common/NoData';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated }) {
     const { sucursalSeleccionada } = useUser();
+    const { logAccion } = useHistorialLogger({
+        modulo: 'Proveedores',
+        campos: ['name', 'phone', 'direccion', 'description', 'total_orders', 'location']
+    });
 
     // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -66,6 +71,14 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
             const response = await proveedorService.delete(id, sucursalSeleccionada?.id);
 
             if (response.success) {
+                await logAccion({
+                    accion: 'ELIMINAR',
+                    lugarAfectado: usuario?.name || 'Proveedor',
+                    registroId: usuario?.id || null,
+                    datosAntes: usuario,
+                    comentario: 'Eliminación de proveedor'
+                });
+
                 // Notificar al componente padre que se eliminó un proveedor
                 if (onProveedorDeleted) {
                     onProveedorDeleted(id);

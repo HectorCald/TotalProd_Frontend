@@ -5,28 +5,38 @@ import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
 import sucursalesService from '../../../services/sucursalesService';
 import { useUser } from '../../../context/UserContext';
-import { useLayout } from '../../../context/LayoutContext';
+import { useEmployee } from '../../../context/EmployeeContext';
 import NoData from '../../common/NoData';
 
-function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccionada }) {
-    const { seleccionarSucursal, sucursalSeleccionada } = useUser();
-    const { isLargeScreen } = useLayout();
+function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccionada, canClose = false }) {
+    const { seleccionarSucursal: seleccionarSucursalUsuario, sucursalSeleccionada: sucursalSeleccionadaUsuario } = useUser();
+    const { seleccionarSucursal: seleccionarSucursalEmpleado, sucursalSeleccionada: sucursalSeleccionadaEmpleado, employee } = useEmployee();
+    const isEmployeeMode = !!employee;
+    const canAdministrarSucursales = isEmployeeMode ? (employee?.permisos?.sucursales === true) : true;
+    const seleccionarSucursal = isEmployeeMode ? seleccionarSucursalEmpleado : seleccionarSucursalUsuario;
+    const sucursalSeleccionada = isEmployeeMode ? sucursalSeleccionadaEmpleado : sucursalSeleccionadaUsuario;
+    const allowManualClose = canClose || (isEmployeeMode && canAdministrarSucursales);
+    const closed = allowManualClose ? false : !sucursalSeleccionada;
     const [sucursales, setSucursales] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     
-    // No permitir cerrar si no hay sucursal seleccionada
-    const closed = !sucursalSeleccionada;
-
     useEffect(() => {
-        if (isOpen && empresaId) {
+        if (isOpen && empresaId && canAdministrarSucursales) {
             cargarSucursales();
         }
-    }, [isOpen, empresaId]);
+    }, [isOpen, empresaId, canAdministrarSucursales]);
 
     // Auto-seleccionar si solo hay una sucursal Y no hay sucursal seleccionada previamente
     useEffect(() => {
-        if (sucursales.length === 1 && !loading && isOpen && !error && !sucursalSeleccionada) {
+        if (
+            sucursales.length === 1 &&
+            !loading &&
+            isOpen &&
+            !error &&
+            !sucursalSeleccionada &&
+            canAdministrarSucursales
+        ) {
             // Auto-seleccionar la única sucursal disponible sin mostrar el modal y sin refresh
             const sucursal = sucursales[0];
             seleccionarSucursal(sucursal);
@@ -40,7 +50,7 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
             setIsOpen(false);
             // NO hacer refresh cuando es auto-selección
         }
-    }, [sucursales, loading, isOpen, error, sucursalSeleccionada]);
+    }, [sucursales, loading, isOpen, error, sucursalSeleccionada, canAdministrarSucursales]);
 
     const cargarSucursales = async () => {
         try {
@@ -62,6 +72,9 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
     };
 
     const handleSeleccionarSucursal = (sucursal) => {
+        if (isEmployeeMode && !canAdministrarSucursales) {
+            return;
+        }
         // Guardar sucursal seleccionada en el contexto global
         seleccionarSucursal(sucursal);
         
@@ -73,13 +86,25 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
         // Cerrar modal
         setIsOpen(false);
         
-        // Recargar la página cuando es selección manual desde el modal
-        // La auto-selección (solo 1 sucursal sin selección previa) no hace refresh
+        if (isEmployeeMode) {
+            // Actualizar empresa_id para flujos que dependen de localStorage
+            const empresaId = sucursal?.empresas?.id || sucursal?.empresa_id;
+            if (empresaId) {
+                localStorage.setItem('empresa_id', empresaId);
+            }
+            localStorage.setItem('employeeSucursalOverride', 'true');
+            window.location.reload();
+            return;
+        }
+
+        // Recargar la página cuando es selección manual desde el modal (solo usuarios normales)
         window.location.reload();
     };
 
     // No mostrar el modal si solo hay una sucursal Y no hay sucursal seleccionada (se auto-selecciona)
     // Si hay sucursal seleccionada, mostrar el modal aunque sea solo una (apertura manual)
+    if (!canAdministrarSucursales) return null;
+
     if (!isOpen || (sucursales.length === 1 && !loading && !error && !sucursalSeleccionada)) return null;
 
     return (

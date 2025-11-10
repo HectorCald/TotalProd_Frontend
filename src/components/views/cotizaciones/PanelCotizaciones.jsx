@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView, { normalizeSearchValue, normalizedIncludes } from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import VerCotizacion from './VerCotizacion';
@@ -28,6 +28,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
 
     // Estados para búsqueda
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     
     // Estados para loading
@@ -175,8 +176,13 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         setSearchQuery(value);
     };
 
+    const handleSearchNormalizedChange = (normalizedValue) => {
+        setSearchQueryNormalized(normalizedValue || '');
+    };
+
     const handleSearchClear = () => {
         setSearchQuery('');
+        setSearchQueryNormalized('');
     };
 
     const handleSearchToggle = (isExpanded) => {
@@ -187,6 +193,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+            setSearchQueryNormalized('');
             setFiltroEstado(null);
             setFiltroEstadoNombre('Todos los estados');
             setOrdenamiento('fecha_desc');
@@ -285,27 +292,16 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         { key: 'metodo_pago', label: 'Método', icon: 'credit-card' }
     ];
 
-    // Función para normalizar texto (quitar acentos, espacios, guiones, convertir a minúsculas)
-    const normalizeText = (text) => {
-        if (!text) return '';
-        return text
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
-            .replace(/[-\s]/g, '') // Quitar guiones y espacios
-            .trim();
-    };
-
     // Filtrar cotizaciones localmente
     const cotizacionesFiltradas = allCotizaciones.filter(cotizacion => {
         // Filtro de búsqueda normalizado
-        const searchQueryNormalized = normalizeText(searchQuery);
+        const normalizedQuery = searchQueryNormalized || normalizeSearchValue(searchQuery);
         
         // Debug: Log de búsqueda si hay query
         if (searchQuery && searchQuery.trim()) {
             console.log('[PanelCotizaciones] Buscando:', {
                 query: searchQuery,
-                normalized: searchQueryNormalized,
+                normalized: normalizedQuery,
                 cotizacionId: cotizacion.id,
                 numero: cotizacion.numero_cotizacion,
                 cliente: cotizacion.cliente?.name,
@@ -313,14 +309,14 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             });
         }
         
-        const matchesSearch = !searchQuery ||
-            normalizeText(cotizacion.numero_cotizacion?.toString() || '').includes(searchQueryNormalized) ||
-            normalizeText(cotizacion.cliente?.name || '').includes(searchQueryNormalized) ||
-            normalizeText(cotizacion.observaciones || '').includes(searchQueryNormalized) ||
+        const matchesSearch = !normalizedQuery ||
+            normalizedIncludes(normalizeSearchValue(cotizacion.numero_cotizacion?.toString() || ''), normalizedQuery) ||
+            normalizedIncludes(normalizeSearchValue(cotizacion.cliente?.name || ''), normalizedQuery) ||
+            normalizedIncludes(normalizeSearchValue(cotizacion.observaciones || ''), normalizedQuery) ||
             // Buscar en productos de la cotización
             (cotizacion.productos && cotizacion.productos.some(producto => 
-                normalizeText(producto.producto?.name || '').includes(searchQueryNormalized) ||
-                normalizeText(producto.producto?.description || '').includes(searchQueryNormalized)
+                normalizedIncludes(normalizeSearchValue(producto.producto?.name || ''), normalizedQuery) ||
+                normalizedIncludes(normalizeSearchValue(producto.producto?.description || ''), normalizedQuery)
             ));
 
         // Filtro de estado
@@ -401,6 +397,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 searchPlaceholder="Buscar por número, cliente o productos..."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
+                onSearchNormalizedChange={handleSearchNormalizedChange}
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}

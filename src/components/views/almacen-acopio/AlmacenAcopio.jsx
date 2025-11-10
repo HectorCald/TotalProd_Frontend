@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView, { normalizeSearchValue, normalizedIncludes } from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import VerProducto from './VerProducto';
@@ -45,6 +45,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
 
     // Estados para búsqueda local
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para los datos
@@ -225,6 +226,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+            setSearchQueryNormalized('');
             setCategoriaFiltro(null);
             setTipoMedidaFiltro(null);
             setOrdenamiento('nombre_asc');
@@ -244,8 +246,13 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         setSearchQuery(value);
     };
 
+    const handleSearchNormalizedChange = (normalizedValue) => {
+        setSearchQueryNormalized(normalizedValue || '');
+    };
+
     const handleSearchClear = () => {
         setSearchQuery('');
+        setSearchQueryNormalized('');
     };
 
     const handleSearchToggle = (isExpanded) => {
@@ -255,9 +262,10 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     // Filtrar y ordenar productos localmente
     const productosFiltrados = productosMapeados.filter(producto => {
         // Filtro de búsqueda
-        const matchesSearch = !searchQuery ||
-            producto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (producto.description && producto.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        const query = searchQueryNormalized || normalizeSearchValue(searchQuery);
+        const matchesSearch = !query ||
+            normalizedIncludes(normalizeSearchValue(producto.name), query) ||
+            (producto.description && normalizedIncludes(normalizeSearchValue(producto.description), query));
 
         // Filtro de categoría
         const matchesCategoria = categoriaFiltro === null ||
@@ -595,6 +603,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                     searchPlaceholder="Buscar producto"
                     searchValue={searchQuery}
                     onSearchChange={handleSearchChange}
+                    onSearchNormalizedChange={handleSearchNormalizedChange}
                     onSearchClear={handleSearchClear}
                     searchExpanded={isSearchExpanded}
                     onSearchToggle={handleSearchToggle}
@@ -701,8 +710,8 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                                     ) : (
                                         <NoData
                                             icon="box"
-                                            title={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
-                                            detail={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda' : ' Agrega productos para comenzar a gestionar tu inventario'}
+            title={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
+            detail={searchQuery || categoriaFiltro !== null || tipoMedidaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda' : ' Agrega productos para comenzar a gestionar tu inventario'}
                                             transparent={true}
                                             minHeight="200px"
                                         />

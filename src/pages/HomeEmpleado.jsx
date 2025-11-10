@@ -25,6 +25,7 @@ import PanelMovimientos from '../components/views/movimientos/PanelMovimientos';
 import PanelPedidos from '../components/views/pedidos/PanelPedidos';
 import PanelConteos from '../components/views/conteos/PanelConteos';
 import PanelCotizaciones from '../components/views/cotizaciones/PanelCotizaciones';
+import PanelHistorial from '../components/views/historial/PanelHistorial';
 import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
 import Precios from '../components/views/precios/Precios';
@@ -436,6 +437,8 @@ const HomeEmpleado = () => {
                 return <Reglas isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'PanelCotizaciones':
                 return <PanelCotizaciones isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+        case 'PanelHistorial':
+            return <PanelHistorial isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             default:
                 console.log('⚠️ Componente no encontrado:', currentSubModule.component);
                 return null;

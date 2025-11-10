@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import VerGasto from './VerGasto';
@@ -9,15 +9,14 @@ import EditarAgregarGasto from './EditarAgregarGasto';
 import Filtros from '../../common/Filtros';
 import Notification from '../../common/Notification';
 import gastosService from '../../../services/gastosService';
-import { BoxIcon } from 'boxicons-react';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Boton from '../../common/Boton';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
-import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
 import FiltroMetodoPago from '../../mixed/FiltroMetodoPago';
 import FiltroOrdenamientoGastos from '../../mixed/FiltroOrdenamientoGastos';
+import FiltroProveedor from '../../mixed/FiltroProveedor';
 import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
@@ -33,13 +32,14 @@ function PanelGastos({ isOpen, setIsOpen }) {
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estado para acumular todos los gastos de todas las páginas
     const [allGastos, setAllGastos] = useState([]);
 
     // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    const [debouncedSearchQuery] = useDebounce(searchQueryNormalized, 500);
 
     // Estados para filtros
     const [filtroMetodoPago, setFiltroMetodoPago] = useState(null);
@@ -47,9 +47,9 @@ function PanelGastos({ isOpen, setIsOpen }) {
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
 
     // Estados para gastos
-    const [gastos, setGastos] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState(null);
 
     // Estados para RefreshIndicator (solo PC)
@@ -57,71 +57,103 @@ function PanelGastos({ isOpen, setIsOpen }) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeRequests, setActiveRequests] = useState(0);
 
-    // Callback para manejar los gastos cargados
-    const handleGastosLoaded = useCallback((data) => {
-        setGastos(data);
-        setError(null); // Limpiar error cuando se cargan datos exitosamente
-    }, []);
+    const [gastosLoaded, setGastosLoaded] = useState(false);
 
-    // Función para manejar errores de FetchData
-    const handleError = useCallback((error) => {
-        setError(error);
-    }, []);
+    const PAGE_SIZE = 30;
 
-    // Función para manejar cuando inicia la carga
-    const handleLoadingStart = useCallback(() => {
-        // Solo mostrar loading si no hay datos cargados
-        if (allGastos.length === 0) {
+    const cargarGastos = async (page = 1, limit = PAGE_SIZE, search = '', metodo = null, proveedorId = null, orden = 'fecha_desc') => {
+        if (page === 1 && allGastos.length === 0) {
             setIsLoading(true);
+        } else if (page > 1) {
+            setIsLoadingMore(true);
         }
-        // Incrementar contador de peticiones activas
+
+        setError(null);
+
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
             if (isLargeScreen && newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [allGastos.length, isLargeScreen]);
 
-    // Función para manejar cuando termina la carga
-    const handleLoadingEnd = useCallback(() => {
-        setIsLoading(false);
-        // Decrementar contador de peticiones activas
-        setActiveRequests(prev => {
-            const newCount = Math.max(0, prev - 1);
-            // Ocultar RefreshIndicator cuando no hay peticiones activas
-            if (newCount === 0 && isLargeScreen) {
-                setTimeout(() => {
-                    setIsRefreshing(false);
-                    setTimeout(() => {
-                        setShowRefreshIndicator(false);
-                    }, 500);
-                }, 300);
-            }
-            return newCount;
-        });
-    }, [isLargeScreen]);
+        try {
+            const normalizedSearch = getPrimaryNormalizedValue(search);
+            const response = await gastosService.getAll(page, limit, normalizedSearch, metodo, proveedorId, orden);
+            if (response.success) {
+                const newData = response.data || [];
+                setHasMorePages(response.pagination?.hasNextPage || false);
 
-    // Acumular datos de todas las páginas cuando llegan nuevos gastos
-    useEffect(() => {
-        if (gastos && gastos.length > 0 && isOpen) {
-            if (currentPage === 1) {
-                // Si es la primera página, tomar todos los gastos que vienen del servicio
-                setAllGastos(gastos);
+                if (page === 1) {
+                    setAllGastos(newData.length > 0 ? newData : []);
+                    setGastosLoaded(true);
+                } else {
+                    setAllGastos(prevGastos => {
+                        const existingIds = new Set(prevGastos.map(g => g.id));
+                        const merged = [...prevGastos];
+                        newData.forEach(item => {
+                            if (!existingIds.has(item.id)) {
+                                merged.push(item);
+                            }
+                        });
+                        return merged;
+                    });
+                }
             } else {
-                // Si es una página posterior, acumular los datos
-                setAllGastos(prevGastos => {
-                    // Evitar duplicados por si acaso
-                    const existingIds = new Set(prevGastos.map(g => g.id));
-                    const newGastos = gastos.filter(g => !existingIds.has(g.id));
-                    return [...prevGastos, ...newGastos];
-                });
+                setError(response);
+                setHasMorePages(false);
             }
+        } catch (err) {
+            setError(err);
+            setHasMorePages(false);
+        } finally {
+            if (page === 1) {
+                setIsLoading(false);
+            } else {
+                setIsLoadingMore(false);
+            }
+
+            setActiveRequests(prev => {
+                const newCount = Math.max(0, prev - 1);
+                if (newCount === 0 && isLargeScreen) {
+                    setTimeout(() => {
+                        setIsRefreshing(false);
+                        setTimeout(() => {
+                            setShowRefreshIndicator(false);
+                        }, 500);
+                    }, 300);
+                }
+                return newCount;
+            });
         }
-    }, [gastos, currentPage, isOpen]);
+    };
+
+    // Cargar gastos cuando se abre si no hay datos cargados
+    useEffect(() => {
+        if (isOpen && !gastosLoaded) {
+            cargarGastos(1, PAGE_SIZE, debouncedSearchQuery, filtroMetodoPago, filtroProveedor?.id || null, ordenamiento);
+        }
+    }, [isOpen, gastosLoaded, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]);
+
+    // Resetear flags cuando se abre o se cierra el modal
+    useEffect(() => {
+        if (isOpen) {
+            setGastosLoaded(false);
+            setCurrentPage(1);
+        } else {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+        }
+    }, [isOpen]);
+
+    // Cargar al cambiar de página
+    useEffect(() => {
+        if (isOpen && currentPage > 1) {
+            cargarGastos(currentPage, PAGE_SIZE, debouncedSearchQuery, filtroMetodoPago, filtroProveedor?.id || null, ordenamiento);
+        }
+    }, [currentPage, isOpen, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]);
 
 
     // Estados para la notificación
@@ -156,22 +188,17 @@ function PanelGastos({ isOpen, setIsOpen }) {
 
     // Función para manejar refresh
     const handleRefresh = async () => {
-        try {
-            const response = await gastosService.getAll(currentPage, 10, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento);
-            if (response.success) {
-                setGastos(response.data);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-            }
-        } catch (error) {
-            console.error('Error al refrescar gastos:', error);
-        }
+        setAllGastos([]);
+        setCurrentPage(1);
+        setGastosLoaded(false);
+        await cargarGastos(1, PAGE_SIZE, debouncedSearchQuery, filtroMetodoPago, filtroProveedor?.id || null, ordenamiento);
     };
 
 
     // Función para manejar scroll infinito
     const handleScroll = (e) => {
         const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading) {
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading && !isLoadingMore) {
             setCurrentPage(prev => prev + 1);
         }
     };
@@ -198,7 +225,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
-            setCurrentPage(1);
+            setSearchQueryNormalized('');
         }
     }, [isOpen]);
 
@@ -207,8 +234,13 @@ function PanelGastos({ isOpen, setIsOpen }) {
         setSearchQuery(value);
     };
 
+    const handleSearchNormalizedChange = (normalizedValue) => {
+        setSearchQueryNormalized(normalizedValue || '');
+    };
+
     const handleSearchClear = () => {
         setSearchQuery('');
+        setSearchQueryNormalized('');
     };
 
     const handleSearchToggle = (isExpanded) => {
@@ -220,8 +252,10 @@ function PanelGastos({ isOpen, setIsOpen }) {
         if (isOpen) {
             setAllGastos([]);
             setCurrentPage(1);
+            setGastosLoaded(false);
+            setHasMorePages(false);
         }
-    }, [debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]);
+    }, [debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento, isOpen]);
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -312,11 +346,21 @@ function PanelGastos({ isOpen, setIsOpen }) {
         return ordenamientos[ordenamiento] || 'Ordenamiento';
     };
 
+    const getProveedorNombre = () => {
+        if (!filtroProveedor) return 'Todos los proveedores';
+        return filtroProveedor.name || 'Proveedor seleccionado';
+    };
+
     const opciones = [
         {
             label: getMetodoPagoNombre(),
             active: filtroMetodoPago !== null,
             onClick: () => setOpenMetodoPago(true)
+        },
+        {
+            label: getProveedorNombre(),
+            active: filtroProveedor !== null,
+            onClick: () => setOpenProveedor(true)
         },
         {
             label: getOrdenamientoNombre(),
@@ -372,6 +416,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 searchPlaceholder="Buscar gasto por concepto..."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
+                onSearchNormalizedChange={handleSearchNormalizedChange}
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
@@ -410,10 +455,8 @@ function PanelGastos({ isOpen, setIsOpen }) {
                                         }}
                                     />
                                     {/* Indicador de carga para más elementos */}
-                                    {isLoading && (
-                                        <div className={styles.loadingMore}>
-                                            <p>Cargando más gastos...</p>
-                                        </div>
+                                    {isLoadingMore && (
+                                        <LoadingSpinner />
                                     )}
                                 </div>
                             </>
@@ -426,6 +469,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
                                     maxHeight: 'calc(100% - 80px)',
                                     minHeight: 'calc(100% - 80px)'
                                 }}
+                                onScroll={handleScroll}
                             >
                                 {allGastos.length > 0 ? (
                                     allGastos.map((gasto, index) => {
@@ -451,10 +495,8 @@ function PanelGastos({ isOpen, setIsOpen }) {
                                     />
                                 )}
                                 {/* Indicador de carga para más elementos */}
-                                {isLoading && (
-                                    <div className={styles.loadingMore}>
-                                        <p>Cargando más gastos...</p>
-                                    </div>
+                                {isLoadingMore && (
+                                    <LoadingSpinner />
                                 )}
 
                             </PullToRefresh>
@@ -492,22 +534,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 text={notification.text}
             />
 
-            {/* FetchData para gastos */}
-            {isOpen && (
-                <FetchData
-                    service={gastosService}
-                    serviceName="gastosService"
-                    method="getAll"
-                    methodParams={[currentPage, 10, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]}
-                    isOpen={isOpen}
-                    onDataLoaded={handleGastosLoaded}
-                    onLoadingStart={handleLoadingStart}
-                    onLoadingEnd={handleLoadingEnd}
-                    onError={handleError}
-                    onRefresh={isLargeScreen ? handleRefresh : undefined}
-                />
-            )}
-
             {/* Modal de Información */}
             <InfoModal
                 isOpen={modalConfig.isOpen}
@@ -531,6 +557,13 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 isOpen={isOpenOrden}
                 setIsOpen={setOpenOrden}
                 onOrdenamientoSeleccionado={handleOrdenamiento}
+            />
+
+            <FiltroProveedor
+                isOpen={isOpenProveedor}
+                setIsOpen={setOpenProveedor}
+                onProveedorSeleccionado={handleFiltroProveedor}
+                proveedorSeleccionado={filtroProveedor}
             />
         </View>
     );

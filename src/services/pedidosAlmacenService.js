@@ -92,7 +92,7 @@ class pedidosAlmacenService {
   }
 
   // Obtener todos los pedidos de la sucursal
-  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null, responsableId = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -115,6 +115,10 @@ class pedidosAlmacenService {
 
       if (estado && estado.trim() !== '') {
         params.append('estado', estado);
+      }
+
+      if (responsableId) {
+        params.append('responsable_id', responsableId);
       }
 
       const response = await fetch(`${API_BASE_URL}/pedidos-almacen?${params}`, {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import VerPedido from './VerPedido';
@@ -17,6 +17,7 @@ import Table from '../../common/Table';
 import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
 import NoData from '../../common/NoData';
 import FiltroEstadoPedido from '../../mixed/FiltroEstadoPedido';
+import FiltroResponsable from '../../mixed/FiltroResponsable';
 import Select from '../../common/Select';
 import HistorialWhatsapp from './HistorialWhatsapp';
 import PullToRefresh from '../../common/PullToRefresh';
@@ -32,6 +33,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para loading
@@ -51,15 +53,17 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const [pedidosLoaded, setPedidosLoaded] = useState(false);
 
     // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    const [debouncedSearchQuery] = useDebounce(searchQueryNormalized, 500);
 
     // Estados para filtros y modales
     const [isOpenFiltroOrden, setIsOpenFiltroOrden] = useState(false);
     const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
+    const [isOpenFiltroResponsable, setIsOpenFiltroResponsable] = useState(false);
 
     // Estados para filtros
     const [filtroEstado, setFiltroEstado] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
+    const [filtroResponsable, setFiltroResponsable] = useState(null);
 
     // Estados para pedidos
     const [pedidos, setPedidos] = useState([]);
@@ -79,7 +83,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
 
 
     // Función para cargar pedidos
-    const cargarPedidos = async (page = 1, search = '', estado = null, orden = 'fecha_desc') => {
+    const cargarPedidos = async (page = 1, search = '', estado = null, orden = 'fecha_desc', responsableId = null) => {
         // Solo mostrar loading si no hay datos cargados Y es página 1
         if (page === 1 && allPedidos.length === 0) {
             setIsLoading(true);
@@ -100,9 +104,10 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         });
 
         try {
+            const normalizedSearch = getPrimaryNormalizedValue(search);
             const response = tipoPedido === 'acopio'
-                ? await pedidosAcopioService.getAll(page, 30, search, estado, orden)
-                : await pedidosAlmacenService.getAll(page, 30, search, estado, orden);
+                ? await pedidosAcopioService.getAll(page, 30, normalizedSearch, estado, orden, responsableId)
+                : await pedidosAlmacenService.getAll(page, 30, normalizedSearch, estado, orden, null, responsableId);
 
             if (response.success) {
                 const newData = response.data || [];
@@ -166,7 +171,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Cargar pedidos cuando se abre el modal - solo si no hay datos cargados
     useEffect(() => {
         if (isOpen && !pedidosLoaded) {
-            cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
+            cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable?.id || null);
         }
     }, [isOpen, pedidosLoaded]);
 
@@ -182,7 +187,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Cargar pedidos cuando cambia la página (para paginación)
     useEffect(() => {
         if (isOpen && currentPage > 1) {
-            cargarPedidos(currentPage, debouncedSearchQuery, filtroEstado, ordenamiento);
+            cargarPedidos(currentPage, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable?.id || null);
         }
     }, [currentPage]);
 
@@ -202,7 +207,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setPedidosLoaded(false);
 
         // La función cargarPedidos ya maneja el RefreshIndicator
-        await cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
+        await cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable?.id || null);
     };
 
     // Estados para la notificación
@@ -227,6 +232,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+            setSearchQueryNormalized('');
         }
     }, [isOpen]);
 
@@ -238,11 +244,13 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setFiltroEstado(null);
             setOrdenamiento('fecha_desc');
             setSearchQuery('');
+            setSearchQueryNormalized('');
             setPedidosLoaded(false);
             setCurrentTipoPedido(tipoPedido);
+            setFiltroResponsable(null);
             // Cargar datos del nuevo tipo si el panel está abierto
             if (isOpen) {
-                cargarPedidos(1, '', null, 'fecha_desc');
+            cargarPedidos(1, '', null, 'fecha_desc', null);
             }
         }
     }, [tipoPedido, currentTipoPedido, isOpen]);
@@ -254,9 +262,9 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setCurrentPage(1);
             setPedidosLoaded(false);
             // Cargar pedidos inmediatamente después de limpiar
-            cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento);
+            cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable?.id || null);
         }
-    }, [debouncedSearchQuery, filtroEstado, ordenamiento]);
+    }, [debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable]);
 
     // Efecto para manejar errores de SWR
     useEffect(() => {
@@ -323,13 +331,24 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setCurrentPage(1);
     };
 
+    // Función para manejar filtro de responsable
+    const handleFiltroResponsable = (responsable) => {
+        setFiltroResponsable(responsable);
+        setCurrentPage(1);
+    };
+
     // Funciones para el buscador expandible
     const handleSearchChange = (value) => {
         setSearchQuery(value);
     };
 
+    const handleSearchNormalizedChange = (normalizedValue) => {
+        setSearchQueryNormalized(normalizedValue || '');
+    };
+
     const handleSearchClear = () => {
         setSearchQuery('');
+        setSearchQueryNormalized('');
     };
 
     const handleSearchToggle = (isExpanded) => {
@@ -379,6 +398,12 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         return ordenamientos[ordenamiento] || 'Ordenamiento';
     };
 
+    // Función para obtener el nombre del responsable
+    const getResponsableNombre = () => {
+        if (!filtroResponsable) return 'Todos los responsables';
+        return filtroResponsable.name || 'Responsable';
+    };
+
     // Función para obtener el badge de estado
     const getCellBadge = (item, headerKey) => {
         if (headerKey === 'estado') {
@@ -411,6 +436,11 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             label: getEstadoNombre(),
             active: filtroEstado !== null,
             onClick: () => setIsOpenFiltroEstado(true)
+        },
+        {
+            label: getResponsableNombre(),
+            active: filtroResponsable !== null,
+            onClick: () => setIsOpenFiltroResponsable(true)
         },
         {
             label: getOrdenamientoNombre(),
@@ -481,6 +511,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 searchPlaceholder="Buscar pedidos..."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
+                onSearchNormalizedChange={handleSearchNormalizedChange}
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
@@ -641,6 +672,14 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 isOpen={isOpenFiltroOrden}
                 setIsOpen={setIsOpenFiltroOrden}
                 onOrdenamientoSeleccionado={handleOrdenamiento}
+            />
+
+            {/* Filtro de responsable */}
+            <FiltroResponsable
+                isOpen={isOpenFiltroResponsable}
+                setIsOpen={setIsOpenFiltroResponsable}
+                onResponsableSeleccionado={handleFiltroResponsable}
+                responsableSeleccionado={filtroResponsable}
             />
 
             {/* Notificación */}

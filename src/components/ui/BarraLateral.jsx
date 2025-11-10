@@ -29,6 +29,7 @@ import AlmacenAcopioAuxiliar from '../views/almacen-acopio-auxiliar/AlmacenAcopi
 import PanelConteos from '../views/conteos/PanelConteos';
 import PanelCotizaciones from '../views/cotizaciones/PanelCotizaciones';
 import ImportExport from '../views/exportar-importar/ImportExport';
+import PanelHistorial from '../views/historial/PanelHistorial';
 
 const BarraLateral = ({ 
   onMenuClick, 
@@ -338,6 +339,11 @@ const BarraLateral = ({
 
       <Precios
         isOpen={activeView === 'precios'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <PanelHistorial
+        isOpen={activeView === 'historial'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

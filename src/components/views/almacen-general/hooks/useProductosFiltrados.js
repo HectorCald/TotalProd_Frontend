@@ -1,15 +1,8 @@
 import { useMemo, useState, useCallback } from 'react';
 import useVirtualPagination from '../../../../hooks/useVirtualPagination';
+import { normalizeSearchValue, normalizedIncludes } from '../../../common/HeaderView';
 
-const normalizeText = (text) => {
-    if (!text) return '';
-    return text
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[-\s]/g, '')
-        .trim();
-};
+const normalizeText = (text) => normalizeSearchValue(text);
 
 function useProductosFiltrados({
     productos = [],
@@ -17,6 +10,7 @@ function useProductosFiltrados({
 }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+    const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [categoriaFiltro, setCategoriaFiltro] = useState(null);
     const [categoriaFiltroNombre, setCategoriaFiltroNombre] = useState('Categorías');
     const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
@@ -25,8 +19,13 @@ function useProductosFiltrados({
         setSearchQuery(value);
     }, []);
 
+    const handleSearchNormalizedChange = useCallback((normalizedValue) => {
+        setSearchQueryNormalized(normalizedValue || '');
+    }, []);
+
     const handleSearchClear = useCallback(() => {
         setSearchQuery('');
+        setSearchQueryNormalized('');
     }, []);
 
     const handleSearchToggle = useCallback((isExpanded) => {
@@ -86,13 +85,13 @@ function useProductosFiltrados({
     }, [productos]);
 
     const productosFiltrados = useMemo(() => {
-        const query = normalizeText(searchQuery);
+        const query = searchQueryNormalized || normalizeText(searchQuery);
         return productosMapeados
             .filter(producto => {
                 const matchesSearch = !query ||
-                    normalizeText(producto.name).includes(query) ||
-                    (producto.description && normalizeText(producto.description).includes(query)) ||
-                    (producto.codigo_barras && normalizeText(producto.codigo_barras).includes(query));
+                    normalizedIncludes(normalizeText(producto.name), query) ||
+                    (producto.description && normalizedIncludes(normalizeText(producto.description), query)) ||
+                    (producto.codigo_barras && normalizedIncludes(normalizeText(producto.codigo_barras), query));
 
                 const matchesCategoria = categoriaFiltro === null ||
                     (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
@@ -113,7 +112,7 @@ function useProductosFiltrados({
                         return a.name.localeCompare(b.name);
                 }
             });
-    }, [productosMapeados, searchQuery, categoriaFiltro, ordenamiento]);
+    }, [productosMapeados, searchQuery, searchQueryNormalized, categoriaFiltro, ordenamiento]);
 
     const {
         visibleItems,
@@ -123,6 +122,7 @@ function useProductosFiltrados({
 
     const resetFilters = useCallback(() => {
         setSearchQuery('');
+        setSearchQueryNormalized('');
         setIsSearchExpanded(false);
         setCategoriaFiltro(null);
         setCategoriaFiltroNombre('Categorías');
@@ -136,12 +136,14 @@ function useProductosFiltrados({
         hasMore,
         handleScroll,
         searchQuery,
+        searchQueryNormalized,
         isSearchExpanded,
         categoriaFiltro,
         categoriaFiltroNombre,
         ordenamiento,
         handleSearchChange,
         handleSearchClear,
+        handleSearchNormalizedChange,
         handleSearchToggle,
         handleCategoriaFilter,
         handleOrdenamiento,

@@ -29,13 +29,14 @@ const Nav = () => {
     const [isOpenComentarios, setIsOpenComentarios] = useState(false);
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
     const { sucursalSeleccionada: userSucursal, user, seleccionarSucursal, clearUser } = useUser();
-    const { sucursalSeleccionada: employeeSucursal, employee, clearEmployee } = useEmployee();
+    const { sucursalSeleccionada: employeeSucursal, employee, clearEmployee, seleccionarSucursal: seleccionarSucursalEmpleado } = useEmployee();
     const { isLargeScreen } = useLayout();
 
     // Determinar qué datos usar según el tipo de sesión
     const isEmployee = !!employee;
     const sucursalSeleccionada = isEmployee ? employeeSucursal : userSucursal;
     const currentUser = isEmployee ? employee : user;
+    const canAdministrarSucursales = isEmployee ? (employee?.permisos?.sucursales === true) : true;
 
     // Obtener nombre completo del contexto
     const nombreCompleto = currentUser ? (isEmployee ?
@@ -58,14 +59,18 @@ const Nav = () => {
     
 
     const handleSucursalClick = () => {
-        // Solo permitir cambio de sucursal para usuarios normales, no empleados
-        if (!isEmployee) {
+        if (!isEmployee || canAdministrarSucursales) {
             setIsSucursalOpen(true);
         }
     }
 
-    const handleSucursalSeleccionada = (sucursal) => {
-        if (!isEmployee) {
+    const handleSeleccionarSucursal = (sucursal) => {
+        if (isEmployee) {
+            if (!canAdministrarSucursales) {
+                return;
+            }
+            seleccionarSucursalEmpleado(sucursal);
+        } else {
             seleccionarSucursal(sucursal);
         }
         setIsSucursalOpen(false);
@@ -176,13 +181,13 @@ const Nav = () => {
                     </div>
                 </ViewModal>
             </div>
-            {currentUser && !isEmployee && (
+            {currentUser && (!isEmployee || canAdministrarSucursales) && (
                 <SeleccionarSucursal
                     isOpen={isSucursalOpen}
                     setIsOpen={setIsSucursalOpen}
-                    empresaId={currentUser.empresa_id}
-                    onSucursalSeleccionada={handleSucursalSeleccionada}
-                    canClose={true}
+                    empresaId={isEmployee ? (currentUser?.empresa_id || currentUser?.sucursal?.empresas?.id) : currentUser.empresa_id}
+                    onSucursalSeleccionada={handleSeleccionarSucursal}
+                    canClose={!!sucursalSeleccionada}
                 />
             )}
         </>

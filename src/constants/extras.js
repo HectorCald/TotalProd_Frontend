@@ -5,6 +5,7 @@ import imageReportIA from '../assets/reporte-ia.png';
 import imageDeudas from '../assets/deudas.png';
 import imageGastos from '../assets/gastos.png'
 import imageBalance from '../assets/balance.png';
+import imageHistorial from '../assets/historial.png';
 export const EXTRAS = [
     {
         title: 'Balance',
@@ -47,5 +48,10 @@ export const EXTRAS = [
         title: 'Importar/Exportar',
         image: imageImportExport,
         view: 'importar-exportar'
+    },
+    {
+        title: 'Historial',
+        image: imageHistorial,
+        view: 'historial'
     },
 ];

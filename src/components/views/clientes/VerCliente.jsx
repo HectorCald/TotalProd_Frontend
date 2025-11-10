@@ -17,9 +17,14 @@ import MapaModal from './MapaModal';
 import VerMovimiento from '../movimientos/VerMovimiento';
 import { useUser } from '../../../context/UserContext';
 import NoData from '../../common/NoData';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdated }) {
     const { sucursalSeleccionada } = useUser();
+    const { logAccion } = useHistorialLogger({
+        modulo: 'Clientes',
+        campos: ['name', 'phone', 'direccion', 'description', 'total_orders', 'location']
+    });
 
     // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -69,6 +74,14 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
             const response = await clientService.delete(id, sucursalSeleccionada?.id);
 
             if (response.success) {
+                await logAccion({
+                    accion: 'ELIMINAR',
+                    lugarAfectado: usuario?.name || 'Cliente',
+                    registroId: usuario?.id || null,
+                    datosAntes: usuario,
+                    comentario: 'Eliminación de cliente'
+                });
+
                 // Notificar al componente padre que se eliminó un cliente
                 if (onClientDeleted) {
                     onClientDeleted(id);

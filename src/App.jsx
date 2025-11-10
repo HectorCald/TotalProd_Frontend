@@ -84,8 +84,8 @@ function App() {
 }
 
 function AppContent({ token, tokenType }) {
-  const { user, sucursalSeleccionada: userSucursal, seleccionarSucursal, loadUserData } = useUser();
-  const { employee, sucursalSeleccionada: employeeSucursal, loadEmployeeData } = useEmployee();
+  const { user, sucursalSeleccionada: userSucursal, seleccionarSucursal: seleccionarSucursalUsuario, loadUserData } = useUser();
+  const { employee, sucursalSeleccionada: employeeSucursal, seleccionarSucursal: seleccionarSucursalEmpleado, loadEmployeeData } = useEmployee();
   const [showSucursalModal, setShowSucursalModal] = useState(false);
   const [userDataFetched, setUserDataFetched] = useState(false);
   const [employeeDataFetched, setEmployeeDataFetched] = useState(false);
@@ -106,8 +106,18 @@ function AppContent({ token, tokenType }) {
     }
   }, [isUserSession, user, sucursalSeleccionada]);
 
+  useEffect(() => {
+    if (isEmployeeSession && employee && employee.permisos?.sucursales && !sucursalSeleccionada) {
+      setShowSucursalModal(true);
+    }
+  }, [isEmployeeSession, employee, sucursalSeleccionada]);
+
   const handleSucursalSeleccionada = (sucursal) => {
-    seleccionarSucursal(sucursal);
+    if (isEmployeeSession) {
+      seleccionarSucursalEmpleado(sucursal);
+    } else {
+      seleccionarSucursalUsuario(sucursal);
+    }
     setShowSucursalModal(false);
   };
 
@@ -195,12 +205,12 @@ function AppContent({ token, tokenType }) {
           />
         </Routes>
 
-        {/* Modal de selección de sucursal - solo para usuarios normales */}
-        {isUserSession && user && (
+        {/* Modal de selección de sucursal */}
+        {((isUserSession && user) || (isEmployeeSession && employee?.permisos?.sucursales)) && (
           <SeleccionarSucursal
             isOpen={showSucursalModal}
             setIsOpen={setShowSucursalModal}
-            empresaId={user.empresa_id}
+            empresaId={isEmployeeSession ? (employee?.empresa_id || employee?.sucursal?.empresas?.id) : user.empresa_id}
             onSucursalSeleccionada={handleSucursalSeleccionada}
             canClose={!!sucursalSeleccionada}
           />

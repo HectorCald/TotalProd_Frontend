@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../../styles/Inicial.module.css';
-import HeaderView from '../../../common/HeaderView';
+import HeaderView, { getPrimaryNormalizedValue } from '../../../common/HeaderView';
 import View from '../../../ui/View';
 import ItemView from '../../../common/ItemView';
 import VerProduccion from './VerProduccion';
@@ -28,6 +28,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     
     // Estados para RefreshIndicator
@@ -42,7 +43,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     const [registrosLoaded, setRegistrosLoaded] = useState(false);
     
     // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    const [debouncedSearchQuery] = useDebounce(searchQueryNormalized, 500);
 
     // Estados para filtros
     const [filtroEstado, setFiltroEstado] = useState(null);
@@ -78,7 +79,8 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         });
         
         try {
-            const response = await registrosProduccionDamabravaService.getAll(page, 30, estado, orden, search, responsable);
+            const normalizedSearch = getPrimaryNormalizedValue(search);
+            const response = await registrosProduccionDamabravaService.getAll(page, 30, estado, orden, normalizedSearch, responsable);
                 
             if (response.success) {
                 const newData = response.data || [];
@@ -231,8 +233,13 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         setSearchQuery(value);
     };
 
+    const handleSearchNormalizedChange = (normalizedValue) => {
+        setSearchQueryNormalized(normalizedValue || '');
+    };
+
     const handleSearchClear = () => {
         setSearchQuery('');
+        setSearchQueryNormalized('');
     };
 
     const handleSearchToggle = (isExpanded) => {
@@ -243,6 +250,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+            setSearchQueryNormalized('');
             setCurrentPage(1);
         }
     }, [isOpen]);
@@ -470,6 +478,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                 searchPlaceholder="Buscar registros de producción..."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
+                onSearchNormalizedChange={handleSearchNormalizedChange}
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}

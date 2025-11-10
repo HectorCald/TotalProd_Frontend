@@ -25,6 +25,7 @@ import MiProduccion from '../views/damabrava/produccion/MiProduccion';
 import Reglas from '../views/damabrava/reglas/Reglas';
 import PanelConteos from '../views/conteos/PanelConteos';
 import PanelCotizaciones from '../views/cotizaciones/PanelCotizaciones';
+import PanelHistorial from '../views/historial/PanelHistorial';
 
 const BarraLateralEmpleado = ({ 
   onMenuClick, 
@@ -403,6 +404,11 @@ const BarraLateralEmpleado = ({
       
       <PanelCotizaciones
         isOpen={activeView === 'cotizaciones'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <PanelHistorial
+        isOpen={activeView === 'historial'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

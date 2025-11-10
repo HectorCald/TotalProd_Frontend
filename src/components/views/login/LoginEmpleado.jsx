@@ -61,18 +61,21 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
     const [errorMessage, setErrorMessage] = useState('');
     const [personalData, setPersonalData] = useState(null);
     const [savedEmployees, setSavedEmployees] = useState([]);
+    const [isCodigoEditable, setIsCodigoEditable] = useState(true);
 
     // Cargar empleados guardados al abrir el modal
     useEffect(() => {
         if (isOpen) {
             const saved = getSavedEmployees();
             setSavedEmployees(saved);
+            setIsCodigoEditable(true);
         }
     }, [isOpen]);
 
     // Función para seleccionar empleado guardado
     const handleSelectSavedEmployee = async (employee) => {
         setCodigo(employee.codigo);
+        setIsCodigoEditable(false);
         setLoading(true);
         try {
             const response = await personalService.validateEmployeeCode(employee.codigo);
@@ -241,11 +244,39 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
     const handleClose = () => {
         setStep(1);
         setCodigo('');
+        setIsCodigoEditable(true);
         setPassword('');
         setConfirmPassword('');
         setErrorMessage('');
         setPersonalData(null);
         setIsOpen(false);
+    };
+
+    const handleCodigoKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!loading) {
+                handleValidateCode();
+            }
+        }
+    };
+
+    const handleEmployeeLoginKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!loading) {
+                handleEmployeeLogin();
+            }
+        }
+    };
+
+    const handleSetPasswordKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!loading) {
+                handleSetPassword();
+            }
+        }
     };
 
     return (
@@ -282,10 +313,16 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                         <InputNormal
                             tipo="text"
                             icon="hash"
-                            value={codigo}
+                            value={isCodigoEditable ? codigo : ''}
                             placeholder="Código de empleado"
-                            onChange={(e) => setCodigo(e.target.value)}
-                            readonly={loading}
+                            onChange={(e) => {
+                                if (isCodigoEditable) {
+                                    setCodigo(e.target.value);
+                                }
+                            }}
+                            readonly={loading || !isCodigoEditable}
+                            disabled={loading || !isCodigoEditable}
+                        onKeyPress={handleCodigoKeyPress}
                         />
                         <div className={styles.buttons}>
                             <Boton
@@ -312,15 +349,10 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                             value={password}
                             placeholder="Contraseña"
                             onChange={(e) => setPassword(e.target.value)}
+                            onKeyPress={handleEmployeeLoginKeyPress}
+                            disabled={loading}
                         />
                         <div className={styles.buttons}>
-                            <Boton
-                                className="btn-original"
-                                label="Iniciar Sesión"
-                                onClick={handleEmployeeLogin}
-                                loading={loading}
-                                disabled={!password.trim()}
-                            />
                             <Boton
                                 className="btn-default"
                                 label="Cambiar Código"
@@ -328,8 +360,18 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                                     setStep(1);
                                     setPassword('');
                                     setPersonalData(null);
+                                    setCodigo('');
+                                    setIsCodigoEditable(true);
                                 }}
                             />
+                            <Boton
+                                className="btn-original"
+                                label="Iniciar Sesión"
+                                onClick={handleEmployeeLogin}
+                                loading={loading}
+                                disabled={!password.trim()}
+                            />
+
                         </div>
                     </>
                 )}
@@ -348,6 +390,8 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                             value={password}
                             placeholder="Nueva contraseña"
                             onChange={(e) => setPassword(e.target.value)}
+                            onKeyPress={handleSetPasswordKeyPress}
+                            disabled={loading}
                         />
                         <InputNormal
                             tipo="password"
@@ -355,6 +399,8 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                             value={confirmPassword}
                             placeholder="Confirmar contraseña"
                             onChange={(e) => setConfirmPassword(e.target.value)}
+                            onKeyPress={handleSetPasswordKeyPress}
+                            disabled={loading}
                         />
                         <div className={styles.buttons}>
                             <Boton
@@ -372,6 +418,8 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                                     setPassword('');
                                     setConfirmPassword('');
                                     setPersonalData(null);
+                                    setCodigo('');
+                                    setIsCodigoEditable(true);
                                 }}
                             />
                         </div>

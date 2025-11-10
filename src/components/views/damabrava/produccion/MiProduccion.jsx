@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../../styles/Inicial.module.css';
-import HeaderView from '../../../common/HeaderView';
+import HeaderView, { getPrimaryNormalizedValue } from '../../../common/HeaderView';
 import View from '../../../ui/View';
 import ItemView from '../../../common/ItemView';
 import VerMiProduccion from './VerMiProduccion';
@@ -27,6 +27,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para RefreshIndicator
@@ -41,7 +42,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
     const [registrosLoaded, setRegistrosLoaded] = useState(false);
 
     // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    const [debouncedSearchQuery] = useDebounce(searchQueryNormalized, 500);
 
     // Estados para filtros (sin filtro de responsable)
     const [filtroEstado, setFiltroEstado] = useState(null);
@@ -76,7 +77,8 @@ function MiProduccion({ isOpen, setIsOpen }) {
         });
 
         try {
-            const response = await registrosProduccionDamabravaService.getByUser(page, 10, estado, orden, search);
+            const normalizedSearch = getPrimaryNormalizedValue(search);
+            const response = await registrosProduccionDamabravaService.getByUser(page, 10, estado, orden, normalizedSearch);
 
             if (response.success) {
                 const newData = response.data || [];
@@ -228,8 +230,13 @@ function MiProduccion({ isOpen, setIsOpen }) {
         setSearchQuery(value);
     };
 
+    const handleSearchNormalizedChange = (normalizedValue) => {
+        setSearchQueryNormalized(normalizedValue || '');
+    };
+
     const handleSearchClear = () => {
         setSearchQuery('');
+        setSearchQueryNormalized('');
     };
 
     const handleSearchToggle = (isExpanded) => {
@@ -240,6 +247,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+            setSearchQueryNormalized('');
             setCurrentPage(1);
         }
     }, [isOpen]);
@@ -377,6 +385,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
                 searchPlaceholder="Buscar mis registros..."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
+                onSearchNormalizedChange={handleSearchNormalizedChange}
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}

@@ -3,39 +3,40 @@ import ViewModal from '../ui/ViewModal';
 import HeaderModal from '../common/HeaderModal';
 import styles from '../../styles/Inicial.module.css';
 import ItemLine from '../common/ItemLine';
-import clientService from '../../services/clientService';
+import proveedorService from '../../services/proveedorService';
 import NoData from '../common/NoData';
 
-function FiltroCliente({ isOpen, setIsOpen, onClienteSeleccionado, clienteSeleccionado = null }) {
-    const [clientes, setClientes] = useState([]);
+function FiltroProveedor({ isOpen, setIsOpen, onProveedorSeleccionado, proveedorSeleccionado = null }) {
+    const [proveedores, setProveedores] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [hasLoaded, setHasLoaded] = useState(false);
 
-    const cargarClientes = useCallback(async () => {
+    const cargarProveedores = useCallback(async () => {
         if (!hasLoaded) {
             setLoading(true);
         }
         setError(null);
 
         try {
-            const response = await clientService.getAll();
+            const response = await proveedorService.getAll();
 
             if (response.success && Array.isArray(response.data)) {
-                const clientesOrdenados = [...response.data].sort((a, b) => {
+                const proveedoresOrdenados = [...response.data].sort((a, b) => {
                     const nameA = (a.name || '').toLowerCase();
                     const nameB = (b.name || '').toLowerCase();
                     return nameA.localeCompare(nameB);
                 });
 
-                setClientes(clientesOrdenados);
+                setProveedores(proveedoresOrdenados);
             } else {
-                setClientes([]);
-                setError(response.message || 'No se pudieron obtener los clientes');
+                setProveedores([]);
+                setError(response.message || 'No se pudieron obtener los proveedores');
             }
         } catch (err) {
-            console.error('Error cargando clientes:', err);
-            setError(err.message || 'Error al cargar los clientes');
+            console.error('Error cargando proveedores:', err);
+            setError(err.message || 'Error al cargar los proveedores');
+            setProveedores([]);
         } finally {
             setLoading(false);
             setHasLoaded(true);
@@ -43,39 +44,39 @@ function FiltroCliente({ isOpen, setIsOpen, onClienteSeleccionado, clienteSelecc
     }, [hasLoaded]);
 
     useEffect(() => {
-        cargarClientes();
-    }, [cargarClientes]);
+        cargarProveedores();
+    }, [cargarProveedores]);
 
     useEffect(() => {
         if (isOpen) {
-            cargarClientes();
+            cargarProveedores();
         }
-    }, [isOpen, cargarClientes]);
+    }, [isOpen, cargarProveedores]);
 
-    const handleSeleccionar = (cliente) => {
-        onClienteSeleccionado(cliente);
+    const handleSeleccionar = (proveedor) => {
+        onProveedorSeleccionado(proveedor);
         setIsOpen(false);
     };
 
     const handleLimpiar = () => {
-        onClienteSeleccionado(null);
+        onProveedorSeleccionado(null);
         setIsOpen(false);
     };
 
     return (
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderModal
-                title="Filtrar por Cliente"
+                title="Filtrar por Proveedor"
                 onClose={() => setIsOpen(false)}
             />
             <div className={styles.modalContent}>
-                <p className={styles.subTitle}>Selecciona el cliente de los movimientos a mostrar</p>
+                <p className={styles.subTitle}>Selecciona el proveedor de los gastos a mostrar</p>
 
                 {loading && (
                     <NoData
                         icon="loader-alt"
-                        title="Cargando clientes"
-                        detail="Estamos obteniendo la lista de clientes"
+                        title="Cargando proveedores"
+                        detail="Estamos obteniendo la lista de proveedores"
                         transparent={true}
                     />
                 )}
@@ -89,23 +90,23 @@ function FiltroCliente({ isOpen, setIsOpen, onClienteSeleccionado, clienteSelecc
                 {!loading && !error && (
                     <>
                         <ItemLine
-                            title="Todos los clientes"
+                            title="Todos los proveedores"
                             icon="user-pin"
                             onClick={handleLimpiar}
                         />
 
-                        {clientes.map((cliente) => (
+                        {proveedores.map((proveedor) => (
                             <ItemLine
-                                key={cliente.id}
-                                title={cliente.name || 'Cliente sin nombre'}
+                                key={proveedor.id}
+                                title={proveedor.name || 'Proveedor sin nombre'}
                                 icon="user"
-                                onClick={() => handleSeleccionar(cliente)}
+                                onClick={() => handleSeleccionar(proveedor)}
                             />
                         ))}
 
-                        {clientes.length === 0 && (
+                        {proveedores.length === 0 && (
                             <div className={styles.noData}>
-                                <p>No se encontraron clientes</p>
+                                <p>No se encontraron proveedores</p>
                             </div>
                         )}
                     </>
@@ -115,6 +116,5 @@ function FiltroCliente({ isOpen, setIsOpen, onClienteSeleccionado, clienteSelecc
     );
 }
 
-export default FiltroCliente;
-
+export default FiltroProveedor;
 

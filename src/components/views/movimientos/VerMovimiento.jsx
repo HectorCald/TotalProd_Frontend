@@ -16,6 +16,8 @@ import { useLayout } from '../../../context/LayoutContext';
 import ModalTable from '../../common/ModalTable';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import Text from '../../common/Text';
+import useHistorialLogger from '../../ui/HistorialLogger';
+import { formatMovimientoLog, prepareLogPayload } from '../../../utils/logFormatters';
 
 function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado, onMovimientoActualizado, onMovimientoEditado }) {
     const { isLargeScreen } = useLayout();
@@ -29,6 +31,10 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
 
     // Estado local para el movimiento actual
     const [movimientoActual, setMovimientoActual] = useState(movimiento);
+
+    const { logAccion } = useHistorialLogger({
+        modulo: 'Movimientos'
+    });
 
     // Actualizar el estado local cuando cambie el prop movimiento
     useEffect(() => {
@@ -107,6 +113,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     const handleAnular = async () => {
         setLoading(true);
         try {
+            const movimientoAntesRaw = movimientoActual ? JSON.parse(JSON.stringify(movimientoActual)) : null;
             // 1) Si el movimiento tiene deuda_id, limpiar primero el deuda_id del movimiento
             if (movimientoActual?.deuda_id) {
                 const updateResponse = await movimientosAlmacenService.update(movimientoActual.id, { deuda_id: null });
@@ -206,6 +213,23 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 // Actualizar el estado local del movimiento
                 setMovimientoActual(movimientoConDatosPreservados);
 
+                const logAntes = formatMovimientoLog(movimientoAntesRaw);
+                const logDespues = formatMovimientoLog(movimientoConDatosPreservados);
+                const { datosAntes, datosDespues, campos } = prepareLogPayload({
+                    accion: 'EDITAR',
+                    datosAntes: logAntes,
+                    datosDespues: logDespues
+                });
+                await logAccion({
+                    accion: 'EDITAR',
+                    lugarAfectado: `Movimiento #${logDespues?.numero ?? logAntes?.numero ?? movimientoConDatosPreservados?.id ?? movimientoAntesRaw?.id ?? ''}`,
+                    registroId: movimientoConDatosPreservados?.id || movimientoAntesRaw?.id || null,
+                    datosAntes,
+                    datosDespues,
+                    comentario: 'Anulación de movimiento',
+                    campos
+                });
+
                 // Notificar al componente padre del cambio
                 if (onMovimientoActualizado) {
                     onMovimientoActualizado(movimientoConDatosPreservados);
@@ -235,11 +259,27 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
     const handleEliminar = async () => {
         setLoading(true);
         try {
+            const movimientoAntesRaw = movimientoActual ? JSON.parse(JSON.stringify(movimientoActual)) : null;
             const response = await movimientosAlmacenService.eliminar(movimientoActual.id);
 
             if (response.success) {
                 setIsEliminarOpen(false);
                 setIsOpen(false);
+
+                const logDatosAntes = formatMovimientoLog(movimientoAntesRaw);
+                const { datosAntes, campos } = prepareLogPayload({
+                    accion: 'ELIMINAR',
+                    datosAntes: logDatosAntes,
+                    datosDespues: null
+                });
+                await logAccion({
+                    accion: 'ELIMINAR',
+                    lugarAfectado: `Movimiento #${logDatosAntes?.numero ?? movimientoActual?.id ?? ''}`,
+                    registroId: movimientoAntesRaw?.id || movimientoActual?.id || null,
+                    datosAntes,
+                    comentario: 'Eliminación de movimiento',
+                    campos
+                });
 
                 if (onMovimientoEliminado) {
                     onMovimientoEliminado(movimientoActual.id);
@@ -699,14 +739,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         </div>
                     )}
                     {movimientoActual?.produccion_damabrava_id && movimientoActual?.type === 'entrada' && (
-                        <div style={{ marginTop: '0', marginBottom: '10px', width: '100%' }}>
+                        <div style={{ marginBottom: '10px', width: '100%' }}>
                             <Text type="warning" align="left">
                                 Este movimiento es un ingreso de producción Damabrava. Al anular, si el registro de producción está en estado "Completado" se pondrá a estado "Verificado".
                             </Text>
                         </div>
                     )}
                     {movimientoActual?.type === 'salida' && (
-                        <div style={{ marginTop: '10px', marginBottom: '10px', width: '100%' }}>
+                        <div style={{ marginBottom: '10px', width: '100%' }}>
                             <Text type="info" align="left">
                                 Al anular este movimiento se regresarán todos los productos a tu stock del producto.
                                 {movimientoActual?.cliente_id && ' Se quitará el número de pedido o de orden del cliente.'}
@@ -714,7 +754,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         </div>
                     )}
                     {movimientoActual?.metodo_pago?.toLowerCase() === 'credito' && (
-                        <div style={{ marginBottom: '10px', width: '100%' }}>
+                        <div style={{ width: '100%' }}>
                             <Text type="warning" align="left">
                                 Al anular este movimiento se eliminará la deuda del apartado de deudas por que este movimiento tiene metodo de pago a credito.
                             </Text>

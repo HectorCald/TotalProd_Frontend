@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import VerMovimiento from './VerMovimiento';
@@ -21,16 +21,6 @@ import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import FiltroCliente from '../../mixed/FiltroCliente';
 
-// Función helper para normalizar texto (quitar acentos)
-const normalizeText = (text) => {
-    if (!text) return '';
-    return text
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
-        .trim();
-};
-
 function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const { isLargeScreen } = useLayout();
 
@@ -41,6 +31,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para loading
@@ -59,7 +50,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [movimientosLoaded, setMovimientosLoaded] = useState(false);
 
     // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    const [debouncedSearchQuery] = useDebounce(searchQueryNormalized, 500);
 
     // Estados para filtros
     const [filtroTipo, setFiltroTipo] = useState(null);
@@ -96,13 +87,13 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             return newCount;
         });
 
-        // Normalizar el texto de búsqueda (quitar acentos)
-        const normalizedSearch = normalizeText(search);
+        const clienteIdNormalizado = tipoMovimiento === 'acopio' ? null : clienteId;
 
         try {
+            const normalizedSearch = getPrimaryNormalizedValue(search);
             const response = tipoMovimiento === 'acopio'
-                ? await movimientosAcopioService.getAll(page, 30, filtro, estado, orden, clienteId, null, normalizedSearch)
-                : await movimientosAlmacenService.getAll(page, 30, filtro, estado, orden, clienteId, null, normalizedSearch);
+                ? await movimientosAcopioService.getAll(page, 30, filtro, estado, orden, clienteIdNormalizado, null, normalizedSearch)
+                : await movimientosAlmacenService.getAll(page, 30, filtro, estado, orden, clienteIdNormalizado, null, normalizedSearch);
 
             if (response.success) {
                 const newData = response.data || [];
@@ -274,8 +265,13 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setSearchQuery(value);
     };
 
+    const handleSearchNormalizedChange = (normalizedValue) => {
+        setSearchQueryNormalized(normalizedValue || '');
+    };
+
     const handleSearchClear = () => {
         setSearchQuery('');
+        setSearchQueryNormalized('');
     };
 
     const handleSearchToggle = (isExpanded) => {
@@ -286,6 +282,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+            setSearchQueryNormalized('');
         }
     }, [isOpen]);
 
@@ -298,6 +295,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setFiltroEstado(null);
             setOrdenamiento('fecha_desc');
             setSearchQuery('');
+            setSearchQueryNormalized('');
             setFiltroCliente(null);
             setMovimientosLoaded(false);
             setCurrentTipoMovimiento(tipoMovimiento);
@@ -411,18 +409,22 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             label: getEstadoNombre(),
             active: filtroEstado !== null,
             onClick: () => setIsOpenFiltroEstado(true)
-        },
-        {
+        }
+    ];
+
+    if (tipoMovimiento !== 'acopio') {
+        opciones.push({
             label: getClienteNombre(),
             active: filtroCliente !== null,
             onClick: () => setIsOpenFiltroCliente(true)
-        },
-        {
-            label: getOrdenamientoNombre(),
-            active: ordenamiento !== 'fecha_desc',
-            onClick: () => setIsOpenFiltroOrden(true)
-        },
-    ];
+        });
+    }
+
+    opciones.push({
+        label: getOrdenamientoNombre(),
+        active: ordenamiento !== 'fecha_desc',
+        onClick: () => setIsOpenFiltroOrden(true)
+    });
 
     // Headers para la tabla
     const tableHeaders = [
@@ -510,6 +512,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 searchPlaceholder="Buscar movimientos..."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
+                onSearchNormalizedChange={handleSearchNormalizedChange}
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}
@@ -659,12 +662,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             />
 
             {/* Filtro de clientes */}
-            <FiltroCliente
-                isOpen={isOpenFiltroCliente}
-                setIsOpen={setIsOpenFiltroCliente}
-                onClienteSeleccionado={handleFiltroCliente}
-                clienteSeleccionado={filtroCliente}
-            />
+            {tipoMovimiento !== 'acopio' && (
+                <FiltroCliente
+                    isOpen={isOpenFiltroCliente}
+                    setIsOpen={setIsOpenFiltroCliente}
+                    onClienteSeleccionado={handleFiltroCliente}
+                    clienteSeleccionado={filtroCliente}
+                />
+            )}
 
             {/* Filtro de estado de movimiento */}
             <FiltroEstadoMovimiento

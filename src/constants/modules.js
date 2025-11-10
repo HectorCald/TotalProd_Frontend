@@ -13,6 +13,7 @@ import imageBalance from '../assets/balance.png';
 import imageDamabrava from '../assets/damabrava/damabrava.png';
 import imageConteos from '../assets/conteos.png';
 import imageCotizaciones from '../assets/cotizaciones.png';
+import imageHistorial from '../assets/historial.png';
 
 // Mapeo de componentes a vistas (para simplificar el uso)
 const COMPONENT_TO_VIEW = {
@@ -35,6 +36,7 @@ const COMPONENT_TO_VIEW = {
     'VerificarProduccion': 'verificacion',
     'MiProduccion': 'mi_produccion',
     'Reglas': 'reglas',
+    'PanelHistorial': 'historial',
 };
 
 // Mapeo de nombres de módulos del backend a claves del frontend
@@ -52,6 +54,7 @@ const BACKEND_TO_FRONTEND_MODULE = {
     'Reportes': 'Reportes',
     'Balance': 'Balance',
     'Damabrava': 'Damabrava',
+    'Historial': 'Historial',
     'Cotizaciones': 'Cotizaciones'
 };
 
@@ -409,6 +412,21 @@ export const MODULES = {
             component: 'PanelCotizaciones',
             props: {}
         },
+    },
+    Historial: {
+        name: 'Historial',
+        imagen: imageHistorial,
+        descripcion: 'Consulta el historial de acciones del sistema.',
+        icon: 'history',
+        section: 'configuracion',
+        ver_historial: {
+            name: 'Ver Historial',
+            description: 'Revisa las acciones registradas en el sistema.',
+            icon: 'history',
+            component: 'PanelHistorial',
+            props: {},
+            view: 'historial'
+        }
     },
 };
 

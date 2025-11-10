@@ -311,6 +311,13 @@ const MENU_OPTIONS_BASE = [
         action: 'openView',
         viewName: 'importar-exportar'
       },
+      {
+        id: 'historial',
+        title: 'Historial',
+        icon: 'history',
+        action: 'openView',
+        viewName: 'historial'
+      },
     ]
   },
   // Solo incluir sección Damabrava si la empresa es Damabrava

@@ -130,6 +130,7 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
       'rojo': styles.iconRed,
       'verde': styles.iconGreen,
       'azul': styles.iconBlue,
+      'naranja': styles.iconOrange,
       'gris': styles.iconGrey,
       'default': ''
     };
@@ -142,6 +143,7 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
       'rojo': 'rgba(239, 68, 68, 0.2)',
       'verde': 'rgba(34, 197, 94, 0.2)',
       'azul': 'rgba(59, 130, 246, 0.2)',
+      'naranja': '#fb87133a',
       'gris': 'var(--tertiary-color)',
       'default': 'rgba(40, 180, 152, 0.3)'
     };

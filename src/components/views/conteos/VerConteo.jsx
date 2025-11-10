@@ -18,6 +18,8 @@ import NoData from '../../common/NoData';
 import Text from '../../common/Text';
 import { BoxIcon } from 'boxicons-react';
 import DescargaConteoBuilder from '../almacen-acopio-auxiliar/DescargaConteoBuilder';
+import useHistorialLogger from '../../ui/HistorialLogger';
+import { formatConteoLog, prepareLogPayload } from '../../../utils/logFormatters';
 
 function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplaced }) {
     const { isLargeScreen } = useLayout();
@@ -44,6 +46,10 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
         isVisible: false,
         type: 'success',
         text: ''
+    });
+
+    const { logAccion } = useHistorialLogger({
+        modulo: 'Conteos'
     });
 
     const mostrarNotificacion = (tipo, texto) => {
@@ -155,11 +161,28 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
 
         setIsDeleting(true);
         try {
+            const logAntes = formatConteoLog(conteo);
             const result = await conteosService.delete(conteo.id);
             if (result.success) {
                 // Cerrar modales y notificar al componente padre inmediatamente
                 setIsEliminarOpen(false);
                 setIsOpen(false);
+
+                const { datosAntes, campos } = prepareLogPayload({
+                    accion: 'ELIMINAR',
+                    datosAntes: logAntes,
+                    datosDespues: null
+                });
+
+                await logAccion({
+                    accion: 'ELIMINAR',
+                    lugarAfectado: `Conteo #${logAntes?.id ?? conteo.id}`,
+                    registroId: logAntes?.id || conteo.id,
+                    datosAntes,
+                    comentario: 'Eliminación de conteo',
+                    campos
+                });
+
                 if (onConteoDeleted) {
                     onConteoDeleted(conteo.id);
                 }
@@ -177,6 +200,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
         if (!conteo?.id) return;
         setIsReplacing(true);
         try {
+            const logAntes = formatConteoLog(conteo);
             let result;
             // Usar el método correcto según el tipo de conteo
             if (conteo.tipo === 'acopio') {
@@ -188,6 +212,24 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
             if (result.success) {
                 // Cerrar modal de confirmación inmediatamente
                 setIsReemplazarOpen(false);
+                const logDespues = formatConteoLog(result.data || conteo);
+
+                const { datosAntes, datosDespues, campos } = prepareLogPayload({
+                    accion: 'EDITAR',
+                    datosAntes: logAntes,
+                    datosDespues: logDespues
+                });
+
+                await logAccion({
+                    accion: 'EDITAR',
+                    lugarAfectado: `Conteo #${logDespues?.id ?? logAntes?.id ?? conteo.id}`,
+                    registroId: logDespues?.id || logAntes?.id || conteo.id,
+                    datosAntes,
+                    datosDespues,
+                    comentario: 'Reemplazo de stock con conteo',
+                    campos
+                });
+
                 if (onConteoReplaced) {
                     onConteoReplaced(conteo.id);
                 }
@@ -372,22 +414,23 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
 
                     <div className={styles.buttons}>
                         <Boton
-                            className='btn-red'
-                            label='Eliminar Conteo'
+                            className='btn-default'
+                            label='Repetir Conteo'
                             style={{ marginTop: 'auto' }}
-                            onClick={() => setIsEliminarOpen(true)}
+                            onClick={handleRepetirConteo}
                         />
                         <Boton
-                            className='btn-orange'
+                            className='btn-gray'
                             label={conteo?.tipo === 'acopio' ? 'Reemplazar Stock Acopio' : 'Reemplazar Stock Almacén'}
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsReemplazarOpen(true)}
                         />
+
                         <Boton
-                            className='btn-blue'
-                            label='Repetir Conteo'
+                            className='btn-red'
+                            label='Eliminar Conteo'
                             style={{ marginTop: 'auto' }}
-                            onClick={handleRepetirConteo}
+                            onClick={() => setIsEliminarOpen(true)}
                         />
                     </div>
                     {conteo?.observaciones && (

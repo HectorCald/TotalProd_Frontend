@@ -13,10 +13,15 @@ import NoData from '../../common/NoData';
 import Text from '../../common/Text';
 import { useUser } from '../../../context/UserContext';
 import { isSoloVentas } from '../../../utils/empresaHelper';
+import { formatProductoAlmacenLog, prepareLogPayload } from '../../../utils/logFormatters';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, preciosTipos = [], loadingPrecios = false }) {
   const { user } = useUser();
   const soloVentas = isSoloVentas(user);
+  const { logAccion } = useHistorialLogger({
+    modulo: 'Almacén General'
+  });
 
   const [dataMov, setDataMov] = useState({
     name: '',
@@ -258,6 +263,53 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       }
 
       if (response.success) {
+        const datosAntesOriginal = tipo === 'editar' ? data : null;
+        const datosDespuesOriginal = response.data || (tipo === 'agregar'
+          ? {
+            ...productData,
+            id: response.id || null
+          }
+          : null);
+
+        const logDatosAntes = datosAntesOriginal
+          ? formatProductoAlmacenLog(datosAntesOriginal, {
+              precioTipos: preciosTipos,
+              categoriaFallback: categoriaSeleccionada?.name || null
+            })
+          : null;
+
+        const logDatosDespues = formatProductoAlmacenLog(datosDespuesOriginal, {
+          precioTipos: preciosTipos,
+          categoriaFallback: categoriaSeleccionada?.name || null
+        });
+
+        const registroId = (response.data && response.data.id) || datosDespuesOriginal?.id || data?.id || null;
+        const nombreAfectado =
+          logDatosDespues?.nombre ||
+          logDatosAntes?.nombre ||
+          datosDespuesOriginal?.name ||
+          productData.name ||
+          data?.name ||
+          'Producto de almacén';
+        const comentarioAccion = tipo === 'editar'
+          ? 'Actualización de producto de almacén'
+          : 'Creación de producto de almacén';
+        const { datosAntes, datosDespues, campos } = prepareLogPayload({
+          accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
+          datosAntes: logDatosAntes,
+          datosDespues: logDatosDespues
+        });
+
+        await logAccion({
+          accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
+          lugarAfectado: nombreAfectado,
+          registroId,
+          datosAntes,
+          datosDespues,
+          comentario: comentarioAccion,
+          campos
+        });
+
         if (tipo === 'editar' && onProductUpdated) {
           onProductUpdated(response.data);
         } else if (tipo === 'agregar' && onProductCreated) {

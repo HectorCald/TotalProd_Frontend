@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import VerDeuda from './VerDeuda';
@@ -22,16 +22,6 @@ import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 
-// Función helper para normalizar texto (quitar acentos)
-const normalizeText = (text) => {
-    if (!text) return '';
-    return text
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .trim();
-};
-
 function PanelDeudas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
     
@@ -43,13 +33,14 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     
     // Estado para acumular todas las deudas de todas las páginas
     const [allDeudas, setAllDeudas] = useState([]);
     
     // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    const [debouncedSearchQuery] = useDebounce(searchQueryNormalized, 500);
 
     // Estados para filtros
     const [filtroEstado, setFiltroEstado] = useState(null);
@@ -88,9 +79,8 @@ function PanelDeudas({ isOpen, setIsOpen }) {
             return newCount;
         });
 
-        const normalizedSearch = normalizeText(search);
-
         try {
+            const normalizedSearch = getPrimaryNormalizedValue(search);
             const response = await deudasService.getAll(page, limit, normalizedSearch, estado, clienteId, orden);
             if (response.success) {
                 const newData = response.data || [];
@@ -227,6 +217,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+            setSearchQueryNormalized('');
         }
     }, [isOpen]);
 
@@ -235,8 +226,13 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         setSearchQuery(value);
     };
 
+    const handleSearchNormalizedChange = (normalizedValue) => {
+        setSearchQueryNormalized(normalizedValue || '');
+    };
+
     const handleSearchClear = () => {
         setSearchQuery('');
+        setSearchQueryNormalized('');
     };
 
     const handleSearchToggle = (isExpanded) => {
@@ -411,6 +407,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                 searchPlaceholder="Buscar deuda por concepto..."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
+                onSearchNormalizedChange={handleSearchNormalizedChange}
                 onSearchClear={handleSearchClear}
                 searchExpanded={isSearchExpanded}
                 onSearchToggle={handleSearchToggle}

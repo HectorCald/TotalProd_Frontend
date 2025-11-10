@@ -15,10 +15,25 @@ import { isDamabrava, isSoloVentas } from '../../../utils/empresaHelper';
 import NoData from '../../common/NoData';
 import { useUser } from '../../../context/UserContext';
 import Text from '../../common/Text';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated, sucursales = [] }) {
     const { user } = useUser();
     const soloVentas = isSoloVentas(user);
+    const { logAccion } = useHistorialLogger({
+        modulo: 'Personal',
+        campos: [
+            'first_name',
+            'last_name',
+            'codigo',
+            'cargo',
+            'modules',
+            'is_active',
+            'sucursal_id',
+            'permisos',
+            'rastrear'
+        ]
+    });
 
     // Estados para los datos del personal
     const [dataEdit, setDataEdit] = useState({
@@ -29,14 +44,17 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
     });
     const [estado, setEstado] = useState(true); // Siempre activo por defecto
     const [sucursalId, setSucursalId] = useState('');
-    const [permisos, setPermisos] = useState({
+    const createPermisosIniciales = () => ({
         crear: false,
         eliminar: false,
         editar: false,
         anular: false,
         reemplazar: false,
-        info: false
+        info: false,
+        sucursales: false
     });
+
+    const [permisos, setPermisos] = useState(() => createPermisosIniciales());
     const [rastrear, setRastrear] = useState(false);
     // Estado para la notificación
     const [notification, setNotification] = useState({
@@ -204,7 +222,15 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
 
             // Cargar permisos si existen
             if (usuario.permisos) {
-                setPermisos(usuario.permisos);
+                setPermisos({
+                    crear: usuario.permisos.crear || false,
+                    eliminar: usuario.permisos.eliminar || false,
+                    editar: usuario.permisos.editar || false,
+                    anular: usuario.permisos.anular || false,
+                    reemplazar: usuario.permisos.reemplazar || false,
+                    info: usuario.permisos.info || false,
+                    sucursales: usuario.permisos.sucursales || false
+                });
             }
 
             // Cargar estado de rastreo si existe
@@ -221,14 +247,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             setSelectedModules([]);
             setEstado(true); // Siempre activo por defecto
             setSucursalId('');
-            setPermisos({
-                crear: false,
-                eliminar: false,
-                editar: false,
-                anular: false,
-                reemplazar: false,
-                info: false
-            });
+            setPermisos(createPermisosIniciales());
             setRastrear(false);
         }
     }, [isOpen, usuario, tipo]);
@@ -314,6 +333,29 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             }
 
             if (response.success) {
+                const datosAntes = tipo === 'editar' ? usuario : null;
+                const datosDespues = response.data || (tipo === 'agregar'
+                    ? {
+                        ...datosParaEnviar,
+                        id: response.id || null
+                    }
+                    : null);
+                const registroId = (response.data && response.data.id) || datosDespues?.id || usuario?.id || null;
+                const lugarAfectado = datosDespues
+                    ? `${datosDespues.first_name || ''} ${datosDespues.last_name || ''}`.trim() || 'Personal'
+                    : `${datosParaEnviar.first_name || ''} ${datosParaEnviar.last_name || ''}`.trim() || 'Personal';
+                const comentarioAccion = tipo === 'editar'
+                    ? 'Actualización de personal'
+                    : 'Creación de personal';
+
+                await logAccion({
+                    accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
+                    lugarAfectado,
+                    registroId,
+                    datosAntes,
+                    datosDespues,
+                    comentario: comentarioAccion
+                });
 
                 if (tipo === 'editar' && onPersonalUpdated) {
                     onPersonalUpdated(response.data);
@@ -514,6 +556,13 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             subtitle="Permite ver información (Costos, precios, etc.)"
                             checked={permisos.info || false}
                             onChange={(checked) => hanclePermisos('info', checked)}
+                        />
+                        <Switch
+                            icon="store"
+                            title="Administrar sucursales"
+                            subtitle="Permite cambiar la sucursal asignada"
+                            checked={permisos.sucursales || false}
+                            onChange={(checked) => hanclePermisos('sucursales', checked)}
                         />
                     </div>
                     {/* <p className={styles.subTitle}>RASTREO</p>

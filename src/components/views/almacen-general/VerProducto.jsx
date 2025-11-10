@@ -14,6 +14,8 @@ import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
+import { formatProductoAlmacenLog, prepareLogPayload } from '../../../utils/logFormatters';
+import useHistorialLogger from '../../ui/HistorialLogger';
 function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductDeleted, preciosTipos = [], loadingPrecios = false }) {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditarOpen, setIsEditarOpen] = useState(false);
@@ -27,6 +29,10 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
 
     // Estado local para el producto actual
     const [productoActual, setProductoActual] = useState(registro);
+
+    const { logAccion } = useHistorialLogger({
+        modulo: 'Almacén General'
+    });
 
     // Actualizar el estado local cuando cambie el prop registro
     useEffect(() => {
@@ -154,6 +160,22 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
             const response = await productsAlmacenService.delete(productoActual.id);
             
             if (response.success) {
+                const logDatosAntes = formatProductoAlmacenLog(productoActual, {
+                    precioTipos: preciosTipos
+                });
+                const { datosAntes, campos } = prepareLogPayload({
+                    accion: 'ELIMINAR',
+                    datosAntes: logDatosAntes,
+                    datosDespues: null
+                });
+                await logAccion({
+                    accion: 'ELIMINAR',
+                    lugarAfectado: logDatosAntes?.nombre || productoActual?.name || 'Producto de almacén',
+                    registroId: productoActual?.id || null,
+                    datosAntes,
+                    comentario: 'Eliminación de producto de almacén',
+                    campos
+                });
                 onProductDeleted(productoActual.id);
                 setIsDeleteOpen(false);
                 setIsOpen(false);

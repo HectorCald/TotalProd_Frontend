@@ -2,7 +2,22 @@ import React, { useEffect, useState, forwardRef } from 'react';
 import styles from './InputNormal.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, label, error, buttonIcon, buttonIconClick, onKeyPress, readonly = false, disabled = false, onClick }, ref) => {
+const InputNormal = forwardRef(({
+    tipo,
+    placeholder,
+    value,
+    onChange,
+    icon,
+    label,
+    error,
+    buttonIcon,
+    buttonIconClick,
+    onKeyPress,
+    readonly = false,
+    disabled = false,
+    onClick,
+    style: inputStyle = {}
+}, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const isDisabled = readonly || disabled;
@@ -17,12 +32,6 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
             setIsFocused(true);
         }
     }, [hasValue]);
-
-    useEffect(() => {
-        if (isDisabled) {
-            setIsFocused(false);
-        }
-    }, [isDisabled]);
 
     const handleShowPassword = () => {
         setShowPassword(!showPassword);
@@ -68,12 +77,18 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
     };
 
     return (
-        <div style={{ width: '100%', position: 'relative' }}>
+        <div
+            style={{
+                width: '100%',
+                position: 'relative',
+                opacity: isDisabled ? 0.6 : 1
+            }}
+        >
             {icon && (
                 <span
-                    className={`${styles.inputIcon} ${isDisabled ? styles.inputIconDisabled : ''}`}
+                    className={styles.inputIcon}
                     style={{
-                        color: isDisabled ? '' : (isFocused ? 'var(--primary-color)' : ''),
+                        color: isFocused ? 'var(--primary-color)' : undefined,
                         pointerEvents: isDisabled ? 'none' : undefined
                     }}
                 >
@@ -116,7 +131,8 @@ const InputNormal = forwardRef(({ tipo, placeholder, value, onChange, icon, labe
                     paddingRight: buttonIcon ? '50px' : '15px',
                     paddingLeft: icon ? '50px' : '15px',
                     opacity: isDisabled ? 0.5 : 1,
-                    cursor: isDisabled ? 'not-allowed' : 'text'
+                    cursor: isDisabled ? 'not-allowed' : 'text',
+                    ...inputStyle
                 }}
 
             />

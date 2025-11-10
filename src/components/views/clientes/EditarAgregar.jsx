@@ -8,9 +8,14 @@ import Notification from '../../common/Notification';
 import MapaModal from './MapaModal';
 import clientService from '../../../services/clientService';
 import { useUser } from '../../../context/UserContext';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onClientUpdated }) {
     const { sucursalSeleccionada } = useUser();
+    const { logAccion } = useHistorialLogger({
+        modulo: 'Clientes',
+        campos: ['name', 'phone', 'direccion', 'description', 'total_orders', 'location']
+    });
 
     // Estados para los datos del cliente
     const [dataEdit, setDataEdit] = useState({
@@ -110,6 +115,26 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             }
 
             if (response.success) {
+                const datosAntes = tipo === 'editar' ? usuario : null;
+                const datosDespues = response.data || (tipo === 'agregar' ? {
+                    ...datosParaEnviar,
+                    id: response.id || null
+                } : null);
+                const registroId = (response.data && response.data.id) || datosDespues?.id || usuario?.id || null;
+                const lugarAfectado = (datosDespues && datosDespues.name) || datosParaEnviar.name || usuario?.name || 'Cliente';
+                const comentarioAccion = tipo === 'editar'
+                    ? 'Actualización de datos del cliente'
+                    : 'Creación de cliente';
+
+                await logAccion({
+                    accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
+                    lugarAfectado,
+                    registroId,
+                    datosAntes,
+                    datosDespues,
+                    comentario: comentarioAccion
+                });
+
                 if (tipo === 'editar' && onClientUpdated) {
                     onClientUpdated(response.data);
                 } else if (tipo === 'agregar' && onClientCreated) {

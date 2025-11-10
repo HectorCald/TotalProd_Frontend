@@ -12,12 +12,29 @@ import personalService from '../../../services/personalService';
 import NoData from '../../common/NoData';
 import ItemLine from '../../common/ItemLine';
 import MapaModal from '../clientes/MapaModal';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 
 function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated, sucursales = [] }) {
 
     // Estado local para el usuario (se actualiza cuando se edita)
     const [localUsuario, setLocalUsuario] = useState(usuario);
+    const { logAccion } = useHistorialLogger({
+        modulo: 'Personal',
+        campos: [
+            'first_name',
+            'last_name',
+            'codigo',
+            'cargo',
+            'is_active',
+            'sucursal_id',
+            'sucursal',
+            'permisos',
+            'modules',
+            'rastrear',
+            'ubicacion'
+        ]
+    });
 
     // Actualizar el estado local cuando cambie el usuario prop
     useEffect(() => {
@@ -60,6 +77,14 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
             const response = await personalService.delete(id);
 
             if (response.success) {
+                await logAccion({
+                    accion: 'ELIMINAR',
+                    lugarAfectado: `${localUsuario?.first_name || ''} ${localUsuario?.last_name || ''}`.trim() || 'Personal',
+                    registroId: localUsuario?.id || null,
+                    datosAntes: localUsuario,
+                    comentario: 'Eliminación de personal'
+                });
+
                 // Notificar al componente padre que se eliminó un personal
                 if (onProveedorDeleted) {
                     onProveedorDeleted(id);
@@ -216,19 +241,19 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                 )}
                 <div className={styles.buttons}>
                     <Boton
-                        className='btn-orange'
+                        className='btn-default'
                         label='Resetear Contraseña'
                         onClick={() => setIsResetPasswordOpen(true)}
+                    />
+                    <Boton
+                        className='btn-gray'
+                        label='Editar Persona'
+                        onClick={() => setIsEditOpen(true)}
                     />
                     <Boton
                         className='btn-red'
                         label='Eliminar Persona'
                         onClick={() => setIsDeleteOpen(true)}
-                    />
-                    <Boton
-                        className='btn-default'
-                        label='Editar Persona'
-                        onClick={() => setIsEditOpen(true)}
                     />
                 </div>
             </div>

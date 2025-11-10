@@ -12,6 +12,8 @@ import MensajeError from '../../common/MensajeError';
 import Notification from '../../common/Notification';
 import CategoriasAcopio from './CategoriasAcopio';
 import Text from '../../common/Text';
+import { formatProductoAcopioLog, prepareLogPayload } from '../../../utils/logFormatters';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, typeMeasures = [] }) {
 
@@ -33,6 +35,10 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [isCategoriasSeleccionOpen, setIsCategoriasSeleccionOpen] = useState(false);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
+
+  const { logAccion } = useHistorialLogger({
+    modulo: 'Almacén Acopio'
+  });
 
   // Estado para notificaciones
   const [notification, setNotification] = useState({
@@ -196,6 +202,53 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       }
 
       if (response.success) {
+        const datosAntesOriginal = tipo === 'editar' ? data : null;
+        const datosDespuesOriginal = response.data || (tipo === 'agregar'
+          ? {
+            ...productData,
+            id: response.id || null
+          }
+          : null);
+
+        const logDatosAntes = datosAntesOriginal
+          ? formatProductoAcopioLog(datosAntesOriginal, {
+              typeMeasures,
+              categoriaFallback: categoriaSeleccionada?.name || null
+            })
+          : null;
+
+        const logDatosDespues = formatProductoAcopioLog(datosDespuesOriginal, {
+          typeMeasures,
+          categoriaFallback: categoriaSeleccionada?.name || null
+        });
+
+        const registroId = (response.data && response.data.id) || datosDespuesOriginal?.id || data?.id || null;
+        const nombreAfectado =
+          logDatosDespues?.nombre ||
+          logDatosAntes?.nombre ||
+          datosDespuesOriginal?.name ||
+          productData.name ||
+          data?.name ||
+          'Producto de acopio';
+        const comentarioAccion = tipo === 'editar'
+          ? 'Actualización de producto de materia prima'
+          : 'Creación de producto de materia prima';
+        const { datosAntes, datosDespues, campos } = prepareLogPayload({
+          accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
+          datosAntes: logDatosAntes,
+          datosDespues: logDatosDespues
+        });
+
+        await logAccion({
+          accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
+          lugarAfectado: nombreAfectado,
+          registroId,
+          datosAntes,
+          datosDespues,
+          comentario: comentarioAccion,
+          campos
+        });
+
         if (tipo === 'editar' && onProductUpdated) {
           onProductUpdated(response.data);
         } else if (tipo === 'agregar' && onProductCreated) {

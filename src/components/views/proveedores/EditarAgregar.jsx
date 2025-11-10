@@ -8,9 +8,14 @@ import Notification from '../../common/Notification';
 import MapaModal from '../clientes/MapaModal';
 import proveedorService from '../../../services/proveedorService';
 import { useUser } from '../../../context/UserContext';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, onProveedorUpdated }) {
     const { sucursalSeleccionada } = useUser();
+    const { logAccion } = useHistorialLogger({
+        modulo: 'Proveedores',
+        campos: ['name', 'phone', 'direccion', 'description', 'location']
+    });
 
     // Estados para los datos del proveedor
     const [dataEdit, setDataEdit] = useState({
@@ -106,6 +111,28 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onProveedorCreated, o
             }
 
             if (response.success) {
+                const datosAntes = tipo === 'editar' ? usuario : null;
+                const datosDespues = response.data || (tipo === 'agregar'
+                    ? {
+                        ...datosParaEnviar,
+                        id: response.id || null
+                    }
+                    : null);
+                const registroId = (response.data && response.data.id) || datosDespues?.id || usuario?.id || null;
+                const lugarAfectado = (datosDespues && datosDespues.name) || datosParaEnviar.name || usuario?.name || 'Proveedor';
+                const comentarioAccion = tipo === 'editar'
+                    ? 'Actualización de datos del proveedor'
+                    : 'Creación de proveedor';
+
+                await logAccion({
+                    accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
+                    lugarAfectado,
+                    registroId,
+                    datosAntes,
+                    datosDespues,
+                    comentario: comentarioAccion
+                });
+
                 if (tipo === 'editar' && onProveedorUpdated) {
                     onProveedorUpdated(response.data);
                 } else if (tipo === 'agregar' && onProveedorCreated) {

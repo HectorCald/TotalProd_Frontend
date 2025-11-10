@@ -72,7 +72,7 @@ const Login = () => {
     const [delayedMinHeight, setDelayedMinHeight] = useState(0);
     useEffect(() => {
         const timer = setTimeout(() => {
-            setDelayedMinHeight(isRegister ? 370 : 220);
+            setDelayedMinHeight(isRegister ? 330 : 180);
         }, 500); // Mismo tiempo que la duración de la animación
 
         return () => clearTimeout(timer);
@@ -301,6 +301,24 @@ const Login = () => {
         }, 3000);
     }
 
+    const handleLoginKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!loading && !isRegister) {
+                handleSubmit();
+            }
+        }
+    };
+
+    const handleRegisterKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!loading && isRegister) {
+                handleSubmitRegister();
+            }
+        }
+    };
+
     const handleEmployeeLoginSuccess = (employeeData) => {
         // Guardar datos del empleado en localStorage para que el contexto los pueda cargar
         localStorage.setItem('employeeData', JSON.stringify(employeeData));
@@ -331,7 +349,7 @@ const Login = () => {
             <motion.div
                 className={styles.content}
                 animate={{
-                    height: isRegister ? 370 : 220,
+                    height: isRegister ? 330 : 180,
                 }}
                 transition={{
                     duration: 0.5,
@@ -359,6 +377,11 @@ const Login = () => {
                                     onChange={(e) => handleInputChangeLogin('email', e.target.value)}
                                     placeholder="Correo electrónico"
                                     icon="envelope"
+                                    onKeyPress={handleLoginKeyPress}
+                                    disabled={loading}
+                                    style={{
+                                        backgroundColor: 'var(--quaternary-color)'
+                                    }}
                                 />
 
                                 <InputNormal
@@ -368,9 +391,20 @@ const Login = () => {
                                     onChange={(e) => handleInputChangeLogin('password', e.target.value)}
                                     placeholder="Contraseña"
                                     icon="lock"
+                                    onKeyPress={handleLoginKeyPress}
+                                    disabled={loading}
+                                    style={{
+                                        backgroundColor: 'var(--quaternary-color)'
+                                    }}
                                 />
                                 <div className={styles.login_remember_container}>
-                                    <input type="checkbox" id="remember" checked={remember} onChange={() => setRemember(!remember)} />
+                                    <input
+                                        type="checkbox"
+                                        id="remember"
+                                        checked={remember}
+                                        onChange={() => setRemember(!remember)}
+                                        disabled={loading}
+                                    />
                                     <label htmlFor="remember">Recordarme</label>
                                 </div>
                             </div>
@@ -392,6 +426,11 @@ const Login = () => {
                                     onChange={(e) => handleInputChangeRegister('firstName', e.target.value)}
                                     placeholder="Nombres"
                                     icon="user"
+                                    onKeyPress={handleRegisterKeyPress}
+                                    disabled={loading}
+                                    style={{
+                                        backgroundColor: 'var(--quaternary-color)'
+                                    }}
                                 />
                                 <InputNormal
                                     tipo="text"
@@ -400,14 +439,24 @@ const Login = () => {
                                     onChange={(e) => handleInputChangeRegister('lastName', e.target.value)}
                                     placeholder="Apellidos"
                                     icon="user"
+                                    onKeyPress={handleRegisterKeyPress}
+                                    disabled={loading}
+                                    style={{
+                                        backgroundColor: 'var(--quaternary-color)'
+                                    }}
                                 />
                                 <InputNormal
-                                    type="text"
+                                    tipo="text"
                                     label="Correo electrónico"
                                     value={formDataRegister.email}
                                     onChange={(e) => handleInputChangeRegister('email', e.target.value)}
                                     placeholder="Correo electrónico"
                                     icon="envelope"
+                                    onKeyPress={handleRegisterKeyPress}
+                                    disabled={loading}
+                                    style={{
+                                        backgroundColor: 'var(--quaternary-color)'
+                                    }}
                                 />
                                 <InputNormal
                                     tipo="password"
@@ -416,6 +465,11 @@ const Login = () => {
                                     onChange={(e) => handleInputChangeRegister('password', e.target.value)}
                                     placeholder="Contraseña"
                                     icon="lock"
+                                    onKeyPress={handleRegisterKeyPress}
+                                    disabled={loading}
+                                    style={{
+                                        backgroundColor: 'var(--quaternary-color)'
+                                    }}
                                 />
                                 <InputNormal
                                     tipo="text"
@@ -424,6 +478,11 @@ const Login = () => {
                                     onChange={(e) => handleInputChangeRegister('nameStore', e.target.value)}
                                     placeholder="Nombre de la empresa"
                                     icon="store"
+                                    onKeyPress={handleRegisterKeyPress}
+                                    disabled={loading}
+                                    style={{
+                                        backgroundColor: 'var(--quaternary-color)'
+                                    }}
                                 />
                             </div>
                         </motion.div>

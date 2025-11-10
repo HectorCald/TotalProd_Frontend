@@ -45,6 +45,11 @@
     fill: #3b82f6 !important;
 }
 
+.iconOrange {
+    color: var(--warning-color) !important;
+    fill: var(--warning-color) !important;
+}
+
 .iconGrey {
     color: var(--senary-color) !important;
     fill: var(--senary-color) !important;

@@ -84,7 +84,7 @@ class pedidosAcopioService {
     }
   }
 
-  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc') {
+  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc', responsableId = null) {
     try {
       const empresaId = getEmpresaId();
       if (!empresaId) {
@@ -107,6 +107,10 @@ class pedidosAcopioService {
 
       if (estado && estado.trim() !== '') {
         params.append('estado', estado);
+      }
+
+      if (responsableId) {
+        params.append('responsable_id', responsableId);
       }
       
       const finalUrl = `${API_BASE_URL}/pedidos-acopio?${params}`;

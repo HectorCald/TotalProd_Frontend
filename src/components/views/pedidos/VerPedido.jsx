@@ -19,6 +19,8 @@ import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import deudasService from '../../../services/deudasService';
 import VerMovimiento from '../movimientos/VerMovimiento';
+import { formatPedidoLog, prepareLogPayload } from '../../../utils/logFormatters';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, onPedidoActualizado }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
@@ -37,6 +39,10 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
     // Estado local para el pedido actual
     const [pedidoActual, setPedidoActual] = useState(pedido);
+
+    const { logAccion } = useHistorialLogger({
+        modulo: 'Pedidos'
+    });
 
     // Actualizar el estado local cuando cambie el prop pedido
     useEffect(() => {
@@ -127,11 +133,27 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
         try {
             setLoading(true);
+            const pedidoAntes = pedidoActual ? JSON.parse(JSON.stringify(pedidoActual)) : null;
             const response = await pedidosAlmacenService.eliminar(pedidoActual.id);
 
             if (response.success) {
                 mostrarNotificacion('success', 'Pedido eliminado correctamente');
                 setIsEliminarOpen(false);
+
+                const logDatosAntes = formatPedidoLog(pedidoAntes);
+                const { datosAntes, campos } = prepareLogPayload({
+                    accion: 'ELIMINAR',
+                    datosAntes: logDatosAntes,
+                    datosDespues: null
+                });
+                await logAccion({
+                    accion: 'ELIMINAR',
+                    lugarAfectado: `Pedido #${logDatosAntes?.numero ?? pedidoAntes?.id ?? ''}`,
+                    registroId: pedidoAntes?.id || null,
+                    datosAntes,
+                    comentario: 'Eliminación de pedido',
+                    campos
+                });
 
                 // Llamar a la función para actualizar la lista en el padre
                 if (onPedidoEliminado) {
@@ -197,6 +219,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
     };
     // Función para manejar la entrega de pedido
     const handleEntregaConfirmada = async (productosActualizados, precioId, movimientoId, pedidoActualizadoData) => {
+        const pedidoAntes = pedidoActual ? JSON.parse(JSON.stringify(pedidoActual)) : null;
         // Actualizar el estado local del pedido
         if (pedidoActualizadoData) {
             setPedidoActual(pedidoActualizadoData);
@@ -205,6 +228,25 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         // Actualizar el pedido en el componente padre
         if (onPedidoActualizado && pedidoActualizadoData) {
             onPedidoActualizado(pedidoActualizadoData);
+        }
+
+        if (pedidoActualizadoData) {
+            const logAntes = formatPedidoLog(pedidoAntes);
+            const logDespues = formatPedidoLog(pedidoActualizadoData);
+            const { datosAntes, datosDespues, campos } = prepareLogPayload({
+                accion: 'EDITAR',
+                datosAntes: logAntes,
+                datosDespues: logDespues
+            });
+            await logAccion({
+                accion: 'EDITAR',
+                lugarAfectado: `Pedido #${logDespues?.numero ?? logAntes?.numero ?? pedidoActualizadoData?.id ?? pedidoAntes?.id ?? ''}`,
+                registroId: pedidoActualizadoData?.id || pedidoAntes?.id || null,
+                datosAntes,
+                datosDespues,
+                comentario: 'Entrega de pedido',
+                campos
+            });
         }
 
         // NO cerrar AlmacenGeneral automáticamente para permitir que se muestre el modal de descarga
@@ -219,6 +261,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
         try {
             setLoading(true);
+            const pedidoAntes = pedidoActual ? JSON.parse(JSON.stringify(pedidoActual)) : null;
 
             // Guardar los IDs antes de empezar
             const movimientoId = pedidoActual.movimiento_salida_id;
@@ -299,6 +342,23 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             // Usar la respuesta actualizada del servidor que incluye total_pedidos actualizado
             const pedidoActualizado = cambiarEstadoResponse.data;
 
+            const logAntes = formatPedidoLog(pedidoAntes);
+            const logDespues = formatPedidoLog(pedidoActualizado);
+            const { datosAntes, datosDespues, campos } = prepareLogPayload({
+                accion: 'EDITAR',
+                datosAntes: logAntes,
+                datosDespues: logDespues
+            });
+            await logAccion({
+                accion: 'EDITAR',
+                lugarAfectado: `Pedido #${logDespues?.numero ?? logAntes?.numero ?? pedidoActualizado?.id ?? pedidoAntes?.id ?? ''}`,
+                registroId: pedidoActualizado?.id || pedidoAntes?.id || null,
+                datosAntes,
+                datosDespues,
+                comentario: 'Cancelación de entrega de pedido',
+                campos
+            });
+
             // Actualizar el estado local del pedido
             setPedidoActual(pedidoActualizado);
 
@@ -325,11 +385,28 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
             // Si la sucursal actual comparte almacén, solo finalizar sin crear movimiento
             const usaAlmacenCompartido = !!(sucursalActual && sucursalActual.almacen_sucursal_id);
             if (usaAlmacenCompartido) {
+                const pedidoAntes = pedidoActual ? JSON.parse(JSON.stringify(pedidoActual)) : null;
                 const estadoResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, 'Completado');
                 if (estadoResponse.success) {
                     mostrarNotificacion('success', 'Pedido finalizado correctamente');
                     // Usar la respuesta del servidor que incluye total_pedidos actualizado
                     const pedidoActualizado = estadoResponse.data;
+                    const logAntes = formatPedidoLog(pedidoAntes);
+                    const logDespues = formatPedidoLog(pedidoActualizado);
+                    const { datosAntes, datosDespues, campos } = prepareLogPayload({
+                        accion: 'EDITAR',
+                        datosAntes: logAntes,
+                        datosDespues: logDespues
+                    });
+                    await logAccion({
+                        accion: 'EDITAR',
+                        lugarAfectado: `Pedido #${logDespues?.numero ?? logAntes?.numero ?? pedidoActualizado?.id ?? pedidoAntes?.id ?? ''}`,
+                        registroId: pedidoActualizado?.id || pedidoAntes?.id || null,
+                        datosAntes,
+                        datosDespues,
+                        comentario: 'Finalización de pedido (almacén compartido)',
+                        campos
+                    });
                     if (onPedidoActualizado) {
                         onPedidoActualizado(pedidoActualizado);
                     }
@@ -366,6 +443,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
             if (movimientoResponse.success) {
                 // Actualizar el estado del pedido a Completado y registrar el movimiento de entrada
+                const pedidoAntes = pedidoActual ? JSON.parse(JSON.stringify(pedidoActual)) : null;
                 const estadoResponse = await pedidosAlmacenService.updateEstado(pedidoActual.id, 'Completado', undefined, undefined, movimientoResponse.data.id);
 
                 if (estadoResponse.success) {
@@ -373,6 +451,23 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
                     // Usar la respuesta del servidor que incluye total_pedidos actualizado
                     const pedidoActualizado = estadoResponse.data;
+
+                    const logAntes = formatPedidoLog(pedidoAntes);
+                    const logDespues = formatPedidoLog(pedidoActualizado);
+                    const { datosAntes, datosDespues, campos } = prepareLogPayload({
+                        accion: 'EDITAR',
+                        datosAntes: logAntes,
+                        datosDespues: logDespues
+                    });
+                    await logAccion({
+                        accion: 'EDITAR',
+                        lugarAfectado: `Pedido #${logDespues?.numero ?? logAntes?.numero ?? pedidoActualizado?.id ?? pedidoAntes?.id ?? ''}`,
+                        registroId: pedidoActualizado?.id || pedidoAntes?.id || null,
+                        datosAntes,
+                        datosDespues,
+                        comentario: 'Ingreso de pedido al almacén',
+                        campos
+                    });
 
                     if (onPedidoActualizado) {
                         onPedidoActualizado(pedidoActualizado);

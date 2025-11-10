@@ -135,6 +135,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         ordenamiento,
         handleSearchChange,
         handleSearchClear,
+        handleSearchNormalizedChange,
         handleSearchToggle,
         handleCategoriaFilter,
         handleOrdenamiento,
@@ -517,6 +518,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     searchValue={searchQuery}
                     onSearchChange={handleSearchChange}
                     onSearchClear={handleSearchClear}
+                    onSearchNormalizedChange={handleSearchNormalizedChange}
                     searchExpanded={isSearchExpanded}
                     onSearchToggle={handleSearchToggle}
                     withCart={isCartMode && isLargeScreen}
