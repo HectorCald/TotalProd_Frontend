@@ -35,6 +35,7 @@ const ENTITIES = {
         'fechaMovimientoEditando',
         'movimientoIdEditando',
         'productosEdicion',
+        'numeroOrdenEditando',
     ],
     cotizacion: [
         'productosCotizacionVendiendo',

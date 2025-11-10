@@ -426,19 +426,70 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         onClick: () => setIsOpenFiltroOrden(true)
     });
 
+    const obtenerNumeroOrdenFormateado = (numeroOrden) => {
+        if (numeroOrden === null || numeroOrden === undefined) {
+            return '--';
+        }
+        if (typeof numeroOrden === 'string' && numeroOrden.trim() === '') {
+            return '--';
+        }
+        const numero = Number(numeroOrden);
+        if (Number.isNaN(numero) || numero === 0) {
+            return '--';
+        }
+        return String(numeroOrden);
+    };
+
+    const obtenerTotalFormateado = (movimiento) => {
+        if (tipoMovimiento === 'acopio') {
+            const candidatosTotales = [
+                movimiento.total,
+                movimiento.total_general,
+                movimiento.total_calculado
+            ];
+            const totalAcopio = candidatosTotales
+                .map((valor) => {
+                    const numero = parseFloat(valor);
+                    return Number.isNaN(numero) ? null : numero;
+                })
+                .find((numero) => numero !== null);
+            if (typeof totalAcopio === 'number') {
+                return `Bs. ${totalAcopio.toFixed(2)}`;
+            }
+            const quantity = parseFloat(movimiento.quantity) || 0;
+            const price =
+                parseFloat(movimiento.product?.precio) ||
+                parseFloat(movimiento.product?.price) ||
+                0;
+            const subtotal = quantity * price;
+            return `Bs. ${subtotal.toFixed(2)}`;
+        }
+
+        const subtotal = (movimiento.productos || []).reduce(
+            (sum, producto) => sum + (parseFloat(producto.subtotal) || 0),
+            0
+        );
+        const descuento = parseFloat(movimiento.descuento) || 0;
+        const aumento = parseFloat(movimiento.aumento) || 0;
+        const totalMovimiento = subtotal - descuento + aumento;
+        return `Bs. ${totalMovimiento.toFixed(2)}`;
+    };
+
     // Headers para la tabla
     const tableHeaders = [
+        { key: 'numero_orden', label: 'Nº Orden', icon: 'hash' },
         { key: 'producto', label: 'Producto', icon: 'package' },
         { key: 'tipo', label: 'Tipo', icon: 'transfer' },
-        { key: 'cantidad', label: 'Cantidad', icon: 'bar-chart-alt-2' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
         { key: 'cliente_proveedor', label: tipoMovimiento === 'acopio' ? 'Proveedor' : 'Cliente', icon: 'user' },
-        { key: 'estado', label: 'Estado', icon: 'check-circle' }
+        { key: 'estado', label: 'Estado', icon: 'check-circle' },
+        { key: 'total', label: 'Total', icon: 'dollar-circle' }
     ];
 
     // Datos para la tabla
     const tableData = allMovimientos.map(movimiento => ({
         id: movimiento.id,
+        numero_orden: obtenerNumeroOrdenFormateado(movimiento.numero_orden),
         producto: tipoMovimiento === 'acopio'
             ? movimiento.product?.name || 'Sin producto'
             : movimiento.productos && movimiento.productos.length > 0
@@ -447,18 +498,12 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     : `${movimiento.productos.length} productos`
                 : 'Sin productos',
         tipo: movimiento.type === 'entrada' ? 'Entrada' : 'Salida',
-        cantidad: tipoMovimiento === 'acopio'
-            ? `${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
-            : movimiento.productos && movimiento.productos.length > 0
-                ? movimiento.productos.length === 1
-                    ? `${movimiento.productos[0]?.cantidad || '0'} ud`
-                    : `${movimiento.productos.length} productos`
-                : '0 ud',
         fecha: new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString(),
         cliente_proveedor: tipoMovimiento === 'acopio'
             ? (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--'))
             : (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--')),
-        estado: movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'
+        estado: movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado',
+        total: obtenerTotalFormateado(movimiento)
     }));
 
     // Función para obtener el badge de estado
@@ -553,12 +598,13 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                     getCellBadge={getCellBadge}
                                     onScroll={handleScroll}
                                     columnWidths={{
+                                        numero_orden: '5%',
                                         producto: '25%',
                                         tipo: '10%',
-                                        cantidad: '10%',
                                         fecha: '10%',
                                         cliente_proveedor: '20%',
-                                        estado: '15%'
+                                        estado: '12%',
+                                        total: '13%'
                                     }}
                                 />
 
@@ -583,6 +629,11 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                 {allMovimientos.length > 0 ? (
                                     <>
                                         {allMovimientos.map((movimiento, index) => {
+                                            const numeroOrdenFormateado = obtenerNumeroOrdenFormateado(movimiento?.numero_orden);
+                                            const numeroOrdenLabel = numeroOrdenFormateado !== '--'
+                                                ? `Orden Nº ${numeroOrdenFormateado}`
+                                                : '';
+                                            const totalLabel = obtenerTotalFormateado(movimiento);
                                             return (
                                                 <ItemView
                                                     key={movimiento.id || index}
@@ -595,11 +646,13 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                                             : 'Sin productos'
                                                     }
                                                     description={`${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
+                                                    description2={`Total: ${totalLabel}`}
                                                     icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
                                                     onClick={() => handleRegistro(movimiento)}
                                                     arrow={false}
                                                     flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
                                                     flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
+                                                    flot2={numeroOrdenLabel}
                                                     colorIcon={movimiento.type === 'entrada' ? 'verde' : 'rojo'}
                                                 />
                                             );

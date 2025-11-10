@@ -17,7 +17,7 @@ import InputNormal from '../../common/InputNormal';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import useEntregaMovimientos from './hooks/useEntregaMovimientos';
 
-function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null, isEditandoMovimiento = false, movimientoIdEditando = null, onMovimientoEditado = null }) {
+function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null, isEditandoMovimiento = false, movimientoIdEditando = null, numeroOrdenEditando: numeroOrdenEditandoProp = null, onMovimientoEditado = null }) {
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
@@ -364,6 +364,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             localStorage.removeItem('movimientoIdEditando');
         }
         localStorage.removeItem('productosEdicion');
+        if (isEditandoMovimiento) {
+            localStorage.removeItem('numeroOrdenEditando');
+        }
         setIsLimpiarModalOpen(false);
         setIsOpen(false);
     };
@@ -431,6 +434,13 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             }
 
             const fechaMovimientoEditando = isEditandoMovimiento ? localStorage.getItem('fechaMovimientoEditando') : null;
+            const numeroOrdenEditandoStorage = isEditandoMovimiento ? localStorage.getItem('numeroOrdenEditando') : null;
+            const numeroOrdenFinal = numeroOrdenEditandoStorage ?? numeroOrdenEditandoProp;
+            const numeroOrdenPayload = (() => {
+                if (numeroOrdenFinal === null || numeroOrdenFinal === undefined || numeroOrdenFinal === '') return null;
+                const numeroParseado = Number(numeroOrdenFinal);
+                return Number.isNaN(numeroParseado) ? null : numeroParseado;
+            })();
 
             if (isEditandoMovimiento && movimientoIdEditando) {
                 const anulacionResp = await movimientosAlmacenService.anular(movimientoIdEditando);
@@ -504,7 +514,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 descuento: parseFloat(descuento) || 0,
                 aumento: parseFloat(aumento) || 0,
                 productos: prepararProductos(),
-                ...(fechaMovimientoEditando ? { fecha: fechaMovimientoEditando } : {})
+                ...(fechaMovimientoEditando ? { fecha: fechaMovimientoEditando } : {}),
+                ...(numeroOrdenPayload !== null ? { numero_orden: numeroOrdenPayload } : {})
             };
             const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
             movimientoId = (movimientoResponse && movimientoResponse.success) ? movimientoResponse.data?.id : null;
@@ -645,6 +656,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     localStorage.removeItem('movimientoIdEditando');
                 }
                 localStorage.removeItem('productosEdicion');
+                if (isEditandoMovimiento) {
+                    localStorage.removeItem('numeroOrdenEditando');
+                }
 
                 // Solo cerrar la canasta en móvil, no en PC (modo carrito)
                 // En PC (isCartMode && isLargeScreen), mantener abierto para mostrar modal de descarga

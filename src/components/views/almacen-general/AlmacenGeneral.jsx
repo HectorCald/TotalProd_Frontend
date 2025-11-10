@@ -796,6 +796,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         onPedidoActualizado={onPedidoActualizado}
                     isEditandoMovimiento={!!localStorage.getItem('fechaMovimientoEditando')}
                     movimientoIdEditando={localStorage.getItem('movimientoIdEditando')}
+                    numeroOrdenEditando={localStorage.getItem('numeroOrdenEditando')}
                     onMovimientoEditado={onMovimientoEditado}
                         onCerrarCanasta={(productosActualizados, precioId, movimientoId, pedidoActualizadoData) => {
                             // Si es una entrega, llamar a la función de entrega

@@ -20,6 +20,20 @@ import useHistorialLogger from '../../ui/HistorialLogger';
 import { formatMovimientoLog, prepareLogPayload } from '../../../utils/logFormatters';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 
+const obtenerNumeroOrdenFormateado = (numeroOrden) => {
+    if (numeroOrden === null || numeroOrden === undefined) {
+        return '--';
+    }
+    if (typeof numeroOrden === 'string' && numeroOrden.trim() === '') {
+        return '--';
+    }
+    const numero = Number(numeroOrden);
+    if (Number.isNaN(numero) || numero === 0) {
+        return '--';
+    }
+    return String(numeroOrden);
+};
+
 function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado, onMovimientoActualizado, onMovimientoEditado }) {
     const { isLargeScreen } = useLayout();
     const [loading, setLoading] = useState(false);
@@ -319,6 +333,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         localStorage.removeItem('fechaMovimientoEditando');
         localStorage.removeItem('movimientoIdEditando');
         localStorage.removeItem('productosEdicion');
+        localStorage.removeItem('numeroOrdenEditando');
 
         // Guardar datos del movimiento para repetir (como nueva salida)
         localStorage.setItem('precioIdRepitiendo', movimientoActual.precio_id || '');
@@ -400,6 +415,11 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         } else {
             localStorage.removeItem('movimientoIdEditando');
         }
+        if (movimientoActual?.numero_orden !== undefined && movimientoActual?.numero_orden !== null) {
+            localStorage.setItem('numeroOrdenEditando', String(movimientoActual.numero_orden));
+        } else {
+            localStorage.removeItem('numeroOrdenEditando');
+        }
 
         const productosMovimientoRepetidos = localStorage.getItem('productosMovimientoRepitiendo');
         if (productosMovimientoRepetidos) {
@@ -467,7 +487,13 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     <ItemView
                         title={movimientoActual?.type === 'entrada' ? movimientoActual?.proveedor?.name || 'Sin proveedor' : movimientoActual?.cliente?.name || 'Sin cliente'}
                         description={movimientoActual?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
-                        flot2={movimientoActual?.type === 'entrada' ? `${movimientoActual?.proveedor?.total_orders || 0} órdenes` : `Orden Nº ${movimientoActual?.numero_orden || 0}`}
+                        flot2={movimientoActual?.type === 'entrada'
+                            ? `${movimientoActual?.proveedor?.total_orders || 0} órdenes`
+                            : (() => {
+                                const numeroOrden = obtenerNumeroOrdenFormateado(movimientoActual?.numero_orden);
+                                return numeroOrden === '--' ? '' : `Orden Nº ${numeroOrden}`;
+                            })()
+                        }
                         transparent={false}
                     />
                 )}
@@ -830,6 +856,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     localStorage.removeItem('fechaMovimientoEditando');
                     localStorage.removeItem('movimientoIdEditando');
                     localStorage.removeItem('productosEdicion');
+                localStorage.removeItem('numeroOrdenEditando');
                     }
                 }}
                 tipo="salida"

@@ -91,6 +91,10 @@ class movimientosAlmacenService {
       if (dataToSend.fecha instanceof Date) {
         dataToSend.fecha = dataToSend.fecha.toISOString();
       }
+      if (dataToSend.numero_orden !== undefined && dataToSend.numero_orden !== null) {
+        const numeroOrdenNormalizado = Number(dataToSend.numero_orden);
+        dataToSend.numero_orden = Number.isNaN(numeroOrdenNormalizado) ? dataToSend.numero_orden : numeroOrdenNormalizado;
+      }
 
       // Mostrar warning si hay muchos productos
       if (validation.warning) {
