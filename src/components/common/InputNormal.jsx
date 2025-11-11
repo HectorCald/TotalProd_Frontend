@@ -139,7 +139,6 @@ const InputNormal = forwardRef(({
                 }}
                 style={{
                     paddingRight: buttonIcon ? '50px' : '15px',
-                    paddingLeft: icon ? '50px' : '15px',
                     opacity: isDisabled ? 0.5 : 1,
                     cursor: isDisabled ? 'not-allowed' : 'text',
                     ...inputStyle

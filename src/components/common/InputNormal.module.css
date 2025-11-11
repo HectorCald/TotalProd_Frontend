@@ -56,8 +56,16 @@
     color: var(--primary-color);
 }
 
-.inputWithIcon {
+.inputLabelWithIcon {
     padding-left: 45px;
+}
+
+.inputLabelWithoutIcon {
+    padding-left: 15px;
+}
+
+.inputWithIcon {
+    padding-left: 40px;
 }
 
 .inputWithoutIcon {
