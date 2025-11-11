@@ -1,5 +1,22 @@
 const DEFAULT_FALLBACK = '--';
 
+const parseDateValue = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+      const [, year, month, day] = match;
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const buildDateFormatter = () =>
   new Intl.DateTimeFormat('es-ES', {
     day: 'numeric',
@@ -32,27 +49,29 @@ const getTimeFormatter = () => {
 };
 
 export const formatFechaLiteral = (value) => {
-  if (!value) return DEFAULT_FALLBACK;
+  const date = parseDateValue(value);
+  if (!date) return DEFAULT_FALLBACK;
   try {
-    return getDateFormatter().format(new Date(value));
+    return getDateFormatter().format(date);
   } catch (error) {
     return DEFAULT_FALLBACK;
   }
 };
 
 export const formatHoraSinSegundos = (value) => {
-  if (!value) return DEFAULT_FALLBACK;
+  const date = parseDateValue(value);
+  if (!date) return DEFAULT_FALLBACK;
   try {
-    return getTimeFormatter().format(new Date(value));
+    return getTimeFormatter().format(date);
   } catch (error) {
     return DEFAULT_FALLBACK;
   }
 };
 
 export const formatFechaHoraLiteral = (value) => {
-  if (!value) return DEFAULT_FALLBACK;
+  const date = parseDateValue(value);
+  if (!date) return DEFAULT_FALLBACK;
   try {
-    const date = new Date(value);
     const fecha = getDateFormatter().format(date);
     const hora = getTimeFormatter().format(date);
     if (!fecha && !hora) {
@@ -69,4 +88,6 @@ export const formatFechaHoraLiteral = (value) => {
     return DEFAULT_FALLBACK;
   }
 };
+
+export const parseDateWithoutOffset = parseDateValue;
 

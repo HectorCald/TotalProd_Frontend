@@ -27,6 +27,8 @@ import PanelConteos from '../views/conteos/PanelConteos';
 import PanelCotizaciones from '../views/cotizaciones/PanelCotizaciones';
 import PanelHistorial from '../views/historial/PanelHistorial';
 import Personal from '../views/personal/Personal';
+import PanelPagos from '../views/damabrava/produccion/pagos/PanelPagos';
+import Sucursales from '../views/sucursales/Sucursales';
 
 const BarraLateralEmpleado = ({ 
   onMenuClick, 
@@ -481,8 +483,18 @@ const BarraLateralEmpleado = ({
         setIsOpen={handleCloseView}
         {...viewProps}
       />
+      <PanelPagos
+        isOpen={activeView === 'pagos'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
       <Personal
         isOpen={activeView === 'personal'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <Sucursales
+        isOpen={activeView === 'sucursales'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

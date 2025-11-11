@@ -293,19 +293,19 @@ function ReglasMedio({ isOpen, setIsOpen, onReglaRegistrada }) {
 
     return (
         <>
-            <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
-                <HeaderModal
-                    title="Nueva Regla"
-                    onClose={handleClose}
+        <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
+            <HeaderModal
+                title="Nueva Regla"
+                onClose={handleClose}
+            />
+            <div className={styles.modalContent}>
+                <ItemView
+                    title='General'
+                    description='Crear regla general'
+                    icon='file'
+                    arrow={true}
+                    onClick={() => handleTipoRegla('general')}
                 />
-                <div className={styles.modalContent}>
-                    <ItemView
-                        title='General'
-                        description='Crear regla general'
-                        icon='file'
-                        arrow={true}
-                        onClick={() => handleTipoRegla('general')}
-                    />
                     <ItemView
                         title='Especial'
                         description='Crear regla especial'
@@ -456,8 +456,8 @@ function ReglasMedio({ isOpen, setIsOpen, onReglaRegistrada }) {
 
 
 
-                </div>
-            </ViewModal>
+            </div>
+        </ViewModal>
             <FetchData
                 service={productsAlmacenService}
                 method="getAll"

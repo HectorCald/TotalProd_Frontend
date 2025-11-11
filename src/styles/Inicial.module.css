@@ -153,6 +153,11 @@
     margin-top: 20px;
 }
 
+.horizontal{
+    display: flex;
+    gap:7px;
+}
+
 /* Container del título con barra de progreso */
 .titleContainer {
     position: relative;

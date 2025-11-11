@@ -2,6 +2,7 @@ import imageFormulario from '../assets/damabrava/formulario.png';
 import imageVerificacion from '../assets/damabrava/verificacion.png';
 import imageMiProduccion from '../assets/mi-produccion.png';
 import imageReglas from '../assets/reglas.png';
+import imagePagos from '../assets/pagos.png';
 export const EXTRAS = [
     {
         title: 'Formulario',
@@ -22,5 +23,10 @@ export const EXTRAS = [
         title: 'Reglas',
         image: imageReglas,
         view: 'reglas'
+    },
+    {
+        title: 'Pagos',
+        image: imagePagos,
+        view: 'pagos'
     },
 ];

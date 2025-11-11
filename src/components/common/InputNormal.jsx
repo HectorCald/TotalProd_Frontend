@@ -80,6 +80,12 @@ const InputNormal = forwardRef(({
         if (onChange) onChange(e);
     };
 
+    const inputClasses = [
+        styles.input,
+        icon ? styles.inputWithIcon : styles.inputWithoutIcon,
+        isDisabled ? styles.inputDisabled : ''
+    ].filter(Boolean).join(' ');
+
     return (
         <div
             style={{
@@ -111,7 +117,7 @@ const InputNormal = forwardRef(({
             )}
             <input
                 ref={ref}
-                className={`${styles.input} ${isDisabled ? styles.inputDisabled : ''}`}
+                className={inputClasses}
                 type={inputType}
                 {...(tipo === 'number'
                     ? { inputMode: 'decimal' }

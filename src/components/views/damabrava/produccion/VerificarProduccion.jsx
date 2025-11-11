@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../../common/HeaderView';
@@ -8,6 +8,7 @@ import VerProduccion from './VerProduccion';
 import Filtros from '../../../common/Filtros';
 import Notification from '../../../common/Notification';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
+import reglasProduccionDamabravaService from '../../../../services/reglasProduccionDamabravaService';
 import RefreshIndicator from '../../../common/RefreshIndicator';
 import { useLayout } from '../../../../context/LayoutContext';
 import Table from '../../../common/Table';
@@ -17,10 +18,14 @@ import FiltroEstados from '../../../mixed/FiltroEstados';
 import LoadingSpinner from '../../../common/LoadingSpinner';
 import NoData from '../../../common/NoData';
 import PullToRefresh from '../../../common/PullToRefresh';
+import Boton from '../../../common/Boton';
+import FiltroFecha, { formatDateRangeForDisplay } from '../../../mixed/FiltroFecha';
+import Select from '../../../common/Select';
+import InputDate from '../../../common/InputDate';
 
 function VerificarProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
-    
+
     // Estados para los modales
     const [isOpenVerProduccion, setIsOpenVerProduccion] = useState(false);
     const [infoProduccion, setInfoProduccion] = useState(null);
@@ -30,18 +35,19 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-    
+
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeRequests, setActiveRequests] = useState(0);
-    
+
     // Estado para acumular todos los registros de todas las páginas
     const [allRegistros, setAllRegistros] = useState([]);
-    
+    const [reglasProduccion, setReglasProduccion] = useState([]);
+
     // Estados para rastrear qué datos se han cargado
     const [registrosLoaded, setRegistrosLoaded] = useState(false);
-    
+
     // Debounce para búsqueda
     const [debouncedSearchQuery] = useDebounce(searchQueryNormalized, 500);
 
@@ -49,6 +55,15 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     const [filtroEstado, setFiltroEstado] = useState(null);
     const [filtroResponsable, setFiltroResponsable] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
+    const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
+    const fechaInicioKey = useMemo(
+        () => (filtroFecha.inicio ? filtroFecha.inicio.toISOString() : null),
+        [filtroFecha.inicio]
+    );
+    const fechaFinKey = useMemo(
+        () => (filtroFecha.fin ? filtroFecha.fin.toISOString() : null),
+        [filtroFecha.fin]
+    );
 
     // Estados para registros
     const [registros, setRegistros] = useState([]);
@@ -58,7 +73,14 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     const [error, setError] = useState(null);
 
     // Función para cargar registros
-    const cargarRegistros = async (page = 1, search = '', estado = null, orden = 'fecha_desc', responsable = null) => {
+    const cargarRegistros = async (
+        page = 1,
+        search = '',
+        estado = null,
+        orden = 'fecha_desc',
+        responsable = null,
+        rangoFechas = null
+    ) => {
         // Solo mostrar loading si no hay datos cargados Y es página 1
         if (page === 1 && allRegistros.length === 0) {
             setIsLoading(true);
@@ -77,11 +99,25 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-        
+
         try {
             const normalizedSearch = getPrimaryNormalizedValue(search);
-            const response = await registrosProduccionDamabravaService.getAll(page, 30, estado, orden, normalizedSearch, responsable);
-                
+            const fechaParams = rangoFechas
+                ? {
+                    inicio: rangoFechas.inicio ? new Date(rangoFechas.inicio).toISOString() : null,
+                    fin: rangoFechas.fin ? new Date(rangoFechas.fin).toISOString() : null,
+                }
+                : null;
+            const response = await registrosProduccionDamabravaService.getAll(
+                page,
+                30,
+                estado,
+                orden,
+                normalizedSearch,
+                responsable,
+                fechaParams
+            );
+
             if (response.success) {
                 const newData = response.data || [];
                 setRegistros(newData);
@@ -103,7 +139,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                         return merged;
                     });
                 }
-                
+
                 // Marcar como cargado solo en página 1
                 if (page === 1) {
                     setRegistrosLoaded(true);
@@ -142,10 +178,37 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     };
 
 
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        let isMounted = true;
+
+        const cargarReglas = async () => {
+            try {
+                const response = await reglasProduccionDamabravaService.getAll();
+                if (isMounted && response.success) {
+                    setReglasProduccion(response.data || []);
+                }
+            } catch (error) {
+                if (isMounted) {
+                    console.error('Error obteniendo reglas de producción:', error);
+                }
+            }
+        };
+
+        cargarReglas();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [isOpen]);
+
     // Cargar registros cuando se abre el modal - solo si no hay datos cargados
     useEffect(() => {
         if (isOpen && !registrosLoaded) {
-            cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable);
+            cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable, filtroFecha);
         }
     }, [isOpen, registrosLoaded]);
 
@@ -161,7 +224,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     // Cargar registros cuando cambia la página (para paginación)
     useEffect(() => {
         if (isOpen && currentPage > 1) {
-            cargarRegistros(currentPage, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable);
+            cargarRegistros(currentPage, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable, filtroFecha);
         }
     }, [currentPage]);
 
@@ -196,6 +259,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     const [isOpenFiltroOrden, setIsOpenFiltroOrden] = useState(false);
     const [isOpenFiltroResponsable, setIsOpenFiltroResponsable] = useState(false);
     const [isOpenFiltroEstados, setIsOpenFiltroEstados] = useState(false);
+    const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
 
     // Función para manejar el click en un registro
     const handleRegistro = (registro) => {
@@ -209,9 +273,9 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         setAllRegistros([]);
         setCurrentPage(1);
         setRegistrosLoaded(false);
-        
+
         // La función cargarRegistros ya maneja el RefreshIndicator
-        await cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable);
+        await cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable, filtroFecha);
     };
 
     // Función para manejar scroll infinito
@@ -262,9 +326,9 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             setCurrentPage(1);
             setRegistrosLoaded(false);
             // Cargar registros inmediatamente después de limpiar
-            cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable);
+            cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable, filtroFecha);
         }
-    }, [debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable]);
+    }, [debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable, fechaInicioKey, fechaFinKey]);
 
     // Efecto para manejar errores
     useEffect(() => {
@@ -277,10 +341,10 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     // Función para manejar cuando se elimina un registro
     const handleRegistroEliminado = (registroId) => {
         // Actualizar el estado local acumulado
-        setAllRegistros(prevRegistros => 
+        setAllRegistros(prevRegistros =>
             prevRegistros.filter(registro => registro.id !== registroId)
         );
-        
+
         mostrarNotificacion('success', 'Registro eliminado correctamente');
     };
 
@@ -290,15 +354,15 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         if (typeof registroActualizado === 'object' && registroActualizado.id) {
             // Obtener el registro anterior para comparar
             const registroAnterior = allRegistros.find(r => r.id === registroActualizado.id);
-            
-            setAllRegistros(prevRegistros => 
-                prevRegistros.map(registro => 
-                    registro.id === registroActualizado.id 
+
+            setAllRegistros(prevRegistros =>
+                prevRegistros.map(registro =>
+                    registro.id === registroActualizado.id
                         ? registroActualizado
                         : registro
                 )
             );
-            
+
             // Mostrar notificación según el tipo de cambio
             if (registroActualizado.estado === 'verificado' && registroAnterior?.estado === 'pendiente') {
                 mostrarNotificacion('success', 'Registro verificado correctamente');
@@ -310,14 +374,14 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                 const cantidadVerificada = registroActualizado.cantidad_verificada || 0;
                 const cantidadAnterior = registroAnterior?.cantidad_ingresada || 0;
                 const cantidadNuevaIngresada = cantidadIngresada - cantidadAnterior;
-                
+
                 if (cantidadIngresada >= cantidadVerificada) {
-                    mostrarNotificacion('success', 
+                    mostrarNotificacion('success',
                         `¡Registro completado! Se ingresaron ${cantidadNuevaIngresada} unidades. Estado: Ingresado`
                     );
                 } else {
                     const cantidadRestante = cantidadVerificada - cantidadIngresada;
-                    mostrarNotificacion('success', 
+                    mostrarNotificacion('success',
                         `Se ingresaron ${cantidadNuevaIngresada} unidades. Quedan ${cantidadRestante} por ingresar`
                     );
                 }
@@ -328,8 +392,8 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                 const cantidadAnterior = registroAnterior?.cantidad_ingresada || 0;
                 const cantidadNuevaIngresada = cantidadIngresada - cantidadAnterior;
                 const cantidadRestante = cantidadVerificada - cantidadIngresada;
-                
-                mostrarNotificacion('success', 
+
+                mostrarNotificacion('success',
                     `Se ingresaron ${cantidadNuevaIngresada} unidades. Quedan ${cantidadRestante} por ingresar`
                 );
             } else {
@@ -337,9 +401,9 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             }
         } else {
             // Fallback para compatibilidad (solo ID)
-            setAllRegistros(prevRegistros => 
-                prevRegistros.map(registro => 
-                    registro.id === registroActualizado 
+            setAllRegistros(prevRegistros =>
+                prevRegistros.map(registro =>
+                    registro.id === registroActualizado
                         ? { ...registro, estado: 'verificado' }
                         : registro
                 )
@@ -372,6 +436,8 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         return ordenamientos[ordenamiento] || 'Ordenamiento';
     };
 
+    const getFechaNombre = () => formatDateRangeForDisplay(filtroFecha?.inicio, filtroFecha?.fin, 'Fecha');
+
     const opciones = [
         {
             label: getOrdenamientoNombre(),
@@ -382,6 +448,11 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             label: getEstadoNombre(),
             active: filtroEstado !== null,
             onClick: () => setIsOpenFiltroEstados(true)
+        },
+        {
+            label: getFechaNombre(),
+            active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
+            onClick: () => setIsOpenFiltroFecha(true)
         },
         {
             label: getResponsableNombre(),
@@ -407,15 +478,15 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         producto: registro.producto_almacen?.name || 'Sin producto',
         responsable: registro.user?.name || registro.personal?.name || 'Usuario desconocido',
         lote: registro.lote || '0',
-        proceso: registro.proceso === 'cernido' ? 'Cernido' : 
-                 registro.proceso === 'seleccionado' ? 'Seleccionado' : 
-                 registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso,
-        cantidad: registro.estado === 'verificado' || registro.estado === 'Ingresado' 
+        proceso: registro.proceso === 'cernido' ? 'Cernido' :
+            registro.proceso === 'seleccionado' ? 'Seleccionado' :
+                registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso,
+        cantidad: registro.estado === 'verificado' || registro.estado === 'Ingresado'
             ? `${registro.cantidad_verificada || '0'} ud`
             : `${registro.terminados || '0'} ud`,
         fecha: new Date(registro.fecha).toLocaleDateString(),
-        estado: registro.estado === 'pendiente' ? 'Pendiente' : 
-                registro.estado === 'verificado' ? 'Verificado' : 
+        estado: registro.estado === 'pendiente' ? 'Pendiente' :
+            registro.estado === 'verificado' ? 'Verificado' :
                 registro.estado === 'Ingresado' ? 'Ingresado' : registro.estado
     }));
 
@@ -437,13 +508,13 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                     className: 'info' // azul
                 },
             };
-            
+
             return badgeConfig[estado] || {
                 text: estado,
                 className: 'default'
             };
         }
-        
+
         if (headerKey === 'proceso') {
             const proceso = item.proceso;
             const badgeConfig = {
@@ -460,19 +531,19 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                     className: 'warning' // gris
                 },
             };
-            
+
             return badgeConfig[proceso] || {
                 text: proceso,
                 className: 'default'
             };
         }
-        
+
         return null;
     };
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
-            <HeaderView 
+            <HeaderView
                 onBack={() => setIsOpen(false)}
                 showSearch={true}
                 searchPlaceholder="Buscar registros de producción..."
@@ -497,102 +568,103 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                             />
                         </div>
                         <Filtros options={opciones} />
-                        
+
                         {isLargeScreen ? (
-                        <div
-                        className={styles.content}
-                        onScroll={handleScroll}
-                        style={{
-                            maxHeight: '100%'
-                        }}
-                    >
-                        <Table
-                            headers={tableHeaders}
-                            data={tableData}
-                            onRowClick={(registro) => {
-                                // Buscar el registro original sin formatear
-                                const registroOriginal = allRegistros.find(r => r.id === registro.id);
-                                handleRegistro(registroOriginal);
-                            }}
-                            getCellBadge={getCellBadge}
-                            onScroll={handleScroll}
-                            columnWidths={{
-                                producto: '25%',
-                                responsable: '20%',
-                                lote: '10%',
-                                proceso: '15%',
-                                cantidad: '10%',
-                                fecha: '10%',
-                                estado: '15%'
-                            }}
-                        />
-                        
-                        {/* Loading al final de la tabla */}
-                        {isLoadingMore && (
-                            <LoadingSpinner />
-                        )}
-                        </div>
-                    ) : (
-                        // Vista de cards para pantallas pequeñas con PullToRefresh
-                        <PullToRefresh
-                            onRefresh={handleRefresh}
-                            screenName="Producción"
-                            containerStyle={{
-                                maxHeight: '100%',
-                                minHeight: '100%'
-                            }}
-                            onScroll={handleScroll}
-                        >
-                            {allRegistros.length > 0 ? (
-                                <>
-                                    {allRegistros.map((registro, index) => {
-                                        const cantidad = registro.estado === 'verificado' || registro.estado === 'Ingresado' 
-                                            ? (registro.cantidad_verificada || 0)
-                                            : (registro.terminados || 0);
-                                        
-                                        return (
-                                            <ItemView
-                                                key={registro.id || index}
-                                                title={registro.producto_almacen?.name || 'Sin producto'}
-                                                description={`${cantidad} ud • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
-                                                icon="file"
-                                                onClick={() => handleRegistro(registro)}
-                                                arrow={false}
-                                                flot1={registro?.estado === 'Ingresado' ? 'Ingresado' : ''}  
-                                                flot2={registro?.estado === 'verificado' ? 'Verificado' : ''}
-                                                flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
-                                                gris={true}
-                                            />
-                                        );
-                                    })}
-                                    
-                                    {/* Loading debajo del último registro */}
-                                    {isLoadingMore && (
-                                        <div style={{ 
-                                            display: 'flex', 
-                                            justifyContent: 'center', 
-                                            padding: '20px',
-                                            marginTop: '10px'
-                                        }}>
-                                            <LoadingSpinner />
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <NoData 
-                                    icon="file"
-                                    title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
-                                    detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
-                                    transparent={true}
-                                    minHeight="200px"
+                            <div
+                                className={styles.content}
+                                onScroll={handleScroll}
+                                style={{
+                                    maxHeight: 'calc(100% - 50px)',
+                                    minHeight: 'calc(100% - 50px)'
+                                }}
+                            >
+                                <Table
+                                    headers={tableHeaders}
+                                    data={tableData}
+                                    onRowClick={(registro) => {
+                                        // Buscar el registro original sin formatear
+                                        const registroOriginal = allRegistros.find(r => r.id === registro.id);
+                                        handleRegistro(registroOriginal);
+                                    }}
+                                    getCellBadge={getCellBadge}
+                                    onScroll={handleScroll}
+                                    columnWidths={{
+                                        producto: '25%',
+                                        responsable: '20%',
+                                        lote: '10%',
+                                        proceso: '15%',
+                                        cantidad: '10%',
+                                        fecha: '10%',
+                                        estado: '15%'
+                                    }}
                                 />
-                            )}
-                        </PullToRefresh>
-                    )}
+
+                                {/* Loading al final de la tabla */}
+                                {isLoadingMore && (
+                                    <LoadingSpinner />
+                                )}
+                            </div>
+                        ) : (
+                            // Vista de cards para pantallas pequeñas con PullToRefresh
+                            <PullToRefresh
+                                onRefresh={handleRefresh}
+                                screenName="Producción"
+                                containerStyle={{
+                                    maxHeight: '100%',
+                                    minHeight: '100%'
+                                }}
+                                onScroll={handleScroll}
+                            >
+                                {allRegistros.length > 0 ? (
+                                    <>
+                                        {allRegistros.map((registro, index) => {
+                                            const cantidad = registro.estado === 'verificado' || registro.estado === 'Ingresado'
+                                                ? (registro.cantidad_verificada || 0)
+                                                : (registro.terminados || 0);
+
+                                            return (
+                                                <ItemView
+                                                    key={registro.id || index}
+                                                    title={registro.producto_almacen?.name || 'Sin producto'}
+                                                    description={`${cantidad} ud • ${new Date(registro.fecha).toLocaleDateString()} • ${registro.proceso === 'cernido' ? 'Cernido' : registro.proceso === 'seleccionado' ? 'Seleccionado' : registro.proceso === 'ninguno' ? 'Ninguno' : registro.proceso}`}
+                                                    icon="file"
+                                                    onClick={() => handleRegistro(registro)}
+                                                    arrow={false}
+                                                    flot1={registro?.estado === 'Ingresado' ? 'Ingresado' : ''}
+                                                    flot2={registro?.estado === 'verificado' ? 'Verificado' : ''}
+                                                    flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
+                                                    gris={true}
+                                                />
+                                            );
+                                        })}
+
+                                        {/* Loading debajo del último registro */}
+                                        {isLoadingMore && (
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                padding: '20px',
+                                                marginTop: '10px'
+                                            }}>
+                                                <LoadingSpinner />
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <NoData
+                                        icon="file"
+                                        title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
+                                        detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
+                                        transparent={true}
+                                        minHeight="200px"
+                                    />
+                                )}
+                            </PullToRefresh>
+                        )}
                     </>
                 )}
             </div>
-            
+
             {/* Modal de ver registro de producción */}
             <VerProduccion
                 isOpen={isOpenVerProduccion}
@@ -600,6 +672,17 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                 registro={infoProduccion}
                 onRegistroEliminado={handleRegistroEliminado}
                 onRegistroVerificado={handleRegistroVerificado}
+                reglas={reglasProduccion}
+            />
+
+            <FiltroFecha
+                isOpen={isOpenFiltroFecha}
+                setIsOpen={setIsOpenFiltroFecha}
+                startDate={filtroFecha?.inicio}
+                endDate={filtroFecha?.fin}
+                onApply={(inicio, fin) => setFiltroFecha({ inicio, fin })}
+                onClear={() => setFiltroFecha({ inicio: null, fin: null })}
+                title="Filtrar por fecha"
             />
 
             <Notification

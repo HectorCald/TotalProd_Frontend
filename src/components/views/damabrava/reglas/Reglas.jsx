@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../../styles/Inicial.module.css';
 import HeaderView from '../../../common/HeaderView';
 import View from '../../../ui/View';
-import ItemView from '../../../common/ItemView';
 import Boton from '../../../common/Boton';
+import ItemView from '../../../common/ItemView';
 import LoadingSpinner from '../../../common/LoadingSpinner';
 import { useLayout } from '../../../../context/LayoutContext';
 import Table from '../../../common/Table';
@@ -14,6 +14,7 @@ import ReglasMedio from './ReglasMedio';
 import Notification from '../../../common/Notification';
 import FetchData from '../../../mixed/FetchData';
 import reglasProduccionDamabravaService from '../../../../services/reglasProduccionDamabravaService';
+import VerRegla from './VerRegla';
 
 function Reglas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -36,6 +37,8 @@ function Reglas({ isOpen, setIsOpen }) {
         type: 'success',
         text: ''
     });
+    const [isVerReglaOpen, setIsVerReglaOpen] = useState(false);
+    const [reglaSeleccionada, setReglaSeleccionada] = useState(null);
 
     const mostrarNotificacion = (type, text) => {
         setNotification({
@@ -117,6 +120,14 @@ function Reglas({ isOpen, setIsOpen }) {
         mostrarNotificacion('success', 'Regla registrada correctamente.');
     };
 
+    const handleReglaEliminada = (reglaId) => {
+        if (!reglaId) return;
+        setReglas((prev) => prev.filter((regla) => regla.id !== reglaId));
+        setIsVerReglaOpen(false);
+        setReglaSeleccionada(null);
+        mostrarNotificacion('success', 'Regla eliminada correctamente.');
+    };
+
     // Headers para la tabla
     const tableHeaders = [
         { key: 'nombre', label: 'Nombre', icon: 'file' },
@@ -189,8 +200,12 @@ function Reglas({ isOpen, setIsOpen }) {
                                 <Table
                                     headers={tableHeaders}
                                     data={tableData}
-                                    onRowClick={(regla) => {
-                                        // Por ahora no hacer nada
+                                    onRowClick={(reglaRow) => {
+                                        const reglaOriginal = reglas.find((r) => r.id === reglaRow.id);
+                                        if (reglaOriginal) {
+                                            setReglaSeleccionada(reglaOriginal);
+                                            setIsVerReglaOpen(true);
+                                        }
                                     }}
                                 />
                             ) : (
@@ -219,10 +234,13 @@ function Reglas({ isOpen, setIsOpen }) {
                                     key={regla.id || index}
                                     title={obtenerNombreRegla(regla)}
                                     description={obtenerDetalleRegla(regla)}
+                                    description2={obtenerTipoRegla(regla)}
                                     arrow={true}
                                     onClick={() => {
-                                        // Por ahora no hacer nada
+                                        setReglaSeleccionada(regla);
+                                        setIsVerReglaOpen(true);
                                     }}
+                                    icon='book'
                                 />
                             ))
                         ) : (
@@ -255,6 +273,12 @@ function Reglas({ isOpen, setIsOpen }) {
                 isVisible={notification.isVisible}
                 type={notification.type}
                 text={notification.text}
+            />
+            <VerRegla
+                isOpen={isVerReglaOpen}
+                setIsOpen={setIsVerReglaOpen}
+                regla={reglaSeleccionada}
+                onReglaEliminada={handleReglaEliminada}
             />
             {isOpen && (
                 <FetchData

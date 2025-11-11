@@ -14,7 +14,6 @@
     color: var(--white-color);
     caret-color: var(--primary-color);
     font-weight: 500;
-    padding-left: 40px !important;
     position: relative;
     display: flex;
     align-items: center;
@@ -55,6 +54,14 @@
     left: 1px;
     transform: translateY(0) scale(0.8);
     color: var(--primary-color);
+}
+
+.inputWithIcon {
+    padding-left: 45px;
+}
+
+.inputWithoutIcon {
+    padding-left: 20px;
 }
 /* Para Chrome, Safari, Edge y Opera */
 .input[type=number]::-webkit-inner-spin-button,

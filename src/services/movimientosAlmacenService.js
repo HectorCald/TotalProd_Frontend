@@ -145,7 +145,7 @@ class movimientosAlmacenService {
   }
 
   // Obtener todos los movimientos de la sucursal
-  static async getAll(page = 1, limit = 10, tipo = null, estado = null, ordenamiento = 'fecha_desc', clienteId = null, sucuIdParam = null, search = null) {
+  static async getAll(page = 1, limit = 30, tipo = null, estado = null, ordenamiento = 'fecha_desc', clienteId = null, sucuIdParam = null, search = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -199,7 +199,7 @@ class movimientosAlmacenService {
   }
 
   // Obtener movimientos por tipo (entrada/salida)
-  static async getByType(tipo, page = 1, limit = 10) {
+  static async getByType(tipo, page = 1, limit = 30) {
     try {
       const sucuId = getSucuId();
       if (!sucuId) {

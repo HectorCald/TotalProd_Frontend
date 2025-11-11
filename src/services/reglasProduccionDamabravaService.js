@@ -99,6 +99,36 @@ class reglasProduccionDamabravaService {
             };
         }
     }
+
+    static async delete(reglaId) {
+        try {
+            if (!reglaId) {
+                return {
+                    success: false,
+                    message: 'El identificador de la regla es obligatorio'
+                };
+            }
+
+            const response = await fetch(`${API_BASE_URL}/reglas-produccion-damabrava/${reglaId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al eliminar la regla de producción');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error en reglasProduccionDamabravaService.delete:', error);
+            return {
+                success: false,
+                message: error.message || 'Error de conexión con el servidor'
+            };
+        }
+    }
 }
 
 export default reglasProduccionDamabravaService;

@@ -99,7 +99,15 @@ class registrosProduccionDamabravaService {
   }
 
   // Obtener todos los registros de producción (sin filtrar por sucursal)
-  static async getAll(page = 1, limit = 10, estado = null, ordenamiento = 'fecha_desc', search = '', responsable = null) {
+  static async getAll(
+    page = 1,
+    limit = 10,
+    estado = null,
+    ordenamiento = 'fecha_desc',
+    search = '',
+    responsable = null,
+    rangoFechas = null
+  ) {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -118,6 +126,15 @@ class registrosProduccionDamabravaService {
       if (responsable && responsable.id && responsable.tipo) {
         params.append('responsable_id', responsable.id);
         params.append('responsable_tipo', responsable.tipo);
+      }
+      if (rangoFechas) {
+        const { inicio, fin } = rangoFechas;
+        if (inicio) {
+          params.append('fecha_inicio', new Date(inicio).toISOString());
+        }
+        if (fin) {
+          params.append('fecha_fin', new Date(fin).toISOString());
+        }
       }
 
       const response = await fetch(`${API_BASE_URL}/registros-produccion-damabrava?${params}`, {

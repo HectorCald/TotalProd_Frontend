@@ -15,6 +15,7 @@ import imageConteos from '../assets/conteos.png';
 import imageCotizaciones from '../assets/cotizaciones.png';
 import imageHistorial from '../assets/historial.png';
 import imagenPersonal from '../assets/personal.png';
+import imagenSucursales from '../assets/sucursales.png';
 
 // Mapeo de componentes a vistas (para simplificar el uso)
 const COMPONENT_TO_VIEW = {
@@ -39,6 +40,8 @@ const COMPONENT_TO_VIEW = {
     'Reglas': 'reglas',
     'PanelHistorial': 'historial',
     'Personal': 'personal',
+    'PanelPagos': 'pagos',
+    'Sucursales': 'sucursales',
 };
 
 // Mapeo de nombres de módulos del backend a claves del frontend
@@ -58,7 +61,8 @@ const BACKEND_TO_FRONTEND_MODULE = {
     'Damabrava': 'Damabrava',
     'Historial': 'Historial',
     'Cotizaciones': 'Cotizaciones',
-    'Personal': 'Personal'
+    'Personal': 'Personal',
+    'Sucursales': 'Sucursales'
 };
 
 // Mapeo de nombres de submódulos del backend a claves del frontend
@@ -80,7 +84,8 @@ const getSubmoduleKey = (moduleKey, submoduleName) => {
             'Formulario': 'formulario',
             'Verificación': 'verificar',
             'Mi Producción': 'mi_produccion',
-            'Reglas': 'reglas'
+            'Reglas': 'reglas',
+            'Pagos': 'pagos'
         },
         'Cotizaciones': {
             'Cotizaciones': 'gestionar'
@@ -99,6 +104,10 @@ const getSubmoduleKey = (moduleKey, submoduleName) => {
             'Nuevo Pedido': 'realizar_pedidos',
             'Gestionar': 'gestionar',
             'Pesaje': 'realizar_conteo'
+        },
+        'Sucursales': {
+            'Sucursales': 'gestionar',
+            'Gestionar': 'gestionar'
         }
     };
     
@@ -323,6 +332,21 @@ export const MODULES = {
             view: 'personal'
         },
     },
+    Sucursales: {
+        name: 'Sucursales',
+        imagen: imagenSucursales,
+        descripcion: 'Administra tus sucursales.',
+        icon: 'building',
+        section: 'gestion',
+        gestionar: {
+            name: 'Sucursales',
+            description: 'Administra tus sucursales.',
+            icon: 'building',
+            component: 'Sucursales',
+            props: {},
+            view: 'sucursales'
+        },
+    },
     Gastos: {
         name: 'Gastos',
         imagen: imagenGastos,
@@ -413,6 +437,13 @@ export const MODULES = {
             description: 'Gestiona las reglas de producción.',
             icon: 'book',
             component: 'Reglas',
+            props: {}
+        },
+        pagos: {
+            name: 'Pagos',
+            description: 'Gestiona los pagos de producción.',
+            icon: 'wallet',
+            component: 'PanelPagos',
             props: {}
         },
     },

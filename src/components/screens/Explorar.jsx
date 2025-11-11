@@ -17,6 +17,7 @@ import MiProduccion from '../views/damabrava/produccion/MiProduccion';
 import Reglas from '../views/damabrava/reglas/Reglas';
 import ImportExport from '../views/exportar-importar/ImportExport';
 import { isDamabrava } from '../../utils/empresaHelper';
+import PanelPagos from '../views/damabrava/produccion/pagos/PanelPagos';
 
 const Explorar = () => {
   const [isOpenPrecios, setIsOpenPrecios] = useState(false);
@@ -31,6 +32,7 @@ const Explorar = () => {
   const [isOpenMiProduccion, setIsOpenMiProduccion] = useState(false);
   const [isOpenReglas, setIsOpenReglas] = useState(false);
   const [isOpenImportExport, setIsOpenImportExport] = useState(false);
+  const [isOpenPagos, setIsOpenPagos] = useState(false);
   const [notification, setNotification] = useState({
     isVisible: false,
     type: 'info',
@@ -75,6 +77,8 @@ const Explorar = () => {
       setIsOpenReglas(true);
     } else if (viewName === 'importar-exportar') {
       setIsOpenImportExport(true);
+    } else if (viewName === 'pagos') {
+      setIsOpenPagos(true);
     } else {
       // Mostrar notificación para módulos no implementados
       mostrarNotificacion('info', `La función "${viewName}" estará disponible próximamente`);
@@ -124,6 +128,7 @@ const Explorar = () => {
           <VerificarProduccion isOpen={isOpenVerificarProduccion} setIsOpen={setIsOpenVerificarProduccion} />
           <MiProduccion isOpen={isOpenMiProduccion} setIsOpen={setIsOpenMiProduccion} />
           <Reglas isOpen={isOpenReglas} setIsOpen={setIsOpenReglas} />
+          <PanelPagos isOpen={isOpenPagos} setIsOpen={setIsOpenPagos} />
         </>
       )}
       <ImportExport isOpen={isOpenImportExport} setIsOpen={setIsOpenImportExport} />

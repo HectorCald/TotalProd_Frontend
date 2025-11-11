@@ -343,16 +343,23 @@ const MENU_OPTIONS_BASE = [
       {
         id: 'Mi Producción',
         title: 'Mi Producción',
-        icon: 'file',
+        icon: 'archive',
         action: 'openView',
         viewName: 'mi_produccion'
       },
       {
         id: 'Reglas',
         title: 'Reglas',
-        icon: 'file',
+        icon: 'book',
         action: 'openView',
         viewName: 'reglas'
+      },
+      {
+        id: 'Pagos',
+        title: 'Pagos',
+        icon: 'wallet',
+        action: 'openView',
+        viewName: 'pagosDamabrava'
       },
     ]
   }] : [])

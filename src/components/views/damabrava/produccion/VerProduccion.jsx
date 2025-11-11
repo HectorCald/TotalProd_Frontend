@@ -11,7 +11,6 @@ import ItemView from '../../../common/ItemView';
 import Notification from '../../../common/Notification';
 import ModalDescarga from '../../../ui/ModalDescarga';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
-import productsAlmacenService from '../../../../services/productsAlmacenService';
 import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
 import InputNormal from '../../../common/InputNormal';
 import IngresoProduccion from './IngresoProduccion';
@@ -19,21 +18,27 @@ import VerMovimiento from '../../movimientos/VerMovimiento';
 import NoData from '../../../common/NoData';
 import Text from '../../../common/Text';
 import { formatFechaLiteral, formatHoraSinSegundos, formatFechaHoraLiteral } from '../../../../utils/dateUtils';
+import { seleccionarReglaParaProducto, calcularPagoProcesos } from '../../../../utils/reglasPagoHelper';
+import permissionsService from '../../../../services/permissionsService';
+import CalculoPagoModal from './CalculoPagoModal';
 
-function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegistroEliminado, onRegistroVerificado }) {
+function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegistroEliminado, onRegistroVerificado, reglas = [] }) {
     const [loading, setLoading] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isVerificarOpen, setIsVerificarOpen] = useState(false);
     const [isIngresoOpen, setIsIngresoOpen] = useState(false);
-    const [productoDetalle, setProductoDetalle] = useState(null);
-    const [loadingProducto, setLoadingProducto] = useState(false);
     const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
     const [isVerMovimientoOpen, setIsVerMovimientoOpen] = useState(false);
     const [movimientoSeleccionado, setMovimientoSeleccionado] = useState(null);
     const [movimientos, setMovimientos] = useState([]);
     const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
+    const [isPagoOpen, setIsPagoOpen] = useState(false);
+    const [resultadoPago, setResultadoPago] = useState(null);
+    const [reglaAplicada, setReglaAplicada] = useState(null);
+    const [isCalculandoPago, setIsCalculandoPago] = useState(false);
+    const [isCheckingPermiso, setIsCheckingPermiso] = useState(false);
 
     // Estado local para el registro actualizado
     const [registroActual, setRegistroActual] = useState(registro);
@@ -41,6 +46,11 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     // Actualizar el registro local cuando cambie el prop
     useEffect(() => {
         setRegistroActual(registro);
+        setReglaAplicada(null);
+        setResultadoPago(null);
+        setIsPagoOpen(false);
+        setIsCalculandoPago(false);
+        setIsCheckingPermiso(false);
     }, [registro]);
 
     // Estados para el modal de verificación
@@ -75,6 +85,26 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
         const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const nombreMes = meses[(parseInt(m, 10) || 1) - 1] || '';
         return `${nombreMes} ${y}`;
+    };
+
+    const obtenerPermisoInfo = async () => {
+        setIsCheckingPermiso(true);
+        try {
+            const response = await permissionsService.canViewSensitiveInfo();
+            if (response.success) {
+                const allowed = Boolean(response.data?.allowed);
+                return allowed;
+            }
+
+            mostrarNotificacion('error', response.message || 'No se pudo verificar los permisos.');
+            return false;
+        } catch (error) {
+            console.error('Error verificando permisos de información:', error);
+            mostrarNotificacion('error', error.message || 'No se pudo verificar los permisos.');
+            return false;
+        } finally {
+            setIsCheckingPermiso(false);
+        }
     };
 
     // Función para preparar datos de descarga
@@ -251,27 +281,13 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
 
     // Función para obtener producto y abrir modal de ingreso
     const handleOpenIngreso = async () => {
-        if (!registroActual?.producto_almacen?.id) {
-            mostrarNotificacion('error', 'No se encontró el ID del producto');
+        const detalle = registroActual?.producto_almacen;
+        if (!detalle) {
+            mostrarNotificacion('error', 'No se encontró la información del producto.');
             return;
         }
 
-        setLoadingProducto(true);
-        try {
-            const response = await productsAlmacenService.getById(registroActual.producto_almacen.id);
-
-            if (response.success && response.data) {
-                setProductoDetalle(response.data);
-                setIsIngresoOpen(true);
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al obtener los detalles del producto');
-            }
-        } catch (error) {
-            console.error('Error obteniendo producto:', error);
-            mostrarNotificacion('error', 'Error al obtener los detalles del producto');
-        } finally {
-            setLoadingProducto(false);
-        }
+        setIsIngresoOpen(true);
     };
 
     // Función para obtener movimientos de la producción
@@ -299,6 +315,71 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
             setMovimientos([]);
         } finally {
             setLoadingMovimientosList(false);
+        }
+    };
+
+    const handleCalcularPago = async () => {
+        if (isCalculandoPago) {
+            return;
+        }
+
+        const permiso = await obtenerPermisoInfo();
+        if (!permiso) {
+            mostrarNotificacion('error', 'No tienes permisos para ver esta información.');
+            return;
+        }
+
+        if (!reglas || reglas.length === 0) {
+            mostrarNotificacion('error', 'No hay reglas configuradas para calcular el pago.');
+            return;
+        }
+
+        setIsCalculandoPago(true);
+
+        try {
+            const detalle = registroActual?.producto_almacen;
+            if (!detalle) {
+                mostrarNotificacion('error', 'No se encontró la información del producto.');
+                return;
+            }
+
+            const regla = seleccionarReglaParaProducto(reglas, registroActual, detalle);
+
+            if (!regla) {
+                mostrarNotificacion('error', 'No existe una regla especial o general para realizar el cálculo de este registro.');
+                return;
+            }
+
+            const usarCantidadVerificada = ['verificado', 'Ingresado'].includes(registroActual?.estado);
+            const cantidadBase = usarCantidadVerificada
+                ? Number(registroActual?.cantidad_verificada)
+                : Number(registroActual?.terminados);
+
+            if (!cantidadBase || cantidadBase <= 0) {
+                mostrarNotificacion('error', usarCantidadVerificada
+                    ? 'La cantidad verificada debe ser mayor a cero.'
+                    : 'La cantidad de terminados debe ser mayor a cero.');
+                return;
+            }
+
+            const resultado = calcularPagoProcesos({
+                regla,
+                terminados: cantidadBase,
+                productoDetalle: detalle
+            });
+
+            setReglaAplicada(regla);
+            setResultadoPago({
+                cantidad: cantidadBase,
+                cantidadLabel: usarCantidadVerificada ? 'Cantidad verificada' : 'Terminados',
+                ...resultado
+            });
+            setIsPagoOpen(true);
+        } catch (error) {
+            console.error('Error calculando pago:', error);
+            mostrarNotificacion('error', error.message || 'No se pudo calcular el pago.');
+        } finally {
+            setIsCalculandoPago(false);
         }
     };
 
@@ -421,6 +502,14 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     </>
                 )}
 
+                <Boton
+                    className='btn-gray'
+                    label='Calcular pago'
+                    onClick={handleCalcularPago}
+                    loading={isCalculandoPago || isCheckingPermiso}
+                    disabled={isCalculandoPago || isCheckingPermiso}
+                />
+
                 {/* Botón para ver movimientos */}
                 {(registroActual?.estado === 'verificado' || registroActual?.estado === 'Ingresado') && (
                     <Boton
@@ -454,7 +543,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                                     label='Ingresar Producción'
                                     style={{ marginTop: 'auto' }}
                                     onClick={handleOpenIngreso}
-                                    loading={loadingProducto}
+                                    loading={loading}
                                 />
                             )}
                             {(registroActual?.cantidad_ingresada || 0) === 0 && (
@@ -628,7 +717,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
             <IngresoProduccion
                 isOpen={isIngresoOpen}
                 setIsOpen={setIsIngresoOpen}
-                producto={productoDetalle}
+                producto={registroActual?.producto_almacen}
                 cantidadVerificada={registroActual?.cantidad_verificada || 0}
                 cantidadIngresada={registroActual?.cantidad_ingresada || 0}
                 registroId={registroActual?.id}
@@ -705,6 +794,13 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     movimiento={movimientoSeleccionado}
                 />
             )}
+
+            <CalculoPagoModal
+                isOpen={isPagoOpen}
+                setIsOpen={setIsPagoOpen}
+                resultadoPago={resultadoPago}
+                reglaAplicada={reglaAplicada}
+            />
 
             <Notification
                 isVisible={notification.isVisible}

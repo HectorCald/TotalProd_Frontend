@@ -24,6 +24,7 @@ import FormularioProduccion from '../views/damabrava/produccion/FormularioProduc
 import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
 import MiProduccion from '../views/damabrava/produccion/MiProduccion';
 import Reglas from '../views/damabrava/reglas/Reglas';
+import PanelPagos from '../views/damabrava/produccion/pagos/PanelPagos';
 import AlmacenGeneralAuxiliar from '../views/almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import AlmacenAcopioAuxiliar from '../views/almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
 import PanelConteos from '../views/conteos/PanelConteos';
@@ -371,6 +372,11 @@ const BarraLateral = ({
       />
       <MiProduccion
         isOpen={activeView === 'mi_produccion'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <PanelPagos
+        isOpen={activeView === 'pagosDamabrava'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />
