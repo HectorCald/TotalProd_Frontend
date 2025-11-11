@@ -173,6 +173,7 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                         value={`${registro?.microondas || '0'} segundos`}
                         vertical={false}
                     />
+                    
                     <Dato
                         label="Cantidad Terminados"
                         value={`${registro?.terminados || '0'} unidades`}

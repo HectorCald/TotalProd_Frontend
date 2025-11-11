@@ -365,7 +365,8 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
             const resultado = calcularPagoProcesos({
                 regla,
                 terminados: cantidadBase,
-                productoDetalle: detalle
+                productoDetalle: detalle,
+                proceso: registroActual?.proceso
             });
 
             setReglaAplicada(regla);
@@ -423,7 +424,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 <ItemView
                     title={registroActual?.producto_almacen?.name || 'Sin producto'}
                     description={`Lote: ${registroActual?.lote || '0'}`}
-                    description2={`Proceso: ${registroActual?.proceso === 'cernido' ? 'Cernido' : registroActual?.proceso === 'seleccionado' ? 'Seleccionado' : registroActual?.proceso === 'ninguno' ? 'Ninguno' : registroActual?.proceso}`}
+                    description2={`${registroActual?.proceso === 'cernido' ? 'Cernido' : registroActual?.proceso === 'seleccionado' ? 'Seleccionado' : registroActual?.proceso === 'ninguno' ? 'Ninguno' : registroActual?.proceso}`}
                     transparent={false}
                     icon='package'
                     flot3={registroActual?.estado === 'pendiente' ? 'Pendiente' : ''}
@@ -438,6 +439,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         value={`${registroActual?.microondas || '0'} segundos`}
                         vertical={false}
                     />
+                    
                     <Dato
                         label="Cantidad Terminados"
                         value={`${registroActual?.terminados || '0'} unidades`}

@@ -82,7 +82,8 @@ const VerPago = ({
             const resultado = calcularPagoProcesos({
                 regla,
                 terminados: cantidadBase,
-                productoDetalle
+                productoDetalle,
+                proceso: registro?.proceso
             });
 
             return {

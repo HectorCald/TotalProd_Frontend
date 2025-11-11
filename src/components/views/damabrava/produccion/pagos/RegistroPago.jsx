@@ -225,7 +225,8 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
                 const resultado = calcularPagoProcesos({
                     regla,
                     terminados: cantidadValor,
-                    productoDetalle
+                    productoDetalle,
+                    proceso: registro?.proceso
                 });
 
                 acumulado.registros += 1;

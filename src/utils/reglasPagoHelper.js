@@ -146,7 +146,12 @@ const obtenerIngredienteKg = (productoDetalle) => {
     }) || null;
 };
 
-export const calcularPagoProcesos = ({ regla, terminados, productoDetalle }) => {
+export const calcularPagoProcesos = ({
+    regla,
+    terminados,
+    productoDetalle,
+    proceso = 'ninguno'
+}) => {
     const cantidadTerminados = Number(terminados) || 0;
     if (!regla || cantidadTerminados <= 0) {
         return {
@@ -158,22 +163,30 @@ export const calcularPagoProcesos = ({ regla, terminados, productoDetalle }) => 
         };
     }
 
+    const procesoNormalizado = normalizeText(proceso) || 'ninguno';
+
     const sellado = redondear(cantidadTerminados * (Number(regla.sellado) || 0));
-    const envasado = redondear(cantidadTerminados * (Number(regla.envasado) || 0));
+    const factorEnvasado =
+        procesoNormalizado === 'seleccion' || procesoNormalizado === 'seleccionado' ? 2 : 1;
+    const envasado = redondear(
+        cantidadTerminados * ((Number(regla.envasado) || 0) * factorEnvasado)
+    );
     const etiquetado = redondear(cantidadTerminados * (Number(regla.etiquetado) || 0));
 
     let cernido = 0;
-    const ingredienteKg = obtenerIngredienteKg(productoDetalle);
-    if (ingredienteKg) {
-        const cantidadGramos = obtenerCantidadEnGramos(ingredienteKg);
+    if (procesoNormalizado === 'cernido') {
+        const ingredienteKg = obtenerIngredienteKg(productoDetalle);
+        if (ingredienteKg) {
+            const cantidadGramos = obtenerCantidadEnGramos(ingredienteKg);
 
-        let valorCernido = Number(regla.cernido) || 0;
-        if (valorCernido > 0 && Math.abs(valorCernido) < 10) {
-            valorCernido *= 1000;
+            let valorCernido = Number(regla.cernido) || 0;
+            if (valorCernido > 0 && Math.abs(valorCernido) < 10) {
+                valorCernido *= 1000;
+            }
+
+            const pesoFinal = cantidadGramos * cantidadTerminados;
+            cernido = redondear((pesoFinal * valorCernido * 5) / 1_000_000);
         }
-
-        const pesoFinal = cantidadGramos * cantidadTerminados;
-        cernido = redondear((pesoFinal * valorCernido * 5) / 1_000_000);
     }
 
     const total = redondear(cernido + sellado + envasado + etiquetado);
