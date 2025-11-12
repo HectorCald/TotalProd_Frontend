@@ -46,7 +46,7 @@
 }
 .iconStar {
     cursor: pointer;
-    transition: transform 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+    transition: all 0.2s ease;
     font-size: 25px;
 }
 .subTitle {
@@ -416,7 +416,7 @@
     padding: 40px 20px;
     text-align: center;
     cursor: pointer;
-    transition: border-color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
+    transition: all 0.3s ease;
     background-color: var(--tertiary-color);
 }
 

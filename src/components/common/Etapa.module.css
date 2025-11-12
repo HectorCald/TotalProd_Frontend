@@ -30,7 +30,7 @@
     justify-content: center;
     position: relative;
     z-index: 2;
-    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .iconContainer {
@@ -40,11 +40,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.3s ease, transform 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .icon {
-    transition: color 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 /* Estados de la etapa */
@@ -94,7 +94,7 @@
     font-size: 11px;
     font-weight: 500;
     text-align: center;
-    transition: color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+    transition: all 0.3s ease;
     min-width: 80px;
     color: var(--white-color);
 }
@@ -120,7 +120,7 @@
     width: 100%;
     height: 3px;
     z-index: 1;
-    transition: background-color 0.3s ease, width 0.3s ease, opacity 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .lineCompleted {

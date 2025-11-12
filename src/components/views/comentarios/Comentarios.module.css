@@ -190,7 +190,7 @@
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s;
 
   .icon {
     font-size: 15px !important;
@@ -321,7 +321,7 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 8px;

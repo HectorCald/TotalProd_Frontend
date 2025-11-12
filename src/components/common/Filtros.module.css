@@ -24,7 +24,7 @@
     font-weight: 400;
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .filter.active {

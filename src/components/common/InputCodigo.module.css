@@ -15,7 +15,7 @@
   font-weight: 600;
   color: var(--white-color);
   background-color: var(--tertiary-color);
-  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease;
   outline: none;
   cursor: pointer;
 }
