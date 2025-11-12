@@ -8,6 +8,7 @@ const View = ({ isOpen, setIsOpen, children, title, onBack, style, isMainView = 
     const { isLargeScreen, sidebarCollapsed } = useLayout();
     const modalIdRef = useRef(null);
     const [isVisible, setIsVisible] = useState(false);
+    const [shouldRenderContent, setShouldRenderContent] = useState(false);
 
     const handleClose = () => {
         setIsOpen(false);
@@ -19,17 +20,27 @@ const View = ({ isOpen, setIsOpen, children, title, onBack, style, isMainView = 
             if (isLargeScreen) {
                 // En pantallas grandes, aparecer de golpe sin animación
                 setIsVisible(true);
+                setShouldRenderContent(true);
             } else {
                 // En pantallas pequeñas, mantener la animación
                 setIsVisible(false); // Resetear estado inicial
-                // Pequeño delay para que se vea la animación de entrada
-                const timer = setTimeout(() => {
-                    setIsVisible(true);
-                }, 10);
-                return () => clearTimeout(timer);
+                setShouldRenderContent(false); // No renderizar contenido aún
+                // Usar requestAnimationFrame para sincronizar con el ciclo de render
+                const rafId = requestAnimationFrame(() => {
+                    // Segundo frame para asegurar que el DOM está listo
+                    requestAnimationFrame(() => {
+                        setIsVisible(true);
+                        // Renderizar contenido después de iniciar la animación
+                        requestAnimationFrame(() => {
+                            setShouldRenderContent(true);
+                        });
+                    });
+                });
+                return () => cancelAnimationFrame(rafId);
             }
         } else {
             setIsVisible(false); // Limpiar estado al cerrar
+            setShouldRenderContent(false);
         }
     }, [isOpen, isLargeScreen]);
 
@@ -80,7 +91,7 @@ const View = ({ isOpen, setIsOpen, children, title, onBack, style, isMainView = 
                     className={getViewClasses()}
                     style={style}
                 >
-                    {children}
+                    {shouldRenderContent && children}
                 </div>
             )}
         </>

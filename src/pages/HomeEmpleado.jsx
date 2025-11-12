@@ -381,11 +381,12 @@ const HomeEmpleado = () => {
 
     // Manejar click en submodule
     const handleSubModuleClick = (submodule) => {
+        // Cerrar el modal de opciones (como en AlmacenMedio.jsx)
+        setShowModuleOptions(false);
         
         if (submodule.component) {
             setCurrentSubModule(submodule);
             setIsSubModuleOpen(true);
-            // NO cerrar el ViewModal de opciones
         } else {
             console.log('⚠️ No hay componente definido para este submódulo');
         }
@@ -521,12 +522,10 @@ const HomeEmpleado = () => {
                                     />
                                 ))}
                             </div>
-                            {/* Renderizar componentes dentro del modal como en AlmacenMedioGeneral.jsx */}
-                            {renderSubModuleComponent()}
                         </ViewModal>
                     )}
-                    {/* Renderizar submódulo fuera del modal de opciones cuando se abrió directo */}
-                    {!showModuleOptions && renderSubModuleComponent()}
+                    {/* Renderizar submódulo fuera del modal de opciones (como en AlmacenMedio.jsx) */}
+                    {renderSubModuleComponent()}
                 </>
             )}
 

@@ -6,6 +6,7 @@ const ViewModal = ({ isOpen, setIsOpen, children, closed = false }) => {
     const { registerModal, unregisterModal, isLastModal, getOpenModalsCount } = useModalStack();
     const modalIdRef = useRef(null);
     const [isVisible, setIsVisible] = useState(false);
+    const [shouldRenderContent, setShouldRenderContent] = useState(false);
 
     const handleClose = () => {
         setIsOpen(false);
@@ -15,13 +16,22 @@ const ViewModal = ({ isOpen, setIsOpen, children, closed = false }) => {
     useEffect(() => {
         if (isOpen) {
             setIsVisible(false); // Resetear estado inicial
-            // Pequeño delay para que se vea la animación de entrada
-            const timer = setTimeout(() => {
-                setIsVisible(true);
-            }, 10);
-            return () => clearTimeout(timer);
+            setShouldRenderContent(false); // No renderizar contenido aún
+            // Usar requestAnimationFrame para sincronizar con el ciclo de render
+            const rafId = requestAnimationFrame(() => {
+                // Segundo frame para asegurar que el DOM está listo
+                requestAnimationFrame(() => {
+                    setIsVisible(true);
+                    // Renderizar contenido después de iniciar la animación
+                    requestAnimationFrame(() => {
+                        setShouldRenderContent(true);
+                    });
+                });
+            });
+            return () => cancelAnimationFrame(rafId);
         } else {
             setIsVisible(false); // Limpiar estado al cerrar
+            setShouldRenderContent(false);
         }
     }, [isOpen]);
 
@@ -49,7 +59,7 @@ const ViewModal = ({ isOpen, setIsOpen, children, closed = false }) => {
                         className={styles.modalContainer}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {children}
+                        {shouldRenderContent && children}
                     </div>
                 </div>
             )}
