@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -20,6 +20,7 @@ import FiltroEstadoMovimiento from '../../mixed/FiltroEstadoMovimiento';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import FiltroCliente from '../../mixed/FiltroCliente';
+import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 
 function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const { isLargeScreen } = useLayout();
@@ -65,117 +66,78 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState(null);
 
+    // Callbacks para FetchDataProgressive
+    const handleDataLoaded = useCallback((data) => {
+        // Para página 1: reemplazar datos
+        setAllMovimientos(data.length > 0 ? data : []);
+        setMovimientosLoaded(true);
+    }, []);
 
-    // Función para cargar movimientos
-    const cargarMovimientos = async (page = 1, search = '', filtro = null, estado = null, orden = 'fecha_desc', clienteId = null) => {
-        // Solo mostrar loading si no hay datos cargados Y es página 1
-        if (page === 1 && allMovimientos.length === 0) {
+    const handleDataAccumulated = useCallback((data) => {
+        // Para páginas > 1: acumular datos
+        setAllMovimientos(prev => {
+            const existingIds = new Set(prev.map(m => m.id));
+            const merged = [...prev];
+            data.forEach(item => {
+                if (!existingIds.has(item.id)) merged.push(item);
+            });
+            return merged;
+        });
+    }, []);
+
+    const handleLoadingStart = () => {
+        if (currentPage === 1 && allMovimientos.length === 0) {
             setIsLoading(true);
-        } else if (page > 1) {
+        } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
-        setError(null);
-
-        // Incrementar contador de peticiones activas
+        
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
             if (isLargeScreen && newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-
-        const clienteIdNormalizado = tipoMovimiento === 'acopio' ? null : clienteId;
-
-        try {
-            const normalizedSearch = getPrimaryNormalizedValue(search);
-            const response = tipoMovimiento === 'acopio'
-                ? await movimientosAcopioService.getAll(page, 30, filtro, estado, orden, clienteIdNormalizado, null, normalizedSearch)
-                : await movimientosAlmacenService.getAll(page, 30, filtro, estado, orden, clienteIdNormalizado, null, normalizedSearch);
-
-            if (response.success) {
-                const newData = response.data || [];
-                setMovimientos(newData);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-
-                // Reemplazar o acumular SOLO después de que llega la data
-                if (page === 1) {
-                    // Si no llegó nada, limpiar; si llegó, reemplazar
-                    setAllMovimientos(newData.length > 0 ? newData : []);
-                } else {
-                    // Paginación: acumular sin borrar lo anterior
-                    setAllMovimientos(prev => {
-                        // Evitar duplicados por id
-                        const existingIds = new Set(prev.map(m => m.id));
-                        const merged = [...prev];
-                        newData.forEach(item => {
-                            if (!existingIds.has(item.id)) merged.push(item);
-                        });
-                        return merged;
-                    });
-                }
-
-                // Marcar como cargado solo en página 1
-                if (page === 1) {
-                    setMovimientosLoaded(true);
-                }
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            if (page === 1) {
-                setIsLoading(false);
-            } else {
-                setIsLoadingMore(false);
-            }
-            // Decrementar contador de peticiones activas
-            setActiveRequests(prev => {
-                const newCount = Math.max(0, prev - 1);
-                // Solo ocultar loading y RefreshIndicator cuando no hay peticiones activas
-                if (newCount === 0) {
-                    if (page === 1) {
-                        setIsLoading(false);
-                    }
-                    if (isLargeScreen) {
-                        setTimeout(() => {
-                            setIsRefreshing(false);
-                            setTimeout(() => {
-                                setShowRefreshIndicator(false);
-                            }, 500);
-                        }, 300);
-                    }
-                }
-                return newCount;
-            });
-        }
     };
 
-    // Cargar movimientos cuando se abre el modal - solo si no hay datos cargados
-    useEffect(() => {
-        if (isOpen && !movimientosLoaded) {
-            cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente?.id || null);
+    const handleLoadingEnd = () => {
+        if (currentPage === 1) {
+            setIsLoading(false);
+        } else {
+            setIsLoadingMore(false);
         }
-    }, [isOpen, movimientosLoaded, filtroCliente]);
+        
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    };
+
+    const handleError = (err) => {
+        setError(err);
+    };
+
+    const handleHasMorePagesChange = (hasMore) => {
+        setHasMorePages(hasMore);
+    };
 
     // Resetear flags cuando se abre el modal (NO los datos)
     useEffect(() => {
         if (isOpen) {
-            // Solo resetear flags, NO los datos acumulados
             setMovimientosLoaded(false);
             setCurrentPage(1);
         }
     }, [isOpen]);
-
-    // Cargar movimientos cuando cambia la página (para paginación)
-    useEffect(() => {
-        if (isOpen && currentPage > 1) {
-            cargarMovimientos(currentPage, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente?.id || null);
-        }
-    }, [currentPage, filtroCliente]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -191,9 +153,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         setAllMovimientos([]);
         setCurrentPage(1);
         setMovimientosLoaded(false);
-
-        // La función cargarMovimientos ya maneja el RefreshIndicator
-        await cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente?.id || null);
+        // FetchDataProgressive se encargará de recargar automáticamente
     };
 
     // Estados para la notificación
@@ -299,10 +259,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setFiltroCliente(null);
             setMovimientosLoaded(false);
             setCurrentTipoMovimiento(tipoMovimiento);
-            // Cargar datos del nuevo tipo si el panel está abierto
-            if (isOpen) {
-                cargarMovimientos(1, '', null, null, 'fecha_desc', null);
-            }
+            // FetchDataProgressive se encargará de recargar automáticamente
         }
     }, [tipoMovimiento, currentTipoMovimiento, isOpen]);
 
@@ -312,8 +269,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setAllMovimientos([]);
             setCurrentPage(1);
             setMovimientosLoaded(false);
-            // Cargar movimientos inmediatamente después de limpiar
-            cargarMovimientos(1, debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente?.id || null);
+            // FetchDataProgressive se encargará de recargar automáticamente
         }
     }, [debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente, isOpen]);
 
@@ -737,6 +693,32 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 setIsOpen={setIsOpenFiltroOrden}
                 onOrdenamientoSeleccionado={handleOrdenamiento}
             />
+
+            {/* Carga de datos progresiva - solo cuando está abierto */}
+            {isOpen && (
+                <FetchDataProgressive
+                    service={tipoMovimiento === 'acopio' ? movimientosAcopioService : movimientosAlmacenService}
+                    method="getAll"
+                    methodParams={[
+                        filtroTipo,
+                        filtroEstado,
+                        ordenamiento,
+                        tipoMovimiento === 'acopio' ? null : (filtroCliente?.id || null),
+                        null, // sucuIdParam (se obtiene internamente)
+                        getPrimaryNormalizedValue(debouncedSearchQuery)
+                    ]}
+                    serviceName={tipoMovimiento === 'acopio' ? 'movimientosAcopioService' : 'movimientosAlmacenService'}
+                    isOpen={isOpen && ((!movimientosLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}
+                    page={currentPage}
+                    limit={30}
+                    onDataLoaded={handleDataLoaded}
+                    onDataAccumulated={handleDataAccumulated}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
+                    onError={handleError}
+                    onHasMorePagesChange={handleHasMorePagesChange}
+                />
+            )}
         </View>
 
     );

@@ -20,6 +20,7 @@ import FiltroProveedor from '../../mixed/FiltroProveedor';
 import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 
 function PanelGastos({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -61,15 +62,32 @@ function PanelGastos({ isOpen, setIsOpen }) {
 
     const PAGE_SIZE = 30;
 
-    const cargarGastos = async (page = 1, limit = PAGE_SIZE, search = '', metodo = null, proveedorId = null, orden = 'fecha_desc') => {
-        if (page === 1 && allGastos.length === 0) {
+    // Callbacks para FetchDataProgressive
+    const handleDataLoaded = useCallback((data) => {
+        setAllGastos(data.length > 0 ? data : []);
+        setGastosLoaded(true);
+    }, []);
+
+    const handleDataAccumulated = useCallback((data) => {
+        setAllGastos(prevGastos => {
+            const existingIds = new Set(prevGastos.map(g => g.id));
+            const merged = [...prevGastos];
+            data.forEach(item => {
+                if (!existingIds.has(item.id)) {
+                    merged.push(item);
+                }
+            });
+            return merged;
+        });
+    }, []);
+
+    const handleLoadingStart = useCallback(() => {
+        if (currentPage === 1 && allGastos.length === 0) {
             setIsLoading(true);
-        } else if (page > 1) {
+        } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
-
-        setError(null);
-
+        
         setActiveRequests(prev => {
             const newCount = prev + 1;
             if (isLargeScreen && newCount > 0) {
@@ -78,64 +96,37 @@ function PanelGastos({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
+    }, [currentPage, allGastos.length, isLargeScreen]);
 
-        try {
-            const normalizedSearch = getPrimaryNormalizedValue(search);
-            const response = await gastosService.getAll(page, limit, normalizedSearch, metodo, proveedorId, orden);
-            if (response.success) {
-                const newData = response.data || [];
-                setHasMorePages(response.pagination?.hasNextPage || false);
-
-                if (page === 1) {
-                    setAllGastos(newData.length > 0 ? newData : []);
-                    setGastosLoaded(true);
-                } else {
-                    setAllGastos(prevGastos => {
-                        const existingIds = new Set(prevGastos.map(g => g.id));
-                        const merged = [...prevGastos];
-                        newData.forEach(item => {
-                            if (!existingIds.has(item.id)) {
-                                merged.push(item);
-                            }
-                        });
-                        return merged;
-                    });
-                }
-            } else {
-                setError(response);
-                setHasMorePages(false);
-            }
-        } catch (err) {
-            setError(err);
-            setHasMorePages(false);
-        } finally {
-            if (page === 1) {
-                setIsLoading(false);
-            } else {
-                setIsLoadingMore(false);
-            }
-
-            setActiveRequests(prev => {
-                const newCount = Math.max(0, prev - 1);
-                if (newCount === 0 && isLargeScreen) {
+    const handleLoadingEnd = useCallback(() => {
+        if (currentPage === 1) {
+            setIsLoading(false);
+        } else {
+            setIsLoadingMore(false);
+        }
+        
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
                     setTimeout(() => {
-                        setIsRefreshing(false);
-                        setTimeout(() => {
-                            setShowRefreshIndicator(false);
-                        }, 500);
-                    }, 300);
-                }
-                return newCount;
-            });
-        }
-    };
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [currentPage, isLargeScreen]);
 
-    // Cargar gastos cuando se abre si no hay datos cargados
-    useEffect(() => {
-        if (isOpen && !gastosLoaded) {
-            cargarGastos(1, PAGE_SIZE, debouncedSearchQuery, filtroMetodoPago, filtroProveedor?.id || null, ordenamiento);
-        }
-    }, [isOpen, gastosLoaded, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]);
+    const handleError = useCallback((err) => {
+        setError(err);
+        setHasMorePages(false);
+    }, []);
+
+    const handleHasMorePagesChange = useCallback((hasMore) => {
+        setHasMorePages(hasMore);
+    }, []);
 
     // Resetear flags cuando se abre o se cierra el modal
     useEffect(() => {
@@ -147,13 +138,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
             setIsRefreshing(false);
         }
     }, [isOpen]);
-
-    // Cargar al cambiar de página
-    useEffect(() => {
-        if (isOpen && currentPage > 1) {
-            cargarGastos(currentPage, PAGE_SIZE, debouncedSearchQuery, filtroMetodoPago, filtroProveedor?.id || null, ordenamiento);
-        }
-    }, [currentPage, isOpen, debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento]);
 
 
     // Estados para la notificación
@@ -191,7 +175,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
         setAllGastos([]);
         setCurrentPage(1);
         setGastosLoaded(false);
-        await cargarGastos(1, PAGE_SIZE, debouncedSearchQuery, filtroMetodoPago, filtroProveedor?.id || null, ordenamiento);
+        // FetchDataProgressive se encargará de recargar automáticamente
     };
 
 
@@ -254,6 +238,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
             setCurrentPage(1);
             setGastosLoaded(false);
             setHasMorePages(false);
+            // FetchDataProgressive se encargará de recargar automáticamente
         }
     }, [debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento, isOpen]);
 
@@ -565,6 +550,30 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 onProveedorSeleccionado={handleFiltroProveedor}
                 proveedorSeleccionado={filtroProveedor}
             />
+
+            {/* Carga de datos progresiva - solo cuando está abierto */}
+            {isOpen && (
+                <FetchDataProgressive
+                    service={gastosService}
+                    method="getAll"
+                    methodParams={[
+                        getPrimaryNormalizedValue(debouncedSearchQuery),
+                        filtroMetodoPago,
+                        filtroProveedor?.id || null,
+                        ordenamiento
+                    ]}
+                    serviceName="gastosService"
+                    isOpen={isOpen && ((!gastosLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}
+                    page={currentPage}
+                    limit={PAGE_SIZE}
+                    onDataLoaded={handleDataLoaded}
+                    onDataAccumulated={handleDataAccumulated}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
+                    onError={handleError}
+                    onHasMorePagesChange={handleHasMorePagesChange}
+                />
+            )}
         </View>
     );
 }

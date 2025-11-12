@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { logDataSize } from '../utils/DataSizeLogger';
 
 function FetchData({
     service,
@@ -28,6 +29,14 @@ function FetchData({
                     response.data?.length,
                     'elementos'
                 );
+                
+                // Registrar el tamaño de los datos obtenidos
+                logDataSize(
+                    response.data,
+                    serviceName || service.constructor.name,
+                    method
+                );
+                
                 if (onDataLoaded) {
                     onDataLoaded(response.data);
                 }

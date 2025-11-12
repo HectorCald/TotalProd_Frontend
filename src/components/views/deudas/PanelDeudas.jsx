@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -21,6 +21,7 @@ import FiltroCliente from '../../mixed/FiltroCliente';
 import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 
 function PanelDeudas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -59,17 +60,30 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeRequests, setActiveRequests] = useState(0);
 
-    // Cargar deudas (similar a PanelMovimientos)
-    const cargarDeudas = async (page = 1, limit = 30, search = '', estado = null, clienteId = null, orden = 'fecha_desc') => {
-        // Loading flags
-        if (page === 1 && allDeudas.length === 0) {
+    // Callbacks para FetchDataProgressive
+    const handleDataLoaded = useCallback((data) => {
+        setAllDeudas(data.length > 0 ? data : []);
+        setDeudasLoaded(true);
+    }, []);
+
+    const handleDataAccumulated = useCallback((data) => {
+        setAllDeudas(prev => {
+            const existingIds = new Set(prev.map(d => d.id));
+            const merged = [...prev];
+            data.forEach(item => {
+                if (!existingIds.has(item.id)) merged.push(item);
+            });
+            return merged;
+        });
+    }, []);
+
+    const handleLoadingStart = useCallback(() => {
+        if (currentPage === 1 && allDeudas.length === 0) {
             setIsLoading(true);
-        } else if (page > 1) {
+        } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
-        setError(null);
-
-        // Incrementar contador de peticiones activas
+        
         setActiveRequests(prev => {
             const newCount = prev + 1;
             if (isLargeScreen && newCount > 0) {
@@ -78,63 +92,39 @@ function PanelDeudas({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
+    }, [currentPage, allDeudas.length, isLargeScreen]);
 
-        try {
-            const normalizedSearch = getPrimaryNormalizedValue(search);
-            const response = await deudasService.getAll(page, limit, normalizedSearch, estado, clienteId, orden);
-            if (response.success) {
-                const newData = response.data || [];
-                setDeudas(newData);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-
-                if (page === 1) {
-                    setAllDeudas(newData.length > 0 ? newData : []);
-                    setDeudasLoaded(true);
-                } else {
-                    setAllDeudas(prev => {
-                        const existingIds = new Set(prev.map(d => d.id));
-                        const merged = [...prev];
-                        newData.forEach(item => {
-                            if (!existingIds.has(item.id)) merged.push(item);
-                        });
-                        return merged;
-                    });
-                }
-            } else {
-                setError(response);
-            }
-        } catch (err) {
-            setError(err);
-        } finally {
-            if (page === 1) {
-                setIsLoading(false);
-            } else {
-                setIsLoadingMore(false);
-            }
-            setActiveRequests(prev => {
-                const newCount = Math.max(0, prev - 1);
-                if (newCount === 0 && isLargeScreen) {
+    const handleLoadingEnd = useCallback(() => {
+        if (currentPage === 1) {
+            setIsLoading(false);
+        } else {
+            setIsLoadingMore(false);
+        }
+        
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
                     setTimeout(() => {
-                        setIsRefreshing(false);
-                        setTimeout(() => {
-                            setShowRefreshIndicator(false);
-                        }, 500);
-                    }, 300);
-                }
-                return newCount;
-            });
-        }
-    };
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [currentPage, isLargeScreen]);
 
-    // Cargar deudas cuando se abre si no hay datos cargados
-    const [deudasLoaded, setDeudasLoaded] = useState(false);
-    useEffect(() => {
-        if (isOpen && !deudasLoaded) {
-            cargarDeudas(1, 30, debouncedSearchQuery, filtroEstado, filtroCliente?.id || null, ordenamiento);
-        }
-    }, [isOpen, deudasLoaded, filtroCliente]);
+    const handleError = useCallback((err) => {
+        setError(err);
+    }, []);
+
+    const handleHasMorePagesChange = useCallback((hasMore) => {
+        setHasMorePages(hasMore);
+    }, []);
 
     // Resetear flags cuando se abre el modal
+    const [deudasLoaded, setDeudasLoaded] = useState(false);
     useEffect(() => {
         if (isOpen) {
             setDeudasLoaded(false);
@@ -144,13 +134,6 @@ function PanelDeudas({ isOpen, setIsOpen }) {
             setIsRefreshing(false);
         }
     }, [isOpen]);
-
-    // Cargar al cambiar de página
-    useEffect(() => {
-        if (isOpen && currentPage > 1) {
-            cargarDeudas(currentPage, 30, debouncedSearchQuery, filtroEstado, filtroCliente?.id || null, ordenamiento);
-        }
-    }, [currentPage, filtroCliente]);
 
 
     // Estados para la notificación
@@ -187,7 +170,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         setAllDeudas([]);
         setCurrentPage(1);
         setDeudasLoaded(false);
-        await cargarDeudas(1, 30, debouncedSearchQuery, filtroEstado, filtroCliente?.id || null, ordenamiento);
+        // FetchDataProgressive se encargará de recargar automáticamente
     };
 
 
@@ -245,7 +228,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
             setAllDeudas([]);
             setCurrentPage(1);
             setDeudasLoaded(false);
-            cargarDeudas(1, 30, debouncedSearchQuery, filtroEstado, filtroCliente?.id || null, ordenamiento);
+            // FetchDataProgressive se encargará de recargar automáticamente
         }
     }, [debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento, isOpen]);
 
@@ -568,6 +551,30 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                 onClienteSeleccionado={handleFiltroCliente}
                 clienteSeleccionado={filtroCliente}
             />
+
+            {/* Carga de datos progresiva - solo cuando está abierto */}
+            {isOpen && (
+                <FetchDataProgressive
+                    service={deudasService}
+                    method="getAll"
+                    methodParams={[
+                        getPrimaryNormalizedValue(debouncedSearchQuery),
+                        filtroEstado,
+                        filtroCliente?.id || null,
+                        ordenamiento
+                    ]}
+                    serviceName="deudasService"
+                    isOpen={isOpen && ((!deudasLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}
+                    page={currentPage}
+                    limit={30}
+                    onDataLoaded={handleDataLoaded}
+                    onDataAccumulated={handleDataAccumulated}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
+                    onError={handleError}
+                    onHasMorePagesChange={handleHasMorePagesChange}
+                />
+            )}
         </View>
     );
 }

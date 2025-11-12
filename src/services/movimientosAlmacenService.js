@@ -313,6 +313,42 @@ class movimientosAlmacenService {
     }
   }
 
+  // Obtener estadísticas optimizadas para gráficos (solo campos necesarios)
+  static async getStatsForCharts(sucuIdParam = null) {
+    try {
+      const sucuId = sucuIdParam || getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/movimientos-almacen/stats/charts?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener las estadísticas');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error obteniendo estadísticas de movimientos:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al obtener las estadísticas'
+      };
+    }
+  }
+
   // Obtener todos los movimientos sin límite (para reportes y balance)
   static async getAllSinLimite(tipo = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
     try {

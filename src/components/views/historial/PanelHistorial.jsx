@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
@@ -15,6 +15,7 @@ import PullToRefresh from '../../common/PullToRefresh';
 import VerHistorial from './VerHistorial';
 import FiltroTipoHistorial from '../../mixed/FiltroTipoHistorial';
 import FiltroResponsable from '../../mixed/FiltroResponsable';
+import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 
 const PAGE_LIMIT = 30;
 
@@ -73,18 +74,52 @@ function PanelHistorial({ isOpen, setIsOpen }) {
     return offset + limit < total;
   };
 
-  const loadHistorial = async (page = 1) => {
-    if (page === 1) {
+  // Callbacks para FetchDataProgressive
+  const handleDataLoaded = useCallback((data) => {
+    setRecords(data);
+  }, []);
+
+  const handleDataAccumulated = useCallback((data) => {
+    setRecords(prev => {
+      const existingIds = new Set(prev.map(item => item.id));
+      const merged = [...prev];
+      data.forEach(item => {
+        if (!existingIds.has(item.id)) {
+          merged.push(item);
+        }
+      });
+      return merged;
+    });
+  }, []);
+
+  const handleLoadingStart = useCallback(() => {
+    if (currentPage === 1) {
       setIsLoading(true);
     } else {
       setIsLoadingMore(true);
     }
-    setError(null);
+  }, [currentPage]);
 
-    try {
+  const handleLoadingEnd = useCallback(() => {
+    setIsLoading(false);
+    setIsLoadingMore(false);
+  }, []);
+
+  const handleError = useCallback((err) => {
+    setError(err);
+    showNotification('error', err.message || 'Error al obtener el historial');
+  }, [showNotification]);
+
+  const handleHasMorePagesChange = useCallback((hasMore) => {
+    setHasMorePages(hasMore);
+  }, []);
+
+  // Wrapper para el servicio
+  const historialServiceWrapper = useMemo(() => ({
+    getAll: async (page, limit) => {
       const params = {
         page,
-        limit: PAGE_LIMIT
+        limit
       };
 
       if (debouncedSearch) {
@@ -103,57 +138,16 @@ function PanelHistorial({ isOpen, setIsOpen }) {
         }
       }
 
-      const response = await historialService.getAll(params);
-
-      if (!response.success) {
-        throw new Error(response.message || 'Error al obtener el historial');
-      }
-
-      const newData = response.data || [];
-
-      if (page === 1) {
-        setRecords(newData);
-      } else {
-        setRecords(prev => {
-          const existingIds = new Set(prev.map(item => item.id));
-          const merged = [...prev];
-          newData.forEach(item => {
-            if (!existingIds.has(item.id)) {
-              merged.push(item);
-            }
-          });
-          return merged;
-        });
-      }
-
-      setHasMorePages(computeHasMore(response.pagination, page));
-    } catch (err) {
-      console.error('PanelHistorial.loadHistorial error:', err);
-      setError(err);
-      showNotification('error', err.message || 'Error al obtener el historial');
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+      return await historialService.getAll(params);
     }
-  };
+  }), [debouncedSearch, filtroTipo, filtroResponsable]);
 
   useEffect(() => {
     if (isOpen) {
       setCurrentPage(1);
-      loadHistorial(1);
-    } else {
       setRecords([]);
-      setCurrentPage(1);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, debouncedSearch, filtroTipo, filtroResponsable]);
-
-  useEffect(() => {
-    if (isOpen && currentPage > 1) {
-      loadHistorial(currentPage);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
 
   const handleScroll = (event) => {
     const { scrollTop, scrollHeight, clientHeight } = event.target;
@@ -164,7 +158,8 @@ function PanelHistorial({ isOpen, setIsOpen }) {
 
   const handleRefresh = async () => {
     setCurrentPage(1);
-    await loadHistorial(1);
+    setRecords([]);
+    // FetchDataProgressive se encargará de recargar automáticamente
   };
 
   const openRecord = (record) => {
@@ -418,6 +413,25 @@ function PanelHistorial({ isOpen, setIsOpen }) {
         onResponsableSeleccionado={handleResponsableSeleccionado}
         responsableSeleccionado={filtroResponsable}
       />
+
+      {/* Carga de datos progresiva - solo cuando está abierto */}
+      {isOpen && (
+        <FetchDataProgressive
+          service={historialServiceWrapper}
+          method="getAll"
+          methodParams={[]}
+          serviceName="historialService"
+          isOpen={isOpen && (currentPage === 1 || (currentPage > 1 && hasMorePages))}
+          page={currentPage}
+          limit={PAGE_LIMIT}
+          onDataLoaded={handleDataLoaded}
+          onDataAccumulated={handleDataAccumulated}
+          onLoadingStart={handleLoadingStart}
+          onLoadingEnd={handleLoadingEnd}
+          onError={handleError}
+          onHasMorePagesChange={handleHasMorePagesChange}
+        />
+      )}
     </View>
   );
 }

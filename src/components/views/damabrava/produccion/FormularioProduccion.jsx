@@ -324,16 +324,16 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                 />
             </ViewModal>
 
-            {/* FetchData para obtener productos del almacén */}
+            {/* FetchData para obtener productos del almacén (ligero, solo id y name) */}
             <FetchData
                 service={productsAlmacenService}
-                method="getAll"
+                method="getAllForProduction"
                 methodParams={[]}
                 isOpen={isOpen}
                 onDataLoaded={handleProductosLoaded}
                 onLoadingStart={handleLoadingStart}
                 onLoadingEnd={handleLoadingEnd}
-                serviceName="ProductosAlmacen"
+                serviceName="ProductosAlmacenForProduction"
             />
         </>
     );

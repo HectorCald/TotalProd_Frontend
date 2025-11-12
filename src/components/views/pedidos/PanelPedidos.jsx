@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -22,6 +22,7 @@ import Select from '../../common/Select';
 import HistorialWhatsapp from './HistorialWhatsapp';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 
 function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const { isLargeScreen } = useLayout();
@@ -81,115 +82,76 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         datos: null
     });
 
+    // Callbacks para FetchDataProgressive
+    const handleDataLoaded = useCallback((data) => {
+        setAllPedidos(data.length > 0 ? data : []);
+        setPedidosLoaded(true);
+    }, []);
 
-    // Función para cargar pedidos
-    const cargarPedidos = async (page = 1, search = '', estado = null, orden = 'fecha_desc', responsableId = null) => {
-        // Solo mostrar loading si no hay datos cargados Y es página 1
-        if (page === 1 && allPedidos.length === 0) {
+    const handleDataAccumulated = useCallback((data) => {
+        setAllPedidos(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const merged = [...prev];
+            data.forEach(item => {
+                if (!existingIds.has(item.id)) merged.push(item);
+            });
+            return merged;
+        });
+    }, []);
+
+    const handleLoadingStart = useCallback(() => {
+        if (currentPage === 1 && allPedidos.length === 0) {
             setIsLoading(true);
-        } else if (page > 1) {
+        } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
-        setError(null);
-
-        // Incrementar contador de peticiones activas
+        
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
             if (isLargeScreen && newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
+    }, [currentPage, allPedidos.length, isLargeScreen]);
 
-        try {
-            const normalizedSearch = getPrimaryNormalizedValue(search);
-            const response = tipoPedido === 'acopio'
-                ? await pedidosAcopioService.getAll(page, 30, normalizedSearch, estado, orden, responsableId)
-                : await pedidosAlmacenService.getAll(page, 30, normalizedSearch, estado, orden, null, responsableId);
-
-            if (response.success) {
-                const newData = response.data || [];
-                setPedidos(newData);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-
-                // Reemplazar o acumular SOLO después de que llega la data
-                if (page === 1) {
-                    // Si no llegó nada, limpiar; si llegó, reemplazar
-                    setAllPedidos(newData.length > 0 ? newData : []);
-                } else {
-                    // Paginación: acumular sin borrar lo anterior
-                    setAllPedidos(prev => {
-                        // Evitar duplicados por id
-                        const existingIds = new Set(prev.map(p => p.id));
-                        const merged = [...prev];
-                        newData.forEach(item => {
-                            if (!existingIds.has(item.id)) merged.push(item);
-                        });
-                        return merged;
-                    });
-                }
-
-                // Marcar como cargado solo en página 1
-                if (page === 1) {
-                    setPedidosLoaded(true);
-                }
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            if (page === 1) {
-                setIsLoading(false);
-            } else {
-                setIsLoadingMore(false);
-            }
-            // Decrementar contador de peticiones activas
-            setActiveRequests(prev => {
-                const newCount = Math.max(0, prev - 1);
-                // Solo ocultar loading y RefreshIndicator cuando no hay peticiones activas
-                if (newCount === 0) {
-                    if (page === 1) {
-                        setIsLoading(false);
-                    }
-                    if (isLargeScreen) {
-                        setTimeout(() => {
-                            setIsRefreshing(false);
-                            setTimeout(() => {
-                                setShowRefreshIndicator(false);
-                            }, 500);
-                        }, 300);
-                    }
-                }
-                return newCount;
-            });
+    const handleLoadingEnd = useCallback(() => {
+        if (currentPage === 1) {
+            setIsLoading(false);
+        } else {
+            setIsLoadingMore(false);
         }
-    };
+        
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [currentPage, isLargeScreen]);
 
-    // Cargar pedidos cuando se abre el modal - solo si no hay datos cargados
-    useEffect(() => {
-        if (isOpen && !pedidosLoaded) {
-            cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable?.id || null);
-        }
-    }, [isOpen, pedidosLoaded]);
+    const handleError = useCallback((err) => {
+        setError(err);
+    }, []);
+
+    const handleHasMorePagesChange = useCallback((hasMore) => {
+        setHasMorePages(hasMore);
+    }, []);
 
     // Resetear flags cuando se abre el modal (NO los datos)
     useEffect(() => {
         if (isOpen) {
-            // Solo resetear flags, NO los datos acumulados
             setPedidosLoaded(false);
             setCurrentPage(1);
         }
     }, [isOpen]);
-
-    // Cargar pedidos cuando cambia la página (para paginación)
-    useEffect(() => {
-        if (isOpen && currentPage > 1) {
-            cargarPedidos(currentPage, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable?.id || null);
-        }
-    }, [currentPage]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -205,9 +167,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setAllPedidos([]);
         setCurrentPage(1);
         setPedidosLoaded(false);
-
-        // La función cargarPedidos ya maneja el RefreshIndicator
-        await cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable?.id || null);
+        // FetchDataProgressive se encargará de recargar automáticamente
     };
 
     // Estados para la notificación
@@ -248,10 +208,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setPedidosLoaded(false);
             setCurrentTipoPedido(tipoPedido);
             setFiltroResponsable(null);
-            // Cargar datos del nuevo tipo si el panel está abierto
-            if (isOpen) {
-            cargarPedidos(1, '', null, 'fecha_desc', null);
-            }
+            // FetchDataProgressive se encargará de recargar automáticamente
         }
     }, [tipoPedido, currentTipoPedido, isOpen]);
 
@@ -261,10 +218,9 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setAllPedidos([]);
             setCurrentPage(1);
             setPedidosLoaded(false);
-            // Cargar pedidos inmediatamente después de limpiar
-            cargarPedidos(1, debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable?.id || null);
+            // FetchDataProgressive se encargará de recargar automáticamente
         }
-    }, [debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable]);
+    }, [debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable, isOpen]);
 
     // Efecto para manejar errores de SWR
     useEffect(() => {
@@ -720,6 +676,39 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 tipo={historialData.tipo}
                 datos={historialData.datos}
             />
+
+            {/* Carga de datos progresiva - solo cuando está abierto */}
+            {isOpen && (
+                <FetchDataProgressive
+                    service={tipoPedido === 'acopio' ? pedidosAcopioService : pedidosAlmacenService}
+                    method="getAll"
+                    methodParams={tipoPedido === 'acopio' 
+                        ? [
+                            getPrimaryNormalizedValue(debouncedSearchQuery),
+                            filtroEstado,
+                            ordenamiento,
+                            filtroResponsable?.id || null
+                          ]
+                        : [
+                            getPrimaryNormalizedValue(debouncedSearchQuery),
+                            filtroEstado,
+                            ordenamiento,
+                            null, // sucuIdParam (se obtiene internamente)
+                            filtroResponsable?.id || null
+                          ]
+                    }
+                    serviceName={tipoPedido === 'acopio' ? 'pedidosAcopioService' : 'pedidosAlmacenService'}
+                    isOpen={isOpen && ((!pedidosLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}
+                    page={currentPage}
+                    limit={30}
+                    onDataLoaded={handleDataLoaded}
+                    onDataAccumulated={handleDataAccumulated}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
+                    onError={handleError}
+                    onHasMorePagesChange={handleHasMorePagesChange}
+                />
+            )}
         </View>
     );
 }

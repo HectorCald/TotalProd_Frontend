@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -13,6 +13,7 @@ import VerConteo from './VerConteo';
 import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 
 function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     const { isLargeScreen } = useLayout();
@@ -53,81 +54,73 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
         }, 3000);
     };
 
-    const cargarConteos = async () => {
-        // Solo mostrar loading si no hay datos cargados
+    // Callbacks para FetchDataProgressive
+    const handleDataLoaded = useCallback((data) => {
+        setConteos(data);
+        setError(null);
+        setConteosLoaded(true);
+    }, []);
+
+    const handleLoadingStart = useCallback(() => {
         if (conteos.length === 0) {
             setIsLoading(true);
             setIsLoadingConteos(true);
         }
-        setError(null);
         
-        // Incrementar contador de peticiones activas
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
             if (isLargeScreen && newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
+    }, [conteos.length, isLargeScreen]);
+
+    const handleLoadingEnd = useCallback(() => {
+        setIsLoading(false);
+        setIsLoadingConteos(false);
         
-        try {
-            // Mapeo directo según BD: 'almacen' | 'acopio'
-            const tipo = tipoConteo === 'almacen' ? 'almacen' : tipoConteo === 'acopio' ? 'acopio' : null;
-            const resp = await conteosService.getAll({ tipo });
-            if (resp.success) {
-                // El backend ya filtra por sucursal y tipo, solo usar los datos directamente
-                const data = resp.data || [];
-                setConteos(data);
-                setError(null); // Limpiar error cuando se cargan datos exitosamente
-                
-                // Marcar como cargado
-                setConteosLoaded(true);
-            } else {
-                throw new Error(resp.message || 'Error al obtener conteos');
-            }
-        } catch (e) {
-            setError(e);
-            // Solo mostrar notificación si NO es un error 403
-            if (e.status !== 403) {
-                mostrarNotificacion('error', e.message || 'Error al obtener conteos');
-            }
-        } finally {
-            setIsLoading(false);
-            setIsLoadingConteos(false);
-            
-            // Decrementar contador de peticiones activas
-            setActiveRequests(prev => {
-                const newCount = Math.max(0, prev - 1);
-                // Ocultar RefreshIndicator cuando no hay peticiones activas
-                if (newCount === 0 && isLargeScreen) {
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
                     setTimeout(() => {
-                        setIsRefreshing(false);
-                        setTimeout(() => {
-                            setShowRefreshIndicator(false);
-                        }, 500);
-                    }, 300);
-                }
-                return newCount;
-            });
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [isLargeScreen]);
+
+    const handleError = useCallback((err) => {
+        setError(err);
+        // Solo mostrar notificación si NO es un error 403
+        if (err.status !== 403) {
+            mostrarNotificacion('error', err.message || 'Error al obtener conteos');
         }
-    };
+    }, [mostrarNotificacion]);
+
+    const handleHasMorePagesChange = useCallback(() => {
+        // No hay paginación en conteos, pero el callback debe existir
+    }, []);
+
+    // Wrapper para el servicio
+    const conteosServiceWrapper = useMemo(() => ({
+        getAll: async (page, limit) => {
+            const tipo = tipoConteo === 'almacen' ? 'almacen' : tipoConteo === 'acopio' ? 'acopio' : null;
+            return await conteosService.getAll({ tipo });
+        }
+    }), [tipoConteo]);
 
     // Resetear flags cuando se abre el modal (NO los datos)
     useEffect(() => {
         if (isOpen) {
-            // Solo resetear flags, NO los datos acumulados
             setConteosLoaded(false);
         }
     }, [isOpen]);
-
-    // Cargar conteos cuando se abre el modal - solo si no hay datos cargados
-    useEffect(() => {
-        if (isOpen && !conteosLoaded) {
-            cargarConteos();
-        }
-    }, [isOpen, conteosLoaded]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -143,19 +136,14 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
         setConteos([]);
         setSearchQuery('');
         setConteosLoaded(false);
-        // Cargar datos del nuevo tipo si el panel está abierto
-        if (isOpen) {
-            cargarConteos();
-        }
-    }, [tipoConteo]);
+        // FetchDataProgressive se encargará de recargar automáticamente
+    }, [tipoConteo, isOpen]);
 
     // Función para manejar refresh
     const handleRefresh = async () => {
         // Limpiar estado y resetear flag
         setConteosLoaded(false);
-        
-        // La función cargarConteos ya maneja el RefreshIndicator
-        await cargarConteos();
+        // FetchDataProgressive se encargará de recargar automáticamente
     };
 
     const filtered = conteos.filter(c => {
@@ -332,6 +320,24 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                 onConteoDeleted={handleConteoDeleted}
                 onConteoReplaced={handleConteoReemplazado}
             />
+
+            {/* Carga de datos - solo cuando está abierto */}
+            {isOpen && (
+                <FetchDataProgressive
+                    service={conteosServiceWrapper}
+                    method="getAll"
+                    methodParams={[]}
+                    serviceName="conteosService"
+                    isOpen={isOpen && !conteosLoaded}
+                    page={1}
+                    limit={1}
+                    onDataLoaded={handleDataLoaded}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
+                    onError={handleError}
+                    onHasMorePagesChange={handleHasMorePagesChange}
+                />
+            )}
         </View>
     );
 }

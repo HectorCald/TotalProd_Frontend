@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import movimientosAlmacenService from '../services/movimientosAlmacenService';
+import { logDataSize } from '../components/utils/DataSizeLogger';
 
 // Cache global para evitar cargas múltiples
 let cacheData = null;
@@ -32,12 +33,20 @@ export const useMovimientosData = () => {
 
         // Hacer la petición solo si no hay datos ni petición en curso
         setLoading(true);
-        cachePromise = movimientosAlmacenService.getAllSinLimite();
+        cachePromise = movimientosAlmacenService.getStatsForCharts();
 
         cachePromise.then(result => {
             if (result.success) {
                 cacheData = result.data;
                 setData(result.data);
+                
+                // Registrar el tamaño de los datos obtenidos
+                logDataSize(
+                    result.data,
+                    'movimientosAlmacenService',
+                    'getStatsForCharts'
+                );
+                
                 setLoading(false);
             } else {
                 setError(result.message);

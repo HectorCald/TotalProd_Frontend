@@ -14,6 +14,7 @@ import Filtros from '../../../../common/Filtros';
 import RefreshIndicator from '../../../../common/RefreshIndicator';
 import FiltroEstadoPago from '../../../../mixed/FiltroEstadoPago';
 import FiltroResponsable from '../../../../mixed/FiltroResponsable';
+import FetchDataProgressive from '../../../../mixed/FetchDataProgressive';
 import { useLayout } from '../../../../../context/LayoutContext';
 import pagosDamabravaService from '../../../../../services/pagosDamabravaService';
 import reglasProduccionDamabravaService from '../../../../../services/reglasProduccionDamabravaService';
@@ -90,14 +91,36 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         });
     }, []);
 
-    const fetchPagos = useCallback(async (page = 1) => {
-        if (page === 1 && pagosRef.current.length === 0) {
+    // Callbacks para FetchDataProgressive
+    const handleDataLoaded = useCallback((data) => {
+        const ordenados = sortPagos(data);
+        setPagos(ordenados);
+        pagosRef.current = ordenados;
+        setPagosLoaded(true);
+    }, [sortPagos]);
+
+    const handleDataAccumulated = useCallback((data) => {
+        setPagos(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const combined = [...prev];
+            data.forEach(item => {
+                if (!existingIds.has(item.id)) {
+                    combined.push(item);
+                }
+            });
+            const ordenados = sortPagos(combined);
+            pagosRef.current = ordenados;
+            return ordenados;
+        });
+    }, [sortPagos]);
+
+    const handleLoadingStart = useCallback(() => {
+        if (currentPage === 1 && pagosRef.current.length === 0) {
             setIsLoading(true);
-        } else if (page > 1) {
+        } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
-        setError(null);
-
+        
         setActiveRequests(prev => {
             const newCount = prev + 1;
             if (isLargeScreen && newCount > 0) {
@@ -106,74 +129,60 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
             }
             return newCount;
         });
+    }, [currentPage, isLargeScreen]);
 
-        try {
+    const handleLoadingEnd = useCallback(() => {
+        if (currentPage === 1) {
+            setIsLoading(false);
+        } else {
+            setIsLoadingMore(false);
+        }
+        
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            if (newCount === 0) {
+                if (isLargeScreen) {
+                    setTimeout(() => {
+                        setIsRefreshing(false);
+                        setTimeout(() => {
+                            setShowRefreshIndicator(false);
+                        }, 500);
+                    }, 300);
+                } else {
+                    setIsRefreshing(false);
+                    setShowRefreshIndicator(false);
+                }
+            }
+            return newCount;
+        });
+    }, [currentPage, isLargeScreen]);
+
+    const handleError = useCallback((err) => {
+        setError(err);
+        mostrarNotificacion('error', err.message || 'Error al obtener los pagos.');
+        setHasMorePages(false);
+        if (currentPage === 1) {
+            setPagosLoaded(true);
+        }
+    }, [currentPage, mostrarNotificacion]);
+
+    const handleHasMorePagesChange = useCallback((hasMore) => {
+        setHasMorePages(hasMore);
+    }, []);
+
+    // Wrapper para el servicio que convierte parámetros a objeto
+    const pagosServiceWrapper = useMemo(() => ({
+        getAll: async (page, limit) => {
             const searchParam = debouncedSearchNormalized ? debouncedSearchNormalized.split('|')[0] : '';
-            const response = await pagosDamabravaService.getAll({
+            return await pagosDamabravaService.getAll({
                 page,
-                limit: PAGE_LIMIT,
+                limit,
                 estado: filtroEstado || 'todos',
                 responsableId: filtroResponsable?.id || null,
                 search: searchParam || ''
             });
-            if (!response.success) {
-                throw new Error(response.message || 'Error al obtener los pagos.');
-            }
-
-            const newData = response.data || [];
-            setHasMorePages(response.pagination?.hasNextPage || false);
-
-            if (page === 1) {
-                const ordenados = sortPagos(newData);
-                setPagos(ordenados);
-                pagosRef.current = ordenados;
-                setPagosLoaded(true);
-            } else {
-                setPagos(prev => {
-                    const existingIds = new Set(prev.map(p => p.id));
-                    const combined = [...prev];
-                    newData.forEach(item => {
-                        if (!existingIds.has(item.id)) {
-                            combined.push(item);
-                        }
-                    });
-                    const ordenados = sortPagos(combined);
-                    pagosRef.current = ordenados;
-                    return ordenados;
-                });
-            }
-        } catch (err) {
-            console.error('Error obteniendo pagos Damabrava:', err);
-            setError(err);
-            mostrarNotificacion('error', err.message || 'Error al obtener los pagos.');
-            setHasMorePages(false);
-            if (page === 1) {
-                setPagosLoaded(true);
-            }
-        } finally {
-            setActiveRequests(prev => {
-                const newCount = Math.max(0, prev - 1);
-                if (newCount === 0) {
-                    setIsLoading(false);
-                    if (isLargeScreen) {
-                        setTimeout(() => {
-                            setIsRefreshing(false);
-                            setTimeout(() => {
-                                setShowRefreshIndicator(false);
-                            }, 500);
-                        }, 300);
-                    } else {
-                        setIsRefreshing(false);
-                        setShowRefreshIndicator(false);
-                    }
-                }
-                return newCount;
-            });
-            if (page > 1) {
-                setIsLoadingMore(false);
-            }
         }
-    }, [sortPagos, isLargeScreen, filtroEstado, filtroResponsable, debouncedSearchNormalized]);
+    }), [debouncedSearchNormalized, filtroEstado, filtroResponsable]);
 
     const fetchReglas = useCallback(async () => {
         if (reglasLoaded) return;
@@ -193,18 +202,6 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
             fetchReglas();
         }
     }, [isOpen, fetchReglas]);
-
-    useEffect(() => {
-        if (isOpen && !pagosLoaded) {
-            fetchPagos(1);
-        }
-    }, [isOpen, pagosLoaded, fetchPagos]);
-
-    useEffect(() => {
-        if (isOpen && currentPage > 1) {
-            fetchPagos(currentPage);
-        }
-    }, [currentPage, isOpen, fetchPagos]);
 
     useEffect(() => {
         if (isOpen) {
@@ -349,8 +346,8 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         setCurrentPage(1);
         setHasMorePages(false);
         setPagosLoaded(false);
-        fetchPagos(1);
-    }, [sortPagos, fetchPagos]);
+        // FetchDataProgressive se encargará de recargar automáticamente
+    }, [sortPagos]);
 
     const handlePagoEliminado = useCallback((pagoId, mensaje) => {
         setIsVerPagoOpen(false);
@@ -368,8 +365,8 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         setCurrentPage(1);
         setHasMorePages(false);
         setPagosLoaded(false);
-        fetchPagos(1);
-    }, [fetchPagos]);
+        // FetchDataProgressive se encargará de recargar automáticamente
+    }, []);
 
     const handlePagoRegistrado = useCallback((nuevoPago) => {
         if (!nuevoPago) {
@@ -435,8 +432,8 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         setCurrentPage(1);
         setHasMorePages(false);
         setPagosLoaded(false);
-        fetchPagos(1);
-    }, [sortPagos, fetchPagos]);
+        // FetchDataProgressive se encargará de recargar automáticamente
+    }, [sortPagos]);
 
     const handleRefresh = async () => {
         pagosRef.current = [];
@@ -444,7 +441,7 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         setCurrentPage(1);
         setHasMorePages(false);
         setPagosLoaded(false);
-        await fetchPagos(1);
+        // FetchDataProgressive se encargará de recargar automáticamente
     };
 
     return (
@@ -628,6 +625,25 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
                 type={notification.type}
                 text={notification.text}
             />
+
+            {/* Carga de datos progresiva - solo cuando está abierto */}
+            {isOpen && (
+                <FetchDataProgressive
+                    service={pagosServiceWrapper}
+                    method="getAll"
+                    methodParams={[]}
+                    serviceName="pagosDamabravaService"
+                    isOpen={isOpen && ((!pagosLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}
+                    page={currentPage}
+                    limit={PAGE_LIMIT}
+                    onDataLoaded={handleDataLoaded}
+                    onDataAccumulated={handleDataAccumulated}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
+                    onError={handleError}
+                    onHasMorePagesChange={handleHasMorePagesChange}
+                />
+            )}
         </View>
     );
 };

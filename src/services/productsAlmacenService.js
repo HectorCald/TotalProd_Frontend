@@ -79,6 +79,42 @@ class productsAlmacenService {
     }
   }
 
+  // Obtener productos ligeros (solo id y name) para formularios de producción
+  static async getAllForProduction() {
+    try {
+      const empresaId = getEmpresaId();
+      
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        empresa_id: empresaId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/products-almacen/for-production?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener productos');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error en productsAlmacenService.getAllForProduction:', error);
+      return {
+        success: false,
+        message: error.message || 'Error de conexión con el servidor'
+      };
+    }
+  }
+
   // Obtener un producto por ID
   static async getById(id) {
     try {
