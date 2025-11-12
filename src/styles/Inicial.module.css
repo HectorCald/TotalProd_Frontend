@@ -140,10 +140,23 @@
     display: flex;
     flex-direction: column;
     gap: 8px; 
+    height: 100%;
+    max-height: calc(100vh - 80px);
     overflow-y: auto;
-    flex: 1;
-    min-height: 0;
     -webkit-overflow-scrolling: touch;
+}
+/* Scrollbar personalizado para modalContent */
+.modalContent::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modalContent::-webkit-scrollbar-track {
+    background: var(--tertiary-color);
+}
+
+.modalContent::-webkit-scrollbar-thumb {
+    background: var(--quinary-color);
+    border-radius: 2px;
 }
 .buttons {
     display: flex;
