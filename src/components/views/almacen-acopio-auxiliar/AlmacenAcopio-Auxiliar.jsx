@@ -345,6 +345,9 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         }));
 
     const handleRegistrarConteo = async () => {
+        console.log('[CONTEO ACOPIO] Iniciando registro de conteo');
+        console.log('[CONTEO ACOPIO] Total de productos disponibles:', productos.length);
+        
         const resultados = productos.map((p) => {
             const rawQty = parseFloat(p.quantity || 0);
             const txt = quantityInputsText[p.id];
@@ -358,6 +361,10 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                 justificacion
             };
         });
+        
+        console.log('[CONTEO ACOPIO] Resultados procesados:', resultados.length);
+        console.log('[CONTEO ACOPIO] Primeros 5 resultados:', resultados.slice(0, 5));
+        
         // Preparar detalles para API
         const detalles = resultados.map(r => ({
             producto_id: r.id,
@@ -366,9 +373,15 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             justificacion: r.justificacion
         }));
 
+        console.log('[CONTEO ACOPIO] Detalles preparados para enviar:', detalles.length);
+        console.log('[CONTEO ACOPIO] Primeros 5 detalles:', detalles.slice(0, 5));
+        console.log('[CONTEO ACOPIO] Últimos 5 detalles:', detalles.slice(-5));
+
         try {
             setIsSubmitting(true);
+            console.log('[CONTEO ACOPIO] Enviando conteo al backend con', detalles.length, 'productos');
             const resp = await conteosService.create({ tipo: 'acopio', observaciones: null, detalles });
+            console.log('[CONTEO ACOPIO] Respuesta del backend:', resp);
             if (!resp.success) throw new Error(resp.message || 'Error');
             
             // Limpiar localStorage y resetear valores después de registrar exitosamente

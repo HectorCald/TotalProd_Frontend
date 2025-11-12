@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -21,10 +21,12 @@ import DescargaConteoBuilder from '../almacen-acopio-auxiliar/DescargaConteoBuil
 import useHistorialLogger from '../../ui/HistorialLogger';
 import { formatConteoLog, prepareLogPayload } from '../../../utils/logFormatters';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
+import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplaced }) {
     const { isLargeScreen } = useLayout();
-    const detalles = conteo?.detalles || [];
+    const [detalles, setDetalles] = useState([]);
+    const [isLoadingDetalles, setIsLoadingDetalles] = useState(false);
     const tipoNombre = conteo?.tipo === 'almacen' ? 'Almacén' : 'Materia Prima';
     const fechaLocal = formatFechaLiteral(conteo?.fecha);
     const horaLocal = formatHoraSinSegundos(conteo?.fecha);
@@ -48,6 +50,34 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
         text: ''
     });
 
+    // Función para cargar detalles del conteo
+    const cargarDetalles = async (forceReload = false) => {
+        if (!conteo?.id) return;
+        if (!forceReload && detalles.length > 0) return; // Ya están cargados
+        
+        setIsLoadingDetalles(true);
+        try {
+            const resp = await conteosService.getDetalles(conteo.id);
+            if (resp.success) {
+                setDetalles(resp.data || []);
+            } else {
+                mostrarNotificacion('error', resp.message || 'Error al cargar detalles');
+            }
+        } catch (error) {
+            console.error('[VER CONTEO] Error cargando detalles:', error);
+            mostrarNotificacion('error', 'Error al cargar detalles del conteo');
+        } finally {
+            setIsLoadingDetalles(false);
+        }
+    };
+
+    // Resetear detalles cuando cambia el conteo
+    useEffect(() => {
+        if (conteo?.id) {
+            setDetalles([]);
+        }
+    }, [conteo?.id]);
+
     const { logAccion } = useHistorialLogger({
         modulo: 'Conteos'
     });
@@ -68,57 +98,73 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
     // Estado para abrir almacén en modo conteo
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
 
-    // Filas preparadas para ModalTable (siempre calculadas para no violar reglas de hooks)
-    const rowsMemo = useMemo(() => (detalles || [])
-        .sort((a, b) => {
+    // Detalles filtrados y ordenados para desktop (sin paginación aún)
+    const detallesFiltradosDesktop = useMemo(() => {
+        let detallesFiltrados = detalles;
+        
+        // Aplicar filtro
+        if (filtroFisico !== 'todos') {
+            detallesFiltrados = detalles.filter(detalle => {
+                const sistema = Number(detalle.sistema ?? 0);
+                const fisico = Number(detalle.fisico ?? 0);
+
+                if (filtroFisico === 'igual') return fisico === sistema;
+                if (filtroFisico === 'mayor') return fisico > sistema;
+                if (filtroFisico === 'menor') return fisico < sistema;
+
+                return true;
+            });
+        }
+
+        // Ordenar
+        return detallesFiltrados.sort((a, b) => {
             const isAlmacen = conteo?.tipo === 'almacen';
             const nombreA = isAlmacen ? (a.producto_almacen?.name || '') : (a.producto_acopio?.name || '');
             const nombreB = isAlmacen ? (b.producto_almacen?.name || '') : (b.producto_acopio?.name || '');
             return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
-        })
-        .map((d) => {
-            const isAlmacen = conteo?.tipo === 'almacen';
-            const nombreProducto = isAlmacen ? (d.producto_almacen?.name || 'Producto') : (d.producto_acopio?.name || 'Producto');
-            const medidaCode = !isAlmacen ? (d.producto_acopio?.type_measure?.code || '') : '';
-            const grup = isAlmacen ? (d.producto_almacen?.grup || 0) : 0;
-            const sistema = Number(d.sistema ?? 0);
-            const fisico = Number(d.fisico ?? 0);
-            if (isAlmacen) {
-                const sysG = grup > 0 ? Math.floor(sistema / grup) : 0;
-                const sysU = grup > 0 ? (sistema % grup) : 0;
-                const fisG = grup > 0 ? Math.floor(fisico / grup) : 0;
-                const fisU = grup > 0 ? (fisico % grup) : 0;
-                const fmt = (g, u) => {
-                    if (grup <= 0) return '--';
-                    if (u > 0) return `${g} g. ${u} u.`;
-                    return `${g} g.`;
-                };
-                return [
-                    nombreProducto,
-                    `${sistema} ud`,
-                    `${fisico} ud`,
-                    grup > 0 ? fmt(sysG, sysU) : '--',
-                    grup > 0 ? fmt(fisG, fisU) : '--'
-                ];
-            }
+        });
+    }, [detalles, conteo, filtroFisico]);
+
+    // Aplicar paginación virtual a los detalles filtrados de desktop
+    const {
+        visibleItems: detallesFiltradosDesktopVisibles,
+        handleScroll: handleDetallesDesktopScroll
+    } = useVirtualPagination(detallesFiltradosDesktop, 30);
+
+    // Filas preparadas para ModalTable (solo los visibles)
+    const rowsMemo = useMemo(() => detallesFiltradosDesktopVisibles.map((d) => {
+        const isAlmacen = conteo?.tipo === 'almacen';
+        const nombreProducto = isAlmacen ? (d.producto_almacen?.name || 'Producto') : (d.producto_acopio?.name || 'Producto');
+        const medidaCode = !isAlmacen ? (d.producto_acopio?.type_measure?.code || '') : '';
+        const grup = isAlmacen ? (d.producto_almacen?.grup || 0) : 0;
+        const sistema = Number(d.sistema ?? 0);
+        const fisico = Number(d.fisico ?? 0);
+        if (isAlmacen) {
+            const sysG = grup > 0 ? Math.floor(sistema / grup) : 0;
+            const sysU = grup > 0 ? (sistema % grup) : 0;
+            const fisG = grup > 0 ? Math.floor(fisico / grup) : 0;
+            const fisU = grup > 0 ? (fisico % grup) : 0;
+            const fmt = (g, u) => {
+                if (grup <= 0) return '--';
+                if (u > 0) return `${g} g. ${u} u.`;
+                return `${g} g.`;
+            };
             return [
                 nombreProducto,
-                `${Number(sistema).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}`,
-                `${Number(fisico).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}`,
-                medidaCode || '--',
-                d.justificacion || ''
+                `${sistema} ud`,
+                `${fisico} ud`,
+                grup > 0 ? fmt(sysG, sysU) : '--',
+                grup > 0 ? fmt(fisG, fisU) : '--'
             ];
-        })
-        .filter((row) => {
-            const isAlmacen = conteo?.tipo === 'almacen';
-            if (filtroFisico !== 'todos') {
-                const sistema = parseFloat(String(row[1]).replace(/[^0-9.]/g, '')) || 0;
-                const fisico = parseFloat(String(row[2]).replace(/[^0-9.]/g, '')) || 0;
-                const rel = fisico === sistema ? 0 : (fisico > sistema ? 1 : -1);
-                if ((filtroFisico === 'igual' && rel !== 0) || (filtroFisico === 'mayor' && rel <= 0) || (filtroFisico === 'menor' && rel >= 0)) return false;
-            }
-            return true;
-        }), [detalles, conteo, filtroFisico]);
+        }
+        return [
+            nombreProducto,
+            `${Number(sistema).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}`,
+            `${Number(fisico).toFixed(2)}${medidaCode ? ` ${medidaCode}` : ''}`,
+            medidaCode || '--',
+            d.justificacion || ''
+        ];
+    }), [detallesFiltradosDesktopVisibles, conteo]);
 
     const filtersConfig = useMemo(() => {
         const opts = [
@@ -140,21 +186,38 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
         { value: 'menor', label: 'Rojo' }
     ];
 
-    // Función para filtrar detalles en móvil
-    const detallesFiltrados = useMemo(() => {
-        if (filtroMovil === 'todos') return detalles;
+    // Detalles filtrados y ordenados para móvil (sin paginación aún)
+    const detallesFiltradosMovil = useMemo(() => {
+        let detallesFiltrados = detalles;
+        
+        // Aplicar filtro
+        if (filtroMovil !== 'todos') {
+            detallesFiltrados = detalles.filter(detalle => {
+                const sistema = Number(detalle.sistema ?? 0);
+                const fisico = Number(detalle.fisico ?? 0);
 
-        return detalles.filter(detalle => {
-            const sistema = Number(detalle.sistema ?? 0);
-            const fisico = Number(detalle.fisico ?? 0);
+                if (filtroMovil === 'igual') return fisico === sistema;
+                if (filtroMovil === 'mayor') return fisico > sistema;
+                if (filtroMovil === 'menor') return fisico < sistema;
 
-            if (filtroMovil === 'igual') return fisico === sistema;
-            if (filtroMovil === 'mayor') return fisico > sistema;
-            if (filtroMovil === 'menor') return fisico < sistema;
+                return true;
+            });
+        }
 
-            return true;
+        // Ordenar
+        return detallesFiltrados.sort((a, b) => {
+            const isAlmacen = conteo?.tipo === 'almacen';
+            const nombreA = isAlmacen ? (a.producto_almacen?.name || '') : (a.producto_acopio?.name || '');
+            const nombreB = isAlmacen ? (b.producto_almacen?.name || '') : (b.producto_acopio?.name || '');
+            return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
         });
-    }, [detalles, filtroMovil]);
+    }, [detalles, conteo, filtroMovil]);
+
+    // Aplicar paginación virtual a los detalles filtrados de móvil
+    const {
+        visibleItems: detallesFiltrados,
+        handleScroll: handleDetallesScroll
+    } = useVirtualPagination(detallesFiltradosMovil, 30);
 
     const handleDeleteConteo = async () => {
         if (!conteo?.id) return;
@@ -200,7 +263,18 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
         if (!conteo?.id) return;
         setIsReplacing(true);
         try {
-            const logAntes = formatConteoLog(conteo);
+            // Cargar detalles antes de reemplazar si no están cargados
+            let detallesParaLog = detalles;
+            if (detalles.length === 0) {
+                const resp = await conteosService.getDetalles(conteo.id);
+                if (resp.success) {
+                    detallesParaLog = resp.data || [];
+                    setDetalles(detallesParaLog);
+                }
+            }
+            
+            const conteoConDetalles = { ...conteo, detalles: detallesParaLog };
+            const logAntes = formatConteoLog(conteoConDetalles);
             let result;
             // Usar el método correcto según el tipo de conteo
             if (conteo.tipo === 'acopio') {
@@ -243,10 +317,25 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
         }
     };
 
-    const handleRepetirConteo = () => {
-        if (!conteo || !detalles.length) return;
+    const handleRepetirConteo = async () => {
+        if (!conteo) return;
 
         try {
+            // Cargar detalles antes de repetir si no están cargados
+            if (detalles.length === 0) {
+                const resp = await conteosService.getDetalles(conteo.id);
+                if (resp.success) {
+                    setDetalles(resp.data || []);
+                } else {
+                    mostrarNotificacion('error', 'Error al cargar detalles del conteo');
+                    return;
+                }
+            }
+
+            if (detalles.length === 0) {
+                mostrarNotificacion('error', 'El conteo no tiene detalles');
+                return;
+            }
             const isAlmacen = conteo.tipo === 'almacen';
             const storageKey = isAlmacen ? 'conteo_almacen_inputs' : 'conteo_acopio_inputs';
 
@@ -402,14 +491,16 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                         <Dato label="Fecha" value={fechaLocal} vertical={false} />
                         <Dato label="Hora" value={horaLocal} vertical={false} />
                     </div>
-                    {detalles.length > 0 && (
-
+                    {(conteo?.detalles_count || 0) > 0 && (
                         <Boton
                             className='btn-gray'
-                            label={`Productos (${detalles.length})`}
-                            onClick={() => setIsProductosOpen(true)}
+                            label={`Productos (${conteo?.detalles_count || 0})`}
+                            onClick={async () => {
+                                await cargarDetalles();
+                                setIsProductosOpen(true);
+                            }}
+                            loading={isLoadingDetalles}
                         />
-
                     )}
 
                     <div className={styles.buttons}>
@@ -448,6 +539,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                         headers={conteo?.tipo === 'almacen' ? ['Producto', 'Sistema', 'Físico', 'Stock grup sist.', 'Stock grup fís.'] : ['Producto', 'Sistema', 'Físico', 'Medida', 'Justificación']}
                         rows={rowsMemo}
                         filters={filtersConfig}
+                        onScroll={handleDetallesDesktopScroll}
                         columnWidths={conteo?.tipo === 'almacen' ? {
                             0: '25%', // Producto
                             1: '15%', // Sistema
@@ -519,7 +611,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                             title="Productos del Conteo"
                             onClose={() => setIsProductosOpen(false)}
                         />
-                        <div className={styles.modalContent}>
+                        <div className={styles.modalContent} onScroll={handleDetallesScroll}>
                             {/* Select de filtro para móvil */}
 
                             <Select
@@ -531,14 +623,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                             />
 
 
-                            {detallesFiltrados.length > 0 ? detallesFiltrados
-                                .sort((a, b) => {
-                                    const isAlmacen = conteo?.tipo === 'almacen';
-                                    const nombreA = isAlmacen ? (a.producto_almacen?.name || '') : (a.producto_acopio?.name || '');
-                                    const nombreB = isAlmacen ? (b.producto_almacen?.name || '') : (b.producto_acopio?.name || '');
-                                    return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
-                                })
-                                .map((d, idx) => {
+                            {detallesFiltrados.length > 0 ? detallesFiltrados.map((d, idx) => {
                                     const isAlmacen = conteo?.tipo === 'almacen';
                                     const nombreProducto = isAlmacen ? (d.producto_almacen?.name || 'Producto') : (d.producto_acopio?.name || 'Producto');
                                     const grup = isAlmacen ? (d.producto_almacen?.grup || 0) : 0;

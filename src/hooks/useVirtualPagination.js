@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 /**
  * Hook para paginación virtual (lazy loading)
@@ -6,6 +6,16 @@ import { useState, useCallback } from 'react';
  */
 const useVirtualPagination = (items, itemsPerPage = 20) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const prevItemsLengthRef = useRef(items.length);
+
+  // Resetear cuando cambien los items (por ejemplo, cuando cambian los filtros)
+  useEffect(() => {
+    // Si la longitud de items cambió, resetear a la primera página
+    if (prevItemsLengthRef.current !== items.length) {
+      setCurrentPage(1);
+      prevItemsLengthRef.current = items.length;
+    }
+  }, [items.length]);
 
   // Calcular elementos visibles directamente (sin useEffect)
   const visibleItems = items.slice(0, currentPage * itemsPerPage);
@@ -26,11 +36,6 @@ const useVirtualPagination = (items, itemsPerPage = 20) => {
       loadMore();
     }
   }, [hasMore, loadMore]);
-
-  // Resetear cuando cambien los items
-  if (currentPage > 1 && items.length <= itemsPerPage) {
-    setCurrentPage(1);
-  }
 
   return {
     visibleItems,

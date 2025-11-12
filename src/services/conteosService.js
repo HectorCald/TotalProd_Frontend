@@ -57,12 +57,13 @@ class conteosService {
         body: JSON.stringify(payload)
       });
       const data = await resp.json();
+      
       if (!resp.ok) {
         throw new Error(data.message || 'Error al registrar el conteo');
       }
       return { success: true, id: data.id };
     } catch (error) {
-      console.error('Error creando conteo:', error);
+      console.error('[CONTEO SERVICE] Error creando conteo:', error);
       return { success: false, message: error.message || 'Error al registrar el conteo' };
     }
   }
@@ -77,7 +78,9 @@ class conteosService {
       
       const params = new URLSearchParams({ sucu_id: sucuId });
       if (tipo) params.append('tipo', tipo);
-      const resp = await fetch(`${API_BASE_URL}/conteos?${params}`, {
+      const url = `${API_BASE_URL}/conteos?${params}`;
+      
+      const resp = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -95,7 +98,7 @@ class conteosService {
       }
       return data; // { success, data }
     } catch (error) {
-      console.error('Error obteniendo conteos:', error);
+      console.error('[CONTEO SERVICE] Error obteniendo conteos:', error);
       // Si es un error 403, relanzarlo para que llegue al componente
       if (error.status === 403) {
         throw error;
@@ -194,6 +197,30 @@ class conteosService {
     } catch (error) {
       console.error('Error reemplazando stock de acopio por conteo:', error);
       return { success: false, message: error.message || 'Error al reemplazar el stock de acopio' };
+    }
+  }
+
+  static async getDetalles(conteoId) {
+    try {
+      if (!conteoId) {
+        return { success: false, message: 'ID del conteo es requerido' };
+      }
+
+      const resp = await fetch(`${API_BASE_URL}/conteos/${conteoId}/detalles`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      
+      const data = await resp.json();
+      
+      if (!resp.ok) {
+        throw new Error(data.message || 'Error al obtener detalles del conteo');
+      }
+      
+      return data; // { success, data }
+    } catch (error) {
+      console.error('[CONTEO SERVICE] Error obteniendo detalles:', error);
+      return { success: false, message: error.message || 'Error al obtener detalles del conteo' };
     }
   }
 }

@@ -3,7 +3,7 @@ import styles from './ModalTable.module.css';
 import HeaderModal from './HeaderModal';
 import Select from './Select';
 
-const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBadge = null, filters = {}, columnWidths = {} }) => {
+const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBadge = null, filters = {}, columnWidths = {}, onScroll = null }) => {
     // filters: { [columnIndex]: { value, onChange, options: [{value,label}] } }
     const [isVisible, setIsVisible] = useState(false);
 
@@ -37,7 +37,7 @@ const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBa
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <HeaderModal title={title} onClose={onClose} />
                 <div className={styles.contentWrapper}>
-                    <div className={styles.tableScroll}>
+                    <div className={styles.tableScroll} onScroll={onScroll}>
                         <table className={styles.table}>
                             <thead>
                                 <tr>

@@ -30,6 +30,9 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeRequests, setActiveRequests] = useState(0);
 
+    // Estado para rastrear qué datos se han cargado
+    const [conteosLoaded, setConteosLoaded] = useState(false);
+
     // Estados para la notificación
     const [notification, setNotification] = useState({
         isVisible: false,
@@ -51,8 +54,12 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     };
 
     const cargarConteos = async () => {
-        setIsLoading(true);
-        setIsLoadingConteos(true);
+        // Solo mostrar loading si no hay datos cargados
+        if (conteos.length === 0) {
+            setIsLoading(true);
+            setIsLoadingConteos(true);
+        }
+        setError(null);
         
         // Incrementar contador de peticiones activas
         setActiveRequests(prev => {
@@ -74,6 +81,9 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                 const data = resp.data || [];
                 setConteos(data);
                 setError(null); // Limpiar error cuando se cargan datos exitosamente
+                
+                // Marcar como cargado
+                setConteosLoaded(true);
             } else {
                 throw new Error(resp.message || 'Error al obtener conteos');
             }
@@ -104,16 +114,26 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
         }
     };
 
+    // Resetear flags cuando se abre el modal (NO los datos)
     useEffect(() => {
         if (isOpen) {
-            // Solo mostrar loading si no hay datos cargados
-            if (conteos.length === 0) {
-                setIsLoadingConteos(true);
-            }
-            // Solo cargar si no hay datos
-            if (conteos.length === 0) {
-                cargarConteos();
-            }
+            // Solo resetear flags, NO los datos acumulados
+            setConteosLoaded(false);
+        }
+    }, [isOpen]);
+
+    // Cargar conteos cuando se abre el modal - solo si no hay datos cargados
+    useEffect(() => {
+        if (isOpen && !conteosLoaded) {
+            cargarConteos();
+        }
+    }, [isOpen, conteosLoaded]);
+
+    // Limpiar indicador cuando se cierra el modal
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
         }
     }, [isOpen]);
 
@@ -122,6 +142,7 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
         // Limpiar datos cuando cambia el tipo
         setConteos([]);
         setSearchQuery('');
+        setConteosLoaded(false);
         // Cargar datos del nuevo tipo si el panel está abierto
         if (isOpen) {
             cargarConteos();
@@ -130,11 +151,11 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
 
     // Función para manejar refresh
     const handleRefresh = async () => {
-        try {
-            await cargarConteos();
-        } catch (error) {
-            console.error('Error al refrescar conteos:', error);
-        }
+        // Limpiar estado y resetear flag
+        setConteosLoaded(false);
+        
+        // La función cargarConteos ya maneja el RefreshIndicator
+        await cargarConteos();
     };
 
     const filtered = conteos.filter(c => {
@@ -156,7 +177,7 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
         id: c.id,
         tipo: c.tipo === 'almacen' ? 'Almacén' : 'Materia Prima',
         fecha: new Date(c.fecha).toLocaleString(),
-        detalles: (c.detalles || []).length,
+        detalles: c.detalles_count || 0,
         observaciones: c.observaciones || ''
     }));
 
@@ -267,7 +288,7 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                                             description={c.observaciones || 'Sin observaciones'}
                                             icon='list-check'
                                             onClick={() => handleRegistro(c)}
-                                            flot1={`${(c.detalles || []).length} ítems`}
+                                            flot1={`${c.detalles_count || 0} ítems`}
                                         />
                                     ))
                                 ) : (
