@@ -390,10 +390,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
 }
 
 .totalGeneralLabel {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--primary-color);
 }
@@ -402,6 +403,14 @@
     font-size: 17px;
     font-weight: 600;
     color: var(--white-color);
+}
+
+.totalVerde {
+    color: #2ecc71 !important;
+}
+
+.totalRojo {
+    color: #e74c3c !important;
 }
 
 .btnEliminar {

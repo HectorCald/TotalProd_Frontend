@@ -19,6 +19,7 @@ import Text from '../../common/Text';
 import useHistorialLogger from '../../ui/HistorialLogger';
 import { formatMovimientoLog, prepareLogPayload } from '../../../utils/logFormatters';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
+import permissionsService from '../../../services/permissionsService';
 
 const obtenerNumeroOrdenFormateado = (numeroOrden) => {
     if (numeroOrden === null || numeroOrden === undefined) {
@@ -37,6 +38,7 @@ const obtenerNumeroOrdenFormateado = (numeroOrden) => {
 function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado, onMovimientoActualizado, onMovimientoEditado }) {
     const { isLargeScreen } = useLayout();
     const [loading, setLoading] = useState(false);
+    const [loadingEditar, setLoadingEditar] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
@@ -404,59 +406,77 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         setIsAlmacenOpen(true);
     };
 
-    const handleEditarMovimiento = () => {
-        handleRepetirMovimiento();
-        if (movimientoActual?.fecha) {
-            try {
-                const fechaMovimiento = new Date(movimientoActual.fecha);
-                if (!isNaN(fechaMovimiento.getTime())) {
-                    localStorage.setItem('fechaMovimientoEditando', fechaMovimiento.toISOString());
-                } else {
+    const handleEditarMovimiento = async () => {
+        setLoadingEditar(true);
+        try {
+            // Validar permisos de edición primero
+            const permisoResponse = await permissionsService.canUpdate();
+            
+            if (!permisoResponse.success || !permisoResponse.data?.allowed) {
+                mostrarNotificacion('error', 'No tienes permisos para editar movimientos');
+                setLoadingEditar(false);
+                return;
+            }
+
+            // Si tiene permisos, continuar con la edición normal
+            handleRepetirMovimiento();
+            if (movimientoActual?.fecha) {
+                try {
+                    const fechaMovimiento = new Date(movimientoActual.fecha);
+                    if (!isNaN(fechaMovimiento.getTime())) {
+                        localStorage.setItem('fechaMovimientoEditando', fechaMovimiento.toISOString());
+                    } else {
+                        localStorage.removeItem('fechaMovimientoEditando');
+                    }
+                } catch (error) {
                     localStorage.removeItem('fechaMovimientoEditando');
                 }
-            } catch (error) {
+            } else {
                 localStorage.removeItem('fechaMovimientoEditando');
             }
-        } else {
-            localStorage.removeItem('fechaMovimientoEditando');
-        }
-        if (movimientoActual?.id) {
-            localStorage.setItem('movimientoIdEditando', movimientoActual.id);
-        } else {
-            localStorage.removeItem('movimientoIdEditando');
-        }
-        if (movimientoActual?.numero_orden !== undefined && movimientoActual?.numero_orden !== null) {
-            localStorage.setItem('numeroOrdenEditando', String(movimientoActual.numero_orden));
-        } else {
-            localStorage.removeItem('numeroOrdenEditando');
-        }
+            if (movimientoActual?.id) {
+                localStorage.setItem('movimientoIdEditando', movimientoActual.id);
+            } else {
+                localStorage.removeItem('movimientoIdEditando');
+            }
+            if (movimientoActual?.numero_orden !== undefined && movimientoActual?.numero_orden !== null) {
+                localStorage.setItem('numeroOrdenEditando', String(movimientoActual.numero_orden));
+            } else {
+                localStorage.removeItem('numeroOrdenEditando');
+            }
 
-        const productosMovimientoRepetidos = localStorage.getItem('productosMovimientoRepitiendo');
-        if (productosMovimientoRepetidos) {
-            localStorage.setItem('productosMovimientoEditando', productosMovimientoRepetidos);
-        }
+            const productosMovimientoRepetidos = localStorage.getItem('productosMovimientoRepitiendo');
+            if (productosMovimientoRepetidos) {
+                localStorage.setItem('productosMovimientoEditando', productosMovimientoRepetidos);
+            }
 
-        const productosFuente = obtenerProductosFuente();
-        if (productosFuente && productosFuente.length > 0) {
-            const productosEdicion = productosFuente
-                .map((productoMovimiento) => {
-                    const productoBase = productoMovimiento?.producto;
-                    if (!productoBase?.id) return null;
-                    const cantidadOriginal = Number(productoMovimiento?.cantidad) || 0;
-                    return {
-                        ...productoBase,
-                        cantidad: cantidadOriginal
-                    };
-                })
-                .filter(Boolean);
+            const productosFuente = obtenerProductosFuente();
+            if (productosFuente && productosFuente.length > 0) {
+                const productosEdicion = productosFuente
+                    .map((productoMovimiento) => {
+                        const productoBase = productoMovimiento?.producto;
+                        if (!productoBase?.id) return null;
+                        const cantidadOriginal = Number(productoMovimiento?.cantidad) || 0;
+                        return {
+                            ...productoBase,
+                            cantidad: cantidadOriginal
+                        };
+                    })
+                    .filter(Boolean);
 
-            if (productosEdicion.length > 0) {
-                localStorage.setItem('productosEdicion', JSON.stringify(productosEdicion));
+                if (productosEdicion.length > 0) {
+                    localStorage.setItem('productosEdicion', JSON.stringify(productosEdicion));
+                } else {
+                    localStorage.removeItem('productosEdicion');
+                }
             } else {
                 localStorage.removeItem('productosEdicion');
             }
-        } else {
-            localStorage.removeItem('productosEdicion');
+        } catch (error) {
+            console.error('Error validando permisos de edición:', error);
+            mostrarNotificacion('error', 'Error al verificar permisos de edición');
+        } finally {
+            setLoadingEditar(false);
         }
     };
 
@@ -670,6 +690,8 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                     label='Editar Movimiento'
                                     style={{ marginTop: 'auto' }}
                                     onClick={handleEditarMovimiento}
+                                    loading={loadingEditar}
+                                    disabled={loadingEditar}
                                 />
                             )}
                             {!movimientoActual?.tiene_pedido_relacionado && (

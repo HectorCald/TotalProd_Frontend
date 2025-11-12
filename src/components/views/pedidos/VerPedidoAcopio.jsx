@@ -401,7 +401,9 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
     // Función para abrir el modal de entrega
     const handleVerEntrega = () => {
         if (!pedidoActual) {
+
             mostrarNotificacion('error', 'No se encontró información de la entrega');
+
             return;
         }
         setIsEntregaOpen(true);
@@ -755,7 +757,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             />
                             <Dato
                                 label="Cantidad Entregada"
-                                value={`${pedidoActual.cantidad_entregada || 0} ${pedidoActual.tipo_medida || 'kg'}`}
+                                value={`${pedidoActual.cantidad_entregada || 0} kg`}
                             />
                             <Dato
                                 label="Cantidad en Unidades"

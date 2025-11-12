@@ -478,7 +478,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             })();
 
             if (isEditandoMovimiento && movimientoIdEditando) {
-                const anulacionResp = await movimientosAlmacenService.anular(movimientoIdEditando);
+                // Anular el movimiento anterior pasando esEdicion: true para omitir validación de permisos
+                const anulacionResp = await movimientosAlmacenService.anular(movimientoIdEditando, false, true);
                 if (!anulacionResp?.success) {
                     const mensajeError = anulacionResp?.message || 'Error al anular el movimiento anterior';
                     mostrarNotificacion('error', mensajeError);
@@ -486,7 +487,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     return;
                 }
 
-                const eliminacionResp = await movimientosAlmacenService.eliminar(movimientoIdEditando);
+                // Eliminar el movimiento anterior pasando esEdicion: true para omitir validación de permisos
+                const eliminacionResp = await movimientosAlmacenService.eliminar(movimientoIdEditando, true);
                 if (!eliminacionResp?.success) {
                     const mensajeEliminar = eliminacionResp?.message || 'Error al eliminar el movimiento anterior';
                     mostrarNotificacion('error', mensajeEliminar);
@@ -959,8 +961,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         {/* Total general */}
                         <div className={styles.totalGeneral}>
                             <div className={styles.totalGeneralContent}>
-                                <span className={styles.totalGeneralLabel}>Total:</span>
-                                <span className={styles.totalGeneralValue}>Bs. {(() => {
+                                {(() => {
                                     const subtotal = productosCanasta.reduce((total, producto) => {
                                         const valorProducto = (producto.precio || 0) * producto.cantidad;
                                         return total + valorProducto;
@@ -971,8 +972,32 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                     const descuentoMonto = (subtotal * descuentoPorcentaje) / 100;
                                     const aumentoMonto = (subtotal * aumentoPorcentaje) / 100;
                                     const total = subtotal - descuentoMonto + aumentoMonto;
-                                    return total.toFixed(2);
-                                })()}</span>
+                                    
+                                    // Determinar el color y formato del total
+                                    const tieneDescuento = descuentoMonto > 0;
+                                    const tieneAumento = aumentoMonto > 0;
+                                    
+                                    let totalTexto = `Bs. ${total.toFixed(2)}`;
+                                    let claseColor = '';
+                                    
+                                    // Agregar porcentaje de descuento o aumento si existe
+                                    if (tieneDescuento) {
+                                        totalTexto = `Bs. ${total.toFixed(2)} (-${descuentoPorcentaje.toFixed(2)}%)`;
+                                        claseColor = styles.totalRojo;
+                                    } else if (tieneAumento) {
+                                        totalTexto = `Bs. ${total.toFixed(2)} (+${aumentoPorcentaje.toFixed(2)}%)`;
+                                        claseColor = styles.totalVerde;
+                                    }
+                                    
+                                    return (
+                                        <>
+                                            <span className={styles.totalGeneralLabel}>Total:</span>
+                                            <span className={`${styles.totalGeneralValue} ${claseColor}`}>
+                                                {totalTexto}
+                                            </span>
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </div>
 

@@ -273,12 +273,12 @@ class movimientosAlmacenService {
   }
 
   // Anular un movimiento
-  static async anular(movimientoId, desdePedido = false) {
+  static async anular(movimientoId, desdePedido = false, esEdicion = false) {
     try {
       const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${movimientoId}/anular`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ desdePedido }),
+        body: JSON.stringify({ desdePedido, esEdicion }),
       });
 
       const data = await response.json();
@@ -294,11 +294,13 @@ class movimientosAlmacenService {
   }
 
   // Eliminar un movimiento
-  static async eliminar(movimientoId) {
+  static async eliminar(movimientoId, esEdicion = false) {
     try {
+      // Para DELETE, pasamos esEdicion en el body
       const response = await fetch(`${API_BASE_URL}/movimientos-almacen/${movimientoId}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
+        body: JSON.stringify({ esEdicion }),
       });
 
       const data = await response.json();

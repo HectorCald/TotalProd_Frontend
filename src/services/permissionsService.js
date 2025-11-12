@@ -42,6 +42,32 @@ class permissionsService {
             };
         }
     }
+
+    static async canUpdate() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/permissions/update`, {
+                method: 'GET',
+                headers: getAuthHeaders()
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al verificar permisos de edición');
+            }
+
+            return {
+                success: true,
+                data: data.data || { allowed: false }
+            };
+        } catch (error) {
+            console.error('Error en permissionsService.canUpdate:', error);
+            return {
+                success: false,
+                message: error.message || 'Error al verificar permisos de edición'
+            };
+        }
+    }
 }
 
 export default permissionsService;
