@@ -121,6 +121,65 @@ function useCanastaActions({
         const setCanastaActual = esEntrada ? setProductosCanastaEntradas : setProductosCanastaSalidas;
         const canastaActual = esEntrada ? productosCanastaEntradas : productosCanastaSalidas;
 
+        // Obtener modo de agrupación actual para validar stock
+        let modoAgrupacionActual = null;
+        if (tipoMovimiento === 'entrada' && entradaModoGetterName && typeof window[entradaModoGetterName] === 'function') {
+            modoAgrupacionActual = window[entradaModoGetterName]();
+        } else if (tipoMovimiento === 'salida' && salidaModoGetterName && typeof window[salidaModoGetterName] === 'function') {
+            modoAgrupacionActual = window[salidaModoGetterName]();
+        } else if (localStorage.getItem('pedidoAgrupadoEntregando')) {
+            modoAgrupacionActual = localStorage.getItem('pedidoAgrupadoEntregando');
+        }
+
+        // Validar stock ANTES de agregar (solo para salidas)
+        if (!esEntrada) {
+            const stockDisponible = producto.stock || 0;
+            let stockNecesario = cantidadEspecifica !== null ? cantidadEspecifica : 1;
+            
+            // Si está en modo agrupado, validar en grupos
+            if (modoAgrupacionActual === 'agrupado' && producto.grup) {
+                const gruposDisponibles = Math.floor(stockDisponible / (producto.grup || 1));
+                if (gruposDisponibles < stockNecesario) {
+                    if (mostrarNotificacion) {
+                        mostrarNotificacion('error', `No hay stock suficiente de ${producto.name}`);
+                    }
+                    return; // No agregar el producto
+                }
+            } else {
+                // Validar en unidades
+                if (stockDisponible < stockNecesario) {
+                    if (mostrarNotificacion) {
+                        mostrarNotificacion('error', `No hay stock suficiente de ${producto.name}`);
+                    }
+                    return; // No agregar el producto
+                }
+            }
+
+            // Si el producto ya existe, validar que al incrementar no exceda el stock
+            const productoExistente = canastaActual.find(p => p.id === producto.id);
+            if (productoExistente) {
+                const cantidadActual = productoExistente.cantidad;
+                const cantidadNueva = cantidadEspecifica !== null ? cantidadEspecifica : cantidadActual + 1;
+                
+                if (modoAgrupacionActual === 'agrupado' && producto.grup) {
+                    const gruposDisponibles = Math.floor(stockDisponible / (producto.grup || 1));
+                    if (cantidadNueva > gruposDisponibles) {
+                        if (mostrarNotificacion) {
+                            mostrarNotificacion('error', `No hay stock suficiente de ${producto.name}`);
+                        }
+                        return; // No incrementar
+                    }
+                } else {
+                    if (cantidadNueva > stockDisponible) {
+                        if (mostrarNotificacion) {
+                            mostrarNotificacion('error', `No hay stock suficiente de ${producto.name}. Stock disponible: ${stockDisponible} ${producto.type_measure?.code || 'unidades'}`);
+                        }
+                        return; // No incrementar
+                    }
+                }
+            }
+        }
+
         setCanastaActual(prev => {
             const prevSanitizados = prev.map(p => {
                 if (p.__shouldFocus) {
@@ -172,15 +231,6 @@ function useCanastaActions({
             let cantidadInicial = cantidadEspecifica !== null ? cantidadEspecifica : 1;
             let precioFinal = precioProducto;
             let stockMostrado = producto.stock;
-
-            let modoAgrupacionActual = null;
-            if (tipoMovimiento === 'entrada' && entradaModoGetterName && typeof window[entradaModoGetterName] === 'function') {
-                modoAgrupacionActual = window[entradaModoGetterName]();
-            } else if (tipoMovimiento === 'salida' && salidaModoGetterName && typeof window[salidaModoGetterName] === 'function') {
-                modoAgrupacionActual = window[salidaModoGetterName]();
-            } else if (localStorage.getItem('pedidoAgrupadoEntregando')) {
-                modoAgrupacionActual = localStorage.getItem('pedidoAgrupadoEntregando');
-            }
 
             if (modoAgrupacionActual === 'agrupado' && producto.grup) {
                 if (cantidadEspecifica === null) {

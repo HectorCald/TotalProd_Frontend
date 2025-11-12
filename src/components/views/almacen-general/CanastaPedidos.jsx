@@ -14,9 +14,11 @@ import Clientes from '../clientes/Clientes';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import usePedidoEdicion from './hooks/usePedidoEdicion';
+import { useLayout } from '../../../context/LayoutContext';
 
 function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], sucursales = [], loadingPrecios = false, loadingSucursales = false, productosActualizados = [], isCartMode = false }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
+    const { isLargeScreen } = useLayout();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
@@ -160,6 +162,17 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             }
         };
     }, []);
+
+    // Establecer "Casa Matriz" como valor por defecto
+    useEffect(() => {
+        // Solo si no estamos editando, hay sucursales disponibles, no hay sucursal seleccionada y el componente está abierto
+        if (!pedidoId && sucursales.length > 0 && !sucursalSeleccionada && isOpen) {
+            const casaMatriz = sucursales.find(sucursal => sucursal.label === 'Casa Matriz');
+            if (casaMatriz) {
+                setSucursalSeleccionada(casaMatriz.value);
+            }
+        }
+    }, [sucursales, isOpen, pedidoId, sucursalSeleccionada]);
 
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
@@ -382,19 +395,25 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         disabled={loadingPrecios}
                         icon='dollar'
                     />
-                    {productosCanasta.some(producto => producto.grup) && (
+                </div>
+
+                {/* Selector de modalidad fuera de controles generales */}
+                {productosCanasta.some(producto => producto.grup) && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
                         <Select
                             value={modoAgrupacion}
                             onChange={cambiarModoAgrupacion}
                             options={[
-                                { value: 'agrupado', label: 'Agrupado' },
-                                { value: 'no_agrupado', label: 'Unidades' }
+                                { value: 'agrupado', label: 'Agrupado', icon: 'layer' },
+                                { value: 'no_agrupado', label: 'Unidades', icon: 'cube' }
                             ]}
                             placeholder="Modalidad"
-                            icon='package'
+                            icon={modoAgrupacion === 'agrupado' ? 'layer' : (modoAgrupacion === 'no_agrupado' ? 'cube' : 'layer')}
+                            iconOnly={!isLargeScreen}
+                            dropdownDirection="right"
                         />
-                    )}
-                </div>
+                    </div>
+                )}
 
                 {productosCanasta.length > 0 ? (
                     <>

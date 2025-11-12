@@ -15,8 +15,10 @@ import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import gastosService from '../../../services/gastosService';
 import InputNormal from '../../common/InputNormal';
 import useCanastaProductos from './hooks/useCanastaProductos';
+import { useLayout } from '../../../context/LayoutContext';
 
 function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
+    const { isLargeScreen } = useLayout();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
@@ -326,19 +328,25 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                         disabled={loadingPrecios}
                         icon='dollar'
                     />
-                    {productosCanasta.some(producto => producto.grup) && (
+                </div>
+
+                {/* Selector de modalidad fuera de controles generales */}
+                {productosCanasta.some(producto => producto.grup) && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
                         <Select
                             value={modoAgrupacion}
                             onChange={cambiarModoAgrupacion}
                             options={[
-                                { value: 'agrupado', label: 'Agrupado' },
-                                { value: 'no_agrupado', label: 'Unidades' }
+                                { value: 'agrupado', label: 'Agrupado', icon: 'layer' },
+                                { value: 'no_agrupado', label: 'Unidades', icon: 'cube' }
                             ]}
                             placeholder="Modalidad"
-                            icon='package'
+                            icon={modoAgrupacion === 'agrupado' ? 'layer' : (modoAgrupacion === 'no_agrupado' ? 'cube' : 'layer')}
+                            iconOnly={!isLargeScreen}
+                            dropdownDirection="right"
                         />
-                    )}
-                </div>
+                    </div>
+                )}
 
                 {productosCanasta.length > 0 ? (
                     <>

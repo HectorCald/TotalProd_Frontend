@@ -186,7 +186,7 @@ const UsuarioScreen = () => {
                         <ComponenteFull
                             title="Atajos de módulos"
                             subtitle="Configura accesos rápidos"
-                            icon="grid"
+                            icon="category"
                             type="arrow"
                             onClick={() => setIsOpenAtajo(true)}
                         />

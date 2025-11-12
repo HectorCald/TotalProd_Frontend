@@ -16,8 +16,10 @@ import deudasService from '../../../services/deudasService';
 import InputNormal from '../../common/InputNormal';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import useEntregaMovimientos from './hooks/useEntregaMovimientos';
+import { useLayout } from '../../../context/LayoutContext';
 
 function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null, isEditandoMovimiento = false, movimientoIdEditando = null, numeroOrdenEditando: numeroOrdenEditandoProp = null, onMovimientoEditado = null }) {
+    const { isLargeScreen } = useLayout();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
@@ -729,7 +731,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             <div className={`${styles.container} ${isCartMode ? styles.cartPanel : ''}`}>
                 {/* Selectores de precio y agrupación */}
                 <div className={styles.controlesGenerales}>
-
                     <Select
                         value={precioSeleccionado}
                         onChange={cambiarTipoPrecio}
@@ -738,21 +739,26 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         disabled={loadingPrecios}
                         icon='dollar'
                     />
-
+                    {/* Selector de modalidad fuera de controles generales */}
                     {productosCanasta.some(producto => producto.grup) && (
+
                         <Select
                             value={modoAgrupacion}
                             onChange={cambiarModoAgrupacion}
                             options={[
-                                { value: 'agrupado', label: 'Agrupado' },
-                                { value: 'no_agrupado', label: 'Unidades' }
+                                { value: 'agrupado', label: 'Agrupado', icon: 'layer' },
+                                { value: 'no_agrupado', label: 'Unidades', icon: 'cube' }
                             ]}
                             placeholder="Modalidad"
-                            icon='package'
+                            icon={modoAgrupacion === 'agrupado' ? 'layer' : (modoAgrupacion === 'no_agrupado' ? 'cube' : 'layer')}
+                            iconOnly={!isLargeScreen}
+                            dropdownDirection="right"
                         />
-                    )}
 
+                    )}
                 </div>
+
+
 
                 {productosCanasta.length > 0 ? (
                     <>
@@ -816,53 +822,53 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                                 transition={{ duration: 0.3 }}
                                                 className={styles.cantidad}
                                             >
-                                            <input
-                                                ref={registerCantidadInputRef(producto.id)}
-                                                type="number"
-                                                min="1"
-                                                max={(modoAgrupacion === 'agrupado' && producto.grup)
-                                                    ? producto.stock
-                                                    : (producto.stockOriginal || producto.stock)}
-                                                value={producto.cantidadTemp !== undefined ? producto.cantidadTemp : producto.cantidad}
-                                                onChange={(e) => {
-                                                    const valor = e.target.value;
-                                                    if (valor === '') {
-                                                        setProductosCanasta(prev => prev.map(p =>
-                                                            p.id === producto.id
-                                                                ? { ...p, cantidadTemp: '' }
-                                                                : p
-                                                        ));
-                                                        return;
-                                                    }
-                                                    const nuevaCantidad = parseInt(valor, 10);
-                                                    if (Number.isNaN(nuevaCantidad)) {
-                                                        return;
-                                                    }
-                                                    handleActualizarCantidad(producto.id, nuevaCantidad, false);
-                                                }}
-                                                onBlur={(e) => {
-                                                    const valor = e.target.value;
-                                                    if (valor === '') {
-                                                        setProductosCanasta(prev => prev.map(p =>
-                                                            p.id === producto.id
-                                                                ? { ...p, cantidadTemp: undefined }
-                                                                : p
-                                                        ));
-                                                        return;
-                                                    }
-                                                    const nuevaCantidad = parseInt(valor, 10);
-                                                    if (Number.isNaN(nuevaCantidad) || nuevaCantidad < 1) {
-                                                        handleActualizarCantidad(producto.id, 1, false);
-                                                    } else if (nuevaCantidad > ((modoAgrupacion === 'agrupado' && producto.grup)
+                                                <input
+                                                    ref={registerCantidadInputRef(producto.id)}
+                                                    type="number"
+                                                    min="1"
+                                                    max={(modoAgrupacion === 'agrupado' && producto.grup)
                                                         ? producto.stock
-                                                        : (producto.stockOriginal || producto.stock))) {
-                                                        const stockMaximo = (modoAgrupacion === 'agrupado' && producto.grup)
+                                                        : (producto.stockOriginal || producto.stock)}
+                                                    value={producto.cantidadTemp !== undefined ? producto.cantidadTemp : producto.cantidad}
+                                                    onChange={(e) => {
+                                                        const valor = e.target.value;
+                                                        if (valor === '') {
+                                                            setProductosCanasta(prev => prev.map(p =>
+                                                                p.id === producto.id
+                                                                    ? { ...p, cantidadTemp: '' }
+                                                                    : p
+                                                            ));
+                                                            return;
+                                                        }
+                                                        const nuevaCantidad = parseInt(valor, 10);
+                                                        if (Number.isNaN(nuevaCantidad)) {
+                                                            return;
+                                                        }
+                                                        handleActualizarCantidad(producto.id, nuevaCantidad, false);
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        const valor = e.target.value;
+                                                        if (valor === '') {
+                                                            setProductosCanasta(prev => prev.map(p =>
+                                                                p.id === producto.id
+                                                                    ? { ...p, cantidadTemp: undefined }
+                                                                    : p
+                                                            ));
+                                                            return;
+                                                        }
+                                                        const nuevaCantidad = parseInt(valor, 10);
+                                                        if (Number.isNaN(nuevaCantidad) || nuevaCantidad < 1) {
+                                                            handleActualizarCantidad(producto.id, 1, false);
+                                                        } else if (nuevaCantidad > ((modoAgrupacion === 'agrupado' && producto.grup)
                                                             ? producto.stock
-                                                            : (producto.stockOriginal || producto.stock);
-                                                        handleActualizarCantidad(producto.id, stockMaximo, false);
-                                                    }
-                                                }}
-                                            />
+                                                            : (producto.stockOriginal || producto.stock))) {
+                                                            const stockMaximo = (modoAgrupacion === 'agrupado' && producto.grup)
+                                                                ? producto.stock
+                                                                : (producto.stockOriginal || producto.stock);
+                                                            handleActualizarCantidad(producto.id, stockMaximo, false);
+                                                        }
+                                                    }}
+                                                />
                                             </motion.span>
                                             <button
                                                 className={styles.btnCantidad}

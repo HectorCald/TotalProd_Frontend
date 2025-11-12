@@ -171,7 +171,12 @@
 
 /* Modo solo icono */
 .iconOnly {
-  width: auto;
+    width: auto;
+    background-color: transparent;
+    height: auto;
+    min-height: auto;
+    padding: 0;
+    border-radius: 0;
 }
 
 .iconOnly .optionsContainer {
@@ -182,24 +187,31 @@
 }
 
 .iconOnlyButton {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--quaternary-color);
-  background-color: var(--tertiary-color);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  padding: 0;
+    width: 50px;
+    height: 50px;
+    border: none;
+    background-color: var(--tertiary-color);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    min-width: 50px;
+    min-height: 50px;
 }
 
 .iconOnlyButton.active {
-  border-color: var(--primary-color);
-  background-color: var(--quaternary-color);
+    border-color: var(--primary-color);
+    background-color: var(--quaternary-color);
 }
 
 .iconOnlyIcon {
-  font-size: 18px !important;
-  color: var(--primary-color);
+    font-size: 24px;
+    width: auto;
+    height: auto;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

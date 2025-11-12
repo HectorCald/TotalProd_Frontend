@@ -17,7 +17,9 @@ function Select({
     placeholderAsValue = false,
     disabled = false,
     // Label separado que se muestra arriba cuando hay un valor o placeholderAsValue es true
-    label
+    label,
+    // Tamaño del icono cuando está en modo iconOnly (en píxeles)
+    iconSize
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
@@ -106,7 +108,7 @@ function Select({
                     // Modo solo icono
                     <BoxIcon 
                         name={(selectedOption && selectedOption.icon) ? selectedOption.icon : icon} 
-                        className={styles.iconOnlyIcon} 
+                        className={styles.iconOnlyIcon}
                     />
                 ) : (
                     // Modo normal
