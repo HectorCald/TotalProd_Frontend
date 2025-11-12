@@ -340,16 +340,28 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         localStorage.setItem('movimientoAgrupadoRepitiendo', movimientoActual.agrupado ? 'agrupado' : 'no_agrupado');
         localStorage.setItem('metodoPagoRepitiendo', movimientoActual.metodo_pago || '');
 
-        const descuentoMovimiento = parseFloat(movimientoActual?.descuento ?? movimiento?.descuento ?? 0);
-        if (!isNaN(descuentoMovimiento) && descuentoMovimiento > 0) {
-            localStorage.setItem('descuentoMovimientoRepitiendo', descuentoMovimiento.toString());
+        // Calcular el subtotal para convertir montos a porcentajes
+        const productosFuente = obtenerProductosFuente();
+        const subtotalMovimiento = productosFuente.reduce((sum, producto) => {
+            return sum + (parseFloat(producto.subtotal) || 0);
+        }, 0);
+
+        // Convertir montos de descuento y aumento a porcentajes
+        const descuentoMonto = parseFloat(movimientoActual?.descuento ?? movimiento?.descuento ?? 0);
+        const aumentoMonto = parseFloat(movimientoActual?.aumento ?? movimiento?.aumento ?? 0);
+        
+        if (!isNaN(descuentoMonto) && descuentoMonto > 0 && subtotalMovimiento > 0) {
+            // Calcular porcentaje desde el monto y el subtotal
+            const descuentoPorcentaje = (descuentoMonto / subtotalMovimiento) * 100;
+            localStorage.setItem('descuentoMovimientoRepitiendo', descuentoPorcentaje.toFixed(2));
         } else {
             localStorage.removeItem('descuentoMovimientoRepitiendo');
         }
 
-        const aumentoMovimiento = parseFloat(movimientoActual?.aumento ?? movimiento?.aumento ?? 0);
-        if (!isNaN(aumentoMovimiento) && aumentoMovimiento > 0) {
-            localStorage.setItem('aumentoMovimientoRepitiendo', aumentoMovimiento.toString());
+        if (!isNaN(aumentoMonto) && aumentoMonto > 0 && subtotalMovimiento > 0) {
+            // Calcular porcentaje desde el monto y el subtotal
+            const aumentoPorcentaje = (aumentoMonto / subtotalMovimiento) * 100;
+            localStorage.setItem('aumentoMovimientoRepitiendo', aumentoPorcentaje.toFixed(2));
         } else {
             localStorage.removeItem('aumentoMovimientoRepitiendo');
         }
@@ -364,8 +376,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         }
 
         // Guardar productos del movimiento para cargar automáticamente (robusto post-anulación)
-        const productosFuente = obtenerProductosFuente();
-
         const productosMovimiento = (productosFuente || [])
             .map((productoMovimiento) => {
                 const prodId = productoMovimiento?.producto?.id ?? productoMovimiento?.producto_id;
@@ -539,23 +549,32 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
 
                     {/* Descuento y Aumento si existen */}
                     {(() => {
-                        const descuento = parseFloat(movimientoActual?.descuento) || 0;
-                        const aumento = parseFloat(movimientoActual?.aumento) || 0;
+                        const descuentoMonto = parseFloat(movimientoActual?.descuento) || 0;
+                        const aumentoMonto = parseFloat(movimientoActual?.aumento) || 0;
+                        
+                        // Calcular el subtotal para obtener el porcentaje
+                        const subtotal = movimientoActual?.productos?.reduce((sum, producto) => {
+                            return sum + (parseFloat(producto.subtotal) || 0);
+                        }, 0) || 0;
+                        
+                        // Calcular porcentajes desde los montos y el subtotal
+                        const descuentoPorcentaje = subtotal > 0 ? ((descuentoMonto / subtotal) * 100) : 0;
+                        const aumentoPorcentaje = subtotal > 0 ? ((aumentoMonto / subtotal) * 100) : 0;
                         
                         return (
                             <>
-                                {descuento > 0 && (
+                                {descuentoMonto > 0 && (
                                     <Dato
                                         label="Descuento"
-                                        value={`Bs. ${descuento.toFixed(2)}`}
+                                        value={`${descuentoPorcentaje.toFixed(2)}% (Bs. ${descuentoMonto.toFixed(2)})`}
                                         vertical={false}
                                         especial='red'
                                     />
                                 )}
-                                {aumento > 0 && (
+                                {aumentoMonto > 0 && (
                                     <Dato
                                         label="Aumento"
-                                        value={`Bs. ${aumento.toFixed(2)}`}
+                                        value={`${aumentoPorcentaje.toFixed(2)}% (Bs. ${aumentoMonto.toFixed(2)})`}
                                         vertical={false}
                                         especial='green'
                                     />
@@ -570,9 +589,9 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                             label="Total del Movimiento"
                             value={`Bs. ${(() => {
                                 const subtotal = movimientoActual.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
-                                const descuento = parseFloat(movimientoActual.descuento) || 0;
-                                const aumento = parseFloat(movimientoActual.aumento) || 0;
-                                const total = subtotal - descuento + aumento;
+                                const descuentoMonto = parseFloat(movimientoActual.descuento) || 0;
+                                const aumentoMonto = parseFloat(movimientoActual.aumento) || 0;
+                                const total = subtotal - descuentoMonto + aumentoMonto;
                                 return total.toFixed(2);
                             })()}`}
                             vertical={false}

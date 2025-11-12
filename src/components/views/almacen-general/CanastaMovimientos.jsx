@@ -537,6 +537,19 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 : (observacionesGenerales || null);
 
             // Crear nuevo movimiento
+            // Calcular el subtotal para convertir porcentajes a montos
+            const productosParaCalcular = prepararProductos();
+            const subtotalParaDescuentoAumento = productosCanasta.reduce((total, producto) => {
+                const valorProducto = (producto.precio || 0) * producto.cantidad;
+                return total + valorProducto;
+            }, 0);
+            
+            // Convertir porcentajes a montos
+            const descuentoPorcentaje = parseFloat(descuento) || 0;
+            const aumentoPorcentaje = parseFloat(aumento) || 0;
+            const descuentoMonto = (subtotalParaDescuentoAumento * descuentoPorcentaje) / 100;
+            const aumentoMonto = (subtotalParaDescuentoAumento * aumentoPorcentaje) / 100;
+            
             const movimientoData = {
                 type: 'salida',
                 observaciones: observacionesFinales,
@@ -546,9 +559,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 proveedor_id: null,
                 restar_ingredientes: false,
                 agrupado: modoAgrupacion === 'agrupado',
-                descuento: parseFloat(descuento) || 0,
-                aumento: parseFloat(aumento) || 0,
-                productos: prepararProductos(),
+                descuento: descuentoMonto,
+                aumento: aumentoMonto,
+                productos: productosParaCalcular,
                 ...(fechaMovimientoEditando ? { fecha: fechaMovimientoEditando } : {}),
                 ...(numeroOrdenPayload !== null ? { numero_orden: numeroOrdenPayload } : {})
             };
@@ -575,9 +588,12 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             const valorProducto = (producto.precio || 0) * producto.cantidad;
                             return total + valorProducto;
                         }, 0);
-                        const descuentoValue = parseFloat(descuento) || 0;
-                        const aumentoValue = parseFloat(aumento) || 0;
-                        const totalMovimiento = subtotalMovimiento - descuentoValue + aumentoValue;
+                        // Calcular descuento y aumento como porcentajes del subtotal
+                        const descuentoPorcentaje = parseFloat(descuento) || 0;
+                        const aumentoPorcentaje = parseFloat(aumento) || 0;
+                        const descuentoMonto = (subtotalMovimiento * descuentoPorcentaje) / 100;
+                        const aumentoMonto = (subtotalMovimiento * aumentoPorcentaje) / 100;
+                        const totalMovimiento = subtotalMovimiento - descuentoMonto + aumentoMonto;
                         const fechaDeudaBase = (() => {
                             if (fechaMovimientoEditando) {
                                 const fechaParsed = new Date(fechaMovimientoEditando);
@@ -912,17 +928,17 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
                                     <div className={styles.horizontal}>
                                         <InputNormal
-                                            placeholder="Descuento"
+                                            placeholder="Descuento %"
                                             tipo="number"
-                                            step="0.01" min="0"
+                                            step="0.01" min="0" max="100"
                                             value={descuento}
                                             onChange={(e) => setDescuento(e.target.value)}
                                             icon='trending-down'
                                         />
                                         <InputNormal
-                                            placeholder="Aumento"
+                                            placeholder="Aumento %"
                                             tipo="number"
-                                            step="0.01" min="0"
+                                            step="0.01" min="0" max="100"
                                             value={aumento}
                                             onChange={(e) => setAumento(e.target.value)}
                                             icon='trending-up'
@@ -949,9 +965,12 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                         const valorProducto = (producto.precio || 0) * producto.cantidad;
                                         return total + valorProducto;
                                     }, 0);
-                                    const descuentoValue = parseFloat(descuento) || 0;
-                                    const aumentoValue = parseFloat(aumento) || 0;
-                                    const total = subtotal - descuentoValue + aumentoValue;
+                                    // Calcular descuento y aumento como porcentajes del subtotal
+                                    const descuentoPorcentaje = parseFloat(descuento) || 0;
+                                    const aumentoPorcentaje = parseFloat(aumento) || 0;
+                                    const descuentoMonto = (subtotal * descuentoPorcentaje) / 100;
+                                    const aumentoMonto = (subtotal * aumentoPorcentaje) / 100;
+                                    const total = subtotal - descuentoMonto + aumentoMonto;
                                     return total.toFixed(2);
                                 })()}</span>
                             </div>

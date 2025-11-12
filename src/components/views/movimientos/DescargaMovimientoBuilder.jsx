@@ -184,17 +184,23 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         if (movimiento?.precio?.name) infoSup['Tipo de Precio'] = movimiento.precio.name;
                         if (movimiento?.metodo_pago) infoSup['Método de Pago'] = movimiento.metodo_pago;
                         if (movimiento?.agrupado !== undefined) infoSup['Modalidad'] = movimiento.agrupado ? 'Agrupado' : 'Unidades';
-                        if (movimiento?.descuento && movimiento.descuento > 0) {
-                            infoSup['Descuento'] = `Bs. ${parseFloat(movimiento.descuento).toFixed(2)}`;
-                        }
-                        if (movimiento?.aumento && movimiento.aumento > 0) {
-                            infoSup['Aumento'] = `Bs. ${parseFloat(movimiento.aumento).toFixed(2)}`;
-                        }
                         if (movimiento?.productos && movimiento.productos.length > 0) {
                             const subtotal = movimiento.productos.reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
-                            const descuento = parseFloat(movimiento.descuento) || 0;
-                            const aumento = parseFloat(movimiento.aumento) || 0;
-                            const totalFinal = subtotal - descuento + aumento;
+                            const descuentoMonto = parseFloat(movimiento.descuento) || 0;
+                            const aumentoMonto = parseFloat(movimiento.aumento) || 0;
+                            
+                            // Calcular porcentajes desde los montos y el subtotal
+                            const descuentoPorcentaje = subtotal > 0 ? ((descuentoMonto / subtotal) * 100) : 0;
+                            const aumentoPorcentaje = subtotal > 0 ? ((aumentoMonto / subtotal) * 100) : 0;
+                            
+                            if (descuentoMonto > 0) {
+                                infoSup['Descuento'] = `${descuentoPorcentaje.toFixed(2)}% (Bs. ${descuentoMonto.toFixed(2)})`;
+                            }
+                            if (aumentoMonto > 0) {
+                                infoSup['Aumento'] = `${aumentoPorcentaje.toFixed(2)}% (Bs. ${aumentoMonto.toFixed(2)})`;
+                            }
+                            
+                            const totalFinal = subtotal - descuentoMonto + aumentoMonto;
                             infoSup['Total'] = `Bs. ${totalFinal.toFixed(2)}`;
                         }
                         if (movimiento?.observaciones) infoSup['Observaciones'] = movimiento.observaciones;
@@ -333,17 +339,23 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         if (movimiento?.agrupado !== undefined) {
                             infoSup['Modalidad'] = movimiento.agrupado ? 'Agrupado' : 'Unidades';
                         }
-                        if (movimiento?.descuento && movimiento.descuento > 0) {
-                            infoSup['Descuento'] = `Bs. ${parseFloat(movimiento.descuento).toFixed(2)}`;
-                        }
-                        if (movimiento?.aumento && movimiento.aumento > 0) {
-                            infoSup['Aumento'] = `Bs. ${parseFloat(movimiento.aumento).toFixed(2)}`;
-                        }
                         if (movimiento?.productos && movimiento.productos.length > 0) {
                             const subtotal = movimiento.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
-                            const descuento = parseFloat(movimiento.descuento) || 0;
-                            const aumento = parseFloat(movimiento.aumento) || 0;
-                            const totalFinal = subtotal - descuento + aumento;
+                            const descuentoMonto = parseFloat(movimiento.descuento) || 0;
+                            const aumentoMonto = parseFloat(movimiento.aumento) || 0;
+                            
+                            // Calcular porcentajes desde los montos y el subtotal
+                            const descuentoPorcentaje = subtotal > 0 ? ((descuentoMonto / subtotal) * 100) : 0;
+                            const aumentoPorcentaje = subtotal > 0 ? ((aumentoMonto / subtotal) * 100) : 0;
+                            
+                            if (descuentoMonto > 0) {
+                                infoSup['Descuento'] = `${descuentoPorcentaje.toFixed(2)}% (Bs. ${descuentoMonto.toFixed(2)})`;
+                            }
+                            if (aumentoMonto > 0) {
+                                infoSup['Aumento'] = `${aumentoPorcentaje.toFixed(2)}% (Bs. ${aumentoMonto.toFixed(2)})`;
+                            }
+                            
+                            const totalFinal = subtotal - descuentoMonto + aumentoMonto;
                             infoSup['Total'] = `Bs. ${totalFinal.toFixed(2)}`;
                         }
                         if (movimiento?.observaciones) {
