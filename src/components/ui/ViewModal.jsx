@@ -5,50 +5,97 @@ import { useModalStack } from '../../context/ModalStackContext';
 const ViewModal = ({ isOpen, setIsOpen, children, closed = false }) => {
     const { registerModal, unregisterModal, isLastModal, getOpenModalsCount } = useModalStack();
     const modalIdRef = useRef(null);
+    const containerRef = useRef(null);
+    const contentRef = useRef(null);
     const [isVisible, setIsVisible] = useState(false);
     const [shouldRenderContent, setShouldRenderContent] = useState(false);
+    const [isMeasuring, setIsMeasuring] = useState(false);
     const rafIdsRef = useRef([]);
+    const timeoutRef = useRef(null);
 
     const handleClose = () => {
         setIsOpen(false);
     };
 
-    // Manejar animación de entrada
+    // Manejar animación de entrada con medición de altura
     useEffect(() => {
         if (isOpen) {
             setIsVisible(false); // Resetear estado inicial
             setShouldRenderContent(false); // No renderizar contenido aún
+            setIsMeasuring(true); // Empezar a medir
             
-            // Limpiar cualquier RAF pendiente
+            // Limpiar cualquier RAF o timeout pendiente
             rafIdsRef.current.forEach(id => cancelAnimationFrame(id));
             rafIdsRef.current = [];
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
             
             // Usar requestAnimationFrame para sincronizar con el ciclo de render
             const rafId1 = requestAnimationFrame(() => {
                 // Segundo frame para asegurar que el DOM está listo
                 const rafId2 = requestAnimationFrame(() => {
-                    setIsVisible(true);
-                    // Renderizar contenido después de iniciar la animación (pequeño delay)
-                    const rafId3 = requestAnimationFrame(() => {
-                        setShouldRenderContent(true);
-                    });
-                    rafIdsRef.current.push(rafId3);
+                    // Medir la altura del contenido antes de animar
+                    if (contentRef.current && containerRef.current) {
+                        const contentHeight = contentRef.current.scrollHeight;
+                        const viewportHeight = window.innerHeight;
+                        const heightPercentage = (contentHeight / viewportHeight) * 100;
+                        
+                        // Calcular delay basado en la altura
+                        // Modales pequeños (< 30%): delay corto
+                        // Modales medianos (30-60%): delay medio
+                        // Modales grandes (> 60%): delay largo
+                        let delay = 50; // delay base en ms
+                        if (heightPercentage > 60) {
+                            delay = 200; // Modales muy grandes
+                        } else if (heightPercentage > 30) {
+                            delay = 120; // Modales medianos
+                        } else {
+                            delay = 50; // Modales pequeños
+                        }
+                        
+                        // Iniciar animación
+                        setIsVisible(true);
+                        setIsMeasuring(false);
+                        
+                        // Renderizar contenido después de un delay basado en la altura
+                        timeoutRef.current = setTimeout(() => {
+                            setShouldRenderContent(true);
+                        }, delay);
+                    } else {
+                        // Fallback si no se puede medir
+                        setIsVisible(true);
+                        setIsMeasuring(false);
+                        timeoutRef.current = setTimeout(() => {
+                            setShouldRenderContent(true);
+                        }, 100);
+                    }
                 });
                 rafIdsRef.current.push(rafId2);
             });
             rafIdsRef.current.push(rafId1);
             
             return () => {
-                // Limpiar todos los RAF pendientes
+                // Limpiar todos los RAF y timeouts pendientes
                 rafIdsRef.current.forEach(id => cancelAnimationFrame(id));
                 rafIdsRef.current = [];
+                if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current);
+                    timeoutRef.current = null;
+                }
             };
         } else {
             setIsVisible(false); // Limpiar estado al cerrar
             setShouldRenderContent(false);
-            // Limpiar RAF pendientes al cerrar
+            setIsMeasuring(false);
+            // Limpiar RAF y timeouts pendientes al cerrar
             rafIdsRef.current.forEach(id => cancelAnimationFrame(id));
             rafIdsRef.current = [];
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
         }
     }, [isOpen]);
 
@@ -73,10 +120,22 @@ const ViewModal = ({ isOpen, setIsOpen, children, closed = false }) => {
                 >
                     {/* Panel Modal */}
                     <div 
+                        ref={containerRef}
                         className={styles.modalContainer}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {shouldRenderContent && children}
+                        {/* Contenido - renderizado una vez, oculto durante medición, visible después del delay */}
+                        <div 
+                            ref={contentRef}
+                            className={styles.contentWrapper}
+                            style={{ 
+                                visibility: isOpen ? 'visible' : 'hidden', // Visible para medir, pero opacity controla la visibilidad real
+                                opacity: shouldRenderContent ? 1 : 0,
+                                pointerEvents: shouldRenderContent ? 'auto' : 'none'
+                            }}
+                        >
+                            {children}
+                        </div>
                     </div>
                 </div>
             )}

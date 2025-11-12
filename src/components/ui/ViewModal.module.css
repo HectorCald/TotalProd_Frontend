@@ -36,6 +36,13 @@
     contain: layout style paint;
 }
 
+.contentWrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: opacity 0.2s ease;
+}
+
 
 /* Estilos para pantallas grandes */
 @media (min-width: 1024px) {
