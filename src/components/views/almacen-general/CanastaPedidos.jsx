@@ -395,11 +395,9 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                         disabled={loadingPrecios}
                         icon='dollar'
                     />
-                </div>
+                    {/* Selector de modalidad fuera de controles generales */}
+                    {productosCanasta.some(producto => producto.grup) && (
 
-                {/* Selector de modalidad fuera de controles generales */}
-                {productosCanasta.some(producto => producto.grup) && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
                         <Select
                             value={modoAgrupacion}
                             onChange={cambiarModoAgrupacion}
@@ -412,8 +410,9 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                             iconOnly={!isLargeScreen}
                             dropdownDirection="right"
                         />
-                    </div>
-                )}
+
+                    )}
+                </div>
 
                 {productosCanasta.length > 0 ? (
                     <>
@@ -532,12 +531,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                     </div>
                                 </div>
                             ))}
+                            <hr className={styles.hr} />
                             {/* Botón para seleccionar cliente entre sucursal y observaciones */}
                             <Boton
                                 className='btn-gray'
                                 label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
                                 onClick={() => setIsClientesSeleccionOpen(true)}
-                                style={{ width: '100%', justifyContent: 'flex-start', marginTop: 'auto' }}
+                                style={{ width: '100%', justifyContent: 'flex-start' }}
                             />
                             {/* Selector de sucursal - Solo mostrar si no estamos editando */}
                             {!pedidoId && (

@@ -328,11 +328,9 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                         disabled={loadingPrecios}
                         icon='dollar'
                     />
-                </div>
+                    {/* Selector de modalidad fuera de controles generales */}
+                    {productosCanasta.some(producto => producto.grup) && (
 
-                {/* Selector de modalidad fuera de controles generales */}
-                {productosCanasta.some(producto => producto.grup) && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
                         <Select
                             value={modoAgrupacion}
                             onChange={cambiarModoAgrupacion}
@@ -345,8 +343,9 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                             iconOnly={!isLargeScreen}
                             dropdownDirection="right"
                         />
-                    </div>
-                )}
+
+                    )}
+                </div>
 
                 {productosCanasta.length > 0 ? (
                     <>
@@ -446,9 +445,9 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                 </div>
                             ))}
 
-
+                            <hr className={styles.hr} />
                             {/* Registrar gasto (opcional) */}
-                            <div className={styles.content} style={{ marginTop: 'auto', padding: '15px' }}>
+                            <div className={styles.content} style={{  padding: '15px' }}>
                                 <Switch
                                     title="Registrar gasto"
                                     subtitle="Crear un gasto automáticamente con estas entradas"

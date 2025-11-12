@@ -76,6 +76,14 @@
     overflow-y: auto;
 }
 
+.hr {
+    width: 100%;
+    height: 1px;
+    border-color: var(--quinary-color) !important;
+    margin-top: auto;
+    margin-bottom: 10px;
+}
+
 .productosList::-webkit-scrollbar {
     width: 4px;
 }

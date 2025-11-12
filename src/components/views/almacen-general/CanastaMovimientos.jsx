@@ -893,6 +893,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             {/* Controles específicos para salidas */}
                             {(
                                 <>
+                                    <hr className={styles.hr} />
                                     {/* Selector de cliente para salidas */}
                                     <Boton
                                         className='btn-gray'
@@ -903,7 +904,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                         }
                                         onClick={() => setIsClientesSeleccionOpen(true)}
                                         style={{
-                                            marginTop: 'auto',
                                             width: '100%',
                                             justifyContent: 'flex-start',
                                             ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData && !esEntrega ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})

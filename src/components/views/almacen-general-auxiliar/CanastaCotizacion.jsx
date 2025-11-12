@@ -328,11 +328,9 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                         disabled={loadingPrecios}
                         icon='dollar'
                     />
-                </div>
+                    {/* Selector de modalidad fuera de controles generales */}
+                    {productosCanasta.some(producto => producto.grup) && (
 
-                {/* Selector de modalidad fuera de controles generales */}
-                {productosCanasta.some(producto => producto.grup) && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
                         <Select
                             value={modoAgrupacion}
                             onChange={handleCambiarModoAgrupacion}
@@ -345,8 +343,9 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                             iconOnly={!isLargeScreen}
                             dropdownDirection="right"
                         />
-                    </div>
-                )}
+
+                    )}
+                </div>
 
                 {productosCanasta.length > 0 ? (
                     <>
@@ -468,13 +467,12 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                             {/* Controles específicos para cotizaciones */}
                             <>
                                 {/* Selector de cliente para cotizaciones (opcional) */}
-
+                                <hr className={styles.hr} />
                                 <Boton
                                     className='btn-gray'
                                     label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)')}
                                     onClick={() => setIsClientesSeleccionOpen(true)}
                                     style={{
-                                        marginTop: 'auto',
                                         width: '100%',
                                         justifyContent: 'flex-start',
                                         ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
