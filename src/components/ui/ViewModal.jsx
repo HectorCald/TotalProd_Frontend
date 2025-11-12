@@ -7,6 +7,7 @@ const ViewModal = ({ isOpen, setIsOpen, children, closed = false }) => {
     const modalIdRef = useRef(null);
     const [isVisible, setIsVisible] = useState(false);
     const [shouldRenderContent, setShouldRenderContent] = useState(false);
+    const rafIdsRef = useRef([]);
 
     const handleClose = () => {
         setIsOpen(false);
@@ -17,21 +18,37 @@ const ViewModal = ({ isOpen, setIsOpen, children, closed = false }) => {
         if (isOpen) {
             setIsVisible(false); // Resetear estado inicial
             setShouldRenderContent(false); // No renderizar contenido aún
+            
+            // Limpiar cualquier RAF pendiente
+            rafIdsRef.current.forEach(id => cancelAnimationFrame(id));
+            rafIdsRef.current = [];
+            
             // Usar requestAnimationFrame para sincronizar con el ciclo de render
-            const rafId = requestAnimationFrame(() => {
+            const rafId1 = requestAnimationFrame(() => {
                 // Segundo frame para asegurar que el DOM está listo
-                requestAnimationFrame(() => {
+                const rafId2 = requestAnimationFrame(() => {
                     setIsVisible(true);
-                    // Renderizar contenido después de iniciar la animación
-                    requestAnimationFrame(() => {
+                    // Renderizar contenido después de iniciar la animación (pequeño delay)
+                    const rafId3 = requestAnimationFrame(() => {
                         setShouldRenderContent(true);
                     });
+                    rafIdsRef.current.push(rafId3);
                 });
+                rafIdsRef.current.push(rafId2);
             });
-            return () => cancelAnimationFrame(rafId);
+            rafIdsRef.current.push(rafId1);
+            
+            return () => {
+                // Limpiar todos los RAF pendientes
+                rafIdsRef.current.forEach(id => cancelAnimationFrame(id));
+                rafIdsRef.current = [];
+            };
         } else {
             setIsVisible(false); // Limpiar estado al cerrar
             setShouldRenderContent(false);
+            // Limpiar RAF pendientes al cerrar
+            rafIdsRef.current.forEach(id => cancelAnimationFrame(id));
+            rafIdsRef.current = [];
         }
     }, [isOpen]);
 
