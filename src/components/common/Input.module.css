@@ -13,7 +13,7 @@
   z-index: 0;
   width: auto;
   padding: 0 3px;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
 }
 .input{
   width: 100%;
@@ -27,7 +27,7 @@
   font-size: 16px;
   font-weight: 400;
   outline: none;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
   z-index: 1;
 
   &:focus{

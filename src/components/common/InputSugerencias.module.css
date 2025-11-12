@@ -14,7 +14,7 @@
   z-index: 0;
   width: auto;
   padding: 0 3px;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
   cursor: pointer;
 }
 
@@ -40,7 +40,7 @@
   font-size: 14px;
   font-weight: 400;
   outline: none;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
   z-index: 1;
 }
 
@@ -68,7 +68,7 @@
   pointer-events: none;
   z-index: 2;
   font-weight: 400;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;

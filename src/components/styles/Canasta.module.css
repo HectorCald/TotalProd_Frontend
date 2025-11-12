@@ -136,9 +136,10 @@
     gap: 5px;
     display: flex;
     flex-direction: column;
-    transition: all 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease, max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
     border-radius: 10px;
     position: relative;
+    contain: layout style paint;
 }
 
 .productoItem.eliminando {
@@ -148,7 +149,7 @@
     padding: 0;
     margin: 0;
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease, max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
 }
 
 .productoIcon {
