@@ -221,18 +221,32 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             const isAndroid = /Android/i.test(navigator.userAgent);
             const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg|OPR|Samsung/i.test(navigator.userAgent);
             
+            // Obtener versión de Chrome
+            const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
+            const chromeVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1]) : null;
+            const chromeVersionString = chromeVersionMatch ? chromeVersionMatch[1] : 'Desconocida';
+            
             console.log('=== DEBUG IMPORTAR CONTACTO ===');
             console.log('HTTPS:', isSecure);
             console.log('Android:', isAndroid);
             console.log('Chrome:', isChrome);
+            console.log('Versión de Chrome:', chromeVersion, `(${chromeVersionString})`);
             console.log('navigator.contacts:', 'contacts' in navigator);
             console.log('navigator.contacts.select:', 'contacts' in navigator && navigator.contacts && typeof navigator.contacts.select);
             console.log('window.ContactsManager:', 'ContactsManager' in window);
+            console.log('User Agent completo:', navigator.userAgent);
             
             // Verificar disponibilidad de la API de forma más estricta
             if (!isSecure || !isAndroid || !isChrome) {
                 setErrorContactos('Esta funcionalidad solo está disponible en dispositivos Android con Chrome.');
                 setTimeout(() => setErrorContactos(''), 5000);
+                return;
+            }
+            
+            // Verificar versión de Chrome (requiere 80+)
+            if (chromeVersion && chromeVersion < 80) {
+                setErrorContactos(`Tu versión de Chrome (${chromeVersionString}) es muy antigua. La Contact Picker API requiere Chrome versión 80 o superior.\n\nSOLUCIÓN:\n1. Abre Google Play Store\n2. Busca "Chrome"\n3. Toca "Actualizar"\n4. Espera a que se actualice\n5. Reinicia Chrome y vuelve a intentar`);
+                setTimeout(() => setErrorContactos(''), 10000);
                 return;
             }
             
@@ -258,14 +272,36 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 return;
             }
             
+            // Verificar permisos usando Permissions API si está disponible
+            let hasPermission = true;
+            if ('permissions' in navigator) {
+                try {
+                    const permissionStatus = await navigator.permissions.query({ name: 'contacts' });
+                    console.log('Estado de permiso de contactos:', permissionStatus.state);
+                    hasPermission = permissionStatus.state !== 'denied';
+                    
+                    if (permissionStatus.state === 'prompt') {
+                        // El permiso aún no se ha solicitado, está bien
+                        console.log('Permiso en estado "prompt" - se solicitará al usar la API');
+                    } else if (permissionStatus.state === 'denied') {
+                        setErrorContactos('Chrome no tiene permisos para acceder a contactos. Ve a Configuración → Aplicaciones → Chrome → Permisos → Contactos y habilítalo.');
+                        setTimeout(() => setErrorContactos(''), 8000);
+                        return;
+                    }
+                } catch (permError) {
+                    console.log('No se pudo verificar permisos (normal en algunos navegadores):', permError);
+                    // Continuar de todas formas, la API puede funcionar sin verificación previa
+                }
+            }
+            
             // Llamar directamente a la API desde el click del usuario
-            // Usar requestIdleCallback o setTimeout mínimo para asegurar que el evento de click esté completamente procesado
             const properties = ['name', 'tel'];
             const options = { multiple: false }; // Solo un contacto
             
             console.log('Intentando abrir selector de contactos...');
             console.log('properties:', properties);
             console.log('options:', options);
+            console.log('hasPermission:', hasPermission);
             
             // Llamar la API directamente sin delay
             const contacts = await contactsManager.select(properties, options);
@@ -317,9 +353,27 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 detallesTecnicos += `\nStack: ${err.stack.split('\n').slice(0, 3).join('\n')}`;
             }
             
+            // Obtener información del dispositivo/navegador para el error
+            const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
+            const chromeVersion = chromeVersionMatch ? chromeVersionMatch[1] : 'Desconocida';
+            const androidVersionMatch = navigator.userAgent.match(/Android (\d+(\.\d+)?)/);
+            const androidVersion = androidVersionMatch ? androidVersionMatch[1] : 'Desconocida';
+            
             // Mensaje principal según el tipo de error
             if (errorMessage && errorMessage.toLowerCase().includes('unable to open')) {
-                mensajeError = `No se pudo abrir el selector de contactos.\n\nPosibles causas:\n- Chrome no tiene permisos para acceder a contactos\n- La versión de Chrome no soporta esta funcionalidad\n- El dispositivo tiene restricciones de seguridad\n\nDetalles técnicos:\n${detallesTecnicos}`;
+                // Verificar si Chrome está desactualizado
+                const chromeVersionNum = chromeVersionMatch ? parseInt(chromeVersionMatch[1]) : null;
+                let solucionEspecifica = '';
+                
+                if (chromeVersionNum && chromeVersionNum < 80) {
+                    solucionEspecifica = `\n\n🔴 PROBLEMA DETECTADO: Tu Chrome versión ${chromeVersion} es muy antigua.\n\nSOLUCIÓN INMEDIATA:\n1. Abre Google Play Store en tu Android\n2. Busca "Chrome" o "Google Chrome"\n3. Si aparece "Actualizar", tócalo\n4. Espera a que se actualice completamente\n5. Cierra Chrome completamente (no solo minimizar)\n6. Abre Chrome de nuevo\n7. Vuelve a esta app e intenta de nuevo\n\nLa Contact Picker API requiere Chrome versión 80 o superior. Tu versión actual (${chromeVersion}) no es compatible.`;
+                } else if (chromeVersionNum && chromeVersionNum >= 80) {
+                    solucionEspecifica = `\n\nTu Chrome versión ${chromeVersion} debería ser compatible, pero hay un problema.\n\nPosibles soluciones:\n1. Actualiza Chrome desde Play Store (puede haber una versión más reciente)\n2. Ve a Configuración → Aplicaciones → Chrome → Permisos → Contactos y habilítalo\n3. Reinicia Chrome completamente\n4. Verifica restricciones de administrador en el dispositivo`;
+                } else {
+                    solucionEspecifica = `\n\nSOLUCIÓN:\n1. Actualiza Chrome desde Play Store\n2. Verifica permisos de contactos en Configuración → Aplicaciones → Chrome\n3. Reinicia Chrome`;
+                }
+                
+                mensajeError = `No se pudo abrir el selector de contactos.${solucionEspecifica}\n\nInformación del dispositivo:\n- Chrome versión: ${chromeVersion} (requiere 80+)\n- Android versión: ${androidVersion}\n\nDetalles técnicos del error:\n${detallesTecnicos}`;
             } else if (errorName === 'NotSupportedError') {
                 mensajeError = `La API de contactos no está soportada.\n\nDetalles técnicos:\n${detallesTecnicos}`;
             } else if (errorName === 'SecurityError') {
