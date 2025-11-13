@@ -1,19 +1,39 @@
 export const detallesUpdate = [
     {
-        label: 'Correcciones',
+        label: 'Almacen general',
         children: [
             {
-                label: 'Modo empleado (PC)',
+                label: 'Salida o Venta',
                 children: [
-                    'Arreglo de diseño e interfaz de modulos del empleado',
-                    'Mejor carga de datos de empleados',
+                    'Opcion de conteo de venta o entrada de productos',
                 ],
             },
             {
-                label: 'Información',
+                label: 'Cotizaciones',
                 children: [
-                    'Mejor manejo de errores en la carga de informacion',
-                    'Mejor manejo de cargas de datos',
+                    'Opcion de repetir cotizacion',
+                ],
+            },
+        ],
+    },
+    {
+        label: 'Clientes',
+        children: [
+            {
+                label: 'Agregar cliente',
+                children: [
+                    'Opcion de importar clientes desde los contactos del telefono',
+                ],
+            },
+        ],
+    },
+    {
+        label: 'Descargas',
+        children: [
+            {
+                label: 'Descargar datos',
+                children: [
+                    'Descarga y comparte directamente desde la aplicacion',
                 ],
             },
         ],
