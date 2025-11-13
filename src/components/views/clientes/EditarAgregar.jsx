@@ -5,8 +5,8 @@ import ViewModal from '../../ui/ViewModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import Notification from '../../common/Notification';
+import MensajeError from '../../common/MensajeError';
 import MapaModal from './MapaModal';
-import ModalContactos from './ModalContactos';
 import clientService from '../../../services/clientService';
 import { useUser } from '../../../context/UserContext';
 import useHistorialLogger from '../../ui/HistorialLogger';
@@ -47,11 +47,11 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
         }, 3000);
     };
 
+    // Estado para mensaje de error de contactos
+    const [errorContactos, setErrorContactos] = useState('');
+
     // Estados para el mapa
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
-
-    // Estados para el modal de contactos
-    const [isContactosModalOpen, setIsContactosModalOpen] = useState(false);
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
@@ -205,13 +205,73 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
     // Determinar si el mapa debe ser de solo lectura
     const isMapReadOnly = tipo === 'ver';
 
-    // Función para manejar cuando se selecciona un contacto
-    const handleContactoSeleccionado = (contacto) => {
-        setDataEdit(prev => ({
-            ...prev,
-            name: contacto.name || prev.name,
-            phone: contacto.phone || prev.phone
-        }));
+    // Función para importar contacto directamente
+    const handleImportarContacto = async () => {
+        setErrorContactos('');
+        
+        try {
+            // Verificar si la Contact Picker API está disponible
+            const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg|OPR|Samsung/i.test(navigator.userAgent);
+            
+            // Verificar disponibilidad de la API
+            let contactsManager = null;
+            if ('contacts' in navigator && navigator.contacts && typeof navigator.contacts.select === 'function') {
+                contactsManager = navigator.contacts;
+            } else if ('ContactsManager' in window && window.ContactsManager) {
+                contactsManager = new window.ContactsManager();
+            }
+            
+            if (!isSecure || !isAndroid || !isChrome || !contactsManager) {
+                setErrorContactos('Esta funcionalidad solo está disponible en dispositivos Android con Chrome.');
+                setTimeout(() => setErrorContactos(''), 5000);
+                return;
+            }
+            
+            // Llamar directamente a la API desde el click del usuario
+            const properties = ['name', 'tel'];
+            const options = { multiple: false }; // Solo un contacto
+            
+            try {
+                const contacts = await contactsManager.select(properties, options);
+                
+                if (contacts && contacts.length > 0) {
+                    const contacto = contacts[0];
+                    const nombre = contacto.name && contacto.name.length > 0 ? contacto.name[0] : '';
+                    const telefono = contacto.tel && contacto.tel.length > 0 ? contacto.tel[0] : '';
+                    
+                    // Llenar directamente los campos
+                    setDataEdit(prev => ({
+                        ...prev,
+                        name: nombre || prev.name,
+                        phone: telefono || prev.phone
+                    }));
+                    
+                    mostrarNotificacion('success', 'Contacto importado correctamente');
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    // Usuario canceló, no mostrar error
+                    return;
+                }
+                console.error('Error al obtener contactos:', err);
+                let mensajeError = 'Error al acceder a los contactos.';
+                if (err.name === 'NotSupportedError') {
+                    mensajeError = 'La API de contactos no está soportada en este dispositivo.';
+                } else if (err.name === 'SecurityError') {
+                    mensajeError = 'No se pudo acceder a los contactos. Verifica los permisos del navegador.';
+                } else if (err.message) {
+                    mensajeError = err.message;
+                }
+                setErrorContactos(mensajeError);
+                setTimeout(() => setErrorContactos(''), 5000);
+            }
+        } catch (err) {
+            console.error('Error al importar contacto:', err);
+            setErrorContactos('Error al acceder a los contactos. Esta funcionalidad solo está disponible en dispositivos Android con Chrome.');
+            setTimeout(() => setErrorContactos(''), 5000);
+        }
     };
 
     return (
@@ -221,12 +281,15 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             <div className={styles.modalContent}>
                 <p className={styles.subTitle}>INFORMACION PERSONAL</p>
                 {tipo === 'agregar' && (
-                    <Boton
-                        className='btn-gray'
-                        label='Importar de contacto'
-                        onClick={() => setIsContactosModalOpen(true)}
-                        style={{ marginBottom: '10px' }}
-                    />
+                    <>
+                        <Boton
+                            className='btn-gray'
+                            label='Importar de contacto'
+                            onClick={handleImportarContacto}
+                            style={{ marginBottom: '10px' }}
+                        />
+                        {errorContactos && <MensajeError mensaje={errorContactos} />}
+                    </>
                 )}
                 <InputNormal
                     tipo="text"
@@ -301,12 +364,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 readOnly={isMapReadOnly}
                 title={getMapTitle()}
             />
-
-        <ModalContactos
-            isOpen={isContactosModalOpen}
-            setIsOpen={setIsContactosModalOpen}
-            onContactoSeleccionado={handleContactoSeleccionado}
-        />
 
         <Notification
             isVisible={notification.isVisible}
