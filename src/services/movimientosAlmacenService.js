@@ -145,7 +145,7 @@ class movimientosAlmacenService {
   }
 
   // Obtener todos los movimientos de la sucursal
-  static async getAll(page = 1, limit = 30, tipo = null, estado = null, ordenamiento = 'fecha_desc', clienteId = null, sucuIdParam = null, search = null) {
+  static async getAll(page = 1, limit = 30, tipo = null, estado = null, ordenamiento = 'fecha_desc', clienteId = null, sucuIdParam = null, search = null, filtroFecha = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -175,6 +175,14 @@ class movimientosAlmacenService {
       }
       if (search && search.trim() !== '') {
         params.append('search', search);
+      }
+      if (filtroFecha) {
+        if (filtroFecha.inicio) {
+          params.append('fecha_inicio', filtroFecha.inicio);
+        }
+        if (filtroFecha.fin) {
+          params.append('fecha_fin', filtroFecha.fin);
+        }
       }
 
       const response = await fetch(`${API_BASE_URL}/movimientos-almacen?${params}`, {

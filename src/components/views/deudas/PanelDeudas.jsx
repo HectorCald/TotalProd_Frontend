@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -22,6 +22,8 @@ import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
+import { formatCurrency } from '../../../utils/numberUtils';
+import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 
 function PanelDeudas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -47,6 +49,15 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     const [filtroEstado, setFiltroEstado] = useState(null);
     const [filtroCliente, setFiltroCliente] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
+    const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
+    const fechaInicioKey = useMemo(
+        () => (filtroFecha.inicio ? filtroFecha.inicio.toISOString() : null),
+        [filtroFecha.inicio]
+    );
+    const fechaFinKey = useMemo(
+        () => (filtroFecha.fin ? filtroFecha.fin.toISOString() : null),
+        [filtroFecha.fin]
+    );
 
     // Estados para deudas
     const [deudas, setDeudas] = useState([]);
@@ -158,6 +169,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     // Estados para filtros y modales
     const [isOpenEstado, setOpenEstado] = useState(false);
     const [isOpenCliente, setOpenCliente] = useState(false);
+    const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
 
     // Función para manejar el click en una deuda
     const handleDeuda = (deuda) => {
@@ -230,7 +242,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
             setDeudasLoaded(false);
             // FetchDataProgressive se encargará de recargar automáticamente
         }
-    }, [debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento, isOpen]);
+    }, [debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento, fechaInicioKey, fechaFinKey, isOpen]);
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -314,6 +326,8 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         return filtroCliente.name || 'Cliente seleccionado';
     };
 
+    const getFechaNombre = () => formatDateRangeForDisplay(filtroFecha?.inicio, filtroFecha?.fin, 'Fecha');
+
     const opciones = [
         {
             label: getEstadoNombre(),
@@ -324,18 +338,23 @@ function PanelDeudas({ isOpen, setIsOpen }) {
             label: getClienteNombre(),
             active: filtroCliente !== null,
             onClick: () => setOpenCliente(true)
+        },
+        {
+            label: getFechaNombre(),
+            active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
+            onClick: () => setIsOpenFiltroFecha(true)
         }
     ];
 
     // Headers para la tabla
     const tableHeaders = [
         { key: 'concepto', label: 'Concepto', icon: 'receipt' },
-        { key: 'fecha_deuda', label: 'Fecha Deuda', icon: 'calendar' },
+        { key: 'fecha_deuda', label: 'Fecha', icon: 'calendar' },
         { key: 'fecha_vencimiento', label: 'Vencimiento', icon: 'time' },
         { key: 'cliente', label: 'Cliente', icon: 'user' },
         { key: 'estado', label: 'Estado', icon: 'info-circle' },
-        { key: 'monto_total', label: 'Monto Total', icon: 'dollar' },
-        { key: 'saldo_pendiente', label: 'Saldo Pendiente', icon: 'money' }
+        { key: 'monto_total', label: 'Monto', icon: 'dollar' },
+        { key: 'saldo_pendiente', label: 'Saldo', icon: 'money' }
     ];
 
     // Función para obtener el badge de estado
@@ -378,8 +397,8 @@ function PanelDeudas({ isOpen, setIsOpen }) {
             : new Date(deuda.fecha_vencimiento).toLocaleDateString(),
         cliente: deuda.cliente?.name || '--',
         estado: deuda.estado,
-        monto_total: `Bs. ${(deuda.monto_total || 0).toFixed(2)}`,
-        saldo_pendiente: `Bs. ${(deuda.saldo_pendiente || 0).toFixed(2)}`
+        monto_total: formatCurrency(deuda.monto_total),
+        saldo_pendiente: formatCurrency(deuda.saldo_pendiente)
     }));
 
     return (
@@ -469,7 +488,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                                     icon='receipt'
                                                     onClick={() => handleDeuda(deuda)}
                                                     arrow={false}
-                                                    flot6={`Bs. ${(deuda.monto_total || 0).toFixed(2)}`}
+                                                    flot6={formatCurrency(deuda.monto_total)}
                                                     flot3={deuda.estado === 'pendiente' ? 'Pendiente' : ''}
                                                     flot1={deuda.estado === 'pagada' ? 'Pagada' : ''}
                                                 />
@@ -552,6 +571,17 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                 clienteSeleccionado={filtroCliente}
             />
 
+            {/* Filtro de fecha */}
+            <FiltroFecha
+                isOpen={isOpenFiltroFecha}
+                setIsOpen={setIsOpenFiltroFecha}
+                startDate={filtroFecha?.inicio}
+                endDate={filtroFecha?.fin}
+                onApply={(inicio, fin) => setFiltroFecha({ inicio, fin })}
+                onClear={() => setFiltroFecha({ inicio: null, fin: null })}
+                title="Filtrar por fecha"
+            />
+
             {/* Carga de datos progresiva - solo cuando está abierto */}
             {isOpen && (
                 <FetchDataProgressive
@@ -561,7 +591,14 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                         getPrimaryNormalizedValue(debouncedSearchQuery),
                         filtroEstado,
                         filtroCliente?.id || null,
-                        ordenamiento
+                        ordenamiento,
+                        null, // sucuIdParam (se obtiene internamente)
+                        filtroFecha.inicio || filtroFecha.fin
+                            ? {
+                                inicio: filtroFecha.inicio ? new Date(filtroFecha.inicio).toISOString() : null,
+                                fin: filtroFecha.fin ? new Date(filtroFecha.fin).toISOString() : null,
+                            }
+                            : null
                     ]}
                     serviceName="deudasService"
                     isOpen={isOpen && ((!deudasLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}

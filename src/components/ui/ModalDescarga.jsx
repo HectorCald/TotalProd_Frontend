@@ -11,6 +11,7 @@ import * as XLSX from 'xlsx';
 import { pdf as pdfRenderer, Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
+import { useLayout } from '../../context/LayoutContext';
 import EmpresaImagenService from '../../services/empresaImagenService';
 
 function ModalDescarga({
@@ -73,14 +74,28 @@ function ModalDescarga({
         });
     };
 
-    // Obtener contexto de usuario
+    // Obtener contexto de usuario y layout
     const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
     const { employee: employeeInfo, sucursalSeleccionada: employeeSucursal } = useEmployee();
+    const { isLargeScreen } = useLayout();
 
     // Determinar si es usuario normal o empleado
     const isEmployee = !!employeeInfo;
     const currentUser = isEmployee ? employeeInfo : userInfo;
     const sucursal = isEmployee ? employeeSucursal : userSucursal;
+
+    // Estado para detectar si es móvil
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Detectar si es móvil (no es pantalla grande y ancho < 768px)
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(!isLargeScreen && window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, [isLargeScreen]);
 
     // Obtener la imagen de la empresa
     const displayImage = empresaImage || currentUser?.logo_tipo || sucursal?.empresas?.logo_tipo;
@@ -553,10 +568,18 @@ function ModalDescarga({
             link.download = fileName;
             link.click();
 
-            // Intentar compartir usando Web Share API
-            if (navigator.share) {
+            // Intentar compartir usando Web Share API solo en móvil
+            if (isMobile && navigator.share) {
+                // Esperar un poco para que la descarga se complete
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
                 try {
-                    const file = new File([blob], fileName, { type: blob.type });
+                    // Crear el archivo con el blob
+                    const file = new File([blob], fileName, { 
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        lastModified: Date.now()
+                    });
+                    
                     // Verificar si puede compartir archivos
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         await navigator.share({
@@ -565,22 +588,12 @@ function ModalDescarga({
                             text: `Compartir ${nombreArchivoState}`
                         });
                     } else {
-                        // Intentar compartir con archivo directamente (algunos navegadores no tienen canShare)
-                        try {
-                            await navigator.share({
-                                files: [file],
-                                title: nombreArchivoState,
-                                text: `Compartir ${nombreArchivoState}`
-                            });
-                        } catch (fileShareError) {
-                            // Si falla con archivo, intentar solo con texto
-                            if (fileShareError.name !== 'AbortError') {
-                                await navigator.share({
-                                    title: nombreArchivoState,
-                                    text: `Compartir ${nombreArchivoState}`
-                                });
-                            }
-                        }
+                        // Intentar compartir con archivo directamente
+                        await navigator.share({
+                            files: [file],
+                            title: nombreArchivoState,
+                            text: `Compartir ${nombreArchivoState}`
+                        });
                     }
                 } catch (shareError) {
                     // Si el usuario cancela el share, no hacer nada
@@ -1078,8 +1091,13 @@ function ModalDescarga({
             );
 
             try {
-                const blob = await pdfRenderer(doc).toBlob();
+                const pdfBlob = await pdfRenderer(doc).toBlob();
                 const fileName = `${nombreArchivoState.replace(/\s+/g, '_')}.pdf`;
+                
+                // Asegurar que el blob tenga el tipo MIME correcto
+                const blob = pdfBlob.type === 'application/pdf' 
+                    ? pdfBlob 
+                    : new Blob([pdfBlob], { type: 'application/pdf' });
                 
                 // Descargar archivo
                 const link = document.createElement('a');
@@ -1087,10 +1105,18 @@ function ModalDescarga({
                 link.download = fileName;
                 link.click();
 
-                // Intentar compartir usando Web Share API
-                if (navigator.share) {
+                // Intentar compartir usando Web Share API solo en móvil
+                if (isMobile && navigator.share) {
+                    // Esperar un poco para que la descarga se complete
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
                     try {
-                        const file = new File([blob], fileName, { type: blob.type });
+                        // Crear el archivo con el blob asegurando el tipo MIME correcto
+                        const file = new File([blob], fileName, { 
+                            type: 'application/pdf',
+                            lastModified: Date.now()
+                        });
+                        
                         // Verificar si puede compartir archivos
                         if (navigator.canShare && navigator.canShare({ files: [file] })) {
                             await navigator.share({
@@ -1099,22 +1125,12 @@ function ModalDescarga({
                                 text: `Compartir ${nombreArchivoState}`
                             });
                         } else {
-                            // Intentar compartir con archivo directamente (algunos navegadores no tienen canShare)
-                            try {
-                                await navigator.share({
-                                    files: [file],
-                                    title: nombreArchivoState,
-                                    text: `Compartir ${nombreArchivoState}`
-                                });
-                            } catch (fileShareError) {
-                                // Si falla con archivo, intentar solo con texto
-                                if (fileShareError.name !== 'AbortError') {
-                                    await navigator.share({
-                                        title: nombreArchivoState,
-                                        text: `Compartir ${nombreArchivoState}`
-                                    });
-                                }
-                            }
+                            // Intentar compartir con archivo directamente
+                            await navigator.share({
+                                files: [file],
+                                title: nombreArchivoState,
+                                text: `Compartir ${nombreArchivoState}`
+                            });
                         }
                     } catch (shareError) {
                         // Si el usuario cancela el share, no hacer nada

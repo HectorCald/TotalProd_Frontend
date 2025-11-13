@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -21,6 +21,8 @@ import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import FiltroCliente from '../../mixed/FiltroCliente';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
+import { formatCurrency } from '../../../utils/numberUtils';
+import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 
 function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const { isLargeScreen } = useLayout();
@@ -58,6 +60,15 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [filtroEstado, setFiltroEstado] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
     const [filtroCliente, setFiltroCliente] = useState(null);
+    const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
+    const fechaInicioKey = useMemo(
+        () => (filtroFecha.inicio ? filtroFecha.inicio.toISOString() : null),
+        [filtroFecha.inicio]
+    );
+    const fechaFinKey = useMemo(
+        () => (filtroFecha.fin ? filtroFecha.fin.toISOString() : null),
+        [filtroFecha.fin]
+    );
 
     // Estados para movimientos
     const [movimientos, setMovimientos] = useState([]);
@@ -180,6 +191,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const [isOpenFiltroTipo, setIsOpenFiltroTipo] = useState(false);
     const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
     const [isOpenFiltroCliente, setIsOpenFiltroCliente] = useState(false);
+    const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
 
     // Función para manejar el click en un movimiento
     const handleRegistro = (movimiento) => {
@@ -271,7 +283,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setMovimientosLoaded(false);
             // FetchDataProgressive se encargará de recargar automáticamente
         }
-    }, [debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente, isOpen]);
+    }, [debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente, fechaInicioKey, fechaFinKey, isOpen]);
 
     // Efecto para manejar errores de SWR
     useEffect(() => {
@@ -355,6 +367,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         return ordenamientos[ordenamiento] || 'Ordenamiento';
     };
 
+    const getFechaNombre = () => formatDateRangeForDisplay(filtroFecha?.inicio, filtroFecha?.fin, 'Fecha');
+
     const opciones = [
         {
             label: getTipoNombre(),
@@ -365,6 +379,11 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             label: getEstadoNombre(),
             active: filtroEstado !== null,
             onClick: () => setIsOpenFiltroEstado(true)
+        },
+        {
+            label: getFechaNombre(),
+            active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
+            onClick: () => setIsOpenFiltroFecha(true)
         }
     ];
 
@@ -410,7 +429,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 })
                 .find((numero) => numero !== null);
             if (typeof totalAcopio === 'number') {
-                return `Bs. ${totalAcopio.toFixed(2)}`;
+                return formatCurrency(totalAcopio);
             }
             const quantity = parseFloat(movimiento.quantity) || 0;
             const price =
@@ -418,7 +437,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 parseFloat(movimiento.product?.price) ||
                 0;
             const subtotal = quantity * price;
-            return `Bs. ${subtotal.toFixed(2)}`;
+            return formatCurrency(subtotal);
         }
 
         const subtotal = (movimiento.productos || []).reduce(
@@ -428,7 +447,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         const descuento = parseFloat(movimiento.descuento) || 0;
         const aumento = parseFloat(movimiento.aumento) || 0;
         const totalMovimiento = subtotal - descuento + aumento;
-        return `Bs. ${totalMovimiento.toFixed(2)}`;
+        return formatCurrency(totalMovimiento);
     };
 
     // Headers para la tabla
@@ -709,6 +728,17 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 onOrdenamientoSeleccionado={handleOrdenamiento}
             />
 
+            {/* Filtro de fecha */}
+            <FiltroFecha
+                isOpen={isOpenFiltroFecha}
+                setIsOpen={setIsOpenFiltroFecha}
+                startDate={filtroFecha?.inicio}
+                endDate={filtroFecha?.fin}
+                onApply={(inicio, fin) => setFiltroFecha({ inicio, fin })}
+                onClear={() => setFiltroFecha({ inicio: null, fin: null })}
+                title="Filtrar por fecha"
+            />
+
             {/* Carga de datos progresiva - solo cuando está abierto */}
             {isOpen && (
                 <FetchDataProgressive
@@ -720,7 +750,13 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         ordenamiento,
                         tipoMovimiento === 'acopio' ? null : (filtroCliente?.id || null),
                         null, // sucuIdParam (se obtiene internamente)
-                        getPrimaryNormalizedValue(debouncedSearchQuery)
+                        getPrimaryNormalizedValue(debouncedSearchQuery),
+                        filtroFecha.inicio || filtroFecha.fin
+                            ? {
+                                inicio: filtroFecha.inicio ? new Date(filtroFecha.inicio).toISOString() : null,
+                                fin: filtroFecha.fin ? new Date(filtroFecha.fin).toISOString() : null,
+                            }
+                            : null
                     ]}
                     serviceName={tipoMovimiento === 'acopio' ? 'movimientosAcopioService' : 'movimientosAlmacenService'}
                     isOpen={isOpen && ((!movimientosLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}

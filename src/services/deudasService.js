@@ -67,7 +67,7 @@ const normalizeDate = (value, { keepTime = false } = {}) => {
 
 class deudasService {
     // Obtener todas las deudas con paginación y filtros
-    static async getAll(page = 1, limit = 10, search = '', estado = null, cliente = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+    static async getAll(page = 1, limit = 10, search = '', estado = null, cliente = null, ordenamiento = 'fecha_desc', sucuIdParam = null, filtroFecha = null) {
         try {
             const sucuId = sucuIdParam || getSucuId();
             if (!sucuId) {
@@ -92,6 +92,14 @@ class deudasService {
             }
             if (cliente) {
                 params.append('cliente_id', cliente);
+            }
+            if (filtroFecha) {
+                if (filtroFecha.inicio) {
+                    params.append('fecha_inicio', filtroFecha.inicio);
+                }
+                if (filtroFecha.fin) {
+                    params.append('fecha_fin', filtroFecha.fin);
+                }
             }
 
             const response = await fetch(`${API_BASE_URL}/deudas?${params}`, {

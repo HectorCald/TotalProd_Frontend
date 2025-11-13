@@ -19,6 +19,7 @@ import InputDate from '../../common/InputDate';
 import InputNormal from '../../common/InputNormal';
 import NoData from '../../common/NoData';
 import { useLayout } from '../../../context/LayoutContext';
+import { formatCurrency } from '../../../utils/numberUtils';
 
 function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualizada }) {
     const { isLargeScreen } = useLayout();
@@ -64,8 +65,8 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
             'Fecha Deuda': new Date(deudaActual?.fecha_deuda).toLocaleString(),
             'Fecha Vencimiento': new Date(deudaActual?.fecha_vencimiento).toLocaleString(),
             'Concepto': deudaActual?.concepto || 'Sin concepto',
-            'Monto Total': `Bs. ${(parseFloat(deudaActual?.monto_total) || 0).toFixed(2)}`,
-            'Saldo Pendiente': `Bs. ${(parseFloat(deudaActual?.saldo_pendiente) || 0).toFixed(2)}`,
+            'Monto Total': formatCurrency(deudaActual?.monto_total),
+            'Saldo Pendiente': formatCurrency(deudaActual?.saldo_pendiente),
             'Estado': deudaActual?.estado || 'Sin estado',
             'Sucursal': deudaActual?.sucursal?.name || 'Sucursal no encontrada'
         };
@@ -256,9 +257,19 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
     // Formateador seguro de fechas YYYY-MM-DD sin cambiar de día por zona horaria
     const formatDate = (val) => {
         if (!val) return '';
-        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-            const [y, m, d] = val.split('-');
-            return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
+        // Manejar fechas con hora: "2025-11-07 00:00:00" o "2025-11-07T00:00:00"
+        if (typeof val === 'string') {
+            // Extraer solo la parte de la fecha (YYYY-MM-DD) si tiene hora
+            const fechaMatch = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (fechaMatch) {
+                const [, y, m, d] = fechaMatch;
+                return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
+            }
+            // Si es solo fecha sin hora
+            if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                const [y, m, d] = val.split('-');
+                return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
+            }
         }
         try {
             return new Date(val).toLocaleDateString();
@@ -335,14 +346,14 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                     />
                     <Dato
                         label="Monto Total"
-                        value={`Bs. ${(parseFloat(deudaActual?.monto_total) || 0).toFixed(2)}`}
+                        value={formatCurrency(deudaActual?.monto_total)}
                         vertical={false}
                         especial='blue'
                     />
 
                     <Dato
                         label="Saldo Pendiente"
-                        value={`Bs. ${(parseFloat(deudaActual?.saldo_pendiente) || 0).toFixed(2)}`}
+                        value={formatCurrency(deudaActual?.saldo_pendiente)}
                         vertical={false}
                         especial={deudaActual?.saldo_pendiente > 0 ? 'red' : 'green'}
                     />
@@ -545,8 +556,8 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                         pagos.map((p) => (
                             <Dato
                                 key={p.id}
-                                label={new Date(p.fecha).toLocaleDateString()}
-                                value={`Bs. ${(parseFloat(p.monto) || 0).toFixed(2)}`}
+                                label={formatDate(p.fecha)}
+                                value={formatCurrency(p.monto)}
                                 icon={deletingPagoId === p.id ? 'loader-alt' : 'trash'}
                                 iconLoading={deletingPagoId === p.id}
                                 onClick={() => (deletingPagoId ? null : handleEliminarPago(p.id))}

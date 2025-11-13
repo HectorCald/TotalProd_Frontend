@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -21,6 +21,7 @@ import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
+import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 
 function PanelGastos({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -46,6 +47,15 @@ function PanelGastos({ isOpen, setIsOpen }) {
     const [filtroMetodoPago, setFiltroMetodoPago] = useState(null);
     const [filtroProveedor, setFiltroProveedor] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
+    const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
+    const fechaInicioKey = useMemo(
+        () => (filtroFecha.inicio ? filtroFecha.inicio.toISOString() : null),
+        [filtroFecha.inicio]
+    );
+    const fechaFinKey = useMemo(
+        () => (filtroFecha.fin ? filtroFecha.fin.toISOString() : null),
+        [filtroFecha.fin]
+    );
 
     // Estados para gastos
     const [hasMorePages, setHasMorePages] = useState(false);
@@ -163,6 +173,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [isOpenMetodoPago, setOpenMetodoPago] = useState(false);
     const [isOpenProveedor, setOpenProveedor] = useState(false);
+    const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
 
     // Función para manejar el click en un gasto
     const handleGasto = (gasto) => {
@@ -240,7 +251,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
             setHasMorePages(false);
             // FetchDataProgressive se encargará de recargar automáticamente
         }
-    }, [debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento, isOpen]);
+    }, [debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento, fechaInicioKey, fechaFinKey, isOpen]);
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -336,6 +347,8 @@ function PanelGastos({ isOpen, setIsOpen }) {
         return filtroProveedor.name || 'Proveedor seleccionado';
     };
 
+    const getFechaNombre = () => formatDateRangeForDisplay(filtroFecha?.inicio, filtroFecha?.fin, 'Fecha');
+
     const opciones = [
         {
             label: getMetodoPagoNombre(),
@@ -346,6 +359,11 @@ function PanelGastos({ isOpen, setIsOpen }) {
             label: getProveedorNombre(),
             active: filtroProveedor !== null,
             onClick: () => setOpenProveedor(true)
+        },
+        {
+            label: getFechaNombre(),
+            active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
+            onClick: () => setIsOpenFiltroFecha(true)
         },
         {
             label: getOrdenamientoNombre(),
@@ -551,6 +569,17 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 proveedorSeleccionado={filtroProveedor}
             />
 
+            {/* Filtro de fecha */}
+            <FiltroFecha
+                isOpen={isOpenFiltroFecha}
+                setIsOpen={setIsOpenFiltroFecha}
+                startDate={filtroFecha?.inicio}
+                endDate={filtroFecha?.fin}
+                onApply={(inicio, fin) => setFiltroFecha({ inicio, fin })}
+                onClear={() => setFiltroFecha({ inicio: null, fin: null })}
+                title="Filtrar por fecha"
+            />
+
             {/* Carga de datos progresiva - solo cuando está abierto */}
             {isOpen && (
                 <FetchDataProgressive
@@ -560,7 +589,14 @@ function PanelGastos({ isOpen, setIsOpen }) {
                         getPrimaryNormalizedValue(debouncedSearchQuery),
                         filtroMetodoPago,
                         filtroProveedor?.id || null,
-                        ordenamiento
+                        ordenamiento,
+                        null, // sucuIdParam (se obtiene internamente)
+                        filtroFecha.inicio || filtroFecha.fin
+                            ? {
+                                inicio: filtroFecha.inicio ? new Date(filtroFecha.inicio).toISOString() : null,
+                                fin: filtroFecha.fin ? new Date(filtroFecha.fin).toISOString() : null,
+                            }
+                            : null
                     ]}
                     serviceName="gastosService"
                     isOpen={isOpen && ((!gastosLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}

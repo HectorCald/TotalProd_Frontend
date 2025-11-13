@@ -20,6 +20,7 @@ import useHistorialLogger from '../../ui/HistorialLogger';
 import { formatMovimientoLog, prepareLogPayload } from '../../../utils/logFormatters';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 import permissionsService from '../../../services/permissionsService';
+import { formatCurrency } from '../../../utils/numberUtils';
 
 const obtenerNumeroOrdenFormateado = (numeroOrden) => {
     if (numeroOrden === null || numeroOrden === undefined) {
@@ -102,17 +103,17 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     const unidades = cantidad % grup;
                     cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
                     // Precio unitario multiplicado por la cantidad de agrupación
-                    precioTexto = `${(precioUnitario * grup).toFixed(2)} BOB`;
+                    precioTexto = formatCurrency(precioUnitario * grup, false) + ' BOB';
                 } else {
                     cantidadTexto = `${cantidad} ud`;
-                    precioTexto = `${precioUnitario.toFixed(2)} BOB`;
+                    precioTexto = formatCurrency(precioUnitario, false) + ' BOB';
                 }
 
                 return [
                     productoMovimiento.producto?.name || 'Sin nombre',
                     cantidadTexto,
                     precioTexto,
-                    `${(parseFloat(productoMovimiento.subtotal) || 0).toFixed(2)} BOB`
+                    formatCurrency(productoMovimiento.subtotal, false) + ' BOB'
                 ];
             });
     }, [movimientoActual?.productos, movimientoActual?.agrupado, movimientoActual?.estado, movimiento?.productos]);
@@ -600,7 +601,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                 {descuentoMonto > 0 && (
                                     <Dato
                                         label="Descuento"
-                                        value={`${descuentoPorcentaje.toFixed(2)}% (Bs. ${descuentoMonto.toFixed(2)})`}
+                                        value={`${descuentoPorcentaje.toFixed(2)}% (${formatCurrency(descuentoMonto)})`}
                                         vertical={false}
                                         especial='red'
                                     />
@@ -608,7 +609,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                 {aumentoMonto > 0 && (
                                     <Dato
                                         label="Aumento"
-                                        value={`${aumentoPorcentaje.toFixed(2)}% (Bs. ${aumentoMonto.toFixed(2)})`}
+                                        value={`${aumentoPorcentaje.toFixed(2)}% (${formatCurrency(aumentoMonto)})`}
                                         vertical={false}
                                         especial='green'
                                     />
@@ -621,13 +622,12 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     {movimientoActual?.productos && movimientoActual.productos.length > 0 && (
                         <Dato
                             label="Total del Movimiento"
-                            value={`Bs. ${(() => {
+                            value={formatCurrency((() => {
                                 const subtotal = movimientoActual.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
                                 const descuentoMonto = parseFloat(movimientoActual.descuento) || 0;
                                 const aumentoMonto = parseFloat(movimientoActual.aumento) || 0;
-                                const total = subtotal - descuentoMonto + aumentoMonto;
-                                return total.toFixed(2);
-                            })()}`}
+                                return subtotal - descuentoMonto + aumentoMonto;
+                            })())}
                             vertical={false}
                             especial='green'
                         />
@@ -775,10 +775,10 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                             const unidades = cantidad % grup;
                                             cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
                                             // Precio unitario multiplicado por la cantidad de agrupación
-                                            precioTexto = `Bs. ${(precioUnitario * grup).toFixed(2)}`;
+                                            precioTexto = formatCurrency(precioUnitario * grup);
                                         } else {
                                             cantidadTexto = `${cantidad} ud`;
-                                            precioTexto = `Bs. ${precioUnitario.toFixed(2)}`;
+                                            precioTexto = formatCurrency(precioUnitario);
                                         }
 
                                         return (
