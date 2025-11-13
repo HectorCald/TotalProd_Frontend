@@ -206,7 +206,13 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
     const isMapReadOnly = tipo === 'ver';
 
     // Función para importar contacto directamente
-    const handleImportarContacto = async () => {
+    const handleImportarContacto = async (e) => {
+        // Prevenir cualquier comportamiento por defecto
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
         setErrorContactos('');
         
         try {
@@ -215,62 +221,117 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             const isAndroid = /Android/i.test(navigator.userAgent);
             const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg|OPR|Samsung/i.test(navigator.userAgent);
             
-            // Verificar disponibilidad de la API
-            let contactsManager = null;
-            if ('contacts' in navigator && navigator.contacts && typeof navigator.contacts.select === 'function') {
-                contactsManager = navigator.contacts;
-            } else if ('ContactsManager' in window && window.ContactsManager) {
-                contactsManager = new window.ContactsManager();
-            }
+            console.log('=== DEBUG IMPORTAR CONTACTO ===');
+            console.log('HTTPS:', isSecure);
+            console.log('Android:', isAndroid);
+            console.log('Chrome:', isChrome);
+            console.log('navigator.contacts:', 'contacts' in navigator);
+            console.log('navigator.contacts.select:', 'contacts' in navigator && navigator.contacts && typeof navigator.contacts.select);
+            console.log('window.ContactsManager:', 'ContactsManager' in window);
             
-            if (!isSecure || !isAndroid || !isChrome || !contactsManager) {
+            // Verificar disponibilidad de la API de forma más estricta
+            if (!isSecure || !isAndroid || !isChrome) {
                 setErrorContactos('Esta funcionalidad solo está disponible en dispositivos Android con Chrome.');
                 setTimeout(() => setErrorContactos(''), 5000);
                 return;
             }
             
+            // Verificar que la API realmente existe y es una función
+            if (!('contacts' in navigator)) {
+                setErrorContactos('La API de contactos no está disponible en este navegador.');
+                setTimeout(() => setErrorContactos(''), 5000);
+                return;
+            }
+            
+            const contactsManager = navigator.contacts;
+            
+            if (!contactsManager) {
+                setErrorContactos('No se pudo acceder al gestor de contactos.');
+                setTimeout(() => setErrorContactos(''), 5000);
+                return;
+            }
+            
+            if (typeof contactsManager.select !== 'function') {
+                console.error('contactsManager.select no es una función:', typeof contactsManager.select);
+                setErrorContactos('La función de selección de contactos no está disponible. Asegúrate de usar Chrome versión 80 o superior.');
+                setTimeout(() => setErrorContactos(''), 5000);
+                return;
+            }
+            
             // Llamar directamente a la API desde el click del usuario
+            // Usar requestIdleCallback o setTimeout mínimo para asegurar que el evento de click esté completamente procesado
             const properties = ['name', 'tel'];
             const options = { multiple: false }; // Solo un contacto
             
-            try {
-                const contacts = await contactsManager.select(properties, options);
+            console.log('Intentando abrir selector de contactos...');
+            console.log('properties:', properties);
+            console.log('options:', options);
+            
+            // Llamar la API directamente sin delay
+            const contacts = await contactsManager.select(properties, options);
+            console.log('Contactos recibidos:', contacts);
+            
+            if (contacts && contacts.length > 0) {
+                const contacto = contacts[0];
+                const nombre = contacto.name && contacto.name.length > 0 ? contacto.name[0] : '';
+                const telefono = contacto.tel && contacto.tel.length > 0 ? contacto.tel[0] : '';
                 
-                if (contacts && contacts.length > 0) {
-                    const contacto = contacts[0];
-                    const nombre = contacto.name && contacto.name.length > 0 ? contacto.name[0] : '';
-                    const telefono = contacto.tel && contacto.tel.length > 0 ? contacto.tel[0] : '';
-                    
-                    // Llenar directamente los campos
-                    setDataEdit(prev => ({
-                        ...prev,
-                        name: nombre || prev.name,
-                        phone: telefono || prev.phone
-                    }));
-                    
-                    mostrarNotificacion('success', 'Contacto importado correctamente');
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') {
-                    // Usuario canceló, no mostrar error
-                    return;
-                }
-                console.error('Error al obtener contactos:', err);
-                let mensajeError = 'Error al acceder a los contactos.';
-                if (err.name === 'NotSupportedError') {
-                    mensajeError = 'La API de contactos no está soportada en este dispositivo.';
-                } else if (err.name === 'SecurityError') {
-                    mensajeError = 'No se pudo acceder a los contactos. Verifica los permisos del navegador.';
-                } else if (err.message) {
-                    mensajeError = err.message;
-                }
-                setErrorContactos(mensajeError);
-                setTimeout(() => setErrorContactos(''), 5000);
+                console.log('Contacto seleccionado - Nombre:', nombre, 'Teléfono:', telefono);
+                
+                // Llenar directamente los campos
+                setDataEdit(prev => ({
+                    ...prev,
+                    name: nombre || prev.name,
+                    phone: telefono || prev.phone
+                }));
+                
+                mostrarNotificacion('success', 'Contacto importado correctamente');
             }
         } catch (err) {
-            console.error('Error al importar contacto:', err);
-            setErrorContactos('Error al acceder a los contactos. Esta funcionalidad solo está disponible en dispositivos Android con Chrome.');
-            setTimeout(() => setErrorContactos(''), 5000);
+            console.error('=== ERROR COMPLETO AL IMPORTAR CONTACTO ===');
+            console.error('Error name:', err.name);
+            console.error('Error message:', err.message);
+            console.error('Error stack:', err.stack);
+            console.error('Error completo:', err);
+            console.error('Error toString:', err.toString());
+            console.error('Error constructor:', err.constructor?.name);
+            
+            if (err.name === 'AbortError') {
+                // Usuario canceló, no mostrar error
+                return;
+            }
+            
+            // Construir mensaje de error detallado
+            let mensajeError = '';
+            let detallesTecnicos = '';
+            
+            // Información básica del error
+            const errorName = err.name || 'Error desconocido';
+            const errorMessage = err.message || 'Sin mensaje de error';
+            const errorString = err.toString() || 'Error sin descripción';
+            
+            // Detalles técnicos completos
+            detallesTecnicos = `Tipo: ${errorName}\nMensaje: ${errorMessage}\nDescripción: ${errorString}`;
+            
+            if (err.stack) {
+                detallesTecnicos += `\nStack: ${err.stack.split('\n').slice(0, 3).join('\n')}`;
+            }
+            
+            // Mensaje principal según el tipo de error
+            if (errorMessage && errorMessage.toLowerCase().includes('unable to open')) {
+                mensajeError = `No se pudo abrir el selector de contactos.\n\nPosibles causas:\n- Chrome no tiene permisos para acceder a contactos\n- La versión de Chrome no soporta esta funcionalidad\n- El dispositivo tiene restricciones de seguridad\n\nDetalles técnicos:\n${detallesTecnicos}`;
+            } else if (errorName === 'NotSupportedError') {
+                mensajeError = `La API de contactos no está soportada.\n\nDetalles técnicos:\n${detallesTecnicos}`;
+            } else if (errorName === 'SecurityError') {
+                mensajeError = `Error de seguridad al acceder a contactos.\n\nVerifica:\n- Permisos de Chrome para contactos\n- Que estés en HTTPS\n- Configuración de seguridad del dispositivo\n\nDetalles técnicos:\n${detallesTecnicos}`;
+            } else if (errorName === 'TypeError') {
+                mensajeError = `Error de tipo: La función no está disponible.\n\nDetalles técnicos:\n${detallesTecnicos}`;
+            } else {
+                mensajeError = `Error al acceder a los contactos.\n\nDetalles técnicos:\n${detallesTecnicos}`;
+            }
+            
+            setErrorContactos(mensajeError);
+            setTimeout(() => setErrorContactos(''), 8000); // Más tiempo para leer el error completo
         }
     };
 
