@@ -54,6 +54,20 @@ const InputNormal = forwardRef(({
         }
     }
 
+    const handleKeyDown = (e) => {
+        // Si se presiona Enter, quitar el focus del input
+        if (e.key === 'Enter') {
+            e.target.blur();
+        }
+    }
+
+    const handleKeyPress = (e) => {
+        // Si hay un onKeyPress personalizado, llamarlo
+        if (onKeyPress) {
+            onKeyPress(e);
+        }
+    }
+
     const inputType = tipo === 'password'
         ? (showPassword ? 'text' : 'password')
         : (tipo === 'number' ? 'text' : tipo);
@@ -122,9 +136,11 @@ const InputNormal = forwardRef(({
                 {...(tipo === 'number'
                     ? { inputMode: 'decimal' }
                     : {})}
+                enterKeyHint="done"
                 value={value}
                 onChange={handleNormalizedChange}
-                onKeyPress={onKeyPress}
+                onKeyDown={handleKeyDown}
+                onKeyPress={handleKeyPress}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 onClick={onClick}

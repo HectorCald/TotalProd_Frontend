@@ -6,6 +6,7 @@ import ItemLine from '../../common/ItemLine';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Notification from '../../common/Notification';
 import NoData from '../../common/NoData';
+import Boton from '../../common/Boton';
 
 function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
     const [contactos, setContactos] = useState([]);
@@ -222,9 +223,9 @@ function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
             console.log('User Agent:', navigator.userAgent);
             
             if (disponible) {
-                console.log('✅ Contact Picker API detectada, abriendo selector...');
-                // Llamar inmediatamente cuando el modal se abre (acción del usuario)
-                obtenerContactos();
+                console.log('✅ Contact Picker API detectada y lista para usar');
+                // NO llamar automáticamente - debe ser desde un click directo del usuario
+                // El usuario debe hacer click en el botón para mantener la cadena de "gesto del usuario"
             } else {
                 // Si la API no está disponible, mostrar error con NoData
                 console.log('❌ Contact Picker API no disponible');
@@ -272,6 +273,18 @@ function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
                             minHeight="200px"
                             isError={true}
                         />
+                    ) : contactos.length === 0 && !error && apiDisponible ? (
+                        <>
+                            <p className={styles.subTitle}>
+                                Haz clic en el botón para abrir el selector de contactos
+                            </p>
+                            <Boton
+                                className="btn-original"
+                                label="Abrir selector de contactos"
+                                onClick={obtenerContactos}
+                                style={{ marginTop: '20px' }}
+                            />
+                        </>
                     ) : contactos.length === 0 && !error ? (
                         <NoData
                             icon="user"
