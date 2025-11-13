@@ -29,13 +29,6 @@ function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
         }, 3000);
     };
 
-    // Verificar si la API está disponible al montar el componente
-    useEffect(() => {
-        // Verificar si la Contact Picker API está disponible
-        const disponible = 'contacts' in navigator && 'ContactsManager' in window;
-        setApiDisponible(disponible);
-    }, []);
-
     // Función para manejar cuando se selecciona un contacto
     const handleContactoSelect = (contacto) => {
         if (onContactoSeleccionado) {
@@ -53,15 +46,27 @@ function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
         setError(null);
 
         try {
-            // Verificar si la Contact Picker API está disponible
-            if ('contacts' in navigator && 'ContactsManager' in window) {
-                const contactsManager = navigator.contacts;
+            // Verificar si la Contact Picker API está disponible de múltiples formas
+            let contactsManager = null;
+            
+            if ('contacts' in navigator && navigator.contacts && typeof navigator.contacts.select === 'function') {
+                contactsManager = navigator.contacts;
+            } else if ('ContactsManager' in window && window.ContactsManager) {
+                contactsManager = new window.ContactsManager();
+            } else if (navigator.contacts) {
+                contactsManager = navigator.contacts;
+            }
+
+            if (contactsManager && typeof contactsManager.select === 'function') {
                 const properties = ['name', 'tel'];
                 const options = { multiple: true };
 
                 try {
+                    console.log('Intentando abrir selector de contactos...');
                     // Esta API abre el selector nativo del dispositivo
+                    // Debe ser llamado desde una acción del usuario (ya lo es, desde el click)
                     const contacts = await contactsManager.select(properties, options);
+                    console.log('Contactos seleccionados:', contacts);
                     
                     if (contacts && contacts.length > 0) {
                         const contactosFormateados = contacts.map((contact, index) => {
@@ -102,7 +107,12 @@ function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
                     throw err;
                 }
             } else {
-                throw new Error('La API de contactos no está disponible en este navegador. Esta funcionalidad requiere un navegador que soporte la Contact Picker API (como Chrome en Android).');
+                // Verificar si es problema de HTTPS
+                const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+                if (!isSecure) {
+                    throw new Error('La API de contactos requiere HTTPS. Por favor, accede a la aplicación usando HTTPS.');
+                }
+                throw new Error('La API de contactos no está disponible en este navegador. Esta funcionalidad requiere Chrome en Android (versión 80 o superior).');
             }
         } catch (err) {
             console.error('Error al obtener contactos:', err);
@@ -114,21 +124,62 @@ function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
         }
     };
 
-    // Resetear cuando se abre el modal
+    // Resetear y verificar cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
             setError(null);
+            setContactos([]);
             
-            // Verificar nuevamente si la API está disponible
-            const disponible = 'contacts' in navigator && 'ContactsManager' in window;
+            // Verificar si estamos en HTTPS (requisito de la API)
+            const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+            
+            // Detectar si es Android
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+            const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg|OPR|Samsung/i.test(navigator.userAgent);
+            
+            // Verificar si la Contact Picker API está disponible
+            // La API puede estar en navigator.contacts o en window.ContactsManager
+            const disponible = 
+                isSecure &&
+                isAndroid &&
+                isChrome &&
+                (('contacts' in navigator && navigator.contacts && typeof navigator.contacts.select === 'function') ||
+                ('ContactsManager' in window && window.ContactsManager));
+            
+            setApiDisponible(disponible);
+            
+            // Debug en consola solo cuando se abre el modal
+            console.log('=== Contact Picker API Debug (Modal abierto) ===');
+            console.log('HTTPS:', isSecure);
+            console.log('Es Android:', isAndroid);
+            console.log('Es móvil:', isMobile);
+            console.log('Es Chrome:', isChrome);
+            console.log('navigator.contacts existe:', 'contacts' in navigator);
+            console.log('navigator.contacts.select existe:', 'contacts' in navigator && navigator.contacts && typeof navigator.contacts.select === 'function');
+            console.log('window.ContactsManager existe:', 'ContactsManager' in window);
+            console.log('API disponible:', disponible);
+            console.log('User Agent:', navigator.userAgent);
             
             if (disponible) {
-                setContactos([]);
+                console.log('✅ Contact Picker API detectada, abriendo selector...');
+                // Llamar inmediatamente cuando el modal se abre (acción del usuario)
                 obtenerContactos();
             } else {
                 // Si la API no está disponible, mostrar error con NoData
-                console.error('Error: La API de contactos no está disponible en este navegador. Esta funcionalidad requiere un navegador que soporte la Contact Picker API (como Chrome en Android).');
-                setError('No se puede cargar los contactos del teléfono. Esta funcionalidad solo está disponible en dispositivos móviles Android.');
+                console.log('❌ Contact Picker API no disponible');
+                let motivo = '';
+                if (!isSecure) {
+                    motivo = 'Requiere HTTPS (excepto localhost)';
+                } else if (!isAndroid) {
+                    motivo = 'Solo funciona en dispositivos Android (no en Windows, Mac, iOS, etc.)';
+                } else if (!isChrome) {
+                    motivo = 'Solo funciona en Chrome (no en Safari, Firefox, Edge, etc.)';
+                } else {
+                    motivo = 'La API no está disponible en este navegador/dispositivo';
+                }
+                console.log('⚠️ Motivo:', motivo);
+                setError('No se puede cargar los contactos del teléfono. Esta funcionalidad solo está disponible en dispositivos Android con Chrome.');
             }
         }
     }, [isOpen]);
