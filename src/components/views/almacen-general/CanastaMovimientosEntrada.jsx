@@ -16,6 +16,7 @@ import gastosService from '../../../services/gastosService';
 import InputNormal from '../../common/InputNormal';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import { useLayout } from '../../../context/LayoutContext';
+import OpcionDesplegable from '../../common/OpcionDesplegable';
 
 function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const { isLargeScreen } = useLayout();
@@ -33,6 +34,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
     });
     const [registrarGasto, setRegistrarGasto] = useState(false);
     const [costo, setCosto] = useState('');
+    const [conceptoGasto, setConceptoGasto] = useState('');
     const [concepto, setConcepto] = useState('');
     const [metodoPago, setMetodoPago] = useState('');
 
@@ -221,6 +223,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 proveedor_id: registrarGasto ? (proveedorSeleccionado || null) : null,
                 restar_ingredientes: restarIngredientes && tieneProductosConRecetas(),
                 agrupado: modoAgrupacion === 'agrupado',
+                concepto: concepto && concepto.trim() !== '' ? concepto.trim() : null,
                 productos: prepararProductos()
             };
 
@@ -238,7 +241,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                     return;
                 }
                 const valorTotal = parseFloat(costo);
-                const conceptoFinal = (concepto && concepto.trim() !== '') ? concepto.trim() : `Entradas (${productosCanasta.length} items)`;
+                const conceptoFinal = (conceptoGasto && conceptoGasto.trim() !== '') ? conceptoGasto.trim() : `Entradas (${productosCanasta.length} items)`;
                 
                 // Obtener fecha local en formato YYYY-MM-DD (no usar toISOString que devuelve UTC)
                 const hoy = new Date();
@@ -282,6 +285,8 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
                 setProveedorSeleccionado('');
+                setConcepto('');
+                setConceptoGasto('');
                 localStorage.removeItem('canastaEntradas');
                 setIsOpen(false);
                 if (onCerrarCanasta) {
@@ -493,11 +498,21 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                     <InputNormal
                                         placeholder="Concepto del gasto"
                                         type="text"
-                                        value={concepto}
-                                        onChange={(e) => setConcepto(e.target.value)}
+                                        value={conceptoGasto}
+                                        onChange={(e) => setConceptoGasto(e.target.value)}
                                     />
                                 </>
                             )}
+                            {/* Otras opciones */}
+                            <OpcionDesplegable titulo="Otras opciones">
+                                <InputNormal
+                                    placeholder="Concepto del movimiento (opcional)"
+                                    tipo="text"
+                                    value={concepto}
+                                    onChange={(e) => setConcepto(e.target.value)}
+                                    icon='text'
+                                />
+                            </OpcionDesplegable>
                         </div>
 
                         {/* Total general */}

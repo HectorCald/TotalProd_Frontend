@@ -6,6 +6,7 @@ import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import Notification from '../../common/Notification';
 import MapaModal from './MapaModal';
+import ModalContactos from './ModalContactos';
 import clientService from '../../../services/clientService';
 import { useUser } from '../../../context/UserContext';
 import useHistorialLogger from '../../ui/HistorialLogger';
@@ -48,6 +49,9 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
 
     // Estados para el mapa
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+    // Estados para el modal de contactos
+    const [isContactosModalOpen, setIsContactosModalOpen] = useState(false);
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
@@ -201,12 +205,29 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
     // Determinar si el mapa debe ser de solo lectura
     const isMapReadOnly = tipo === 'ver';
 
+    // Función para manejar cuando se selecciona un contacto
+    const handleContactoSeleccionado = (contacto) => {
+        setDataEdit(prev => ({
+            ...prev,
+            name: contacto.name || prev.name,
+            phone: contacto.phone || prev.phone
+        }));
+    };
+
     return (
         <>
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderModal title={tipo === 'agregar' ? 'Nuevo cliente' : tipo === 'editar' ? 'Editar cliente' : 'Ver cliente'} onClose={() => setIsOpen(false)} />
             <div className={styles.modalContent}>
                 <p className={styles.subTitle}>INFORMACION PERSONAL</p>
+                {tipo === 'agregar' && (
+                    <Boton
+                        className='btn-gray'
+                        label='Importar de contacto'
+                        onClick={() => setIsContactosModalOpen(true)}
+                        style={{ marginBottom: '10px' }}
+                    />
+                )}
                 <InputNormal
                     tipo="text"
                     icon="user"
@@ -280,6 +301,12 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 readOnly={isMapReadOnly}
                 title={getMapTitle()}
             />
+
+        <ModalContactos
+            isOpen={isContactosModalOpen}
+            setIsOpen={setIsContactosModalOpen}
+            onContactoSeleccionado={handleContactoSeleccionado}
+        />
 
         <Notification
             isVisible={notification.isVisible}

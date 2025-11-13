@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../../common/HeaderView';
@@ -16,6 +16,7 @@ import FiltroEstados from '../../../mixed/FiltroEstados';
 import NoData from '../../../common/NoData';
 import LoadingSpinner from '../../../common/LoadingSpinner';
 import PullToRefresh from '../../../common/PullToRefresh';
+import FetchDataProgressive from '../../../mixed/FetchDataProgressive';
 
 function MiProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -49,119 +50,84 @@ function MiProduccion({ isOpen, setIsOpen }) {
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
 
     // Estados para registros
-    const [registros, setRegistros] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState(null);
 
-    // Función para cargar registros
-    const cargarRegistros = async (page = 1, search = '', estado = null, orden = 'fecha_desc') => {
-        // Solo mostrar loading si no hay datos cargados Y es página 1
-        if (page === 1 && allRegistros.length === 0) {
+    // Callbacks para FetchDataProgressive
+    const handleDataLoaded = useCallback((data) => {
+        // Para página 1: reemplazar datos
+        setAllRegistros(data.length > 0 ? data : []);
+        setRegistrosLoaded(true);
+    }, []);
+
+    const handleDataAccumulated = useCallback((data) => {
+        // Para páginas > 1: acumular datos
+        setAllRegistros(prev => {
+            const existingIds = new Set(prev.map(r => r.id));
+            const merged = [...prev];
+            data.forEach(item => {
+                if (!existingIds.has(item.id)) merged.push(item);
+            });
+            return merged;
+        });
+    }, []);
+
+    const handleLoadingStart = useCallback(() => {
+        if (currentPage === 1 && allRegistros.length === 0) {
             setIsLoading(true);
-        } else if (page > 1) {
+        } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
-        setError(null);
-
-        // Incrementar contador de peticiones activas
+        
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
             if (isLargeScreen && newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
+    }, [currentPage, allRegistros.length, isLargeScreen]);
 
-        try {
-            const normalizedSearch = getPrimaryNormalizedValue(search);
-            const response = await registrosProduccionDamabravaService.getByUser(page, 10, estado, orden, normalizedSearch);
-
-            if (response.success) {
-                const newData = response.data || [];
-                setRegistros(newData);
-                setHasMorePages(response.pagination?.hasNextPage || false);
-
-                // Reemplazar o acumular SOLO después de que llega la data
-                if (page === 1) {
-                    // Si no llegó nada, limpiar; si llegó, reemplazar
-                    setAllRegistros(newData.length > 0 ? newData : []);
-                } else {
-                    // Paginación: acumular sin borrar lo anterior
-                    setAllRegistros(prev => {
-                        // Evitar duplicados por id
-                        const existingIds = new Set(prev.map(r => r.id));
-                        const merged = [...prev];
-                        newData.forEach(item => {
-                            if (!existingIds.has(item.id)) merged.push(item);
-                        });
-                        return merged;
-                    });
-                }
-                
-                // Marcar como cargado solo en página 1
-                if (page === 1) {
-                    setRegistrosLoaded(true);
-                }
-            } else {
-                setError(response);
-            }
-        } catch (error) {
-            setError(error);
-        } finally {
-            if (page === 1) {
-                setIsLoading(false);
-            } else {
-                setIsLoadingMore(false);
-            }
-            // Decrementar contador de peticiones activas
-            setActiveRequests(prev => {
-                const newCount = Math.max(0, prev - 1);
-                // Solo ocultar loading y RefreshIndicator cuando no hay peticiones activas
-                if (newCount === 0) {
-                    if (page === 1) {
-                        setIsLoading(false);
-                    }
-                    if (isLargeScreen) {
-                        setTimeout(() => {
-                            setIsRefreshing(false);
-                            setTimeout(() => {
-                                setShowRefreshIndicator(false);
-                            }, 500);
-                        }, 300);
-                    }
-                }
-                return newCount;
-            });
+    const handleLoadingEnd = useCallback(() => {
+        if (currentPage === 1) {
+            setIsLoading(false);
+        } else {
+            setIsLoadingMore(false);
         }
-    };
+        
+        setActiveRequests(prev => {
+            const newCount = Math.max(0, prev - 1);
+            if (newCount === 0 && isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
+            }
+            return newCount;
+        });
+    }, [currentPage, isLargeScreen]);
 
+    const handleError = useCallback((err) => {
+        setError(err);
+    }, []);
 
-    // Cargar registros cuando se abre el modal - solo si no hay datos cargados
-    useEffect(() => {
-        if (isOpen && !registrosLoaded) {
-            cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
-        }
-    }, [isOpen, registrosLoaded]);
+    const handleHasMorePagesChange = useCallback((hasMore) => {
+        setHasMorePages(hasMore);
+    }, []);
+
 
     // Resetear flags cuando se abre el modal (NO los datos)
     useEffect(() => {
         if (isOpen) {
-            // Solo resetear flags, NO los datos acumulados
             setRegistrosLoaded(false);
             setCurrentPage(1);
         }
     }, [isOpen]);
-
-    // Cargar registros cuando cambia la página (para paginación)
-    useEffect(() => {
-        if (isOpen && currentPage > 1) {
-            cargarRegistros(currentPage, debouncedSearchQuery, filtroEstado, ordenamiento);
-        }
-    }, [currentPage]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -206,9 +172,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
         setAllRegistros([]);
         setCurrentPage(1);
         setRegistrosLoaded(false);
-
-        // La función cargarRegistros ya maneja el RefreshIndicator
-        await cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
+        // FetchDataProgressive se encargará de recargar automáticamente
     };
 
     // Función para manejar scroll infinito
@@ -258,10 +222,9 @@ function MiProduccion({ isOpen, setIsOpen }) {
             setAllRegistros([]);
             setCurrentPage(1);
             setRegistrosLoaded(false);
-            // Cargar registros inmediatamente después de limpiar
-            cargarRegistros(1, debouncedSearchQuery, filtroEstado, ordenamiento);
+            // FetchDataProgressive se encargará de recargar automáticamente
         }
-    }, [debouncedSearchQuery, filtroEstado, ordenamiento]);
+    }, [debouncedSearchQuery, filtroEstado, ordenamiento, isOpen]);
 
     // Efecto para manejar errores
     useEffect(() => {
@@ -513,6 +476,29 @@ function MiProduccion({ isOpen, setIsOpen }) {
                 onEstadoSeleccionado={setFiltroEstado}
                 estadoSeleccionado={filtroEstado}
             />
+
+            {/* Carga de datos progresiva - solo cuando está abierto */}
+            {isOpen && (
+                <FetchDataProgressive
+                    service={registrosProduccionDamabravaService}
+                    method="getByUser"
+                    methodParams={[
+                        filtroEstado,
+                        ordenamiento,
+                        getPrimaryNormalizedValue(debouncedSearchQuery)
+                    ]}
+                    serviceName="registrosProduccionDamabravaService"
+                    isOpen={isOpen && ((!registrosLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}
+                    page={currentPage}
+                    limit={10}
+                    onDataLoaded={handleDataLoaded}
+                    onDataAccumulated={handleDataAccumulated}
+                    onLoadingStart={handleLoadingStart}
+                    onLoadingEnd={handleLoadingEnd}
+                    onError={handleError}
+                    onHasMorePagesChange={handleHasMorePagesChange}
+                />
+            )}
         </View>
     );
 }

@@ -24,14 +24,27 @@ function PlanInfo({ isOpen, setIsOpen }) {
         }
     }, [isOpen]);
 
-    // Actualizar contador cada segundo
+    // Actualizar contador cada segundo solo si el plan no es infinito
     useEffect(() => {
         if (isOpen && currentPlan) {
-            const interval = setInterval(() => {
-                setTimeUpdate(prev => prev + 1);
-            }, 1000);
+            // Verificar si el plan es infinito antes de crear el intervalo
+            const isInfinite = !currentPlan.end_date || 
+                              currentPlan.end_date === 'infinity' ||
+                              currentPlan.end_date === 'Infinity' ||
+                              currentPlan.end_date === '9999-12-31' || 
+                              currentPlan.end_date === '9999-12-31T23:59:59.999Z' ||
+                              currentPlan.end_date === null ||
+                              currentPlan.end_date === undefined ||
+                              currentPlan.end_date === '';
+            
+            // Solo actualizar el contador si el plan NO es infinito
+            if (!isInfinite) {
+                const interval = setInterval(() => {
+                    setTimeUpdate(prev => prev + 1);
+                }, 1000);
 
-            return () => clearInterval(interval);
+                return () => clearInterval(interval);
+            }
         }
     }, [isOpen, currentPlan]);
 
@@ -86,29 +99,46 @@ function PlanInfo({ isOpen, setIsOpen }) {
 
     // Componente para renderizar el contador de tiempo
     const renderTimeCounter = (planStartDate, planEndDate) => {
-        // Usar timeUpdate para forzar re-render
+        // Usar timeUpdate para forzar re-render solo si el plan no es infinito
         const _ = timeUpdate;
         
-        // Debug: mostrar valores recibidos
-        console.log('PlanInfo Debug:', {
-            planStartDate,
-            planEndDate,
-            planEndDateType: typeof planEndDate,
-            planEndDateValue: planEndDate
-        });
-        
         // Verificar si el plan es infinito (sin fecha de fin o fecha muy lejana)
+        // Incluir el string 'infinity' que viene del backend
         const isInfinitePlan = !planEndDate || 
+                              planEndDate === 'infinity' ||
+                              planEndDate === 'Infinity' ||
+                              planEndDate === 'INFINITY' ||
                               planEndDate === '9999-12-31' || 
                               planEndDate === '9999-12-31T23:59:59.999Z' ||
                               planEndDate === null ||
                               planEndDate === undefined ||
-                              planEndDate === '' ||
-                              new Date(planEndDate).getTime() > new Date('2099-12-31').getTime();
+                              planEndDate === '';
         
-        console.log('isInfinitePlan:', isInfinitePlan);
-        
+        // Si es infinito, retornar directamente sin intentar parsear fechas
         if (isInfinitePlan) {
+            return (
+                <div className={styles.infinitePlan}>
+                    <div className={styles.infiniteText}>Infinito</div>
+                    <div className={styles.infiniteSubtext}>Sin límite de tiempo</div>
+                </div>
+            );
+        }
+        
+        // Verificar si la fecha es válida antes de intentar parsearla
+        let end;
+        try {
+            end = new Date(planEndDate).getTime();
+            // Si la fecha es inválida o muy lejana, considerarla infinita
+            if (isNaN(end) || end > new Date('2099-12-31').getTime()) {
+                return (
+                    <div className={styles.infinitePlan}>
+                        <div className={styles.infiniteText}>Infinito</div>
+                        <div className={styles.infiniteSubtext}>Sin límite de tiempo</div>
+                    </div>
+                );
+            }
+        } catch (error) {
+            // Si hay error al parsear, considerar el plan como infinito
             return (
                 <div className={styles.infinitePlan}>
                     <div className={styles.infiniteText}>Infinito</div>
@@ -119,8 +149,7 @@ function PlanInfo({ isOpen, setIsOpen }) {
         
         // Calcular tiempo restante para este plan específico
         const now = new Date().getTime();
-        const start = new Date(planStartDate).getTime();
-        const end = new Date(planEndDate).getTime();
+        const start = planStartDate ? new Date(planStartDate).getTime() : now;
 
         // Si el plan aún no ha comenzado
         if (now < start) {

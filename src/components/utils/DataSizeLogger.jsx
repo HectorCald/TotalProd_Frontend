@@ -78,13 +78,53 @@ export const logDataSize = (data, serviceName, method) => {
 
         // Guardar de vuelta en localStorage
         localStorage.setItem('dataFetchLogs', JSON.stringify(logs));
-
-        console.log('📊 Registro guardado:', {
-            ...logEntry,
-            tamaño: `${sizes.sizeKB} KB (${sizes.sizeMB} MB)`
-        });
     } catch (error) {
         console.error('Error guardando en localStorage:', error);
+    }
+};
+
+/**
+ * Limpia los logs de dataFetchLogs si ha pasado un día desde el último registro
+ * Compara la fecha del último registro guardado con la fecha actual
+ * Esta función debe ser llamada al inicio de Home.jsx y HomeEmpleado.jsx
+ */
+export const clearDataFetchLogsIfNeeded = () => {
+    try {
+        const existingLogs = localStorage.getItem('dataFetchLogs');
+        
+        // Si no hay logs, no hay nada que limpiar
+        if (!existingLogs) {
+            return;
+        }
+
+        const logs = JSON.parse(existingLogs);
+        
+        // Si el array está vacío, no hay nada que limpiar
+        if (!logs || logs.length === 0) {
+            return;
+        }
+
+        // Obtener el último registro (el más reciente)
+        const lastLog = logs[logs.length - 1];
+        
+        // Si no tiene timestamp, no podemos comparar, así que limpiamos por seguridad
+        if (!lastLog.timestamp) {
+            localStorage.removeItem('dataFetchLogs');
+            console.log('🧹 Logs de dataFetchLogs limpiados (sin timestamp válido)');
+            return;
+        }
+
+        // Comparar fechas: obtener solo la fecha (sin hora) del último registro y de hoy
+        const lastLogDate = new Date(lastLog.timestamp).toDateString();
+        const today = new Date().toDateString();
+        
+        // Si la fecha del último registro es diferente a hoy, limpiar logs
+        if (lastLogDate !== today) {
+            localStorage.removeItem('dataFetchLogs');
+            console.log('🧹 Logs de dataFetchLogs limpiados (reset diario)');
+        }
+    } catch (error) {
+        console.error('Error limpiando logs diarios:', error);
     }
 };
 

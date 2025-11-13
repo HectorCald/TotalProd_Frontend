@@ -332,6 +332,11 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         localStorage.removeItem('metodoPagoRepitiendo');
         localStorage.removeItem('productosMovimientoRepitiendo');
         localStorage.removeItem('productosMovimientoEditando');
+        localStorage.removeItem('descuentoMovimientoRepitiendo');
+        localStorage.removeItem('aumentoMovimientoRepitiendo');
+        localStorage.removeItem('conceptoMovimientoRepitiendo');
+        localStorage.removeItem('descuentoMovimientoEditando');
+        localStorage.removeItem('aumentoMovimientoEditando');
         localStorage.removeItem('fechaMovimientoEditando');
         localStorage.removeItem('movimientoIdEditando');
         localStorage.removeItem('productosEdicion');
@@ -366,6 +371,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             localStorage.setItem('aumentoMovimientoRepitiendo', aumentoPorcentaje.toFixed(2));
         } else {
             localStorage.removeItem('aumentoMovimientoRepitiendo');
+        }
+
+        // Guardar concepto si existe
+        const conceptoMovimiento = movimientoActual?.concepto ?? movimiento?.concepto ?? '';
+        if (conceptoMovimiento && conceptoMovimiento.trim() !== '') {
+            localStorage.setItem('conceptoMovimientoRepitiendo', conceptoMovimiento.trim());
+        } else {
+            localStorage.removeItem('conceptoMovimientoRepitiendo');
         }
 
         // Guardar información del cliente si existe
@@ -449,6 +462,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             if (productosMovimientoRepetidos) {
                 localStorage.setItem('productosMovimientoEditando', productosMovimientoRepetidos);
             }
+
 
             const productosFuente = obtenerProductosFuente();
             if (productosFuente && productosFuente.length > 0) {
@@ -616,6 +630,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                             })()}`}
                             vertical={false}
                             especial='green'
+                        />
+                    )}
+                    {/* Concepto del movimiento si existe */}
+                    {movimientoActual?.concepto && (
+                        <Dato
+                            label="Concepto"
+                            value={movimientoActual.concepto}
+                            vertical={false}
                         />
                     )}
                 </div>
@@ -888,10 +910,11 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     setIsAlmacenOpen(isOpen);
                     // Limpiar productos del movimiento cuando se cierra AlmacenGeneral
                     if (!isOpen) {
-                        localStorage.removeItem('productosMovimientoRepitiendo');
-                        localStorage.removeItem('productosMovimientoEditando');
+                    localStorage.removeItem('productosMovimientoRepitiendo');
+                    localStorage.removeItem('productosMovimientoEditando');
                     localStorage.removeItem('descuentoMovimientoRepitiendo');
                     localStorage.removeItem('aumentoMovimientoRepitiendo');
+                    localStorage.removeItem('conceptoMovimientoRepitiendo');
                     localStorage.removeItem('descuentoMovimientoEditando');
                     localStorage.removeItem('aumentoMovimientoEditando');
                     localStorage.removeItem('fechaMovimientoEditando');

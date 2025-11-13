@@ -11,6 +11,7 @@ import Explorar from '../components/screens/Explorar';
 import ModalOffline from '../components/views/offline/ModalOffline';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import NoData from '../components/common/NoData';
+import { clearDataFetchLogsIfNeeded } from '../components/utils/DataSizeLogger';
 
 // Componentes de vistas modales para uso en Inicio.jsx y vistas
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
@@ -33,6 +34,11 @@ const Home = () => {
   const [isOffline, setIsOffline] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [showPasoTipo, setShowPasoTipo] = useState(false);
+
+  // Limpiar logs de dataFetchLogs diariamente
+  useEffect(() => {
+    clearDataFetchLogsIfNeeded();
+  }, []);
 
   // Detectar cambios en la conexión
   useEffect(() => {

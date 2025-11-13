@@ -433,8 +433,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Headers para la tabla
     const tableHeaders = [
-        { key: 'numero_orden', label: 'Orden', icon: 'hash' },
-        { key: 'producto', label: 'Producto', icon: 'package' },
+        { key: 'numero_orden', label: 'Nº', icon: 'hash' },
+        { key: 'producto', label: 'Detalle', icon: 'package' },
         { key: 'tipo', label: 'Tipo', icon: 'transfer' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
         { key: 'cliente_proveedor', label: tipoMovimiento === 'acopio' ? 'Proveedor' : 'Cliente', icon: 'user' },
@@ -443,24 +443,37 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     ];
 
     // Datos para la tabla
-    const tableData = allMovimientos.map(movimiento => ({
-        id: movimiento.id,
-        numero_orden: obtenerNumeroOrdenFormateado(movimiento.numero_orden),
-        producto: tipoMovimiento === 'acopio'
-            ? movimiento.product?.name || 'Sin producto'
-            : movimiento.productos && movimiento.productos.length > 0
-                ? movimiento.productos.length === 1
+    const tableData = allMovimientos.map(movimiento => {
+        // Para tipo almacen, mostrar concepto si existe, sino mostrar cantidad/productos
+        let productoValue;
+        if (tipoMovimiento === 'acopio') {
+            productoValue = movimiento.product?.name || 'Sin producto';
+        } else {
+            // Si tiene concepto, mostrarlo; sino mostrar cantidad/productos como antes
+            if (movimiento.concepto && movimiento.concepto.trim() !== '') {
+                productoValue = movimiento.concepto;
+            } else if (movimiento.productos && movimiento.productos.length > 0) {
+                productoValue = movimiento.productos.length === 1
                     ? movimiento.productos[0]?.producto?.name || 'Sin producto'
-                    : `${movimiento.productos.length} productos`
-                : 'Sin productos',
-        tipo: movimiento.type === 'entrada' ? 'Entrada' : 'Salida',
-        fecha: new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString(),
-        cliente_proveedor: tipoMovimiento === 'acopio'
-            ? (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--'))
-            : (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--')),
-        estado: movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado',
-        total: obtenerTotalFormateado(movimiento)
-    }));
+                    : `${movimiento.productos.length} productos`;
+            } else {
+                productoValue = 'Sin productos';
+            }
+        }
+        
+        return {
+            id: movimiento.id,
+            numero_orden: obtenerNumeroOrdenFormateado(movimiento.numero_orden),
+            producto: productoValue,
+            tipo: movimiento.type === 'entrada' ? 'Entrada' : 'Salida',
+            fecha: new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString(),
+            cliente_proveedor: tipoMovimiento === 'acopio'
+                ? (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--'))
+                : (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--')),
+            estado: movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado',
+            total: obtenerTotalFormateado(movimiento)
+        };
+    });
 
     // Función para obtener el badge de estado
     const getCellBadge = (item, headerKey) => {
@@ -595,11 +608,13 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                                     key={movimiento.id || index}
                                                     title={tipoMovimiento === 'acopio'
                                                         ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
-                                                        : movimiento.productos && movimiento.productos.length > 0
-                                                            ? movimiento.productos.length === 1
-                                                                ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
-                                                                : `${movimiento.productos.length} productos`
-                                                            : 'Sin productos'
+                                                        : (movimiento.concepto && movimiento.concepto.trim() !== '')
+                                                            ? movimiento.concepto
+                                                            : (movimiento.productos && movimiento.productos.length > 0
+                                                                ? movimiento.productos.length === 1
+                                                                    ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
+                                                                    : `${movimiento.productos.length} productos`
+                                                                : 'Sin productos')
                                                     }
                                                     description={`${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
                                                     description2={`Total: ${totalLabel}`}

@@ -208,7 +208,7 @@ function ModalDescarga({
     };
 
 
-    const handleDescargaExcel = () => {
+    const handleDescargaExcel = async () => {
         try {
             // Crear un nuevo workbook con XLSX (más confiable)
             const workbook = XLSX.utils.book_new();
@@ -542,8 +542,53 @@ function ModalDescarga({
 
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte');
 
-            // Generar y descargar archivo
-            XLSX.writeFile(workbook, `${nombreArchivoState.replace(/\s+/g, '_')}.xlsx`);
+            // Generar archivo como blob
+            const excelBuffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+            const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const fileName = `${nombreArchivoState.replace(/\s+/g, '_')}.xlsx`;
+
+            // Descargar archivo
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+
+            // Intentar compartir usando Web Share API
+            if (navigator.share) {
+                try {
+                    const file = new File([blob], fileName, { type: blob.type });
+                    // Verificar si puede compartir archivos
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: nombreArchivoState,
+                            text: `Compartir ${nombreArchivoState}`
+                        });
+                    } else {
+                        // Intentar compartir con archivo directamente (algunos navegadores no tienen canShare)
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: nombreArchivoState,
+                                text: `Compartir ${nombreArchivoState}`
+                            });
+                        } catch (fileShareError) {
+                            // Si falla con archivo, intentar solo con texto
+                            if (fileShareError.name !== 'AbortError') {
+                                await navigator.share({
+                                    title: nombreArchivoState,
+                                    text: `Compartir ${nombreArchivoState}`
+                                });
+                            }
+                        }
+                    }
+                } catch (shareError) {
+                    // Si el usuario cancela el share, no hacer nada
+                    if (shareError.name !== 'AbortError') {
+                        console.log('Error al compartir:', shareError);
+                    }
+                }
+            }
         } catch (error) {
             console.error('Error generando Excel:', error);
         }
@@ -1034,10 +1079,50 @@ function ModalDescarga({
 
             try {
                 const blob = await pdfRenderer(doc).toBlob();
+                const fileName = `${nombreArchivoState.replace(/\s+/g, '_')}.pdf`;
+                
+                // Descargar archivo
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = `${nombreArchivoState.replace(/\s+/g, '_')}.pdf`;
+                link.download = fileName;
                 link.click();
+
+                // Intentar compartir usando Web Share API
+                if (navigator.share) {
+                    try {
+                        const file = new File([blob], fileName, { type: blob.type });
+                        // Verificar si puede compartir archivos
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: nombreArchivoState,
+                                text: `Compartir ${nombreArchivoState}`
+                            });
+                        } else {
+                            // Intentar compartir con archivo directamente (algunos navegadores no tienen canShare)
+                            try {
+                                await navigator.share({
+                                    files: [file],
+                                    title: nombreArchivoState,
+                                    text: `Compartir ${nombreArchivoState}`
+                                });
+                            } catch (fileShareError) {
+                                // Si falla con archivo, intentar solo con texto
+                                if (fileShareError.name !== 'AbortError') {
+                                    await navigator.share({
+                                        title: nombreArchivoState,
+                                        text: `Compartir ${nombreArchivoState}`
+                                    });
+                                }
+                            }
+                        }
+                    } catch (shareError) {
+                        // Si el usuario cancela el share, no hacer nada
+                        if (shareError.name !== 'AbortError') {
+                            console.log('Error al compartir:', shareError);
+                        }
+                    }
+                }
             } catch (pdfError) {
                 console.error('Error específico del PDF:', pdfError);
                 throw new Error('Error al generar el PDF. Verifique que @react-pdf/renderer esté instalado correctamente.');
@@ -1051,35 +1136,38 @@ function ModalDescarga({
     // Auto-disparar descarga si se solicita desde afuera
     useEffect(() => {
         if (!autoDownloadType) return;
-        try {
-            if (autoDownloadType === 'excel') {
-                persistDocumentNames();
-                handleDescargaExcel();
-            } else if (autoDownloadType === 'pdf') {
-                persistDocumentNames();
-                handleDescargaPDF();
+        const executeDownload = async () => {
+            try {
+                if (autoDownloadType === 'excel') {
+                    persistDocumentNames();
+                    await handleDescargaExcel();
+                } else if (autoDownloadType === 'pdf') {
+                    persistDocumentNames();
+                    await handleDescargaPDF();
+                }
+            } finally {
+                if (onAutoDownloadDone) onAutoDownloadDone();
             }
-        } finally {
-            if (onAutoDownloadDone) onAutoDownloadDone();
-        }
+        };
+        executeDownload();
     }, [autoDownloadType]);
 
-    const handleExcelDownloadClick = () => {
+    const handleExcelDownloadClick = async () => {
         persistDocumentNames();
         if (onExcel) {
             onExcel();
             return;
         }
-        handleDescargaExcel();
+        await handleDescargaExcel();
     };
 
-    const handlePdfDownloadClick = () => {
+    const handlePdfDownloadClick = async () => {
         persistDocumentNames();
         if (onPDF) {
             onPDF();
             return;
         }
-        handleDescargaPDF();
+        await handleDescargaPDF();
     };
 
     return (

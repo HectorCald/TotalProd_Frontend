@@ -49,7 +49,20 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
     };
 
     const resolvePrecioInicial = useCallback((tipos) => {
-        return tipos && tipos.length > 0 ? tipos[0].value : null;
+        if (!tipos || tipos.length === 0) return null;
+        const precioIdRepitiendo = localStorage.getItem('precioIdCotizacionRepitiendo');
+        if (precioIdRepitiendo && tipos.find(p => p.value === precioIdRepitiendo)) {
+            return precioIdRepitiendo;
+        }
+        return tipos[0]?.value ?? null;
+    }, []);
+
+    const resolveModoInicial = useCallback(() => {
+        const modoCotizacion = localStorage.getItem('cotizacionAgrupadoRepitiendo');
+        if (modoCotizacion === 'agrupado' || modoCotizacion === 'no_agrupado') {
+            return modoCotizacion;
+        }
+        return null;
     }, []);
 
     const syncProductoCotizacion = useCallback(({
@@ -98,7 +111,9 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
 
     const {
         precioSeleccionado,
+        setPrecioSeleccionado,
         modoAgrupacion,
+        setModoAgrupacion,
         animarCantidad,
         registerCantidadInputRef,
         handleCambiarTipoPrecio: cambiarTipoPrecio,
@@ -117,6 +132,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         shouldPersistLocalStorage: true,
         shouldLoadLocalStorage: true,
         resolveInitialPrecioId: resolvePrecioInicial,
+        resolveInitialModoAgrupacion: resolveModoInicial,
         exposeGlobals: {
             precioGetterName: 'getPrecioSeleccionadoCanastaCotizaciones',
             modoGetterName: 'getModoAgrupacionCanastaCotizaciones'
@@ -225,10 +241,64 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         setIsClientesSeleccionOpen(false);
     };
 
+    // Cargar información del cliente de la cotización cuando se repite
+    useEffect(() => {
+        if (isOpen) {
+            const clienteId = localStorage.getItem('clienteIdCotizacionRepitiendo');
+            const clienteName = localStorage.getItem('clienteNameCotizacionRepitiendo');
+
+            if (clienteId && clienteName) {
+                setClienteSeleccionadoData({
+                    id: clienteId,
+                    name: clienteName
+                });
+                setClienteSeleccionado(clienteId);
+            } else {
+                setClienteSeleccionadoData(null);
+                setClienteSeleccionado('');
+            }
+        } else if (!isOpen) {
+            setClienteSeleccionadoData(null);
+            setClienteSeleccionado('');
+        }
+    }, [isOpen]);
+
+    // Cargar método de pago de la cotización cuando se repite
+    useEffect(() => {
+        if (isOpen) {
+            const metodoPago = localStorage.getItem('metodoPagoCotizacionRepitiendo');
+            if (metodoPago) {
+                setMetodoPagoSeleccionado(metodoPago);
+            }
+        } else if (!isOpen) {
+            setMetodoPagoSeleccionado('');
+        }
+    }, [isOpen]);
+
+    // Cargar fecha de vencimiento de la cotización cuando se repite
+    useEffect(() => {
+        if (isOpen) {
+            const fechaVenc = localStorage.getItem('fechaVencimientoCotizacionRepitiendo');
+            if (fechaVenc) {
+                setFechaVencimiento(fechaVenc);
+            }
+        } else if (!isOpen) {
+            setFechaVencimiento('');
+        }
+    }, [isOpen]);
+
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
         // Limpiar también el localStorage
         localStorage.removeItem('canastaCotizaciones');
+        // Limpiar variables de repetición
+        localStorage.removeItem('precioIdCotizacionRepitiendo');
+        localStorage.removeItem('cotizacionAgrupadoRepitiendo');
+        localStorage.removeItem('clienteIdCotizacionRepitiendo');
+        localStorage.removeItem('clienteNameCotizacionRepitiendo');
+        localStorage.removeItem('metodoPagoCotizacionRepitiendo');
+        localStorage.removeItem('fechaVencimientoCotizacionRepitiendo');
+        localStorage.removeItem('productosCotizacionRepitiendo');
         setIsLimpiarModalOpen(false);
         setIsOpen(false);
     };
@@ -292,6 +362,15 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
             setMetodoPagoSeleccionado('');
             setFechaVencimiento('');
             localStorage.removeItem('canastaCotizaciones');
+
+            // Limpiar variables de repetición
+            localStorage.removeItem('precioIdCotizacionRepitiendo');
+            localStorage.removeItem('cotizacionAgrupadoRepitiendo');
+            localStorage.removeItem('clienteIdCotizacionRepitiendo');
+            localStorage.removeItem('clienteNameCotizacionRepitiendo');
+            localStorage.removeItem('metodoPagoCotizacionRepitiendo');
+            localStorage.removeItem('fechaVencimientoCotizacionRepitiendo');
+            localStorage.removeItem('productosCotizacionRepitiendo');
 
             // Solo cerrar la canasta en móvil, no en PC (modo carrito)
             if (!isCartMode) {

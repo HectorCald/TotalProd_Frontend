@@ -15,6 +15,7 @@ import ViewModal from '../components/ui/ViewModal';
 import HeaderModal from '../components/common/HeaderModal';
 import ModalOffline from '../components/views/offline/ModalOffline';
 import personalService from '../services/personalService';
+import { clearDataFetchLogsIfNeeded } from '../components/utils/DataSizeLogger';
 
 // Componentes de vistas modales para uso en InicioEmpleado.jsx y renderSubModuleComponent
 import AlmacenGeneral from '../components/views/almacen-general/AlmacenGeneral';
@@ -54,6 +55,11 @@ const HomeEmpleado = () => {
     const [isOffline, setIsOffline] = useState(false);
     const [showOfflineModal, setShowOfflineModal] = useState(false);
     const [lastLocationUpdate, setLastLocationUpdate] = useState(0);
+
+    // Limpiar logs de dataFetchLogs diariamente
+    useEffect(() => {
+        clearDataFetchLogsIfNeeded();
+    }, []);
 
     // Detectar cambios en la conexión
     useEffect(() => {

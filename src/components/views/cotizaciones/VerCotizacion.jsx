@@ -14,6 +14,7 @@ import { useLayout } from '../../../context/LayoutContext';
 import ModalTable from '../../common/ModalTable';
 import DescargaCotizacionBuilder from './DescargaCotizacionBuilder';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
+import AlmacenGeneralAuxiliar from '../almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 
 function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onCotizacionEliminada, onCotizacionActualizada }) {
@@ -25,6 +26,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAprobarOpen, setIsAprobarOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
+    const [isAlmacenAuxiliarOpen, setIsAlmacenAuxiliarOpen] = useState(false);
 
     // Estado local para la cotización actual
     const [cotizacionActual, setCotizacionActual] = useState(cotizacion);
@@ -217,6 +219,72 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
         setIsAlmacenOpen(true);
     };
 
+    // Handle para repetir cotización
+    const handleRepetirCotizacion = () => {
+        if (!cotizacionActual) {
+            mostrarNotificacion('error', 'No hay cotización para repetir');
+            return;
+        }
+
+        // Limpiar completamente la canasta de cotizaciones en localStorage
+        localStorage.removeItem('canastaCotizaciones');
+        localStorage.removeItem('precioIdCotizacionRepitiendo');
+        localStorage.removeItem('cotizacionAgrupadoRepitiendo');
+        localStorage.removeItem('clienteIdCotizacionRepitiendo');
+        localStorage.removeItem('clienteNameCotizacionRepitiendo');
+        localStorage.removeItem('metodoPagoCotizacionRepitiendo');
+        localStorage.removeItem('fechaVencimientoCotizacionRepitiendo');
+        localStorage.removeItem('productosCotizacionRepitiendo');
+
+        // Guardar datos de la cotización para repetir
+        localStorage.setItem('precioIdCotizacionRepitiendo', cotizacionActual.precio_id || '');
+        localStorage.setItem('cotizacionAgrupadoRepitiendo', cotizacionActual.agrupado ? 'agrupado' : 'no_agrupado');
+        localStorage.setItem('metodoPagoCotizacionRepitiendo', cotizacionActual.metodo_pago || '');
+
+        // Guardar información del cliente si existe
+        if (cotizacionActual.cliente?.id) {
+            localStorage.setItem('clienteIdCotizacionRepitiendo', cotizacionActual.cliente.id);
+            localStorage.setItem('clienteNameCotizacionRepitiendo', cotizacionActual.cliente.name || '');
+        } else {
+            localStorage.removeItem('clienteIdCotizacionRepitiendo');
+            localStorage.removeItem('clienteNameCotizacionRepitiendo');
+        }
+
+        // Guardar fecha de vencimiento si existe
+        if (cotizacionActual.fecha_vencimiento) {
+            localStorage.setItem('fechaVencimientoCotizacionRepitiendo', cotizacionActual.fecha_vencimiento);
+        } else {
+            localStorage.removeItem('fechaVencimientoCotizacionRepitiendo');
+        }
+
+        // Guardar productos de la cotización para cargar automáticamente
+        const productosCotizacion = (cotizacionActual.productos || [])
+            .map((productoCotizacion) => {
+                const prodId = productoCotizacion?.producto?.id ?? productoCotizacion?.producto_id;
+                if (!prodId) return null;
+
+                let cantidadParaGuardar = Number(productoCotizacion?.cantidad) || 0;
+
+                // Si la cotización es agrupada, convertir la cantidad a grupos
+                if (cotizacionActual?.agrupado && productoCotizacion?.producto?.grup) {
+                    const grup = Number(productoCotizacion.producto.grup) || 0;
+                    if (grup > 0) {
+                        cantidadParaGuardar = Math.round(cantidadParaGuardar / grup);
+                    }
+                }
+
+                return {
+                    id: prodId,
+                    cantidad: cantidadParaGuardar
+                };
+            })
+            .filter(Boolean);
+        localStorage.setItem('productosCotizacionRepitiendo', JSON.stringify(productosCotizacion));
+
+        // Abrir AlmacenGeneral-Auxiliar en modo cotizar
+        setIsAlmacenAuxiliarOpen(true);
+    };
+
     if (!cotizacionActual) return null;
 
     return (
@@ -339,12 +407,20 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
 
                 <div className={styles.buttons}>
                     {cotizacionActual?.estado === 'anulado' ? (
-                        <Boton
-                            className='btn-red'
-                            label='Eliminar Cotización'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsEliminarOpen(true)}
-                        />
+                        <>
+                            <Boton
+                                className='btn-gray'
+                                label='Repetir Cotización'
+                                style={{ marginTop: 'auto' }}
+                                onClick={handleRepetirCotizacion}
+                            />
+                            <Boton
+                                className='btn-red'
+                                label='Eliminar Cotización'
+                                style={{ marginTop: 'auto' }}
+                                onClick={() => setIsEliminarOpen(true)}
+                            />
+                        </>
                     ) : cotizacionActual?.estado === 'aprobada' ? (
                         <>
                             <Boton
@@ -352,6 +428,12 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                 label='Realizar Venta'
                                 style={{ marginTop: 'auto' }}
                                 onClick={handleRealizarVenta}
+                            />
+                            <Boton
+                                className='btn-gray'
+                                label='Repetir Cotización'
+                                style={{ marginTop: 'auto' }}
+                                onClick={handleRepetirCotizacion}
                             />
                             {!cotizacionActual?.tiene_pedido_relacionado && (
                                 <Boton
@@ -372,6 +454,12 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                     onClick={() => setIsAprobarOpen(true)}
                                 />
                             )}
+                            <Boton
+                                className='btn-gray'
+                                label='Repetir Cotización'
+                                style={{ marginTop: 'auto' }}
+                                onClick={handleRepetirCotizacion}
+                            />
                             {!cotizacionActual?.tiene_pedido_relacionado && (
                                 <Boton
                                     className='btn-red'
@@ -562,6 +650,14 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                     localStorage.removeItem('clienteNameCotizacionVendiendo');
                     localStorage.removeItem('isVentaCotizacion');
                 }}
+            />
+
+            {/* Modal de AlmacenGeneral-Auxiliar para repetir cotización */}
+            <AlmacenGeneralAuxiliar
+                isOpen={isAlmacenAuxiliarOpen}
+                setIsOpen={setIsAlmacenAuxiliarOpen}
+                tipo="cotizar"
+                isRepitiendoCotizacion={true}
             />
         </View>
     );

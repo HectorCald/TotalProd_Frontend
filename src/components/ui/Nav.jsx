@@ -43,6 +43,11 @@ const Nav = () => {
         `${currentUser.first_name} ${currentUser.last_name}` :
         `${currentUser.firstName} ${currentUser.lastName}`) : 'Usuario';
 
+    // Obtener el label del select según el tipo de usuario
+    const selectLabel = isEmployee 
+        ? (currentUser?.cargo || 'Empleado')
+        : 'Administrador';
+
     // Opciones del select de usuario
     const userMenuOptions = [
         { value: 'perfil', label: 'Detalles de mi cuenta', icon: 'user' },
@@ -52,7 +57,7 @@ const Nav = () => {
             { value: 'codigo-promocional', label: 'Codigo promocional', icon: 'purchase-tag-alt' },
             { value: 'plan', label: 'Plan', icon: 'star' }
         ]),
-        { value: 'comentarios', label: 'Comentarios', icon: 'comment' },
+        // { value: 'comentarios', label: 'Comentarios', icon: 'comment' },
         { value: 'logout', label: 'Cerrar sesión', icon: 'power-off' }
     ];
 
@@ -94,9 +99,9 @@ const Nav = () => {
             case 'codigo-promocional':
                 setIsOpenCodigoPromocional(true);
                 break;
-            case 'comentarios':
-                setIsOpenComentarios(true);
-                break;
+            // case 'comentarios':
+            //     setIsOpenComentarios(true);
+            //     break;
             case 'logout':
                 setIsLogoutOpen(true);
                 break;
@@ -120,7 +125,7 @@ const Nav = () => {
                     {isLargeScreen && currentUser ? (
                         <div className={styles.userSelectContainer}>
                             <Select
-                                label="Administrador"
+                                label={selectLabel}
                                 placeholder={nombreCompleto}
                                 options={userMenuOptions}
                                 onChange={handleUserMenuSelect}
@@ -143,7 +148,7 @@ const Nav = () => {
                 )}
                 <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
                 <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
-                <Comentarios isOpen={isOpenComentarios} setIsOpen={setIsOpenComentarios} />
+                {/* <Comentarios isOpen={isOpenComentarios} setIsOpen={setIsOpenComentarios} /> */}
                 {!isEmployee && <PlanInfo isOpen={isOpenPlan} setIsOpen={setIsOpenPlan} />}
 
                 {/* Modal de logout */}

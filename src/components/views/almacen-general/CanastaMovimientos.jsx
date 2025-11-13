@@ -17,6 +17,7 @@ import InputNormal from '../../common/InputNormal';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import useEntregaMovimientos from './hooks/useEntregaMovimientos';
 import { useLayout } from '../../../context/LayoutContext';
+import OpcionDesplegable from '../../common/OpcionDesplegable';
 
 function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null, isEditandoMovimiento = false, movimientoIdEditando = null, numeroOrdenEditando: numeroOrdenEditandoProp = null, onMovimientoEditado = null }) {
     const { isLargeScreen } = useLayout();
@@ -26,6 +27,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [descuento, setDescuento] = useState('');
     const [aumento, setAumento] = useState('');
+    const [concepto, setConcepto] = useState('');
 
     // Estados para clientes y método de pago (solo para salidas)
     const [clienteSeleccionado, setClienteSeleccionado] = useState('');
@@ -227,12 +229,15 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         if (isOpen && !esEntrega) {
             const descuentoRepitiendo = localStorage.getItem('descuentoMovimientoRepitiendo') || localStorage.getItem('descuentoMovimientoEditando');
             const aumentoRepitiendo = localStorage.getItem('aumentoMovimientoRepitiendo') || localStorage.getItem('aumentoMovimientoEditando');
+            const conceptoRepitiendo = localStorage.getItem('conceptoMovimientoRepitiendo');
 
             setDescuento(descuentoRepitiendo ?? '');
             setAumento(aumentoRepitiendo ?? '');
+            setConcepto(conceptoRepitiendo ?? '');
         } else if (!isOpen && !esEntrega) {
             setDescuento('');
             setAumento('');
+            setConcepto('');
         }
     }, [esEntrega, isOpen]);
 
@@ -389,10 +394,12 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         localStorage.removeItem('canastaSalidas');
         localStorage.removeItem('descuentoMovimientoRepitiendo');
         localStorage.removeItem('aumentoMovimientoRepitiendo');
+        localStorage.removeItem('conceptoMovimientoRepitiendo');
         localStorage.removeItem('descuentoMovimientoEditando');
         localStorage.removeItem('aumentoMovimientoEditando');
         setDescuento('');
         setAumento('');
+        setConcepto('');
         setClienteSeleccionado('');
         setClienteSeleccionadoData(null);
         if (isEditandoMovimiento && movimientoIdEditando) {
@@ -563,6 +570,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 agrupado: modoAgrupacion === 'agrupado',
                 descuento: descuentoMonto,
                 aumento: aumentoMonto,
+                concepto: concepto && concepto.trim() !== '' ? concepto.trim() : null,
                 productos: productosParaCalcular,
                 ...(fechaMovimientoEditando ? { fecha: fechaMovimientoEditando } : {}),
                 ...(numeroOrdenPayload !== null ? { numero_orden: numeroOrdenPayload } : {})
@@ -683,6 +691,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 setObservacionesGenerales('');
                 setClienteSeleccionado('');
                 setMetodoPagoSeleccionado('');
+                setConcepto('');
                 localStorage.removeItem('canastaSalidas');
 
                 // Limpiar variables específicas de entrega o repetición
@@ -702,6 +711,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 localStorage.removeItem('metodoPagoEditando');
                 localStorage.removeItem('descuentoMovimientoRepitiendo');
                 localStorage.removeItem('aumentoMovimientoRepitiendo');
+                localStorage.removeItem('conceptoMovimientoRepitiendo');
                 localStorage.removeItem('descuentoMovimientoEditando');
                 localStorage.removeItem('aumentoMovimientoEditando');
                 localStorage.removeItem('fechaMovimientoEditando');
@@ -928,30 +938,40 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                         }}
                                     />
 
-                                    <div className={styles.horizontal}>
-                                        <InputNormal
-                                            placeholder="Descuento %"
-                                            tipo="number"
-                                            step="0.01" min="0" max="100"
-                                            value={descuento}
-                                            onChange={(e) => setDescuento(e.target.value)}
-                                            icon='trending-down'
-                                        />
-                                        <InputNormal
-                                            placeholder="Aumento %"
-                                            tipo="number"
-                                            step="0.01" min="0" max="100"
-                                            value={aumento}
-                                            onChange={(e) => setAumento(e.target.value)}
-                                            icon='trending-up'
-                                        />
-                                    </div>
-
                                     {/* Selector de método de pago para salidas */}
                                     <SelectorMetodoPago
                                         value={metodoPagoSeleccionado}
                                         onChange={setMetodoPagoSeleccionado}
                                     />
+
+                                    {/* Otras opciones */}
+                                    <OpcionDesplegable titulo="Otras opciones">
+                                        <div className={styles.horizontal}>
+                                            <InputNormal
+                                                placeholder="Descuento %"
+                                                tipo="number"
+                                                step="0.01" min="0" max="100"
+                                                value={descuento}
+                                                onChange={(e) => setDescuento(e.target.value)}
+                                                icon='trending-down'
+                                            />
+                                            <InputNormal
+                                                placeholder="Aumento %"
+                                                tipo="number"
+                                                step="0.01" min="0" max="100"
+                                                value={aumento}
+                                                onChange={(e) => setAumento(e.target.value)}
+                                                icon='trending-up'
+                                            />
+                                        </div>
+                                        <InputNormal
+                                            placeholder="Concepto (opcional)"
+                                            tipo="text"
+                                            value={concepto}
+                                            onChange={(e) => setConcepto(e.target.value)}
+                                            icon='text'
+                                        />
+                                    </OpcionDesplegable>
 
 
                                 </>

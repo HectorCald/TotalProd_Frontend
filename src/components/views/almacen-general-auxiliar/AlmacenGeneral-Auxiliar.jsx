@@ -27,8 +27,9 @@ import useCanastaActions from '../almacen-general/hooks/useCanastaActions';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import limpiarAlmacenLocalStorage from '../almacen-general/helpers/limpiarAlmacenLocalStorage';
 
-function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
+function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoCotizacion = false }) {
     const { isLargeScreen } = useLayout();
 
     // Determinar si es modo carrito (para panel lateral)
@@ -250,6 +251,30 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             saveToLocalStorage(stockInputs, groupInputs, stockInputsText, groupInputsText);
         }
     }, [stockInputs, groupInputs, stockInputsText, groupInputsText, tipo, isOpen, saveToLocalStorage]);
+
+    // Efecto para cargar productos de cotización cuando se repite
+    useEffect(() => {
+        if (!isOpen || tipo !== 'cotizar') return;
+        if (productos.length === 0) return;
+
+        const productosCotizacionRepitiendo = localStorage.getItem('productosCotizacionRepitiendo');
+        if (!productosCotizacionRepitiendo) return;
+
+        try {
+            const productosParaRepetir = JSON.parse(productosCotizacionRepitiendo);
+            productosParaRepetir.forEach(productoCotizacion => {
+                const productoCompleto = productos.find(p => p.id === productoCotizacion.id);
+                if (productoCompleto) {
+                    agregarProductoCotizacion(productoCompleto, productoCotizacion.cantidad);
+                }
+            });
+            setTimeout(() => {
+                localStorage.removeItem('productosCotizacionRepitiendo');
+            }, 1000);
+        } catch (error) {
+            console.error('Error al cargar productos de la cotización para repetir:', error);
+        }
+    }, [isOpen, productos, tipo, agregarProductoCotizacion]);
 
     const getDiferenciaNombre = () => {
         const map = {
@@ -507,9 +532,24 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
 
     return (
         <>
-            <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={!isRepeatingConteo}>
+            <View 
+                isOpen={isOpen} 
+                setIsOpen={setIsOpen} 
+                isMainView={
+                    !isRepeatingConteo &&
+                    !isRepitiendoCotizacion &&
+                    !localStorage.getItem('productosCotizacionRepitiendo')
+                }
+            >
                 <HeaderView
-                    onBack={() => setIsOpen(false)}
+                    onBack={() => {
+                        if (isRepitiendoCotizacion || localStorage.getItem('productosCotizacionRepitiendo')) {
+                            limpiarAlmacenLocalStorage();
+                        }
+                        setTimeout(() => {
+                            setIsOpen(false);
+                        }, 100);
+                    }}
                     showSearch={true}
                     searchPlaceholder="Buscar producto"
                     title={tipo === 'conteo' ? 'Conteo de Inventario' : tipo === 'cotizar' ? 'Cotizar' : 'Almacén'}

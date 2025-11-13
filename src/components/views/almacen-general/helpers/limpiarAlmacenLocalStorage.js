@@ -30,6 +30,7 @@ const ENTITIES = {
         'movimientoAgrupadoEditando',
         'descuentoMovimientoRepitiendo',
         'aumentoMovimientoRepitiendo',
+        'conceptoMovimientoRepitiendo',
         'descuentoMovimientoEditando',
         'aumentoMovimientoEditando',
         'fechaMovimientoEditando',
@@ -44,6 +45,15 @@ const ENTITIES = {
         'clienteIdCotizacionVendiendo',
         'clienteNameCotizacionVendiendo',
         'isVentaCotizacion',
+    ],
+    cotizacionRepeticion: [
+        'precioIdCotizacionRepitiendo',
+        'cotizacionAgrupadoRepitiendo',
+        'clienteIdCotizacionRepitiendo',
+        'clienteNameCotizacionRepitiendo',
+        'metodoPagoCotizacionRepitiendo',
+        'fechaVencimientoCotizacionRepitiendo',
+        'productosCotizacionRepitiendo',
     ],
 };
 
