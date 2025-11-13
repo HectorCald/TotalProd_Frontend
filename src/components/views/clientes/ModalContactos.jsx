@@ -97,14 +97,34 @@ function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
                         setIsOpen(false);
                     }
                 } catch (err) {
+                    // Log detallado del error
+                    console.error('=== ERROR AL LLAMAR contactsManager.select ===');
+                    console.error('Error name:', err.name);
+                    console.error('Error message:', err.message);
+                    console.error('Error stack:', err.stack);
+                    console.error('Error completo:', err);
+                    console.error('contactsManager:', contactsManager);
+                    console.error('typeof contactsManager.select:', typeof contactsManager.select);
+                    
                     if (err.name === 'AbortError') {
                         // El usuario canceló la selección
                         setIsOpen(false);
+                        setLoading(false);
                         return;
-                    } else if (err.name === 'NotSupportedError' || err.name === 'SecurityError') {
-                        throw new Error('No se pudo acceder a los contactos. Verifica los permisos del navegador.');
+                    } else if (err.name === 'NotSupportedError') {
+                        const errorMsg = `La API de contactos no está soportada en este dispositivo. Asegúrate de usar Chrome versión 80 o superior en Android.\n\nError técnico: ${err.message || err.toString()}`;
+                        throw new Error(errorMsg);
+                    } else if (err.name === 'SecurityError') {
+                        const errorMsg = `No se pudo acceder a los contactos. Verifica los permisos del navegador y asegúrate de estar en HTTPS.\n\nError técnico: ${err.message || err.toString()}`;
+                        throw new Error(errorMsg);
+                    } else if (err.name === 'TypeError') {
+                        const errorMsg = `Error de tipo: La función select no está disponible o no es una función.\n\nError técnico: ${err.message || err.toString()}`;
+                        throw new Error(errorMsg);
+                    } else {
+                        // Lanzar el error con toda la información disponible
+                        const errorMsg = `Error al acceder a los contactos.\n\nTipo: ${err.name || 'Desconocido'}\nMensaje: ${err.message || err.toString() || 'Error desconocido'}`;
+                        throw new Error(errorMsg);
                     }
-                    throw err;
                 }
             } else {
                 // Verificar si es problema de HTTPS
@@ -115,9 +135,49 @@ function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
                 throw new Error('La API de contactos no está disponible en este navegador. Esta funcionalidad requiere Chrome en Android (versión 80 o superior).');
             }
         } catch (err) {
-            console.error('Error al obtener contactos:', err);
-            const mensajeError = 'No se puede cargar los contactos del teléfono. Esta funcionalidad solo está disponible en dispositivos móviles Android.';
-            setError(mensajeError);
+            // Log completo del error para debugging
+            console.error('=== ERROR COMPLETO AL OBTENER CONTACTOS ===');
+            console.error('Error name:', err.name);
+            console.error('Error message:', err.message);
+            console.error('Error stack:', err.stack);
+            console.error('Error completo:', err);
+            console.error('Error toString:', err.toString());
+            
+            // Obtener mensaje de error específico y detallado
+            let mensajeError = '';
+            let detalleError = '';
+            
+            if (err.name === 'AbortError') {
+                // Usuario canceló, no mostrar error
+                setIsOpen(false);
+                setLoading(false);
+                return;
+            } else if (err.name === 'NotSupportedError') {
+                mensajeError = 'La API de contactos no está soportada';
+                detalleError = 'La API de contactos no está soportada en este dispositivo o navegador. Asegúrate de usar Chrome versión 80 o superior en Android.';
+            } else if (err.name === 'SecurityError') {
+                mensajeError = 'Error de seguridad al acceder a contactos';
+                detalleError = 'No se pudo acceder a los contactos por razones de seguridad. Verifica los permisos del navegador y asegúrate de estar en HTTPS.';
+            } else if (err.name === 'TypeError') {
+                mensajeError = 'Error de tipo en la API de contactos';
+                detalleError = `Error de tipo: ${err.message || 'La función select no está disponible o no es una función'}`;
+            } else if (err.message) {
+                mensajeError = 'Error al acceder a los contactos';
+                detalleError = `${err.message}${err.name ? ` (${err.name})` : ''}`;
+            } else {
+                mensajeError = 'Error desconocido';
+                detalleError = `Error al acceder a los contactos: ${err.toString() || 'Error desconocido'}${err.name ? ` (Tipo: ${err.name})` : ''}`;
+            }
+            
+            // Agregar información adicional si está disponible
+            if (err.stack) {
+                console.error('Stack trace:', err.stack);
+            }
+            
+            // Mensaje completo para mostrar en NoData
+            const mensajeCompleto = `${detalleError}\n\nDetalles técnicos:\n- Tipo de error: ${err.name || 'Desconocido'}\n- Mensaje: ${err.message || 'Sin mensaje'}`;
+            
+            setError(mensajeCompleto);
             mostrarNotificacion('error', mensajeError);
         } finally {
             setLoading(false);
@@ -169,17 +229,26 @@ function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
                 // Si la API no está disponible, mostrar error con NoData
                 console.log('❌ Contact Picker API no disponible');
                 let motivo = '';
+                let mensajeError = '';
+                
                 if (!isSecure) {
                     motivo = 'Requiere HTTPS (excepto localhost)';
+                    mensajeError = 'La API de contactos requiere HTTPS. Por favor, accede a la aplicación usando HTTPS.';
                 } else if (!isAndroid) {
                     motivo = 'Solo funciona en dispositivos Android (no en Windows, Mac, iOS, etc.)';
+                    mensajeError = 'Esta funcionalidad solo está disponible en dispositivos Android. Estás usando un dispositivo de escritorio o iOS.';
                 } else if (!isChrome) {
                     motivo = 'Solo funciona en Chrome (no en Safari, Firefox, Edge, etc.)';
+                    mensajeError = 'Esta funcionalidad solo está disponible en Chrome para Android. Por favor, usa Chrome en tu dispositivo Android.';
                 } else {
                     motivo = 'La API no está disponible en este navegador/dispositivo';
+                    mensajeError = 'La API de contactos no está disponible. Asegúrate de usar Chrome versión 80 o superior en un dispositivo Android.';
                 }
+                
                 console.log('⚠️ Motivo:', motivo);
-                setError('No se puede cargar los contactos del teléfono. Esta funcionalidad solo está disponible en dispositivos Android con Chrome.');
+                setError(mensajeError);
+                // Mostrar notificación también cuando no es Android
+                mostrarNotificacion('error', mensajeError);
             }
         }
     }, [isOpen]);
