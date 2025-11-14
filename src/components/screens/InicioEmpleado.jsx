@@ -10,7 +10,6 @@ import NoData from '../common/NoData';
 import { useEmployee } from '../../context/EmployeeContext';
 import personalService from '../../services/personalService';
 import Notification from '../common/Notification';
-import Text from '../common/Text';
 import { OFFLINE_NETWORK_FLAG } from '../../utils/offlineNetworkInterceptor';
 
 const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
@@ -119,11 +118,6 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
           paddingTop: '10px',
         }}
       >
-          {isOfflineMode && (
-            <Text type="error" align="left">
-              Estás en modo offline. Solo podrás registrar ventas (salidas) si cuentas con ese módulo.
-            </Text>
-          )}
           {(() => {
             // Agrupar módulos por sección
             const buckets = new Map();

@@ -68,6 +68,7 @@ const UsuarioScreen = () => {
     const currentUser = isEmployee ? employeeInfo : userInfo;
     const sucursal = isEmployee ? employeeSucursal : userSucursal;
     const canUseOffline = !isEmployee || !!employeeInfo?.permisos?.offline;
+    const areSettingsDisabled = isOfflineMode;
 
     const applyTheme = (theme) => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -155,7 +156,6 @@ const UsuarioScreen = () => {
             localStorage.removeItem(OFFLINE_EMPLOYEE_KEY);
             disableOfflineNetworkInterceptor();
             dispatchOfflineModeChange(false);
-            mostrarNotificacion('info', 'Datos offline eliminados.');
             return;
         }
 
@@ -223,7 +223,6 @@ const UsuarioScreen = () => {
 
             enableOfflineNetworkInterceptor();
             dispatchOfflineModeChange(true);
-            mostrarNotificacion('success', 'Modo offline preparado correctamente.');
         } catch (error) {
             console.error('Error activando modo offline:', error);
             setIsOfflineMode(false);
@@ -326,6 +325,7 @@ const UsuarioScreen = () => {
                         icon="lock-open"
                         type="arrow"
                         onClick={() => setIsOpenCambiarContraseña(true)}
+                        disabled={areSettingsDisabled}
                     />
 
                     {isEmployee ? (
@@ -335,6 +335,7 @@ const UsuarioScreen = () => {
                             icon="category"
                             type="arrow"
                             onClick={() => setIsOpenAtajo(true)}
+                            disabled={areSettingsDisabled}
                         />
                     ) : (
                         <>
@@ -344,6 +345,7 @@ const UsuarioScreen = () => {
                                 icon="purchase-tag-alt"
                                 type="arrow"
                                 onClick={() => setIsOpenCodigoPromocional(true)}
+                                disabled={areSettingsDisabled}
                             />
 
                             <ComponenteFull
@@ -352,6 +354,7 @@ const UsuarioScreen = () => {
                                 icon="star"
                                 type="arrow"
                                 onClick={() => setIsOpenPlan(true)}
+                                disabled={areSettingsDisabled}
                             />
                         </>
                     )}

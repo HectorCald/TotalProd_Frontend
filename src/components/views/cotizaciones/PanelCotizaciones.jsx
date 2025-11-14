@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { normalizeSearchValue, normalizedIncludes } from '../../common/HeaderView';
@@ -17,6 +17,8 @@ import NoData from '../../common/NoData';
 import FetchData from '../../mixed/FetchData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import { formatCurrency } from '../../../utils/numberUtils';
+import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 
 
 function PanelCotizaciones({ isOpen, setIsOpen }) {
@@ -48,12 +50,26 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     // Estados para filtros
     const [filtroEstado, setFiltroEstado] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
+    const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
+    const fechaInicioKey = useMemo(
+        () => (filtroFecha.inicio ? filtroFecha.inicio.toISOString() : null),
+        [filtroFecha.inicio]
+    );
+    const fechaFinKey = useMemo(
+        () => (filtroFecha.fin ? filtroFecha.fin.toISOString() : null),
+        [filtroFecha.fin]
+    );
 
     // Estados para cotizaciones
     const [cotizaciones, setCotizaciones] = useState([]);
     const [error, setError] = useState(null);
 
     // Estados y configuraciones para el modal de información
+    const filtroFechaPayload = useMemo(() => ({
+        fechaInicio: filtroFecha?.inicio ? filtroFecha.inicio.toISOString() : null,
+        fechaFin: filtroFecha?.fin ? filtroFecha.fin.toISOString() : null
+    }), [fechaFinKey, fechaInicioKey]);
+
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
         type: 'info',
@@ -61,6 +77,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         description: '',
         showButton: false
     });
+    const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
 
 
     // Función para manejar cuando se cargan las cotizaciones
@@ -115,7 +132,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     // Función para manejar refresh
     const handleRefresh = async () => {
         try {
-            const response = await cotizacionesService.getAll();
+            const response = await cotizacionesService.getAll(filtroFechaPayload);
             if (response.success) {
                 setCotizaciones(response.data);
                 setAllCotizaciones(response.data);
@@ -197,8 +214,17 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             setFiltroEstado(null);
             setFiltroEstadoNombre('Todos los estados');
             setOrdenamiento('fecha_desc');
+            setFiltroFecha({ inicio: null, fin: null });
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen) {
+            setAllCotizaciones([]);
+            setCotizaciones([]);
+            setIsLoadingCotizaciones(false);
+        }
+    }, [fechaInicioKey, fechaFinKey, isOpen]);
 
     // Efecto para manejar errores
     useEffect(() => {
@@ -273,12 +299,19 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         return filtroEstadoNombre;
     };
 
+    const getFechaNombre = () => formatDateRangeForDisplay(filtroFecha?.inicio, filtroFecha?.fin, 'Fecha');
+
 
     const opciones = [
         {
             label: getEstadoNombre(),
             active: filtroEstado !== null,
             onClick: () => setIsOpenFiltroEstado(true)
+        },
+        {
+            label: getFechaNombre(),
+            active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
+            onClick: () => setIsOpenFiltroFecha(true)
         }
     ];
 
@@ -353,9 +386,9 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             id: cotizacion.id,
             numero_cotizacion: cotizacion.numero_cotizacion || 'Sin número',
             cliente: cotizacion.cliente?.name || 'Sin cliente',
-            total: `Bs. ${(parseFloat(cotizacion.total) || 0).toFixed(2)}`,
+            total: formatCurrency(parseFloat(cotizacion.total) || 0),
             fecha: new Date(cotizacion.fecha).toLocaleDateString(),
-            estado: cotizacion.estado === 'anulado' ? 'Anulado' : cotizacion.estado === 'aprobada' ? 'Aprobada' : 'Pendiente',
+            estado: cotizacion.estado === 'anulado' ? 'Anulado' : cotizacion.estado === 'aprobada' ? 'Aprobada' : cotizacion.estado === 'completado' ? 'Completado' : 'Pendiente',
             metodo_pago: cotizacion.metodo_pago || '--',
             responsable: responsable
         };
@@ -377,6 +410,10 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 'Anulado': {
                     text: 'Anulado',
                     className: 'error' // rojo
+                },
+                'Completado': {
+                    text: 'Completado',
+                    className: 'info' // verde
                 },
             };
             
@@ -461,14 +498,14 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                                             <ItemView
                                                 key={cotizacion.id || index}
                                                 title={`Cotización #${cotizacion.numero_cotizacion || 'Sin número'} - ${cotizacion.cliente?.name || 'Sin cliente'}`}
-                                                description={`Total: Bs. ${(parseFloat(cotizacion.total) || 0).toFixed(2)} • ${new Date(cotizacion.fecha).toLocaleDateString()}${cotizacion.metodo_pago ? ` • ${cotizacion.metodo_pago}` : ''}`}
+                                                description={`Total: ${formatCurrency(parseFloat(cotizacion.total) || 0)} • ${new Date(cotizacion.fecha).toLocaleDateString()}${cotizacion.metodo_pago ? ` • ${cotizacion.metodo_pago}` : ''}`}
                                                 icon='file'
                                                 onClick={() => handleRegistro(cotizacion)}
                                                 arrow={false}
                                                 flot3={cotizacion?.estado === 'anulado' ? 'Anulado' : ''}
                                                 flot4={cotizacion?.estado === 'aprobada' ? 'Aprobada' : ''}
                                                 flot2={cotizacion?.estado === 'pendiente' ? 'Pendiente' : ''}
-                                                colorIcon='azul'
+                                                flot5={cotizacion?.estado === 'completado' ? 'Completado' : ''}
                                             />
                                         );
                                     })
@@ -510,6 +547,17 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 onEstadoSeleccionado={handleFiltroEstado}
             />
 
+            <FiltroFecha
+                isOpen={isOpenFiltroFecha}
+                setIsOpen={setIsOpenFiltroFecha}
+                startDate={filtroFecha?.inicio}
+                endDate={filtroFecha?.fin}
+                onApply={(inicio, fin) => setFiltroFecha({ inicio, fin })}
+                onClear={() => setFiltroFecha({ inicio: null, fin: null })}
+                title="Filtrar por fecha"
+                defaultToToday={false}
+            />
+
             {/* Modal de Información */}
             <InfoModal
                 isOpen={modalConfig.isOpen}
@@ -527,6 +575,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 <FetchData
                     service={cotizacionesService}
                     serviceName="cotizacionesService"
+                    methodParams={[filtroFechaPayload]}
                     isOpen={isOpen}
                     onDataLoaded={handleCotizacionesLoaded}
                     onLoadingStart={handleLoadingStart}

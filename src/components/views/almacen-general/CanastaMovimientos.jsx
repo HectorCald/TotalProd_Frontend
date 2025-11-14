@@ -663,6 +663,15 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             };
 
             if (offlineEnabled) {
+                const precioSeleccionadoInfo = preciosTipos?.find((precio) => {
+                    const value = precio?.value ?? precio?.id;
+                    return value === precioSeleccionado;
+                });
+                const precioNombreSeleccionado =
+                    precioSeleccionadoInfo?.label ||
+                    precioSeleccionadoInfo?.name ||
+                    precioSeleccionadoInfo?.nombre ||
+                    '';
                 await queueOfflineSalida({
                     movimientoData,
                     pedidoId,
@@ -683,6 +692,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     isEditandoMovimiento,
                     movimientoIdEditando,
                     fechaMovimientoEditando,
+                    tipoPrecioNombre: precioNombreSeleccionado,
                 });
 
                 await updateOfflineProductsStock(productosStockActualizados);

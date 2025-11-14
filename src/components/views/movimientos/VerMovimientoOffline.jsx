@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import View from '../../ui/View';
 import ViewModal from '../../ui/ViewModal';
+import HeaderView from '../../common/HeaderView';
 import HeaderModal from '../../common/HeaderModal';
 import Dato from '../../common/Dato';
 import ItemView from '../../common/ItemView';
@@ -15,6 +17,7 @@ import movimientosAlmacenService from '../../../services/movimientosAlmacenServi
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import deudasService from '../../../services/deudasService';
 import Notification from '../../common/Notification';
+import Text from '../../common/Text';
 import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
 
 const useOfflineReferences = () => {
@@ -66,8 +69,24 @@ const mapMovimientoData = (movimiento, references) => {
 
     const precio = (() => {
         const precioId = movimiento?.datos?.movimientoData?.precio_id;
-        if (!precioId) return null;
-        return refPrecios.find(p => p.id === precioId) || null;
+        if (precioId) {
+            const refPrecio = refPrecios.find(p => p.id === precioId);
+            if (refPrecio) {
+                return refPrecio;
+            }
+        }
+        const storedNombre =
+            movimiento?.datos?.tipoPrecioNombre ||
+            movimiento?.resumen?.tipoPrecioNombre ||
+            movimiento?.datos?.movimientoData?.precio_nombre ||
+            null;
+        if (storedNombre) {
+            return {
+                id: precioId || null,
+                name: storedNombre
+            };
+        }
+        return null;
     })();
 
     return {
@@ -108,6 +127,8 @@ function VerMovimientoOffline({
     });
     const [movimientoDescargaId, setMovimientoDescargaId] = useState(null);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
+    const [isEliminarOpen, setIsEliminarOpen] = useState(false);
+    const [isRegistrarConfirmOpen, setIsRegistrarConfirmOpen] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -149,6 +170,7 @@ function VerMovimientoOffline({
         await restoreOfflineProductsStock(productosRestaurar);
         setIsDeleting(false);
         setIsOpen(false);
+        setIsEliminarOpen(false);
         if (onMovimientoEliminado) {
             onMovimientoEliminado(movimientoMapeado.id, remaining);
         }
@@ -159,6 +181,11 @@ function VerMovimientoOffline({
         setTimeout(() => {
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 3000);
+    };
+
+    const handleConfirmRegistrar = () => {
+        setIsRegistrarConfirmOpen(false);
+        handleRegistrarSalida();
     };
 
     const handleRegistrarSalida = async () => {
@@ -234,13 +261,22 @@ function VerMovimientoOffline({
 
     return (
         <>
-            <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
-                <HeaderModal
+            <View isOpen={isOpen} setIsOpen={setIsOpen}>
+                <HeaderView
                     title="Movimiento offline"
-                    onClose={() => setIsOpen(false)}
+                    onBack={() => setIsOpen(false)}
                 />
-                <div className={styles.modalContent}>
+                <div className={styles.container}>
                     <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
+                    {movimientoMapeado.cliente && (
+
+                            <ItemView
+                                title={movimientoMapeado.cliente?.name || 'Sin nombre'}
+                                description='Cliente'
+                                transparent={false}
+                            />
+                        
+                    )}
                     <div className={styles.content}>
                         <Dato label="Fecha" value={formatFechaLiteral(movimientoMapeado.createdAt)} vertical={false} />
                         <Dato label="Hora" value={formatHoraSinSegundos(movimientoMapeado.createdAt)} vertical={false} />
@@ -251,17 +287,7 @@ function VerMovimientoOffline({
                         {resumen.numeroOrden && <Dato label="N° de orden" value={resumen.numeroOrden} vertical={false} />}
                     </div>
 
-                    {movimientoMapeado.cliente && (
-                        <>
-                            <p className={styles.subTitle}>CLIENTE</p>
-                            <ItemView
-                                title={movimientoMapeado.cliente?.name || 'Sin nombre'}
-                                description={movimientoMapeado.cliente?.email || movimientoMapeado.cliente?.phone || ''}
-                                icon="user"
-                                transparent={false}
-                            />
-                        </>
-                    )}
+                    
 
                     {(movimientoMapeado?.datos?.movimientoData?.observaciones || movimientoMapeado?.datos?.movimientoData?.concepto) && (
                         <>
@@ -295,22 +321,21 @@ function VerMovimientoOffline({
 
                     <div className={styles.buttons}>
                         <Boton
-                            className="btn-original"
+                            className="btn-default"
                             label="Registrar salida"
-                            onClick={handleRegistrarSalida}
+                            onClick={() => setIsRegistrarConfirmOpen(true)}
                             loading={isRegistering}
-                            disabled={isDeleting}
+                            disabled={isDeleting || isRegistering}
                         />
                         <Boton
                             className="btn-red"
                             label="Eliminar"
-                            onClick={handleDelete}
-                            loading={isDeleting}
+                            onClick={() => setIsEliminarOpen(true)}
                             style={{ marginTop: 'auto' }}
                         />
                     </div>
                 </div>
-            </ViewModal>
+            </View>
 
             {isLargeScreen ? (
                 <ModalTable
@@ -344,6 +369,59 @@ function VerMovimientoOffline({
                     </div>
                 </ViewModal>
             )}
+            <ViewModal isOpen={isRegistrarConfirmOpen} setIsOpen={setIsRegistrarConfirmOpen}>
+                <HeaderModal
+                    title="Registrar movimiento offline"
+                    onClose={() => setIsRegistrarConfirmOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>
+                        ¿Estás seguro que deseas registrar esta venta o movimiento?
+                    </p>
+                    <Text type="error" align="left">
+                        Al registrar la venta o movimiento esta se restará de su almacén. Si no tiene stock disponible no será posible realizar la venta.
+                    </Text>
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            onClick={() => setIsRegistrarConfirmOpen(false)}
+                            disabled={isRegistering}
+                        />
+                        <Boton
+                            className='btn-original'
+                            label='Sí, registrar'
+                            onClick={handleConfirmRegistrar}
+                            loading={isRegistering}
+                        />
+                    </div>
+                </div>
+            </ViewModal>
+            <ViewModal isOpen={isEliminarOpen} setIsOpen={setIsEliminarOpen}>
+                <HeaderModal
+                    title="Eliminar movimiento offline"
+                    onClose={() => setIsEliminarOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}> ¿Estás seguro que deseas eliminar este movimiento offline? Esta acción no se puede deshacer.</p>
+                    <Text type="error" align="left">
+                        Si eliminas este movimiento offline será como si la venta nunca se hubiera registrado.
+                    </Text>
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            onClick={() => setIsEliminarOpen(false)}
+                        />
+                        <Boton
+                            className='btn-red'
+                            label='Sí, eliminar'
+                            onClick={handleDelete}
+                            loading={isDeleting}
+                        />
+                    </div>
+                </div>
+            </ViewModal>
             <DescargaMovimientoBuilder
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}

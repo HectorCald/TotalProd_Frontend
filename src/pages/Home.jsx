@@ -45,6 +45,14 @@ const Home = () => {
   const [isOfflineMovimientosOpen, setIsOfflineMovimientosOpen] = useState(false);
   const [forceOfflineModal, setForceOfflineModal] = useState(false);
 
+  const isOfflineModeEnabled = useCallback(() => {
+    try {
+      return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
+    } catch {
+      return false;
+    }
+  }, []);
+
   // Limpiar logs de dataFetchLogs diariamente
   useEffect(() => {
     clearDataFetchLogsIfNeeded();
@@ -77,14 +85,16 @@ const Home = () => {
 
     const handleOffline = () => {
       setIsOffline(true);
-      setShowOfflineModal(true);
+      const offlineModeActive = isOfflineModeEnabled();
+      setShowOfflineModal(!offlineModeActive);
       loadOfflineUser();
     };
 
     // Verificar estado inicial
     if (!navigator.onLine) {
       setIsOffline(true);
-      setShowOfflineModal(true);
+      const offlineModeActive = isOfflineModeEnabled();
+      setShowOfflineModal(!offlineModeActive);
       loadOfflineUser();
     }
 
@@ -97,7 +107,7 @@ const Home = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [isOfflineModeEnabled]);
 
   useEffect(() => {
     if (!error) return;
@@ -114,7 +124,8 @@ const Home = () => {
       setShowOfflineModal(false);
     } else {
       // Mantener modal abierto si sigue sin conexión
-      setShowOfflineModal(true);
+      const offlineModeActive = isOfflineModeEnabled();
+      setShowOfflineModal(!offlineModeActive);
     }
   };
 
@@ -465,11 +476,12 @@ const Home = () => {
         isOpen={isOfflineMovimientosOpen}
         setIsOpen={setIsOfflineMovimientosOpen}
         movimientos={offlineMovimientos}
-        titulo="Movimientos offline pendientes"
-        descripcion="Registra tus movimientos pendientes para sincronizarlos."
+        titulo="Movimientos Offline"
+        descripcion="Todos los movimientos pendientes por sincronizar."
         onClose={refreshOfflineMovimientos}
         disableClose={forceOfflineModal}
         onMovementsUpdate={handleOfflineMovementsUpdate}
+        showOnlineWarning={true}
       />
     </div>
   );

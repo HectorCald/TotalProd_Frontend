@@ -22,6 +22,7 @@ import VerMovimiento from '../movimientos/VerMovimiento';
 import { formatPedidoLog, prepareLogPayload } from '../../../utils/logFormatters';
 import useHistorialLogger from '../../ui/HistorialLogger';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
+import { formatCurrency } from '../../../utils/numberUtils';
 
 function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, onPedidoActualizado }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
@@ -616,17 +617,17 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 const unidades = cantidad % grup;
                 cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
                 // Precio unitario multiplicado por la cantidad de agrupación
-                precioTexto = `${(precio * grup).toFixed(2)} BOB`;
+                precioTexto = formatCurrency(precio * grup);
             } else {
                 cantidadTexto = `${cantidad} ud`;
-                precioTexto = `${precio.toFixed(2)} BOB`;
+                precioTexto = formatCurrency(precio);
             }
 
             return [
                 producto.name || 'Sin nombre',
                 cantidadTexto,
                 precioTexto,
-                `${(precio * cantidad).toFixed(2)} BOB`
+                formatCurrency(precio * cantidad)
             ];
         });
     }, [pedidoActual]);
@@ -733,11 +734,11 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                     )}
                     <Dato
                         label="Total"
-                        value={`Bs. ${(pedidoActual.pedido_almacen_detalle || []).reduce((total, detalle) => {
+                        value={formatCurrency((pedidoActual.pedido_almacen_detalle || []).reduce((total, detalle) => {
                             const precio = detalle.precio || 0;
                             const cantidad = detalle.cantidad || 0;
                             return total + (precio * cantidad);
-                        }, 0).toFixed(2)}`}
+                        }, 0))}
                         especial='green'
                         vertical={false}
                     />
@@ -865,10 +866,10 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                                             const unidades = cantidad % grup;
                                             cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
                                             // Precio unitario multiplicado por la cantidad de agrupación
-                                            precioTexto = `Bs. ${(precio * grup).toFixed(2)}`;
+                                            precioTexto = formatCurrency(precio * grup);
                                         } else {
                                             cantidadTexto = `${cantidad} ud`;
-                                            precioTexto = `Bs. ${precio.toFixed(2)}`;
+                                            precioTexto = formatCurrency(precio);
                                         }
 
                                         return (

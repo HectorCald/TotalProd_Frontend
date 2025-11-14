@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from './Nav.module.css';
 import { BoxIcon } from 'boxicons-react';
 import { useUser } from '../../context/UserContext';
@@ -17,9 +17,11 @@ import Comentarios from '../views/comentarios/Comentarios';
 import ViewModal from './ViewModal';
 import HeaderModal from '../common/HeaderModal';
 import Boton from '../common/Boton';
+import StatusBadge from '../common/StatusBadge';
+import { OFFLINE_NETWORK_FLAG } from '../../utils/offlineNetworkInterceptor';
 
 const Nav = () => {
-    
+
     const [isSucursalOpen, setIsSucursalOpen] = useState(false);
     const [isOpenVerUsuario, setIsOpenVerUsuario] = useState(false);
     const [isOpenCambiarContraseña, setIsOpenCambiarContraseña] = useState(false);
@@ -31,6 +33,7 @@ const Nav = () => {
     const { sucursalSeleccionada: userSucursal, user, seleccionarSucursal, clearUser } = useUser();
     const { sucursalSeleccionada: employeeSucursal, employee, clearEmployee, seleccionarSucursal: seleccionarSucursalEmpleado } = useEmployee();
     const { isLargeScreen } = useLayout();
+    const [isOfflineMode, setIsOfflineMode] = useState(false);
 
     // Determinar qué datos usar según el tipo de sesión
     const isEmployee = !!employee;
@@ -44,7 +47,7 @@ const Nav = () => {
         `${currentUser.firstName} ${currentUser.lastName}`) : 'Usuario';
 
     // Obtener el label del select según el tipo de usuario
-    const selectLabel = isEmployee 
+    const selectLabel = isEmployee
         ? (currentUser?.cargo || 'Empleado')
         : 'Administrador';
 
@@ -61,7 +64,7 @@ const Nav = () => {
         { value: 'logout', label: 'Cerrar sesión', icon: 'power-off' }
     ];
 
-    
+
 
     const handleSucursalClick = () => {
         if (!isEmployee || canAdministrarSucursales) {
@@ -110,6 +113,25 @@ const Nav = () => {
         }
     };
 
+    const updateOfflineFlag = useCallback(() => {
+        try {
+            setIsOfflineMode(localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true');
+        } catch {
+            setIsOfflineMode(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        updateOfflineFlag();
+        const handler = () => updateOfflineFlag();
+        window.addEventListener('offline-mode-changed', handler);
+        window.addEventListener('storage', handler);
+        return () => {
+            window.removeEventListener('offline-mode-changed', handler);
+            window.removeEventListener('storage', handler);
+        };
+    }, [updateOfflineFlag]);
+
     return (
         <>
             <div className={styles.navContainer}>
@@ -137,7 +159,16 @@ const Nav = () => {
                         </div>
                     ) : null}
                 </div>
-                
+                {isOfflineMode && (
+
+                    <StatusBadge
+                        type="error"
+                        label="Modo offline"
+                        detail="El modo offline bloquea todas las conexiones para usar los datos guardados. Desactívalo desde Preferencias si deseas volver a sincronizar. Ten en cuenta que, en este modo, solo está disponible el módulo de ventas de productos de almacén."
+                    />
+
+                )}
+
 
                 {/* Componentes modales del menú de usuario */}
                 <VerUsuario isOpen={isOpenVerUsuario} setIsOpen={setIsOpenVerUsuario} />

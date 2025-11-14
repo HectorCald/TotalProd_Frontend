@@ -9,10 +9,11 @@ function ComponenteFull({
     icon, 
     type = 'checkbox', // 'checkbox', 'switch', 'arrow', 'none'
     onClick,
-    loading = false
+    loading = false,
+    disabled = false
 }) {
     const handleClick = () => {
-        if (loading) {
+        if (loading || disabled) {
             return;
         }
         if (type === 'checkbox' || type === 'switch') {
@@ -43,8 +44,9 @@ function ComponenteFull({
                             className={styles.input}
                             type="checkbox"
                             checked={checked}
+                            disabled={disabled || loading}
                             onChange={(e) => {
-                                if (onChange) onChange(e.target.checked);
+                                if (onChange && !disabled && !loading) onChange(e.target.checked);
                             }}
                         />
                         <span className={styles.checkmark}></span>
@@ -58,8 +60,9 @@ function ComponenteFull({
                             className={styles.switchInput}
                             type="checkbox"
                             checked={checked}
+                            disabled={disabled || loading}
                             onChange={(e) => {
-                                if (onChange) onChange(e.target.checked);
+                                if (onChange && !disabled && !loading) onChange(e.target.checked);
                             }}
                         />
                         <span className={`${styles.switch} ${checked ? styles.switchOn : ''}`}>
@@ -83,8 +86,9 @@ function ComponenteFull({
 
     return (
         <div 
-            className={`${styles.container} ${checked ? styles.checked : ''}`}
+            className={`${styles.container} ${checked ? styles.checked : ''} ${disabled ? styles.disabled : ''}`}
             onClick={handleClick}
+            aria-disabled={disabled}
         >
             {icon && (
                 <div className={styles.iconContainer}>

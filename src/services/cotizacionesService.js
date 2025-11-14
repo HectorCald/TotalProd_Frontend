@@ -66,7 +66,7 @@ class cotizacionesService {
   }
 
   // Obtener todas las cotizaciones de una sucursal
-  static async getAll() {
+  static async getAll(filters = {}) {
     try {
       const sucuId = getSucuId();
       if (!sucuId) {
@@ -79,6 +79,14 @@ class cotizacionesService {
       const params = new URLSearchParams({
         sucu_id: sucuId
       });
+
+      const { fechaInicio = null, fechaFin = null } = filters || {};
+      if (fechaInicio) {
+        params.append('fecha_inicio', fechaInicio);
+      }
+      if (fechaFin) {
+        params.append('fecha_fin', fechaFin);
+      }
 
       const response = await fetch(`${API_BASE_URL}/cotizaciones?${params}`, {
         method: 'GET',
@@ -152,66 +160,13 @@ class cotizacionesService {
     }
   }
 
-  // Anular una cotización
-  static async anular(cotizacionId) {
+  // Actualizar estado de una cotización
+  static async actualizarEstado(cotizacionId, estado) {
     try {
-      const response = await fetch(`${API_BASE_URL}/cotizaciones/${cotizacionId}/anular`, {
+      const response = await fetch(`${API_BASE_URL}/cotizaciones/${cotizacionId}/estado`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al anular la cotización');
-      }
-
-      return {
-        success: true,
-        data: data.data
-      };
-    } catch (error) {
-      console.error('Error anulando cotización:', error);
-      return {
-        success: false,
-        message: error.message || 'Error al anular la cotización'
-      };
-    }
-  }
-
-  // Aprobar una cotización
-  static async aprobar(cotizacionId) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/cotizaciones/${cotizacionId}/aprobar`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al aprobar la cotización');
-      }
-
-      return {
-        success: true,
-        data: data.data
-      };
-    } catch (error) {
-      console.error('Error aprobando cotización:', error);
-      return {
-        success: false,
-        message: error.message || 'Error al aprobar la cotización'
-      };
-    }
-  }
-
-  // Volver a poner una cotización en pendiente
-  static async marcarPendiente(cotizacionId) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/cotizaciones/${cotizacionId}/pendiente`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
+        body: JSON.stringify({ estado })
       });
 
       const data = await response.json();
@@ -225,7 +180,7 @@ class cotizacionesService {
         data: data.data
       };
     } catch (error) {
-      console.error('Error marcando cotización como pendiente:', error);
+      console.error('Error actualizando estado de cotización:', error);
       return {
         success: false,
         message: error.message || 'Error al actualizar la cotización'

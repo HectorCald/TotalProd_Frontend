@@ -63,7 +63,8 @@ const FiltroFecha = ({
     endDate = null,
     onApply,
     onClear,
-    title = 'Seleccionar rango de fechas'
+    title = 'Seleccionar rango de fechas',
+    defaultToToday = true
 }) => {
     const [inicio, setInicio] = useState('');
     const [fin, setFin] = useState('');
@@ -76,15 +77,15 @@ const FiltroFecha = ({
         if (startDate) {
             setInicio(formatInputDate(startDate));
         } else {
-            setInicio(todayFormatted);
+            setInicio(defaultToToday ? todayFormatted : '');
         }
 
         if (endDate) {
             setFin(formatInputDate(endDate));
         } else {
-            setFin(todayFormatted);
+            setFin(defaultToToday ? todayFormatted : '');
         }
-    }, [isOpen, startDate, endDate]);
+    }, [defaultToToday, endDate, isOpen, startDate]);
 
     const handleQuickRange = (range) => {
         const now = new Date();

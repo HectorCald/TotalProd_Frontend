@@ -17,7 +17,6 @@ import PullToRefresh from '../common/PullToRefresh';
 import { useUser } from '../../context/UserContext';
 import UserService from '../../services/userService';
 import { isSoloVentas } from '../../utils/empresaHelper';
-import Text from '../common/Text';
 import { OFFLINE_NETWORK_FLAG } from '../../utils/offlineNetworkInterceptor';
 
 const Inicio = ({ onViewOpen }) => {
@@ -135,11 +134,6 @@ const Inicio = ({ onViewOpen }) => {
           minHeight: '100%',
         }}
       >
-          {isOfflineMode && (
-            <Text type="error" align="left">
-              Estás en modo offline. Solo podrás registrar ventas (salidas) si cuentas con ese módulo.
-            </Text>
-          )}
           <p className={styles.subTitle} style={{ marginTop: '0' }}>FUNCIONES</p>
           <div className={styles.funciones}>
             {FUNCTIONS.slice(0, 4).map((func) => (

@@ -11,7 +11,6 @@ import acopioImage from '../../assets/acopio.png';
 import movimientosImage from '../../assets/movimientos.png';
 import pedidosImage from '../../assets/pedidos.png';
 import './InicioPC.css';
-import Text from '../common/Text';
 import { OFFLINE_NETWORK_FLAG } from '../../utils/offlineNetworkInterceptor';
 
 const InicioPC = ({ onViewOpen, sucuId = 1 }) => {
@@ -102,11 +101,6 @@ const InicioPC = ({ onViewOpen, sucuId = 1 }) => {
   return (
     <>
       <div className="inicio-pc-container">
-      {isOfflineMode && (
-        <Text type="error" align="left">
-          Estás en modo offline. Solo podrás registrar ventas (salidas) si cuentas con ese módulo.
-        </Text>
-      )}
       {/* Atajos de Acceso Rápido */}
       <div className="atajoAnuncioOtros" style={{ gap: '10px' }}>
         <AtajoAnuncio 

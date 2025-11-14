@@ -19,7 +19,8 @@ function Select({
     // Label separado que se muestra arriba cuando hay un valor o placeholderAsValue es true
     label,
     // Tamaño del icono cuando está en modo iconOnly (en píxeles)
-    iconSize
+    iconSize,
+    openUpward: forceOpenUpward
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
@@ -45,7 +46,11 @@ function Select({
             const spaceBelow = windowHeight - selectRect.bottom;
             const optionsHeight = optionsRef.current?.offsetHeight || 200; // valor por defecto si aún no está renderizado
 
-            setOpenUpward(spaceBelow < optionsHeight && selectRect.top > spaceBelow);
+            if (typeof forceOpenUpward === 'boolean') {
+                setOpenUpward(forceOpenUpward);
+            } else {
+                setOpenUpward(spaceBelow < optionsHeight && selectRect.top > spaceBelow);
+            }
             
             // Para el modo iconOnly, ajustar la posición horizontal según el prop dropdownDirection
             if (iconOnly && optionsRef.current) {
@@ -59,7 +64,7 @@ function Select({
                 }
             }
         }
-    }, [isOpen, iconOnly, dropdownDirection]);
+    }, [isOpen, iconOnly, dropdownDirection, forceOpenUpward]);
 
     // Cerrar el select cuando se hace click fuera
     useEffect(() => {

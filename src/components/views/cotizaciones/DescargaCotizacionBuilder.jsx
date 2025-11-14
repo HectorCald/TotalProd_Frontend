@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ModalDescarga from '../../ui/ModalDescarga';
 import cotizacionesService from '../../../services/cotizacionesService';
+import { formatCurrency } from '../../../utils/numberUtils';
 
 function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacionData = null, nombreArchivoDefault = null, tituloDocumentoDefault = null }) {
     const [informacionSuperior, setInformacionSuperior] = useState({});
@@ -50,7 +51,7 @@ function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacion
                     }
                     if (cotizacion?.productos && cotizacion.productos.length > 0) {
                         const total = cotizacion.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
-                        infoSup['Total'] = `Bs. ${total.toFixed(2)}`;
+                        infoSup['Total'] = formatCurrency(total);
                     }
                     if (cotizacion?.observaciones) {
                         infoSup['Observaciones'] = cotizacion.observaciones;
@@ -74,23 +75,23 @@ function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacion
                             const grupos = Math.floor(cantidad / grup);
                             const unidades = cantidad % grup;
                             cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                            precioTexto = `${(precioUnitario * grup).toFixed(2)} BOB`;
+                            precioTexto = formatCurrency(precioUnitario * grup);
                         } else {
                             cantidadTexto = `${cantidad} ud`;
-                            precioTexto = `${precioUnitario.toFixed(2)} BOB`;
+                            precioTexto = formatCurrency(precioUnitario);
                         }
 
                         return [
                             producto.producto?.name || 'Sin producto',
                             cantidadTexto,
                             precioTexto,
-                            `${(parseFloat(producto.subtotal) || 0).toFixed(2)} BOB`
+                            formatCurrency(parseFloat(producto.subtotal) || 0)
                         ];
                     });
 
                     // Fila de total al final
                     const totalFila = (cotizacion?.productos || []).reduce((sum, p) => sum + (parseFloat(p?.subtotal) || 0), 0);
-                    valores.push(['TOTAL', '', '', `${totalFila.toFixed(2)} BOB`]);
+                    valores.push(['TOTAL', '', '', formatCurrency(totalFila)]);
 
                     setInformacionSuperior(infoSup);
                     setTablaHeaders(headers);
@@ -140,7 +141,7 @@ function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacion
                     }
                     if (cotizacion?.productos && cotizacion.productos.length > 0) {
                         const total = cotizacion.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
-                        infoSup['Total'] = `Bs. ${total.toFixed(2)}`;
+                        infoSup['Total'] = formatCurrency(total);
                     }
                     if (cotizacion?.observaciones) {
                         infoSup['Observaciones'] = cotizacion.observaciones;
@@ -164,23 +165,23 @@ function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacion
                             const grupos = Math.floor(cantidad / grup);
                             const unidades = cantidad % grup;
                             cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                            precioTexto = `${(precioUnitario * grup).toFixed(2)} BOB`;
+                            precioTexto = formatCurrency(precioUnitario * grup);
                         } else {
                             cantidadTexto = `${cantidad} ud`;
-                            precioTexto = `${precioUnitario.toFixed(2)} BOB`;
+                            precioTexto = formatCurrency(precioUnitario);
                         }
 
                         return [
                             producto.producto?.name || 'Sin producto',
                             cantidadTexto,
                             precioTexto,
-                            `${(parseFloat(producto.subtotal) || 0).toFixed(2)} BOB`
+                            formatCurrency(parseFloat(producto.subtotal) || 0)
                         ];
                     });
 
                     // Fila de total al final
                     const totalFila = (cotizacion?.productos || []).reduce((sum, p) => sum + (parseFloat(p?.subtotal) || 0), 0);
-                    valores.push(['TOTAL', '', '', `${totalFila.toFixed(2)} BOB`]);
+                    valores.push(['TOTAL', '', '', formatCurrency(totalFila)]);
 
                     setInformacionSuperior(infoSup);
                     setTablaHeaders(headers);

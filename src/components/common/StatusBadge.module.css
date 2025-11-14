@@ -1,0 +1,49 @@
+.badgeWrapper {
+    position: relative;
+    display: inline-flex;
+    padding-right: 10px;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: transform 0.2s;
+    min-height: 33px;
+}
+
+.badge:hover {
+    transform: translateY(-1px);
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.label {
+    white-space: nowrap;
+}
+
+.popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 10px;
+    min-width: 220px;
+    max-width: 280px;
+    padding: 10px 12px;
+    background: var(--quaternary-color);
+    color: var(--text-color);
+    border-radius: 8px;
+    box-shadow: 0 12px 20px rgba(0,0,0,0.15);
+    font-size: 12px;
+    line-height: 1.4;
+    z-index: 50;
+    font-weight: 300;
+}
+

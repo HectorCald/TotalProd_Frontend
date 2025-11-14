@@ -89,6 +89,14 @@ const HomeEmpleado = () => {
         clearDataFetchLogsIfNeeded();
     }, []);
 
+    const isOfflineModeEnabled = useCallback(() => {
+        try {
+            return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
+        } catch {
+            return false;
+        }
+    }, []);
+
     // Detectar cambios en la conexión
     useEffect(() => {
         const handleOnline = () => {
@@ -99,14 +107,16 @@ const HomeEmpleado = () => {
 
         const handleOffline = () => {
             setIsOffline(true);
-            setShowOfflineModal(true);
+            const offlineModeActive = isOfflineModeEnabled();
+            setShowOfflineModal(!offlineModeActive);
             loadOfflineEmployee();
         };
 
         // Verificar estado inicial
         if (!navigator.onLine) {
             setIsOffline(true);
-            setShowOfflineModal(true);
+            const offlineModeActive = isOfflineModeEnabled();
+            setShowOfflineModal(!offlineModeActive);
             loadOfflineEmployee();
         }
 
@@ -119,7 +129,7 @@ const HomeEmpleado = () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
         };
-    }, []);
+    }, [isOfflineModeEnabled]);
 
     useEffect(() => {
         if (!error) return;
@@ -292,7 +302,8 @@ const HomeEmpleado = () => {
             setShowOfflineModal(false);
         } else {
             // Mantener modal abierto si sigue sin conexión
-            setShowOfflineModal(true);
+            const offlineModeActive = isOfflineModeEnabled();
+            setShowOfflineModal(!offlineModeActive);
         }
     };
 
@@ -666,11 +677,12 @@ const HomeEmpleado = () => {
                 isOpen={isOfflineMovimientosOpen}
                 setIsOpen={setIsOfflineMovimientosOpen}
                 movimientos={offlineMovimientos}
-                titulo="Movimientos offline pendientes"
-                descripcion="Registra tus movimientos pendientes para sincronizarlos."
+                titulo="Movimientos Offline"
+                descripcion="Todos los movimientos pendientes por sincronizar."
                 onClose={refreshOfflineMovimientos}
                 disableClose={forceOfflineModal}
                 onMovementsUpdate={handleOfflineMovementsUpdate}
+                showOnlineWarning={true}
             />
         </div>
     );

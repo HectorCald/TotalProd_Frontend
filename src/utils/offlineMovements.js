@@ -39,6 +39,7 @@ export const queueOfflineSalida = async ({
     isEditandoMovimiento = false,
     movimientoIdEditando = null,
     fechaMovimientoEditando = null,
+    tipoPrecioNombre = '',
 }) => {
     const recordId = getRandomId();
     const actions = [];
@@ -115,6 +116,7 @@ export const queueOfflineSalida = async ({
             numeroOrden,
             cliente: clienteInfo?.name || clienteInfo?.razon_social || null,
             cantidadProductos: Array.isArray(productos) ? productos.length : 0,
+            tipoPrecioNombre: tipoPrecioNombre || null,
         },
         datos: {
             movimientoData,
@@ -125,6 +127,7 @@ export const queueOfflineSalida = async ({
             clienteInfo,
             productos,
             productosNormalizados,
+            tipoPrecioNombre: tipoPrecioNombre || null,
         },
     };
 

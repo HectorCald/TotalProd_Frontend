@@ -11,6 +11,8 @@ import cotizacionesService from '../../../services/cotizacionesService';
 import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import { useLayout } from '../../../context/LayoutContext';
+import { useUser } from '../../../context/UserContext';
+import { useEmployee } from '../../../context/EmployeeContext';
 import ModalTable from '../../common/ModalTable';
 import DescargaCotizacionBuilder from './DescargaCotizacionBuilder';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
@@ -26,6 +28,8 @@ import { formatCurrency } from '../../../utils/numberUtils';
 
 function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onCotizacionEliminada, onCotizacionActualizada }) {
     const { isLargeScreen } = useLayout();
+    const { user } = useUser();
+    const { employee } = useEmployee();
     const [loading, setLoading] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
@@ -35,6 +39,16 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [isAlmacenAuxiliarOpen, setIsAlmacenAuxiliarOpen] = useState(false);
     const [isRevertirAprobacionOpen, setIsRevertirAprobacionOpen] = useState(false);
+    const [isFinalizarOpen, setIsFinalizarOpen] = useState(false);
+    const [isAnularCompletadoOpen, setIsAnularCompletadoOpen] = useState(false);
+
+    const normalizeText = (value) =>
+        (value || '')
+            .toString()
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
 
     // Estado local para la cotización actual
     const [cotizacionActual, setCotizacionActual] = useState(cotizacion);
@@ -81,57 +95,69 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
                 // Precio unitario multiplicado por la cantidad de agrupación y redondeado
                 const precioAgrupado = calcularPrecioAgrupado(precioUnitario, grup);
-                precioTexto = `${formatCurrency(precioAgrupado, false)} BOB`;
+                precioTexto = formatCurrency(precioAgrupado);
             } else {
                 cantidadTexto = `${cantidad} ud`;
-                precioTexto = `${formatCurrency(precioUnitario, false)} BOB`;
+                precioTexto = formatCurrency(precioUnitario);
             }
+
+            const subtotal = parseFloat(productoCotizacion.subtotal) || 0;
 
             return [
                 productoCotizacion.producto?.name || 'Sin nombre',
                 cantidadTexto,
                 precioTexto,
-                `${(parseFloat(productoCotizacion.subtotal) || 0).toFixed(2)} BOB`
+                formatCurrency(subtotal)
             ];
         }), [cotizacionActual?.productos, cotizacionActual?.agrupado]);
 
 
-    // Handle para anular cotización
-    const handleAnular = async () => {
+    const actualizarEstadoCotizacion = async (nuevoEstado, { mensajeExito, alCerrarModal, onSuccessExtra } = {}) => {
         setLoading(true);
         try {
-            const response = await cotizacionesService.anular(cotizacionActual.id);
+            const response = await cotizacionesService.actualizarEstado(cotizacionActual.id, nuevoEstado);
 
             if (response.success) {
-                // Usar la respuesta del servidor que incluye la cotización actualizada
                 const cotizacionActualizada = response.data;
-
-                // Actualizar el estado local de la cotización
                 setCotizacionActual(cotizacionActualizada);
 
-                // Notificar al componente padre del cambio
                 if (onCotizacionActualizada) {
                     onCotizacionActualizada(cotizacionActualizada);
                 }
 
-                // También llamar al callback original para mantener compatibilidad
-                if (onCotizacionAnulada) {
-                    onCotizacionAnulada(cotizacionActual.id);
+                if (typeof onSuccessExtra === 'function') {
+                    onSuccessExtra(cotizacionActualizada);
                 }
 
-                setIsAnularOpen(false);
-                // NO cerrar VerCotizacion, solo actualizar el estado
-                mostrarNotificacion('success', 'Cotización anulada correctamente');
+                if (typeof alCerrarModal === 'function') {
+                    alCerrarModal();
+                }
+
+                mostrarNotificacion('success', mensajeExito || 'Cotización actualizada correctamente');
             } else {
-                const msg = response.message || 'Error al anular la cotización';
+                const msg = response.message || 'Error al actualizar la cotización';
                 mostrarNotificacion('error', msg);
             }
         } catch (error) {
-            console.error('Error anulando cotización:', error);
-            mostrarNotificacion('error', 'Error al anular la cotización');
+            console.error('Error actualizando estado de cotización:', error);
+            mostrarNotificacion('error', 'Error al actualizar la cotización');
         } finally {
             setLoading(false);
         }
+    };
+
+    // Handle para anular cotización
+    const handleAnular = async () => {
+        const cotizacionId = cotizacionActual?.id;
+        await actualizarEstadoCotizacion('anulado', {
+            mensajeExito: 'Cotización anulada correctamente',
+            alCerrarModal: () => setIsAnularOpen(false),
+            onSuccessExtra: () => {
+                if (onCotizacionAnulada && cotizacionId) {
+                    onCotizacionAnulada(cotizacionId);
+                }
+            }
+        });
     };
 
     // Handle para eliminar cotización
@@ -160,62 +186,34 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
 
     // Handle para aprobar cotización
     const handleAprobar = async () => {
-        setLoading(true);
-        try {
-            const response = await cotizacionesService.aprobar(cotizacionActual.id);
-
-            if (response.success) {
-                // Usar la respuesta del servidor que incluye la cotización actualizada
-                const cotizacionActualizada = response.data;
-
-                // Actualizar el estado local de la cotización
-                setCotizacionActual(cotizacionActualizada);
-
-                // Notificar al componente padre del cambio
-                if (onCotizacionActualizada) {
-                    onCotizacionActualizada(cotizacionActualizada);
-                }
-
-                setIsAprobarOpen(false);
-                mostrarNotificacion('success', 'Cotización aprobada correctamente');
-            } else {
-                const msg = response.message || 'Error al aprobar la cotización';
-                mostrarNotificacion('error', msg);
-            }
-        } catch (error) {
-            console.error('Error aprobando cotización:', error);
-            mostrarNotificacion('error', 'Error al aprobar la cotización');
-        } finally {
-            setLoading(false);
-        }
+        await actualizarEstadoCotizacion('aprobada', {
+            mensajeExito: 'Cotización aprobada correctamente',
+            alCerrarModal: () => setIsAprobarOpen(false)
+        });
     };
 
     // Handle para volver a pendiente
     const handleRevertirAprobacion = async () => {
-        setLoading(true);
-        try {
-            const response = await cotizacionesService.marcarPendiente(cotizacionActual.id);
+        await actualizarEstadoCotizacion('pendiente', {
+            mensajeExito: 'Cotización marcada como pendiente nuevamente',
+            alCerrarModal: () => setIsRevertirAprobacionOpen(false)
+        });
+    };
 
-            if (response.success) {
-                const cotizacionActualizada = response.data;
-                setCotizacionActual(cotizacionActualizada);
+    // Handle para finalizar cotización
+    const handleFinalizar = async () => {
+        await actualizarEstadoCotizacion('completado', {
+            mensajeExito: 'Cotización finalizada correctamente',
+            alCerrarModal: () => setIsFinalizarOpen(false)
+        });
+    };
 
-                if (onCotizacionActualizada) {
-                    onCotizacionActualizada(cotizacionActualizada);
-                }
-
-                setIsRevertirAprobacionOpen(false);
-                mostrarNotificacion('success', 'Cotización marcada como pendiente nuevamente');
-            } else {
-                const msg = response.message || 'Error al actualizar la cotización';
-                mostrarNotificacion('error', msg);
-            }
-        } catch (error) {
-            console.error('Error marcando cotización como pendiente:', error);
-            mostrarNotificacion('error', 'Error al actualizar la cotización');
-        } finally {
-            setLoading(false);
-        }
+    // Handle para revertir completado a aprobado
+    const handleAnularCompletado = async () => {
+        await actualizarEstadoCotizacion('aprobada', {
+            mensajeExito: 'Cotización marcada nuevamente como aprobada',
+            alCerrarModal: () => setIsAnularCompletadoOpen(false)
+        });
     };
 
     const obtenerProductosNormalizados = () => {
@@ -348,6 +346,68 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
         setIsAlmacenAuxiliarOpen(true);
     };
 
+    const currentUserId = user?.id ? String(user.id) : null;
+    const currentPersonalId = employee?.id ? String(employee.id) : null;
+    const cotizacionUserId = cotizacionActual?.user?.id
+        ? String(cotizacionActual.user.id)
+        : cotizacionActual?.user_id
+            ? String(cotizacionActual.user_id)
+            : null;
+    const cotizacionPersonalId = cotizacionActual?.personal?.id
+        ? String(cotizacionActual.personal.id)
+        : cotizacionActual?.personal_id
+            ? String(cotizacionActual.personal_id)
+            : null;
+
+    const esSesionEmpleado = Boolean(employee?.id);
+    const esResponsableUsuario = currentUserId && cotizacionUserId && currentUserId === cotizacionUserId;
+    const esResponsableEmpleado = currentPersonalId && cotizacionPersonalId && currentPersonalId === cotizacionPersonalId;
+    const esResponsable = !esSesionEmpleado || Boolean(esResponsableUsuario || esResponsableEmpleado);
+
+    const tienePermisoSalidas = useMemo(() => {
+        if (!employee?.modules || !Array.isArray(employee.modules)) return false;
+
+        return employee.modules.some(module => {
+            const mainModule = normalizeText(module?.modulos?.name);
+            if (mainModule !== 'almacen') return false;
+            const subModule = normalizeText(module?.name);
+            return subModule === 'salida o venta' ||
+                subModule === 'salida' ||
+                subModule === 'realizar_salidas' ||
+                subModule === 'salidaoventa';
+        });
+    }, [employee]);
+
+    const puedeGestionarSalidas = !esSesionEmpleado || tienePermisoSalidas;
+
+    const estadoCotizacion = cotizacionActual?.estado;
+    const totalCotizacion = (cotizacionActual?.productos || []).reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
+    const puedeAprobar = esResponsable && estadoCotizacion === 'pendiente';
+    const puedeAnularAprobacion = esResponsable && estadoCotizacion === 'aprobada';
+    const puedeFinalizar = esResponsable && estadoCotizacion === 'aprobada' && puedeGestionarSalidas;
+    const puedeAnularCompletado = estadoCotizacion === 'completado' && puedeGestionarSalidas;
+    const puedeRealizarVenta = estadoCotizacion === 'aprobada' && puedeGestionarSalidas;
+    const puedeAnular = (!esSesionEmpleado || esResponsable) && estadoCotizacion !== 'anulado' && estadoCotizacion !== 'aprobada' && estadoCotizacion !== 'completado' && !cotizacionActual?.tiene_pedido_relacionado;
+    const puedeEliminar = (!esSesionEmpleado || esResponsable) && estadoCotizacion === 'anulado';
+    const puedeRepetir = Boolean(cotizacionActual) && (
+        estadoCotizacion !== 'aprobada' ||
+        (estadoCotizacion === 'aprobada' && esSesionEmpleado && !esResponsable)
+    );
+    const estadoLabel = estadoCotizacion === 'anulado'
+        ? 'Anulado'
+        : estadoCotizacion === 'aprobada'
+            ? 'Aprobada'
+            : estadoCotizacion === 'completado'
+                ? 'Completado'
+                : 'Pendiente';
+    const estadoColor = estadoCotizacion === 'anulado'
+        ? 'red'
+        : estadoCotizacion === 'aprobada'
+            ? 'green'
+            : estadoCotizacion === 'completado'
+                ? 'blue'
+                : 'orange';
+
     if (!cotizacionActual) return null;
 
     return (
@@ -414,9 +474,9 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                     />
                     <Dato
                         label="Estado"
-                        value={cotizacionActual.estado === 'anulado' ? 'Anulado' : cotizacionActual.estado === 'aprobada' ? 'Aprobada' : 'Pendiente'}
+                        value={estadoLabel}
                         vertical={false}
-                        especial={cotizacionActual.estado === 'anulado' ? 'red' : cotizacionActual.estado === 'aprobada' ? 'green' : 'orange'}
+                        especial={estadoColor}
                     />
                     {cotizacionActual?.metodo_pago && (
                         <Dato
@@ -427,7 +487,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                     )}
                     {cotizacionActual?.fecha_vencimiento && (
                         <Dato
-                            label="Fecha de vencimiento"
+                            label="Vencimiento"
                             value={formatFechaLiteral(cotizacionActual.fecha_vencimiento)}
                             vertical={false}
                         />
@@ -437,7 +497,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                     {cotizacionActual?.productos && cotizacionActual.productos.length > 0 && (
                         <Dato
                             label="Total de la Cotización"
-                            value={`Bs. ${(cotizacionActual.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0)).toFixed(2)}`}
+                            value={formatCurrency(totalCotizacion)}
                             vertical={false}
                             especial='green'
                         />
@@ -469,43 +529,66 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 )}
 
                 <div className={styles.buttons}>
-                    {cotizacionActual?.estado === 'anulado' ? (
+                    {puedeAnularCompletado ? (
                         <>
+                            {puedeRepetir && (
                             <Boton
-                                className='btn-gray'
+                                    className='btn-default'
                                 label='Repetir Cotización'
                                 style={{ marginTop: 'auto' }}
                                 onClick={handleRepetirCotizacion}
                             />
+                            )}
                             <Boton
                                 className='btn-red'
-                                label='Eliminar Cotización'
+                                label='Anular Completado'
                                 style={{ marginTop: 'auto' }}
-                                onClick={() => setIsEliminarOpen(true)}
+                                onClick={() => setIsAnularCompletadoOpen(true)}
                             />
                         </>
-                    ) : cotizacionActual?.estado === 'aprobada' ? (
+                    ) : (
                         <>
+                            {puedeRepetir && (
                             <Boton
                                 className='btn-default'
+                                    label='Repetir Cotización'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={handleRepetirCotizacion}
+                                />
+                            )}
+                            {puedeAprobar && (
+                                <Boton
+                                    className='btn-gray'
+                                    label='Aprobar Cotización'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={() => setIsAprobarOpen(true)}
+                                />
+                            )}
+                            {puedeAnularAprobacion && (
+                                <Boton
+                                    className='btn-red'
                                 label='Anular aprobación'
                                 style={{ marginTop: 'auto' }}
                                 onClick={() => setIsRevertirAprobacionOpen(true)}
                             />
+                            )}
+                            {puedeFinalizar && (
                             <Boton
                                 className='btn-gray'
-                                label='Repetir Cotización'
+                                    label='Finalizar Cotización'
                                 style={{ marginTop: 'auto' }}
-                                onClick={handleRepetirCotizacion}
+                                    onClick={() => setIsFinalizarOpen(true)}
                             />
-                            
+                            )}
+                            {puedeRealizarVenta && (
                             <Boton
                                 className='btn-green'
                                 label='Realizar Venta'
                                 style={{ marginTop: 'auto' }}
                                 onClick={handleRealizarVenta}
                             />
-                            {!cotizacionActual?.tiene_pedido_relacionado && (
+                            )}
+                            {puedeAnular && (
                                 <Boton
                                     className='btn-red'
                                     label='Anular Cotización'
@@ -513,29 +596,12 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                     onClick={() => setIsAnularOpen(true)}
                                 />
                             )}
-                        </>
-                    ) : (
-                        <>
-                            {cotizacionActual?.estado === 'pendiente' && (
-                                <Boton
-                                    className='btn-default'
-                                    label='Aprobar Cotización'
-                                    style={{ marginTop: 'auto' }}
-                                    onClick={() => setIsAprobarOpen(true)}
-                                />
-                            )}
-                            <Boton
-                                className='btn-gray'
-                                label='Repetir Cotización'
-                                style={{ marginTop: 'auto' }}
-                                onClick={handleRepetirCotizacion}
-                            />
-                            {!cotizacionActual?.tiene_pedido_relacionado && (
+                            {puedeEliminar && (
                                 <Boton
                                     className='btn-red'
-                                    label='Anular Cotización'
+                                    label='Eliminar Cotización'
                                     style={{ marginTop: 'auto' }}
-                                    onClick={() => setIsAnularOpen(true)}
+                                    onClick={() => setIsEliminarOpen(true)}
                                 />
                             )}
                         </>
@@ -655,6 +721,62 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                             label='Sí, volver a pendiente'
                             style={{ marginTop: 'auto' }}
                             onClick={handleRevertirAprobacion}
+                            loading={loading}
+                        />
+                    </div>
+                </div>
+            </ViewModal>
+
+            {/* Modal para finalizar cotización */}
+            <ViewModal isOpen={isFinalizarOpen} setIsOpen={setIsFinalizarOpen}>
+                <HeaderModal
+                    title="Finalizar Cotización"
+                    onClose={() => setIsFinalizarOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>
+                        ¿Deseas marcar esta cotización como completada? Luego solo podrás revertirla a estado aprobado.
+                    </p>
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsFinalizarOpen(false)}
+                        />
+                        <Boton
+                            className='btn-green'
+                            label='Sí, finalizar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleFinalizar}
+                            loading={loading}
+                        />
+                    </div>
+                </div>
+            </ViewModal>
+
+            {/* Modal para anular completado */}
+            <ViewModal isOpen={isAnularCompletadoOpen} setIsOpen={setIsAnularCompletadoOpen}>
+                <HeaderModal
+                    title="Anular Completado"
+                    onClose={() => setIsAnularCompletadoOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>
+                        ¿Quieres devolver esta cotización al estado aprobado? Podrás finalizarla nuevamente cuando lo necesites.
+                    </p>
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsAnularCompletadoOpen(false)}
+                        />
+                        <Boton
+                            className='btn-gray'
+                            label='Sí, volver a aprobado'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleAnularCompletado}
                             loading={loading}
                         />
                     </div>

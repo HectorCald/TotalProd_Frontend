@@ -128,19 +128,22 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         }
         try {
             const movimientos = await obtenerLocal(MOVIMIENTOS_SALIDA_STORE, OFFLINE_DB_NAME);
-            if (!Array.isArray(movimientos) || movimientos.length === 0) {
-                return;
+            let data = [];
+
+            if (Array.isArray(movimientos) && movimientos.length > 0) {
+                data = option === 'ultimo'
+                    ? [movimientos[movimientos.length - 1]]
+                    : [...movimientos].reverse();
+                setOfflineMovimientosTitulo(option === 'ultimo' ? 'Último movimiento offline' : 'Movimientos offline');
+                setOfflineMovimientosDescripcion(option === 'ultimo'
+                    ? 'Detalle del último movimiento guardado sin conexión.'
+                    : 'Historial de movimientos pendientes por sincronizar.');
+            } else {
+                setOfflineMovimientosTitulo('Movimientos offline');
+                setOfflineMovimientosDescripcion('No tienes movimientos offline guardados en este dispositivo.');
             }
 
-            const data = option === 'ultimo'
-                ? [movimientos[movimientos.length - 1]]
-                : [...movimientos].reverse();
-
             setOfflineMovimientos(data);
-            setOfflineMovimientosTitulo(option === 'ultimo' ? 'Último movimiento offline' : 'Movimientos offline');
-            setOfflineMovimientosDescripcion(option === 'ultimo'
-                ? 'Detalle del último movimiento guardado sin conexión.'
-                : 'Historial de movimientos pendientes por sincronizar.');
             setIsOfflineMovimientosOpen(true);
         } catch (error) {
             console.error('Error cargando movimientos offline:', error);
@@ -760,12 +763,13 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         <Select
                             icon="history"
                             iconOnly={true}
+                            dropdownDirection="right"
+                            openUpward={true}
                             options={[
                                 { value: 'historial', label: 'Historial offline', icon: 'history' },
                                 { value: 'ultimo', label: 'Último movimiento', icon: 'time-five' }
                             ]}
                             onChange={handleOfflineMovimientosSelect}
-                            dropdownDirection="right"
                             containerStyle={{ background: 'none' }}
                         />
                     </div>

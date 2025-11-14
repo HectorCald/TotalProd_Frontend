@@ -7,6 +7,12 @@
     height: 50px;
 }
 
+.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .iconContainer {
     display: flex;
     align-items: center;

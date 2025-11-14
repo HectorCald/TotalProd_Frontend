@@ -5,6 +5,8 @@ import ItemView from '../../common/ItemView';
 import styles from '../../../styles/view.module.css';
 import Notification from '../../common/Notification';
 import VerMovimientoOffline from './VerMovimientoOffline';
+import NoData from '../../common/NoData';
+import Text from '../../common/Text';
 import { obtenerLocal, OFFLINE_DB_NAME, CLIENTES_STORE } from '../../../utils/indexedDB';
 
 const formatFecha = (fechaIso) => {
@@ -40,7 +42,8 @@ function HistorialMovimientosOffline({
     descripcion = 'Listado de movimientos pendientes por sincronizar',
     onClose,
     disableClose = false,
-    onMovementsUpdate
+    onMovementsUpdate,
+    showOnlineWarning = false
 }) {
     const [clientesMap, setClientesMap] = useState({});
     const [movimientosLocal, setMovimientosLocal] = useState([]);
@@ -128,20 +131,34 @@ function HistorialMovimientosOffline({
         }
     }, [movimientosLocal, onMovementsUpdate, isOpen]);
 
+    const modalVisible = isOpen && !isVerMovimientoOpen;
+
     return (
         <>
-            <ViewModal isOpen={isOpen} setIsOpen={handleModalToggle} closed={disableClose}>
+            <ViewModal isOpen={modalVisible} setIsOpen={handleModalToggle} closed={disableClose}>
                 <HeaderModal
                     title={titulo}
                     onClose={() => handleModalToggle(false)}
                     closed={disableClose}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>{descripcion}</p>
-                        {movimientosLocal.length > 0 ? (
-                            [...movimientosLocal]
-                                .sort((a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0))
-                                .map((movimiento) => {
+                    {movimientosLocal.length > 0 && (
+                        <>
+                            <p className={styles.subTitle}>{descripcion}</p>
+                            {showOnlineWarning && (
+                                <div style={{ marginBottom: '10px' }}>
+                                    <Text type="error" align="left">
+                                        Debes registrar o eliminar estos movimientos offline para evitar conflictos con el stock del almacén y poder continuar usando la aplicación.
+                                    </Text>
+                                </div>
+                            )}
+
+                        </>
+                    )}
+                    {movimientosLocal.length > 0 ? (
+                        [...movimientosLocal]
+                            .sort((a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0))
+                            .map((movimiento) => {
                                 const resumen = movimiento?.resumen || {};
                                 const descripcion1 = `${formatFecha(movimiento?.createdAt)} • ${resumen.metodoPago || 'Método no especificado'}`;
                                 const descripcion2 = `Total estimado: ${formatTotal(resumen)}`;
@@ -180,13 +197,17 @@ function HistorialMovimientosOffline({
                                     />
                                 );
                             })
-                        ) : (
-                            <p style={{ color: 'var(--text-color)', textAlign: 'center', width: '100%' }}>
-                                No hay movimientos offline guardados.
-                            </p>
-                        )}
-                    </div>
-                
+                    ) : (
+                        <NoData
+                            icon="time-five"
+                            title="Sin movimientos offline"
+                            detail="No tienes registros pendientes guardados en este dispositivo."
+                            transparent={true}
+                            minHeight="160px"
+                        />
+                    )}
+                </div>
+
                 <Notification
                     isVisible={notification.isVisible}
                     type={notification.type}

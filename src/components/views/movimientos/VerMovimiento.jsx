@@ -103,17 +103,17 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     const unidades = cantidad % grup;
                     cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
                     // Precio unitario multiplicado por la cantidad de agrupación
-                    precioTexto = formatCurrency(precioUnitario * grup, false) + ' BOB';
+                    precioTexto = formatCurrency(precioUnitario * grup);
                 } else {
                     cantidadTexto = `${cantidad} ud`;
-                    precioTexto = formatCurrency(precioUnitario, false) + ' BOB';
+                    precioTexto = formatCurrency(precioUnitario);
                 }
 
                 return [
                     productoMovimiento.producto?.name || 'Sin nombre',
                     cantidadTexto,
                     precioTexto,
-                    formatCurrency(productoMovimiento.subtotal, false) + ' BOB'
+                    formatCurrency(productoMovimiento.subtotal)
                 ];
             });
     }, [movimientoActual?.productos, movimientoActual?.agrupado, movimientoActual?.estado, movimiento?.productos]);
