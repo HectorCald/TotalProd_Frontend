@@ -12,6 +12,55 @@ import movimientosAlmacenService from '../../../services/movimientosAlmacenServi
 import gastosService from '../../../services/gastosService';
 import deudasService from '../../../services/deudasService';
 
+const obtenerFechaSinHora = (valor) => {
+  if (!valor) return null;
+
+  if (typeof valor === 'string') {
+    const normalizado = valor.trim();
+
+    if (normalizado.includes('T')) {
+      return normalizado.split('T')[0];
+    }
+
+    if (normalizado.includes(' ')) {
+      return normalizado.split(' ')[0];
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(normalizado)) {
+      return normalizado;
+    }
+  }
+
+  const date = new Date(valor);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const calcularTotalMovimiento = (mov) => {
+  if (!mov?.productos || mov.productos.length === 0) return 0;
+
+  const subtotal = mov.productos.reduce((sum, prod) => {
+    const subtotalDeclarado = Number(prod.subtotal);
+    if (!Number.isNaN(subtotalDeclarado)) {
+      return sum + subtotalDeclarado;
+    }
+
+    const cantidad = Number(prod.cantidad) || 0;
+    const precio = Number(prod.precio_unitario) || 0;
+    return sum + (cantidad * precio);
+  }, 0);
+
+  const descuento = Number(mov.descuento) || 0;
+  const aumento = Number(mov.aumento) || 0;
+
+  const total = subtotal - descuento + aumento;
+  return Number.isNaN(total) ? 0 : Number(total.toFixed(2));
+};
+
 const Balance = ({ isOpen, setIsOpen }) => {
   const [fechaInicio, setFechaInicio] = useState(new Date());
   const [fechaFin, setFechaFin] = useState(new Date());
@@ -64,80 +113,74 @@ const Balance = ({ isOpen, setIsOpen }) => {
       // Formatear fechas para la consulta
       const fechaInicioFormateada = fechaInicioAjustada.toISOString();
       const fechaFinFormateada = fechaFinAjustada.toISOString();
-      
-      console.log('Fechas para filtrado:', {
-        fechaInicioFormateada,
-        fechaFinFormateada,
-        fechaInicioAjustada: fechaInicioAjustada.toLocaleString(),
-        fechaFinAjustada: fechaFinAjustada.toLocaleString()
-      });
+      const fechaInicioStr = obtenerFechaSinHora(fechaInicioAjustada);
+      const fechaFinStr = obtenerFechaSinHora(fechaFinAjustada);
+
+      if (!fechaInicioStr || !fechaFinStr) {
+        throw new Error('No se pudieron preparar las fechas para el filtrado');
+      }
       
       // Hacer las 3 peticiones en paralelo para mejorar el rendimiento
+      const filtroFechaISO = {
+        inicio: fechaInicioFormateada,
+        fin: fechaFinFormateada
+      };
+
       const [movimientosAlmacenResponse, gastosResponse, deudasResponse] = await Promise.all([
-        movimientosAlmacenService.getAllSinLimite(),
+        movimientosAlmacenService.getAllSinLimite('salida', 'finalizado', 'fecha_desc', null, filtroFechaISO),
         gastosService.getAllSinLimite(),
         deudasService.getAllSinLimite()
       ]);
 
       // Filtrar movimientos de almacén (salidas = ingresos/ventas) - solo no anuladas
-      const salidasAlmacen = movimientosAlmacenResponse.data?.filter(mov => 
-        mov.type === 'salida' && 
-        mov.estado !== 'anulado' && // Excluir salidas anuladas
-        new Date(mov.fecha) >= new Date(fechaInicioFormateada) && 
-        new Date(mov.fecha) <= new Date(fechaFinFormateada)
-      ) || [];
+      const salidasAlmacen = movimientosAlmacenResponse.data?.filter(mov => {
+        const fechaMovimientoStr = obtenerFechaSinHora(mov.fecha);
+        const isValida = (
+          mov.type === 'salida' &&
+          mov.estado !== 'anulado' &&
+          fechaMovimientoStr &&
+          fechaMovimientoStr >= fechaInicioStr &&
+          fechaMovimientoStr <= fechaFinStr
+        );
+        return isValida;
+      }) || [];
 
       // Filtrar gastos por período (incluye gastos de entradas de acopio + gastos manuales)
       const gastosPeriodo = gastosResponse.data?.filter(gasto => {
-        // fecha_gasto es tipo DATE (YYYY-MM-DD), comparar solo fechas
-        const fechaGasto = gasto.fecha_gasto; // Ya es YYYY-MM-DD
-        const fechaInicioStr = fechaInicioFormateada.split('T')[0]; // Extraer solo YYYY-MM-DD
-        const fechaFinStr = fechaFinFormateada.split('T')[0]; // Extraer solo YYYY-MM-DD
+        const fechaGasto = obtenerFechaSinHora(gasto.fecha_gasto);
         
-        return fechaGasto >= fechaInicioStr && fechaGasto <= fechaFinStr;
+        return (
+          fechaGasto &&
+          fechaGasto >= fechaInicioStr &&
+          fechaGasto <= fechaFinStr
+        );
       }) || [];
 
       // Filtrar deudas pendientes del período
       const deudasPendientes = deudasResponse.data?.filter(deuda => {
-        // Convertir fecha_deuda a formato comparable (solo fecha, sin hora)
-        const fechaDeuda = new Date(deuda.fecha_deuda);
-        const fechaDeudaStr = fechaDeuda.toISOString().split('T')[0]; // YYYY-MM-DD
+        const fechaDeudaStr = obtenerFechaSinHora(deuda.fecha_deuda);
         
-        // Extraer solo la parte de fecha de las fechas de filtro
-        const fechaInicioStr = fechaInicioFormateada.split('T')[0]; // YYYY-MM-DD
-        const fechaFinStr = fechaFinFormateada.split('T')[0]; // YYYY-MM-DD
-        
-        return deuda.estado === 'pendiente' && 
-               fechaDeudaStr >= fechaInicioStr && 
-               fechaDeudaStr <= fechaFinStr;
+        return (
+          deuda.estado === 'pendiente' &&
+          fechaDeudaStr &&
+          fechaDeudaStr >= fechaInicioStr &&
+          fechaDeudaStr <= fechaFinStr
+        );
       }) || [];
 
-      console.log('Datos filtrados:', {
-        totalMovimientos: movimientosAlmacenResponse.data?.length || 0,
-        salidasAlmacen: salidasAlmacen.length,
-        totalGastos: gastosResponse.data?.length || 0,
-        gastosPeriodo: gastosPeriodo.length,
-        totalDeudas: deudasResponse.data?.length || 0,
+      console.log('Resumen balance', {
+        fechaInicio: fechaInicioStr,
+        fechaFin: fechaFinStr,
+        ingresosEncontrados: salidasAlmacen.length,
+        gastosEncontrados: gastosPeriodo.length,
         deudasPendientes: deudasPendientes.length
       });
 
-      // Debug específico para deudas
-      console.log('Debug deudas:', {
-        fechaInicioStr: fechaInicioFormateada.split('T')[0],
-        fechaFinStr: fechaFinFormateada.split('T')[0],
-        todasLasDeudas: deudasResponse.data?.map(d => ({
-          id: d.id,
-          fecha_deuda: d.fecha_deuda,
-          estado: d.estado,
-          saldo_pendiente: d.saldo_pendiente
-        })) || [],
-        deudasFiltradas: deudasPendientes.map(d => ({
-          id: d.id,
-          fecha_deuda: d.fecha_deuda,
-          estado: d.estado,
-          saldo_pendiente: d.saldo_pendiente
-        }))
-      });
+      console.log('Movimientos sumados', salidasAlmacen.map(mov => ({
+        id: mov.id,
+        fecha: obtenerFechaSinHora(mov.fecha),
+        monto: calcularTotalMovimiento(mov)
+      })));
 
       // Guardar datos para actualización directa y para VerBalance
       setGastosData(gastosResponse.data || []);
@@ -146,13 +189,7 @@ const Balance = ({ isOpen, setIsOpen }) => {
 
       // Calcular totales
       const totalIngresos = salidasAlmacen.reduce((sum, mov) => {
-        // Sumar el total de productos vendidos
-        if (mov.productos && mov.productos.length > 0) {
-          return sum + mov.productos.reduce((productSum, prod) => {
-            return productSum + (prod.cantidad * prod.precio_unitario);
-          }, 0);
-        }
-        return sum;
+        return sum + calcularTotalMovimiento(mov);
       }, 0);
 
       const totalGastos = gastosPeriodo.reduce((sum, gasto) => {
@@ -210,11 +247,17 @@ const Balance = ({ isOpen, setIsOpen }) => {
     
     // Actualizar balance directamente sin hacer nueva petición
     // Verificar si el gasto está dentro del período seleccionado (comparar solo fechas)
-    const fechaGasto = gastoData.fecha_gasto; // Ya es YYYY-MM-DD
-    const fechaInicioStr = fechaInicio.toISOString().split('T')[0]; // Extraer solo YYYY-MM-DD
-    const fechaFinStr = fechaFin.toISOString().split('T')[0]; // Extraer solo YYYY-MM-DD
+    const fechaGasto = obtenerFechaSinHora(gastoData.fecha_gasto); // Garantizar formato YYYY-MM-DD
+    const fechaInicioStr = obtenerFechaSinHora(fechaInicio);
+    const fechaFinStr = obtenerFechaSinHora(fechaFin);
     
-    if (fechaGasto >= fechaInicioStr && fechaGasto <= fechaFinStr) {
+    if (
+      fechaGasto &&
+      fechaInicioStr &&
+      fechaFinStr &&
+      fechaGasto >= fechaInicioStr &&
+      fechaGasto <= fechaFinStr
+    ) {
       // Agregar el nuevo gasto a los datos locales
       const nuevoGasto = {
         id: gastoData.id,
