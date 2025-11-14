@@ -81,6 +81,9 @@
     overflow: hidden;
     transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
     opacity: 0;
+    will-change: max-height, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .contentOpen {
