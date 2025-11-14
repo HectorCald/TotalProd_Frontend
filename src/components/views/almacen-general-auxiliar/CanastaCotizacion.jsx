@@ -109,6 +109,13 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         return productoModificado;
     }, [mostrarNotificacion]);
 
+    const calcularSubtotalProducto = useCallback((producto) => {
+        if (!producto) return 0;
+        const precio = Number(producto.precio) || 0;
+        const cantidad = Number(producto.cantidad) || 0;
+        return Number((precio * cantidad).toFixed(2));
+    }, []);
+
     const {
         precioSeleccionado,
         setPrecioSeleccionado,
@@ -146,6 +153,24 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
             }
         }
     });
+
+    const prepararProductosCotizacion = useCallback(() => {
+        const productosBase = prepararProductos();
+        const productosMap = new Map(productosBase.map(p => [p.id, p]));
+
+        return productosCanasta.map(producto => {
+            const base = productosMap.get(producto.id) || {
+                id: producto.id,
+                cantidad: producto.cantidad,
+                precio: Number(producto.precio) || 0
+            };
+
+            return {
+                ...base,
+                subtotal: calcularSubtotalProducto(producto)
+            };
+        });
+    }, [calcularSubtotalProducto, prepararProductos, productosCanasta]);
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
@@ -335,6 +360,8 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                 return;
             }
 
+            const productosCotizacion = prepararProductosCotizacion();
+
             // Preparar datos para la cotización
             const cotizacionData = {
                 observaciones: observacionesGenerales || null,
@@ -343,7 +370,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                 fecha_vencimiento: fechaVencimiento || null,
                 agrupado: modoAgrupacion === 'agrupado',
                 precio_id: precioSeleccionado || null,
-                productos: prepararProductos()
+                productos: productosCotizacion
             };
 
             // Crear la cotización

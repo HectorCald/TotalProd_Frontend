@@ -252,31 +252,21 @@ function useCanastaProductos({
 
     const prepararProductos = useCallback(() => {
         return (productosCanasta || []).map(producto => {
-            const cantidadBase = Number(producto?.cantidad) || 0;
-            const precioBase = Number(producto?.precio) || 0;
-            const grupValueRaw = producto?.grup;
-            const grupValue = Number(grupValueRaw);
-            let cantidadEnUnidades = cantidadBase;
-            let precioPorUnidad = precioBase;
+            let cantidadEnUnidades = producto.cantidad;
+            let precioPorUnidad = producto.precio || 0;
 
-            if (modoAgrupacion === 'agrupado' && grupValue > 0) {
-                cantidadEnUnidades = cantidadBase * grupValue;
-
-                let precioAgrupado = precioBase;
-                if (producto?.precioManual !== true) {
-                    precioAgrupado = redondearPrecio(precioAgrupado);
-                }
-
-                precioPorUnidad = precioAgrupado / grupValue;
+            if (modoAgrupacion === 'agrupado' && producto.grup) {
+                cantidadEnUnidades = (producto.cantidad || 0) * producto.grup;
+                precioPorUnidad = (producto.precio || 0) / (producto.grup || 1);
             }
 
             return {
                 id: producto.id,
                 cantidad: cantidadEnUnidades,
-                precio: Number.isFinite(precioPorUnidad) ? Number(precioPorUnidad) : 0
+                precio: precioPorUnidad
             };
         });
-    }, [modoAgrupacion, productosCanasta, redondearPrecio]);
+    }, [modoAgrupacion, productosCanasta]);
 
     useEffect(() => {
         if (!isOpen) return;

@@ -16,6 +16,13 @@ import DescargaCotizacionBuilder from './DescargaCotizacionBuilder';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import AlmacenGeneralAuxiliar from '../almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
+import { formatCurrency } from '../../../utils/numberUtils';
+    const calcularPrecioAgrupado = (precioUnitario, grup) => {
+        const precio = Number(precioUnitario) * (Number(grup) || 1);
+        if (!Number.isFinite(precio)) return 0;
+        return Math.round(precio);
+    };
+
 
 function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onCotizacionEliminada, onCotizacionActualizada }) {
     const { isLargeScreen } = useLayout();
@@ -72,11 +79,12 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 const grupos = Math.floor(cantidad / grup);
                 const unidades = cantidad % grup;
                 cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                // Precio unitario multiplicado por la cantidad de agrupación
-                precioTexto = `${(precioUnitario * grup).toFixed(2)} BOB`;
+                // Precio unitario multiplicado por la cantidad de agrupación y redondeado
+                const precioAgrupado = calcularPrecioAgrupado(precioUnitario, grup);
+                precioTexto = `${formatCurrency(precioAgrupado, false)} BOB`;
             } else {
                 cantidadTexto = `${cantidad} ud`;
-                precioTexto = `${precioUnitario.toFixed(2)} BOB`;
+                precioTexto = `${formatCurrency(precioUnitario, false)} BOB`;
             }
 
             return [
@@ -572,11 +580,12 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                             const grupos = Math.floor(cantidad / grup);
                                             const unidades = cantidad % grup;
                                             cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                                            // Precio unitario multiplicado por la cantidad de agrupación
-                                            precioTexto = `Bs. ${(precioUnitario * grup).toFixed(2)}`;
+                                            // Precio unitario multiplicado por la cantidad de agrupación y redondeado
+                                            const precioAgrupado = calcularPrecioAgrupado(precioUnitario, grup);
+                                            precioTexto = formatCurrency(precioAgrupado);
                                         } else {
                                             cantidadTexto = `${cantidad} ud`;
-                                            precioTexto = `Bs. ${precioUnitario.toFixed(2)}`;
+                                            precioTexto = formatCurrency(precioUnitario);
                                         }
 
                                         return (
