@@ -541,29 +541,42 @@ export const getAvailableMainModules = (employeeModules) => {
         const module = MODULES[moduleKey];
         const assignedSubmodules = modulesByMainModule[moduleKey];
         
-        // Mapear los submódulos asignados a sus definiciones completas
-        const availableSubmodules = assignedSubmodules.map(assignedModule => {
-            const submoduleKey = getSubmoduleKey(moduleKey, assignedModule.name);
-            const submodule = module[submoduleKey];
-            
-            if (submodule) {
+        // Obtener el orden de los submódulos tal como están definidos en MODULES
+        const submoduleOrder = Object.keys(module)
+            .filter(key => typeof module[key] === 'object' && module[key]?.component);
+
+        // Mapear los submódulos asignados a sus definiciones completas y respetar el orden
+        const availableSubmodules = assignedSubmodules
+            .map(assignedModule => {
+                const submoduleKey = getSubmoduleKey(moduleKey, assignedModule.name);
+                const submodule = module[submoduleKey];
+                
+                if (submodule) {
+                    return {
+                        ...submodule,
+                        view: submodule.view || COMPONENT_TO_VIEW[submodule.component] || submodule.component.toLowerCase(),
+                        assignedModule: assignedModule,
+                        __orderKey: submoduleKey
+                    };
+                }
+                
+                // Si no se encuentra el mapeo, crear un submódulo básico
                 return {
-                    ...submodule,
-                    view: submodule.view || COMPONENT_TO_VIEW[submodule.component] || submodule.component.toLowerCase(),
-                    assignedModule: assignedModule
+                    name: assignedModule.name,
+                    description: assignedModule.name,
+                    icon: 'grid',
+                    component: 'Unknown',
+                    props: {},
+                    view: 'unknown',
+                    __orderKey: null
                 };
-            }
-            
-            // Si no se encuentra el mapeo, crear un submódulo básico
-            return {
-                name: assignedModule.name,
-                description: assignedModule.name,
-                icon: 'grid',
-                component: 'Unknown',
-                props: {},
-                view: 'unknown'
-            };
-        });
+            })
+            .sort((a, b) => {
+                const indexA = a.__orderKey ? submoduleOrder.indexOf(a.__orderKey) : Number.MAX_SAFE_INTEGER;
+                const indexB = b.__orderKey ? submoduleOrder.indexOf(b.__orderKey) : Number.MAX_SAFE_INTEGER;
+                return indexA - indexB;
+            })
+            .map(({ __orderKey, ...rest }) => rest);
         
         return {
             key: moduleKey,

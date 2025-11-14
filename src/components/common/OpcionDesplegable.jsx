@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from './OpcionDesplegable.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-function OpcionDesplegable({ titulo, children }) {
+function OpcionDesplegable({ titulo, children, scrollOnOpen = true }) {
     const [isOpen, setIsOpen] = useState(false);
     const [contentHeight, setContentHeight] = useState(0);
     const innerRef = useRef(null);
@@ -34,6 +34,7 @@ function OpcionDesplegable({ titulo, children }) {
     }, [isOpen]);
 
     useEffect(() => {
+        if (!scrollOnOpen) return;
         if (isOpen && containerRef.current) {
             // Buscar el contenedor scrollable padre
             let scrollableParent = containerRef.current.parentElement;
@@ -85,7 +86,7 @@ function OpcionDesplegable({ titulo, children }) {
                 return () => clearTimeout(startTimeout);
             }
         }
-    }, [isOpen, contentHeight]);
+    }, [isOpen, contentHeight, scrollOnOpen]);
 
     const toggleOpen = () => {
         setIsOpen(!isOpen);

@@ -554,7 +554,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             onChange={(checked) => hanclePermisos('reemplazar', checked)}
                         />
                     </div>
-                    <OpcionDesplegable titulo="Otros permisos">
+                    <OpcionDesplegable titulo="Otros permisos" scrollOnOpen={false}>
                         <div className={styles.content}>
                             <Switch
                                 icon="show"
