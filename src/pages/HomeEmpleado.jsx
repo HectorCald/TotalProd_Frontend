@@ -41,6 +41,7 @@ import Reglas from '../components/views/damabrava/reglas/Reglas';
 import Personal from '../components/views/personal/Personal';
 import PanelPagos from '../components/views/damabrava/produccion/pagos/PanelPagos';
 import Sucursales from '../components/views/sucursales/Sucursales';
+import ImportExport from '../components/views/exportar-importar/ImportExport';
 
 const HomeEmpleado = () => {
     const { employee, sucursalSeleccionada, loading, error, clearEmployee } = useEmployee();
@@ -455,6 +456,8 @@ const HomeEmpleado = () => {
                 return <Personal isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'Sucursales':
                 return <Sucursales isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'ImportExport':
+                return <ImportExport isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             default:
                 console.log('⚠️ Componente no encontrado:', currentSubModule.component);
                 return null;

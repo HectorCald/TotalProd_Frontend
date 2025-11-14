@@ -20,8 +20,8 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
   const checkingRef = useRef(false);
   // Obtener módulos principales disponibles con memoización
   const availableMainModules = useMemo(() => {
-    return getAvailableMainModules(employee.modules || []);
-  }, [employee.modules]);
+    return getAvailableMainModules(employee?.modules || []);
+  }, [employee?.modules]);
 
   const mostrarNotificacion = (tipo, texto) => {
     setNotification({ isVisible: true, type: tipo, text: texto });

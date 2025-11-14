@@ -14,6 +14,7 @@ import imageDamabrava from '../assets/damabrava/damabrava.png';
 import imageConteos from '../assets/conteos.png';
 import imageCotizaciones from '../assets/cotizaciones.png';
 import imageHistorial from '../assets/historial.png';
+import imageImportExport from '../assets/import-export.png';
 import imagenPersonal from '../assets/personal.png';
 import imagenSucursales from '../assets/sucursales.png';
 
@@ -39,6 +40,7 @@ const COMPONENT_TO_VIEW = {
     'MiProduccion': 'mi_produccion',
     'Reglas': 'reglas',
     'PanelHistorial': 'historial',
+    'ImportExport': 'importar_exportar',
     'Personal': 'personal',
     'PanelPagos': 'pagos',
     'Sucursales': 'sucursales',
@@ -62,7 +64,8 @@ const BACKEND_TO_FRONTEND_MODULE = {
     'Historial': 'Historial',
     'Cotizaciones': 'Cotizaciones',
     'Personal': 'Personal',
-    'Sucursales': 'Sucursales'
+    'Sucursales': 'Sucursales',
+    'Importar': 'Importar'
 };
 
 // Mapeo de nombres de submódulos del backend a claves del frontend
@@ -108,6 +111,11 @@ const getSubmoduleKey = (moduleKey, submoduleName) => {
         'Sucursales': {
             'Sucursales': 'gestionar',
             'Gestionar': 'gestionar'
+        },
+        'Importar': {
+            'Importar Exportar': 'importar_exportar',
+            'Importar/Exportar': 'importar_exportar',
+            'importar_exportar': 'importar_exportar'
         }
     };
     
@@ -475,6 +483,21 @@ export const MODULES = {
             component: 'PanelHistorial',
             props: {},
             view: 'historial'
+        }
+    },
+    Importar: {
+        name: 'Importar / Exportar',
+        imagen: imageImportExport,
+        descripcion: 'Importa o exporta datos masivos del almacén.',
+        icon: 'import',
+        section: 'configuracion',
+        importar_exportar: {
+            name: 'Importar / Exportar',
+            description: 'Gestiona la importación y exportación de datos.',
+            icon: 'import',
+            component: 'ImportExport',
+            props: {},
+            view: 'importar_exportar'
         }
     },
 };
