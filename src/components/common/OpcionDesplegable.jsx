@@ -104,7 +104,7 @@ function OpcionDesplegable({ titulo, children }) {
                     <span className={styles.line}></span>
                 </div>
                 <BoxIcon 
-                    name={isOpen ? 'chevron-down' : 'chevron-up'} 
+                    name='chevron-down'
                     className={styles.icon}
                 />
             </button>

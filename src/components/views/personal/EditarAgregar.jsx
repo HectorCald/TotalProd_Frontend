@@ -16,6 +16,7 @@ import NoData from '../../common/NoData';
 import { useUser } from '../../../context/UserContext';
 import Text from '../../common/Text';
 import useHistorialLogger from '../../ui/HistorialLogger';
+import OpcionDesplegable from '../../common/OpcionDesplegable';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated, sucursales = [] }) {
     const { user } = useUser();
@@ -527,7 +528,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                         <Switch
                             icon="trash"
                             title="Eliminar"
-                            subtitle="Permite eliminar registros"
+                            subtitle="Permite eliminar registros, productos, etc."
                             checked={permisos.eliminar || false}
                             onChange={(checked) => hanclePermisos('eliminar', checked)}
                         />
@@ -552,28 +553,32 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             checked={permisos.reemplazar || false}
                             onChange={(checked) => hanclePermisos('reemplazar', checked)}
                         />
-                        <Switch
-                            icon="show"
-                            title="Ver información"
-                            subtitle="Permite ver información (Costos, precios, etc.)"
-                            checked={permisos.info || false}
-                            onChange={(checked) => hanclePermisos('info', checked)}
-                        />
-                        <Switch
-                            icon="store"
-                            title="Administrar sucursales"
-                            subtitle="Permite cambiar la sucursal asignada"
-                            checked={permisos.sucursales || false}
-                            onChange={(checked) => hanclePermisos('sucursales', checked)}
-                        />
-                        <Switch
-                            icon="download"
-                            title="Modo offline"
-                            subtitle="Permite operar y sincronizar en modo offline"
-                            checked={permisos.offline || false}
-                            onChange={(checked) => hanclePermisos('offline', checked)}
-                        />
                     </div>
+                    <OpcionDesplegable titulo="Otros permisos">
+                        <div className={styles.content}>
+                            <Switch
+                                icon="show"
+                                title="Ver información"
+                                subtitle="Permite ver información (Costos, precios, etc.)"
+                                checked={permisos.info || false}
+                                onChange={(checked) => hanclePermisos('info', checked)}
+                            />
+                            <Switch
+                                icon="store"
+                                title="Administrar sucursales"
+                                subtitle="Permite cambiar la sucursal asignada a otras"
+                                checked={permisos.sucursales || false}
+                                onChange={(checked) => hanclePermisos('sucursales', checked)}
+                            />
+                            <Switch
+                                icon="download"
+                                title="Modo offline"
+                                subtitle="Permite vender en modo offline o sin conexión"
+                                checked={permisos.offline || false}
+                                onChange={(checked) => hanclePermisos('offline', checked)}
+                            />
+                        </div>
+                    </OpcionDesplegable>
                     {/* <p className={styles.subTitle}>RASTREO</p>
                     <div className={styles.content}>
                         <Switch
