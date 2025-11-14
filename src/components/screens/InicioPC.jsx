@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { checkCacheStatus } from '../../utils/cacheUtils';
 import AtajoAnuncio from '../common/AtajoAnuncio';
 import SalesCard from '../ui/SalesCard';
@@ -11,6 +11,8 @@ import acopioImage from '../../assets/acopio.png';
 import movimientosImage from '../../assets/movimientos.png';
 import pedidosImage from '../../assets/pedidos.png';
 import './InicioPC.css';
+import Text from '../common/Text';
+import { OFFLINE_NETWORK_FLAG } from '../../utils/offlineNetworkInterceptor';
 
 const InicioPC = ({ onViewOpen, sucuId = 1 }) => {
   const [notification, setNotification] = useState({
@@ -22,6 +24,7 @@ const InicioPC = ({ onViewOpen, sucuId = 1 }) => {
   const [oldVersion, setOldVersion] = useState(null);
   const [newVersion, setNewVersion] = useState(null);
   const checkingRef = useRef(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   const mostrarNotificacion = (tipo, texto) => {
     setNotification({
@@ -77,9 +80,33 @@ const InicioPC = ({ onViewOpen, sucuId = 1 }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const updateOfflineFlag = useCallback(() => {
+    try {
+      setIsOfflineMode(localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true');
+    } catch {
+      setIsOfflineMode(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    updateOfflineFlag();
+    const handler = () => updateOfflineFlag();
+    window.addEventListener('offline-mode-changed', handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener('offline-mode-changed', handler);
+      window.removeEventListener('storage', handler);
+    };
+  }, [updateOfflineFlag]);
+
   return (
     <>
       <div className="inicio-pc-container">
+      {isOfflineMode && (
+        <Text type="error" align="left">
+          Estás en modo offline. Solo podrás registrar ventas (salidas) si cuentas con ese módulo.
+        </Text>
+      )}
       {/* Atajos de Acceso Rápido */}
       <div className="atajoAnuncioOtros" style={{ gap: '10px' }}>
         <AtajoAnuncio 

@@ -1,4 +1,6 @@
 import API_CONFIG from '../config/api';
+import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
+import { obtenerLocal, OFFLINE_DB_NAME, CATEGORIAS_STORE } from '../utils/indexedDB';
 
 const API_BASE_URL = API_CONFIG.getBaseURL();
 
@@ -22,11 +24,43 @@ const getEmpresaId = () => {
 };
 
 
+const shouldUseOffline = () => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  try {
+    return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const getOfflineCategories = async () => {
+  try {
+    const cached = await obtenerLocal(CATEGORIAS_STORE, OFFLINE_DB_NAME);
+    if (Array.isArray(cached) && cached.length > 0) {
+      return {
+        success: true,
+        data: cached,
+        offline: true
+      };
+    }
+  } catch (error) {
+    console.warn('No se pudo obtener categorías offline:', error);
+  }
+  return null;
+};
+
 class categoryAlmacenService {
 
   // Obtener todas las categorías
   static async getAll() {
     try {
+      if (shouldUseOffline()) {
+        const offlineData = await getOfflineCategories();
+        if (offlineData) {
+          return offlineData;
+        }
+      }
+
       const empresaId = getEmpresaId();
       if (!empresaId) {
         return {

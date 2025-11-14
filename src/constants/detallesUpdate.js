@@ -1,39 +1,39 @@
 export const detallesUpdate = [
     {
-        label: 'Almacen general',
+        label: 'Modo offline',
         children: [
             {
-                label: 'Salida o Venta',
+                label: 'Historial de movimientos',
                 children: [
-                    'Opcion de conteo de venta o entrada de productos',
+                    'Opcion de ver el historial de movimientos offline',
                 ],
             },
+            {
+                label: 'Ventas',
+                children: [
+                    'Realizar ventas offline',
+                ],
+            },
+        ],
+    },
+    {
+        label: 'Cotizaciones',
+        children: [
+            {
+                label: 'Repetir cotizacion',
+                children: [
+                    'Aprobar y anular cotizaciones',
+                ],
+            },
+        ],
+    },
+    {
+        label: 'Correcciones',
+        children: [
             {
                 label: 'Cotizaciones',
                 children: [
-                    'Opcion de repetir cotizacion',
-                ],
-            },
-        ],
-    },
-    {
-        label: 'Clientes',
-        children: [
-            {
-                label: 'Agregar cliente',
-                children: [
-                    'Opcion de importar clientes desde los contactos del telefono',
-                ],
-            },
-        ],
-    },
-    {
-        label: 'Descargas',
-        children: [
-            {
-                label: 'Descargar datos',
-                children: [
-                    'Descarga y comparte directamente desde la aplicacion',
+                    'Redondea el precio de los productos en las cotizaciones',
                 ],
             },
         ],

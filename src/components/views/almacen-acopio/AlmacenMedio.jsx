@@ -1,16 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
 import AlmacenAcopio from './AlmacenAcopio';
 import AlmacenAcopioAuxiliar from '../almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
+import { OFFLINE_NETWORK_FLAG } from '../../../utils/offlineNetworkInterceptor';
 
 
 function AlmacenMedio({ isOpen, setIsOpen }) {
     const [isAlmacenOpen, setIsAlmcenOpen] = useState(false);
     const [isAuxOpen, setIsAuxOpen] = useState(false);
     const [type, setType] = useState('');
+    const [isOfflineMode, setIsOfflineMode] = useState(false);
+
+    const updateOfflineFlag = useCallback(() => {
+        try {
+            setIsOfflineMode(localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true');
+        } catch {
+            setIsOfflineMode(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        updateOfflineFlag();
+        const handler = () => updateOfflineFlag();
+        window.addEventListener('offline-mode-changed', handler);
+        window.addEventListener('storage', handler);
+        return () => {
+            window.removeEventListener('offline-mode-changed', handler);
+            window.removeEventListener('storage', handler);
+        };
+    }, [updateOfflineFlag]);
 
     const handleTypeAlmacen = (tipo) => {
         // Cerrar el modal del medio
@@ -46,6 +67,7 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
                     icon='down-arrow-alt'
                     arrow={true}
                     onClick={()=> handleTypeAlmacen('entrada')}
+                    disabled={isOfflineMode}
                 />
                 <ItemView
                     title='Nuevo Pedido'
@@ -53,6 +75,7 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
                     icon='cart-add'
                     arrow={true}
                     onClick={()=> handleTypeAlmacen('pedido')}
+                    disabled={isOfflineMode}
                 />
                 <ItemView
                     title='Conteo'
@@ -60,6 +83,7 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
                     icon='calculator'
                     arrow={true}
                     onClick={()=> handleTypeAlmacen('conteo')}
+                    disabled={isOfflineMode}
                 />
                 <ItemView
                     title='Materia Prima'
@@ -67,6 +91,7 @@ function AlmacenMedio({ isOpen, setIsOpen }) {
                     icon='package'
                     arrow={true}
                     onClick={()=> handleTypeAlmacen('almacen')}
+                    disabled={isOfflineMode}
                 />
             </div>
             

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../styles/Home.module.css';
 import Nav from '../components/ui/Nav';
 import BarraNavegacion from '../components/ui/BarraNavegacion';
@@ -9,6 +9,9 @@ import Inicio from '../components/screens/Inicio';
 import InicioPC from '../components/screens/InicioPC';
 import Explorar from '../components/screens/Explorar';
 import ModalOffline from '../components/views/offline/ModalOffline';
+import HistorialMovimientosOffline from '../components/views/movimientos/HistorialMovimientosOffline';
+import { obtenerLocal, OFFLINE_DB_NAME, MOVIMIENTOS_SALIDA_STORE } from '../utils/indexedDB';
+import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import NoData from '../components/common/NoData';
 import { clearDataFetchLogsIfNeeded } from '../components/utils/DataSizeLogger';
@@ -26,36 +29,63 @@ import Proveedores from '../components/views/proveedores/Proveedores';
 import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
 import PasoTipo from '../components/views/pasos/PasoTipo';
 
+const OFFLINE_USER_KEY = 'offline_user_data';
+
 const Home = () => {
   const { isLargeScreen } = useLayout();
-  const { user, error, loading, clearUser } = useUser();
+  const { user, error, loading, clearUser, setUserFromService } = useUser();
   const [activeView, setActiveView] = useState(null);
   const [activeRoute, setActiveRoute] = useState('/dashboard/default');
   const [isOffline, setIsOffline] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [showPasoTipo, setShowPasoTipo] = useState(false);
+  const [offlineHydrated, setOfflineHydrated] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [offlineMovimientos, setOfflineMovimientos] = useState([]);
+  const [isOfflineMovimientosOpen, setIsOfflineMovimientosOpen] = useState(false);
+  const [forceOfflineModal, setForceOfflineModal] = useState(false);
 
   // Limpiar logs de dataFetchLogs diariamente
   useEffect(() => {
     clearDataFetchLogsIfNeeded();
   }, []);
 
+  const loadOfflineUser = () => {
+    if (user) return false;
+    try {
+      const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
+      if (!cachedUser) return false;
+      const parsedUser = JSON.parse(cachedUser);
+      if (parsedUser) {
+        setUserFromService(parsedUser);
+        setOfflineHydrated(true);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error cargando usuario offline:', error);
+    }
+    return false;
+  };
+
   // Detectar cambios en la conexión
   useEffect(() => {
     const handleOnline = () => {
       setIsOffline(false);
       setShowOfflineModal(false);
+      setOfflineHydrated(false);
     };
 
     const handleOffline = () => {
       setIsOffline(true);
       setShowOfflineModal(true);
+      loadOfflineUser();
     };
 
     // Verificar estado inicial
     if (!navigator.onLine) {
       setIsOffline(true);
       setShowOfflineModal(true);
+      loadOfflineUser();
     }
 
     // Agregar listeners
@@ -69,6 +99,14 @@ const Home = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!error) return;
+    if (offlineHydrated) return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      loadOfflineUser();
+    }
+  }, [error]);
+
   const handleRetryConnection = () => {
     // Verificar conexión nuevamente
     if (navigator.onLine) {
@@ -79,6 +117,77 @@ const Home = () => {
       setShowOfflineModal(true);
     }
   };
+
+  const updateOfflineFlag = useCallback(() => {
+    try {
+      setIsOfflineMode(localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true');
+    } catch {
+      setIsOfflineMode(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    updateOfflineFlag();
+    const handler = () => updateOfflineFlag();
+    window.addEventListener('offline-mode-changed', handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener('offline-mode-changed', handler);
+      window.removeEventListener('storage', handler);
+    };
+  }, [updateOfflineFlag]);
+
+  const refreshOfflineMovimientos = useCallback(async () => {
+    const hasInternet = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+    if (isOfflineMode || !hasInternet) {
+      setOfflineMovimientos([]);
+      setIsOfflineMovimientosOpen(false);
+      setForceOfflineModal(false);
+      return;
+    }
+    try {
+      const movimientos = await obtenerLocal(MOVIMIENTOS_SALIDA_STORE, OFFLINE_DB_NAME);
+      if (Array.isArray(movimientos) && movimientos.length > 0) {
+        setOfflineMovimientos(movimientos);
+        setIsOfflineMovimientosOpen(true);
+        setForceOfflineModal(true);
+      } else {
+        setOfflineMovimientos([]);
+        setIsOfflineMovimientosOpen(false);
+        setForceOfflineModal(false);
+      }
+    } catch (error) {
+      console.warn('No se pudieron cargar movimientos offline:', error);
+      setOfflineMovimientos([]);
+      setIsOfflineMovimientosOpen(false);
+      setForceOfflineModal(false);
+    }
+  }, [isOfflineMode]);
+
+  useEffect(() => {
+    refreshOfflineMovimientos();
+  }, [refreshOfflineMovimientos]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      refreshOfflineMovimientos();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [refreshOfflineMovimientos]);
+
+  const handleOfflineMovementsUpdate = useCallback((updated) => {
+    if (!Array.isArray(updated)) return;
+    setOfflineMovimientos(updated);
+    if (updated.length === 0) {
+      setIsOfflineMovimientosOpen(false);
+      setForceOfflineModal(false);
+    } else {
+      setIsOfflineMovimientosOpen(true);
+    }
+  }, []);
 
   const handleViewOpen = (viewName) => {
     console.log('handleViewOpen llamado con:', viewName);
@@ -172,7 +281,7 @@ const Home = () => {
   }
 
   // Si hay error, mostrar NoData con error
-  if (error) {
+  if (error && !offlineHydrated) {
     // Determinar el tipo de error y el mensaje apropiado
     let errorTitle = "Error";
     let errorDetail = error;
@@ -351,6 +460,16 @@ const Home = () => {
         isOpen={showOfflineModal}
         setIsOpen={setShowOfflineModal}
         onRetry={handleRetryConnection}
+      />
+      <HistorialMovimientosOffline
+        isOpen={isOfflineMovimientosOpen}
+        setIsOpen={setIsOfflineMovimientosOpen}
+        movimientos={offlineMovimientos}
+        titulo="Movimientos offline pendientes"
+        descripcion="Registra tus movimientos pendientes para sincronizarlos."
+        onClose={refreshOfflineMovimientos}
+        disableClose={forceOfflineModal}
+        onMovementsUpdate={handleOfflineMovementsUpdate}
       />
     </div>
   );

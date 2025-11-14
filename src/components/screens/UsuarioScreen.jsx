@@ -19,6 +19,31 @@ import Comentarios from '../views/comentarios/Comentarios';
 import ImagenEmpresa from '../views/usuario/ImagenEmpresa';
 import Notification from '../common/Notification';
 import AtajosEmpleado from '../views/usuario/AtajosEmpleado';
+import productsAlmacenService from '../../services/productsAlmacenService';
+import categoryAlmacenService from '../../services/categoryAlmacenService';
+import pricesTypesService from '../../services/pricesTypesService';
+import clientService from '../../services/clientService';
+import UserService from '../../services/userService';
+import personalService from '../../services/personalService';
+import { guardarLocal, limpiarLocal, OFFLINE_DB_NAME, PRODUCTOS_STORE, CATEGORIAS_STORE, PRECIOS_STORE, CLIENTES_STORE } from '../../utils/indexedDB';
+import {
+    enableOfflineNetworkInterceptor,
+    disableOfflineNetworkInterceptor,
+    OFFLINE_NETWORK_FLAG
+} from '../../utils/offlineNetworkInterceptor';
+
+const OFFLINE_USER_KEY = 'offline_user_data';
+const OFFLINE_EMPLOYEE_KEY = 'offline_employee_data';
+
+const getInitialOfflineMode = () => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
+};
+
+const dispatchOfflineModeChange = (enabled) => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('offline-mode-changed', { detail: enabled }));
+};
 
 const UsuarioScreen = () => {
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
@@ -30,6 +55,8 @@ const UsuarioScreen = () => {
     const [isOpenImagenEmpresa, setIsOpenImagenEmpresa] = useState(false);
     const [isOpenAtajo, setIsOpenAtajo] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
+    const [isOfflineMode, setIsOfflineMode] = useState(getInitialOfflineMode);
+    const [isOfflineSyncing, setIsOfflineSyncing] = useState(false);
     const [empresaImage, setEmpresaImage] = useState(null);
     const [loadingImage, setLoadingImage] = useState(false);
     const [notification, setNotification] = useState({ isVisible: false, type: 'success', text: '' });
@@ -40,6 +67,7 @@ const UsuarioScreen = () => {
     const isEmployee = !!employeeInfo;
     const currentUser = isEmployee ? employeeInfo : userInfo;
     const sucursal = isEmployee ? employeeSucursal : userSucursal;
+    const canUseOffline = !isEmployee || !!employeeInfo?.permisos?.offline;
 
     const applyTheme = (theme) => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -114,6 +142,107 @@ const UsuarioScreen = () => {
         }, 3000);
     };
 
+    const handleOfflineModeChange = async (isEnabled) => {
+        if (!isEnabled) {
+            setIsOfflineMode(false);
+            await Promise.all([
+                limpiarLocal(PRODUCTOS_STORE, OFFLINE_DB_NAME),
+                limpiarLocal(CATEGORIAS_STORE, OFFLINE_DB_NAME),
+                limpiarLocal(PRECIOS_STORE, OFFLINE_DB_NAME),
+                limpiarLocal(CLIENTES_STORE, OFFLINE_DB_NAME),
+            ]);
+            localStorage.removeItem(OFFLINE_USER_KEY);
+            localStorage.removeItem(OFFLINE_EMPLOYEE_KEY);
+            disableOfflineNetworkInterceptor();
+            dispatchOfflineModeChange(false);
+            mostrarNotificacion('info', 'Datos offline eliminados.');
+            return;
+        }
+
+        if (isOfflineSyncing) {
+            return;
+        }
+
+        setIsOfflineMode(true);
+        setIsOfflineSyncing(true);
+
+        try {
+            const [
+                productosResponse,
+                categoriasResponse,
+                preciosResponse,
+                clientesResponse
+            ] = await Promise.all([
+                productsAlmacenService.getAll(),
+                categoryAlmacenService.getAll(),
+                pricesTypesService.getAll(),
+                clientService.getAll()
+            ]);
+
+            if (!productosResponse?.success || !Array.isArray(productosResponse.data)) {
+                throw new Error(productosResponse?.message || 'Respuesta inválida al obtener productos');
+            }
+
+            if (!categoriasResponse?.success || !Array.isArray(categoriasResponse.data)) {
+                throw new Error(categoriasResponse?.message || 'Respuesta inválida al obtener categorías');
+            }
+
+            if (!preciosResponse?.success || !Array.isArray(preciosResponse.data)) {
+                throw new Error(preciosResponse?.message || 'Respuesta inválida al obtener tipos de precios');
+            }
+
+            if (!clientesResponse?.success || !Array.isArray(clientesResponse.data)) {
+                throw new Error(clientesResponse?.message || 'Respuesta inválida al obtener clientes');
+            }
+
+            await Promise.all([
+                guardarLocal(PRODUCTOS_STORE, OFFLINE_DB_NAME, productosResponse.data),
+                guardarLocal(CATEGORIAS_STORE, OFFLINE_DB_NAME, categoriasResponse.data),
+                guardarLocal(PRECIOS_STORE, OFFLINE_DB_NAME, preciosResponse.data),
+                guardarLocal(CLIENTES_STORE, OFFLINE_DB_NAME, clientesResponse.data),
+            ]);
+
+            if (currentUser?.id) {
+                if (isEmployee) {
+                    const employeeResponse = await personalService.getById(currentUser.id);
+                    if (!employeeResponse?.success || !employeeResponse.data) {
+                        throw new Error(employeeResponse?.message || 'No se pudo obtener la información del empleado');
+                    }
+                    localStorage.setItem(OFFLINE_EMPLOYEE_KEY, JSON.stringify(employeeResponse.data));
+                    localStorage.removeItem(OFFLINE_USER_KEY);
+                } else {
+                    const userResponse = await UserService.getCurrentUser(currentUser.id);
+                    const userData = userResponse?.data?.user || userResponse?.data;
+                    if (!userResponse?.success || !userData) {
+                        throw new Error(userResponse?.error || 'No se pudo obtener la información del usuario');
+                    }
+                    localStorage.setItem(OFFLINE_USER_KEY, JSON.stringify(userData));
+                    localStorage.removeItem(OFFLINE_EMPLOYEE_KEY);
+                }
+            }
+
+            enableOfflineNetworkInterceptor();
+            dispatchOfflineModeChange(true);
+            mostrarNotificacion('success', 'Modo offline preparado correctamente.');
+        } catch (error) {
+            console.error('Error activando modo offline:', error);
+            setIsOfflineMode(false);
+            await Promise.all([
+                limpiarLocal(PRODUCTOS_STORE, OFFLINE_DB_NAME),
+                limpiarLocal(CATEGORIAS_STORE, OFFLINE_DB_NAME),
+                limpiarLocal(PRECIOS_STORE, OFFLINE_DB_NAME),
+                limpiarLocal(CLIENTES_STORE, OFFLINE_DB_NAME),
+            ]);
+            localStorage.removeItem(OFFLINE_USER_KEY);
+            localStorage.removeItem(OFFLINE_EMPLOYEE_KEY);
+             disableOfflineNetworkInterceptor();
+            dispatchOfflineModeChange(false);
+            mostrarNotificacion('error', 'No se pudo preparar el modo offline.');
+        } finally {
+            setIsOfflineSyncing(false);
+        }
+    };
+
     if (!currentUser) {
         return null;
     }
@@ -171,6 +300,23 @@ const UsuarioScreen = () => {
                         checked={isDarkMode}
                         onChange={handleThemeChange}
                     />
+                    {canUseOffline && (
+                        <ComponenteFull
+                            title="Modo offline"
+                            subtitle={
+                                isOfflineSyncing
+                                    ? "Sincronizando productos..."
+                                    : isOfflineMode
+                                        ? "Activado - Productos disponibles"
+                                        : "Desactivado - Sin datos offline"
+                            }
+                            icon="wifi-off"
+                            type="switch"
+                            checked={isOfflineMode}
+                            onChange={handleOfflineModeChange}
+                            loading={isOfflineSyncing}
+                        />
+                    )}
                 </div>
                 <p className={styles.subTitle}>CUENTA</p>
                 <div className={styles.content}>

@@ -12,6 +12,9 @@ import CanastaMovimientos from './CanastaMovimientos';
 import CanastaMovimientosEntrada from './CanastaMovimientosEntrada';
 import CategoriasAlmacen from './CategoriasAlmacen';
 import Notification from '../../common/Notification';
+import Select from '../../common/Select';
+import HistorialMovimientosOffline from '../movimientos/HistorialMovimientosOffline';
+import { obtenerLocal, OFFLINE_DB_NAME, MOVIMIENTOS_SALIDA_STORE } from '../../../utils/indexedDB';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import FiltroCategorias from '../../mixed/FiltroCategorias';
 import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
@@ -52,6 +55,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [isOpenCategoria, setOpenCategoria] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [isCategoriasAlmacenOpen, setIsCategoriasAlmacenOpen] = useState(false);
+    const [isOfflineMovimientosOpen, setIsOfflineMovimientosOpen] = useState(false);
+    const [offlineMovimientos, setOfflineMovimientos] = useState([]);
+    const [offlineMovimientosTitulo, setOfflineMovimientosTitulo] = useState('');
+    const [offlineMovimientosDescripcion, setOfflineMovimientosDescripcion] = useState('');
+    const [isOfflineModeActive, setIsOfflineModeActive] = useState(false);
 
     // Estados para canasta de pedidos
     const [productosCanasta, setProductosCanasta] = useState([]);
@@ -95,6 +103,50 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 4000);
     }, []);
+
+    useEffect(() => {
+        const updateOfflineFlag = () => {
+            try {
+                setIsOfflineModeActive(localStorage.getItem('offline_network_block') === 'true');
+            } catch {
+                setIsOfflineModeActive(false);
+            }
+        };
+        updateOfflineFlag();
+        const handler = () => updateOfflineFlag();
+        window.addEventListener('offline-mode-changed', handler);
+        window.addEventListener('storage', handler);
+        return () => {
+            window.removeEventListener('offline-mode-changed', handler);
+            window.removeEventListener('storage', handler);
+        };
+    }, []);
+
+    const handleOfflineMovimientosSelect = useCallback(async (option) => {
+        if (!isOfflineModeActive) {
+            return;
+        }
+        try {
+            const movimientos = await obtenerLocal(MOVIMIENTOS_SALIDA_STORE, OFFLINE_DB_NAME);
+            if (!Array.isArray(movimientos) || movimientos.length === 0) {
+                return;
+            }
+
+            const data = option === 'ultimo'
+                ? [movimientos[movimientos.length - 1]]
+                : [...movimientos].reverse();
+
+            setOfflineMovimientos(data);
+            setOfflineMovimientosTitulo(option === 'ultimo' ? 'Último movimiento offline' : 'Movimientos offline');
+            setOfflineMovimientosDescripcion(option === 'ultimo'
+                ? 'Detalle del último movimiento guardado sin conexión.'
+                : 'Historial de movimientos pendientes por sincronizar.');
+            setIsOfflineMovimientosOpen(true);
+        } catch (error) {
+            console.error('Error cargando movimientos offline:', error);
+            mostrarNotificacion('error', 'No se pudo cargar el historial offline.');
+        }
+    }, [isOfflineModeActive, mostrarNotificacion]);
 
     const {
         handleAgregarACanasta,
@@ -695,6 +747,36 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     isVisible={notification.isVisible}
                     type={notification.type}
                     text={notification.text}
+                />
+                {tipo === 'salida' && isOfflineModeActive && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            bottom: '90px',
+                            right: '15px',
+                            zIndex: 200
+                        }}
+                    >
+                        <Select
+                            icon="history"
+                            iconOnly={true}
+                            options={[
+                                { value: 'historial', label: 'Historial offline', icon: 'history' },
+                                { value: 'ultimo', label: 'Último movimiento', icon: 'time-five' }
+                            ]}
+                            onChange={handleOfflineMovimientosSelect}
+                            dropdownDirection="right"
+                            containerStyle={{ background: 'none' }}
+                        />
+                    </div>
+                )}
+                <HistorialMovimientosOffline
+                    isOpen={isOfflineMovimientosOpen}
+                    setIsOpen={setIsOfflineMovimientosOpen}
+                    movimientos={offlineMovimientos}
+                    titulo={offlineMovimientosTitulo}
+                    descripcion={offlineMovimientosDescripcion}
+                    onClose={handleRefresh}
                 />
 
                 {/* Carga de datos - solo cuando está abierto */}

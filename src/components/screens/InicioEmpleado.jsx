@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { checkCacheStatus } from '../../utils/cacheUtils';
 import { getAvailableMainModules, getSectionTitle } from '../../constants/modules';
 import AtajoAnuncio from '../common/AtajoAnuncio';
@@ -10,6 +10,8 @@ import NoData from '../common/NoData';
 import { useEmployee } from '../../context/EmployeeContext';
 import personalService from '../../services/personalService';
 import Notification from '../common/Notification';
+import Text from '../common/Text';
+import { OFFLINE_NETWORK_FLAG } from '../../utils/offlineNetworkInterceptor';
 
 const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
   const { setEmployeeFromService, sucursalSeleccionada } = useEmployee();
@@ -18,6 +20,7 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
   const [oldVersion, setOldVersion] = useState(null);
   const [newVersion, setNewVersion] = useState(null);
   const checkingRef = useRef(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   // Obtener módulos principales disponibles con memoización
   const availableMainModules = useMemo(() => {
     return getAvailableMainModules(employee?.modules || []);
@@ -72,6 +75,25 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const updateOfflineFlag = useCallback(() => {
+    try {
+      setIsOfflineMode(localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true');
+    } catch {
+      setIsOfflineMode(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    updateOfflineFlag();
+    const handler = () => updateOfflineFlag();
+    window.addEventListener('offline-mode-changed', handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener('offline-mode-changed', handler);
+      window.removeEventListener('storage', handler);
+    };
+  }, [updateOfflineFlag]);
+
   return (
     <>
       {/* Contenido original para móvil */}
@@ -97,6 +119,11 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
           paddingTop: '10px',
         }}
       >
+          {isOfflineMode && (
+            <Text type="error" align="left">
+              Estás en modo offline. Solo podrás registrar ventas (salidas) si cuentas con ese módulo.
+            </Text>
+          )}
           {(() => {
             // Agrupar módulos por sección
             const buckets = new Map();
@@ -130,6 +157,9 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
 
                   const cardDescription = hasSingleSubmodule ? (singleSub.description || module.description) : module.description;
 
+                  const isAlmacenModule = module.key === 'Almacen';
+                  const isModuleDisabled = isOfflineMode && !isAlmacenModule;
+
                   return (
                     <AtajoAnuncio
                       key={`${title}-${index}`}
@@ -137,6 +167,7 @@ const InicioEmpleado = ({ employee, onMainModuleClick, onViewOpen }) => {
                       description={cardDescription}
                       image={module.image}
                       onClick={() => onMainModuleClick(module)}
+                      disabled={isModuleDisabled}
                     />
                   );
                 })}

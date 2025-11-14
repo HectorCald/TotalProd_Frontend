@@ -18,6 +18,7 @@ import useCanastaProductos from './hooks/useCanastaProductos';
 import useEntregaMovimientos from './hooks/useEntregaMovimientos';
 import { useLayout } from '../../../context/LayoutContext';
 import OpcionDesplegable from '../../common/OpcionDesplegable';
+import { isOfflineNetworkEnabled, queueOfflineSalida, updateOfflineProductsStock } from '../../../utils/offlineMovements';
 
 function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null, isEditandoMovimiento = false, movimientoIdEditando = null, numeroOrdenEditando: numeroOrdenEditandoProp = null, onMovimientoEditado = null }) {
     const { isLargeScreen } = useLayout();
@@ -275,34 +276,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
     }, [esEntrega, isOpen]);
 
-    // Cargar datos de cotización cuando se está realizando una venta
-    useEffect(() => {
-        if (isOpen && localStorage.getItem('productosCotizacionVendiendo')) {
-            // Cargar precio de la cotización
-            const precioIdCotizacion = localStorage.getItem('precioIdCotizacionVendiendo');
-            if (precioIdCotizacion) {
-                setPrecioSeleccionado(precioIdCotizacion);
-            }
-
-            // Cargar modalidad de la cotización
-            const modalidadCotizacion = localStorage.getItem('cotizacionAgrupadoVendiendo');
-            if (modalidadCotizacion === 'agrupado' || modalidadCotizacion === 'no_agrupado') {
-                setModoAgrupacion(modalidadCotizacion);
-            }
-
-            // Cargar cliente de la cotización
-            const clienteIdCotizacion = localStorage.getItem('clienteIdCotizacionVendiendo');
-            const clienteNameCotizacion = localStorage.getItem('clienteNameCotizacionVendiendo');
-            if (clienteIdCotizacion && clienteNameCotizacion) {
-                setClienteSeleccionadoData({
-                    id: clienteIdCotizacion,
-                    name: clienteNameCotizacion
-                });
-                setClienteSeleccionado(clienteIdCotizacion);
-            }
-        }
-    }, [isOpen]);
-
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
             handleEliminarProducto(productoId);
@@ -475,6 +448,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 return;
             }
 
+            const offlineEnabled = isOfflineNetworkEnabled();
             const fechaMovimientoEditando = isEditandoMovimiento ? localStorage.getItem('fechaMovimientoEditando') : null;
             const numeroOrdenEditandoStorage = isEditandoMovimiento ? localStorage.getItem('numeroOrdenEditando') : null;
             const numeroOrdenFinal = numeroOrdenEditandoStorage ?? numeroOrdenEditandoProp;
@@ -484,7 +458,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 return Number.isNaN(numeroParseado) ? null : numeroParseado;
             })();
 
-            if (isEditandoMovimiento && movimientoIdEditando) {
+            if (!offlineEnabled && isEditandoMovimiento && movimientoIdEditando) {
                 // Anular el movimiento anterior pasando esEdicion: true para omitir validación de permisos
                 const anulacionResp = await movimientosAlmacenService.anular(movimientoIdEditando, false, true);
                 if (!anulacionResp?.success) {
@@ -507,9 +481,10 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             let pedidoActualizado = null;
             let pedidoId = null;
             let movimientoId = null;
+            let pedidoData = null;
+            let numeroPedido = null;
 
             // 1) Si es entrega: actualizar pedido primero
-            let numeroPedido = null;
             if (esEntrega) {
                 pedidoId = pedidoIdEntregando || localStorage.getItem('pedidoIdEntregando');
                 if (!pedidoId) {
@@ -518,12 +493,13 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     return;
                 }
 
-                const pedidoData = {
+                pedidoData = {
                     productos: prepararProductos(),
                     observaciones: observacionesGenerales || null,
                     precio_id: precioSeleccionado,
                     agrupado: modoAgrupacion === 'agrupado'
                 };
+                if (!offlineEnabled) {
                 pedidoActualizado = await pedidosAlmacenService.update(pedidoId, pedidoData);
 
                 // Obtener el numero_pedido del pedido actualizado
@@ -534,6 +510,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 // Notificar al componente padre sobre la actualización del pedido
                 if (onPedidoActualizado && pedidoActualizado?.data) {
                     onPedidoActualizado(pedidoActualizado.data);
+                    }
                 }
             }
 
@@ -575,34 +552,15 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 ...(fechaMovimientoEditando ? { fecha: fechaMovimientoEditando } : {}),
                 ...(numeroOrdenPayload !== null ? { numero_orden: numeroOrdenPayload } : {})
             };
-            const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
-            movimientoId = (movimientoResponse && movimientoResponse.success) ? movimientoResponse.data?.id : null;
+            const clienteOfflineInfo = esEntrega
+                ? (clienteSeleccionadoData || clientePedidoData || null)
+                : (clienteSeleccionadoData || (clienteSeleccionado ? { id: clienteSeleccionado } : null));
 
-            if (movimientoId) {
-                // Actualizar stock EN FRONT
-                const productosEnUnidades = prepararProductos();
-                const productosStockActualizados = productosEnUnidades.map(pu => {
-                    const prodActual = (productosActualizados || []).find(p => p.id === pu.id);
-                    const stockBase = prodActual ? (prodActual.stock || 0) : 0;
-                    const nuevoStock = Math.max(0, stockBase - pu.cantidad); // salida resta stock
-                    return { id: pu.id, stock: nuevoStock };
-                });
-                if (onProductosUpdated) {
-                    onProductosUpdated(productosStockActualizados);
-                }
+            const pedidoEstadoPayload = esEntrega ? { pedidoId, metodoPago: metodoPagoSeleccionado } : null;
 
-                // 3) Si es crédito: crear o actualizar deuda
-                if (metodoPagoSeleccionado === 'credito') {
-                    try {
-                        const subtotalMovimiento = productosCanasta.reduce((total, producto) => {
-                            const valorProducto = (producto.precio || 0) * producto.cantidad;
-                            return total + valorProducto;
-                        }, 0);
-                        // Calcular descuento y aumento como porcentajes del subtotal
-                        const descuentoPorcentaje = parseFloat(descuento) || 0;
-                        const aumentoPorcentaje = parseFloat(aumento) || 0;
-                        const descuentoMonto = (subtotalMovimiento * descuentoPorcentaje) / 100;
-                        const aumentoMonto = (subtotalMovimiento * aumentoPorcentaje) / 100;
+            const construirDeudaPayload = (movimientoIdReferencia) => {
+                if (metodoPagoSeleccionado !== 'credito') return null;
+                const subtotalMovimiento = subtotalParaDescuentoAumento;
                         const totalMovimiento = subtotalMovimiento - descuentoMonto + aumentoMonto;
                         const fechaDeudaBase = (() => {
                             if (fechaMovimientoEditando) {
@@ -613,48 +571,156 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                             }
                             return new Date().toISOString().split('T')[0];
                         })();
-                        let concepto = 'Venta a crédito';
+                let conceptoDeuda = 'Venta a crédito';
                         let destinoSucursalId = null;
 
-                        // Si es entrega, usar datos del pedido
                         if (esEntrega) {
                             const sucursalOrigenName = localStorage.getItem('pedidoDestinoSucursalName');
-                            concepto = sucursalOrigenName ? `Pedido Nº ${numeroPedido || 'N/A'} - ${sucursalOrigenName}` : `Pedido Nº ${numeroPedido || 'N/A'}`;
+                    conceptoDeuda = sucursalOrigenName ? `Pedido Nº ${numeroPedido || 'N/A'} - ${sucursalOrigenName}` : `Pedido Nº ${numeroPedido || 'N/A'}`;
                             destinoSucursalId = localStorage.getItem('pedidoDestinoSucursalId');
                         }
 
-                        // Crear nueva deuda
-                        const deudaData = {
+                const clienteIdCredito = esEntrega
+                    ? (clienteSeleccionadoData?.id || clientePedidoData?.id || null)
+                    : (clienteSeleccionado || clienteSeleccionadoData?.id || null);
+
+                return {
                             fecha_deuda: fechaDeudaBase,
                             fecha_vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                             monto_total: totalMovimiento,
                             saldo_pendiente: totalMovimiento,
-                            concepto: concepto,
+                    concepto: conceptoDeuda,
                             estado: 'pendiente',
-                            cliente_id: esEntrega ? (clienteSeleccionadoData?.id || clientePedidoData?.id || null) : (clienteSeleccionado || null),
-                            movimiento_salida_id: movimientoId,
+                    cliente_id: clienteIdCredito,
+                    movimiento_salida_id: movimientoIdReferencia,
                             destino_sucursal_id: destinoSucursalId
                         };
+            };
 
-                        const deudaResponse = await deudasService.create(deudaData);
-                        if (deudaResponse.success) {
-                            // Actualizar el movimiento con el deuda_id
-                            try {
-                                await movimientosAlmacenService.update(movimientoId, { deuda_id: deudaResponse.data.id });
-                            } catch (updateError) {
-                                console.warn('Error al actualizar movimiento con deuda_id:', updateError);
+            const deudaPayloadBase = construirDeudaPayload(null);
+
+            const productosStockActualizados = productosParaCalcular.map(pu => {
+                const prodActual = (productosActualizados || []).find(p => p.id === pu.id);
+                const stockBase = prodActual ? (prodActual.stock || 0) : 0;
+                const nuevoStock = Math.max(0, stockBase - pu.cantidad);
+                return { id: pu.id, stock: nuevoStock };
+            });
+
+            const ejecutarPostOperacion = ({ movimientoIdParam = null, pedidoActualizadoParam = null } = {}) => {
+                if (onProductosUpdated) {
+                    onProductosUpdated(productosStockActualizados);
+                    }
+
+                setProductosCanasta([]);
+                setObservacionesGenerales('');
+                setClienteSeleccionado('');
+                setMetodoPagoSeleccionado('');
+                setConcepto('');
+                localStorage.removeItem('canastaSalidas');
+
+                if (esEntrega) {
+                    clearEntregaTemporal();
+                    localStorage.removeItem('pedidoDestinoSucursalId');
+                    localStorage.removeItem('pedidoDestinoSucursalName');
+                    localStorage.removeItem('precioIdEntregando');
+                }
+
+                localStorage.removeItem('precioIdRepitiendo');
+                localStorage.removeItem('movimientoAgrupadoRepitiendo');
+                localStorage.removeItem('clienteIdRepitiendo');
+                localStorage.removeItem('clienteNameRepitiendo');
+                localStorage.removeItem('metodoPagoRepitiendo');
+                localStorage.removeItem('precioIdEditando');
+                localStorage.removeItem('movimientoAgrupadoEditando');
+                localStorage.removeItem('clienteIdEditando');
+                localStorage.removeItem('clienteNameEditando');
+                localStorage.removeItem('metodoPagoEditando');
+                localStorage.removeItem('descuentoMovimientoRepitiendo');
+                localStorage.removeItem('aumentoMovimientoRepitiendo');
+                localStorage.removeItem('conceptoMovimientoRepitiendo');
+                localStorage.removeItem('descuentoMovimientoEditando');
+                localStorage.removeItem('aumentoMovimientoEditando');
+                localStorage.removeItem('conceptoMovimientoEditando');
+                localStorage.removeItem('fechaMovimientoEditando');
+                localStorage.removeItem('productosEdicion');
+
+                if (isEditandoMovimiento) {
+                    localStorage.removeItem('movimientoIdEditando');
+                    localStorage.removeItem('numeroOrdenEditando');
+                }
+
+                if (!isCartMode) {
+                    setIsOpen(false);
+                }
+
+                if (onCerrarCanasta) {
+                    onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoIdParam, pedidoActualizadoParam);
+                }
+
+                if (isEditandoMovimiento && onMovimientoEditado) {
+                    onMovimientoEditado(movimientoIdParam, movimientoIdEditando);
+                }
+            };
+
+            if (offlineEnabled) {
+                await queueOfflineSalida({
+                    movimientoData,
+                    pedidoId,
+                    pedidoData,
+                    pedidoEstadoPayload,
+                    deudaData: deudaPayloadBase,
+                    clienteInfo: clienteOfflineInfo,
+                    metodoPago: metodoPagoSeleccionado,
+                    subtotal: subtotalParaDescuentoAumento,
+                    descuentoPorcentaje,
+                    aumentoPorcentaje,
+                    observaciones: observacionesFinales,
+                    productos: productosCanasta,
+                    productosNormalizados: productosParaCalcular,
+                    numeroPedido,
+                    numeroOrden: numeroOrdenPayload,
+                    esEntrega,
+                    isEditandoMovimiento,
+                    movimientoIdEditando,
+                    fechaMovimientoEditando,
+                });
+
+                await updateOfflineProductsStock(productosStockActualizados);
+
+                ejecutarPostOperacion({ movimientoIdParam: null, pedidoActualizadoParam: null });
+                mostrarNotificacion('success', 'Movimiento guardado para sincronización offline.');
+                return;
+            }
+
+            const movimientoResponse = await movimientosAlmacenService.create(movimientoData);
+            movimientoId = (movimientoResponse && movimientoResponse.success) ? movimientoResponse.data?.id : null;
+
+            if (movimientoId) {
+                if (metodoPagoSeleccionado === 'credito') {
+                    try {
+                        const deudaPayloadOnline = deudaPayloadBase
+                            ? { ...deudaPayloadBase, movimiento_salida_id: movimientoId }
+                            : null;
+
+                        if (deudaPayloadOnline) {
+                            const deudaResponse = await deudasService.create(deudaPayloadOnline);
+                            if (deudaResponse.success) {
+                                try {
+                                    await movimientosAlmacenService.update(movimientoId, { deuda_id: deudaResponse.data.id });
+                                } catch (updateError) {
+                                    console.warn('Error al actualizar movimiento con deuda_id:', updateError);
+                                }
+                            } else {
+                                mostrarNotificacion('warning', `Movimiento creado, pero error al registrar deuda: ${deudaResponse.message}`);
                             }
-                        } else {
-                            mostrarNotificacion('warning', `Movimiento creado, pero error al registrar deuda: ${deudaResponse.message}`);
                         }
                     } catch (deudaError) {
                         mostrarNotificacion('warning', `Movimiento creado, pero error al registrar deuda automática`);
                     }
                 }
 
-                // 4) Si es entrega: actualizar estado del pedido
                 if (esEntrega) {
-                    const deudaId = null; // Se podría obtener del paso anterior si es necesario
+                    const deudaId = null;
                     let pedidoResponse = null;
 
                     try {
@@ -666,15 +732,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         console.error('Error al actualizar estado del pedido:', error);
                     }
 
-                    // Limpiar localStorage específico de entregas (excepto pedidoIdEntregando que se mantiene hasta cerrar el almacén)
                     localStorage.removeItem('pedidoDestinoSucursalId');
                     localStorage.removeItem('pedidoDestinoSucursalName');
                     localStorage.removeItem('precioIdEntregando');
-                    // NO limpiar pedidoIdEntregando aquí - se limpiará cuando se cierre el almacén manualmente
 
-                    // Notificar al componente padre sobre el cambio de estado del pedido
                     if (onPedidoActualizado && pedidoResponse && pedidoResponse.success) {
-                        // Usar la respuesta del servidor que incluye total_pedidos actualizado
                         const pedidoConEstadoActualizado = {
                             ...pedidoResponse.data,
                             movimiento_salida: {
@@ -686,56 +748,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     }
                 }
 
-                // Limpiar canasta y cerrar
-                setProductosCanasta([]);
-                setObservacionesGenerales('');
-                setClienteSeleccionado('');
-                setMetodoPagoSeleccionado('');
-                setConcepto('');
-                localStorage.removeItem('canastaSalidas');
-
-                // Limpiar variables específicas de entrega o repetición
-                if (esEntrega) {
-                    clearEntregaTemporal();
-                }
-                localStorage.removeItem('precioIdRepitiendo');
-                localStorage.removeItem('movimientoAgrupadoRepitiendo');
-                localStorage.removeItem('clienteIdRepitiendo');
-                localStorage.removeItem('clienteNameRepitiendo');
-                localStorage.removeItem('metodoPagoRepitiendo');
-                // Claves antiguas (compatibilidad)
-                localStorage.removeItem('precioIdEditando');
-                localStorage.removeItem('movimientoAgrupadoEditando');
-                localStorage.removeItem('clienteIdEditando');
-                localStorage.removeItem('clienteNameEditando');
-                localStorage.removeItem('metodoPagoEditando');
-                localStorage.removeItem('descuentoMovimientoRepitiendo');
-                localStorage.removeItem('aumentoMovimientoRepitiendo');
-                localStorage.removeItem('conceptoMovimientoRepitiendo');
-                localStorage.removeItem('descuentoMovimientoEditando');
-                localStorage.removeItem('aumentoMovimientoEditando');
-                localStorage.removeItem('fechaMovimientoEditando');
-                if (isEditandoMovimiento && movimientoIdEditando) {
-                    localStorage.removeItem('movimientoIdEditando');
-                }
-                localStorage.removeItem('productosEdicion');
-                if (isEditandoMovimiento) {
-                    localStorage.removeItem('numeroOrdenEditando');
-                }
-
-                // Solo cerrar la canasta en móvil, no en PC (modo carrito)
-                // En PC (isCartMode && isLargeScreen), mantener abierto para mostrar modal de descarga
-                if (!isCartMode) {
-                    setIsOpen(false);
-                }
-
-                if (onCerrarCanasta) {
-                    onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId, pedidoActualizado);
-                }
-
-                if (isEditandoMovimiento && onMovimientoEditado) {
-                    onMovimientoEditado(movimientoId, movimientoIdEditando);
-                }
+                ejecutarPostOperacion({ movimientoIdParam: movimientoId, pedidoActualizadoParam: pedidoActualizado });
             } else {
                 mostrarNotificacion('error', 'Error al crear el movimiento');
             }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
@@ -6,12 +6,33 @@ import ItemView from '../../common/ItemView';
 import AlmacenGeneral from './AlmacenGeneral';
 
 import AlmacenGeneralAuxiliar from '../almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
+import { OFFLINE_NETWORK_FLAG } from '../../../utils/offlineNetworkInterceptor';
 
 
 function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
     const [isAlmacenOpen, setIsAlmcenOpen] = useState(false);
     const [type, setType] = useState('');
     const [isAlmacenAuxiliarOpen, setIsAlmacenAuxiliarOpen] = useState(false);
+    const [isOfflineMode, setIsOfflineMode] = useState(false);
+
+    const updateOfflineFlag = useCallback(() => {
+        try {
+            setIsOfflineMode(localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true');
+        } catch {
+            setIsOfflineMode(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        updateOfflineFlag();
+        const handler = () => updateOfflineFlag();
+        window.addEventListener('offline-mode-changed', handler);
+        window.addEventListener('storage', handler);
+        return () => {
+            window.removeEventListener('offline-mode-changed', handler);
+            window.removeEventListener('storage', handler);
+        };
+    }, [updateOfflineFlag]);
     const handleTypeAlmacen = (tipo) => {
         // Cerrar el modal del medio
         setIsOpen(false);
@@ -46,6 +67,7 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
                         icon='down-arrow-alt'
                         arrow={true}
                         onClick={() => handleTypeAlmacen('entrada')}
+                        disabled={isOfflineMode}
                     />
 
                     <ItemView
@@ -54,6 +76,7 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
                         icon='cart-add'
                         arrow={true}
                         onClick={() => handleTypeAlmacen('pedido')}
+                        disabled={isOfflineMode}
                     />
                     {/*
                 <ItemView
@@ -69,6 +92,7 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
                         icon='calculator'
                         arrow={true}
                         onClick={() => handleTypeAlmacen('conteo')}
+                        disabled={isOfflineMode}
                     />
                     <ItemView
                         title='Productos'
@@ -76,6 +100,7 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
                         icon='package'
                         arrow={true}
                         onClick={() => handleTypeAlmacen('almacen')}
+                        disabled={isOfflineMode}
                     />
                     <ItemView
                         title='Cotizar'
@@ -83,6 +108,7 @@ function AlmacenMedioGeneral({ isOpen, setIsOpen }) {
                         icon='file'
                         arrow={true}
                         onClick={() => handleTypeAlmacen('cotizar')}
+                        disabled={isOfflineMode}
                     />
                 </div>
 

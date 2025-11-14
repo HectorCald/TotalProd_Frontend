@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo = true, transparent = true, colorIcon = 'default', style = {}, button = false, onButtonClick, customIcon }) => {
+const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo = true, transparent = true, colorIcon = 'default', style = {}, button = false, onButtonClick, customIcon, disabled = false }) => {
   const [fontSize, setFontSize] = useState(14);
   const titleRef = useRef(null);
   const hasFlots = flot1 || flot2 || flot3 || flot4 || flot5 || flot6;
@@ -157,14 +157,15 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
 
   return (
     <div 
-      className={styles.itemView} 
-      onClick={onClick} 
+      className={`${styles.itemView} ${disabled ? styles.disabled : ''}`} 
+      onClick={disabled ? undefined : onClick} 
       style={{ 
         backgroundColor: transparent ? 'transparent' : 'var(--tertiary-color)', 
         borderRadius: transparent ? '0' : '10px',
         borderLeft: !circulo ? '5px solid var(--primary-color)' : 'none',
         ...style 
       }}
+      aria-disabled={disabled}
     >
       {circulo && (
         <div 

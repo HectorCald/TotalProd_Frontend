@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useEmployee } from '../context/EmployeeContext';
 import { useLayout } from '../context/LayoutContext';
 import styles from '../styles/Home.module.css';
@@ -14,6 +14,9 @@ import ItemView from '../components/common/ItemView';
 import ViewModal from '../components/ui/ViewModal';
 import HeaderModal from '../components/common/HeaderModal';
 import ModalOffline from '../components/views/offline/ModalOffline';
+import HistorialMovimientosOffline from '../components/views/movimientos/HistorialMovimientosOffline';
+import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
+import { obtenerLocal, OFFLINE_DB_NAME, MOVIMIENTOS_SALIDA_STORE } from '../utils/indexedDB';
 import personalService from '../services/personalService';
 import { clearDataFetchLogsIfNeeded } from '../components/utils/DataSizeLogger';
 
@@ -43,8 +46,10 @@ import PanelPagos from '../components/views/damabrava/produccion/pagos/PanelPago
 import Sucursales from '../components/views/sucursales/Sucursales';
 import ImportExport from '../components/views/exportar-importar/ImportExport';
 
+const OFFLINE_EMPLOYEE_KEY = 'offline_employee_data';
+
 const HomeEmpleado = () => {
-    const { employee, sucursalSeleccionada, loading, error, clearEmployee } = useEmployee();
+    const { employee, sucursalSeleccionada, loading, error, clearEmployee, setEmployeeFromService } = useEmployee();
     const { isLargeScreen } = useLayout();
     const [activeScreen, setActiveScreen] = useState('inicio');
     const [activeView, setActiveView] = useState(null);
@@ -56,6 +61,28 @@ const HomeEmpleado = () => {
     const [isOffline, setIsOffline] = useState(false);
     const [showOfflineModal, setShowOfflineModal] = useState(false);
     const [lastLocationUpdate, setLastLocationUpdate] = useState(0);
+    const [offlineHydrated, setOfflineHydrated] = useState(false);
+    const [isOfflineMode, setIsOfflineMode] = useState(false);
+    const [offlineMovimientos, setOfflineMovimientos] = useState([]);
+    const [isOfflineMovimientosOpen, setIsOfflineMovimientosOpen] = useState(false);
+    const [forceOfflineModal, setForceOfflineModal] = useState(false);
+
+    const loadOfflineEmployee = () => {
+        if (employee) return false;
+        try {
+            const cachedEmployee = localStorage.getItem(OFFLINE_EMPLOYEE_KEY);
+            if (!cachedEmployee) return false;
+            const parsedEmployee = JSON.parse(cachedEmployee);
+            if (parsedEmployee) {
+                setEmployeeFromService(parsedEmployee);
+                setOfflineHydrated(true);
+                return true;
+            }
+        } catch (err) {
+            console.error('Error cargando empleado offline:', err);
+        }
+        return false;
+    };
 
     // Limpiar logs de dataFetchLogs diariamente
     useEffect(() => {
@@ -67,17 +94,20 @@ const HomeEmpleado = () => {
         const handleOnline = () => {
             setIsOffline(false);
             setShowOfflineModal(false);
+            setOfflineHydrated(false);
         };
 
         const handleOffline = () => {
             setIsOffline(true);
             setShowOfflineModal(true);
+            loadOfflineEmployee();
         };
 
         // Verificar estado inicial
         if (!navigator.onLine) {
             setIsOffline(true);
             setShowOfflineModal(true);
+            loadOfflineEmployee();
         }
 
         // Agregar listeners
@@ -90,6 +120,33 @@ const HomeEmpleado = () => {
             window.removeEventListener('offline', handleOffline);
         };
     }, []);
+
+    useEffect(() => {
+        if (!error) return;
+        if (offlineHydrated) return;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            loadOfflineEmployee();
+        }
+    }, [error, offlineHydrated]);
+
+    const updateOfflineFlag = useCallback(() => {
+        try {
+            setIsOfflineMode(localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true');
+        } catch {
+            setIsOfflineMode(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        updateOfflineFlag();
+        const handler = () => updateOfflineFlag();
+        window.addEventListener('offline-mode-changed', handler);
+        window.addEventListener('storage', handler);
+        return () => {
+            window.removeEventListener('offline-mode-changed', handler);
+            window.removeEventListener('storage', handler);
+        };
+    }, [updateOfflineFlag]);
 
     // Función para actualizar ubicación del empleado
     const updateEmployeeLocation = async () => {
@@ -239,6 +296,58 @@ const HomeEmpleado = () => {
         }
     };
 
+    const refreshOfflineMovimientos = useCallback(async () => {
+        const hasInternet = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+        if (isOfflineMode || !hasInternet) {
+            setOfflineMovimientos([]);
+            setIsOfflineMovimientosOpen(false);
+            setForceOfflineModal(false);
+            return;
+        }
+        try {
+            const movimientos = await obtenerLocal(MOVIMIENTOS_SALIDA_STORE, OFFLINE_DB_NAME);
+            if (Array.isArray(movimientos) && movimientos.length > 0) {
+                setOfflineMovimientos(movimientos);
+                setIsOfflineMovimientosOpen(true);
+                setForceOfflineModal(true);
+            } else {
+                setOfflineMovimientos([]);
+                setIsOfflineMovimientosOpen(false);
+                setForceOfflineModal(false);
+            }
+        } catch (error) {
+            console.warn('No se pudieron cargar movimientos offline:', error);
+            setOfflineMovimientos([]);
+            setIsOfflineMovimientosOpen(false);
+            setForceOfflineModal(false);
+        }
+    }, [isOfflineMode]);
+
+    useEffect(() => {
+        refreshOfflineMovimientos();
+    }, [refreshOfflineMovimientos]);
+
+    useEffect(() => {
+        const handleOnline = () => {
+            refreshOfflineMovimientos();
+        };
+        window.addEventListener('online', handleOnline);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+        };
+    }, [refreshOfflineMovimientos]);
+
+    const handleOfflineMovementsUpdate = useCallback((updated) => {
+        if (!Array.isArray(updated)) return;
+        setOfflineMovimientos(updated);
+        if (updated.length === 0) {
+            setIsOfflineMovimientosOpen(false);
+            setForceOfflineModal(false);
+        } else {
+            setIsOfflineMovimientosOpen(true);
+        }
+    }, []);
+
     // Mostrar loading mientras está cargando
     if (loading) {
         return <LoadingSpinner fullScreen={true} text="Cargando empleado..." icon="user"/>;
@@ -260,7 +369,7 @@ const HomeEmpleado = () => {
     };
 
     // Si hay error, mostrar NoData con error
-    if (error) {
+    if (error && !offlineHydrated) {
         
         // Determinar el tipo de error y el mensaje apropiado
         let errorTitle = "Error";
@@ -367,6 +476,9 @@ const HomeEmpleado = () => {
 
     // Manejar click en módulo principal (AtajoAnuncio)
     const handleMainModuleClick = (module) => {
+        if (isOfflineMode && module?.key !== 'Almacen') {
+            return;
+        }
         // Si el módulo solo tiene un submódulo, abrirlo directamente sin mostrar opciones
         if (module?.submodules && module.submodules.length === 1) {
             const singleSubmodule = module.submodules[0];
@@ -520,16 +632,22 @@ const HomeEmpleado = () => {
                                 }}
                             />
                             <div className={modalStyles.modalContent}>
-                                {selectedModule.submodules.map((submodule, index) => (
-                                    <ItemView
-                                        key={index}
-                                        title={submodule.name}
-                                        description={submodule.description}
-                                        icon={submodule.icon}
-                                        arrow={true}
-                                        onClick={() => handleSubModuleClick(submodule)}
-                                    />
-                                ))}
+                                {selectedModule.submodules.map((submodule, index) => {
+                                    const isAlmacenModule = (selectedModule?.key === 'Almacen') || selectedModule?.name?.toLowerCase().includes('almacén');
+                                    const isSalidaSubmodule = (submodule?.assignedModule?.name === 'Salida o Venta') || (submodule?.name === 'Salida o Venta');
+                                    const disabled = isOfflineMode && isAlmacenModule && !isSalidaSubmodule;
+                                    return (
+                                        <ItemView
+                                            key={index}
+                                            title={submodule.name}
+                                            description={submodule.description}
+                                            icon={submodule.icon}
+                                            arrow={true}
+                                            onClick={() => handleSubModuleClick(submodule)}
+                                            disabled={disabled}
+                                        />
+                                    );
+                                })}
                             </div>
                         </ViewModal>
                     )}
@@ -543,6 +661,16 @@ const HomeEmpleado = () => {
                 isOpen={showOfflineModal}
                 setIsOpen={setShowOfflineModal}
                 onRetry={handleRetryConnection}
+            />
+            <HistorialMovimientosOffline
+                isOpen={isOfflineMovimientosOpen}
+                setIsOpen={setIsOfflineMovimientosOpen}
+                movimientos={offlineMovimientos}
+                titulo="Movimientos offline pendientes"
+                descripcion="Registra tus movimientos pendientes para sincronizarlos."
+                onClose={refreshOfflineMovimientos}
+                disableClose={forceOfflineModal}
+                onMovementsUpdate={handleOfflineMovementsUpdate}
             />
         </div>
     );

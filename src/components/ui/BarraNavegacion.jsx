@@ -33,6 +33,7 @@ import PanelCotizaciones from '../views/cotizaciones/PanelCotizaciones';
 import Personal from '../views/personal/Personal';
 import Sucursales from '../views/sucursales/Sucursales';
 import ImportExport from '../views/exportar-importar/ImportExport';
+import { OFFLINE_NETWORK_FLAG } from '../../utils/offlineNetworkInterceptor';
 
 const EMPLOYEE_STORAGE_PREFIX = 'employee_shortcuts_';
 const EMPLOYEE_SHORTCUT_EVENT = 'employeeShortcutsUpdated';
@@ -45,6 +46,7 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
         text: ''
     });
     const [shortcuts, setShortcuts] = useState([]);
+    const [isOfflineMode, setIsOfflineMode] = useState(false);
 
     const normalizeShortcut = useCallback((shortcut) => {
         if (!shortcut || typeof shortcut !== 'object') {
@@ -74,6 +76,26 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
     }, [isEmployee, employee?.id]);
 
     const { storageKey, eventName, maxShortcuts } = shortcutConfig;
+
+    useEffect(() => {
+        const updateOfflineFlag = () => {
+            try {
+                setIsOfflineMode(localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true');
+            } catch {
+                setIsOfflineMode(false);
+            }
+        };
+
+        updateOfflineFlag();
+        const handler = () => updateOfflineFlag();
+        window.addEventListener('offline-mode-changed', handler);
+        window.addEventListener('storage', handler);
+
+        return () => {
+            window.removeEventListener('offline-mode-changed', handler);
+            window.removeEventListener('storage', handler);
+        };
+    }, []);
 
     useEffect(() => {
         if (!storageKey || !eventName) {
@@ -160,13 +182,26 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
     }, [storageKey, eventName, maxShortcuts, isEmployee, employee?.id, user?.id, normalizeShortcut]);
 
     const shortcutItems = useMemo(() => {
-        return shortcuts.slice(0, maxShortcuts).map((shortcut) => ({
+        const filteredShortcuts = shortcuts.filter((shortcut) => {
+            if (!isOfflineMode || !isEmployee) {
+                return true;
+            }
+            const isAlmacenSalida =
+                shortcut.component === 'AlmacenGeneral' &&
+                (shortcut.props?.tipo === 'salida' ||
+                 shortcut.props?.modo === 'salida' ||
+                 shortcut.name?.toLowerCase().includes('salida') ||
+                 shortcut.description?.toLowerCase().includes('salida'));
+            return isAlmacenSalida;
+        });
+
+        return filteredShortcuts.slice(0, maxShortcuts).map((shortcut) => ({
             id: `shortcut:${shortcut.id}`,
             icon: shortcut.icon || 'grid',
             title: '',
             accessibilityLabel: shortcut.name || shortcut.description || 'Atajo'
         }));
-    }, [shortcuts, maxShortcuts]);
+    }, [shortcuts, maxShortcuts, isOfflineMode, isEmployee]);
 
     // Solo mostrar configuración si hay datos de usuario/empleado
     const navigationItems = useMemo(() => {
@@ -201,6 +236,21 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
         return shortcuts.find((shortcut) => `shortcut:${shortcut.id}` === activeScreen) || null;
     }, [activeScreen, shortcuts]);
 
+    useEffect(() => {
+        if (!isEmployee || !isOfflineMode) return;
+        if (!activeShortcut) return;
+
+        const isValidShortcut =
+            activeShortcut.component === 'AlmacenGeneral' &&
+            (activeShortcut.props?.tipo === 'salida' ||
+                activeShortcut.props?.modo === 'salida' ||
+                activeShortcut.name?.toLowerCase().includes('salida'));
+
+        if (!isValidShortcut) {
+            onScreenChange('inicio');
+        }
+    }, [activeShortcut, isOfflineMode, isEmployee, onScreenChange]);
+
     const handleShortcutVisibilityChange = (nextValue) => {
         const resolved = typeof nextValue === 'function' ? nextValue(true) : nextValue;
         if (resolved === false || resolved === undefined) {
@@ -209,6 +259,21 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
     };
 
     const renderShortcutComponent = (shortcut) => {
+        const isAlmacenSalidaShortcut =
+            shortcut?.component === 'AlmacenGeneral' &&
+            (shortcut?.props?.tipo === 'salida' ||
+                shortcut?.props?.modo === 'salida' ||
+                shortcut?.name?.toLowerCase().includes('salida'));
+
+        if (isOfflineMode && isEmployee && !isAlmacenSalidaShortcut) {
+            return (
+                <InicioEmpleado
+                    employee={employee}
+                    onMainModuleClick={onMainModuleClick}
+                />
+            );
+        }
+
         if (!shortcut || !shortcut.component) {
             return (
                 <InicioEmpleado 

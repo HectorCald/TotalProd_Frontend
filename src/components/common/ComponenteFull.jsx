@@ -8,9 +8,13 @@ function ComponenteFull({
     onChange, 
     icon, 
     type = 'checkbox', // 'checkbox', 'switch', 'arrow', 'none'
-    onClick 
+    onClick,
+    loading = false
 }) {
     const handleClick = () => {
+        if (loading) {
+            return;
+        }
         if (type === 'checkbox' || type === 'switch') {
             if (onChange) {
                 onChange(!checked);
@@ -23,6 +27,14 @@ function ComponenteFull({
     };
 
     const renderControl = () => {
+        if (loading) {
+            return (
+                <div className={styles.loader}>
+                    <BoxIcon name="loader-alt" className={`${styles.loaderIcon} ${styles.spinning}`} />
+                </div>
+            );
+        }
+
         switch (type) {
             case 'checkbox':
                 return (

@@ -85,30 +85,6 @@ function useAutoCargaCanastas({
             console.error('Error al cargar productos del movimiento para repetir/editar:', error);
         }
     }, [isOpen, productos, tipo, onAgregarProductoMovimiento]);
-
-    useEffect(() => {
-        if (!isOpen || tipo !== 'salida') return;
-        if (productos.length === 0) return;
-
-        const productosCotizacion = localStorage.getItem('productosCotizacionVendiendo');
-        if (!productosCotizacion) return;
-
-        try {
-            const productosParaVender = JSON.parse(productosCotizacion);
-            productosParaVender.forEach(productoCotizacion => {
-                const productoCompleto = productos.find(p => p.id === productoCotizacion.id);
-                if (productoCompleto) {
-                    const productoConPrecio = {
-                        ...productoCompleto,
-                        precio: productoCotizacion.precio || productoCompleto.precio
-                    };
-                    onAgregarProductoMovimiento?.(productoConPrecio, 'salida', null, productoCotizacion.cantidad);
-                }
-            });
-        } catch (error) {
-            console.error('Error al cargar productos de la cotización para vender:', error);
-        }
-    }, [isOpen, productos, tipo, onAgregarProductoMovimiento]);
 }
 
 export default useAutoCargaCanastas;

@@ -1,4 +1,6 @@
 import API_CONFIG from '../config/api';
+import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
+import { obtenerLocal, OFFLINE_DB_NAME, PRODUCTOS_STORE } from '../utils/indexedDB';
 
 const API_BASE_URL = API_CONFIG.getBaseURL();
 
@@ -31,11 +33,43 @@ const getSucuId = () => {
   return null;
 };
 
+const shouldUseOffline = () => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  try {
+    return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const getOfflineProducts = async () => {
+  try {
+    const cachedProducts = await obtenerLocal(PRODUCTOS_STORE, OFFLINE_DB_NAME);
+    if (Array.isArray(cachedProducts) && cachedProducts.length > 0) {
+      return {
+        success: true,
+        data: cachedProducts,
+        offline: true
+      };
+    }
+  } catch (error) {
+    console.warn('No se pudo obtener productos offline:', error);
+  }
+  return null;
+};
+
 class productsAlmacenService {
 
   // Obtener todos los productos
   static async getAll() {
     try {
+      if (shouldUseOffline()) {
+        const offlineData = await getOfflineProducts();
+        if (offlineData) {
+          return offlineData;
+        }
+      }
+
       const empresaId = getEmpresaId();
       const sucuId = getSucuId();
       

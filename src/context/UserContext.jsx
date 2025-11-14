@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import UserService from '../services/userService';
+import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
 
 const UserContext = createContext();
 
@@ -92,9 +93,37 @@ export const UserProvider = ({ children }) => {
     };
 
     // Función para cargar datos completos del usuario
+    const getOfflineUserData = () => {
+        try {
+            const cached = localStorage.getItem('offline_user_data');
+            return cached ? JSON.parse(cached) : null;
+        } catch (error) {
+            console.warn('No se pudo leer usuario offline:', error);
+            return null;
+        }
+    };
+
+    const shouldUseOffline = () => {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+        try {
+            return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
+        } catch {
+            return false;
+        }
+    };
+
     const loadUserData = async (userId) => {
         setLoading(true);
         setError(null);
+
+        if (shouldUseOffline()) {
+            const offlineUser = getOfflineUserData();
+            if (offlineUser) {
+                setUser(offlineUser);
+                setLoading(false);
+                return { success: true, data: offlineUser, offline: true };
+            }
+        }
         
         try {
             const userData = await UserService.getCurrentUser(userId);

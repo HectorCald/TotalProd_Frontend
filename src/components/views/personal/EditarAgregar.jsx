@@ -51,7 +51,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
         anular: false,
         reemplazar: false,
         info: false,
-        sucursales: false
+        sucursales: false,
+        offline: false
     });
 
     const [permisos, setPermisos] = useState(() => createPermisosIniciales());
@@ -229,7 +230,8 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                     anular: usuario.permisos.anular || false,
                     reemplazar: usuario.permisos.reemplazar || false,
                     info: usuario.permisos.info || false,
-                    sucursales: usuario.permisos.sucursales || false
+                    sucursales: usuario.permisos.sucursales || false,
+                    offline: usuario.permisos.offline || false
                 });
             }
 
@@ -563,6 +565,13 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                             subtitle="Permite cambiar la sucursal asignada"
                             checked={permisos.sucursales || false}
                             onChange={(checked) => hanclePermisos('sucursales', checked)}
+                        />
+                        <Switch
+                            icon="download"
+                            title="Modo offline"
+                            subtitle="Permite operar y sincronizar en modo offline"
+                            checked={permisos.offline || false}
+                            onChange={(checked) => hanclePermisos('offline', checked)}
                         />
                     </div>
                     {/* <p className={styles.subTitle}>RASTREO</p>

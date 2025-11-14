@@ -254,6 +254,11 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 .editButton {
     position: absolute;
     bottom: -2px;

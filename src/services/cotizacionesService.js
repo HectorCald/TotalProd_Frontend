@@ -206,6 +206,33 @@ class cotizacionesService {
     }
   }
 
+  // Volver a poner una cotización en pendiente
+  static async marcarPendiente(cotizacionId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cotizaciones/${cotizacionId}/pendiente`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al actualizar la cotización');
+      }
+
+      return {
+        success: true,
+        data: data.data
+      };
+    } catch (error) {
+      console.error('Error marcando cotización como pendiente:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al actualizar la cotización'
+      };
+    }
+  }
+
   // Eliminar una cotización
   static async eliminar(cotizacionId) {
     try {

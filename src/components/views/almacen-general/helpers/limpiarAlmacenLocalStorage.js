@@ -39,11 +39,6 @@ const ENTITIES = {
         'numeroOrdenEditando',
     ],
     cotizacion: [
-        'productosCotizacionVendiendo',
-        'precioIdCotizacionVendiendo',
-        'cotizacionAgrupadoVendiendo',
-        'clienteIdCotizacionVendiendo',
-        'clienteNameCotizacionVendiendo',
         'isVentaCotizacion',
     ],
     cotizacionRepeticion: [

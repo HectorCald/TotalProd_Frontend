@@ -34,3 +34,8 @@
     color: gray;
     line-height: 1.2;
 }
+
+.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}

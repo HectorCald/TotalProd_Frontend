@@ -27,6 +27,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
     const [isAprobarOpen, setIsAprobarOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
     const [isAlmacenAuxiliarOpen, setIsAlmacenAuxiliarOpen] = useState(false);
+    const [isRevertirAprobacionOpen, setIsRevertirAprobacionOpen] = useState(false);
 
     // Estado local para la cotización actual
     const [cotizacionActual, setCotizacionActual] = useState(cotizacion);
@@ -181,6 +182,57 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
         }
     };
 
+    // Handle para volver a pendiente
+    const handleRevertirAprobacion = async () => {
+        setLoading(true);
+        try {
+            const response = await cotizacionesService.marcarPendiente(cotizacionActual.id);
+
+            if (response.success) {
+                const cotizacionActualizada = response.data;
+                setCotizacionActual(cotizacionActualizada);
+
+                if (onCotizacionActualizada) {
+                    onCotizacionActualizada(cotizacionActualizada);
+                }
+
+                setIsRevertirAprobacionOpen(false);
+                mostrarNotificacion('success', 'Cotización marcada como pendiente nuevamente');
+            } else {
+                const msg = response.message || 'Error al actualizar la cotización';
+                mostrarNotificacion('error', msg);
+            }
+        } catch (error) {
+            console.error('Error marcando cotización como pendiente:', error);
+            mostrarNotificacion('error', 'Error al actualizar la cotización');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const obtenerProductosNormalizados = () => {
+        return (cotizacionActual?.productos || [])
+            .map((productoCotizacion) => {
+                const prodId = productoCotizacion?.producto?.id ?? productoCotizacion?.producto_id;
+                if (!prodId) return null;
+
+                let cantidadParaGuardar = Number(productoCotizacion?.cantidad) || 0;
+
+                if (cotizacionActual?.agrupado && productoCotizacion?.producto?.grup) {
+                    const grup = Number(productoCotizacion.producto.grup) || 0;
+                    if (grup > 0) {
+                        cantidadParaGuardar = Math.round(cantidadParaGuardar / grup);
+                    }
+                }
+
+                return {
+                    id: prodId,
+                    cantidad: cantidadParaGuardar
+                };
+            })
+            .filter(Boolean);
+    };
+
     // Handle para realizar venta
     const handleRealizarVenta = () => {
         if (!cotizacionActual?.productos || cotizacionActual.productos.length === 0) {
@@ -188,32 +240,55 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
             return;
         }
 
-        // Preparar datos de la cotización para la venta
-        const productosParaVenta = cotizacionActual.productos.map(productoCotizacion => ({
-            id: productoCotizacion.producto?.id,
-            name: productoCotizacion.producto?.name,
-            description: productoCotizacion.producto?.description,
-            stock: productoCotizacion.producto?.stock || 0,
-            grup: productoCotizacion.producto?.grup || 0,
-            price_product: productoCotizacion.producto?.price_product || [],
-            cantidad: productoCotizacion.cantidad,
-            precio: productoCotizacion.precio_unitario
-        }));
-
-        // LIMPIAR LA CANASTA ANTES DE ABRIR EL MODAL
-        localStorage.removeItem('canastaSalidas');
-        
-        // Guardar datos en localStorage para que AlmacenGeneral los cargue
-        localStorage.setItem('productosCotizacionVendiendo', JSON.stringify(productosParaVenta));
-        localStorage.setItem('precioIdCotizacionVendiendo', cotizacionActual.precio_id);
-        localStorage.setItem('cotizacionAgrupadoVendiendo', cotizacionActual.agrupado ? 'agrupado' : 'no_agrupado');
-        localStorage.setItem('isVentaCotizacion', 'true'); // Marcar como venta de cotización
-        
-        // Si hay cliente, guardarlo también
-        if (cotizacionActual.cliente_id) {
-            localStorage.setItem('clienteIdCotizacionVendiendo', cotizacionActual.cliente_id);
-            localStorage.setItem('clienteNameCotizacionVendiendo', cotizacionActual.cliente?.name || 'Cliente');
+        const productosNormalizados = obtenerProductosNormalizados();
+        if (productosNormalizados.length === 0) {
+            mostrarNotificacion('error', 'No se pudo preparar la cotización para la venta');
+            return;
         }
+
+        // Limpiar datos previos de movimientos
+        [
+            'canastaSalidas',
+            'movimientoIdRepitiendo',
+            'movimientoIdEditando',
+            'precioIdRepitiendo',
+            'precioIdEditando',
+            'movimientoAgrupadoRepitiendo',
+            'movimientoAgrupadoEditando',
+            'clienteIdRepitiendo',
+            'clienteNameRepitiendo',
+            'metodoPagoRepitiendo',
+            'metodoPagoEditando',
+            'productosMovimientoRepitiendo',
+            'productosMovimientoEditando',
+            'descuentoMovimientoRepitiendo',
+            'aumentoMovimientoRepitiendo',
+            'conceptoMovimientoRepitiendo',
+            'descuentoMovimientoEditando',
+            'aumentoMovimientoEditando',
+            'conceptoMovimientoEditando',
+            'fechaMovimientoEditando',
+            'productosEdicion',
+            'numeroOrdenEditando'
+        ].forEach(key => localStorage.removeItem(key));
+
+        // Guardar datos en las mismas variables que repetir movimiento
+        localStorage.setItem('productosMovimientoRepitiendo', JSON.stringify(productosNormalizados));
+        localStorage.setItem('precioIdRepitiendo', cotizacionActual.precio_id || '');
+        localStorage.setItem('movimientoAgrupadoRepitiendo', cotizacionActual.agrupado ? 'agrupado' : 'no_agrupado');
+        if (cotizacionActual.metodo_pago) {
+            localStorage.setItem('metodoPagoRepitiendo', cotizacionActual.metodo_pago);
+        }
+
+        if (cotizacionActual.cliente?.id) {
+            localStorage.setItem('clienteIdRepitiendo', cotizacionActual.cliente.id);
+            localStorage.setItem('clienteNameRepitiendo', cotizacionActual.cliente.name || '');
+        } else {
+            localStorage.removeItem('clienteIdRepitiendo');
+            localStorage.removeItem('clienteNameRepitiendo');
+        }
+
+        localStorage.setItem('isVentaCotizacion', 'true');
 
         // Abrir AlmacenGeneral en modo salida
         setIsAlmacenOpen(true);
@@ -258,27 +333,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
         }
 
         // Guardar productos de la cotización para cargar automáticamente
-        const productosCotizacion = (cotizacionActual.productos || [])
-            .map((productoCotizacion) => {
-                const prodId = productoCotizacion?.producto?.id ?? productoCotizacion?.producto_id;
-                if (!prodId) return null;
-
-                let cantidadParaGuardar = Number(productoCotizacion?.cantidad) || 0;
-
-                // Si la cotización es agrupada, convertir la cantidad a grupos
-                if (cotizacionActual?.agrupado && productoCotizacion?.producto?.grup) {
-                    const grup = Number(productoCotizacion.producto.grup) || 0;
-                    if (grup > 0) {
-                        cantidadParaGuardar = Math.round(cantidadParaGuardar / grup);
-                    }
-                }
-
-                return {
-                    id: prodId,
-                    cantidad: cantidadParaGuardar
-                };
-            })
-            .filter(Boolean);
+        const productosCotizacion = obtenerProductosNormalizados();
         localStorage.setItem('productosCotizacionRepitiendo', JSON.stringify(productosCotizacion));
 
         // Abrir AlmacenGeneral-Auxiliar en modo cotizar
@@ -424,16 +479,23 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                     ) : cotizacionActual?.estado === 'aprobada' ? (
                         <>
                             <Boton
-                                className='btn-green'
-                                label='Realizar Venta'
+                                className='btn-default'
+                                label='Anular aprobación'
                                 style={{ marginTop: 'auto' }}
-                                onClick={handleRealizarVenta}
+                                onClick={() => setIsRevertirAprobacionOpen(true)}
                             />
                             <Boton
                                 className='btn-gray'
                                 label='Repetir Cotización'
                                 style={{ marginTop: 'auto' }}
                                 onClick={handleRepetirCotizacion}
+                            />
+                            
+                            <Boton
+                                className='btn-green'
+                                label='Realizar Venta'
+                                style={{ marginTop: 'auto' }}
+                                onClick={handleRealizarVenta}
                             />
                             {!cotizacionActual?.tiene_pedido_relacionado && (
                                 <Boton
@@ -562,6 +624,34 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 </div>
             </ViewModal>
 
+            {/* Modal para revertir aprobación */}
+            <ViewModal isOpen={isRevertirAprobacionOpen} setIsOpen={setIsRevertirAprobacionOpen}>
+                <HeaderModal
+                    title="Anular aprobación"
+                    onClose={() => setIsRevertirAprobacionOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>
+                        ¿Quieres volver a poner esta cotización en estado pendiente? Perderá el estado de aprobación actual.
+                    </p>
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsRevertirAprobacionOpen(false)}
+                        />
+                        <Boton
+                            className='btn-red'
+                            label='Sí, volver a pendiente'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleRevertirAprobacion}
+                            loading={loading}
+                        />
+                    </div>
+                </div>
+            </ViewModal>
+
             {/* Modal de eliminar cotización */}
             <ViewModal isOpen={isEliminarOpen} setIsOpen={setIsEliminarOpen}>
                 <HeaderModal
@@ -643,11 +733,12 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 isVentaCotizacionProp={true}
                 onCerrarCanasta={() => {
                     // Limpiar localStorage cuando se cierre
-                    localStorage.removeItem('productosCotizacionVendiendo');
-                    localStorage.removeItem('precioIdCotizacionVendiendo');
-                    localStorage.removeItem('cotizacionAgrupadoVendiendo');
-                    localStorage.removeItem('clienteIdCotizacionVendiendo');
-                    localStorage.removeItem('clienteNameCotizacionVendiendo');
+                    localStorage.removeItem('productosMovimientoRepitiendo');
+                    localStorage.removeItem('precioIdRepitiendo');
+                    localStorage.removeItem('movimientoAgrupadoRepitiendo');
+                    localStorage.removeItem('clienteIdRepitiendo');
+                    localStorage.removeItem('clienteNameRepitiendo');
+                    localStorage.removeItem('metodoPagoRepitiendo');
                     localStorage.removeItem('isVentaCotizacion');
                 }}
             />

@@ -1,4 +1,6 @@
 import API_CONFIG from '../config/api';
+import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
+import { obtenerLocal, OFFLINE_DB_NAME, PRECIOS_STORE } from '../utils/indexedDB';
 
 const API_BASE_URL = API_CONFIG.getBaseURL();
 
@@ -31,11 +33,43 @@ const getSucursalId = () => {
   return null;
 };
 
+const shouldUseOffline = () => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  try {
+    return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const getOfflinePrices = async () => {
+  try {
+    const cached = await obtenerLocal(PRECIOS_STORE, OFFLINE_DB_NAME);
+    if (Array.isArray(cached) && cached.length > 0) {
+      return {
+        success: true,
+        data: cached,
+        offline: true
+      };
+    }
+  } catch (error) {
+    console.warn('No se pudo obtener tipos de precios offline:', error);
+  }
+  return null;
+};
+
 class pricesTypesService {
 
   // Obtener todos los tipos de precios
   static async getAll() {
     try {
+      if (shouldUseOffline()) {
+        const offlineData = await getOfflinePrices();
+        if (offlineData) {
+          return offlineData;
+        }
+      }
+
       const empresaId = getEmpresaId();
       if (!empresaId) {
         return {

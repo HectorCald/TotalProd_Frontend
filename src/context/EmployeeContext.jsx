@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import personalService from '../services/personalService';
 import sucursalesService from '../services/sucursalesService';
+import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
 
 const EmployeeContext = createContext();
 
@@ -26,7 +27,8 @@ export const EmployeeProvider = ({ children }) => {
     anular: !!permisos.anular,
     reemplazar: !!permisos.reemplazar,
     info: !!permisos.info,
-    sucursales: !!permisos.sucursales
+    sucursales: !!permisos.sucursales,
+    offline: !!(permisos.offline ?? permisos.can_offline)
   });
 
   // Cargar datos del empleado y sucursal al inicializar
@@ -171,6 +173,25 @@ export const EmployeeProvider = ({ children }) => {
     return false;
   };
 
+  const getOfflineEmployeeData = () => {
+    try {
+      const cached = localStorage.getItem('offline_employee_data');
+      return cached ? JSON.parse(cached) : null;
+    } catch (error) {
+      console.warn('No se pudo leer empleado offline:', error);
+      return null;
+    }
+  };
+
+  const shouldUseOffline = () => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+    try {
+      return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
+    } catch {
+      return false;
+    }
+  };
+
   // Función para cargar datos completos del empleado (memoizada para evitar bucles)
   const loadEmployeeData = useCallback(async (employeeId) => {
     // Evitar múltiples llamadas simultáneas
@@ -182,6 +203,20 @@ export const EmployeeProvider = ({ children }) => {
     loadingEmployeeRef.current = true;
     setLoading(true);
     setError(null);
+
+    if (shouldUseOffline()) {
+      const offlineEmployee = getOfflineEmployeeData();
+      if (offlineEmployee) {
+        const normalizedEmployee = {
+          ...offlineEmployee,
+          permisos: normalizePermisos(offlineEmployee.permisos)
+        };
+        setEmployee(normalizedEmployee);
+        setLoading(false);
+        loadingEmployeeRef.current = false;
+        return { success: true, data: normalizedEmployee, offline: true };
+      }
+    }
     
     try {
       const employeeData = await personalService.getById(employeeId);
