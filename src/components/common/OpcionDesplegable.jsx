@@ -1,14 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import styles from './OpcionDesplegable.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-function OpcionDesplegable({ titulo, children, scrollOnOpen = true }) {
+function OpcionDesplegable({ titulo, children, scrollOnOpen = true, disableAnimation = false }) {
     const [isOpen, setIsOpen] = useState(false);
     const [contentHeight, setContentHeight] = useState(0);
     const innerRef = useRef(null);
     const containerRef = useRef(null);
+    const prefersNoAnimation = useMemo(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+        return disableAnimation && window.matchMedia('(max-width: 1023px)').matches;
+    }, [disableAnimation]);
 
     useEffect(() => {
+        if (prefersNoAnimation) return;
         if (innerRef.current) {
             // Medir altura cuando el contenido cambia
             const height = innerRef.current.scrollHeight;
@@ -16,9 +21,10 @@ function OpcionDesplegable({ titulo, children, scrollOnOpen = true }) {
                 setContentHeight(height);
             }
         }
-    }, [children]);
+    }, [children, prefersNoAnimation]);
 
     useEffect(() => {
+        if (prefersNoAnimation) return;
         if (isOpen && innerRef.current) {
             // Cuando se abre, medir la altura después de un pequeño delay
             const timeout = setTimeout(() => {
@@ -31,10 +37,10 @@ function OpcionDesplegable({ titulo, children, scrollOnOpen = true }) {
             }, 10);
             return () => clearTimeout(timeout);
         }
-    }, [isOpen]);
+    }, [isOpen, prefersNoAnimation]);
 
     useEffect(() => {
-        if (!scrollOnOpen) return;
+        if (!scrollOnOpen || prefersNoAnimation) return;
         if (isOpen && containerRef.current) {
             // Buscar el contenedor scrollable padre
             let scrollableParent = containerRef.current.parentElement;
@@ -92,6 +98,10 @@ function OpcionDesplegable({ titulo, children, scrollOnOpen = true }) {
         setIsOpen(!isOpen);
     };
 
+    const contentStyle = prefersNoAnimation
+        ? { maxHeight: isOpen ? 'none' : '0px' }
+        : { maxHeight: isOpen ? `${contentHeight || 1000}px` : '0px' };
+
     return (
         <div ref={containerRef} className={styles.container}>
             <button 
@@ -111,7 +121,7 @@ function OpcionDesplegable({ titulo, children, scrollOnOpen = true }) {
             </button>
             <div 
                 className={`${styles.content} ${isOpen ? styles.contentOpen : styles.contentClosed}`}
-                style={{ maxHeight: isOpen ? `${contentHeight || 1000}px` : '0px' }}
+                style={contentStyle}
             >
                 <div ref={innerRef} className={styles.contentInner}>
                     {children}
