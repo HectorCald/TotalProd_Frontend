@@ -270,7 +270,7 @@ class pedidosAlmacenService {
   }
 
   // Obtener todos los pedidos sin límite (para reportes)
-  static async getAllSinLimite(sucuIdParam = null) {
+  static async getAllSinLimite(sucuIdParam = null, filtroFecha = null, ordenamiento = 'fecha_desc') {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -283,8 +283,18 @@ class pedidosAlmacenService {
       const params = new URLSearchParams({
         page: '1',
         limit: '999999', // Límite muy alto para obtener todos los registros
-        sucu_id: sucuId
+        sucu_id: sucuId,
+        ordenamiento
       });
+
+      if (filtroFecha) {
+        if (filtroFecha.inicio) {
+          params.append('fecha_inicio', filtroFecha.inicio);
+        }
+        if (filtroFecha.fin) {
+          params.append('fecha_fin', filtroFecha.fin);
+        }
+      }
 
       const response = await fetch(`${API_BASE_URL}/pedidos-almacen?${params}`, {
         method: 'GET',

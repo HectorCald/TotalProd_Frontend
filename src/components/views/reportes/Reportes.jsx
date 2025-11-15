@@ -40,6 +40,22 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const prepararFechasParaConsulta = () => {
+    const inicio = new Date(fechaInicio);
+    inicio.setHours(0, 0, 0, 0);
+    const fin = new Date(fechaFin);
+    fin.setHours(23, 59, 59, 999);
+
+    return {
+      fechaInicioNormalizada: inicio,
+      fechaFinNormalizada: fin,
+      filtroFechaISO: {
+        inicio: inicio.toISOString(),
+        fin: fin.toISOString()
+      },
+    };
+  };
+
   // Función para obtener sucursal del localStorage (igual que clientService.js)
   const getSucuId = () => {
     const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
@@ -88,6 +104,27 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     }
     const unidades = cantidad % grup;
     return unidades.toString();
+  };
+
+  const calcularTotalMovimiento = (mov) => {
+    if (!mov?.productos || mov.productos.length === 0) return 0;
+
+    const subtotal = mov.productos.reduce((sum, prod) => {
+      const subtotalDeclarado = Number(prod.subtotal);
+      if (!Number.isNaN(subtotalDeclarado)) {
+        return sum + subtotalDeclarado;
+      }
+
+      const cantidad = Number(prod.cantidad) || 0;
+      const precio = Number(prod.precio_unitario) || 0;
+      return sum + (cantidad * precio);
+    }, 0);
+
+    const descuento = Number(mov.descuento) || 0;
+    const aumento = Number(mov.aumento) || 0;
+
+    const total = subtotal - descuento + aumento;
+    return Number.isNaN(total) ? 0 : Number(total.toFixed(2));
   };
 
 
@@ -210,7 +247,15 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
     ]);
 
-    const total = productosOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    const totalPorProductos = productosOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    const total = salidas.reduce((sum, movimiento) => sum + calcularTotalMovimiento(movimiento), 0);
+
+    if (DEBUG_REPORTES && Math.abs(total - totalPorProductos) > 0.01) {
+      console.log('Ajuste total ventas (descuentos/aumentos aplicados)', {
+        totalTabla: totalPorProductos,
+        totalConAjustes: total
+      });
+    }
 
     // No agregar fila TOTAL en la tabla
 
@@ -1073,6 +1118,18 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       }
     }
 
+    const {
+      fechaInicioNormalizada,
+      fechaFinNormalizada,
+      filtroFechaISO
+    } = prepararFechasParaConsulta();
+
+    const fechaEstaEnRango = (valorFecha) => {
+      if (!valorFecha) return false;
+      const fecha = new Date(valorFecha);
+      return fecha >= fechaInicioNormalizada && fecha <= fechaFinNormalizada;
+    };
+
     setIsLoading(true);
     try {
       if (DEBUG_REPORTES) console.log('Rango de fechas ->', {
@@ -1086,34 +1143,12 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       switch (areaSeleccionada) {
         case 'ventas':
           // Para ventas, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosVentas = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucuId);
+          const movimientosVentas = await movimientosAlmacenService.getAllSinLimite('salida', 'finalizado', 'fecha_desc', sucuId, filtroFechaISO);
           if (DEBUG_REPORTES) console.log('API ventas ->', movimientosVentas?.data?.length ?? 0);
           if (movimientosVentas.success && movimientosVentas.data) {
-            // Filtrar por fecha en el frontend
-            const movimientosFiltradosVentas = movimientosVentas.data.filter(movimiento => {
-              const fechaMovimiento = new Date(movimiento.fecha);
-              const fechaInicioObj = new Date(fechaInicio);
-              const fechaFinObj = new Date(fechaFin);
-
-              // Normalizar fechas a medianoche para comparación de días
-              const fechaMovimientoNormalizada = new Date(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
-              const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
-              const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
-
-              const enRango = fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
-              if (DEBUG_REPORTES) {
-                console.log('Comparación Ventas:', {
-                  fechaMovimiento_raw: movimiento.fecha,
-                  fechaMovimiento_toString: fechaMovimiento.toString(),
-                  fechaMovimiento_locale_LaPaz: fechaMovimiento.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-                  fechaMovimientoNormalizada: fechaMovimientoNormalizada.toString(),
-                  fechaInicioNormalizada: fechaInicioNormalizada.toString(),
-                  fechaFinNormalizada: fechaFinNormalizada.toString(),
-                  enRango
-                });
-              }
-              return enRango;
-            });
+            const movimientosFiltradosVentas = movimientosVentas.data.filter(movimiento =>
+              fechaEstaEnRango(movimiento.fecha)
+            );
 
             if (movimientosFiltradosVentas.length === 0) {
               mostrarNotificacion('warning', 'No hay ventas en el período seleccionado');
@@ -1130,24 +1165,13 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
         case 'almacen_general':
           // Para almacén general, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosAlmacen = await movimientosAlmacenService.getAllSinLimite(null, null, 'fecha_desc', sucuId);
+          const movimientosAlmacen = await movimientosAlmacenService.getAllSinLimite(null, 'finalizado', 'fecha_desc', sucuId, filtroFechaISO);
           if (DEBUG_REPORTES) console.log('API almacén ->', movimientosAlmacen?.data?.length ?? 0);
 
           if (movimientosAlmacen.success && movimientosAlmacen.data) {
-            // Filtrar por fecha en el frontend
-            const movimientosFiltradosAlmacen = movimientosAlmacen.data.filter(movimiento => {
-              const fechaMovimiento = new Date(movimiento.fecha);
-              const fechaInicioObj = new Date(fechaInicio);
-              const fechaFinObj = new Date(fechaFin);
-
-              // Normalizar fechas a medianoche para comparación de días
-              const fechaMovimientoNormalizada = new Date(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
-              const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
-              const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
-
-              const enRango = fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
-              return enRango;
-            });
+            const movimientosFiltradosAlmacen = movimientosAlmacen.data.filter(movimiento =>
+              fechaEstaEnRango(movimiento.fecha)
+            );
 
             if (movimientosFiltradosAlmacen.length === 0) {
               mostrarNotificacion('warning', 'No hay movimientos de almacén en el período seleccionado');
@@ -1164,25 +1188,15 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
         case 'materia_Prima':
           // Para materia prima, obtener todos los movimientos y filtrar por fecha en el frontend
-          const movimientosAcopio = await movimientosAcopioService.getAllSinLimite(null, 'fecha_desc', sucuId);
+          const movimientosAcopio = await movimientosAcopioService.getAllSinLimite(null, 'fecha_desc', sucuId, filtroFechaISO);
           if (DEBUG_REPORTES) console.log('API acopio ->', movimientosAcopio?.data?.length ?? 0);
 
           if (movimientosAcopio.success && movimientosAcopio.data) {
 
             // Filtrar por fecha en el frontend
-            const movimientosFiltrados = movimientosAcopio.data.filter(movimiento => {
-              const fechaMovimiento = new Date(movimiento.date);
-              const fechaInicioObj = new Date(fechaInicio);
-              const fechaFinObj = new Date(fechaFin);
-
-              // Normalizar fechas a medianoche para comparación de días
-              const fechaMovimientoNormalizada = new Date(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
-              const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
-              const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
-
-              const enRango = fechaMovimientoNormalizada >= fechaInicioNormalizada && fechaMovimientoNormalizada <= fechaFinNormalizada;
-              return enRango;
-            });
+            const movimientosFiltrados = movimientosAcopio.data.filter(movimiento =>
+              fechaEstaEnRango(movimiento.date)
+            );
 
 
             if (movimientosFiltrados.length === 0) {
@@ -1200,24 +1214,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
         case 'pedidos':
           // Para pedidos, obtener todos los pedidos y filtrar por fecha en el frontend
-          const pedidos = await pedidosAlmacenService.getAllSinLimite(sucuId);
+          const pedidos = await pedidosAlmacenService.getAllSinLimite(sucuId, filtroFechaISO);
           if (DEBUG_REPORTES) console.log('API pedidos ->', pedidos?.data?.length ?? 0);
 
           if (pedidos.success && pedidos.data) {
             // Filtrar por fecha en el frontend
-            const pedidosFiltrados = pedidos.data.filter(pedido => {
-              const fechaPedido = new Date(pedido.fecha || pedido.created_at);
-              const fechaInicioObj = new Date(fechaInicio);
-              const fechaFinObj = new Date(fechaFin);
-
-              // Normalizar fechas a medianoche para comparación de días
-              const fechaPedidoNormalizada = new Date(fechaPedido.getFullYear(), fechaPedido.getMonth(), fechaPedido.getDate());
-              const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
-              const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
-
-              const enRango = fechaPedidoNormalizada >= fechaInicioNormalizada && fechaPedidoNormalizada <= fechaFinNormalizada;
-              return enRango;
-            });
+            const pedidosFiltrados = pedidos.data.filter(pedido =>
+              fechaEstaEnRango(pedido.fecha || pedido.created_at)
+            );
 
             if (pedidosFiltrados.length === 0) {
               mostrarNotificacion('warning', 'No hay pedidos en el período seleccionado');
@@ -1240,8 +1244,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             const day = String(d.getDate()).padStart(2, '0');
             return `${y}-${m}-${day}`;
           };
-          const fechaInicioStrGastos = toYmdGastos(new Date(fechaInicio));
-          const fechaFinStrGastos = toYmdGastos(new Date(fechaFin));
+          const fechaInicioStrGastos = toYmdGastos(new Date(fechaInicioNormalizada));
+          const fechaFinStrGastos = toYmdGastos(new Date(fechaFinNormalizada));
           
           const gastosResp = await gastosService.getByDateRange(fechaInicioStrGastos, fechaFinStrGastos, sucuId);
           if (DEBUG_REPORTES) console.log('API gastos ->', gastosResp?.data?.length ?? 0);
@@ -1272,8 +1276,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
           }
           
           // Filtrar movimientos por fecha
-          const fechaInicioObjBalance = new Date(fechaInicio);
-          const fechaFinObjBalance = new Date(fechaFin);
+          const fechaInicioObjBalance = new Date(fechaInicioNormalizada);
+          const fechaFinObjBalance = new Date(fechaFinNormalizada);
           const fechaInicioStrBalance = new Date(fechaInicioObjBalance).toISOString().split('T')[0];
           const fechaFinStrBalance = new Date(fechaFinObjBalance).toISOString().split('T')[0];
           
@@ -1307,8 +1311,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             const day = String(d.getDate()).padStart(2, '0');
             return `${y}-${m}-${day}`;
           };
-          const fechaInicioStrDeudas = toYmd(new Date(fechaInicio));
-          const fechaFinStrDeudas = toYmd(new Date(fechaFin));
+          const fechaInicioStrDeudas = toYmd(new Date(fechaInicioNormalizada));
+          const fechaFinStrDeudas = toYmd(new Date(fechaFinNormalizada));
           
           const deudasResp = await deudasService.getByDateRange(fechaInicioStrDeudas, fechaFinStrDeudas, sucuId);
           if (DEBUG_REPORTES) console.log('API deudas ->', deudasResp?.data?.length ?? 0);

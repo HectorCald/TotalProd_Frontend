@@ -272,7 +272,7 @@ class movimientosAcopioService {
   }
 
   // Obtener todos los movimientos sin límite (para reportes y balance)
-  static async getAllSinLimite(tipo = null, ordenamiento = 'fecha_desc', sucuIdParam = null) {
+  static async getAllSinLimite(tipo = null, ordenamiento = 'fecha_desc', sucuIdParam = null, filtroFecha = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -293,6 +293,14 @@ class movimientosAcopioService {
       }
       if (ordenamiento) {
         params.append('ordenamiento', ordenamiento);
+      }
+      if (filtroFecha) {
+        if (filtroFecha.inicio) {
+          params.append('fecha_inicio', filtroFecha.inicio);
+        }
+        if (filtroFecha.fin) {
+          params.append('fecha_fin', filtroFecha.fin);
+        }
       }
 
       const response = await fetch(`${API_BASE_URL}/movimientos-acopio?${params}`, {
