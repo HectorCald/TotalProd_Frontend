@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -23,6 +23,7 @@ import FiltroCliente from '../../mixed/FiltroCliente';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 import { formatCurrency } from '../../../utils/numberUtils';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
+import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCache';
 
 function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     const { isLargeScreen } = useLayout();
@@ -70,6 +71,39 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         [filtroFecha.fin]
     );
 
+    const filterSignature = useMemo(() => JSON.stringify({
+        tipoMovimiento: tipoMovimiento || 'all',
+        filtroTipo,
+        filtroEstado,
+        ordenamiento,
+        filtroClienteId: filtroCliente?.id || null,
+        search: debouncedSearchQuery || '',
+        fechaInicio: fechaInicioKey,
+        fechaFin: fechaFinKey,
+    }), [
+        tipoMovimiento,
+        filtroTipo,
+        filtroEstado,
+        ordenamiento,
+        filtroCliente?.id,
+        debouncedSearchQuery,
+        fechaInicioKey,
+        fechaFinKey,
+    ]);
+
+    const {
+        hasCachedItems,
+        hydrateFromCache,
+        persistFirstPage,
+        mutateCachedItems,
+    } = useProgressiveSessionCache({
+        baseKey: 'panelMovimientos',
+        filtersSignature: filterSignature,
+        pageSize: 30,
+    });
+
+    const lastFilterSignatureRef = useRef(filterSignature);
+
     // Estados para movimientos
     const [movimientos, setMovimientos] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
@@ -82,7 +116,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         // Para página 1: reemplazar datos
         setAllMovimientos(data.length > 0 ? data : []);
         setMovimientosLoaded(true);
-    }, []);
+        persistFirstPage(data);
+    }, [persistFirstPage]);
 
     const handleDataAccumulated = useCallback((data) => {
         // Para páginas > 1: acumular datos
@@ -96,9 +131,11 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         });
     }, []);
 
-    const handleLoadingStart = () => {
-        if (currentPage === 1 && allMovimientos.length === 0) {
-            setIsLoading(true);
+    const handleLoadingStart = useCallback(() => {
+        if (currentPage === 1) {
+            if (allMovimientos.length === 0 && !hasCachedItems) {
+                setIsLoading(true);
+            }
         } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
@@ -111,7 +148,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             }
             return newCount;
         });
-    };
+    }, [currentPage, allMovimientos.length, hasCachedItems, isLargeScreen]);
 
     const handleLoadingEnd = () => {
         if (currentPage === 1) {
@@ -149,6 +186,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setCurrentPage(1);
         }
     }, [isOpen]);
+
+    // Hidratar lista inicial desde cache de sesión (solo primera página)
+    useEffect(() => {
+        if (!isOpen || currentPage !== 1 || allMovimientos.length > 0) {
+            return;
+        }
+        hydrateFromCache(setAllMovimientos);
+    }, [isOpen, currentPage, allMovimientos.length, hydrateFromCache]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -275,15 +320,19 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         }
     }, [tipoMovimiento, currentTipoMovimiento, isOpen]);
 
-    // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
+    // Resetear datos solo cuando cambian los filtros/búsqueda
     useEffect(() => {
-        if (isOpen) {
-            setAllMovimientos([]);
-            setCurrentPage(1);
-            setMovimientosLoaded(false);
-            // FetchDataProgressive se encargará de recargar automáticamente
+        if (!isOpen) {
+            return;
         }
-    }, [debouncedSearchQuery, filtroTipo, filtroEstado, ordenamiento, filtroCliente, fechaInicioKey, fechaFinKey, isOpen]);
+        if (lastFilterSignatureRef.current === filterSignature) {
+            return;
+        }
+        lastFilterSignatureRef.current = filterSignature;
+        setAllMovimientos([]);
+        setCurrentPage(1);
+        setMovimientosLoaded(false);
+    }, [filterSignature, isOpen]);
 
     // Efecto para manejar errores de SWR
     useEffect(() => {
@@ -294,37 +343,37 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Función para manejar cuando se anula un movimiento
     const handleMovimientoAnulado = (movimientoId, salidasEliminadasIds = []) => {
-        // Normalizar IDs a string para comparación
         const salidasIdsNormalizados = salidasEliminadasIds.map(id => String(id));
-        
-        // Actualizar el estado local acumulado
-        setAllMovimientos(prevMovimientos => {
-            // Primero eliminar las salidas relacionadas si existen
-            let movimientosFiltrados = prevMovimientos;
+
+        const aplicarAnulacion = (lista) => {
+            let movimientosFiltrados = lista;
             if (salidasIdsNormalizados && salidasIdsNormalizados.length > 0) {
-                movimientosFiltrados = prevMovimientos.filter(movimiento => {
+                movimientosFiltrados = lista.filter(movimiento => {
                     const movimientoIdStr = String(movimiento.id);
                     return !salidasIdsNormalizados.includes(movimientoIdStr);
                 });
             }
-            
-            // Luego actualizar el estado del movimiento anulado
+
             return movimientosFiltrados.map(movimiento =>
                 String(movimiento.id) === String(movimientoId)
                     ? { ...movimiento, estado: 'anulado' }
                     : movimiento
             );
-        });
+        };
+
+        setAllMovimientos(aplicarAnulacion);
+        mutateCachedItems(aplicarAnulacion);
 
         mostrarNotificacion('success', 'Movimiento anulado correctamente');
     };
 
     // Función para manejar cuando se elimina un movimiento
     const handleMovimientoEliminado = (movimientoId) => {
-        // Actualizar el estado local acumulado
-        setAllMovimientos(prevMovimientos =>
-            prevMovimientos.filter(movimiento => movimiento.id !== movimientoId)
-        );
+        const aplicarEliminacion = (lista) =>
+            lista.filter(movimiento => String(movimiento.id) !== String(movimientoId));
+
+        setAllMovimientos(aplicarEliminacion);
+        mutateCachedItems(aplicarEliminacion);
 
         mostrarNotificacion('success', 'Movimiento eliminado correctamente');
     };

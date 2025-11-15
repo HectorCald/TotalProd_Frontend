@@ -17,6 +17,7 @@ import NoData from '../../common/NoData';
 import Notification from '../../common/Notification';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import useSessionCache from '../../../hooks/useSessionCache';
 
 function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSeleccionado }) {
     const { isLargeScreen } = useLayout();
@@ -26,7 +27,13 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
 
     // Estados para proveedores
-    const [proveedores, setProveedores] = useState([]);
+    const {
+        value: proveedores,
+        setValue: setProveedores,
+    } = useSessionCache({
+        key: 'proveedoresListado',
+        defaultValue: [],
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -174,6 +181,9 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
         proveedor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (proveedor.phone && proveedor.phone.includes(searchQuery))
     );
+    const proveedoresOrdenados = [...proveedoresFiltrados].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '')
+    );
 
 
     // Manejar error 403 con useEffect para evitar bucle infinito
@@ -237,7 +247,7 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
     ];
 
     // Datos para la tabla
-    const tableData = proveedoresFiltrados.map(proveedor => ({
+    const tableData = proveedoresOrdenados.map(proveedor => ({
         id: proveedor.id,
         name: proveedor.name || 'Sin nombre',
         description: proveedor.description || '--',
@@ -296,8 +306,8 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                             minHeight: 'calc(100% - 80px)'
                         }}
                     >
-                        {proveedoresFiltrados.length > 0 ? (
-                            proveedoresFiltrados.map((proveedor, index) => (
+                        {proveedoresOrdenados.length > 0 ? (
+                            proveedoresOrdenados.map((proveedor, index) => (
                                 <ItemView
                                     key={proveedor.id || index}
                                     title={proveedor.name || 'Sin nombre'}

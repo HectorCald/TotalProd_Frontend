@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../../common/HeaderView';
@@ -17,6 +17,7 @@ import NoData from '../../../common/NoData';
 import LoadingSpinner from '../../../common/LoadingSpinner';
 import PullToRefresh from '../../../common/PullToRefresh';
 import FetchDataProgressive from '../../../mixed/FetchDataProgressive';
+import useProgressiveSessionCache from '../../../../hooks/useProgressiveSessionCache';
 
 function MiProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -49,6 +50,23 @@ function MiProduccion({ isOpen, setIsOpen }) {
     const [filtroEstado, setFiltroEstado] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
 
+    const filterSignature = useMemo(() => JSON.stringify({
+        filtroEstado,
+        ordenamiento,
+        search: debouncedSearchQuery || '',
+    }), [filtroEstado, ordenamiento, debouncedSearchQuery]);
+
+    const {
+        hasCachedItems,
+        hydrateFromCache,
+        persistFirstPage,
+        mutateCachedItems,
+    } = useProgressiveSessionCache({
+        baseKey: 'miProduccion',
+        filtersSignature: filterSignature,
+        pageSize: 30,
+    });
+
     // Estados para registros
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +78,8 @@ function MiProduccion({ isOpen, setIsOpen }) {
         // Para página 1: reemplazar datos
         setAllRegistros(data.length > 0 ? data : []);
         setRegistrosLoaded(true);
-    }, []);
+        persistFirstPage(data);
+    }, [persistFirstPage]);
 
     const handleDataAccumulated = useCallback((data) => {
         // Para páginas > 1: acumular datos
@@ -75,8 +94,10 @@ function MiProduccion({ isOpen, setIsOpen }) {
     }, []);
 
     const handleLoadingStart = useCallback(() => {
-        if (currentPage === 1 && allRegistros.length === 0) {
-            setIsLoading(true);
+        if (currentPage === 1) {
+            if (allRegistros.length === 0 && !hasCachedItems) {
+                setIsLoading(true);
+            }
         } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
@@ -89,7 +110,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [currentPage, allRegistros.length, isLargeScreen]);
+    }, [currentPage, allRegistros.length, isLargeScreen, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -128,6 +149,8 @@ function MiProduccion({ isOpen, setIsOpen }) {
             setCurrentPage(1);
         }
     }, [isOpen]);
+
+    const lastFilterSignatureRef = useRef(filterSignature);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -219,12 +242,31 @@ function MiProduccion({ isOpen, setIsOpen }) {
     // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
     useEffect(() => {
         if (isOpen) {
-            setAllRegistros([]);
+            setSearchQuery('');
+            setSearchQueryNormalized('');
             setCurrentPage(1);
-            setRegistrosLoaded(false);
-            // FetchDataProgressive se encargará de recargar automáticamente
         }
-    }, [debouncedSearchQuery, filtroEstado, ordenamiento, isOpen]);
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || currentPage !== 1 || allRegistros.length > 0) {
+            return;
+        }
+        hydrateFromCache(setAllRegistros);
+    }, [isOpen, currentPage, allRegistros.length, hydrateFromCache]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+        if (lastFilterSignatureRef.current === filterSignature) {
+            return;
+        }
+        lastFilterSignatureRef.current = filterSignature;
+        setAllRegistros([]);
+        setCurrentPage(1);
+        setRegistrosLoaded(false);
+    }, [filterSignature, isOpen]);
 
     // Efecto para manejar errores
     useEffect(() => {

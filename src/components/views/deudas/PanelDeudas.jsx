@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -22,6 +22,7 @@ import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
+import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCache';
 import { formatCurrency } from '../../../utils/numberUtils';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 
@@ -59,6 +60,26 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         [filtroFecha.fin]
     );
 
+    const filterSignature = useMemo(() => JSON.stringify({
+        filtroEstado,
+        filtroClienteId: filtroCliente?.id || null,
+        ordenamiento,
+        search: debouncedSearchQuery || '',
+        fechaInicio: fechaInicioKey,
+        fechaFin: fechaFinKey,
+    }), [filtroEstado, filtroCliente?.id, ordenamiento, debouncedSearchQuery, fechaInicioKey, fechaFinKey]);
+
+    const {
+        hasCachedItems,
+        hydrateFromCache,
+        persistFirstPage,
+        mutateCachedItems,
+    } = useProgressiveSessionCache({
+        baseKey: 'panelDeudas',
+        filtersSignature: filterSignature,
+        pageSize: 30,
+    });
+
     // Estados para deudas
     const [deudas, setDeudas] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
@@ -75,7 +96,8 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     const handleDataLoaded = useCallback((data) => {
         setAllDeudas(data.length > 0 ? data : []);
         setDeudasLoaded(true);
-    }, []);
+        persistFirstPage(data);
+    }, [persistFirstPage]);
 
     const handleDataAccumulated = useCallback((data) => {
         setAllDeudas(prev => {
@@ -89,8 +111,10 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     }, []);
 
     const handleLoadingStart = useCallback(() => {
-        if (currentPage === 1 && allDeudas.length === 0) {
-            setIsLoading(true);
+        if (currentPage === 1) {
+            if (allDeudas.length === 0 && !hasCachedItems) {
+                setIsLoading(true);
+            }
         } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
@@ -103,7 +127,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [currentPage, allDeudas.length, isLargeScreen]);
+    }, [currentPage, allDeudas.length, isLargeScreen, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -136,6 +160,7 @@ function PanelDeudas({ isOpen, setIsOpen }) {
 
     // Resetear flags cuando se abre el modal
     const [deudasLoaded, setDeudasLoaded] = useState(false);
+    const lastFilterSignatureRef = useRef(filterSignature);
     useEffect(() => {
         if (isOpen) {
             setDeudasLoaded(false);
@@ -216,6 +241,13 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         }
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen || currentPage !== 1 || allDeudas.length > 0) {
+            return;
+        }
+        hydrateFromCache(setAllDeudas);
+    }, [isOpen, currentPage, allDeudas.length, hydrateFromCache]);
+
     // Funciones para el buscador expandible
     const handleSearchChange = (value) => {
         setSearchQuery(value);
@@ -236,13 +268,17 @@ function PanelDeudas({ isOpen, setIsOpen }) {
 
     // Efecto para limpiar y recargar al cambiar búsqueda/filtros/orden
     useEffect(() => {
-        if (isOpen) {
-            setAllDeudas([]);
-            setCurrentPage(1);
-            setDeudasLoaded(false);
-            // FetchDataProgressive se encargará de recargar automáticamente
+        if (!isOpen) {
+            return;
         }
-    }, [debouncedSearchQuery, filtroEstado, filtroCliente, ordenamiento, fechaInicioKey, fechaFinKey, isOpen]);
+        if (lastFilterSignatureRef.current === filterSignature) {
+            return;
+        }
+        lastFilterSignatureRef.current = filterSignature;
+        setAllDeudas([]);
+        setCurrentPage(1);
+        setDeudasLoaded(false);
+    }, [filterSignature, isOpen]);
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -275,32 +311,35 @@ function PanelDeudas({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se elimina una deuda
     const handleDeudaEliminada = (deudaId) => {
-        // Actualizar el estado local acumulado
-        setAllDeudas(prevDeudas => 
-            prevDeudas.filter(deuda => deuda.id !== deudaId)
-        );
+        const aplicarEliminacion = (lista) =>
+            lista.filter(deuda => String(deuda.id) !== String(deudaId));
+
+        setAllDeudas(aplicarEliminacion);
+        mutateCachedItems(aplicarEliminacion);
         
         mostrarNotificacion('success', 'Deuda eliminada correctamente');
     };
 
     // Función para manejar cuando se actualiza una deuda
     const handleDeudaActualizada = (deudaActualizada) => {
-        // Actualizar el estado local acumulado
-        setAllDeudas(prevDeudas => 
-            prevDeudas.map(deuda => 
-                deuda.id === deudaActualizada.id ? deudaActualizada : deuda
-            )
-        );
+        const aplicarActualizacion = (lista) =>
+            lista.map(deuda =>
+                String(deuda.id) === String(deudaActualizada.id) ? deudaActualizada : deuda
+            );
+
+        setAllDeudas(aplicarActualizacion);
+        mutateCachedItems(aplicarActualizacion);
         
         mostrarNotificacion('success', 'Deuda actualizada correctamente');
     };
 
     // Función para manejar cuando se crea una nueva deuda
     const handleDeudaCreated = (newDeuda) => {
-        // Actualizar el estado local con la deuda que devuelve el servidor
-        setAllDeudas(prevDeudas => [newDeuda, ...prevDeudas]);
+        const aplicarCreacion = (lista) => [newDeuda, ...(lista || [])];
+
+        setAllDeudas(aplicarCreacion);
+        mutateCachedItems(aplicarCreacion);
         
-        // Cerrar el modal
         setIsOpenEditarAgregar(false);
         mostrarNotificacion('success', 'Deuda agregada correctamente');
     };

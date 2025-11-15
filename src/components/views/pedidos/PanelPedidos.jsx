@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -23,6 +23,7 @@ import HistorialWhatsapp from './HistorialWhatsapp';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
+import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCache';
 
 function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const { isLargeScreen } = useLayout();
@@ -66,6 +67,27 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
     const [filtroResponsable, setFiltroResponsable] = useState(null);
 
+    const filterSignature = useMemo(() => JSON.stringify({
+        tipoPedido: tipoPedido || 'all',
+        filtroEstado,
+        ordenamiento,
+        filtroResponsableId: filtroResponsable?.id || null,
+        search: debouncedSearchQuery || '',
+    }), [tipoPedido, filtroEstado, ordenamiento, filtroResponsable?.id, debouncedSearchQuery]);
+
+    const {
+        hasCachedItems,
+        hydrateFromCache,
+        persistFirstPage,
+        mutateCachedItems,
+    } = useProgressiveSessionCache({
+        baseKey: 'panelPedidos',
+        filtersSignature: filterSignature,
+        pageSize: 30,
+    });
+
+    const lastFilterSignatureRef = useRef(filterSignature);
+
     // Estados para pedidos
     const [pedidos, setPedidos] = useState([]);
     const [hasMorePages, setHasMorePages] = useState(false);
@@ -86,7 +108,8 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const handleDataLoaded = useCallback((data) => {
         setAllPedidos(data.length > 0 ? data : []);
         setPedidosLoaded(true);
-    }, []);
+        persistFirstPage(data);
+    }, [persistFirstPage]);
 
     const handleDataAccumulated = useCallback((data) => {
         setAllPedidos(prev => {
@@ -100,8 +123,10 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     }, []);
 
     const handleLoadingStart = useCallback(() => {
-        if (currentPage === 1 && allPedidos.length === 0) {
-            setIsLoading(true);
+        if (currentPage === 1) {
+            if (allPedidos.length === 0 && !hasCachedItems) {
+                setIsLoading(true);
+            }
         } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
@@ -114,7 +139,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             }
             return newCount;
         });
-    }, [currentPage, allPedidos.length, isLargeScreen]);
+    }, [currentPage, allPedidos.length, isLargeScreen, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -152,6 +177,14 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setCurrentPage(1);
         }
     }, [isOpen]);
+
+    // Hidratar lista inicial desde cache
+    useEffect(() => {
+        if (!isOpen || currentPage !== 1 || allPedidos.length > 0) {
+            return;
+        }
+        hydrateFromCache(setAllPedidos);
+    }, [isOpen, currentPage, allPedidos.length, hydrateFromCache]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -212,15 +245,19 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         }
     }, [tipoPedido, currentTipoPedido, isOpen]);
 
-    // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
+    // Efecto para limpiar datos acumulados SOLO cuando cambian filtros/búsqueda
     useEffect(() => {
-        if (isOpen) {
-            setAllPedidos([]);
-            setCurrentPage(1);
-            setPedidosLoaded(false);
-            // FetchDataProgressive se encargará de recargar automáticamente
+        if (!isOpen) {
+            return;
         }
-    }, [debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable, isOpen]);
+        if (lastFilterSignatureRef.current === filterSignature) {
+            return;
+        }
+        lastFilterSignatureRef.current = filterSignature;
+        setAllPedidos([]);
+        setCurrentPage(1);
+        setPedidosLoaded(false);
+    }, [filterSignature, isOpen]);
 
     // Efecto para manejar errores de SWR
     useEffect(() => {
@@ -239,30 +276,28 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     };
     // Función para manejar cuando se elimina un pedido
     const handlePedidoEliminado = (pedidoId) => {
-        // Actualizar el estado local acumulado
-        setAllPedidos(prevPedidos =>
-            prevPedidos.filter(pedido => pedido.id !== pedidoId)
-        );
+        const aplicarEliminacion = (lista) =>
+            lista.filter(pedido => String(pedido.id) !== String(pedidoId));
+
+        setAllPedidos(aplicarEliminacion);
+        mutateCachedItems(aplicarEliminacion);
 
         mostrarNotificacion('success', 'Pedido eliminado correctamente');
         setIsOpenVerPedido(false);
     };
     // Función para manejar cuando se actualiza un pedido
     const handlePedidoActualizado = (pedidoActualizado) => {
-        // Actualizar el estado local acumulado
-        setAllPedidos(prevPedidos =>
-            prevPedidos.map(pedido =>
-                pedido.id === pedidoActualizado.id ? pedidoActualizado : pedido
-            )
-        );
+        const aplicarActualizacion = (lista) =>
+            lista.map(pedido =>
+                String(pedido.id) === String(pedidoActualizado.id) ? pedidoActualizado : pedido
+            );
 
-        // Actualizar también infoPedido si es el mismo pedido que se está viendo
+        setAllPedidos(aplicarActualizacion);
+        mutateCachedItems(aplicarActualizacion);
+
         if (infoPedido && infoPedido.id === pedidoActualizado.id) {
             setInfoPedido(pedidoActualizado);
         }
-
-        // No mostrar notificación aquí, ya que VerPedidoAcopio maneja las notificaciones específicas
-        // No cerrar VerPedido para permitir que se mantenga abierto después de entregas/ediciones
     };
 
 

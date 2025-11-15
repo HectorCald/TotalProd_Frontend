@@ -21,6 +21,7 @@ import reglasProduccionDamabravaService from '../../../../../services/reglasProd
 import VerPago from './VerPago';
 import RegistroPago from './RegistroPago';
 import { parseDateWithoutOffset } from '../../../../../utils/dateUtils';
+import useProgressiveSessionCache from '../../../../../hooks/useProgressiveSessionCache';
 
 const normalizarTexto = (value = '') =>
     value
@@ -72,6 +73,25 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
     const PAGE_LIMIT = 30;
     const [debouncedSearchNormalized] = useDebounce(searchNormalized, 500);
 
+    const filterSignature = useMemo(() => JSON.stringify({
+        filtroEstado,
+        filtroResponsableId: filtroResponsable?.id || null,
+        search: debouncedSearchNormalized || '',
+    }), [filtroEstado, filtroResponsable?.id, debouncedSearchNormalized]);
+
+    const lastFilterSignatureRef = useRef(filterSignature);
+
+    const {
+        hasCachedItems,
+        hydrateFromCache,
+        persistFirstPage,
+        mutateCachedItems,
+    } = useProgressiveSessionCache({
+        baseKey: 'panelPagos',
+        filtersSignature: filterSignature,
+        pageSize: PAGE_LIMIT,
+    });
+
     const mostrarNotificacion = (type, text) => {
         setNotification({
             isVisible: true,
@@ -97,7 +117,8 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         setPagos(ordenados);
         pagosRef.current = ordenados;
         setPagosLoaded(true);
-    }, [sortPagos]);
+        persistFirstPage(ordenados);
+    }, [sortPagos, persistFirstPage]);
 
     const handleDataAccumulated = useCallback((data) => {
         setPagos(prev => {
@@ -115,8 +136,10 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
     }, [sortPagos]);
 
     const handleLoadingStart = useCallback(() => {
-        if (currentPage === 1 && pagosRef.current.length === 0) {
-            setIsLoading(true);
+        if (currentPage === 1) {
+            if (pagosRef.current.length === 0 && !hasCachedItems) {
+                setIsLoading(true);
+            }
         } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
@@ -129,7 +152,7 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
             }
             return newCount;
         });
-    }, [currentPage, isLargeScreen]);
+    }, [currentPage, isLargeScreen, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -204,14 +227,19 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
     }, [isOpen, fetchReglas]);
 
     useEffect(() => {
-        if (isOpen) {
-            setPagos([]);
-            pagosRef.current = [];
-            setCurrentPage(1);
-            setHasMorePages(false);
-            setPagosLoaded(false);
+        if (!isOpen) {
+            return;
         }
-    }, [filtroEstado, filtroResponsable, debouncedSearchNormalized, isOpen]);
+        if (lastFilterSignatureRef.current === filterSignature) {
+            return;
+        }
+        lastFilterSignatureRef.current = filterSignature;
+        setPagos([]);
+        pagosRef.current = [];
+        setCurrentPage(1);
+        setHasMorePages(false);
+        setPagosLoaded(false);
+    }, [filterSignature, isOpen]);
 
     useEffect(() => {
         pagosRef.current = pagos;
@@ -221,8 +249,16 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         if (!isOpen) {
             setShowRefreshIndicator(false);
             setIsRefreshing(false);
+            return;
         }
-    }, [isOpen]);
+        if (currentPage === 1 && pagosRef.current.length === 0) {
+            hydrateFromCache((cached) => {
+                const ordenados = sortPagos(cached);
+                setPagos(ordenados);
+                pagosRef.current = ordenados;
+            });
+        }
+    }, [isOpen, currentPage, hydrateFromCache, sortPagos]);
 
     const pagosFiltrados = useMemo(() => {
         if (!debouncedSearchNormalized) {
@@ -342,12 +378,19 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
             pagosRef.current = ordenados;
             return ordenados;
         });
+        mutateCachedItems(prev => {
+            if (!prev || prev.length === 0) return prev;
+            const actualizados = prev.map(pago =>
+                pago.id === pagoActualizado.id ? { ...pago, ...pagoActualizado } : pago
+            );
+            return sortPagos(actualizados);
+        });
         setSelectedPago(prev => (prev && prev.id === pagoActualizado.id ? { ...prev, ...pagoActualizado } : prev));
         setCurrentPage(1);
         setHasMorePages(false);
         setPagosLoaded(false);
         // FetchDataProgressive se encargará de recargar automáticamente
-    }, [sortPagos]);
+    }, [sortPagos, mutateCachedItems]);
 
     const handlePagoEliminado = useCallback((pagoId, mensaje) => {
         setIsVerPagoOpen(false);
@@ -362,11 +405,12 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
             pagosRef.current = filtrados;
             return filtrados;
         });
+        mutateCachedItems(prev => (prev || []).filter(pago => pago.id !== pagoId));
         setCurrentPage(1);
         setHasMorePages(false);
         setPagosLoaded(false);
         // FetchDataProgressive se encargará de recargar automáticamente
-    }, []);
+    }, [mutateCachedItems]);
 
     const handlePagoRegistrado = useCallback((nuevoPago) => {
         if (!nuevoPago) {
@@ -427,13 +471,17 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
             pagosRef.current = ordenados;
             return ordenados;
         });
+        mutateCachedItems(prev => {
+            const sinDuplicados = (prev || []).filter(pagoExistente => pagoExistente.id !== pagoDetallado.id);
+            return sortPagos([pagoDetallado, ...sinDuplicados]);
+        });
         setSelectedPago(pagoDetallado);
         mostrarNotificacion('success', 'Pago registrado correctamente.');
         setCurrentPage(1);
         setHasMorePages(false);
         setPagosLoaded(false);
         // FetchDataProgressive se encargará de recargar automáticamente
-    }, [sortPagos]);
+    }, [sortPagos, mutateCachedItems]);
 
     const handleRefresh = async () => {
         pagosRef.current = [];

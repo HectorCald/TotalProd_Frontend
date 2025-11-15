@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -21,6 +21,7 @@ import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
+import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCache';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 import { formatCurrency } from '../../../utils/numberUtils';
 
@@ -57,6 +58,27 @@ function PanelGastos({ isOpen, setIsOpen }) {
         () => (filtroFecha.fin ? filtroFecha.fin.toISOString() : null),
         [filtroFecha.fin]
     );
+    const PAGE_SIZE = 30;
+
+    const filterSignature = useMemo(() => JSON.stringify({
+        filtroMetodoPago,
+        filtroProveedorId: filtroProveedor?.id || null,
+        ordenamiento,
+        search: debouncedSearchQuery || '',
+        fechaInicio: fechaInicioKey,
+        fechaFin: fechaFinKey,
+    }), [filtroMetodoPago, filtroProveedor?.id, ordenamiento, debouncedSearchQuery, fechaInicioKey, fechaFinKey]);
+
+    const {
+        hasCachedItems,
+        hydrateFromCache,
+        persistFirstPage,
+        mutateCachedItems,
+    } = useProgressiveSessionCache({
+        baseKey: 'panelGastos',
+        filtersSignature: filterSignature,
+        pageSize: PAGE_SIZE,
+    });
 
     // Estados para gastos
     const [hasMorePages, setHasMorePages] = useState(false);
@@ -70,14 +92,14 @@ function PanelGastos({ isOpen, setIsOpen }) {
     const [activeRequests, setActiveRequests] = useState(0);
 
     const [gastosLoaded, setGastosLoaded] = useState(false);
-
-    const PAGE_SIZE = 30;
+    const lastFilterSignatureRef = useRef(filterSignature);
 
     // Callbacks para FetchDataProgressive
     const handleDataLoaded = useCallback((data) => {
         setAllGastos(data.length > 0 ? data : []);
         setGastosLoaded(true);
-    }, []);
+        persistFirstPage(data);
+    }, [persistFirstPage]);
 
     const handleDataAccumulated = useCallback((data) => {
         setAllGastos(prevGastos => {
@@ -93,8 +115,10 @@ function PanelGastos({ isOpen, setIsOpen }) {
     }, []);
 
     const handleLoadingStart = useCallback(() => {
-        if (currentPage === 1 && allGastos.length === 0) {
-            setIsLoading(true);
+        if (currentPage === 1) {
+            if (allGastos.length === 0 && !hasCachedItems) {
+                setIsLoading(true);
+            }
         } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
@@ -107,7 +131,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [currentPage, allGastos.length, isLargeScreen]);
+    }, [currentPage, allGastos.length, isLargeScreen, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -149,6 +173,13 @@ function PanelGastos({ isOpen, setIsOpen }) {
             setIsRefreshing(false);
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || currentPage !== 1 || allGastos.length > 0) {
+            return;
+        }
+        hydrateFromCache(setAllGastos);
+    }, [isOpen, currentPage, allGastos.length, hydrateFromCache]);
 
 
     // Estados para la notificación
@@ -245,14 +276,18 @@ function PanelGastos({ isOpen, setIsOpen }) {
 
     // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
     useEffect(() => {
-        if (isOpen) {
-            setAllGastos([]);
-            setCurrentPage(1);
-            setGastosLoaded(false);
-            setHasMorePages(false);
-            // FetchDataProgressive se encargará de recargar automáticamente
+        if (!isOpen) {
+            return;
         }
-    }, [debouncedSearchQuery, filtroMetodoPago, filtroProveedor, ordenamiento, fechaInicioKey, fechaFinKey, isOpen]);
+        if (lastFilterSignatureRef.current === filterSignature) {
+            return;
+        }
+        lastFilterSignatureRef.current = filterSignature;
+        setAllGastos([]);
+        setCurrentPage(1);
+        setGastosLoaded(false);
+        setHasMorePages(false);
+    }, [filterSignature, isOpen]);
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -285,32 +320,35 @@ function PanelGastos({ isOpen, setIsOpen }) {
 
     // Función para manejar cuando se elimina un gasto
     const handleGastoEliminado = (gastoId) => {
-        // Actualizar el estado local acumulado
-        setAllGastos(prevGastos =>
-            prevGastos.filter(gasto => gasto.id !== gastoId)
-        );
+        const aplicarEliminacion = (lista) =>
+            lista.filter(gasto => String(gasto.id) !== String(gastoId));
+
+        setAllGastos(aplicarEliminacion);
+        mutateCachedItems(aplicarEliminacion);
 
         mostrarNotificacion('success', 'Gasto eliminado correctamente');
     };
 
     // Función para manejar cuando se actualiza un gasto
     const handleGastoActualizado = (gastoActualizado) => {
-        // Actualizar el estado local acumulado
-        setAllGastos(prevGastos =>
-            prevGastos.map(gasto =>
-                gasto.id === gastoActualizado.id ? gastoActualizado : gasto
-            )
-        );
+        const aplicarActualizacion = (lista) =>
+            lista.map(gasto =>
+                String(gasto.id) === String(gastoActualizado.id) ? gastoActualizado : gasto
+            );
+
+        setAllGastos(aplicarActualizacion);
+        mutateCachedItems(aplicarActualizacion);
 
         mostrarNotificacion('success', 'Gasto actualizado correctamente');
     };
 
     // Función para manejar cuando se crea un nuevo gasto
     const handleGastoCreated = (newGasto) => {
-        // Actualizar el estado local con el gasto que devuelve el servidor
-        setAllGastos(prevGastos => [newGasto, ...prevGastos]);
+        const aplicarCreacion = (lista) => [newGasto, ...(lista || [])];
 
-        // Cerrar el modal
+        setAllGastos(aplicarCreacion);
+        mutateCachedItems(aplicarCreacion);
+
         setIsOpenEditarAgregar(false);
         mostrarNotificacion('success', 'Gasto agregado correctamente');
     };

@@ -17,6 +17,7 @@ import Table from '../../common/Table';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import useSessionCache from '../../../hooks/useSessionCache';
 
 function Precios({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -26,8 +27,14 @@ function Precios({ isOpen, setIsOpen }) {
     const [infoPrecio, setInfoPrecio] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
 
-    // Estados para precios
-    const [precios, setPrecios] = useState([]);
+    // Estados para precios (persistidos por sesión)
+    const {
+        value: precios,
+        setValue: setPrecios,
+    } = useSessionCache({
+        key: 'preciosListado',
+        defaultValue: [],
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 

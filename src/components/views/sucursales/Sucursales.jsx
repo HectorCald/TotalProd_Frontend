@@ -18,6 +18,7 @@ import NoData from '../../common/NoData';
 import FetchData from '../../mixed/FetchData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import useSessionCache from '../../../hooks/useSessionCache';
 
 function Sucursales({ isOpen, setIsOpen }) {
     const { user, sucursalSeleccionada } = useUser();
@@ -28,8 +29,14 @@ function Sucursales({ isOpen, setIsOpen }) {
     const [infoSucursal, setInfoSucursal] = useState(null);
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
 
-    // Estados para sucursales
-    const [sucursales, setSucursales] = useState([]);
+    // Estados para sucursales (persistidos por sesión)
+    const {
+        value: sucursales,
+        setValue: setSucursales,
+    } = useSessionCache({
+        key: 'sucursalesListado',
+        defaultValue: [],
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 

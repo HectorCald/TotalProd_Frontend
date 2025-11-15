@@ -24,6 +24,7 @@ import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import DescargaConteoBuilder from './DescargaConteoBuilder';
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
+import useSessionCache from '../../../hooks/useSessionCache';
 
 function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const { isLargeScreen } = useLayout();
@@ -43,8 +44,15 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const [notif, setNotif] = useState({ visible: false, text: '', type: 'success' });
     const [isOpenDescarga, setIsOpenDescarga] = useState(false);
 
-    // Datos
-    const [productos, setProductos] = useState([]);
+    // Datos (compartidos con AlmacenAcopio principal vía sessionStorage)
+    const {
+        value: productos,
+        setValue: setProductos,
+        hasCache: hasProductosCache,
+    } = useSessionCache({
+        key: 'almacenAcopioProductos',
+        defaultValue: [],
+    });
     const [categorias, setCategorias] = useState([]);
     const [tiposMedida, setTiposMedida] = useState([]);
     
@@ -210,7 +218,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             setOrdenamiento('nombre_asc');
             
             // Resetear estados de carga
-            setProductosLoaded(false);
+            setProductosLoaded(hasProductosCache && productos.length > 0);
             setCategoriasLoaded(false);
             setTiposMedidaLoaded(false);
             
@@ -235,7 +243,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                 setJustificationInputsText({});
             }
         }
-    }, [isOpen, tipo, loadFromLocalStorage]);
+    }, [isOpen, tipo, loadFromLocalStorage, hasProductosCache, productos.length]);
 
     // Efecto para guardar cambios en localStorage (solo en modo conteo)
     useEffect(() => {

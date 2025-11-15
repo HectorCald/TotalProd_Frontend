@@ -18,6 +18,7 @@ import Table from '../../common/Table';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import useSessionCache from '../../../hooks/useSessionCache';
 
 
 function Personal({ isOpen, setIsOpen }) {
@@ -28,7 +29,13 @@ function Personal({ isOpen, setIsOpen }) {
     const [isOpenEditarAgregar, setIsOpenEditarAgregar] = useState(false);
 
     // Estados para personal
-    const [personal, setPersonal] = useState([]);
+    const {
+        value: personal,
+        setValue: setPersonal,
+    } = useSessionCache({
+        key: 'personalListado',
+        defaultValue: [],
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -180,6 +187,9 @@ function Personal({ isOpen, setIsOpen }) {
         (persona.codigo && persona.codigo.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (persona.cargo && persona.cargo.toLowerCase().includes(searchQuery.toLowerCase()))
     );
+    const personalOrdenado = [...personalFiltrado].sort((a, b) =>
+        (`${a.first_name || ''} ${a.last_name || ''}`).localeCompare(`${b.first_name || ''} ${b.last_name || ''}`)
+    );
 
     // Manejar error 403 con useEffect para evitar bucle infinito
     useEffect(() => {
@@ -243,7 +253,7 @@ function Personal({ isOpen, setIsOpen }) {
     ];
 
     // Datos para la tabla
-    const tableData = personalFiltrado.map(persona => ({
+    const tableData = personalOrdenado.map(persona => ({
         id: persona.id,
         nombre: `${persona.first_name} ${persona.last_name}`,
         cargo: persona.cargo || '--',
@@ -328,8 +338,8 @@ function Personal({ isOpen, setIsOpen }) {
                             minHeight: 'calc(100% - 80px)'
                         }}
                     >
-                        {personalFiltrado.length > 0 ? (
-                            personalFiltrado.map((persona, index) => (
+                        {personalOrdenado.length > 0 ? (
+                            personalOrdenado.map((persona, index) => (
                                 <ItemView
                                     key={persona.id || index}
                                     title={`${persona.first_name} ${persona.last_name}`}

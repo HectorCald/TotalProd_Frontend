@@ -17,6 +17,7 @@ import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import useSessionCache from '../../../hooks/useSessionCache';
 
 
 function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccionado }) {
@@ -28,7 +29,13 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     const [infoPersona, setInfoPersona] = useState(null);
 
     // Estados para clientes
-    const [clientes, setClientes] = useState([]);
+    const {
+        value: clientes,
+        setValue: setClientes,
+    } = useSessionCache({
+        key: 'clientesListado',
+        defaultValue: [],
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -199,6 +206,9 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         cliente.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (cliente.phone && cliente.phone.includes(searchQuery))
     );
+    const clientesOrdenados = [...clientesFiltrados].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '')
+    );
 
 
     // Función para manejar cuando se crea un nuevo cliente
@@ -244,7 +254,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
     ];
 
     // Datos para la tabla
-    const tableData = clientesFiltrados.map(cliente => ({
+    const tableData = clientesOrdenados.map(cliente => ({
         id: cliente.id,
         name: cliente.name || 'Sin nombre',
         description: cliente.description || '--',
@@ -310,8 +320,8 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                             minHeight: 'calc(100% - 80px)'
                         }}
                     >
-                        {clientesFiltrados.length > 0 ? (
-                            clientesFiltrados.map((cliente, index) => (
+                        {clientesOrdenados.length > 0 ? (
+                            clientesOrdenados.map((cliente, index) => (
                                 <ItemView
                                     key={cliente.id || index}
                                     title={cliente.name || 'Sin nombre'}

@@ -34,6 +34,7 @@ import useProductosFiltrados from './hooks/useProductosFiltrados';
 import useAutoCargaCanastas from './hooks/useAutoCargaCanastas';
 import limpiarAlmacenLocalStorage from './helpers/limpiarAlmacenLocalStorage';
 import useCanastaActions from './hooks/useCanastaActions';
+import useSessionCache from '../../../hooks/useSessionCache';
 
 
 function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null, isRepitiendoMovimiento = false, isVentaCotizacionProp = false, onMovimientoEditado = null }) {
@@ -73,7 +74,14 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [movimientoIdParaDescarga, setMovimientoIdParaDescarga] = useState(null);
 
     // Estados para datos
-    const [productos, setProductos] = useState([]);
+    const {
+        value: productos,
+        setValue: setProductos,
+        hasCache: hasProductosCache,
+    } = useSessionCache({
+        key: 'almacenGeneralProductos',
+        defaultValue: [],
+    });
     const [preciosData, setPreciosData] = useState([])
     const [sucursalesData, setSucursalesData] = useState([]);
     
@@ -292,7 +300,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             resetFilters();
             
             // Resetear estados de carga
-            setProductosLoaded(false);
+            setProductosLoaded(hasProductosCache && productos.length > 0);
             setPreciosLoaded(false);
             setSucursalesLoaded(false);
 
@@ -304,7 +312,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             // Cargar canastas desde localStorage
             cargarCanastasDesdeLocalStorage();
         }
-    }, [isOpen, onPedidoActualizado, onEntregaConfirmada, pedidoIdEditando, isRepitiendoMovimiento, isVentaCotizacionProp, resetFilters]);
+    }, [isOpen, onPedidoActualizado, onEntregaConfirmada, pedidoIdEditando, isRepitiendoMovimiento, isVentaCotizacionProp, resetFilters, hasProductosCache, productos.length]);
 
 
    

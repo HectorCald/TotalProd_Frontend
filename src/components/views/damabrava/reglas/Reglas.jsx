@@ -15,12 +15,19 @@ import Notification from '../../../common/Notification';
 import FetchData from '../../../mixed/FetchData';
 import reglasProduccionDamabravaService from '../../../../services/reglasProduccionDamabravaService';
 import VerRegla from './VerRegla';
+import useSessionCache from '../../../../hooks/useSessionCache';
 
 function Reglas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
 
-    // Estados para reglas
-    const [reglas, setReglas] = useState([]);
+    // Estados para reglas (persistidos en sesión)
+    const {
+        value: reglas,
+        setValue: setReglas,
+    } = useSessionCache({
+        key: 'reglasDamabrava',
+        defaultValue: [],
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 

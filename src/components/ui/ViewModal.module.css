@@ -28,7 +28,7 @@
     border-top-right-radius: 25px;
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
     padding-bottom: 5px;
-    max-height: 100vh;
+    max-height: 98vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;

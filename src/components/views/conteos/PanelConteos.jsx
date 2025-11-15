@@ -14,6 +14,7 @@ import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
+import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCache';
 
 function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     const { isLargeScreen } = useLayout();
@@ -55,14 +56,30 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     };
 
     // Callbacks para FetchDataProgressive
+    const filterSignature = useMemo(() => JSON.stringify({
+        tipoConteo,
+    }), [tipoConteo]);
+
+    const {
+        hasCachedItems,
+        hydrateFromCache,
+        persistFirstPage,
+        mutateCachedItems,
+    } = useProgressiveSessionCache({
+        baseKey: 'panelConteos',
+        filtersSignature: filterSignature,
+        pageSize: 100,
+    });
+
     const handleDataLoaded = useCallback((data) => {
         setConteos(data);
         setError(null);
         setConteosLoaded(true);
-    }, []);
+        persistFirstPage(data);
+    }, [persistFirstPage]);
 
     const handleLoadingStart = useCallback(() => {
-        if (conteos.length === 0) {
+        if (conteos.length === 0 && !hasCachedItems) {
             setIsLoading(true);
             setIsLoadingConteos(true);
         }
@@ -75,7 +92,7 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
             }
             return newCount;
         });
-    }, [conteos.length, isLargeScreen]);
+    }, [conteos.length, isLargeScreen, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         setIsLoading(false);
@@ -121,6 +138,13 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
             setConteosLoaded(false);
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || conteos.length > 0) {
+            return;
+        }
+        hydrateFromCache(setConteos);
+    }, [isOpen, conteos.length, hydrateFromCache]);
 
     // Limpiar indicador cuando se cierra el modal
     useEffect(() => {
@@ -176,8 +200,11 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     };
 
     const handleConteoDeleted = (deletedConteoId) => {
-        // Remover el conteo eliminado del estado local
-        setConteos(prevConteos => prevConteos.filter(c => c.id !== deletedConteoId));
+        const aplicarEliminacion = (lista) =>
+            lista.filter(c => String(c.id) !== String(deletedConteoId));
+
+        setConteos(aplicarEliminacion);
+        mutateCachedItems(aplicarEliminacion);
         mostrarNotificacion('success', 'Conteo eliminado exitosamente');
     };
 

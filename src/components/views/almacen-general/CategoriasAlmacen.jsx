@@ -17,6 +17,7 @@ import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import LoadingSpinner from '../../common/LoadingSpinner';
+import useSessionCache from '../../../hooks/useSessionCache';
     
 function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategoriaSeleccionada }) {
     const { isLargeScreen } = useLayout();
@@ -34,8 +35,14 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
-    // Estados para categorías
-    const [categorias, setCategorias] = useState([]);
+    // Estados para categorías (cacheadas por sesión)
+    const {
+        value: categorias,
+        setValue: setCategorias,
+    } = useSessionCache({
+        key: 'categoriasAlmacenListado',
+        defaultValue: [],
+    });
     const [isLoading, setIsLoading] = useState(false);
 
     // Función para manejar cuando se cargan las categorías

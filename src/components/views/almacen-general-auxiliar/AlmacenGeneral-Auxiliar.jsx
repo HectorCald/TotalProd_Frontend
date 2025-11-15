@@ -28,6 +28,7 @@ import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import limpiarAlmacenLocalStorage from '../almacen-general/helpers/limpiarAlmacenLocalStorage';
+import useSessionCache from '../../../hooks/useSessionCache';
 
 function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoCotizacion = false }) {
     const { isLargeScreen } = useLayout();
@@ -45,8 +46,15 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
     const [isOpenDiferencia, setOpenDiferencia] = useState(false);
     const [filtroDiferencia, setFiltroDiferencia] = useState('todos');
 
-    // Estados para datos
-    const [productos, setProductos] = useState([]);
+    // Estados para datos (compartidos con AlmacenGeneral principal)
+    const {
+        value: productos,
+        setValue: setProductos,
+        hasCache: hasProductosCache,
+    } = useSessionCache({
+        key: 'almacenGeneralProductos',
+        defaultValue: [],
+    });
     const [preciosData, setPreciosData] = useState([]);
     const [sucursalesData, setSucursalesData] = useState([]);
     
@@ -216,7 +224,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
             resetFilters();
 
             // Resetear estados de carga
-            setProductosLoaded(false);
+            setProductosLoaded(hasProductosCache && productos.length > 0);
             setPreciosLoaded(false);
             setSucursalesLoaded(false);
             
@@ -243,7 +251,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
             }
 
         }
-    }, [isOpen, tipo, loadFromLocalStorage, isLargeScreen, resetFilters]);
+    }, [isOpen, tipo, loadFromLocalStorage, isLargeScreen, resetFilters, hasProductosCache, productos.length]);
 
     // Efecto para guardar cambios en localStorage (solo en modo conteo)
     useEffect(() => {

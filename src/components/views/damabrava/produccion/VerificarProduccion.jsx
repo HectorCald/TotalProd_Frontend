@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../../styles/Inicial.module.css';
 import HeaderView, { getPrimaryNormalizedValue } from '../../../common/HeaderView';
@@ -23,6 +23,7 @@ import FiltroFecha, { formatDateRangeForDisplay } from '../../../mixed/FiltroFec
 import Select from '../../../common/Select';
 import InputDate from '../../../common/InputDate';
 import FetchDataProgressive from '../../../mixed/FetchDataProgressive';
+import useProgressiveSessionCache from '../../../../hooks/useProgressiveSessionCache';
 
 function VerificarProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -66,6 +67,26 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         [filtroFecha.fin]
     );
 
+    const filterSignature = useMemo(() => JSON.stringify({
+        filtroEstado,
+        filtroResponsableId: filtroResponsable?.id || null,
+        ordenamiento,
+        search: debouncedSearchQuery || '',
+        fechaInicio: fechaInicioKey,
+        fechaFin: fechaFinKey,
+    }), [filtroEstado, filtroResponsable?.id, ordenamiento, debouncedSearchQuery, fechaInicioKey, fechaFinKey]);
+
+    const {
+        hasCachedItems,
+        hydrateFromCache,
+        persistFirstPage,
+        mutateCachedItems,
+    } = useProgressiveSessionCache({
+        baseKey: 'verificarProduccion',
+        filtersSignature: filterSignature,
+        pageSize: 30,
+    });
+
     // Estados para registros
     const [hasMorePages, setHasMorePages] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +98,8 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         // Para página 1: reemplazar datos
         setAllRegistros(data.length > 0 ? data : []);
         setRegistrosLoaded(true);
-    }, []);
+        persistFirstPage(data);
+    }, [persistFirstPage]);
 
     const handleDataAccumulated = useCallback((data) => {
         // Para páginas > 1: acumular datos
@@ -92,8 +114,10 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     }, []);
 
     const handleLoadingStart = useCallback(() => {
-        if (currentPage === 1 && allRegistros.length === 0) {
-            setIsLoading(true);
+        if (currentPage === 1) {
+            if (allRegistros.length === 0 && !hasCachedItems) {
+                setIsLoading(true);
+            }
         } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
@@ -106,7 +130,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [currentPage, allRegistros.length, isLargeScreen]);
+    }, [currentPage, allRegistros.length, isLargeScreen, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -164,6 +188,8 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             isMounted = false;
         };
     }, [isOpen]);
+
+    const lastFilterSignatureRef = useRef(filterSignature);
 
     // Resetear flags cuando se abre el modal (NO los datos)
     useEffect(() => {
@@ -262,15 +288,26 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         }
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen || currentPage !== 1 || allRegistros.length > 0) {
+            return;
+        }
+        hydrateFromCache(setAllRegistros);
+    }, [isOpen, currentPage, allRegistros.length, hydrateFromCache]);
+
     // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
     useEffect(() => {
-        if (isOpen) {
-            setAllRegistros([]);
-            setCurrentPage(1);
-            setRegistrosLoaded(false);
-            // FetchDataProgressive se encargará de recargar automáticamente
+        if (!isOpen) {
+            return;
         }
-    }, [debouncedSearchQuery, filtroEstado, ordenamiento, filtroResponsable, fechaInicioKey, fechaFinKey, isOpen]);
+        if (lastFilterSignatureRef.current === filterSignature) {
+            return;
+        }
+        lastFilterSignatureRef.current = filterSignature;
+        setAllRegistros([]);
+        setCurrentPage(1);
+        setRegistrosLoaded(false);
+    }, [filterSignature, isOpen]);
 
     // Efecto para manejar errores
     useEffect(() => {
@@ -283,9 +320,11 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     // Función para manejar cuando se elimina un registro
     const handleRegistroEliminado = (registroId) => {
         // Actualizar el estado local acumulado
-        setAllRegistros(prevRegistros =>
-            prevRegistros.filter(registro => registro.id !== registroId)
-        );
+        const aplicarEliminacion = (lista) =>
+            lista.filter(registro => String(registro.id) !== String(registroId));
+
+        setAllRegistros(aplicarEliminacion);
+        mutateCachedItems(aplicarEliminacion);
 
         mostrarNotificacion('success', 'Registro eliminado correctamente');
     };
@@ -297,13 +336,15 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             // Obtener el registro anterior para comparar
             const registroAnterior = allRegistros.find(r => r.id === registroActualizado.id);
 
-            setAllRegistros(prevRegistros =>
-                prevRegistros.map(registro =>
+            const aplicarActualizacion = (lista) =>
+                lista.map(registro =>
                     registro.id === registroActualizado.id
                         ? registroActualizado
                         : registro
-                )
-            );
+                );
+
+            setAllRegistros(aplicarActualizacion);
+            mutateCachedItems(aplicarActualizacion);
 
             // Mostrar notificación según el tipo de cambio
             if (registroActualizado.estado === 'verificado' && registroAnterior?.estado === 'pendiente') {
@@ -343,13 +384,14 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             }
         } else {
             // Fallback para compatibilidad (solo ID)
-            setAllRegistros(prevRegistros =>
-                prevRegistros.map(registro =>
+            const aplicarFallback = (lista) =>
+                lista.map(registro =>
                     registro.id === registroActualizado
                         ? { ...registro, estado: 'verificado' }
                         : registro
-                )
-            );
+                );
+            setAllRegistros(aplicarFallback);
+            mutateCachedItems(aplicarFallback);
             mostrarNotificacion('success', 'Registro verificado correctamente');
         }
     };

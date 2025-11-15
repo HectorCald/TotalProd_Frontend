@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { normalizeSearchValue, normalizedIncludes, getPrimaryNormalizedValue } from '../../common/HeaderView';
@@ -20,6 +20,7 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import { formatCurrency } from '../../../utils/numberUtils';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 import FiltroCliente from '../../mixed/FiltroCliente';
+import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCache';
 
 
 function PanelCotizaciones({ isOpen, setIsOpen }) {
@@ -72,6 +73,28 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         fechaFin: filtroFecha?.fin ? filtroFecha.fin.toISOString() : null
     }), [fechaFinKey, fechaInicioKey]);
 
+    const filterSignature = useMemo(() => JSON.stringify({
+        filtroEstado,
+        ordenamiento,
+        filtroClienteId: filtroCliente?.id || null,
+        search: debouncedSearchQuery || '',
+        fechaInicio: fechaInicioKey,
+        fechaFin: fechaFinKey,
+    }), [filtroEstado, ordenamiento, filtroCliente?.id, debouncedSearchQuery, fechaInicioKey, fechaFinKey]);
+
+    const {
+        hasCachedItems,
+        hydrateFromCache,
+        persistFirstPage,
+        mutateCachedItems,
+    } = useProgressiveSessionCache({
+        baseKey: 'panelCotizaciones',
+        filtersSignature: filterSignature,
+        pageSize: 30,
+    });
+
+    const lastFilterSignatureRef = useRef(filterSignature);
+
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
         type: 'info',
@@ -108,7 +131,8 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         setAllCotizaciones(data);
         setCotizacionesLoaded(true);
         setError(null);
-    }, []);
+        persistFirstPage(data);
+    }, [persistFirstPage]);
 
     const handleCotizacionesAccumulated = useCallback((data = []) => {
         if (!Array.isArray(data) || data.length === 0) return;
@@ -129,8 +153,10 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     }, []);
 
     const handleLoadingStart = useCallback(() => {
-        if (currentPage === 1 && allCotizaciones.length === 0) {
-            setIsLoading(true);
+        if (currentPage === 1) {
+            if (allCotizaciones.length === 0 && !hasCachedItems) {
+                setIsLoading(true);
+            }
         } else if (currentPage > 1) {
             setIsLoadingMore(true);
         }
@@ -143,7 +169,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [allCotizaciones.length, currentPage, isLargeScreen]);
+    }, [allCotizaciones.length, currentPage, isLargeScreen, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -232,21 +258,25 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     };
 
     const handleCotizacionEliminada = (cotizacionId) => {
-        setAllCotizaciones(prevCotizaciones => 
-            prevCotizaciones.filter(cotizacion => cotizacion.id !== cotizacionId)
-        );
+        const aplicarEliminacion = (lista) =>
+            lista.filter(cotizacion => String(cotizacion.id) !== String(cotizacionId));
+
+        setAllCotizaciones(aplicarEliminacion);
+        mutateCachedItems(aplicarEliminacion);
         
         mostrarNotificacion('success', 'Cotización eliminada correctamente');
     };
 
     const handleCotizacionActualizada = (cotizacionActualizada) => {
-        setAllCotizaciones(prevCotizaciones => 
-            prevCotizaciones.map(cotizacion => 
-                cotizacion.id === cotizacionActualizada.id 
+        const aplicarActualizacion = (lista) =>
+            lista.map(cotizacion =>
+                String(cotizacion.id) === String(cotizacionActualizada.id)
                     ? cotizacionActualizada
                     : cotizacion
-            )
-        );
+            );
+
+        setAllCotizaciones(aplicarActualizacion);
+        mutateCachedItems(aplicarActualizacion);
         
         if (cotizacionActualizada.estado === 'aprobada') {
             mostrarNotificacion('success', 'Cotización aprobada correctamente');
@@ -265,12 +295,6 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             setOrdenamiento('fecha_desc');
             setFiltroFecha({ inicio: null, fin: null });
             setFiltroCliente(null);
-            setAllCotizaciones([]);
-            setCurrentPage(1);
-            setCotizacionesLoaded(false);
-            setHasMorePages(false);
-            setIsLoading(false);
-            setIsLoadingMore(false);
         }
     }, [isOpen]);
 
@@ -279,17 +303,26 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             setShowRefreshIndicator(false);
             setIsRefreshing(false);
             setActiveRequests(0);
+            return;
         }
-    }, [isOpen]);
+        if (currentPage === 1 && allCotizaciones.length === 0) {
+            hydrateFromCache(setAllCotizaciones);
+        }
+    }, [isOpen, currentPage, allCotizaciones.length, hydrateFromCache]);
 
     useEffect(() => {
-        if (isOpen) {
-            setAllCotizaciones([]);
-            setCurrentPage(1);
-            setCotizacionesLoaded(false);
-            setHasMorePages(false);
+        if (!isOpen) {
+            return;
         }
-    }, [debouncedSearchQuery, filtroEstado, ordenamiento, filtroCliente?.id, fechaInicioKey, fechaFinKey, isOpen]);
+        if (lastFilterSignatureRef.current === filterSignature) {
+            return;
+        }
+        lastFilterSignatureRef.current = filterSignature;
+        setAllCotizaciones([]);
+        setCurrentPage(1);
+        setCotizacionesLoaded(false);
+        setHasMorePages(false);
+    }, [filterSignature, isOpen]);
 
     useEffect(() => {
         if (error) {

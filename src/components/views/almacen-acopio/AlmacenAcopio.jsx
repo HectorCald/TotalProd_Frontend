@@ -28,6 +28,7 @@ import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
+import useSessionCache from '../../../hooks/useSessionCache';
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
@@ -70,7 +71,14 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
 
     // Estados para productos
-    const [productos, setProductos] = useState([]);
+    const {
+        value: productos,
+        setValue: setProductos,
+        hasCache: hasProductosCache,
+    } = useSessionCache({
+        key: 'almacenAcopioProductos',
+        defaultValue: [],
+    });
     const [error, setError] = useState(null);
 
     // Función para manejar cuando inicia la carga
@@ -232,14 +240,14 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
             setOrdenamiento('nombre_asc');
 
             // Resetear estados de carga
-            setProductosLoaded(false);
+            setProductosLoaded(hasProductosCache && productos.length > 0);
             setCategoriasLoaded(false);
             setTiposMedidaLoaded(false);
 
             // Cargar canastas desde localStorage
             cargarCanastasDesdeLocalStorage();
         }
-    }, [isOpen]);
+    }, [isOpen, hasProductosCache, productos.length]);
 
     // Funciones para el buscador expandible
     const handleSearchChange = (value) => {
