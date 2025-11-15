@@ -13,6 +13,13 @@ import { useLayout } from '../../../../context/LayoutContext';
 import productsAlmacenService from '../../../../services/productsAlmacenService';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
 
+const initialRecetaState = {
+    loading: false,
+    tieneReceta: false,
+    error: null,
+    productoId: null
+};
+
 function FormularioProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
     const [dataProduccion, setDataProduccion] = useState({
@@ -28,6 +35,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
     const [productos, setProductos] = useState([]);
     const [loadingProductos, setLoadingProductos] = useState(false);
     const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+    const [recetaProductoState, setRecetaProductoState] = useState(initialRecetaState);
 
     // Estado para notificaciones
     const [notification, setNotification] = useState({
@@ -56,6 +64,54 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
         }, 3000);
     };
 
+    const resetRecetaProductoState = () => {
+        setRecetaProductoState({ ...initialRecetaState });
+    };
+
+    const verificarRecetaProducto = async (productoId) => {
+        if (!productoId) {
+            resetRecetaProductoState();
+            return;
+        }
+
+        setRecetaProductoState(prev => ({
+            ...prev,
+            loading: true,
+            productoId,
+            error: null,
+            tieneReceta: false
+        }));
+
+        try {
+            const response = await productsAlmacenService.getById(productoId);
+            if (response.success && response.data) {
+                const tieneReceta = Array.isArray(response.data.recetas) && response.data.recetas.length > 0;
+                setRecetaProductoState({
+                    loading: false,
+                    tieneReceta,
+                    error: tieneReceta ? null : 'El producto seleccionado no tiene receta. Informe al administrador.',
+                    productoId
+                });
+            } else {
+                const mensaje = response.message || 'No se pudo validar la receta del producto';
+                setRecetaProductoState({
+                    loading: false,
+                    tieneReceta: false,
+                    error: mensaje,
+                    productoId
+                });
+            }
+        } catch (error) {
+            const mensaje = error.message || 'Error de conexión al validar la receta del producto';
+            setRecetaProductoState({
+                loading: false,
+                tieneReceta: false,
+                error: mensaje,
+                productoId
+            });
+        }
+    };
+
     // Funciones para manejar la carga de productos
     const handleProductosLoaded = (data) => {
         setProductos(data || []);
@@ -81,6 +137,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                 fechaVencimiento: ''
             });
             setProductoSeleccionado(null);
+            resetRecetaProductoState();
             setNotification({
                 isVisible: false,
                 type: 'error',
@@ -103,6 +160,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
     const handleProductoSelect = (producto) => {
         setProductoSeleccionado(producto);
         setDataProduccion(prev => ({ ...prev, producto: producto.name }));
+        verificarRecetaProducto(producto.id);
     };
 
     // Función para manejar el cambio manual del input de producto
@@ -113,6 +171,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
         // Si el valor no coincide exactamente con el producto seleccionado, limpiar la selección
         if (!productoSeleccionado || productoSeleccionado.name !== value) {
             setProductoSeleccionado(null);
+            resetRecetaProductoState();
         }
     };
 
@@ -121,6 +180,22 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
         // Validaciones
         if (!dataProduccion.producto.trim()) {
             mostrarNotificacion('error', 'El producto es obligatorio');
+            return;
+        }
+
+        if (!productoSeleccionado || !productoSeleccionado.id) {
+            mostrarNotificacion('error', 'Debe seleccionar un producto válido de la lista');
+            return;
+        }
+
+        if (recetaProductoState.loading) {
+            mostrarNotificacion('warning', 'Estamos validando la receta del producto, por favor espera.');
+            return;
+        }
+
+        if (!recetaProductoState.tieneReceta) {
+            const mensaje = recetaProductoState.error || 'El producto seleccionado no tiene receta. Informe al administrador.';
+            mostrarNotificacion('error', mensaje);
             return;
         }
 
@@ -177,13 +252,6 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                 terminados: parseInt(dataProduccion.terminados),
                 vencimiento: dataProduccion.fechaVencimiento
             };
-
-            // Validar que se haya seleccionado un producto válido
-            if (!productoSeleccionado || !productoSeleccionado.id) {
-                mostrarNotificacion('error', 'Debe seleccionar un producto válido de la lista');
-                return;
-            }
-
 
             // Enviar datos al servidor
             const response = await registrosProduccionDamabravaService.create(registroData);
@@ -311,7 +379,9 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                                 !dataProduccion.proceso ||
                                 !dataProduccion.terminados ||
                                 !dataProduccion.fechaVencimiento ||
-                                !productoSeleccionado
+                                !productoSeleccionado ||
+                                recetaProductoState.loading ||
+                                !recetaProductoState.tieneReceta
                             }
                         />
                     </div>

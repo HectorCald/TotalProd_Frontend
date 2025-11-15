@@ -65,8 +65,16 @@ class cotizacionesService {
     }
   }
 
-  // Obtener todas las cotizaciones de una sucursal
-  static async getAll(filters = {}) {
+  // Obtener todas las cotizaciones de una sucursal (paginadas)
+  static async getAll(
+    page = 1,
+    limit = 30,
+    estado = null,
+    ordenamiento = 'fecha_desc',
+    clienteId = null,
+    search = null,
+    filtroFecha = null
+  ) {
     try {
       const sucuId = getSucuId();
       if (!sucuId) {
@@ -77,15 +85,39 @@ class cotizacionesService {
       }
 
       const params = new URLSearchParams({
-        sucu_id: sucuId
+        sucu_id: sucuId,
+        page: page.toString(),
+        limit: limit.toString()
       });
 
-      const { fechaInicio = null, fechaFin = null } = filters || {};
-      if (fechaInicio) {
-        params.append('fecha_inicio', fechaInicio);
+      if (estado) {
+        params.append('estado', estado);
       }
-      if (fechaFin) {
-        params.append('fecha_fin', fechaFin);
+      if (ordenamiento) {
+        params.append('ordenamiento', ordenamiento);
+      }
+      if (clienteId) {
+        params.append('cliente', clienteId);
+      }
+      if (search && search.trim() !== '') {
+        params.append('search', search.trim());
+      }
+      if (filtroFecha) {
+        if (filtroFecha.fechaInicio || filtroFecha.fechaFin) {
+          if (filtroFecha.fechaInicio) {
+            params.append('fecha_inicio', filtroFecha.fechaInicio);
+          }
+          if (filtroFecha.fechaFin) {
+            params.append('fecha_fin', filtroFecha.fechaFin);
+          }
+        } else {
+          if (filtroFecha.inicio) {
+            params.append('fecha_inicio', filtroFecha.inicio);
+          }
+          if (filtroFecha.fin) {
+            params.append('fecha_fin', filtroFecha.fin);
+          }
+        }
       }
 
       const response = await fetch(`${API_BASE_URL}/cotizaciones?${params}`, {
@@ -104,13 +136,9 @@ class cotizacionesService {
         throw error;
       }
 
-      return {
-        success: true,
-        data: data.data || []
-      };
+      return data;
     } catch (error) {
       console.error('Error obteniendo cotizaciones:', error);
-      // Re-lanzar el error para que el componente lo capture correctamente
       throw error;
     }
   }

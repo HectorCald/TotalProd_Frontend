@@ -12,6 +12,7 @@ import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
 import EditarAgregarGasto from './EditarAgregarGasto';
+import { formatCurrency } from '../../../utils/numberUtils';
 
 function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualizado }) {
     const [loading, setLoading] = useState(false);
@@ -48,7 +49,7 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
             'Responsable': gasto?.user?.name || gasto?.personal?.name || 'Usuario desconocido',
             'Fecha': formatearFecha(gasto?.fecha_gasto),
             'Concepto': gasto?.concepto || 'Sin concepto',
-            'Valor': `Bs. ${(parseFloat(gasto?.valor) || 0).toFixed(2)}`,
+            'Valor': formatCurrency(gasto?.valor),
             'Método de Pago': gasto?.metodo_pago || 'No especificado',
             'Sucursal': gasto?.sucursal?.name || 'Sucursal no encontrada'
         };
@@ -117,7 +118,7 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
 
                 <ItemView
                     title={gasto?.concepto || 'Sin concepto'}
-                    description2={`Valor: Bs. ${(parseFloat(gasto?.valor) || 0).toFixed(2)}`}
+                    description2={`Valor: ${formatCurrency(gasto?.valor)}`}
                     transparent={false}
                     flot6="Gasto"
                     icon='money'
@@ -149,7 +150,7 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
                     />
                     <Dato
                         label="Valor"
-                        value={`Bs. ${(parseFloat(gasto?.valor) || 0).toFixed(2)}`}
+                        value={formatCurrency(gasto?.valor)}
                         vertical={false}
                         especial='red'
                     />

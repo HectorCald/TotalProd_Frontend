@@ -22,6 +22,7 @@ import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
+import { formatCurrency } from '../../../utils/numberUtils';
 
 function PanelGastos({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -378,7 +379,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
         { key: 'metodo_pago', label: 'Método de Pago', icon: 'credit-card' },
         { key: 'proveedor', label: 'Proveedor', icon: 'user' },
-        { key: 'valor', label: 'Valor', icon: 'dollar' }
+        { key: 'monto', label: 'Monto', icon: 'dollar' }
     ];
 
     // Función helper para formatear fecha sin problemas de zona horaria
@@ -408,7 +409,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
         fecha: formatearFecha(gasto.fecha_gasto),
         metodo_pago: gasto.metodo_pago || 'Sin método de pago',
         proveedor: gasto.proveedor?.name || '--',
-        valor: `Bs. ${(gasto.valor || 0).toFixed(2)}`
+        monto: formatCurrency(gasto.valor || 0)
     }));
 
     return (
@@ -456,6 +457,13 @@ function PanelGastos({ isOpen, setIsOpen }) {
                                             const gastoOriginal = allGastos.find(g => g.id === gasto.id);
                                             handleGasto(gastoOriginal);
                                         }}
+                                        columnWidths={{
+                                            concepto: '32%',
+                                            fecha: '15%',
+                                            metodo_pago: '18%',
+                                            proveedor: '25%',
+                                            monto: '15%'
+                                        }}
                                     />
                                     {/* Indicador de carga para más elementos */}
                                     {isLoadingMore && (
@@ -484,7 +492,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
                                                 icon='money'
                                                 onClick={() => handleGasto(gasto)}
                                                 arrow={false}
-                                                flot3={`Bs. ${(gasto.valor || 0).toFixed(2)}`}
+                                                flot3={formatCurrency(gasto.valor || 0)}
                                             />
                                         );
                                     })

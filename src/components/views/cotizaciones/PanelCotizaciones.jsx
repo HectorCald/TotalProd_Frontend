@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView, { normalizeSearchValue, normalizedIncludes } from '../../common/HeaderView';
+import HeaderView, { normalizeSearchValue, normalizedIncludes, getPrimaryNormalizedValue } from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import VerCotizacion from './VerCotizacion';
@@ -14,11 +14,12 @@ import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroEstadoCotizacion from '../../mixed/FiltroEstadoCotizacion';
 import NoData from '../../common/NoData';
-import FetchData from '../../mixed/FetchData';
+import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import { formatCurrency } from '../../../utils/numberUtils';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
+import FiltroCliente from '../../mixed/FiltroCliente';
 
 
 function PanelCotizaciones({ isOpen, setIsOpen }) {
@@ -28,29 +29,33 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     const [isOpenVerCotizacion, setIsOpenVerCotizacion] = useState(false);
     const [infoCotizacion, setInfoCotizacion] = useState(null);
 
-    // Estados para búsqueda
+    // Estados para paginación y búsqueda
+    const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-    
+    const [debouncedSearchQuery] = useDebounce(searchQueryNormalized, 500);
+
     // Estados para loading
-    const [isLoadingCotizaciones, setIsLoadingCotizaciones] = useState(false);
-    
+    const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [cotizacionesLoaded, setCotizacionesLoaded] = useState(false);
+
     // Estados para RefreshIndicator (solo PC)
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeRequests, setActiveRequests] = useState(0);
-    
+
     // Estado para acumular o reemplazar las cotizaciones mostradas
     const [allCotizaciones, setAllCotizaciones] = useState([]);
-    
-    // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+    const [hasMorePages, setHasMorePages] = useState(false);
 
     // Estados para filtros
     const [filtroEstado, setFiltroEstado] = useState(null);
+    const [filtroEstadoNombre, setFiltroEstadoNombre] = useState('Todos los estados');
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
     const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
+    const [filtroCliente, setFiltroCliente] = useState(null);
     const fechaInicioKey = useMemo(
         () => (filtroFecha.inicio ? filtroFecha.inicio.toISOString() : null),
         [filtroFecha.inicio]
@@ -60,11 +65,8 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         [filtroFecha.fin]
     );
 
-    // Estados para cotizaciones
-    const [cotizaciones, setCotizaciones] = useState([]);
     const [error, setError] = useState(null);
 
-    // Estados y configuraciones para el modal de información
     const filtroFechaPayload = useMemo(() => ({
         fechaInicio: filtroFecha?.inicio ? filtroFecha.inicio.toISOString() : null,
         fechaFin: filtroFecha?.fin ? filtroFecha.fin.toISOString() : null
@@ -77,46 +79,81 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         description: '',
         showButton: false
     });
+
     const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
+    const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
+    const [isOpenFiltroCliente, setIsOpenFiltroCliente] = useState(false);
 
+    // Estados para la notificación
+    const [notification, setNotification] = useState({
+        isVisible: false,
+        type: 'success',
+        text: ''
+    });
 
-    // Función para manejar cuando se cargan las cotizaciones
-    const handleCotizacionesLoaded = useCallback((data) => {
-        setCotizaciones(data);
+    const mostrarNotificacion = (tipo, texto) => {
+        setNotification({
+            isVisible: true,
+            type: tipo,
+            text: texto
+        });
+
+        setTimeout(() => {
+            setNotification(prev => ({ ...prev, isVisible: false }));
+        }, 3000);
+    };
+
+    // Funciones de carga
+    const handleCotizacionesLoaded = useCallback((data = []) => {
         setAllCotizaciones(data);
-        setError(null); // Limpiar error cuando se cargan datos exitosamente
+        setCotizacionesLoaded(true);
+        setError(null);
     }, []);
 
-    // Función para manejar errores de FetchData
-    const handleError = useCallback((error) => {
-        setError(error);
+    const handleCotizacionesAccumulated = useCallback((data = []) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        setAllCotizaciones(prev => {
+            const existingIds = new Set(prev.map(c => c.id));
+            const merged = [...prev];
+            data.forEach(item => {
+                if (item && !existingIds.has(item.id)) {
+                    merged.push(item);
+                }
+            });
+            return merged;
+        });
     }, []);
 
-    // Función para manejar cuando inicia la carga
+    const handleError = useCallback((fetchError) => {
+        setError(fetchError);
+    }, []);
+
     const handleLoadingStart = useCallback(() => {
-        // Solo mostrar loading si no hay datos cargados
-        if (allCotizaciones.length === 0) {
-            setIsLoadingCotizaciones(true);
+        if (currentPage === 1 && allCotizaciones.length === 0) {
+            setIsLoading(true);
+        } else if (currentPage > 1) {
+            setIsLoadingMore(true);
         }
-        // Incrementar contador de peticiones activas
+
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
             if (isLargeScreen && newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [allCotizaciones.length, isLargeScreen]);
+    }, [allCotizaciones.length, currentPage, isLargeScreen]);
 
-    // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
-        setIsLoadingCotizaciones(false);
-        // Decrementar contador de peticiones activas
+        if (currentPage === 1) {
+            setIsLoading(false);
+        } else {
+            setIsLoadingMore(false);
+        }
+
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
-            // Ocultar RefreshIndicator cuando no hay peticiones activas
             if (newCount === 0 && isLargeScreen) {
                 setTimeout(() => {
                     setIsRefreshing(false);
@@ -127,56 +164,22 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [isLargeScreen]);
+    }, [currentPage, isLargeScreen]);
 
-    // Función para manejar refresh
-    const handleRefresh = async () => {
-        try {
-            const response = await cotizacionesService.getAll(filtroFechaPayload);
-            if (response.success) {
-                setCotizaciones(response.data);
-                setAllCotizaciones(response.data);
-            }
-        } catch (error) {
-            console.error('Error al refrescar cotizaciones:', error);
-        }
+    const handleHasMorePagesChange = useCallback((hasMore) => {
+        setHasMorePages(Boolean(hasMore));
+    }, []);
+
+    const handleRefresh = () => {
+        setAllCotizaciones([]);
+        setCurrentPage(1);
+        setCotizacionesLoaded(false);
+        setHasMorePages(false);
     };
 
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
-    // Estados para filtros y modales
-    const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
-    const [filtroEstadoNombre, setFiltroEstadoNombre] = useState('Todos los estados');
-
-    // Función para manejar el click en una cotización
-    const handleRegistro = (cotizacion) => {
-        setInfoCotizacion(cotizacion);
-        setIsOpenVerCotizacion(true);
-    };
-
-
-    // Función para manejar filtro de estado
+    // Funciones para filtros
     const handleFiltroEstado = (estado) => {
         setFiltroEstado(estado);
-        
-        // Actualizar el nombre del filtro
         if (estado === null) {
             setFiltroEstadoNombre('Todos los estados');
         } else if (estado === 'pendiente') {
@@ -186,9 +189,15 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         } else if (estado === 'anulado') {
             setFiltroEstadoNombre('Anuladas');
         }
+        setCurrentPage(1);
     };
 
-    // Funciones para el buscador expandible
+    const handleFiltroCliente = (cliente) => {
+        setFiltroCliente(cliente);
+        setCurrentPage(1);
+    };
+
+    // Funciones de búsqueda
     const handleSearchChange = (value) => {
         setSearchQuery(value);
     };
@@ -206,56 +215,13 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         setIsSearchExpanded(isExpanded);
     };
 
-    // Efecto para resetear búsqueda cuando se abre
-    useEffect(() => {
-        if (isOpen) {
-            setSearchQuery('');
-            setSearchQueryNormalized('');
-            setFiltroEstado(null);
-            setFiltroEstadoNombre('Todos los estados');
-            setOrdenamiento('fecha_desc');
-            setFiltroFecha({ inicio: null, fin: null });
-        }
-    }, [isOpen]);
+    // Función para manejar el click en una cotización
+    const handleRegistro = (cotizacion) => {
+        setInfoCotizacion(cotizacion);
+        setIsOpenVerCotizacion(true);
+    };
 
-    useEffect(() => {
-        if (isOpen) {
-            setAllCotizaciones([]);
-            setCotizaciones([]);
-            setIsLoadingCotizaciones(false);
-        }
-    }, [fechaInicioKey, fechaFinKey, isOpen]);
-
-    // Efecto para manejar errores
-    useEffect(() => {
-        if (error) {
-            console.error('Error obteniendo cotizaciones:', error);
-        }
-    }, [error]);
-
-    // Manejar error 403 con useEffect para evitar bucle infinito
-    useEffect(() => {
-        if (error && error.status === 403 && isOpen) {
-            const errorMessage = error.message || 'No tienes acceso a este módulo';
-            const currentPlan = error.currentPlan || 'Plan actual';
-            const requiredModule = error.requiredModule || 'Cotizaciones';
-            
-            setModalConfig({
-                isOpen: true,
-                type: 'info',
-                title: 'Modulo no incluido',
-                description: `${errorMessage}`,
-                showButton: true
-            });
-        } else if (!error || error.status !== 403) {
-            // Si no hay error o el error no es 403, cerrar el modal
-            setModalConfig(prev => ({ ...prev, isOpen: false }));
-        }
-    }, [error, isOpen]);
-
-    // Función para manejar cuando se anula una cotización (mantener para compatibilidad)
     const handleCotizacionAnulada = (cotizacionId) => {
-        // Buscar la cotización y actualizarla
         const cotizacionActualizada = allCotizaciones.find(c => c.id === cotizacionId);
         if (cotizacionActualizada) {
             handleCotizacionActualizada({
@@ -265,9 +231,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         }
     };
 
-    // Función para manejar cuando se elimina una cotización
     const handleCotizacionEliminada = (cotizacionId) => {
-        // Actualizar el estado local acumulado
         setAllCotizaciones(prevCotizaciones => 
             prevCotizaciones.filter(cotizacion => cotizacion.id !== cotizacionId)
         );
@@ -275,9 +239,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         mostrarNotificacion('success', 'Cotización eliminada correctamente');
     };
 
-    // Función para manejar cuando se actualiza una cotización (anular, aprobar, etc.)
     const handleCotizacionActualizada = (cotizacionActualizada) => {
-        // Actualizar el estado local acumulado con la cotización actualizada
         setAllCotizaciones(prevCotizaciones => 
             prevCotizaciones.map(cotizacion => 
                 cotizacion.id === cotizacionActualizada.id 
@@ -286,7 +248,6 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             )
         );
         
-        // Mostrar notificación según el estado
         if (cotizacionActualizada.estado === 'aprobada') {
             mostrarNotificacion('success', 'Cotización aprobada correctamente');
         } else if (cotizacionActualizada.estado === 'anulado') {
@@ -294,13 +255,71 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         }
     };
 
-    // Función para obtener el nombre del filtro de estado
-    const getEstadoNombre = () => {
-        return filtroEstadoNombre;
-    };
+    // Efectos
+    useEffect(() => {
+        if (isOpen) {
+            setSearchQuery('');
+            setSearchQueryNormalized('');
+            setFiltroEstado(null);
+            setFiltroEstadoNombre('Todos los estados');
+            setOrdenamiento('fecha_desc');
+            setFiltroFecha({ inicio: null, fin: null });
+            setFiltroCliente(null);
+            setAllCotizaciones([]);
+            setCurrentPage(1);
+            setCotizacionesLoaded(false);
+            setHasMorePages(false);
+            setIsLoading(false);
+            setIsLoadingMore(false);
+        }
+    }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) {
+            setShowRefreshIndicator(false);
+            setIsRefreshing(false);
+            setActiveRequests(0);
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen) {
+            setAllCotizaciones([]);
+            setCurrentPage(1);
+            setCotizacionesLoaded(false);
+            setHasMorePages(false);
+        }
+    }, [debouncedSearchQuery, filtroEstado, ordenamiento, filtroCliente?.id, fechaInicioKey, fechaFinKey, isOpen]);
+
+    useEffect(() => {
+        if (error) {
+            console.error('Error obteniendo cotizaciones:', error);
+        }
+    }, [error]);
+
+    useEffect(() => {
+        if (error && error.status === 403 && isOpen) {
+            const errorMessage = error.message || 'No tienes acceso a este módulo';
+            
+            setModalConfig({
+                isOpen: true,
+                type: 'info',
+                title: 'Modulo no incluido',
+                description: `${errorMessage}`,
+                showButton: true
+            });
+        } else if (!error || error.status !== 403) {
+            setModalConfig(prev => ({ ...prev, isOpen: false }));
+        }
+    }, [error, isOpen]);
+
+    // Helpers para filtros
+    const getEstadoNombre = () => filtroEstadoNombre;
     const getFechaNombre = () => formatDateRangeForDisplay(filtroFecha?.inicio, filtroFecha?.fin, 'Fecha');
-
+    const getClienteNombre = () => {
+        if (!filtroCliente) return 'Todos los clientes';
+        return filtroCliente.name || 'Cliente seleccionado';
+    };
 
     const opciones = [
         {
@@ -312,6 +331,11 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             label: getFechaNombre(),
             active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
             onClick: () => setIsOpenFiltroFecha(true)
+        },
+        {
+            label: getClienteNombre(),
+            active: filtroCliente !== null,
+            onClick: () => setIsOpenFiltroCliente(true)
         }
     ];
 
@@ -327,37 +351,22 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
 
     // Filtrar cotizaciones localmente
     const cotizacionesFiltradas = allCotizaciones.filter(cotizacion => {
-        // Filtro de búsqueda normalizado
         const normalizedQuery = searchQueryNormalized || normalizeSearchValue(searchQuery);
-        
-        // Debug: Log de búsqueda si hay query
-        if (searchQuery && searchQuery.trim()) {
-            console.log('[PanelCotizaciones] Buscando:', {
-                query: searchQuery,
-                normalized: normalizedQuery,
-                cotizacionId: cotizacion.id,
-                numero: cotizacion.numero_cotizacion,
-                cliente: cotizacion.cliente?.name,
-                productos: cotizacion.productos?.length || 0
-            });
-        }
         
         const matchesSearch = !normalizedQuery ||
             normalizedIncludes(normalizeSearchValue(cotizacion.numero_cotizacion?.toString() || ''), normalizedQuery) ||
             normalizedIncludes(normalizeSearchValue(cotizacion.cliente?.name || ''), normalizedQuery) ||
             normalizedIncludes(normalizeSearchValue(cotizacion.observaciones || ''), normalizedQuery) ||
-            // Buscar en productos de la cotización
             (cotizacion.productos && cotizacion.productos.some(producto => 
                 normalizedIncludes(normalizeSearchValue(producto.producto?.name || ''), normalizedQuery) ||
                 normalizedIncludes(normalizeSearchValue(producto.producto?.description || ''), normalizedQuery)
             ));
 
-        // Filtro de estado
         const matchesEstado = filtroEstado === null || cotizacion.estado === filtroEstado;
+        const matchesCliente = !filtroCliente || cotizacion.cliente?.id === filtroCliente.id;
 
-        return matchesSearch && matchesEstado;
+        return matchesSearch && matchesEstado && matchesCliente;
     }).sort((a, b) => {
-        // Ordenamiento
         switch (ordenamiento) {
             case 'fecha_desc':
                 return new Date(b.fecha) - new Date(a.fecha);
@@ -374,7 +383,6 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
 
     // Datos para la tabla
     const tableData = cotizacionesFiltradas.map(cotizacion => {
-        // Procesar nombre del usuario/personal
         let responsable = 'Usuario desconocido';
         if (cotizacion.user) {
             responsable = `${cotizacion.user.first_name || ''} ${cotizacion.user.last_name || ''}`.trim();
@@ -394,26 +402,25 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         };
     });
 
-    // Función para obtener el badge de estado
     const getCellBadge = (item, headerKey) => {
         if (headerKey === 'estado') {
             const estado = item.estado;
             const badgeConfig = {
                 'Pendiente': {
                     text: 'Pendiente',
-                    className: 'warning' // amarillo
+                    className: 'warning'
                 },
                 'Aprobada': {
                     text: 'Aprobada',
-                    className: 'success' // verde
+                    className: 'success'
                 },
                 'Anulado': {
                     text: 'Anulado',
-                    className: 'error' // rojo
+                    className: 'error'
                 },
                 'Completado': {
                     text: 'Completado',
-                    className: 'info' // verde
+                    className: 'info'
                 },
             };
             
@@ -425,6 +432,13 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         
         return null;
     };
+
+    const handleScroll = useCallback((e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading && !isLoadingMore) {
+            setCurrentPage(prev => prev + 1);
+        }
+    }, [hasMorePages, isLoading, isLoadingMore]);
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
@@ -441,24 +455,21 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 title="Cotizaciones"
             />
             <div className={styles.container}>
-                {isLoadingCotizaciones ? (
-                    // Mostrar LoadingSpinner cuando está cargando
+                {isLoading ? (
                     <LoadingSpinner />
                 ) : (
                     <>
-                        {isLargeScreen && (
-                            <div className={styles.titleContainer}>
-                                <RefreshIndicator
-                                    isVisible={showRefreshIndicator}
-                                    isLoading={isRefreshing}
-                                />
-                            </div>
-                        )}
+                        <div className={styles.titleContainer}>
+                            <RefreshIndicator
+                                isVisible={showRefreshIndicator}
+                                isLoading={isRefreshing}
+                            />
+                        </div>
                         <Filtros options={opciones} />
                         {isLargeScreen ? (
-                            // Vista de tabla para pantallas grandes
                             <div
                                 className={styles.content}
+                                onScroll={handleScroll}
                                 style={{
                                     maxHeight: '100%'
                                 }}
@@ -467,11 +478,11 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                                     headers={tableHeaders}
                                     data={tableData}
                                     onRowClick={(cotizacion) => {
-                                        // Buscar la cotización original sin formatear
                                         const cotizacionOriginal = cotizacionesFiltradas.find(c => c.id === cotizacion.id);
                                         handleRegistro(cotizacionOriginal);
                                     }}
                                     getCellBadge={getCellBadge}
+                                    onScroll={handleScroll}
                                     columnWidths={{
                                         numero_cotizacion: '5%',
                                         cliente: '25%',
@@ -481,20 +492,24 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                                         metodo_pago: '15%'
                                     }}
                                 />
+
+                                {isLoadingMore && (
+                                    <LoadingSpinner />
+                                )}
                             </div>
                         ) : (
-                            // Vista de cards para pantallas pequeñas con PullToRefresh
                             <PullToRefresh
                                 onRefresh={handleRefresh}
                                 screenName="Cotizaciones"
                                 containerStyle={{
-                                    maxHeight: 'calc(100% - 80px)',
-                                    minHeight: 'calc(100% - 80px)'
+                                    maxHeight: '100%',
+                                    minHeight: '100%'
                                 }}
+                                onScroll={handleScroll}
                             >
                                 {cotizacionesFiltradas.length > 0 ? (
-                                    cotizacionesFiltradas.map((cotizacion, index) => {
-                                        return (
+                                    <>
+                                        {cotizacionesFiltradas.map((cotizacion, index) => (
                                             <ItemView
                                                 key={cotizacion.id || index}
                                                 title={`Cotización #${cotizacion.numero_cotizacion || 'Sin número'} - ${cotizacion.cliente?.name || 'Sin cliente'}`}
@@ -507,13 +522,17 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                                                 flot2={cotizacion?.estado === 'pendiente' ? 'Pendiente' : ''}
                                                 flot5={cotizacion?.estado === 'completado' ? 'Completado' : ''}
                                             />
-                                        );
-                                    })
+                                        ))}
+
+                                        {isLoadingMore && (
+                                            <LoadingSpinner />
+                                        )}
+                                    </>
                                 ) : (
                                     <NoData 
                                         icon="file"
-                                        title={searchQuery || filtroEstado !== null ? 'Sin resultados' : 'No hay cotizaciones'}
-                                        detail={searchQuery || filtroEstado !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar las cotizaciones que necesitas' : 'Crea cotizaciones para comenzar a gestionar tus presupuestos'}
+                                        title={searchQuery || filtroEstado !== null || filtroCliente !== null ? 'Sin resultados' : 'No hay cotizaciones'}
+                                        detail={searchQuery || filtroEstado !== null || filtroCliente !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar las cotizaciones que necesitas' : 'Crea cotizaciones para comenzar a gestionar tus presupuestos'}
                                         transparent={true}
                                         minHeight="200px"
                                     />
@@ -547,6 +566,13 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 onEstadoSeleccionado={handleFiltroEstado}
             />
 
+            <FiltroCliente
+                isOpen={isOpenFiltroCliente}
+                setIsOpen={setIsOpenFiltroCliente}
+                onClienteSeleccionado={handleFiltroCliente}
+                clienteSeleccionado={filtroCliente}
+            />
+
             <FiltroFecha
                 isOpen={isOpenFiltroFecha}
                 setIsOpen={setIsOpenFiltroFecha}
@@ -561,7 +587,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             {/* Modal de Información */}
             <InfoModal
                 isOpen={modalConfig.isOpen}
-                setIsOpen={(isOpen) => setModalConfig(prev => ({ ...prev, isOpen }))}
+                setIsOpen={(modalIsOpen) => setModalConfig(prev => ({ ...prev, isOpen: modalIsOpen }))}
                 type={modalConfig.type}
                 title={modalConfig.title}
                 description={modalConfig.description}
@@ -570,17 +596,28 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 onButtonClick={() => setIsOpen(false)}
             />
 
-            {/* Carga de datos - solo cuando está abierto */}
+            {/* Carga de datos progresiva - solo cuando está abierto */}
             {isOpen && (
-                <FetchData
+                <FetchDataProgressive
                     service={cotizacionesService}
+                    method="getAll"
+                    methodParams={[
+                        filtroEstado,
+                        ordenamiento,
+                        filtroCliente?.id || null,
+                        getPrimaryNormalizedValue(debouncedSearchQuery),
+                        filtroFechaPayload
+                    ]}
                     serviceName="cotizacionesService"
-                    methodParams={[filtroFechaPayload]}
-                    isOpen={isOpen}
+                    isOpen={isOpen && ((!cotizacionesLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}
+                    page={currentPage}
+                    limit={30}
                     onDataLoaded={handleCotizacionesLoaded}
+                    onDataAccumulated={handleCotizacionesAccumulated}
                     onLoadingStart={handleLoadingStart}
                     onLoadingEnd={handleLoadingEnd}
                     onError={handleError}
+                    onHasMorePagesChange={handleHasMorePagesChange}
                 />
             )}
 
