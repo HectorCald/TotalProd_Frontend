@@ -417,7 +417,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
             <HeaderView
                 onBack={() => setIsOpen(false)}
                 showSearch={true}
-                searchPlaceholder="Buscar gasto por concepto..."
+                searchPlaceholder="Buscar gasto por concepto...."
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
                 onSearchNormalizedChange={handleSearchNormalizedChange}
