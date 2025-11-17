@@ -27,6 +27,7 @@ import Reglas from '../views/damabrava/reglas/Reglas';
 import PanelPagos from '../views/damabrava/produccion/pagos/PanelPagos';
 import AlmacenGeneralAuxiliar from '../views/almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import AlmacenAcopioAuxiliar from '../views/almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
+import AlmacenGeneralII from '../views/almacen-general-auxiliar-II/AlmacenGeneral-II';
 import PanelConteos from '../views/conteos/PanelConteos';
 import PanelCotizaciones from '../views/cotizaciones/PanelCotizaciones';
 import ImportExport from '../views/exportar-importar/ImportExport';
@@ -392,6 +393,11 @@ const BarraLateral = ({
       />
       <AlmacenAcopioAuxiliar
         isOpen={activeView === 'almacenAcopioAuxiliar'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <AlmacenGeneralII
+        isOpen={activeView === 'almacenGeneralAuxiliarII'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

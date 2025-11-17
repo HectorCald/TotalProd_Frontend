@@ -10,6 +10,7 @@ import AlmacenGeneral from '../views/almacen-general/AlmacenGeneral';
 import AlmacenAcopio from '../views/almacen-acopio/AlmacenAcopio';
 import AlmacenGeneralAuxiliar from '../views/almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import AlmacenAcopioAuxiliar from '../views/almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
+import AlmacenGeneralII from '../views/almacen-general-auxiliar-II/AlmacenGeneral-II';
 import PanelMovimientos from '../views/movimientos/PanelMovimientos';
 import PanelPedidos from '../views/pedidos/PanelPedidos';
 import Clientes from '../views/clientes/Clientes';
@@ -391,6 +392,13 @@ const BarraLateralEmpleado = ({
         isOpen={activeView === 'almacenMedioAuxiliar'}
         setIsOpen={handleCloseView}
         tipo={viewProps.tipo || 'almacen'}
+        {...viewProps}
+      />
+
+      <AlmacenGeneralII
+        isOpen={activeView === 'almacenGeneralAuxiliarII'}
+        setIsOpen={handleCloseView}
+        tipo={viewProps.tipo || 'transferir'}
         {...viewProps}
       />
 

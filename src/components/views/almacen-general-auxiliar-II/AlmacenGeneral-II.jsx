@@ -1,0 +1,561 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import styles from '../../../styles/Inicial.module.css';
+import HeaderView from '../../common/HeaderView';
+import View from '../../ui/View';
+import ItemView from '../../common/ItemView';
+import Filtros from '../../common/Filtros';
+import FiltroCategorias from '../../mixed/FiltroCategorias';
+import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
+import FetchData from '../../mixed/FetchData';
+import productsAlmacenService from '../../../services/productsAlmacenService';
+import pricesTypesService from '../../../services/pricesTypesService';
+import sucursalesService from '../../../services/sucursalesService';
+import LoadingSpinner from '../../common/LoadingSpinner';
+import { useLayout } from '../../../context/LayoutContext';
+import { useUser } from '../../../context/UserContext';
+import Table from '../../common/Table';
+import Boton from '../../common/Boton';
+import Notification from '../../common/Notification';
+import CanastaTransferencias from './CanastaTransferencias';
+import useVirtualPagination from '../../../hooks/useVirtualPagination';
+import useLoadingManager from '../almacen-general/hooks/useLoadingManager';
+import useProductosFiltrados from '../almacen-general/hooks/useProductosFiltrados';
+import useCanastaActions from '../almacen-general/hooks/useCanastaActions';
+import NoData from '../../common/NoData';
+import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
+import limpiarAlmacenLocalStorage from '../almacen-general/helpers/limpiarAlmacenLocalStorage';
+import useSessionCache from '../../../hooks/useSessionCache';
+
+function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTransferencia = false }) {
+    const { isLargeScreen } = useLayout();
+    const { sucursalSeleccionada: sucursalActual } = useUser();
+
+    // Determinar si es modo carrito (para panel lateral)
+    const isCartMode = tipo === 'transferir' && isLargeScreen;
+
+    // UI envío y notificación
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [notif, setNotif] = useState({ visible: false, text: '', type: 'success' });
+
+    // Estados para filtros locales
+    const [isOpenCategoria, setOpenCategoria] = useState(false);
+    const [isOpenOrden, setOpenOrden] = useState(false);
+
+    // Estados para datos (compartidos con AlmacenGeneral principal)
+    const {
+        value: productos,
+        setValue: setProductos,
+        hasCache: hasProductosCache,
+    } = useSessionCache({
+        key: 'almacenGeneralProductos',
+        defaultValue: [],
+    });
+    const [preciosData, setPreciosData] = useState([]);
+    const [sucursalesData, setSucursalesData] = useState([]);
+    
+    // Estados para rastrear qué datos se han cargado
+    const [productosLoaded, setProductosLoaded] = useState(false);
+    const [preciosLoaded, setPreciosLoaded] = useState(false);
+    const [sucursalesLoaded, setSucursalesLoaded] = useState(false);
+
+    // Estados para canasta de transferencias
+    const [productosCanastaTransferencias, setProductosCanastaTransferencias] = useState([]);
+    const [isCanastaTransferenciasOpen, setIsCanastaTransferenciasOpen] = useState(false);
+
+    const {
+        handleAgregarACanasta: agregarProductoTransferencia,
+        getCantidadEnCanasta: getCantidadEnCanastaTransferencias,
+    } = useCanastaActions({
+        setProductosCanasta: setProductosCanastaTransferencias,
+        productosCanasta: productosCanastaTransferencias,
+        pedidosConfig: {
+            precioGetterName: 'getPrecioSeleccionadoCanastaTransferencias',
+            modoGetterName: 'getModoAgrupacionCanastaTransferencias',
+            extraItemFields: () => ({}),
+        },
+    });
+
+    const shouldShowSpinner = useCallback(() => productos.length === 0, [productos.length]);
+    const enableRefreshIndicator = useCallback(() => isLargeScreen, [isLargeScreen]);
+    const {
+        isLoading,
+        showRefreshIndicator,
+        isRefreshing,
+        handleLoadingStart,
+        handleLoadingEnd,
+    } = useLoadingManager({
+        shouldShowSpinner,
+        enableRefreshIndicator,
+    });
+
+
+    const preciosTipos = preciosData.map(precio => ({
+        value: precio.id,
+        label: precio.name,
+        id: precio.id,
+        name: precio.name,
+        default_value: precio.default_value
+    }));
+
+    const sucursales = sucursalesData
+        .filter(sucursal => sucursal.id !== sucursalActual?.id)
+        .map(sucursal => ({
+            value: sucursal.id,
+            label: sucursal.name,
+            id: sucursal.id,
+            name: sucursal.name
+        }));
+
+
+    // Handlers de carga de datos
+    const handleProductosLoaded = useCallback((data) => {
+        setProductos(data);
+        setProductosLoaded(true);
+    }, []);
+
+    // Función para manejar refresh
+    const handleRefresh = async () => {
+        try {
+            const response = await productsAlmacenService.getAll();
+            if (response.success) {
+                setProductos(response.data);
+            }
+        } catch (error) {
+            console.error('Error al refrescar productos:', error);
+        }
+    };
+    const handlePreciosLoaded = useCallback((data) => {
+        setPreciosData(data);
+        setPreciosLoaded(true);
+    }, []);
+    const handleSucursalesLoaded = useCallback((data) => {
+        setSucursalesData(data);
+        setSucursalesLoaded(true);
+    }, []);
+
+    // Función para manejar cuando se actualizan múltiples productos (después de transferencias)
+    const handleProductosUpdated = useCallback((productosActualizados) => {
+        // Actualizar solo el stock de los productos que cambiaron
+        setProductos(prevProductos =>
+            prevProductos.map(producto => {
+                const productoActualizado = productosActualizados.find(p => p.id === producto.id);
+                if (productoActualizado) {
+                    // Solo actualizar el stock, mantener todos los demás datos del producto
+                    return {
+                        ...producto,
+                        stock: productoActualizado.stock
+                    };
+                }
+                return producto;
+            })
+        );
+    }, []);
+
+    const {
+        productosMapeados,
+        productosFiltrados,
+        searchQuery,
+        isSearchExpanded,
+        categoriaFiltro,
+        categoriaFiltroNombre,
+        ordenamiento,
+        handleSearchChange,
+        handleSearchClear,
+        handleSearchToggle,
+        handleCategoriaFilter,
+        handleOrdenamiento,
+        getCategoriaNombre,
+        getOrdenamientoNombre,
+        resetFilters,
+    } = useProductosFiltrados({
+        productos,
+        paginaTamano: 30,
+    });
+
+    // Efecto para resetear búsqueda y filtros cuando se abre
+    useEffect(() => {
+        if (isOpen) {
+            resetFilters();
+
+            // Resetear estados de carga
+            setProductosLoaded(hasProductosCache && productos.length > 0);
+            setPreciosLoaded(false);
+            setSucursalesLoaded(false);
+        }
+    }, [isOpen, isLargeScreen, resetFilters, hasProductosCache, productos.length]);
+
+    // Efecto para cargar productos de transferencia cuando se repite
+    useEffect(() => {
+        if (!isOpen || tipo !== 'transferir') return;
+        if (productos.length === 0) return;
+
+        const productosTransferenciaRepitiendo = localStorage.getItem('productosTransferenciaRepitiendo');
+        if (!productosTransferenciaRepitiendo) return;
+
+        try {
+            const productosParaRepetir = JSON.parse(productosTransferenciaRepitiendo);
+            productosParaRepetir.forEach(productoTransferencia => {
+                const productoCompleto = productos.find(p => p.id === productoTransferencia.id);
+                if (productoCompleto) {
+                    agregarProductoTransferencia(productoCompleto, productoTransferencia.cantidad);
+                }
+            });
+            setTimeout(() => {
+                localStorage.removeItem('productosTransferenciaRepitiendo');
+            }, 1000);
+        } catch (error) {
+            console.error('Error al cargar productos de la transferencia para repetir:', error);
+        }
+    }, [isOpen, productos, tipo, agregarProductoTransferencia]);
+
+    const opciones = [
+        {
+            label: getCategoriaNombre(),
+            active: categoriaFiltro !== null,
+            onClick: () => setOpenCategoria(true)
+        },
+        {
+            label: getOrdenamientoNombre(),
+            active: ordenamiento !== 'nombre_asc',
+            onClick: () => setOpenOrden(true)
+        }
+    ];
+
+    // Headers y datos para la tabla
+    const tableHeaders = [
+        { key: 'name', label: 'Producto', icon: 'package' },
+        { key: 'stock', label: 'Stock', icon: 'bar-chart-alt-2' },
+        { key: 'stock_grup', label: 'Grup', icon: 'package' },
+        { key: 'category_name', label: 'Categoría', icon: 'tag' }
+    ];
+
+    // Función para obtener el badge
+    const getBadge = (producto) => {
+        if (tipo === 'transferir') {
+            const cantidadEnCanasta = getCantidadEnCanastaTransferencias(producto.id);
+            return cantidadEnCanasta > 0 ? cantidadEnCanasta : null;
+        }
+        return null;
+    };
+
+    // Función para obtener el badge de celda
+    const getCellBadge = (item, headerKey) => {
+        if (headerKey === 'stock' && tipo === 'transferir') {
+            const stock = parseFloat(item.stock || 0);
+            const stockMinimo = parseFloat(item.stock_minimo || 0);
+            
+            // Solo mostrar azul si stock_minimo es null/undefined (no definido)
+            if (item.stock_minimo === null || item.stock_minimo === undefined) {
+                return {
+                    text: `${stock} Ud.`,
+                    className: 'info' // azul
+                };
+            }
+            
+            const diferencia = stock - stockMinimo;
+            let className = 'info'; // azul por defecto
+            
+            if (diferencia >= 20) {
+                className = 'info'; // azul - Stock OK
+            } else if (diferencia >= 5) {
+                className = 'warning'; // naranja - Stock Bajo
+            } else {
+                className = 'error'; // rojo - Stock Crítico (incluye cuando stock = stock_minimo)
+            }
+            
+            return {
+                text: `${stock} Ud.`,
+                className: className
+            };
+        }
+        return null;
+    };
+
+    // Función para obtener el flot del stock en ItemView (móvil)
+    const getStockFlot = (producto) => {
+        const stock = parseFloat(producto.stock || 0);
+        const stockMinimo = parseFloat(producto.stock_minimo || 0);
+        const grup = parseFloat(producto.grup || 0);
+        
+        // Determinar qué mostrar: grupos si está agrupado, unidades si no
+        const stockDisplay = grup > 0 
+            ? `${Math.floor(stock / grup)} g.`
+            : `${stock} Ud.`;
+        
+        // Solo usar flot1 (azul) si stock_minimo es null/undefined (no definido)
+        if (producto.stock_minimo === null || producto.stock_minimo === undefined) {
+            return {
+                flot1: stockDisplay,
+                flot2: null,
+                flot3: null
+            };
+        }
+        
+        const diferencia = stock - stockMinimo;
+        
+        if (diferencia >= 20) {
+            // Stock OK - flot1 (azul)
+            return {
+                flot1: stockDisplay,
+                flot2: null,
+                flot3: null
+            };
+        } else if (diferencia >= 5) {
+            // Stock Bajo - flot2 (naranja)
+            return {
+                flot1: null,
+                flot2: stockDisplay,
+                flot3: null
+            };
+        } else {
+            // Stock Crítico - flot3 (rojo) - incluye cuando stock = stock_minimo
+            return {
+                flot1: null,
+                flot2: null,
+                flot3: stockDisplay
+            };
+        }
+    };
+
+    // Paginación virtual - mostrar solo 30 elementos inicialmente
+    const { visibleItems, hasMore, handleScroll } = useVirtualPagination(productosFiltrados, 30);
+
+    const tableData = visibleItems
+        .map(producto => {
+            return {
+                id: producto.id,
+                name: producto.name,
+                stock: `${producto.stock} Ud.`,
+                stock_grup: producto.grup ? Math.floor(producto.stock / producto.grup) + ' Ud.' : '--',
+                category_name: producto.category_name,
+                stock_minimo: producto.stock_minimo,
+            };
+        });
+
+    // Función para manejar el click en un producto (solo para modo transferir)
+    const handleProductoClick = (producto) => {
+        if (tipo === 'transferir') {
+            agregarProductoTransferencia(producto);
+        }
+    };
+
+    return (
+        <>
+            <View 
+                isOpen={isOpen} 
+                setIsOpen={setIsOpen} 
+                isMainView={
+                    !isRepitiendoTransferencia &&
+                    !localStorage.getItem('productosTransferenciaRepitiendo')
+                }
+            >
+                <HeaderView
+                    onBack={() => {
+                        if (isRepitiendoTransferencia || localStorage.getItem('productosTransferenciaRepitiendo')) {
+                            limpiarAlmacenLocalStorage();
+                        }
+                        setTimeout(() => {
+                            setIsOpen(false);
+                        }, 100);
+                    }}
+                    showSearch={true}
+                    searchPlaceholder="Buscar producto"
+                    title={tipo === 'transferir' ? 'Transferir' : 'Almacén'}
+                    searchValue={searchQuery}
+                    onSearchChange={handleSearchChange}
+                    onSearchClear={handleSearchClear}
+                    searchExpanded={isSearchExpanded}
+                    onSearchToggle={handleSearchToggle}
+                    withCart={isCartMode && isLargeScreen}
+                />
+                <div className={`${styles.container} ${isCartMode && isLargeScreen ? styles.containerWithCart : ''}`}>
+                    {isLoading ? (
+                        // Mostrar LoadingSpinner cuando está cargando
+                        <LoadingSpinner />
+                    ) : (
+                        <>
+                            {isLargeScreen && (
+                                <div className={styles.titleContainer}>
+                                    <RefreshIndicator
+                                        isVisible={showRefreshIndicator}
+                                        isLoading={isRefreshing}
+                                    />
+                                </div>
+                            )}
+                            <Filtros options={opciones} />
+                            {isLargeScreen ? (
+                                // Vista de tabla para pantallas grandes
+                                <div 
+                                    className={styles.content}
+                                    onScroll={handleScroll}
+                                    style={{
+                                        maxHeight: tipo === 'transferir' && isLargeScreen
+                                            ? '100%'
+                                            : '',
+                                        overflowY: 'auto'
+                                    }}
+                                >
+                                    <Table
+                                        headers={tableHeaders}
+                                        data={tableData}
+                                        onRowClick={(producto) => {
+                                            // Buscar el producto original sin formatear
+                                            const productoOriginal = productosFiltrados.find(p => p.id === producto.id);
+                                            handleProductoClick(productoOriginal);
+                                        }}
+                                        getBadge={getBadge}
+                                        getCellBadge={getCellBadge}
+                                        onScroll={handleScroll}
+                                        columnWidths={{
+                                            name: '40%',
+                                            stock: '20%',
+                                            stock_grup: '20%',
+                                            category_name: '20%'
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                // Vista de cards para pantallas pequeñas con PullToRefresh
+                                <PullToRefresh
+                                    onRefresh={handleRefresh}
+                                    screenName="Almacén"
+                                    containerStyle={{
+                                        maxHeight: 'calc(100% - 80px)',
+                                        minHeight: 'calc(100% - 80px)'
+                                    }}
+                                    onScroll={handleScroll}
+                                >
+                                        {visibleItems.length > 0 ? (
+                                            visibleItems.map((producto, index) => {
+                                                // Obtener el flot del stock con colores dinámicos (solo en modo transferir)
+                                                const stockFlot = tipo === 'transferir' ? getStockFlot(producto) : {
+                                                    flot1: producto.stock + ' Ud.',
+                                                    flot2: null,
+                                                    flot3: null
+                                                };
+                                                
+                                                return (
+                                                    <ItemView
+                                                        key={producto.id || index}
+                                                        title={producto.name || 'Sin nombre'}
+                                                        description={producto.description || 'Sin descripción'}
+                                                        icon="box"
+                                                        onClick={() => handleProductoClick(producto)}
+                                                        entrada={false}
+                                                        entradaData={[]}
+                                                        flot1={stockFlot.flot1}
+                                                        flot2={stockFlot.flot2}
+                                                        flot3={stockFlot.flot3}
+                                                        badge={getBadge(producto)}
+                                                    />
+                                                );
+                                            })
+                                        ) : (
+                                            <NoData 
+                                                icon="box"
+                                                title={searchQuery || categoriaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
+                                                detail={searchQuery || categoriaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
+                                                transparent={true}
+                                                minHeight="200px"
+                                            />
+                                        )}
+                                 
+                                </PullToRefresh>
+                            )}
+                        </>
+                    )}
+                </div>
+                {tipo === 'transferir' && !isCartMode ? (
+                    <div className={styles.buttonFooter}>
+                        <Boton
+                            className='btn-original'
+                            label={`Canasta (${productosCanastaTransferencias.length})`}
+                            onClick={() => setIsCanastaTransferenciasOpen(true)}
+                            disabled={productosCanastaTransferencias.length === 0}
+                        />
+                    </div>
+                ) : ''}
+
+                {isOpen && (
+                    <>
+                        <FetchData
+                            service={productsAlmacenService}
+                            serviceName="productsAlmacenService"
+                            isOpen={isOpen}
+                            onDataLoaded={handleProductosLoaded}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
+                        />
+                        <FetchData
+                            service={pricesTypesService}
+                            serviceName="pricesTypesService"
+                            isOpen={isOpen}
+                            onDataLoaded={handlePreciosLoaded}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
+                        />
+                        <FetchData
+                            service={sucursalesService}
+                            serviceName="sucursalesService"
+                            method="getByEmpresaId"
+                            isOpen={isOpen}
+                            onDataLoaded={handleSucursalesLoaded}
+                            onLoadingStart={handleLoadingStart}
+                            onLoadingEnd={handleLoadingEnd}
+                        />
+                    </>
+                )}
+                {/* Canasta de Transferencias */}
+                {tipo === 'transferir' && (
+                    <CanastaTransferencias
+                        isOpen={isCartMode && isLargeScreen ? true : isCanastaTransferenciasOpen}
+                        setIsOpen={setIsCanastaTransferenciasOpen}
+                        productosCanasta={productosCanastaTransferencias}
+                        setProductosCanasta={setProductosCanastaTransferencias}
+                        onCerrarCanasta={(transferenciaData) => {
+                            setIsCanastaTransferenciasOpen(false);
+                            
+                            setNotif({ 
+                                visible: true, 
+                                text: `Transferencia creada correctamente`, 
+                                type: 'success' 
+                            });
+                            setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 2500);
+                        }}
+                        onProductosUpdated={handleProductosUpdated}
+                        preciosTipos={preciosTipos}
+                        sucursales={sucursales}
+                        loadingPrecios={false}
+                        loadingSucursales={!sucursalesLoaded}
+                        productosActualizados={productos}
+                        isCartMode={isCartMode && isLargeScreen}
+                    />
+                )}
+            </View>
+
+            {/* Filtro de categorías */}
+            <FiltroCategorias
+                isOpen={isOpenCategoria}
+                setIsOpen={setOpenCategoria}
+                onCategoriaSeleccionada={handleCategoriaFilter}
+            />
+            {/* Filtro de ordenamiento */}
+            <FiltroOrdenamiento
+                isOpen={isOpenOrden}
+                setIsOpen={setOpenOrden}
+                onOrdenamientoSeleccionado={handleOrdenamiento}
+                opciones={[
+                    { value: 'nombre_asc', label: 'Nombre A-Z', icon: 'sort-a-z' },
+                    { value: 'nombre_desc', label: 'Nombre Z-A', icon: 'sort-z-a' },
+                    { value: 'stock_asc', label: 'Stock ↑', icon: 'up-arrow-alt' },
+                    { value: 'stock_desc', label: 'Stock ↓', icon: 'down-arrow-alt' }
+                ]}
+            />
+
+            <Notification type={notif.type} text={notif.text} isVisible={notif.visible} onClose={() => setNotif(prev => ({ ...prev, visible: false }))} />
+        </>
+    );
+}
+
+export default AlmacenGeneralII;

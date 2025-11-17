@@ -20,6 +20,11 @@ function FiltroTipoMovimiento({ isOpen, setIsOpen, onTipoSeleccionado }) {
             value: 'salida',
             label: 'Salidas',
             icon: 'minus-circle'
+        },
+        {
+            value: 'transferencia',
+            label: 'Transferencias',
+            icon: 'transfer'
         }
     ];
 

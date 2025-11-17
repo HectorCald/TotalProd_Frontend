@@ -28,6 +28,7 @@ import Clientes from '../components/views/clientes/Clientes';
 import Proveedores from '../components/views/proveedores/Proveedores';
 import MiProduccion from '../components/views/damabrava/produccion/MiProduccion';
 import PasoTipo from '../components/views/pasos/PasoTipo';
+import AlmacenGeneralII from '../components/views/almacen-general-auxiliar-II/AlmacenGeneral-II';
 
 const OFFLINE_USER_KEY = 'offline_user_data';
 
@@ -35,6 +36,7 @@ const Home = () => {
   const { isLargeScreen } = useLayout();
   const { user, error, loading, clearUser, setUserFromService } = useUser();
   const [activeView, setActiveView] = useState(null);
+  const [viewProps, setViewProps] = useState({});
   const [activeRoute, setActiveRoute] = useState('/dashboard/default');
   const [isOffline, setIsOffline] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
@@ -200,15 +202,17 @@ const Home = () => {
     }
   }, []);
 
-  const handleViewOpen = (viewName) => {
-    console.log('handleViewOpen llamado con:', viewName);
+  const handleViewOpen = (viewName, props = {}) => {
+    console.log('handleViewOpen llamado con:', viewName, 'props:', props);
     setActiveView(viewName);
+    setViewProps(props);
     // Limpiar la ruta activa cuando se abre una vista desde InicioPC
     setActiveRoute(null);
   };
 
   const handleViewClose = () => {
     setActiveView(null);
+    setViewProps({});
   };
 
   const handleScreenChange = (screenId) => {
@@ -407,6 +411,11 @@ const Home = () => {
             isOpen={activeView === 'miProduccion'}
             setIsOpen={() => handleViewClose()}
           />
+          <AlmacenGeneralII
+            isOpen={activeView === 'almacenGeneralAuxiliarII'}
+            setIsOpen={() => handleViewClose()}
+            {...viewProps}
+          />
         </div>
       ) : (
         <>
@@ -462,6 +471,11 @@ const Home = () => {
           <MiProduccion
             isOpen={activeView === 'miProduccion'}
             setIsOpen={() => handleViewClose()}
+          />
+          <AlmacenGeneralII
+            isOpen={activeView === 'almacenGeneralAuxiliarII'}
+            setIsOpen={() => handleViewClose()}
+            {...viewProps}
           />
         </>
       )}

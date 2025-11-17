@@ -6,6 +6,7 @@ import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import VerMovimiento from './VerMovimiento';
 import VerMovimientoAcopio from './VerMovimientoAcopio';
+import VerTransferencia from '../transferencias/VerTransferencia';
 import Filtros from '../../common/Filtros';
 import Notification from '../../common/Notification';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
@@ -31,6 +32,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     // Estados para los modales
     const [isOpenVerMovimiento, setIsOpenVerMovimiento] = useState(false);
     const [infoMovimiento, setInfoMovimiento] = useState(null);
+    const [isOpenVerTransferencia, setIsOpenVerTransferencia] = useState(false);
+    const [infoTransferencia, setInfoTransferencia] = useState(null);
 
     // Estados para paginación y búsqueda
     const [currentPage, setCurrentPage] = useState(1);
@@ -240,8 +243,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Función para manejar el click en un movimiento
     const handleRegistro = (movimiento) => {
-        setInfoMovimiento(movimiento);
-        setIsOpenVerMovimiento(true);
+        // Si es una transferencia, abrir VerTransferencia
+        if (movimiento.type === 'transferencia') {
+            setInfoTransferencia(movimiento);
+            setIsOpenVerTransferencia(true);
+        } else {
+            setInfoMovimiento(movimiento);
+            setIsOpenVerMovimiento(true);
+        }
     };
 
 
@@ -388,6 +397,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         if (filtroTipo === null) return 'Todos los tipos';
         if (filtroTipo === 'entrada') return 'Entradas';
         if (filtroTipo === 'salida') return 'Salidas';
+        if (filtroTipo === 'transferencia') return 'Transferencias';
         return 'Todos los tipos';
     };
 
@@ -517,8 +527,17 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         if (tipoMovimiento === 'acopio') {
             productoValue = movimiento.product?.name || 'Sin producto';
         } else {
-            // Si tiene concepto, mostrarlo; sino mostrar cantidad/productos como antes
-            if (movimiento.concepto && movimiento.concepto.trim() !== '') {
+            // Si es transferencia, mostrar concepto si existe, sino mostrar sucursales (origen → destino)
+            if (movimiento.type === 'transferencia') {
+                if (movimiento.concepto && movimiento.concepto.trim() !== '') {
+                    productoValue = movimiento.concepto;
+                } else {
+                    const origen = movimiento.sucursal_origen?.name || movimiento.sucursal?.name || 'Origen';
+                    const destino = movimiento.sucursal_destino?.name || 'Destino';
+                    productoValue = `${origen} → ${destino}`;
+                }
+            } else if (movimiento.concepto && movimiento.concepto.trim() !== '') {
+                // Si tiene concepto, mostrarlo; sino mostrar cantidad/productos como antes
                 productoValue = movimiento.concepto;
             } else if (movimiento.productos && movimiento.productos.length > 0) {
                 productoValue = movimiento.productos.length === 1
@@ -533,11 +552,13 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             id: movimiento.id,
             numero_orden: obtenerNumeroOrdenFormateado(movimiento.numero_orden),
             producto: productoValue,
-            tipo: movimiento.type === 'entrada' ? 'Entrada' : 'Salida',
+            tipo: movimiento.type === 'entrada' ? 'Entrada' : movimiento.type === 'transferencia' ? 'Transferencia' : 'Salida',
             fecha: new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString(),
             cliente_proveedor: tipoMovimiento === 'acopio'
                 ? (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--'))
-                : (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--')),
+                : movimiento.type === 'transferencia'
+                    ? (movimiento.cliente?.name || '--')
+                    : (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--')),
             estado: movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado',
             total: obtenerTotalFormateado(movimiento)
         };
@@ -574,6 +595,10 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 'Salida': {
                     text: 'Salida',
                     className: 'error' // rojo
+                },
+                'Transferencia': {
+                    text: 'Transferencia',
+                    className: 'warning' // sin color especial
                 },
             };
 
@@ -636,8 +661,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                     onScroll={handleScroll}
                                     columnWidths={{
                                         numero_orden: '5%',
-                                        producto: '25%',
-                                        tipo: '10%',
+                                        producto: '20%',
+                                        tipo: '15%',
                                         fecha: '10%',
                                         cliente_proveedor: '20%',
                                         estado: '12%',
@@ -676,23 +701,31 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                                     key={movimiento.id || index}
                                                     title={tipoMovimiento === 'acopio'
                                                         ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
-                                                        : (movimiento.concepto && movimiento.concepto.trim() !== '')
-                                                            ? movimiento.concepto
-                                                            : (movimiento.productos && movimiento.productos.length > 0
-                                                                ? movimiento.productos.length === 1
-                                                                    ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
-                                                                    : `${movimiento.productos.length} productos`
-                                                                : 'Sin productos')
+                                                        : movimiento.type === 'transferencia'
+                                                            ? (movimiento.concepto && movimiento.concepto.trim() !== '')
+                                                                ? movimiento.concepto
+                                                                : (() => {
+                                                                    const origen = movimiento.sucursal_origen?.name || movimiento.sucursal?.name || 'Origen';
+                                                                    const destino = movimiento.sucursal_destino?.name || 'Destino';
+                                                                    return `${origen} → ${destino}`;
+                                                                })()
+                                                            : (movimiento.concepto && movimiento.concepto.trim() !== '')
+                                                                ? movimiento.concepto
+                                                                : (movimiento.productos && movimiento.productos.length > 0
+                                                                    ? movimiento.productos.length === 1
+                                                                        ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
+                                                                        : `${movimiento.productos.length} productos`
+                                                                    : 'Sin productos')
                                                     }
-                                                    description={`${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`}
+                                                    description={`${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}${movimiento.type === 'transferencia' ? (movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : movimiento.sucursal_destino?.name ? ` • → ${movimiento.sucursal_destino.name}` : '') : ''}`}
                                                     description2={`Total: ${totalLabel}`}
-                                                    icon={movimiento.type === 'entrada' ? 'plus-circle' : 'minus-circle'}
+                                                    icon={movimiento.type === 'entrada' ? 'plus-circle' : movimiento.type === 'transferencia' ? 'transfer' : 'minus-circle'}
+                                                    colorIcon={movimiento.type === 'entrada' ? 'verde' : movimiento.type === 'transferencia' ? 'naranja' : 'rojo'}
                                                     onClick={() => handleRegistro(movimiento)}
                                                     arrow={false}
                                                     flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
                                                     flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
                                                     flot2={numeroOrdenLabel}
-                                                    colorIcon={movimiento.type === 'entrada' ? 'verde' : 'rojo'}
                                                 />
                                             );
                                         })}
@@ -730,14 +763,30 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     onMovimientoEliminado={handleMovimientoEliminado}
                 />
             ) : (
-                <VerMovimiento
-                    isOpen={isOpenVerMovimiento}
-                    setIsOpen={setIsOpenVerMovimiento}
-                    movimiento={infoMovimiento}
-                    onMovimientoAnulado={handleMovimientoAnulado}
-                    onMovimientoEliminado={handleMovimientoEliminado}
-                    onMovimientoEditado={handleMovimientoEditado}
-                />
+                <>
+                    <VerMovimiento
+                        isOpen={isOpenVerMovimiento}
+                        setIsOpen={setIsOpenVerMovimiento}
+                        movimiento={infoMovimiento}
+                        onMovimientoAnulado={handleMovimientoAnulado}
+                        onMovimientoEliminado={handleMovimientoEliminado}
+                        onMovimientoEditado={handleMovimientoEditado}
+                    />
+                    <VerTransferencia
+                        isOpen={isOpenVerTransferencia}
+                        setIsOpen={(isOpen) => {
+                            setIsOpenVerTransferencia(isOpen);
+                            // Limpiar infoTransferencia cuando se cierra el modal
+                            if (!isOpen) {
+                                setInfoTransferencia(null);
+                            }
+                        }}
+                        transferencia={infoTransferencia}
+                        onTransferenciaAnulada={handleMovimientoAnulado}
+                        onTransferenciaEliminada={handleMovimientoEliminado}
+                        onTransferenciaActualizada={handleMovimientoEditado}
+                    />
+                </>
             )}
 
             <Notification

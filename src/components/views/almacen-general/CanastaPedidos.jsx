@@ -548,6 +548,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                     placeholder='Sucursal de destino (obligatorio)'
                                     disabled={loadingSucursales}
                                     icon='building'
+                                    openUpward={true}
                                 />
                             )}
                             

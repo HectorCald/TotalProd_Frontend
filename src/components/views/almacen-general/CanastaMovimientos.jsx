@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from '../../styles/Canasta.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
@@ -86,6 +86,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         isOpen
     });
 
+    // Ref para almacenar setModoAgrupacion (se actualizará después de obtenerlo del hook)
+    const setModoAgrupacionRef = useRef(null);
+
     const syncProductoSalida = useCallback(({
         productoCarrito,
         productoActualizado,
@@ -101,6 +104,15 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             stockOriginal,
             precioManual: productoCarrito.precioManual === true
         };
+
+        // Si el modo es agrupado pero el stock disponible es menor que un grupo, cambiar a unidades
+        if (modoAgrupacion === 'agrupado' && productoCarrito.grup && stockOriginal > 0 && stockOriginal < productoCarrito.grup) {
+            // Cambiar automáticamente a modo unidades
+            if (setModoAgrupacionRef.current) {
+                setModoAgrupacionRef.current('no_agrupado');
+            }
+            mostrarNotificacion('info', `El producto ${productoCarrito.name} tiene menos de un grupo disponible. Cambiado a modo unidades.`);
+        }
 
         let stockMostrado = stockOriginal;
         if (modoAgrupacion === 'agrupado' && productoCarrito.grup) {
@@ -124,11 +136,16 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             productoModificado.price_product = productoActualizado.price_product;
         }
 
+        // Usar el modo actualizado (puede haber cambiado a no_agrupado)
+        const modoFinal = modoAgrupacion === 'agrupado' && productoCarrito.grup && stockOriginal > 0 && stockOriginal < productoCarrito.grup
+            ? 'no_agrupado'
+            : modoAgrupacion;
+
         if (productoActualizado.price_product && precioSeleccionado && productoCarrito.precioManual !== true) {
             const precioFinal = obtenerPrecioPorTipo(
                 { ...productoCarrito, price_product: productoActualizado.price_product },
                 precioSeleccionado,
-                modoAgrupacion
+                modoFinal
             );
             productoModificado.precio = precioFinal;
         }
@@ -191,6 +208,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             }
         }
     });
+
+    // Actualizar el ref con setModoAgrupacion
+    useEffect(() => {
+        setModoAgrupacionRef.current = setModoAgrupacion;
+    }, [setModoAgrupacion]);
 
     useEffect(() => {
         if (!esEntrega || !isOpen) return;

@@ -48,6 +48,7 @@ function SelectorMetodoPago({ value, onChange, disabled = false, placeholder = '
             placeholder={placeholder}
             disabled={disabled}
             icon='credit-card'
+            openUpward={true}
         />
     );
 }

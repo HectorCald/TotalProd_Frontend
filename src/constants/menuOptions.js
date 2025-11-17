@@ -77,6 +77,14 @@ const MENU_OPTIONS_BASE = [
             action: 'openView',
             viewName: 'almacenGeneralAuxiliar',
             props: { tipo: 'cotizar' }
+          },
+          {
+            id: 'almacen-transferencias',
+            title: 'Transferir',
+            icon: 'transfer',
+            action: 'openView',
+            viewName: 'almacenGeneralAuxiliarII',
+            props: { tipo: 'transferir' }
           }
         ]
       },

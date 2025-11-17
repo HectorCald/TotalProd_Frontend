@@ -109,7 +109,7 @@ const Inicio = ({ onViewOpen }) => {
 
   const handleFunctionClick = (func) => {
     if (func.view === 'transferencias') {
-      mostrarNotificacion('info', 'Transferencias estará disponible próximamente');
+      onViewOpen('almacenGeneralAuxiliarII', { tipo: 'transferir' });
     } else {
       onViewOpen(func.view);
     }

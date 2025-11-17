@@ -25,6 +25,7 @@ import AlmacenGeneral from '../components/views/almacen-general/AlmacenGeneral';
 import AlmacenAcopio from '../components/views/almacen-acopio/AlmacenAcopio';
 import AlmacenGeneralAuxiliar from '../components/views/almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import AlmacenAcopioAuxiliar from '../components/views/almacen-acopio-auxiliar/AlmacenAcopio-Auxiliar';
+import AlmacenGeneralII from '../components/views/almacen-general-auxiliar-II/AlmacenGeneral-II';
 import PanelMovimientos from '../components/views/movimientos/PanelMovimientos';
 import PanelPedidos from '../components/views/pedidos/PanelPedidos';
 import PanelConteos from '../components/views/conteos/PanelConteos';
@@ -537,6 +538,8 @@ const HomeEmpleado = () => {
                 return <AlmacenAcopio isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'AlmacenAcopioAuxiliar':
                 return <AlmacenAcopioAuxiliar isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'AlmacenGeneralII':
+                return <AlmacenGeneralII isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipo={currentSubModule.props?.tipo || 'transferir'} {...currentSubModule.props} />;
             case 'PanelMovimientos':
                 return <PanelMovimientos isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} tipoMovimiento={currentSubModule.props?.tipoMovimiento || currentSubModule.props?.tipo} />;
             case 'PanelPedidos':

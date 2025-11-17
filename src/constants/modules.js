@@ -44,6 +44,7 @@ const COMPONENT_TO_VIEW = {
     'Personal': 'personal',
     'PanelPagos': 'pagos',
     'Sucursales': 'sucursales',
+    'AlmacenGeneralII': 'almacenGeneralAuxiliarII',
 };
 
 // Mapeo de nombres de módulos del backend a claves del frontend
@@ -99,7 +100,8 @@ const getSubmoduleKey = (moduleKey, submoduleName) => {
             'Nuevo Pedido': 'realizar_pedidos',
             'Gestionar': 'gestionar',
             'Conteo': 'realizar_conteo',
-            'Cotizar': 'cotizar'
+            'Cotizar': 'cotizar',
+            'Transferir': 'transferir'
         },
         'Acopio': {
             'Entrada': 'realizar_entradas',
@@ -172,6 +174,13 @@ export const MODULES = {
             icon: 'file',
             component: 'AlmacenGeneralAuxiliar',
             props: { tipo: 'cotizar' }
+        },
+        transferir: {
+            name: 'Transferir',
+            description: 'Realizar transferencias de productos entre sucursales',
+            icon: 'transfer',
+            component: 'AlmacenGeneralII',
+            props: { tipo: 'transferir' }
         },
     },
     Acopio: {
