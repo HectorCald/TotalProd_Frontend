@@ -248,55 +248,77 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
     }, [esEntrega, isOpen, modoAgrupacionEntregando, setModoAgrupacion]);
 
+    // Cargar valores guardados cuando se abre (solo si no hay valores ya establecidos)
     useEffect(() => {
         if (isOpen && !esEntrega) {
-            const descuentoRepitiendo = localStorage.getItem('descuentoMovimientoRepitiendo') || localStorage.getItem('descuentoMovimientoEditando');
-            const aumentoRepitiendo = localStorage.getItem('aumentoMovimientoRepitiendo') || localStorage.getItem('aumentoMovimientoEditando');
-            const conceptoRepitiendo = localStorage.getItem('conceptoMovimientoRepitiendo');
-
-            setDescuento(descuentoRepitiendo ?? '');
-            setAumento(aumentoRepitiendo ?? '');
-            setConcepto(conceptoRepitiendo ?? '');
-        } else if (!isOpen && !esEntrega) {
-            setDescuento('');
-            setAumento('');
-            setConcepto('');
-        }
-    }, [esEntrega, isOpen]);
-
-    // Cargar información del cliente del movimiento cuando es una repetición
-    useEffect(() => {
-        if (isOpen && !esEntrega) {
-            const clienteId = localStorage.getItem('clienteIdRepitiendo') || localStorage.getItem('clienteIdEditando');
-            const clienteName = localStorage.getItem('clienteNameRepitiendo') || localStorage.getItem('clienteNameEditando');
-
-            if (clienteId && clienteName) {
+            // Cargar descuento guardado
+            const descuentoGuardado = localStorage.getItem('descuentoMovimientoGuardado');
+            if (descuentoGuardado && !descuento) {
+                setDescuento(descuentoGuardado);
+            }
+            
+            // Cargar aumento guardado
+            const aumentoGuardado = localStorage.getItem('aumentoMovimientoGuardado');
+            if (aumentoGuardado && !aumento) {
+                setAumento(aumentoGuardado);
+            }
+            
+            // Cargar concepto guardado
+            const conceptoGuardado = localStorage.getItem('conceptoMovimientoGuardado');
+            if (conceptoGuardado && !concepto) {
+                setConcepto(conceptoGuardado);
+            }
+            
+            // Cargar cliente guardado
+            const clienteIdGuardado = localStorage.getItem('clienteIdMovimientoGuardado');
+            const clienteNameGuardado = localStorage.getItem('clienteNameMovimientoGuardado');
+            if (clienteIdGuardado && clienteNameGuardado && !clienteSeleccionado) {
                 setClienteSeleccionadoData({
-                    id: clienteId,
-                    name: clienteName
+                    id: clienteIdGuardado,
+                    name: clienteNameGuardado
                 });
-                setClienteSeleccionado(clienteId);
-            } else {
-                setClienteSeleccionadoData(null);
-                setClienteSeleccionado('');
+                setClienteSeleccionado(clienteIdGuardado);
             }
-        } else if (!isOpen && !esEntrega) {
-            setClienteSeleccionadoData(null);
-            setClienteSeleccionado('');
+            
+            // Cargar método de pago guardado
+            const metodoPagoGuardado = localStorage.getItem('metodoPagoMovimientoGuardado');
+            if (metodoPagoGuardado && !metodoPagoSeleccionado) {
+                setMetodoPagoSeleccionado(metodoPagoGuardado);
+            }
         }
-    }, [esEntrega, isOpen]);
+    }, [isOpen, esEntrega]);
 
-    // Cargar método de pago del movimiento cuando es una repetición
+    // Guardar valores en localStorage cuando cambian
     useEffect(() => {
-        if (isOpen && !esEntrega) {
-            const metodoPago = localStorage.getItem('metodoPagoRepitiendo') || localStorage.getItem('metodoPagoEditando');
-            if (metodoPago) {
-                setMetodoPagoSeleccionado(metodoPago);
-            }
-        } else if (!isOpen && !esEntrega) {
-            setMetodoPagoSeleccionado('');
+        if (descuento && descuento.trim() !== '') {
+            localStorage.setItem('descuentoMovimientoGuardado', descuento.trim());
         }
-    }, [esEntrega, isOpen]);
+    }, [descuento]);
+
+    useEffect(() => {
+        if (aumento && aumento.trim() !== '') {
+            localStorage.setItem('aumentoMovimientoGuardado', aumento.trim());
+        }
+    }, [aumento]);
+
+    useEffect(() => {
+        if (concepto && concepto.trim() !== '') {
+            localStorage.setItem('conceptoMovimientoGuardado', concepto.trim());
+        }
+    }, [concepto]);
+
+    useEffect(() => {
+        if (clienteSeleccionadoData) {
+            localStorage.setItem('clienteIdMovimientoGuardado', clienteSeleccionadoData.id);
+            localStorage.setItem('clienteNameMovimientoGuardado', clienteSeleccionadoData.name);
+        }
+    }, [clienteSeleccionadoData]);
+
+    useEffect(() => {
+        if (metodoPagoSeleccionado) {
+            localStorage.setItem('metodoPagoMovimientoGuardado', metodoPagoSeleccionado);
+        }
+    }, [metodoPagoSeleccionado]);
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
         if (nuevaCantidad <= 0) {
@@ -392,11 +414,19 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         localStorage.removeItem('conceptoMovimientoRepitiendo');
         localStorage.removeItem('descuentoMovimientoEditando');
         localStorage.removeItem('aumentoMovimientoEditando');
+        // Limpiar valores guardados
+        localStorage.removeItem('descuentoMovimientoGuardado');
+        localStorage.removeItem('aumentoMovimientoGuardado');
+        localStorage.removeItem('conceptoMovimientoGuardado');
+        localStorage.removeItem('clienteIdMovimientoGuardado');
+        localStorage.removeItem('clienteNameMovimientoGuardado');
+        localStorage.removeItem('metodoPagoMovimientoGuardado');
         setDescuento('');
         setAumento('');
         setConcepto('');
         setClienteSeleccionado('');
         setClienteSeleccionadoData(null);
+        setMetodoPagoSeleccionado('');
         if (isEditandoMovimiento && movimientoIdEditando) {
             localStorage.removeItem('movimientoIdEditando');
         }

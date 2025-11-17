@@ -163,16 +163,47 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         };
     }, []);
 
-    // Establecer "Casa Matriz" como valor por defecto
+    // Cargar valores guardados cuando se abre (solo si no hay valores ya establecidos)
     useEffect(() => {
-        // Solo si no estamos editando, hay sucursales disponibles, no hay sucursal seleccionada y el componente está abierto
-        if (!pedidoId && sucursales.length > 0 && !sucursalSeleccionada && isOpen) {
-            const casaMatriz = sucursales.find(sucursal => sucursal.label === 'Casa Matriz');
-            if (casaMatriz) {
-                setSucursalSeleccionada(casaMatriz.value);
+        if (isOpen && !pedidoId) {
+            // Cargar sucursal guardada
+            const sucursalGuardada = localStorage.getItem('sucursalPedidoGuardada');
+            if (sucursalGuardada && !sucursalSeleccionada) {
+                setSucursalSeleccionada(sucursalGuardada);
+            } else if (!sucursalGuardada && sucursales.length > 0 && !sucursalSeleccionada) {
+                // Si no hay sucursal guardada, establecer "Casa Matriz" como valor por defecto
+                const casaMatriz = sucursales.find(sucursal => sucursal.label === 'Casa Matriz');
+                if (casaMatriz) {
+                    setSucursalSeleccionada(casaMatriz.value);
+                }
+            }
+            
+            // Cargar cliente guardado
+            const clienteIdGuardado = localStorage.getItem('clienteIdPedidoGuardado');
+            const clienteNameGuardado = localStorage.getItem('clienteNamePedidoGuardado');
+            if (clienteIdGuardado && clienteNameGuardado && !clienteSeleccionado) {
+                setClienteSeleccionadoData({
+                    id: clienteIdGuardado,
+                    name: clienteNameGuardado
+                });
+                setClienteSeleccionado(clienteIdGuardado);
             }
         }
-    }, [sucursales, isOpen, pedidoId, sucursalSeleccionada]);
+    }, [isOpen, pedidoId, sucursales, sucursalSeleccionada, clienteSeleccionado]);
+
+    // Guardar valores en localStorage cuando cambian
+    useEffect(() => {
+        if (sucursalSeleccionada && !pedidoId) {
+            localStorage.setItem('sucursalPedidoGuardada', sucursalSeleccionada);
+        }
+    }, [sucursalSeleccionada, pedidoId]);
+
+    useEffect(() => {
+        if (clienteSeleccionadoData && !pedidoId) {
+            localStorage.setItem('clienteIdPedidoGuardado', clienteSeleccionadoData.id);
+            localStorage.setItem('clienteNamePedidoGuardado', clienteSeleccionadoData.name);
+        }
+    }, [clienteSeleccionadoData, pedidoId]);
 
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
@@ -244,6 +275,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
         localStorage.removeItem('canastaPedidos');
+        // Limpiar valores guardados
+        localStorage.removeItem('sucursalPedidoGuardada');
+        localStorage.removeItem('clienteIdPedidoGuardado');
+        localStorage.removeItem('clienteNamePedidoGuardado');
+        setSucursalSeleccionada('');
+        setClienteSeleccionado('');
+        setClienteSeleccionadoData(null);
         setIsLimpiarModalOpen(false);
         setIsOpen(false);
     };

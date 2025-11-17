@@ -9,7 +9,6 @@ import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
 import FetchData from '../../mixed/FetchData';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import pricesTypesService from '../../../services/pricesTypesService';
-import sucursalesService from '../../../services/sucursalesService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import { useUser } from '../../../context/UserContext';
@@ -30,6 +29,9 @@ import useSessionCache from '../../../hooks/useSessionCache';
 function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTransferencia = false }) {
     const { isLargeScreen } = useLayout();
     const { sucursalSeleccionada: sucursalActual } = useUser();
+    
+    // Obtener empresaId de la sucursal seleccionada
+    const empresaId = sucursalActual?.empresas?.id || null;
 
     // Determinar si es modo carrito (para panel lateral)
     const isCartMode = tipo === 'transferir' && isLargeScreen;
@@ -52,12 +54,10 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
         defaultValue: [],
     });
     const [preciosData, setPreciosData] = useState([]);
-    const [sucursalesData, setSucursalesData] = useState([]);
     
     // Estados para rastrear qué datos se han cargado
     const [productosLoaded, setProductosLoaded] = useState(false);
     const [preciosLoaded, setPreciosLoaded] = useState(false);
-    const [sucursalesLoaded, setSucursalesLoaded] = useState(false);
 
     // Estados para canasta de transferencias
     const [productosCanastaTransferencias, setProductosCanastaTransferencias] = useState([]);
@@ -98,14 +98,6 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
         default_value: precio.default_value
     }));
 
-    const sucursales = sucursalesData
-        .filter(sucursal => sucursal.id !== sucursalActual?.id)
-        .map(sucursal => ({
-            value: sucursal.id,
-            label: sucursal.name,
-            id: sucursal.id,
-            name: sucursal.name
-        }));
 
 
     // Handlers de carga de datos
@@ -128,10 +120,6 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
     const handlePreciosLoaded = useCallback((data) => {
         setPreciosData(data);
         setPreciosLoaded(true);
-    }, []);
-    const handleSucursalesLoaded = useCallback((data) => {
-        setSucursalesData(data);
-        setSucursalesLoaded(true);
     }, []);
 
     // Función para manejar cuando se actualizan múltiples productos (después de transferencias)
@@ -181,7 +169,6 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
             // Resetear estados de carga
             setProductosLoaded(hasProductosCache && productos.length > 0);
             setPreciosLoaded(false);
-            setSucursalesLoaded(false);
         }
     }, [isOpen, isLargeScreen, resetFilters, hasProductosCache, productos.length]);
 
@@ -495,15 +482,6 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
                             onLoadingStart={handleLoadingStart}
                             onLoadingEnd={handleLoadingEnd}
                         />
-                        <FetchData
-                            service={sucursalesService}
-                            serviceName="sucursalesService"
-                            method="getByEmpresaId"
-                            isOpen={isOpen}
-                            onDataLoaded={handleSucursalesLoaded}
-                            onLoadingStart={handleLoadingStart}
-                            onLoadingEnd={handleLoadingEnd}
-                        />
                     </>
                 )}
                 {/* Canasta de Transferencias */}
@@ -525,9 +503,7 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
                         }}
                         onProductosUpdated={handleProductosUpdated}
                         preciosTipos={preciosTipos}
-                        sucursales={sucursales}
                         loadingPrecios={false}
-                        loadingSucursales={!sucursalesLoaded}
                         productosActualizados={productos}
                         isCartMode={isCartMode && isLargeScreen}
                     />

@@ -13,8 +13,9 @@ import transferenciasAlmacenService from '../../../services/transferenciasAlmace
 import useCanastaProductos from '../almacen-general/hooks/useCanastaProductos';
 import { useLayout } from '../../../context/LayoutContext';
 import Clientes from '../clientes/Clientes';
+import SelectorSucursal from '../../mixed/SelectorSucursal';
 
-function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], sucursales = [], loadingPrecios = false, loadingSucursales = false, productosActualizados = [], isCartMode = false }) {
+function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const { isLargeScreen } = useLayout();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
@@ -284,48 +285,55 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
         cambiarModoAgrupacion(nuevoModo);
     };
 
-    // Establecer "Casa Matriz" como valor por defecto (no cargar sucursal de repetición - usuario la seleccionará manualmente)
+    // El SelectorSucursal maneja la carga y el valor por defecto internamente
+
+    // Cargar valores guardados cuando se abre (solo si no hay valores ya establecidos)
     useEffect(() => {
-        if (sucursales.length > 0 && !sucursalSeleccionada && isOpen) {
-            // Usar "Casa Matriz" como valor por defecto
-            const casaMatriz = sucursales.find(sucursal => sucursal.label === 'Casa Matriz');
-            if (casaMatriz) {
-                setSucursalSeleccionada(casaMatriz.value);
+        if (isOpen) {
+            // Cargar concepto guardado
+            const conceptoGuardado = localStorage.getItem('conceptoTransferenciaGuardado');
+            if (conceptoGuardado && !concepto) {
+                setConcepto(conceptoGuardado);
             }
-        }
-    }, [sucursales, isOpen, sucursalSeleccionada]);
-
-    // Cargar concepto de la transferencia cuando se repite
-    useEffect(() => {
-        if (isOpen) {
-            const conceptoRepitiendo = localStorage.getItem('conceptoTransferenciaRepitiendo');
-            setConcepto(conceptoRepitiendo ?? '');
-        } else if (!isOpen) {
-            setConcepto('');
-        }
-    }, [isOpen]);
-
-    // Cargar información del cliente del movimiento cuando es una repetición
-    useEffect(() => {
-        if (isOpen) {
-            const clienteId = localStorage.getItem('clienteIdTransferenciaRepitiendo');
-            const clienteName = localStorage.getItem('clienteNameTransferenciaRepitiendo');
-
-            if (clienteId && clienteName) {
+            
+            // Cargar cliente guardado
+            const clienteIdGuardado = localStorage.getItem('clienteIdTransferenciaGuardado');
+            const clienteNameGuardado = localStorage.getItem('clienteNameTransferenciaGuardado');
+            if (clienteIdGuardado && clienteNameGuardado && !clienteSeleccionado) {
                 setClienteSeleccionadoData({
-                    id: clienteId,
-                    name: clienteName
+                    id: clienteIdGuardado,
+                    name: clienteNameGuardado
                 });
-                setClienteSeleccionado(clienteId);
-            } else {
-                setClienteSeleccionadoData(null);
-                setClienteSeleccionado('');
+                setClienteSeleccionado(clienteIdGuardado);
             }
-        } else if (!isOpen) {
-            setClienteSeleccionadoData(null);
-            setClienteSeleccionado('');
+            
+            // Cargar sucursal guardada
+            const sucursalGuardada = localStorage.getItem('sucursalTransferenciaGuardada');
+            if (sucursalGuardada && !sucursalSeleccionada) {
+                setSucursalSeleccionada(sucursalGuardada);
+            }
         }
     }, [isOpen]);
+
+    // Guardar valores en localStorage cuando cambian
+    useEffect(() => {
+        if (concepto && concepto.trim() !== '') {
+            localStorage.setItem('conceptoTransferenciaGuardado', concepto.trim());
+        }
+    }, [concepto]);
+
+    useEffect(() => {
+        if (clienteSeleccionadoData) {
+            localStorage.setItem('clienteIdTransferenciaGuardado', clienteSeleccionadoData.id);
+            localStorage.setItem('clienteNameTransferenciaGuardado', clienteSeleccionadoData.name);
+        }
+    }, [clienteSeleccionadoData]);
+
+    useEffect(() => {
+        if (sucursalSeleccionada) {
+            localStorage.setItem('sucursalTransferenciaGuardada', sucursalSeleccionada);
+        }
+    }, [sucursalSeleccionada]);
 
     const handleClienteSeleccionado = (cliente) => {
         setClienteSeleccionadoData(cliente);
@@ -345,6 +353,11 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
         localStorage.removeItem('sucursalDestinoTransferenciaRepitiendo');
         localStorage.removeItem('clienteIdTransferenciaRepitiendo');
         localStorage.removeItem('clienteNameTransferenciaRepitiendo');
+        // Limpiar valores guardados
+        localStorage.removeItem('conceptoTransferenciaGuardado');
+        localStorage.removeItem('clienteIdTransferenciaGuardado');
+        localStorage.removeItem('clienteNameTransferenciaGuardado');
+        localStorage.removeItem('sucursalTransferenciaGuardada');
         setSucursalSeleccionada('');
         setConcepto('');
         setClienteSeleccionado('');
@@ -649,13 +662,11 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
                             <>
                                 <hr className={styles.hr} />
                                 {/* Selector de sucursal */}
-                                <Select
+                                <SelectorSucursal
                                     value={sucursalSeleccionada}
                                     onChange={setSucursalSeleccionada}
-                                    options={sucursales}
                                     placeholder='Sucursal de destino (obligatorio)'
-                                    disabled={loadingSucursales}
-                                    icon='building'
+                                    excludeCurrentSucursal={true}
                                     openUpward={true}
                                 />
 
