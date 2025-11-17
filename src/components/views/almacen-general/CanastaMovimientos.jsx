@@ -491,6 +491,34 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         return true;
     };
 
+    // Función para obtener la ubicación GPS
+    const obtenerUbicacion = () => {
+        return new Promise((resolve) => {
+            if (!navigator.geolocation) {
+                resolve(null);
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        latitud: position.coords.latitude,
+                        longitud: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    console.warn('Error obteniendo ubicación:', error);
+                    resolve(null);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
+        });
+    };
+
     const handleConfirmar = async () => {
         setLoadingConfirmar(true);
         try {
@@ -499,6 +527,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 setLoadingConfirmar(false);
                 return;
             }
+
+            // Obtener ubicación GPS
+            const ubicacion = await obtenerUbicacion();
 
             const offlineEnabled = isOfflineNetworkEnabled();
             const fechaMovimientoEditando = isEditandoMovimiento ? localStorage.getItem('fechaMovimientoEditando') : null;
@@ -602,7 +633,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 concepto: concepto && concepto.trim() !== '' ? concepto.trim() : null,
                 productos: productosParaCalcular,
                 ...(fechaMovimientoEditando ? { fecha: fechaMovimientoEditando } : {}),
-                ...(numeroOrdenPayload !== null ? { numero_orden: numeroOrdenPayload } : {})
+                ...(numeroOrdenPayload !== null ? { numero_orden: numeroOrdenPayload } : {}),
+                ...(ubicacion ? { ubicacion: `${ubicacion.longitud},${ubicacion.latitud}` } : {})
             };
             const clienteOfflineInfo = esEntrega
                 ? (clienteSeleccionadoData || clientePedidoData || null)

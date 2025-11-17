@@ -206,6 +206,34 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         return true;
     };
 
+    // Función para obtener la ubicación GPS
+    const obtenerUbicacion = () => {
+        return new Promise((resolve) => {
+            if (!navigator.geolocation) {
+                resolve(null);
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        latitud: position.coords.latitude,
+                        longitud: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    console.warn('Error obteniendo ubicación:', error);
+                    resolve(null);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
+        });
+    };
+
     const handleConfirmarMovimientos = async () => {
         setLoadingConfirmar(true);
         try {
@@ -213,6 +241,9 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 setLoadingConfirmar(false);
                 return;
             }
+
+            // Obtener ubicación GPS
+            const ubicacion = await obtenerUbicacion();
 
             const movimientoData = {
                 type: 'entrada',
@@ -224,7 +255,8 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 restar_ingredientes: restarIngredientes && tieneProductosConRecetas(),
                 agrupado: modoAgrupacion === 'agrupado',
                 concepto: concepto && concepto.trim() !== '' ? concepto.trim() : null,
-                productos: prepararProductos()
+                productos: prepararProductos(),
+                ...(ubicacion ? { ubicacion: `${ubicacion.longitud},${ubicacion.latitud}` } : {})
             };
 
             // Si registrarGasto está activo, crear gasto primero
