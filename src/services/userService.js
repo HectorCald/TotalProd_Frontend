@@ -126,6 +126,50 @@ class UserService {
     }
   }
   
+  // Generar token de usuario desde sesión de admin/empleado (sin contraseña)
+  static async generateUserTokenFromAdmin(userId) {
+    try {
+      if (!userId) {
+        return {
+          success: false,
+          error: 'ID del usuario es requerido'
+        };
+      }
+
+      const token = this.getToken();
+      const response = await fetch(`${API_BASE_URL}/users/generate-user-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.message || 'Error del servidor'
+        };
+      }
+
+      // Guardar token si fue exitoso
+      if (data.success && data.data && data.data.token) {
+        this.saveToken(data.data.token);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error en generateUserTokenFromAdmin:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
   // Verificar contraseña actual
   static async verifyCurrentPassword(userId, currentPassword) {
     try {

@@ -491,11 +491,11 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         return true;
     };
 
-    // Función para obtener la ubicación GPS
+    // Función para obtener la ubicación GPS (obligatoria)
     const obtenerUbicacion = () => {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (!navigator.geolocation) {
-                resolve(null);
+                reject(new Error('La geolocalización no está disponible en este dispositivo'));
                 return;
             }
 
@@ -508,11 +508,19 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 },
                 (error) => {
                     console.warn('Error obteniendo ubicación:', error);
-                    resolve(null);
+                    if (error.code === 1) { // PERMISSION_DENIED
+                        reject(new Error('PERMISSION_DENIED'));
+                    } else if (error.code === 2) { // POSITION_UNAVAILABLE
+                        reject(new Error('POSITION_UNAVAILABLE'));
+                    } else if (error.code === 3) { // TIMEOUT
+                        reject(new Error('TIMEOUT'));
+                    } else {
+                        reject(new Error('ERROR_DESCONOCIDO'));
+                    }
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 5000,
+                    timeout: 10000,
                     maximumAge: 0
                 }
             );
@@ -528,8 +536,23 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 return;
             }
 
-            // Obtener ubicación GPS
-            const ubicacion = await obtenerUbicacion();
+            // Obtener ubicación GPS (obligatoria) - se solicita cada vez que se presiona el botón
+            let ubicacion = null;
+            try {
+                ubicacion = await obtenerUbicacion();
+            } catch (error) {
+                setLoadingConfirmar(false);
+                if (error.message === 'PERMISSION_DENIED') {
+                    mostrarNotificacion('error', '⚠️ Permisos de ubicación denegados. Para realizar la venta debes permitir el acceso a tu ubicación. Ve a la configuración de tu navegador y habilita los permisos de ubicación para este sitio, luego intenta nuevamente.');
+                } else if (error.message === 'POSITION_UNAVAILABLE') {
+                    mostrarNotificacion('error', 'No se pudo obtener tu ubicación. Verifica que el GPS esté activado y vuelve a intentar.');
+                } else if (error.message === 'TIMEOUT') {
+                    mostrarNotificacion('error', 'Se agotó el tiempo de espera para obtener tu ubicación. Por favor, intenta nuevamente.');
+                } else {
+                    mostrarNotificacion('error', 'Error al obtener tu ubicación. Debes permitir el acceso a la ubicación para realizar la venta.');
+                }
+                return; // Detener el proceso - no se puede continuar sin ubicación
+            }
 
             const offlineEnabled = isOfflineNetworkEnabled();
             const fechaMovimientoEditando = isEditandoMovimiento ? localStorage.getItem('fechaMovimientoEditando') : null;
@@ -634,7 +657,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 productos: productosParaCalcular,
                 ...(fechaMovimientoEditando ? { fecha: fechaMovimientoEditando } : {}),
                 ...(numeroOrdenPayload !== null ? { numero_orden: numeroOrdenPayload } : {}),
-                ...(ubicacion ? { ubicacion: `${ubicacion.longitud},${ubicacion.latitud}` } : {})
+                ubicacion: `${ubicacion.longitud},${ubicacion.latitud}` // Obligatoria
             };
             const clienteOfflineInfo = esEntrega
                 ? (clienteSeleccionadoData || clientePedidoData || null)

@@ -585,13 +585,19 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 medidaVisual = 'grp';
             }
 
+            // Calcular subtotal y redondear solo si el pedido es agrupado
+            let subtotal = (detalle.precio || 0) * (detalle.cantidad || 0);
+            if (pedidoActual.agrupado && producto.grup) {
+                subtotal = Math.round(subtotal);
+            }
+
             return {
                 id: detalle.id,
                 nombre: producto.name || 'Producto no encontrado',
                 cantidad: cantidadVisual,
                 medida: medidaVisual,
                 precio: detalle.precio || 0,
-                subtotal: (detalle.precio || 0) * (detalle.cantidad || 0) // El subtotal siempre usa la cantidad real para el cálculo
+                subtotal: subtotal // El subtotal siempre usa la cantidad real para el cálculo
             };
         });
     };
@@ -616,18 +622,25 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 const grupos = Math.floor(cantidad / grup);
                 const unidades = cantidad % grup;
                 cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                // Precio unitario multiplicado por la cantidad de agrupación
-                precioTexto = formatCurrency(precio * grup);
+                // Precio unitario multiplicado por la cantidad de agrupación (redondeado)
+                const precioUnitarioAgrupado = Math.round(precio * grup);
+                precioTexto = formatCurrency(precioUnitarioAgrupado);
             } else {
                 cantidadTexto = `${cantidad} ud`;
                 precioTexto = formatCurrency(precio);
+            }
+
+            // Calcular subtotal y redondear solo si el pedido es agrupado
+            let subtotal = precio * cantidad;
+            if (esAgrupado) {
+                subtotal = Math.round(subtotal);
             }
 
             return [
                 producto.name || 'Sin nombre',
                 cantidadTexto,
                 precioTexto,
-                formatCurrency(precio * cantidad)
+                formatCurrency(subtotal)
             ];
         });
     }, [pedidoActual]);
@@ -737,7 +750,12 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         value={formatCurrency((pedidoActual.pedido_almacen_detalle || []).reduce((total, detalle) => {
                             const precio = detalle.precio || 0;
                             const cantidad = detalle.cantidad || 0;
-                            return total + (precio * cantidad);
+                            let subtotal = precio * cantidad;
+                            // Redondear subtotal solo si el pedido es agrupado
+                            if (pedidoActual.agrupado && detalle.producto_almacen?.grup) {
+                                subtotal = Math.round(subtotal);
+                            }
+                            return total + subtotal;
                         }, 0))}
                         especial='green'
                         vertical={false}
@@ -865,8 +883,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                                             const grupos = Math.floor(cantidad / grup);
                                             const unidades = cantidad % grup;
                                             cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                                            // Precio unitario multiplicado por la cantidad de agrupación
-                                            precioTexto = formatCurrency(precio * grup);
+                                            // Precio unitario multiplicado por la cantidad de agrupación (redondeado)
+                                            const precioUnitarioAgrupado = Math.round(precio * grup);
+                                            precioTexto = formatCurrency(precioUnitarioAgrupado);
                                         } else {
                                             cantidadTexto = `${cantidad} ud`;
                                             precioTexto = formatCurrency(precio);

@@ -402,6 +402,46 @@ const personalService = {
         }
     },
 
+    // Generar token de empleado desde sesión de admin (sin contraseña)
+    async generateEmployeeTokenFromAdmin(employeeId) {
+        try {
+            if (!employeeId) {
+                return {
+                    success: false,
+                    message: 'ID del empleado es requerido'
+                };
+            }
+
+            const response = await fetch(`${API_BASE_URL}/personal/generate-employee-token`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ employeeId })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return {
+                    success: false,
+                    message: data.message || 'Error del servidor'
+                };
+            }
+
+            // Guardar token si fue exitoso
+            if (data.success && data.data && data.data.token) {
+                localStorage.setItem('token', data.data.token);
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error en personalService.generateEmployeeTokenFromAdmin:', error);
+            return {
+                success: false,
+                message: 'Error de conexión con el servidor'
+            };
+        }
+    },
+
     // Cambiar contraseña de empleado
     async changePassword(personalId, currentPassword, newPassword) {
         try {
