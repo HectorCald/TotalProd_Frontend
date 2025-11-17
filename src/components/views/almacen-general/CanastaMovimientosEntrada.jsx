@@ -206,13 +206,35 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         return true;
     };
 
+    // Función para verificar el estado del permiso de ubicación
+    const verificarPermisoUbicacion = async () => {
+        if (!navigator.permissions || !navigator.permissions.query) {
+            return null; // API no disponible, intentar de todas formas
+        }
+        
+        try {
+            const result = await navigator.permissions.query({ name: 'geolocation' });
+            return result.state; // 'granted', 'denied', o 'prompt'
+        } catch (error) {
+            console.warn('Error verificando permiso:', error);
+            return null; // Si falla, intentar de todas formas
+        }
+    };
+
     // Función para obtener la ubicación GPS (obligatoria)
-    const obtenerUbicacion = () => {
-        return new Promise((resolve, reject) => {
+    const obtenerUbicacion = async () => {
+        return new Promise(async (resolve, reject) => {
             if (!navigator.geolocation) {
                 reject(new Error('La geolocalización no está disponible en este dispositivo'));
                 return;
             }
+
+            // Verificar el estado del permiso antes de intentar
+            const estadoPermiso = await verificarPermisoUbicacion();
+            
+            // Si el permiso está denegado, intentar de todas formas (el navegador puede haber cambiado)
+            // pero preparar un mensaje más claro
+            const permisoDenegado = estadoPermiso === 'denied';
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -257,7 +279,24 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
             } catch (error) {
                 setLoadingConfirmar(false);
                 if (error.message === 'PERMISSION_DENIED') {
-                    mostrarNotificacion('error', '⚠️ Permisos de ubicación denegados. Para realizar la entrada debes permitir el acceso a tu ubicación. Ve a la configuración de tu navegador y habilita los permisos de ubicación para este sitio, luego intenta nuevamente.');
+                    // Mensaje detallado con instrucciones según el navegador
+                    const esChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+                    const esFirefox = /Firefox/.test(navigator.userAgent);
+                    const esSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+                    const esEdge = /Edg/.test(navigator.userAgent);
+                    
+                    let instrucciones = '';
+                    if (esChrome || esEdge) {
+                        instrucciones = 'Haz clic en el ícono de candado 🔒 en la barra de direcciones → Configuración del sitio → Ubicación → Permitir';
+                    } else if (esFirefox) {
+                        instrucciones = 'Haz clic en el ícono de candado 🔒 en la barra de direcciones → Más información → Permisos → Ubicación → Permitir';
+                    } else if (esSafari) {
+                        instrucciones = 'Safari → Preferencias → Sitios web → Ubicación → Permitir para este sitio';
+                    } else {
+                        instrucciones = 'Ve a la configuración de tu navegador y habilita los permisos de ubicación para este sitio';
+                    }
+                    
+                    mostrarNotificacion('error', `⚠️ Permisos de ubicación denegados. Para realizar la entrada DEBES permitir el acceso a tu ubicación. ${instrucciones}. Luego presiona "Confirmar Entrada" nuevamente.`);
                 } else if (error.message === 'POSITION_UNAVAILABLE') {
                     mostrarNotificacion('error', 'No se pudo obtener tu ubicación. Verifica que el GPS esté activado y vuelve a intentar.');
                 } else if (error.message === 'TIMEOUT') {
