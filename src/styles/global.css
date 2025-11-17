@@ -60,7 +60,7 @@ code {
 
 /* Tema claro */
 [data-theme="light"] {
-  --secondary-color: #f2f2f2;
+  --secondary-color: #ebebeb;
   --tertiary-color: #ffffff;
   --quaternary-color: #f0f0f0;
   --quinary-color: #a9a9a9;
@@ -72,7 +72,7 @@ code {
 /* Tema oscuro (por defecto) */
 [data-theme="dark"] {
   --secondary-color: #171717;
-  --tertiary-color: #242424;
+  --tertiary-color: #1f1f1f;
   --quaternary-color: #343434;
   --quinary-color: #4d4d4d;;
   --senary-color: #8f8f8f;

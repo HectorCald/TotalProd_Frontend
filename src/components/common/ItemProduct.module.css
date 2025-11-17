@@ -10,14 +10,7 @@
     background-color: none;
     position: relative;
     cursor: pointer;
-    border: 1px solid var(--quinary-color);
-    border-radius: 10px;
-    margin-bottom: 8px;
-    transition: border-color 0.2s ease;
-}
-
-.itemProductActive {
-    border-color: var(--primary-color);
+    border-bottom: 1px solid var(--quaternary-color);
 }
 
 .itemProductIcon {

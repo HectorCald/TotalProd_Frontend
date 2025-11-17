@@ -10,18 +10,8 @@
     background-color: none;
     position: relative;
     cursor: pointer;
-    border: 1px solid var(--quinary-color);
-    border-radius: 10px;
-    margin-bottom: 8px;
-    transition: border-color 0.2s ease;
-}
-
-.itemViewInputFaltante {
-    border-color: var(--error-color);
-}
-
-.itemViewInputSobrante {
-    border-color: var(--success-color);
+    border: none;
+    border-bottom: 1px solid var(--quaternary-color);
 }
 
 .itemViewInputIcon {
@@ -164,8 +154,8 @@
     width: 100%;
     padding: 8px 10px;
     border-radius: 8px;
-    border: 1px solid var(--quaternary-color);
-    background: transparent;
+    border: none;
+    background: var(--tertiary-color);
     color: var(--white-color);
     outline: none;
     box-sizing: border-box;

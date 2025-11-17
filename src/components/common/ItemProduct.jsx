@@ -97,7 +97,7 @@ const ItemProduct = ({
 
     return (
         <div 
-            className={`${styles.itemProduct} ${disabled ? styles.disabled : ''} ${tieneCantidad ? styles.itemProductActive : ''}`} 
+            className={`${styles.itemProduct} ${disabled ? styles.disabled : ''}`} 
             onClick={disabled ? undefined : onClick} 
             style={style}
             aria-disabled={disabled}

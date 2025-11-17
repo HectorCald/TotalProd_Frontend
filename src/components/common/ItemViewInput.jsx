@@ -32,12 +32,7 @@ const ItemViewInput = ({
         return colorMap[descriptionBadgeColor] || colorMap['default'];
     };
 
-    // Determinar clases CSS según el estado de diferencia
-    const getBorderClass = () => {
-        if (diffState === 'faltante') return styles.itemViewInputFaltante;
-        if (diffState === 'sobrante') return styles.itemViewInputSobrante;
-        return '';
-  };
+    // Determinar clases CSS según el estado de diferencia (solo para icono ahora)
 
     const getIconClass = () => {
         if (diffState === 'faltante') return styles.itemViewInputIconFaltante;
@@ -47,7 +42,7 @@ const ItemViewInput = ({
 
   return (
         <div 
-            className={`${styles.itemViewInput} ${getBorderClass()}`}
+            className={styles.itemViewInput}
             onClick={onClick} 
             style={style}
         >
