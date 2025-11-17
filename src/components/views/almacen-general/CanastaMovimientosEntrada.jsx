@@ -206,35 +206,13 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         return true;
     };
 
-    // Función para verificar el estado del permiso de ubicación
-    const verificarPermisoUbicacion = async () => {
-        if (!navigator.permissions || !navigator.permissions.query) {
-            return null; // API no disponible, intentar de todas formas
-        }
-        
-        try {
-            const result = await navigator.permissions.query({ name: 'geolocation' });
-            return result.state; // 'granted', 'denied', o 'prompt'
-        } catch (error) {
-            console.warn('Error verificando permiso:', error);
-            return null; // Si falla, intentar de todas formas
-        }
-    };
-
-    // Función para obtener la ubicación GPS (obligatoria)
-    const obtenerUbicacion = async () => {
-        return new Promise(async (resolve, reject) => {
+    // Función para obtener la ubicación GPS (opcional)
+    const obtenerUbicacion = () => {
+        return new Promise((resolve) => {
             if (!navigator.geolocation) {
-                reject(new Error('La geolocalización no está disponible en este dispositivo'));
+                resolve(null);
                 return;
             }
-
-            // Verificar el estado del permiso antes de intentar
-            const estadoPermiso = await verificarPermisoUbicacion();
-            
-            // Si el permiso está denegado, intentar de todas formas (el navegador puede haber cambiado)
-            // pero preparar un mensaje más claro
-            const permisoDenegado = estadoPermiso === 'denied';
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -245,19 +223,12 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 },
                 (error) => {
                     console.warn('Error obteniendo ubicación:', error);
-                    if (error.code === 1) { // PERMISSION_DENIED
-                        reject(new Error('PERMISSION_DENIED'));
-                    } else if (error.code === 2) { // POSITION_UNAVAILABLE
-                        reject(new Error('POSITION_UNAVAILABLE'));
-                    } else if (error.code === 3) { // TIMEOUT
-                        reject(new Error('TIMEOUT'));
-                    } else {
-                        reject(new Error('ERROR_DESCONOCIDO'));
-                    }
+                    // Si no se puede obtener, simplemente retornar null
+                    resolve(null);
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 10000,
+                    timeout: 5000,
                     maximumAge: 0
                 }
             );
@@ -272,40 +243,8 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 return;
             }
 
-            // Obtener ubicación GPS (obligatoria) - se solicita cada vez que se presiona el botón
-            let ubicacion = null;
-            try {
-                ubicacion = await obtenerUbicacion();
-            } catch (error) {
-                setLoadingConfirmar(false);
-                if (error.message === 'PERMISSION_DENIED') {
-                    // Mensaje detallado con instrucciones según el navegador
-                    const esChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
-                    const esFirefox = /Firefox/.test(navigator.userAgent);
-                    const esSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-                    const esEdge = /Edg/.test(navigator.userAgent);
-                    
-                    let instrucciones = '';
-                    if (esChrome || esEdge) {
-                        instrucciones = 'Haz clic en el ícono de candado 🔒 en la barra de direcciones → Configuración del sitio → Ubicación → Permitir';
-                    } else if (esFirefox) {
-                        instrucciones = 'Haz clic en el ícono de candado 🔒 en la barra de direcciones → Más información → Permisos → Ubicación → Permitir';
-                    } else if (esSafari) {
-                        instrucciones = 'Safari → Preferencias → Sitios web → Ubicación → Permitir para este sitio';
-                    } else {
-                        instrucciones = 'Ve a la configuración de tu navegador y habilita los permisos de ubicación para este sitio';
-                    }
-                    
-                    mostrarNotificacion('error', `⚠️ Permisos de ubicación denegados. Para realizar la entrada DEBES permitir el acceso a tu ubicación. ${instrucciones}. Luego presiona "Confirmar Entrada" nuevamente.`);
-                } else if (error.message === 'POSITION_UNAVAILABLE') {
-                    mostrarNotificacion('error', 'No se pudo obtener tu ubicación. Verifica que el GPS esté activado y vuelve a intentar.');
-                } else if (error.message === 'TIMEOUT') {
-                    mostrarNotificacion('error', 'Se agotó el tiempo de espera para obtener tu ubicación. Por favor, intenta nuevamente.');
-                } else {
-                    mostrarNotificacion('error', 'Error al obtener tu ubicación. Debes permitir el acceso a la ubicación para realizar la entrada.');
-                }
-                return; // Detener el proceso - no se puede continuar sin ubicación
-            }
+            // Obtener ubicación GPS (opcional) - si no se puede obtener, se guarda null
+            const ubicacion = await obtenerUbicacion();
 
             const movimientoData = {
                 type: 'entrada',
@@ -318,7 +257,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 agrupado: modoAgrupacion === 'agrupado',
                 concepto: concepto && concepto.trim() !== '' ? concepto.trim() : null,
                 productos: prepararProductos(),
-                ubicacion: `${ubicacion.longitud},${ubicacion.latitud}` // Obligatoria
+                ...(ubicacion ? { ubicacion: `${ubicacion.longitud},${ubicacion.latitud}` } : {})
             };
 
             // Si registrarGasto está activo, crear gasto primero
