@@ -455,6 +455,7 @@ const UsuarioScreen = () => {
                 setIsOpen={setIsOpenAdministrarCuentas}
                 onSelectEmpleado={() => setIsOpenLoginEmpleado(true)}
                 onSelectEmpresa={() => setIsOpenLoginEmpresa(true)}
+                isEmployee={isEmployee}
             />
             <LoginEmpleadoCuentas
                 isOpen={isOpenLoginEmpleado}

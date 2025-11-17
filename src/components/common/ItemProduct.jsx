@@ -187,6 +187,12 @@ const ItemProduct = ({
                                     }
                                 }
                             }}
+                            onKeyDown={(e) => {
+                                // Si se presiona Enter, quitar el focus del input
+                                if (e.key === 'Enter') {
+                                    e.target.blur();
+                                }
+                            }}
                             onBlur={(e) => {
                                 const valor = e.target.value;
                                 setCantidadTemp(null);
@@ -208,6 +214,7 @@ const ItemProduct = ({
                                 e.target.select();
                             }}
                             onClick={(e) => e.stopPropagation()}
+                            enterKeyHint="done"
                         />
                     </motion.span>
                     <button

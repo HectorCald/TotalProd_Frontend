@@ -8,6 +8,7 @@ import MensajeError from '../../common/MensajeError';
 import ItemView from '../../common/ItemView';
 import personalService from '../../../services/personalService';
 import { useEmployee } from '../../../context/EmployeeContext';
+import { useUser } from '../../../context/UserContext';
 
 // Clave para localStorage
 const SAVED_EMPLOYEES_KEY = 'savedEmployees';
@@ -64,16 +65,25 @@ function LoginEmpleadoCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
     const [savedEmployees, setSavedEmployees] = useState([]);
     const [isCodigoEditable, setIsCodigoEditable] = useState(true);
 
-    const { setEmployeeFromService, loadEmployeeData } = useEmployee();
+    const { setEmployeeFromService, loadEmployeeData, employee: currentEmployee } = useEmployee();
+    const { clearUserDataOnly } = useUser();
 
-    // Cargar empleados guardados al abrir el modal
+    // Cargar empleados guardados al abrir el modal, excluyendo la cuenta actual
     useEffect(() => {
         if (isOpen) {
             const saved = getSavedEmployees();
-            setSavedEmployees(saved);
+            // Filtrar la cuenta actual (si existe) para no mostrarla en la lista
+            const filtered = saved.filter(emp => {
+                // Si hay un empleado actual y tiene ID, excluirlo
+                if (currentEmployee?.id && emp.id) {
+                    return emp.id !== currentEmployee.id;
+                }
+                return true;
+            });
+            setSavedEmployees(filtered);
             setIsCodigoEditable(true);
         }
-    }, [isOpen]);
+    }, [isOpen, currentEmployee]);
 
     // Función para seleccionar empleado guardado
     const handleSelectSavedEmployee = async (employee) => {
@@ -95,9 +105,7 @@ function LoginEmpleadoCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
 
                     // Limpiar datos de usuario ANTES de cargar datos del empleado
                     // Pero NO eliminar el token porque ya es el token del empleado
-                    localStorage.removeItem('user');
-                    localStorage.removeItem('sucursalSeleccionada');
-                    localStorage.removeItem('userData');
+                    clearUserDataOnly(); // Limpiar el contexto del usuario sin eliminar el token
 
                     // Si el empleado tiene rastreo activado, obtener y actualizar ubicación
                     if (response.data.personal && response.data.personal.rastrear) {
@@ -267,6 +275,9 @@ function LoginEmpleadoCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
             const response = await personalService.loginEmployee(codigo, password);
 
             if (response.success) {
+                // Limpiar datos de usuario antes de cambiar a empleado
+                clearUserDataOnly(); // Limpiar el contexto del usuario sin eliminar el token
+                
                 // Guardar empleado en localStorage para acceso rápido
                 if (response.data.personal) {
                     saveEmployee({

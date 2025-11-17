@@ -8,6 +8,7 @@ import MensajeError from '../../common/MensajeError';
 import ItemView from '../../common/ItemView';
 import UserService from '../../../services/userService';
 import { useUser } from '../../../context/UserContext';
+import { useEmployee } from '../../../context/EmployeeContext';
 
 // Clave para localStorage
 const SAVED_USERS_KEY = 'savedUsers';
@@ -60,15 +61,24 @@ function LoginEmpresaCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
     const [errorMessage, setErrorMessage] = useState('');
     const [savedUsers, setSavedUsers] = useState([]);
 
-    const { loadUserData, clearUser, setUserFromService } = useUser();
+    const { loadUserData, clearUser, setUserFromService, user: currentUser } = useUser();
+    const { clearEmployeeDataOnly } = useEmployee();
 
-    // Cargar usuarios guardados al abrir el modal
+    // Cargar usuarios guardados al abrir el modal, excluyendo la cuenta actual
     useEffect(() => {
         if (isOpen) {
             const saved = getSavedUsers();
-            setSavedUsers(saved);
+            // Filtrar la cuenta actual (si existe) para no mostrarla en la lista
+            const filtered = saved.filter(usr => {
+                // Si hay un usuario actual y tiene ID, excluirlo
+                if (currentUser?.id && usr.id) {
+                    return usr.id !== currentUser.id;
+                }
+                return true;
+            });
+            setSavedUsers(filtered);
         }
-    }, [isOpen]);
+    }, [isOpen, currentUser]);
 
     // Función para seleccionar usuario guardado
     const handleSelectSavedUser = async (user) => {
@@ -90,11 +100,7 @@ function LoginEmpresaCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
 
                     // Limpiar datos de empleado ANTES de cargar datos del usuario
                     // Pero NO eliminar el token porque ya es el token del usuario
-                    localStorage.removeItem('employeeData');
-                    localStorage.removeItem('empresa_id');
-                    localStorage.removeItem('sucursalSeleccionada');
-                    // Limpiar también del contexto de usuario si existe
-                    // (se hará automáticamente cuando se establezca el nuevo usuario)
+                    clearEmployeeDataOnly(); // Limpiar el contexto del empleado sin eliminar el token
 
                     // Guardar datos del usuario en localStorage para que el contexto los pueda cargar
                     if (response.data.user) {
@@ -161,8 +167,7 @@ function LoginEmpresaCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
 
             if (response.success) {
                 // Limpiar datos de empleado antes de cambiar
-                localStorage.removeItem('employeeData');
-                localStorage.removeItem('empresa_id');
+                clearEmployeeDataOnly(); // Limpiar el contexto del empleado sin eliminar el token
 
                 // Obtener información completa del usuario para establecer en el contexto
                 if (response.data && response.data.user && response.data.user.id) {

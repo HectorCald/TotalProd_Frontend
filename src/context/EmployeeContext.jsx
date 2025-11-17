@@ -107,31 +107,31 @@ export const EmployeeProvider = ({ children }) => {
         return updatedEmployee;
       });
     } else {
-      setSucursalSeleccionada(sucursal);
-      localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
+    setSucursalSeleccionada(sucursal);
+    localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
 
-      setEmployee(prevEmployee => {
-        if (!prevEmployee) return prevEmployee;
+    setEmployee(prevEmployee => {
+      if (!prevEmployee) return prevEmployee;
 
-        const updatedEmployee = {
-          ...prevEmployee,
-          sucursal_id: sucursal?.id || null,
-          sucursal: sucursal
-            ? {
-                id: sucursal.id,
-                name: sucursal.name,
-                empresas: sucursal.empresas ? {
-                  id: sucursal.empresas.id,
-                  name: sucursal.empresas.name,
-                  logo_tipo: sucursal.empresas.logo_tipo || sucursal.empresas.logo
-                } : null
-              }
-            : null
-        };
+      const updatedEmployee = {
+        ...prevEmployee,
+        sucursal_id: sucursal?.id || null,
+        sucursal: sucursal
+          ? {
+              id: sucursal.id,
+              name: sucursal.name,
+              empresas: sucursal.empresas ? {
+                id: sucursal.empresas.id,
+                name: sucursal.empresas.name,
+                logo_tipo: sucursal.empresas.logo_tipo || sucursal.empresas.logo
+              } : null
+            }
+          : null
+      };
 
-        localStorage.setItem('employeeData', JSON.stringify(updatedEmployee));
-        return updatedEmployee;
-      });
+      localStorage.setItem('employeeData', JSON.stringify(updatedEmployee));
+      return updatedEmployee;
+    });
     }
   };
 
@@ -404,6 +404,19 @@ export const EmployeeProvider = ({ children }) => {
     });
   };
 
+  // Limpiar solo los datos del empleado sin eliminar el token (para cambio de cuenta)
+  const clearEmployeeDataOnly = () => {
+    setEmployee(null);
+    setSucursalSeleccionada(null);
+    setError(null);
+    
+    // Limpiar solo los datos específicos del empleado, NO el token
+    const keysToRemove = ['employee', 'sucursalSeleccionada', 'employeeData', 'empresa_id'];
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+    });
+  };
+
   // Establecer empleado directamente desde una respuesta de servicio (sin re-fetch)
   const setEmployeeFromService = (newEmployee) => {
     if (!newEmployee) return;
@@ -427,6 +440,7 @@ export const EmployeeProvider = ({ children }) => {
     loading,
     error,
     clearEmployee,
+    clearEmployeeDataOnly,
     seleccionarSucursal,
     loadEmployeeData,
     updateEmpresaImage,

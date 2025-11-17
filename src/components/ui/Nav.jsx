@@ -14,6 +14,9 @@ import Apariencia from '../views/usuario/Apariencia';
 import CodigoPromocional from '../views/usuario/CodigoPromocional';
 import PlanInfo from '../views/usuario/PlanInfo';
 import Comentarios from '../views/comentarios/Comentarios';
+import AdministrarCuentasMedio from '../views/usuario/AdministrarCuentasMedio';
+import LoginEmpleadoCuentas from '../views/usuario/LoginEmpleadoCuentas';
+import LoginEmpresaCuentas from '../views/usuario/LoginEmpresaCuentas';
 import ViewModal from './ViewModal';
 import HeaderModal from '../common/HeaderModal';
 import Boton from '../common/Boton';
@@ -30,6 +33,9 @@ const Nav = () => {
     const [isOpenCodigoPromocional, setIsOpenCodigoPromocional] = useState(false);
     const [isOpenComentarios, setIsOpenComentarios] = useState(false);
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+    const [isOpenAdministrarCuentas, setIsOpenAdministrarCuentas] = useState(false);
+    const [isOpenLoginEmpleado, setIsOpenLoginEmpleado] = useState(false);
+    const [isOpenLoginEmpresa, setIsOpenLoginEmpresa] = useState(false);
     const { sucursalSeleccionada: userSucursal, user, seleccionarSucursal, clearUser } = useUser();
     const { sucursalSeleccionada: employeeSucursal, employee, clearEmployee, seleccionarSucursal: seleccionarSucursalEmpleado } = useEmployee();
     const { isLargeScreen } = useLayout();
@@ -54,6 +60,7 @@ const Nav = () => {
     // Opciones del select de usuario
     const userMenuOptions = [
         { value: 'perfil', label: 'Detalles de mi cuenta', icon: 'user' },
+        { value: 'administrar-cuentas', label: 'Administrar cuentas', icon: 'user-circle' },
         { value: 'cambiar-contraseña', label: 'Cambiar contraseña', icon: 'lock-open' },
         { value: 'apariencia', label: 'Apariencia', icon: 'palette' },
         ...(isEmployee ? [] : [
@@ -89,6 +96,9 @@ const Nav = () => {
         switch (option) {
             case 'perfil':
                 setIsOpenVerUsuario(true);
+                break;
+            case 'administrar-cuentas':
+                setIsOpenAdministrarCuentas(true);
                 break;
             case 'cambiar-contraseña':
                 setIsOpenCambiarContraseña(true);
@@ -181,6 +191,46 @@ const Nav = () => {
                 <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
                 {/* <Comentarios isOpen={isOpenComentarios} setIsOpen={setIsOpenComentarios} /> */}
                 {!isEmployee && <PlanInfo isOpen={isOpenPlan} setIsOpen={setIsOpenPlan} />}
+
+                {/* Modales de Administrar Cuentas */}
+                <AdministrarCuentasMedio
+                    isOpen={isOpenAdministrarCuentas}
+                    setIsOpen={(open) => {
+                        setIsOpenAdministrarCuentas(open);
+                        // Si se cierra el modal principal, cerrar también los modales hijos
+                        if (!open) {
+                            setIsOpenLoginEmpleado(false);
+                            setIsOpenLoginEmpresa(false);
+                        }
+                    }}
+                    onSelectEmpleado={() => setIsOpenLoginEmpleado(true)}
+                    onSelectEmpresa={() => setIsOpenLoginEmpresa(true)}
+                    isEmployee={isEmployee}
+                />
+                <LoginEmpleadoCuentas
+                    isOpen={isOpenLoginEmpleado}
+                    setIsOpen={setIsOpenLoginEmpleado}
+                    onLoginSuccess={(data) => {
+                        // Los datos ya fueron limpiados y el token ya está guardado en LoginEmpleadoCuentas
+                        // Notificar a App.jsx que el token cambió para que re-renderice
+                        window.dispatchEvent(new Event('token-changed'));
+                        // Cerrar los modales
+                        setIsOpenLoginEmpleado(false);
+                        setIsOpenAdministrarCuentas(false);
+                    }}
+                />
+                <LoginEmpresaCuentas
+                    isOpen={isOpenLoginEmpresa}
+                    setIsOpen={setIsOpenLoginEmpresa}
+                    onLoginSuccess={(data) => {
+                        // Los datos ya fueron limpiados y el token ya está guardado en LoginEmpresaCuentas
+                        // Notificar a App.jsx que el token cambió para que re-renderice
+                        window.dispatchEvent(new Event('token-changed'));
+                        // Cerrar los modales
+                        setIsOpenLoginEmpresa(false);
+                        setIsOpenAdministrarCuentas(false);
+                    }}
+                />
 
                 {/* Modal de logout */}
                 <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>

@@ -4,7 +4,7 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import ItemView from '../../common/ItemView';
 
-function AdministrarCuentasMedio({ isOpen, setIsOpen, onSelectEmpleado, onSelectEmpresa }) {
+function AdministrarCuentasMedio({ isOpen, setIsOpen, onSelectEmpleado, onSelectEmpresa, isEmployee = false }) {
     const handleSelectEmpleado = () => {
         setIsOpen(false);
         if (onSelectEmpleado) {
@@ -26,13 +26,17 @@ function AdministrarCuentasMedio({ isOpen, setIsOpen, onSelectEmpleado, onSelect
                 onClose={() => setIsOpen(false)}
             />
             <div className={styles.modalContent}>
-                <ItemView
-                    title='Cuenta de empleado'
-                    description='Iniciar sesión con una cuenta de empleado'
-                    icon='user'
-                    arrow={true}
-                    onClick={handleSelectEmpleado}
-                />
+                {/* Si es empleado, solo mostrar "Otra empresa" (no puede cambiar a otra cuenta de empleado) */}
+                {/* Si es usuario, mostrar ambas opciones */}
+                {!isEmployee && (
+                    <ItemView
+                        title='Cuenta de empleado'
+                        description='Iniciar sesión con una cuenta de empleado'
+                        icon='user'
+                        arrow={true}
+                        onClick={handleSelectEmpleado}
+                    />
+                )}
                 <ItemView
                     title='Otra empresa'
                     description='Iniciar sesión con otra cuenta de empresa'

@@ -89,6 +89,14 @@ const ItemViewInput = ({
                 }
                 if (typeof input.onChange === 'function') input.onChange(e);
               };
+              
+              // Manejar Enter para desenfocar el input
+              const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                  e.target.blur();
+                }
+              };
+              
               // Determinar el color del texto según el diffState del input
               const getInputTextColor = () => {
                 if (input.diffState === 'faltante') return { color: 'var(--error-color)' };
@@ -114,7 +122,8 @@ const ItemViewInput = ({
                     placeholder={input.placeholder || ''}
                     value={input.value}
                     onChange={effectiveOnChange}
-                                        enterKeyHint="done"
+                    onKeyDown={handleKeyDown}
+                    enterKeyHint="done"
                     style={{ ...getInputTextColor(), ...(input.inputProps?.style || {}) }}
                     {...(input.inputProps ? (() => {
                       const { style, ...restProps } = input.inputProps;

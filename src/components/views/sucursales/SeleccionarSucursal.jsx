@@ -79,8 +79,8 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
         if (empresaId && canAdministrarSucursales && (isOpen || !sucursalSeleccionada)) {
             // Solo cargar si no se han cargado ya o si el modal está abierto
             if (sucursales.length === 0 || isOpen) {
-                cargarSucursales();
-            }
+            cargarSucursales();
+        }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [empresaId, canAdministrarSucursales, isOpen, sucursalSeleccionada]);
