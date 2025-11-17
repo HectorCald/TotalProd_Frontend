@@ -22,12 +22,67 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
     const [error, setError] = useState('');
     const [autoSeleccionado, setAutoSeleccionado] = useState(false);
     
+    // Resetear autoSeleccionado y limpiar sucursal cuando cambia empresaId (cambio de cuenta)
+    useEffect(() => {
+        if (!empresaId) return; // No hacer nada si no hay empresaId
+        
+        console.log('🔄 SeleccionarSucursal - empresaId cambió a:', empresaId);
+        setAutoSeleccionado(false);
+        setSucursales([]); // Limpiar sucursales anteriores
+        
+        // Verificar sucursal seleccionada desde localStorage también (puede estar desincronizada)
+        const sucursalGuardada = localStorage.getItem('sucursalSeleccionada');
+        let sucursalActual = sucursalSeleccionada;
+        
+        if (sucursalGuardada) {
+            try {
+                const parsed = JSON.parse(sucursalGuardada);
+                // Si no hay sucursal en contexto, usar la de localStorage
+                if (!sucursalActual) {
+                    sucursalActual = parsed;
+                }
+                // Verificar si la sucursal guardada es de otra empresa
+                const sucursalEmpresaId = parsed?.empresas?.id || parsed?.empresa_id;
+                if (sucursalEmpresaId && sucursalEmpresaId !== empresaId) {
+                    console.log('🔄 SeleccionarSucursal - La sucursal guardada es de otra empresa, limpiando');
+                    localStorage.removeItem('sucursalSeleccionada');
+                    sucursalActual = null;
+                }
+            } catch (e) {
+                console.error('Error al parsear sucursal guardada:', e);
+                localStorage.removeItem('sucursalSeleccionada');
+            }
+        }
+        
+        // Si hay sucursal seleccionada en contexto, verificar si es de la empresa actual
+        if (sucursalActual) {
+            const sucursalEmpresaId = sucursalActual?.empresas?.id || sucursalActual?.empresa_id;
+            // Si la sucursal seleccionada es de otra empresa, limpiarla
+            if (sucursalEmpresaId && sucursalEmpresaId !== empresaId) {
+                console.log('🔄 SeleccionarSucursal - La sucursal del contexto es de otra empresa, limpiando');
+                // Limpiar del contexto
+                if (isEmployeeMode) {
+                    seleccionarSucursalEmpleado(null);
+                } else {
+                    seleccionarSucursalUsuario(null);
+                }
+                // Limpiar de localStorage
+                localStorage.removeItem('sucursalSeleccionada');
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [empresaId]);
+    
     // Cargar sucursales automáticamente cuando hay empresaId y no hay sucursal seleccionada
     // O cuando el modal está abierto (apertura manual)
     useEffect(() => {
         if (empresaId && canAdministrarSucursales && (isOpen || !sucursalSeleccionada)) {
-            cargarSucursales();
+            // Solo cargar si no se han cargado ya o si el modal está abierto
+            if (sucursales.length === 0 || isOpen) {
+                cargarSucursales();
+            }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [empresaId, canAdministrarSucursales, isOpen, sucursalSeleccionada]);
 
     // Auto-seleccionar la primera sucursal cuando se cargan y no hay sucursal seleccionada
@@ -44,6 +99,14 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
         ) {
             // Auto-seleccionar la primera sucursal disponible sin mostrar el modal y sin refresh
             const sucursal = sucursales[0];
+            console.log('🔄 SeleccionarSucursal - Auto-seleccionando sucursal:', sucursal);
+            console.log('🔄 SeleccionarSucursal - Estructura sucursal:', {
+                id: sucursal.id,
+                name: sucursal.name,
+                empresas: sucursal.empresas,
+                empresa_id: sucursal.empresa_id
+            });
+            
             seleccionarSucursal(sucursal);
             setAutoSeleccionado(true);
             
@@ -59,23 +122,35 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
                     localStorage.setItem('empresa_id', empresaId);
                 }
             }
+            
+            console.log('✅ SeleccionarSucursal - Sucursal auto-seleccionada y guardada en localStorage');
             // NO hacer refresh cuando es auto-selección
         }
     }, [sucursales, loading, isOpen, error, sucursalSeleccionada, autoSeleccionado, canAdministrarSucursales, isEmployeeMode, seleccionarSucursal, onSucursalSeleccionada]);
 
     const cargarSucursales = async () => {
+        if (!empresaId) {
+            console.error('❌ SeleccionarSucursal - No hay empresaId para cargar sucursales');
+            setError('No hay empresa seleccionada');
+            setLoading(false);
+            return;
+        }
+        
         try {
             setLoading(true);
             setError('');
+            console.log('🔄 SeleccionarSucursal - Cargando sucursales para empresaId:', empresaId);
             const response = await sucursalesService.getByEmpresaId(empresaId);
             
             if (response.success) {
+                console.log('✅ SeleccionarSucursal - Sucursales cargadas:', response.data.length);
                 setSucursales(response.data);
             } else {
-                setError('Error al cargar las sucursales');
+                console.error('❌ SeleccionarSucursal - Error al cargar sucursales:', response.message);
+                setError(response.message || 'Error al cargar las sucursales');
             }
         } catch (error) {
-            console.error('Error al cargar sucursales:', error);
+            console.error('❌ SeleccionarSucursal - Error al cargar sucursales:', error);
             setError('Error al cargar las sucursales');
         } finally {
             setLoading(false);
@@ -103,13 +178,11 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
             if (empresaId) {
                 localStorage.setItem('empresa_id', empresaId);
             }
-            localStorage.setItem('employeeSucursalOverride', 'true');
-            window.location.reload();
+            // No recargar - React re-renderizará automáticamente
             return;
         }
 
-        // Recargar la página cuando es selección manual desde el modal (solo usuarios normales)
-        window.location.reload();
+        // No recargar - React re-renderizará automáticamente con la nueva sucursal seleccionada
     };
 
     // No hacer nada si no tiene permisos

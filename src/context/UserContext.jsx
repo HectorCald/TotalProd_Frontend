@@ -38,7 +38,7 @@ export const UserProvider = ({ children }) => {
         setError(null);
         
         // Limpiar solo los datos específicos del usuario, no todo el localStorage
-        const keysToRemove = ['user', 'token', 'sucursalSeleccionada', 'userData', 'userDataFetched'];
+        const keysToRemove = ['user', 'token', 'sucursalSeleccionada', 'userData'];
         keysToRemove.forEach(key => {
             localStorage.removeItem(key);
         });
@@ -46,8 +46,13 @@ export const UserProvider = ({ children }) => {
 
     // Función para seleccionar sucursal
     const seleccionarSucursal = (sucursal) => {
-        setSucursalSeleccionada(sucursal);
-        localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
+        if (sucursal === null) {
+            setSucursalSeleccionada(null);
+            localStorage.removeItem('sucursalSeleccionada');
+        } else {
+            setSucursalSeleccionada(sucursal);
+            localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
+        }
     };
 
     // Función helper para detectar errores de conexión

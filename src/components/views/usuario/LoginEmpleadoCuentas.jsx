@@ -132,8 +132,6 @@ function LoginEmpleadoCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
                     // Establecer datos del empleado directamente en el contexto (sin hacer otra petición)
                     if (response.data.personal) {
                         setEmployeeFromService(response.data.personal);
-                        // Marcar que los datos ya están cargados para evitar petición en App.jsx
-                        localStorage.setItem('employeeDataFetched', 'true');
                     }
 
                     if (onLoginSuccess) {
@@ -303,8 +301,6 @@ function LoginEmpleadoCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
                 // Establecer datos del empleado directamente en el contexto (sin hacer otra petición)
                 if (response.data.personal) {
                     setEmployeeFromService(response.data.personal);
-                    // Marcar que los datos ya están cargados para evitar petición en App.jsx
-                    localStorage.setItem('employeeDataFetched', 'true');
                 }
 
                 if (onLoginSuccess) {

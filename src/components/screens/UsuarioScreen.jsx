@@ -461,8 +461,11 @@ const UsuarioScreen = () => {
                 setIsOpen={setIsOpenLoginEmpleado}
                 onLoginSuccess={(data) => {
                     // Los datos ya fueron limpiados y el token ya está guardado en LoginEmpleadoCuentas
-                    // Solo necesitamos recargar la página para aplicar los cambios
-                    window.location.href = '/';
+                    // Notificar a App.jsx que el token cambió para que re-renderice
+                    window.dispatchEvent(new Event('token-changed'));
+                    // Cerrar el modal
+                    setIsOpenLoginEmpleado(false);
+                    setIsOpenAdministrarCuentas(false);
                 }}
             />
             <LoginEmpresaCuentas
@@ -470,8 +473,11 @@ const UsuarioScreen = () => {
                 setIsOpen={setIsOpenLoginEmpresa}
                 onLoginSuccess={(data) => {
                     // Los datos ya fueron limpiados y el token ya está guardado en LoginEmpresaCuentas
-                    // Solo necesitamos recargar la página para aplicar los cambios
-                    window.location.href = '/';
+                    // Notificar a App.jsx que el token cambió para que re-renderice
+                    window.dispatchEvent(new Event('token-changed'));
+                    // Cerrar el modal
+                    setIsOpenLoginEmpresa(false);
+                    setIsOpenAdministrarCuentas(false);
                 }}
             />
         </>

@@ -95,9 +95,12 @@ const ItemProduct = ({
         ? getUnidadMedidaCompleta(unidadMedidaPedido)
         : (unidadMedidaNombre || (unidadMedida ? getUnidadMedidaCompleta(unidadMedida) : ''));
 
+    // Determinar si tiene controles de stock (para ajustar padding)
+    const tieneControles = showStockControls;
+
     return (
         <div 
-            className={`${styles.itemProduct} ${disabled ? styles.disabled : ''}`} 
+            className={`${styles.itemProduct} ${tieneControles ? styles.itemProductCompact : ''} ${disabled ? styles.disabled : ''}`} 
             onClick={disabled ? undefined : onClick} 
             style={style}
             aria-disabled={disabled}

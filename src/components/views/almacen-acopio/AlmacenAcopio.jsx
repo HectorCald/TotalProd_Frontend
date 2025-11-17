@@ -797,15 +797,17 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                                                 
                                                 // Para tipo almacen, mostrar tipo de medida completo y categoría
                                                 let precioProducto = undefined;
-                                                if (tipo === 'almacen') {
+                                                if (tipo === 'almacen' || tipo === 'salida' || tipo === 'entrada') {
                                                     const tipoMedidaCompleto = producto.type_measure?.name || (producto.type_measure?.code ? getUnidadMedidaCompleta(producto.type_measure.code) : '');
                                                     const categoria = producto.category_name && producto.category_name !== 'Sin categoría' ? producto.category_name : '';
                                                     if (tipoMedidaCompleto && categoria) {
                                                         precioProducto = `${tipoMedidaCompleto} - ${categoria}`;
                                                     } else if (tipoMedidaCompleto) {
                                                         precioProducto = tipoMedidaCompleto;
+                                                    } else if (categoria) {
+                                                        precioProducto = categoria;
                                                     }
-                                                    // Si no hay categoría, no mostrar nada
+                                                    // Si no hay categoría ni unidad, no mostrar nada
                                                 }
                                                 
                                                 return (

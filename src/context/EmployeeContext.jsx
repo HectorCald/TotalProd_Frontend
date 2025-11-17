@@ -84,7 +84,7 @@ export const EmployeeProvider = ({ children }) => {
     setError(null);
     
     // Limpiar solo los datos específicos del empleado, no todo el localStorage
-    const keysToRemove = ['employee', 'token', 'sucursalSeleccionada', 'employeeData', 'empresa_id', 'employeeDataFetched'];
+    const keysToRemove = ['employee', 'token', 'sucursalSeleccionada', 'employeeData', 'empresa_id'];
     keysToRemove.forEach(key => {
       localStorage.removeItem(key);
     });
@@ -92,31 +92,47 @@ export const EmployeeProvider = ({ children }) => {
 
   // Función para seleccionar sucursal
   const seleccionarSucursal = (sucursal) => {
-    setSucursalSeleccionada(sucursal);
-    localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
+    if (sucursal === null) {
+      setSucursalSeleccionada(null);
+      localStorage.removeItem('sucursalSeleccionada');
+      // Actualizar empleado para limpiar sucursal
+      setEmployee(prevEmployee => {
+        if (!prevEmployee) return prevEmployee;
+        const updatedEmployee = {
+          ...prevEmployee,
+          sucursal_id: null,
+          sucursal: null
+        };
+        localStorage.setItem('employeeData', JSON.stringify(updatedEmployee));
+        return updatedEmployee;
+      });
+    } else {
+      setSucursalSeleccionada(sucursal);
+      localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
 
-    setEmployee(prevEmployee => {
-      if (!prevEmployee) return prevEmployee;
+      setEmployee(prevEmployee => {
+        if (!prevEmployee) return prevEmployee;
 
-      const updatedEmployee = {
-        ...prevEmployee,
-        sucursal_id: sucursal?.id || null,
-        sucursal: sucursal
-          ? {
-              id: sucursal.id,
-              name: sucursal.name,
-              empresas: sucursal.empresas ? {
-                id: sucursal.empresas.id,
-                name: sucursal.empresas.name,
-                logo_tipo: sucursal.empresas.logo_tipo || sucursal.empresas.logo
-              } : null
-            }
-          : null
-      };
+        const updatedEmployee = {
+          ...prevEmployee,
+          sucursal_id: sucursal?.id || null,
+          sucursal: sucursal
+            ? {
+                id: sucursal.id,
+                name: sucursal.name,
+                empresas: sucursal.empresas ? {
+                  id: sucursal.empresas.id,
+                  name: sucursal.empresas.name,
+                  logo_tipo: sucursal.empresas.logo_tipo || sucursal.empresas.logo
+                } : null
+              }
+            : null
+        };
 
-      localStorage.setItem('employeeData', JSON.stringify(updatedEmployee));
-      return updatedEmployee;
-    });
+        localStorage.setItem('employeeData', JSON.stringify(updatedEmployee));
+        return updatedEmployee;
+      });
+    }
   };
 
 

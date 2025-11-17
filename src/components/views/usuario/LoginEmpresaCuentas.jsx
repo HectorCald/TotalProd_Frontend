@@ -93,6 +93,8 @@ function LoginEmpresaCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
                     localStorage.removeItem('employeeData');
                     localStorage.removeItem('empresa_id');
                     localStorage.removeItem('sucursalSeleccionada');
+                    // Limpiar también del contexto de usuario si existe
+                    // (se hará automáticamente cuando se establezca el nuevo usuario)
 
                     // Guardar datos del usuario en localStorage para que el contexto los pueda cargar
                     if (response.data.user) {
@@ -102,11 +104,6 @@ function LoginEmpresaCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
                     // Establecer datos del usuario directamente en el contexto (sin hacer otra petición)
                     if (response.data.user) {
                         setUserFromService(response.data.user);
-                        // Marcar que los datos ya están cargados para evitar petición en App.jsx
-                        localStorage.setItem('userDataFetched', 'true');
-                        
-                        // Esperar un momento para asegurar que el estado se actualice antes de redirigir
-                        await new Promise(resolve => setTimeout(resolve, 100));
                     }
 
                     setIsOpen(false);
@@ -166,7 +163,6 @@ function LoginEmpresaCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
                 // Limpiar datos de empleado antes de cambiar
                 localStorage.removeItem('employeeData');
                 localStorage.removeItem('empresa_id');
-                localStorage.removeItem('employeeDataFetched');
 
                 // Obtener información completa del usuario para establecer en el contexto
                 if (response.data && response.data.user && response.data.user.id) {
@@ -177,29 +173,16 @@ function LoginEmpresaCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
                                 saveUser(userInfoResponse.data.user);
                                 // Establecer datos del usuario directamente en el contexto (sin hacer otra petición)
                                 setUserFromService(userInfoResponse.data.user);
-                                // Marcar que los datos ya están cargados para evitar petición en App.jsx
-                                localStorage.setItem('userDataFetched', 'true');
-                                
-                                // Esperar un momento para asegurar que el estado se actualice antes de redirigir
-                                await new Promise(resolve => setTimeout(resolve, 100));
                             } else {
                                 // Si no se puede obtener la info completa, usar la básica
                                 saveUser(response.data.user);
                                 setUserFromService(response.data.user);
-                                localStorage.setItem('userDataFetched', 'true');
-                                
-                                // Esperar un momento para asegurar que el estado se actualice antes de redirigir
-                                await new Promise(resolve => setTimeout(resolve, 100));
                             }
                         } catch (error) {
                             console.error('Error al obtener información completa del usuario:', error);
                             // Usar la información básica que tenemos
                             saveUser(response.data.user);
                             setUserFromService(response.data.user);
-                            localStorage.setItem('userDataFetched', 'true');
-                            
-                            // Esperar un momento para asegurar que el estado se actualice antes de redirigir
-                            await new Promise(resolve => setTimeout(resolve, 100));
                         }
                 }
 
