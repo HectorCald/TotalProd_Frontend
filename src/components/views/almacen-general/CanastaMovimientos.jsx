@@ -1001,7 +1001,13 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                     <Boton
                                         className='btn-gray'
                                         label={esEntrega
-                                            ? (clientePedidoData ? `Cliente del Pedido: ${clientePedidoData.name}` : 'Seleccionar Cliente')
+                                            ? (clienteSeleccionadoData 
+                                                ? `Cliente: ${clienteSeleccionadoData.name}` 
+                                                : (clientePedidoData 
+                                                    ? `Cliente del Pedido: ${clientePedidoData.name}` 
+                                                    : (metodoPagoSeleccionado === 'credito' 
+                                                        ? 'Seleccionar Cliente (obligatorio)' 
+                                                        : 'Seleccionar Cliente')))
                                             : (clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name :
                                                 (metodoPagoSeleccionado === 'credito' ? 'Seleccionar Cliente (obligatorio)' : 'Seleccionar Cliente (opcional)'))
                                         }
@@ -1009,7 +1015,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                         style={{
                                             width: '100%',
                                             justifyContent: 'flex-start',
-                                            ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData && !esEntrega ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
+                                            ...(metodoPagoSeleccionado === 'credito' && !clienteSeleccionadoData && !clientePedidoData ? { borderColor: '#e74c3c', color: '#e74c3c' } : {})
                                         }}
                                     />
 
