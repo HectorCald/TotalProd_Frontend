@@ -555,6 +555,8 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                         name: `qty-${p.id}`,
                                                         label: 'Cantidad',
                                                         type: 'number',
+                                                        width: 30, // 30% del ancho
+                                                        diffState: state,
                                                         value: quantityInputsText[p.id] !== undefined ? quantityInputsText[p.id] : String(quantityInputs[p.id] !== undefined ? quantityInputs[p.id] : rawQty.toFixed(2)),
                                                         onChange: (e) => {
                                                             const text = e.target.value;
@@ -587,8 +589,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                                         console.log('[JUSTIFICACION:QTY]', { id: p.id, quantity_fisico: fixed });
                                                                     }
                                                                 }
-                                                            },
-                                                            style: { borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined }
+                                                            }
                                                         }
                                                     },
                                                     {
@@ -616,7 +617,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
                                                             title={p.name || 'Sin nombre'}
                                                             icon="box"
                                                             inputs={inputs}
-                                                            flot1={`${parseFloat(p.quantity || 0).toFixed(2)} ${p.type_measure?.code || ''}`}
+                                                            diffState={state}
                                                         />
                                                     );
                                                 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import ItemView from '../../common/ItemView';
+import ItemProduct from '../../common/ItemProduct';
 import ItemViewInput from '../../common/ItemViewInput';
 import Filtros from '../../common/Filtros';
 import FiltroCategorias from '../../mixed/FiltroCategorias';
@@ -24,6 +24,7 @@ import useVirtualPagination from '../../../hooks/useVirtualPagination';
 import useLoadingManager from '../almacen-general/hooks/useLoadingManager';
 import useProductosFiltrados from '../almacen-general/hooks/useProductosFiltrados';
 import useCanastaActions from '../almacen-general/hooks/useCanastaActions';
+import calcularStockDisponible from '../almacen-general/hooks/useStockDisponible';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
@@ -538,6 +539,61 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
         }
     };
 
+    // Funciones para actualizar cantidad desde ItemProduct (para cotizaciones)
+    const handleCantidadChange = useCallback((productoId, nuevaCantidad) => {
+        const producto = productosFiltrados.find(p => p.id === productoId);
+        if (!producto) return;
+
+        const cantidadNueva = Math.max(0, nuevaCantidad);
+
+        if (cantidadNueva === 0) {
+            setProductosCanastaCotizaciones(prev => prev.filter(p => p.id !== productoId));
+        } else {
+            const productoEnCanasta = productosCanastaCotizaciones.find(p => p.id === productoId);
+            if (productoEnCanasta) {
+                setProductosCanastaCotizaciones(prev => prev.map(p =>
+                    p.id === productoId
+                        ? { ...p, cantidad: cantidadNueva }
+                        : p
+                ));
+            } else {
+                agregarProductoCotizacion(producto, cantidadNueva);
+            }
+        }
+    }, [productosFiltrados, productosCanastaCotizaciones, agregarProductoCotizacion]);
+
+    const handleCantidadIncrement = useCallback((productoId) => {
+        const producto = productosFiltrados.find(p => p.id === productoId);
+        if (!producto) return;
+
+        const productoEnCanasta = productosCanastaCotizaciones.find(p => p.id === productoId);
+        if (productoEnCanasta) {
+            setProductosCanastaCotizaciones(prev => prev.map(p =>
+                p.id === productoId
+                    ? { ...p, cantidad: p.cantidad + 1 }
+                    : p
+            ));
+        } else {
+            agregarProductoCotizacion(producto);
+        }
+    }, [productosFiltrados, productosCanastaCotizaciones, agregarProductoCotizacion]);
+
+    const handleCantidadDecrement = useCallback((productoId) => {
+        setProductosCanastaCotizaciones(prev => {
+            const producto = prev.find(p => p.id === productoId);
+            if (producto && producto.cantidad > 1) {
+                return prev.map(p =>
+                    p.id === productoId
+                        ? { ...p, cantidad: p.cantidad - 1 }
+                        : p
+                );
+            } else if (producto && producto.cantidad === 1) {
+                return prev.filter(p => p.id !== productoId);
+            }
+            return prev;
+        });
+    }, []);
+
     return (
         <>
             <View 
@@ -744,6 +800,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                                                         name: `units-${producto.id}`,
                                                         label: 'Unidades',
                                                         type: 'number',
+                                                        diffState: state,
                                                         value: stockInputsText[producto.id] !== undefined ? stockInputsText[producto.id] : String(stockInputs[producto.id] !== undefined ? stockInputs[producto.id] : rawStock),
                                                         onChange: (e) => {
                                                             const text = e.target.value;
@@ -776,8 +833,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                                                                         setGroupInputsText(prev => ({ ...prev, [producto.id]: String(rawGroups) }));
                                                                     }
                                                                 }
-                                                            },
-                                                            style: { borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined }
+                                                            }
                                                         }
                                                     });
                                                     // Grupos input (solo si aplica)
@@ -786,6 +842,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                                                             name: `groups-${producto.id}`,
                                                             label: 'Grup',
                                                             type: 'number',
+                                                            diffState: state,
                                                             value: groupInputsText[producto.id] !== undefined ? groupInputsText[producto.id] : String(groupInputs[producto.id] !== undefined ? groupInputs[producto.id] : rawGroups),
                                                             onChange: (e) => {
                                                                 const text = e.target.value;
@@ -814,8 +871,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                                                                         setStockInputs(prev => ({ ...prev, [producto.id]: rawStock }));
                                                                         setStockInputsText(prev => ({ ...prev, [producto.id]: String(rawStock) }));
                                                                     }
-                                                                },
-                                                                style: { borderColor: state === 'faltante' ? 'var(--error-color)' : state === 'sobrante' ? 'var(--success-color)' : undefined }
+                                                                }
                                                             }
                                                         });
                                                     }
@@ -825,32 +881,92 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                                                             title={producto.name || 'Sin nombre'}
                                                             icon="box"
                                                             inputs={inputs}
-                                                            flot1={`${producto.stock} Ud.`}
-                                                            flot2={grupVal > 0 ? `${Math.floor(producto.stock / grupVal)} Grup` : ''}
+                                                            diffState={state}
                                                         />
                                                     );
                                                 }
-                                                // No conteo: fallback original
-                                                // Obtener el flot del stock con colores dinámicos (solo en modo cotizar)
-                                                const stockFlot = tipo === 'cotizar' ? getStockFlot(producto) : {
+                                                // Para cotizar: usar ItemProduct
+                                                if (tipo === 'cotizar') {
+                                                    const cantidadEnCanasta = getCantidadEnCanastaCotizaciones(producto.id);
+                                                    
+                                                    // Calcular stock disponible usando función helper
+                                                    const {
+                                                        stockDisplay,
+                                                        maxCantidad,
+                                                        badgeColor
+                                                    } = calcularStockDisponible({
+                                                        producto,
+                                                        tipo: 'cotizar',
+                                                        cantidadEnCanasta,
+                                                        cantidadEnCanastaMovimientos: 0
+                                                    });
+                                                    
+                                                    // Obtener el precio del producto
+                                                    let precioProducto = undefined;
+                                                    const productoEnCanasta = productosCanastaCotizaciones.find(p => p.id === producto.id);
+                                                    precioProducto = productoEnCanasta?.precio;
+                                                    
+                                                    // Si no está en la canasta, calcular el precio según el precio seleccionado
+                                                    if (precioProducto === undefined && producto.price_product && producto.price_product.length > 0) {
+                                                        const precioSeleccionadoId = window.getPrecioSeleccionadoCanastaCotizaciones?.() || localStorage.getItem('precioIdRepitiendo') || localStorage.getItem('precioIdEditando');
+                                                        
+                                                        let precioUnitario = 0;
+                                                        if (precioSeleccionadoId) {
+                                                            const precioTipo = producto.price_product.find(pp => pp.prices_types?.id === precioSeleccionadoId);
+                                                            precioUnitario = precioTipo ? precioTipo.valor : (producto.price_product[0]?.valor || 0);
+                                                        } else {
+                                                            precioUnitario = producto.price_product[0]?.valor || 0;
+                                                        }
+                                                        
+                                                        // Obtener modo de agrupación para calcular precio
+                                                        const modoAgrupacionActual = window.getModoAgrupacionCanastaCotizaciones?.() || localStorage.getItem('cotizacionAgrupadoRepitiendo') || localStorage.getItem('cotizacionAgrupadoEditando');
+                                                        
+                                                        // Si está en modo agrupado y el producto tiene grupo, multiplicar el precio
+                                                        if (modoAgrupacionActual === 'agrupado' && producto.grup && producto.grup > 0) {
+                                                            const precioAgrupado = precioUnitario * (producto.grup || 1);
+                                                            const decimal = precioAgrupado % 1;
+                                                            precioProducto = decimal >= 0.5 ? Math.ceil(precioAgrupado) : Math.floor(precioAgrupado);
+                                                        } else {
+                                                            precioProducto = precioUnitario;
+                                                        }
+                                                    }
+                                                    
+                                                    return (
+                                                        <ItemProduct
+                                                            key={producto.id || index}
+                                                            title={producto.name || 'Sin nombre'}
+                                                            descriptionBadge={stockDisplay}
+                                                            descriptionBadgeColor={badgeColor}
+                                                            icon="box"
+                                                            onClick={() => handleProductoClick(producto)}
+                                                            precio={precioProducto}
+                                                            showStockControls={true}
+                                                            cantidad={cantidadEnCanasta}
+                                                            onCantidadChange={(nuevaCantidad) => handleCantidadChange(producto.id, nuevaCantidad)}
+                                                            onCantidadIncrement={() => handleCantidadIncrement(producto.id)}
+                                                            onCantidadDecrement={() => handleCantidadDecrement(producto.id)}
+                                                            maxCantidad={maxCantidad}
+                                                            minCantidad={1}
+                                                        />
+                                                    );
+                                                }
+                                                
+                                                // Fallback para otros tipos (si los hay)
+                                                const stockFlot = {
                                                     flot1: producto.stock + ' Ud.',
                                                     flot2: null,
                                                     flot3: null
                                                 };
                                                 
                                                 return (
-                                                    <ItemView
+                                                    <ItemProduct
                                                         key={producto.id || index}
                                                         title={producto.name || 'Sin nombre'}
-                                                        description={producto.description || 'Sin descripción'}
+                                                        descriptionBadge={stockFlot.flot1}
+                                                        descriptionBadgeColor="default"
                                                         icon="box"
                                                         onClick={() => handleProductoClick(producto)}
-                                                        entrada={false}
-                                                        entradaData={[]}
-                                                        flot1={stockFlot.flot1}
-                                                        flot2={stockFlot.flot2}
-                                                        flot3={stockFlot.flot3}
-                                                        badge={getBadge(producto)}
+                                                        showArrow={true}
                                                     />
                                                 );
                                             })

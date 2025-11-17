@@ -3,6 +3,7 @@ import styles from '../../../styles/Inicial.module.css';
 import HeaderView, { normalizeSearchValue, normalizedIncludes } from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
+import ItemProduct from '../../common/ItemProduct';
 import VerProducto from './VerProducto';
 import Filtros from '../../common/Filtros';
 import Boton from '../../common/Boton';
@@ -418,6 +419,67 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         return producto ? producto.cantidad : 0;
     };
 
+    // Funciones para manejar cantidad en ItemProduct (para pedidos)
+    const handleCantidadChange = useCallback((productoId, nuevaCantidad) => {
+        const producto = productosFiltrados.find(p => p.id === productoId);
+        if (!producto) return;
+
+        const cantidadNueva = Math.max(0, nuevaCantidad);
+
+        if (cantidadNueva === 0) {
+            setProductosCanasta(prev => prev.filter(p => p.id !== productoId));
+        } else {
+            const productoEnCanasta = productosCanasta.find(p => p.id === productoId);
+            if (productoEnCanasta) {
+                setProductosCanasta(prev => prev.map(p =>
+                    p.id === productoId
+                        ? { ...p, cantidad: cantidadNueva }
+                        : p
+                ));
+            } else {
+                handleAgregarACanasta(producto);
+                // Ajustar la cantidad después de agregar
+                setProductosCanasta(prev => prev.map(p =>
+                    p.id === productoId
+                        ? { ...p, cantidad: cantidadNueva }
+                        : p
+                ));
+            }
+        }
+    }, [productosFiltrados, productosCanasta, handleAgregarACanasta]);
+
+    const handleCantidadIncrement = useCallback((productoId) => {
+        const producto = productosFiltrados.find(p => p.id === productoId);
+        if (!producto) return;
+
+        const productoEnCanasta = productosCanasta.find(p => p.id === productoId);
+        if (productoEnCanasta) {
+            setProductosCanasta(prev => prev.map(p =>
+                p.id === productoId
+                    ? { ...p, cantidad: p.cantidad + 1 }
+                    : p
+            ));
+        } else {
+            handleAgregarACanasta(producto);
+        }
+    }, [productosFiltrados, productosCanasta, handleAgregarACanasta]);
+
+    const handleCantidadDecrement = useCallback((productoId) => {
+        setProductosCanasta(prev => {
+            const producto = prev.find(p => p.id === productoId);
+            if (producto && producto.cantidad > 1) {
+                return prev.map(p =>
+                    p.id === productoId
+                        ? { ...p, cantidad: p.cantidad - 1 }
+                        : p
+                );
+            } else if (producto && producto.cantidad === 1) {
+                return prev.filter(p => p.id !== productoId);
+            }
+            return prev;
+        });
+    }, []);
+
     // Función para manejar el Select de WhatsApp
     const handleWhatsAppSelect = (value) => {
         if (value === 'historial') {
@@ -696,6 +758,80 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                                             // Obtener el flot del stock con colores dinámicos
                                             const stockFlot = getStockFlot(producto);
                                             
+                                            // Determinar el color del badge según el stock
+                                            let badgeColor = 'default';
+                                            if (producto.stock_minimo !== null && producto.stock_minimo !== undefined) {
+                                                const stock = parseFloat(producto.quantity || 0);
+                                                const stockMinimo = parseFloat(producto.stock_minimo || 0);
+                                                const diferencia = stock - stockMinimo;
+                                                if (diferencia >= 20) {
+                                                    badgeColor = 'info';
+                                                } else if (diferencia >= 5) {
+                                                    badgeColor = 'warning';
+                                                } else {
+                                                    badgeColor = 'error';
+                                                }
+                                            }
+
+                                            // Para tipos que usan ItemProduct
+                                            if (tipo === 'pedido' || tipo === 'entrada' || tipo === 'salida' || tipo === 'almacen') {
+                                                // Obtener el producto en la canasta para saber su medidaPedido
+                                                const productoEnCanasta = tipo === 'pedido' ? productosCanasta.find(p => p.id === producto.id) : null;
+                                                
+                                                // Función para convertir código de unidad a nombre completo (solo Kg, L, M, Ud)
+                                                const getUnidadMedidaCompleta = (codigo) => {
+                                                    const unidadesMap = {
+                                                        'kg': 'Kilogramo',
+                                                        'Kg': 'Kilogramo',
+                                                        'KG': 'Kilogramo',
+                                                        'l': 'Litro',
+                                                        'L': 'Litro',
+                                                        'm': 'Metro',
+                                                        'M': 'Metro',
+                                                        'ud': 'Unidad',
+                                                        'Ud': 'Unidad',
+                                                        'UD': 'Unidad'
+                                                    };
+                                                    return unidadesMap[codigo] || codigo;
+                                                };
+                                                
+                                                // Para tipo almacen, mostrar tipo de medida completo y categoría
+                                                let precioProducto = undefined;
+                                                if (tipo === 'almacen') {
+                                                    const tipoMedidaCompleto = producto.type_measure?.name || (producto.type_measure?.code ? getUnidadMedidaCompleta(producto.type_measure.code) : '');
+                                                    const categoria = producto.category_name && producto.category_name !== 'Sin categoría' ? producto.category_name : '';
+                                                    if (tipoMedidaCompleto && categoria) {
+                                                        precioProducto = `${tipoMedidaCompleto} - ${categoria}`;
+                                                    } else if (tipoMedidaCompleto) {
+                                                        precioProducto = tipoMedidaCompleto;
+                                                    }
+                                                    // Si no hay categoría, no mostrar nada
+                                                }
+                                                
+                                                return (
+                                                    <ItemProduct
+                                                        key={producto.id || index}
+                                                        title={producto.name || 'Sin nombre'}
+                                                        descriptionBadge={stockFlot.flot1 || stockFlot.flot2 || stockFlot.flot3 || `${parseFloat(producto.quantity || 0).toFixed(2)} ${producto.type_measure?.code || ''}`}
+                                                        descriptionBadgeColor={badgeColor}
+                                                        icon="box"
+                                                        onClick={() => handleRegistro(producto, tipo)}
+                                                        precio={precioProducto}
+                                                        unidadMedida={producto.type_measure?.code || ''}
+                                                        unidadMedidaNombre={producto.type_measure?.name || ''}
+                                                        unidadMedidaPedido={productoEnCanasta?.medidaPedido || undefined}
+                                                        showStockControls={tipo === 'pedido'}
+                                                        showArrow={tipo === 'almacen' || tipo === 'entrada' || tipo === 'salida'}
+                                                        cantidad={tipo === 'pedido' ? cantidadEnCanasta : 0}
+                                                        onCantidadChange={tipo === 'pedido' ? (nuevaCantidad) => handleCantidadChange(producto.id, nuevaCantidad) : undefined}
+                                                        onCantidadIncrement={tipo === 'pedido' ? () => handleCantidadIncrement(producto.id) : undefined}
+                                                        onCantidadDecrement={tipo === 'pedido' ? () => handleCantidadDecrement(producto.id) : undefined}
+                                                        minCantidad={1}
+                                                    />
+                                                );
+                                            }
+
+                                            // Fallback: usar ItemView para otros tipos
                                             return (
                                                 <ItemView
                                                     key={producto.id || index}
@@ -703,12 +839,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                                                     description={producto.description || 'Sin descripción'}
                                                     icon="box"
                                                     onClick={() => handleRegistro(producto, tipo)}
-                                                    entrada={tipo === 'pesaje' ? true : false}
-                                                    entradaData={[
-                                                        { name: "Prima", value: 0 },
-                                                        { name: "Bruta", value: 0 },
-                                                    ]}
-                                                    badge={tipo === 'pedido' && cantidadEnCanasta > 0 ? cantidadEnCanasta : null}
+                                                    arrow={true}
                                                     flot1={stockFlot.flot1}
                                                     flot2={stockFlot.flot2}
                                                     flot3={stockFlot.flot3}

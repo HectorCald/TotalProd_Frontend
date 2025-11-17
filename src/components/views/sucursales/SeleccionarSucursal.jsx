@@ -20,37 +20,48 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
     const [sucursales, setSucursales] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [autoSeleccionado, setAutoSeleccionado] = useState(false);
     
+    // Cargar sucursales automáticamente cuando hay empresaId y no hay sucursal seleccionada
+    // O cuando el modal está abierto (apertura manual)
     useEffect(() => {
-        if (isOpen && empresaId && canAdministrarSucursales) {
+        if (empresaId && canAdministrarSucursales && (isOpen || !sucursalSeleccionada)) {
             cargarSucursales();
         }
-    }, [isOpen, empresaId, canAdministrarSucursales]);
+    }, [empresaId, canAdministrarSucursales, isOpen, sucursalSeleccionada]);
 
-    // Auto-seleccionar si solo hay una sucursal Y no hay sucursal seleccionada previamente
+    // Auto-seleccionar la primera sucursal cuando se cargan y no hay sucursal seleccionada
+    // Esto solo ocurre cuando NO es apertura manual del modal (isOpen es false)
     useEffect(() => {
         if (
-            sucursales.length === 1 &&
+            sucursales.length > 0 &&
             !loading &&
-            isOpen &&
             !error &&
             !sucursalSeleccionada &&
-            canAdministrarSucursales
+            !autoSeleccionado &&
+            canAdministrarSucursales &&
+            !isOpen // Solo auto-seleccionar si el modal NO está abierto (no es apertura manual)
         ) {
-            // Auto-seleccionar la única sucursal disponible sin mostrar el modal y sin refresh
+            // Auto-seleccionar la primera sucursal disponible sin mostrar el modal y sin refresh
             const sucursal = sucursales[0];
             seleccionarSucursal(sucursal);
+            setAutoSeleccionado(true);
             
             // Notificar al componente padre
             if (onSucursalSeleccionada) {
                 onSucursalSeleccionada(sucursal);
             }
             
-            // Cerrar modal
-            setIsOpen(false);
+            // Actualizar empresa_id si es empleado
+            if (isEmployeeMode) {
+                const empresaId = sucursal?.empresas?.id || sucursal?.empresa_id;
+                if (empresaId) {
+                    localStorage.setItem('empresa_id', empresaId);
+                }
+            }
             // NO hacer refresh cuando es auto-selección
         }
-    }, [sucursales, loading, isOpen, error, sucursalSeleccionada, canAdministrarSucursales]);
+    }, [sucursales, loading, isOpen, error, sucursalSeleccionada, autoSeleccionado, canAdministrarSucursales, isEmployeeMode, seleccionarSucursal, onSucursalSeleccionada]);
 
     const cargarSucursales = async () => {
         try {
@@ -101,11 +112,15 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
         window.location.reload();
     };
 
-    // No mostrar el modal si solo hay una sucursal Y no hay sucursal seleccionada (se auto-selecciona)
-    // Si hay sucursal seleccionada, mostrar el modal aunque sea solo una (apertura manual)
+    // No hacer nada si no tiene permisos
     if (!canAdministrarSucursales) return null;
 
-    if (!isOpen || (sucursales.length === 1 && !loading && !error && !sucursalSeleccionada)) return null;
+    // Solo mostrar el modal si el usuario lo abre manualmente (isOpen es true)
+    // Si no está abierto, el componente se renderiza invisible para permitir auto-selección
+    if (!isOpen) {
+        // Renderizar un componente invisible para que los useEffect funcionen
+        return <div style={{ display: 'none' }} />;
+    }
 
     return (
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} closed={closed}>

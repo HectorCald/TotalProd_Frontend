@@ -38,7 +38,7 @@ export const UserProvider = ({ children }) => {
         setError(null);
         
         // Limpiar solo los datos específicos del usuario, no todo el localStorage
-        const keysToRemove = ['user', 'token', 'sucursalSeleccionada', 'userData'];
+        const keysToRemove = ['user', 'token', 'sucursalSeleccionada', 'userData', 'userDataFetched'];
         keysToRemove.forEach(key => {
             localStorage.removeItem(key);
         });
@@ -191,6 +191,8 @@ export const UserProvider = ({ children }) => {
     const setUserFromService = (newUser) => {
         if (!newUser) return;
         setUser(newUser);
+        setLoading(false);
+        setError(null);
     };
 
     const value = {

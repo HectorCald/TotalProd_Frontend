@@ -1,104 +1,185 @@
-.itemView {
+.itemViewInput {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
     justify-content: flex-start;
     width: 100%;
-    height: auto;
-    padding: 15px;
-    gap: 10px;
-    background: none;
+    min-height: 60px;
+    padding: 10px;
+    gap: 5px;
+    background-color: none;
     position: relative;
-    overflow: visible;
+    cursor: pointer;
+    border: 1px solid var(--quinary-color);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s ease;
 }
 
-.itemViewIcon {
-    min-width: 50px;
-    min-height: 50px;
-    border-radius: 50%;
-    background-color: var(--secondary-color);
+.itemViewInputFaltante {
+    border-color: var(--error-color);
+}
+
+.itemViewInputSobrante {
+    border-color: var(--success-color);
+}
+
+.itemViewInputIcon {
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 8px;
+    background-color: var(--tertiary-color);
     display: flex;
-    color: var(--primary-color);
+    color: gray;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    margin-top: 5px;
+    margin-right: 5px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.itemViewInputIconFaltante {
+    color: var(--error-color);
+    background-color: rgba(231, 76, 60, 0.3);
+}
+
+.itemViewInputIconSobrante {
+    color: var(--success-color);
+    background-color: rgba(46, 204, 113, 0.3);
 }
 
 .icon {
-    font-size: 30px !important;
+    font-size: 20px !important;
 }
 
-.iconGris {
-    color: var(--quinary-color) !important;
-}
-
-.initialsIcon {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 20px;
-}
-
-.itemViewContent {
+.itemViewInputContent {
     font-size: 16px;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    gap: 8px;
-    height: auto;
-    padding: 0;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 4px;
+    height: 100%;
     flex: 1;
     min-width: 0;
+    position: relative;
+}
+
+.titleContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    position: relative;
 }
 
 .title {
     font-size: 14px;
     font-weight: 500;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
+    line-height: 1.2;
+    max-width: 100%;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    color: var(--white-color);
 }
 
-/* Inputs area */
-.inputsContainer {
+.descriptionsContainer {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.inputRow {
-    display: grid;
-    grid-template-columns: 90px 1fr;
+    flex-direction: row;
     align-items: center;
     gap: 8px;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.descriptionBadge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.badgeDefault {
+    color: var(--info-color);
+    background-color: #1f74fe3a;
+}
+
+.badgeInfo {
+    color: var(--info-color);
+    background-color: #1f74fe3a;
+}
+
+.badgeWarning {
+    color: var(--warning-color);
+    background-color: #fb87133a;
+}
+
+.badgeError {
+    color: var(--error-color);
+    background-color: #e74c3c3a;
+}
+
+.badgeSuccess {
+    color: var(--success-color);
+    background-color: #2ecc713a;
+}
+
+/* Fila de inputs lado a lado */
+.inputsRow {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 10px;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex: 1;
+    min-width: 0;
+    gap: 4px;
 }
 
 .inputLabel {
-    font-size: 12px;
-    color: var(--senary-color);
+    font-size: 11px;
     font-weight: 500;
+    color: gray;
+    opacity: 0.7;
 }
 
 .inputControl {
     width: 100%;
     padding: 8px 10px;
     border-radius: 8px;
-    border: 1px solid var(--quinary-color);
+    border: 1px solid var(--quaternary-color);
     background: transparent;
     color: var(--white-color);
     outline: none;
     box-sizing: border-box;
+    font-size: 14px;
+    font-weight: 500;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .inputControl:focus {
-    border: 1px solid var(--primary-color);
+    border-color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.05);
 }
 
-.itemViewArrow {
+.itemViewInputArrow {
     margin-left: auto;
     padding: 0;
     line-height: 0;
@@ -108,5 +189,3 @@
     justify-content: center;
     flex-shrink: 0;
 }
-
-

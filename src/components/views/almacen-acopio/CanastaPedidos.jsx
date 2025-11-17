@@ -13,12 +13,12 @@ import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import Notification from '../../common/Notification';
 
 const medidasPedido = [
-    { value: 'kg', label: 'Kilogramo (kg)', icon: 'tag' },
-    { value: 'qq', label: 'Quintal (qq)', icon: 'tag' },
-    { value: 'l', label: 'Litro (l)', icon: 'tag' },
-    { value: 'lbrs', label: 'Libras (lbrs)', icon: 'tag' },
-    { value: '@', label: 'Arroba (@)', icon: 'tag' },
-    { value: 'cj', label: 'Caja (cj)', icon: 'tag' },
+    { value: 'kg', label: 'Kilogramo', icon: 'tag' },
+    { value: 'qq', label: 'Quintal', icon: 'tag' },
+    { value: 'l', label: 'Litro', icon: 'tag' },
+    { value: 'lbrs', label: 'Libras', icon: 'tag' },
+    { value: '@', label: 'Arroba', icon: 'tag' },
+    { value: 'cj', label: 'Caja', icon: 'tag' },
 ];
 
 function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onPedidoCreado, isCartMode = false, onPedidoCreadoConDescarga = null, onWhatsAppSelect = null }) {

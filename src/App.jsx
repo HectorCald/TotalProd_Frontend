@@ -84,8 +84,8 @@ function App() {
 }
 
 function AppContent({ token, tokenType }) {
-  const { user, sucursalSeleccionada: userSucursal, seleccionarSucursal: seleccionarSucursalUsuario, loadUserData } = useUser();
-  const { employee, sucursalSeleccionada: employeeSucursal, seleccionarSucursal: seleccionarSucursalEmpleado, loadEmployeeData } = useEmployee();
+  const { user, sucursalSeleccionada: userSucursal, seleccionarSucursal: seleccionarSucursalUsuario, loadUserData, setUserFromService } = useUser();
+  const { employee, sucursalSeleccionada: employeeSucursal, seleccionarSucursal: seleccionarSucursalEmpleado, loadEmployeeData, setEmployeeFromService } = useEmployee();
   const [showSucursalModal, setShowSucursalModal] = useState(false);
   const [userDataFetched, setUserDataFetched] = useState(false);
   const [employeeDataFetched, setEmployeeDataFetched] = useState(false);
@@ -98,19 +98,9 @@ function AppContent({ token, tokenType }) {
   // Determinar la sucursal seleccionada según el tipo de sesión
   const sucursalSeleccionada = isEmployeeSession ? employeeSucursal : userSucursal;
 
-  // Mostrar modal de sucursal si el usuario está cargado pero no hay sucursal seleccionada
-  // Solo para usuarios normales, no para empleados
-  useEffect(() => {
-    if (isUserSession && user && !sucursalSeleccionada) {
-      setShowSucursalModal(true);
-    }
-  }, [isUserSession, user, sucursalSeleccionada]);
-
-  useEffect(() => {
-    if (isEmployeeSession && employee && employee.permisos?.sucursales && !sucursalSeleccionada) {
-      setShowSucursalModal(true);
-    }
-  }, [isEmployeeSession, employee, sucursalSeleccionada]);
+  // NO abrir el modal automáticamente - SeleccionarSucursal se encargará de auto-seleccionar la primera sucursal
+  // El modal solo se abrirá si el usuario lo solicita manualmente
+  // useEffect removido - ya no se abre automáticamente
 
   const handleSucursalSeleccionada = (sucursal) => {
     if (isEmployeeSession) {
@@ -125,6 +115,24 @@ function AppContent({ token, tokenType }) {
   useEffect(() => {
     const fetchUserData = async () => {
       if (isUserSession && !userDataFetched) {
+        // Verificar si los datos ya fueron cargados desde "Administrar cuentas"
+        const alreadyFetched = localStorage.getItem('userDataFetched') === 'true';
+        if (alreadyFetched) {
+          // Los datos ya están cargados, cargar desde localStorage y establecer en el contexto
+          try {
+            const savedUser = localStorage.getItem('user');
+            if (savedUser) {
+              const parsedUser = JSON.parse(savedUser);
+              setUserFromService(parsedUser);
+            }
+          } catch (error) {
+            console.error('Error al cargar usuario desde localStorage:', error);
+          }
+          setUserDataFetched(true);
+          localStorage.removeItem('userDataFetched'); // Limpiar la bandera
+          return;
+        }
+
         try {
           if (token) {
             // Decodificar token para obtener ID
@@ -153,6 +161,24 @@ function AppContent({ token, tokenType }) {
   useEffect(() => {
     const fetchEmployeeData = async () => {
       if (isEmployeeSession && !employeeDataFetched) {
+        // Verificar si los datos ya fueron cargados desde "Administrar cuentas"
+        const alreadyFetched = localStorage.getItem('employeeDataFetched') === 'true';
+        if (alreadyFetched) {
+          // Los datos ya están cargados, cargar desde localStorage y establecer en el contexto
+          try {
+            const savedEmployee = localStorage.getItem('employeeData');
+            if (savedEmployee) {
+              const parsedEmployee = JSON.parse(savedEmployee);
+              setEmployeeFromService(parsedEmployee);
+            }
+          } catch (error) {
+            console.error('Error al cargar empleado desde localStorage:', error);
+          }
+          setEmployeeDataFetched(true);
+          localStorage.removeItem('employeeDataFetched'); // Limpiar la bandera
+          return;
+        }
+
         try {
           if (token) {
             // Decodificar token para obtener ID del empleado

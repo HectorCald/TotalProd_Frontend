@@ -3,6 +3,7 @@ import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
+import ItemProduct from '../../common/ItemProduct';
 import VerProducto from './VerProducto';
 import Filtros from '../../common/Filtros';
 import Boton from '../../common/Boton';
@@ -34,6 +35,7 @@ import useProductosFiltrados from './hooks/useProductosFiltrados';
 import useAutoCargaCanastas from './hooks/useAutoCargaCanastas';
 import limpiarAlmacenLocalStorage from './helpers/limpiarAlmacenLocalStorage';
 import useCanastaActions from './hooks/useCanastaActions';
+import calcularStockDisponible from './hooks/useStockDisponible';
 import useSessionCache from '../../../hooks/useSessionCache';
 
 
@@ -174,6 +176,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         mostrarNotificacion,
     });
 
+
     // Función para manejar cuando se cargan los precios
     const handlePreciosLoaded = useCallback((data) => {
         setPreciosData(data);
@@ -209,6 +212,127 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         productos,
         paginaTamano: 30,
     });
+
+    // Funciones para actualizar cantidad desde ItemProduct (después de productosFiltrados)
+    const handleCantidadChange = useCallback((productoId, nuevaCantidad, tipoMovimiento = null) => {
+        const producto = productosFiltrados.find(p => p.id === productoId);
+        if (!producto) return;
+
+        // ItemProduct.jsx siempre pasa un número válido (0 si está vacío)
+        const cantidadNueva = Math.max(0, nuevaCantidad);
+
+        if (tipo === 'pedido') {
+            if (cantidadNueva === 0) {
+                setProductosCanasta(prev => prev.filter(p => p.id !== productoId));
+            } else {
+                setProductosCanasta(prev => prev.map(p =>
+                    p.id === productoId
+                        ? { ...p, cantidad: cantidadNueva }
+                        : p
+                ));
+            }
+        } else if (tipo === 'entrada' || tipo === 'salida') {
+            const setCanasta = tipo === 'entrada' ? setProductosCanastaEntradas : setProductosCanastaSalidas;
+            const canasta = tipo === 'entrada' ? productosCanastaEntradas : productosCanastaSalidas;
+            const productoEnCanasta = canasta.find(p => p.id === productoId);
+            
+            if (cantidadNueva === 0) {
+                if (productoEnCanasta) {
+                    setCanasta(prev => prev.filter(p => p.id !== productoId));
+                }
+                return;
+            }
+            
+            // Para salidas, validar stock usando la misma lógica que handleAgregarACanastaMovimientos
+            if (tipo === 'salida') {
+                let modoAgrupacionActual = null;
+                if (window.getModoAgrupacionCanastaMovimientos && typeof window.getModoAgrupacionCanastaMovimientos === 'function') {
+                    modoAgrupacionActual = window.getModoAgrupacionCanastaMovimientos();
+                } else {
+                    modoAgrupacionActual = localStorage.getItem('movimientoAgrupadoRepitiendo') || localStorage.getItem('movimientoAgrupadoEditando');
+                }
+                
+                const stockDisponible = producto.stock || 0;
+                
+                if (modoAgrupacionActual === 'agrupado' && producto.grup && producto.grup > 0) {
+                    const gruposDisponibles = Math.floor(stockDisponible / (producto.grup || 1));
+                    if (cantidadNueva > gruposDisponibles) {
+                        return;
+                    }
+                } else {
+                    if (cantidadNueva > stockDisponible) {
+                        return;
+                    }
+                }
+            }
+            
+            if (productoEnCanasta) {
+                setCanasta(prev => prev.map(p =>
+                    p.id === productoId
+                        ? { ...p, cantidad: cantidadNueva }
+                        : p
+                ));
+            } else {
+                handleAgregarACanastaMovimientos(producto, tipo, null, cantidadNueva);
+            }
+        }
+    }, [tipo, productosFiltrados, productosCanastaEntradas, productosCanastaSalidas, setProductosCanasta, setProductosCanastaEntradas, setProductosCanastaSalidas, handleAgregarACanastaMovimientos, mostrarNotificacion]);
+
+    const handleCantidadIncrement = useCallback((productoId) => {
+        const producto = productosFiltrados.find(p => p.id === productoId);
+        if (!producto) return;
+
+        if (tipo === 'pedido') {
+            const productoEnCanasta = productosCanasta.find(p => p.id === productoId);
+            if (productoEnCanasta) {
+                setProductosCanasta(prev => prev.map(p =>
+                    p.id === productoId
+                        ? { ...p, cantidad: p.cantidad + 1 }
+                        : p
+                ));
+            } else {
+                handleAgregarACanasta(producto);
+            }
+        } else if (tipo === 'entrada' || tipo === 'salida') {
+            // Usar la misma lógica que handleAgregarACanastaMovimientos para mantener sincronización
+            // Esto permite agregar hasta que no haya stock y notificar, igual que cuando se presiona el item
+            handleAgregarACanastaMovimientos(producto, tipo);
+        }
+    }, [tipo, productosFiltrados, handleAgregarACanasta, handleAgregarACanastaMovimientos]);
+
+    const handleCantidadDecrement = useCallback((productoId) => {
+        if (tipo === 'pedido') {
+            setProductosCanasta(prev => {
+                const producto = prev.find(p => p.id === productoId);
+                if (producto && producto.cantidad > 1) {
+                    return prev.map(p =>
+                        p.id === productoId
+                            ? { ...p, cantidad: p.cantidad - 1 }
+                            : p
+                    );
+                } else if (producto && producto.cantidad === 1) {
+                    return prev.filter(p => p.id !== productoId);
+                }
+                return prev;
+            });
+        } else if (tipo === 'entrada' || tipo === 'salida') {
+            const setCanasta = tipo === 'entrada' ? setProductosCanastaEntradas : setProductosCanastaSalidas;
+            setCanasta(prev => {
+                const producto = prev.find(p => p.id === productoId);
+                if (producto && producto.cantidad > 1) {
+                    return prev.map(p =>
+                        p.id === productoId
+                            ? { ...p, cantidad: p.cantidad - 1 }
+                            : p
+                    );
+                } else if (producto && producto.cantidad === 1) {
+                    return prev.filter(p => p.id !== productoId);
+                }
+                return prev;
+            });
+        }
+    }, [tipo, setProductosCanasta, setProductosCanastaEntradas, setProductosCanastaSalidas]);
+
     const preciosTipos = preciosData.map(precio => ({
         value: precio.id,
         label: precio.name,
@@ -651,30 +775,96 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                                     ? getCantidadEnCanastaMovimientos(producto.id, tipo)
                                                     : 0;
                                                 
-                                                // Obtener el flot del stock con colores dinámicos
+                                                // Calcular stock disponible usando función helper
+                                                const {
+                                                    stockDisplay,
+                                                    maxCantidad,
+                                                    badgeColor
+                                                } = calcularStockDisponible({
+                                                    producto,
+                                                    tipo,
+                                                    cantidadEnCanasta,
+                                                    cantidadEnCanastaMovimientos
+                                                });
+                                                
+                                                // Obtener el flot del stock con colores dinámicos (usar stock original para el color)
                                                 const stockFlot = getStockFlot(producto);
                                                 
+                                                // Obtener el precio del producto (con lógica de agrupación) o la categoría si es tipo almacen
+                                                let precioProducto = undefined;
+                                                if (tipo === 'almacen') {
+                                                    // Para tipo almacen, mostrar la categoría
+                                                    precioProducto = producto.category_name || 'Sin categoría';
+                                                } else if (tipo === 'pedido' || tipo === 'entrada' || tipo === 'salida') {
+                                                    // Si está en la canasta, usar el precio de la canasta
+                                                    if (tipo === 'pedido') {
+                                                        const productoEnCanasta = productosCanasta.find(p => p.id === producto.id);
+                                                        precioProducto = productoEnCanasta?.precio;
+                                                    } else if (tipo === 'entrada' || tipo === 'salida') {
+                                                        const canasta = tipo === 'entrada' ? productosCanastaEntradas : productosCanastaSalidas;
+                                                        const productoEnCanasta = canasta.find(p => p.id === producto.id);
+                                                        precioProducto = productoEnCanasta?.precio;
+                                                    }
+                                                    
+                                                    // Si no está en la canasta, calcular el precio según el precio seleccionado
+                                                    if (precioProducto === undefined && producto.price_product && producto.price_product.length > 0) {
+                                                        // Obtener el precio seleccionado desde localStorage o usar el primero
+                                                        let precioSeleccionadoId = null;
+                                                        if (tipo === 'pedido') {
+                                                            precioSeleccionadoId = window.getPrecioSeleccionadoCanastaPedidos?.() || localStorage.getItem('precioIdRepitiendo') || localStorage.getItem('precioIdEditando');
+                                                        } else if (tipo === 'entrada') {
+                                                            precioSeleccionadoId = window.getPrecioSeleccionadoCanastaMovimientosEntrada?.() || localStorage.getItem('precioIdRepitiendo') || localStorage.getItem('precioIdEditando');
+                                                        } else if (tipo === 'salida') {
+                                                            precioSeleccionadoId = window.getPrecioSeleccionadoCanastaMovimientos?.() || localStorage.getItem('precioIdRepitiendo') || localStorage.getItem('precioIdEditando');
+                                                        }
+                                                        
+                                                        let precioUnitario = 0;
+                                                        if (precioSeleccionadoId) {
+                                                            const precioTipo = producto.price_product.find(pp => pp.prices_types?.id === precioSeleccionadoId);
+                                                            precioUnitario = precioTipo ? precioTipo.valor : (producto.price_product[0]?.valor || 0);
+                                                        } else {
+                                                            precioUnitario = producto.price_product[0]?.valor || 0;
+                                                        }
+                                                        
+                                                        // Obtener modo de agrupación para calcular precio
+                                                        let modoAgrupacionActual = null;
+                                                        if (tipo === 'pedido') {
+                                                            modoAgrupacionActual = window.getModoAgrupacionCanastaPedidos?.() || localStorage.getItem('pedidoAgrupadoRepitiendo') || localStorage.getItem('pedidoAgrupadoEditando');
+                                                        } else if (tipo === 'entrada') {
+                                                            modoAgrupacionActual = window.getModoAgrupacionCanastaMovimientosEntrada?.() || localStorage.getItem('movimientoAgrupadoRepitiendo') || localStorage.getItem('movimientoAgrupadoEditando');
+                                                        } else if (tipo === 'salida') {
+                                                            modoAgrupacionActual = window.getModoAgrupacionCanastaMovimientos?.() || localStorage.getItem('movimientoAgrupadoRepitiendo') || localStorage.getItem('movimientoAgrupadoEditando');
+                                                        }
+                                                        
+                                                        // Si está en modo agrupado y el producto tiene grupo, multiplicar el precio
+                                                        if (modoAgrupacionActual === 'agrupado' && producto.grup && producto.grup > 0) {
+                                                            const precioAgrupado = precioUnitario * (producto.grup || 1);
+                                                            // Redondear precio (igual que en useCanastaProductos)
+                                                            const decimal = precioAgrupado % 1;
+                                                            precioProducto = decimal >= 0.5 ? Math.ceil(precioAgrupado) : Math.floor(precioAgrupado);
+                                                        } else {
+                                                            precioProducto = precioUnitario;
+                                                        }
+                                                    }
+                                                }
+                                                
                                                 return (
-                                                    <ItemView
+                                                    <ItemProduct
                                                         key={producto.id || index}
                                                         title={producto.name || 'Sin nombre'}
-                                                        description={producto.description || 'Sin descripción'}
+                                                        descriptionBadge={stockDisplay}
+                                                        descriptionBadgeColor={badgeColor}
                                                         icon="box"
                                                         onClick={() => handleRegistro(producto, tipo)}
-                                                        entrada={tipo === 'pesaje' ? true : false}
-                                                        entradaData={[
-                                                            { name: "Prima", value: 0 },
-                                                            { name: "Bruta", value: 0 },
-                                                        ]}
-                                                        badge={
-                                                            (tipo === 'pedido' && cantidadEnCanasta > 0) ||
-                                                                ((tipo === 'entrada' || tipo === 'salida') && cantidadEnCanastaMovimientos > 0)
-                                                                ? (tipo === 'pedido' ? cantidadEnCanasta : cantidadEnCanastaMovimientos)
-                                                                : null
-                                                        }
-                                                        flot1={stockFlot.flot1}
-                                                        flot2={stockFlot.flot2}
-                                                        flot3={stockFlot.flot3}
+                                                        precio={precioProducto}
+                                                        showStockControls={tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido'}
+                                                        showArrow={tipo === 'almacen'}
+                                                        cantidad={tipo === 'pedido' ? cantidadEnCanasta : cantidadEnCanastaMovimientos}
+                                                        onCantidadChange={(nuevaCantidad) => handleCantidadChange(producto.id, nuevaCantidad, tipo)}
+                                                        onCantidadIncrement={() => handleCantidadIncrement(producto.id)}
+                                                        onCantidadDecrement={() => handleCantidadDecrement(producto.id)}
+                                                        maxCantidad={maxCantidad}
+                                                        minCantidad={1}
                                                     />
                                                 );
                                             })

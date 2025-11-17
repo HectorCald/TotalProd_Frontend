@@ -318,7 +318,6 @@ const UsuarioScreen = () => {
                 </div>
                 <p className={styles.subTitle}>CUENTA</p>
                 <div className={styles.content}>
-                    {/*
                     <ComponenteFull
                         title="Administrar cuentas"
                         subtitle={isEmployee ? "Cambiar a otra cuenta de empleado o empresa" : "Cambiar a otra cuenta de empleado o empresa"}
@@ -327,7 +326,6 @@ const UsuarioScreen = () => {
                         onClick={() => setIsOpenAdministrarCuentas(true)}
                         disabled={areSettingsDisabled}
                     />
-                    */}
                     <ComponenteFull
                         title="Cambiar contraseña"
                         subtitle="Actualiza tu contraseña de acceso"

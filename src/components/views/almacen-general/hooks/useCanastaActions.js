@@ -140,17 +140,11 @@ function useCanastaActions({
             if (modoAgrupacionActual === 'agrupado' && producto.grup) {
                 const gruposDisponibles = Math.floor(stockDisponible / (producto.grup || 1));
                 if (gruposDisponibles < stockNecesario) {
-                    if (mostrarNotificacion) {
-                        mostrarNotificacion('error', `No hay stock suficiente de ${producto.name}`);
-                    }
                     return; // No agregar el producto
                 }
             } else {
                 // Validar en unidades
                 if (stockDisponible < stockNecesario) {
-                    if (mostrarNotificacion) {
-                        mostrarNotificacion('error', `No hay stock suficiente de ${producto.name}`);
-                    }
                     return; // No agregar el producto
                 }
             }
@@ -164,16 +158,10 @@ function useCanastaActions({
                 if (modoAgrupacionActual === 'agrupado' && producto.grup) {
                     const gruposDisponibles = Math.floor(stockDisponible / (producto.grup || 1));
                     if (cantidadNueva > gruposDisponibles) {
-                        if (mostrarNotificacion) {
-                            mostrarNotificacion('error', `No hay stock suficiente de ${producto.name}`);
-                        }
                         return; // No incrementar
                     }
                 } else {
                     if (cantidadNueva > stockDisponible) {
-                        if (mostrarNotificacion) {
-                            mostrarNotificacion('error', `No hay stock suficiente de ${producto.name}. Stock disponible: ${stockDisponible} ${producto.type_measure?.code || 'unidades'}`);
-                        }
                         return; // No incrementar
                     }
                 }

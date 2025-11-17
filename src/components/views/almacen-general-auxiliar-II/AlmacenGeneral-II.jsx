@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import ItemView from '../../common/ItemView';
+import ItemProduct from '../../common/ItemProduct';
 import Filtros from '../../common/Filtros';
 import FiltroCategorias from '../../mixed/FiltroCategorias';
 import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
@@ -20,6 +20,7 @@ import useVirtualPagination from '../../../hooks/useVirtualPagination';
 import useLoadingManager from '../almacen-general/hooks/useLoadingManager';
 import useProductosFiltrados from '../almacen-general/hooks/useProductosFiltrados';
 import useCanastaActions from '../almacen-general/hooks/useCanastaActions';
+import calcularStockDisponible from '../almacen-general/hooks/useStockDisponible';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
@@ -327,6 +328,61 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
         }
     };
 
+    // Funciones para actualizar cantidad desde ItemProduct (para transferencias)
+    const handleCantidadChange = useCallback((productoId, nuevaCantidad) => {
+        const producto = productosFiltrados.find(p => p.id === productoId);
+        if (!producto) return;
+
+        const cantidadNueva = Math.max(0, nuevaCantidad);
+
+        if (cantidadNueva === 0) {
+            setProductosCanastaTransferencias(prev => prev.filter(p => p.id !== productoId));
+        } else {
+            const productoEnCanasta = productosCanastaTransferencias.find(p => p.id === productoId);
+            if (productoEnCanasta) {
+                setProductosCanastaTransferencias(prev => prev.map(p =>
+                    p.id === productoId
+                        ? { ...p, cantidad: cantidadNueva }
+                        : p
+                ));
+            } else {
+                agregarProductoTransferencia(producto, cantidadNueva);
+            }
+        }
+    }, [productosFiltrados, productosCanastaTransferencias, agregarProductoTransferencia]);
+
+    const handleCantidadIncrement = useCallback((productoId) => {
+        const producto = productosFiltrados.find(p => p.id === productoId);
+        if (!producto) return;
+
+        const productoEnCanasta = productosCanastaTransferencias.find(p => p.id === productoId);
+        if (productoEnCanasta) {
+            setProductosCanastaTransferencias(prev => prev.map(p =>
+                p.id === productoId
+                    ? { ...p, cantidad: p.cantidad + 1 }
+                    : p
+            ));
+        } else {
+            agregarProductoTransferencia(producto);
+        }
+    }, [productosFiltrados, productosCanastaTransferencias, agregarProductoTransferencia]);
+
+    const handleCantidadDecrement = useCallback((productoId) => {
+        setProductosCanastaTransferencias(prev => {
+            const producto = prev.find(p => p.id === productoId);
+            if (producto && producto.cantidad > 1) {
+                return prev.map(p =>
+                    p.id === productoId
+                        ? { ...p, cantidad: p.cantidad - 1 }
+                        : p
+                );
+            } else if (producto && producto.cantidad === 1) {
+                return prev.filter(p => p.id !== productoId);
+            }
+            return prev;
+        });
+    }, []);
+
     return (
         <>
             <View 
@@ -415,28 +471,85 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
                                 >
                                         {visibleItems.length > 0 ? (
                                             visibleItems.map((producto, index) => {
-                                                // Obtener el flot del stock con colores dinámicos (solo en modo transferir)
-                                                const stockFlot = tipo === 'transferir' ? getStockFlot(producto) : {
-                                                    flot1: producto.stock + ' Ud.',
-                                                    flot2: null,
-                                                    flot3: null
-                                                };
+                                                if (tipo === 'transferir') {
+                                                    const cantidadEnCanasta = getCantidadEnCanastaTransferencias(producto.id);
+                                                    
+                                                    // Calcular stock disponible usando función helper
+                                                    const {
+                                                        stockDisplay,
+                                                        maxCantidad,
+                                                        badgeColor
+                                                    } = calcularStockDisponible({
+                                                        producto,
+                                                        tipo: 'transferir',
+                                                        cantidadEnCanasta,
+                                                        cantidadEnCanastaMovimientos: 0
+                                                    });
+                                                    
+                                                    // Obtener el precio del producto
+                                                    let precioProducto = undefined;
+                                                    const productoEnCanasta = productosCanastaTransferencias.find(p => p.id === producto.id);
+                                                    precioProducto = productoEnCanasta?.precio;
+                                                    
+                                                    // Si no está en la canasta, calcular el precio según el precio seleccionado
+                                                    if (precioProducto === undefined && producto.price_product && producto.price_product.length > 0) {
+                                                        const precioSeleccionadoId = window.getPrecioSeleccionadoCanastaTransferencias?.() || localStorage.getItem('precioIdRepitiendo') || localStorage.getItem('precioIdEditando');
+                                                        
+                                                        let precioUnitario = 0;
+                                                        if (precioSeleccionadoId) {
+                                                            const precioTipo = producto.price_product.find(pp => pp.prices_types?.id === precioSeleccionadoId);
+                                                            precioUnitario = precioTipo ? precioTipo.valor : (producto.price_product[0]?.valor || 0);
+                                                        } else {
+                                                            precioUnitario = producto.price_product[0]?.valor || 0;
+                                                        }
+                                                        
+                                                        // Obtener modo de agrupación para calcular precio
+                                                        const modoAgrupacionActual = window.getModoAgrupacionCanastaTransferencias?.() || localStorage.getItem('transferenciaAgrupadoRepitiendo') || localStorage.getItem('transferenciaAgrupadoEditando');
+                                                        
+                                                        // Si está en modo agrupado y el producto tiene grupo, multiplicar el precio
+                                                        if (modoAgrupacionActual === 'agrupado' && producto.grup && producto.grup > 0) {
+                                                            const precioAgrupado = precioUnitario * (producto.grup || 1);
+                                                            const decimal = precioAgrupado % 1;
+                                                            precioProducto = decimal >= 0.5 ? Math.ceil(precioAgrupado) : Math.floor(precioAgrupado);
+                                                        } else {
+                                                            precioProducto = precioUnitario;
+                                                        }
+                                                    }
+                                                    
+                                                    return (
+                                                        <ItemProduct
+                                                            key={producto.id || index}
+                                                            title={producto.name || 'Sin nombre'}
+                                                            descriptionBadge={stockDisplay}
+                                                            descriptionBadgeColor={badgeColor}
+                                                            icon="box"
+                                                            onClick={() => handleProductoClick(producto)}
+                                                            precio={precioProducto}
+                                                            showStockControls={true}
+                                                            cantidad={cantidadEnCanasta}
+                                                            onCantidadChange={(nuevaCantidad) => handleCantidadChange(producto.id, nuevaCantidad)}
+                                                            onCantidadIncrement={() => handleCantidadIncrement(producto.id)}
+                                                            onCantidadDecrement={() => handleCantidadDecrement(producto.id)}
+                                                            maxCantidad={maxCantidad}
+                                                            minCantidad={1}
+                                                        />
+                                                    );
+                                                } else {
+                                                    // Para otros tipos, usar el flot del stock
+                                                    const stockFlot = getStockFlot(producto);
                                                 
                                                 return (
-                                                    <ItemView
+                                                        <ItemProduct
                                                         key={producto.id || index}
                                                         title={producto.name || 'Sin nombre'}
-                                                        description={producto.description || 'Sin descripción'}
+                                                            descriptionBadge={stockFlot.flot1 || `${producto.stock} unidades`}
+                                                            descriptionBadgeColor="default"
                                                         icon="box"
                                                         onClick={() => handleProductoClick(producto)}
-                                                        entrada={false}
-                                                        entradaData={[]}
-                                                        flot1={stockFlot.flot1}
-                                                        flot2={stockFlot.flot2}
-                                                        flot3={stockFlot.flot3}
-                                                        badge={getBadge(producto)}
+                                                            showArrow={true}
                                                     />
                                                 );
+                                                }
                                             })
                                         ) : (
                                             <NoData 

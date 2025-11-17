@@ -11,6 +11,7 @@ import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import InputNormal from '../../common/InputNormal';
 import transferenciasAlmacenService from '../../../services/transferenciasAlmacenService';
 import useCanastaProductos from '../almacen-general/hooks/useCanastaProductos';
+import calcularStockDisponible from '../almacen-general/hooks/useStockDisponible';
 import { useLayout } from '../../../context/LayoutContext';
 import Clientes from '../clientes/Clientes';
 import SelectorSucursal from '../../mixed/SelectorSucursal';
@@ -97,7 +98,6 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
         productoModificado.stock = stockMostrado;
 
         if (stockMostrado <= 0) {
-            mostrarNotificacion('warning', `Se eliminaron algunos productos porque no hay stock disponible`);
             return null;
         }
 
@@ -394,8 +394,6 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
         });
 
         if (productosSinStock.length > 0) {
-            const nombresProductos = productosSinStock.map(p => p.name).join(', ');
-            mostrarNotificacion('error', `STOCK INSUFICIENTE: Los siguientes productos no tienen stock suficiente: ${nombresProductos}`);
             return false;
         }
 
@@ -556,10 +554,33 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
                                             <div>
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
-                                                    {modoAgrupacion === 'agrupado' && producto.grup
-                                                        ? `${producto.stock || 0} grupos`
-                                                        : `${producto.stock || 0} unidades`
-                                                    }
+                                                    {(() => {
+                                                        // Calcular stock disponible restando la cantidad en la canasta
+                                                        const stockInfo = calcularStockDisponible({
+                                                            producto: {
+                                                                ...producto,
+                                                                stock: producto.stockOriginal || producto.stock || 0
+                                                            },
+                                                            tipo: 'transferir',
+                                                            cantidadEnCanasta: producto.cantidad,
+                                                            cantidadEnCanastaMovimientos: 0,
+                                                            modoAgrupacion: modoAgrupacion // Pasar modoAgrupacion para que sea reactivo
+                                                        });
+                                                        // Aplicar color dinámico según el badgeColor
+                                                        const colorMap = {
+                                                            'info': 'var(--info-color, #3498db)',
+                                                            'warning': 'var(--warning-color, #f39c12)',
+                                                            'error': 'var(--error-color, #e74c3c)',
+                                                            'success': 'var(--success-color, #2ecc71)',
+                                                            'default': 'inherit'
+                                                        };
+                                                        const color = colorMap[stockInfo.badgeColor] || colorMap['default'];
+                                                        return (
+                                                            <span style={{ color }}>
+                                                                {stockInfo.stockDisplay}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </p>
                                             </div>
                                         </div>

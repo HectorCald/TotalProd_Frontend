@@ -84,7 +84,7 @@ export const EmployeeProvider = ({ children }) => {
     setError(null);
     
     // Limpiar solo los datos específicos del empleado, no todo el localStorage
-    const keysToRemove = ['employee', 'token', 'sucursalSeleccionada', 'employeeData', 'empresa_id'];
+    const keysToRemove = ['employee', 'token', 'sucursalSeleccionada', 'employeeData', 'empresa_id', 'employeeDataFetched'];
     keysToRemove.forEach(key => {
       localStorage.removeItem(key);
     });
@@ -397,6 +397,12 @@ export const EmployeeProvider = ({ children }) => {
     };
     setEmployee(normalizedEmployee);
     localStorage.setItem('employeeData', JSON.stringify(normalizedEmployee));
+    
+    // Si el empleado tiene sucursal, establecerla también
+    if (normalizedEmployee.sucursal) {
+      setSucursalSeleccionada(normalizedEmployee.sucursal);
+      localStorage.setItem('sucursalSeleccionada', JSON.stringify(normalizedEmployee.sucursal));
+    }
   };
 
   const value = {

@@ -15,6 +15,7 @@ import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import deudasService from '../../../services/deudasService';
 import InputNormal from '../../common/InputNormal';
 import useCanastaProductos from './hooks/useCanastaProductos';
+import calcularStockDisponible from './hooks/useStockDisponible';
 import useEntregaMovimientos from './hooks/useEntregaMovimientos';
 import { useLayout } from '../../../context/LayoutContext';
 import OpcionDesplegable from '../../common/OpcionDesplegable';
@@ -121,7 +122,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         productoModificado.stock = stockMostrado;
 
         if (stockMostrado <= 0) {
-            mostrarNotificacion('warning', `Se eliminaron algunos productos porque no hay stock disponible`);
             return null;
         }
 
@@ -467,8 +467,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         });
 
         if (productosSinStock.length > 0) {
-            const nombresProductos = productosSinStock.map(p => p.name).join(', ');
-            mostrarNotificacion('error', `STOCK INSUFICIENTE: Los siguientes productos no tienen stock suficiente: ${nombresProductos}`);
             return false;
         }
 
@@ -911,10 +909,34 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                             <div>
                                                 <h3 className={styles.productoNombre}>{producto.name}</h3>
                                                 <p className={styles.stockInfo}>
-                                                    {modoAgrupacion === 'agrupado' && producto.grup
-                                                        ? `${producto.stock || 0} grupos`
-                                                        : `${producto.stock || 0} unidades`
-                                                    }
+                                                    {(() => {
+                                                        // Calcular stock disponible restando la cantidad total de este producto en la canasta
+                                                        // La cantidad ya está en grupos si está en modo agrupado, o en unidades si no
+                                                        const stockInfo = calcularStockDisponible({
+                                                            producto: {
+                                                                ...producto,
+                                                                stock: producto.stockOriginal || producto.stock || 0
+                                                            },
+                                                            tipo: 'salida',
+                                                            cantidadEnCanasta: 0,
+                                                            cantidadEnCanastaMovimientos: producto.cantidad,
+                                                            modoAgrupacion: modoAgrupacion // Pasar modoAgrupacion para que sea reactivo
+                                                        });
+                                                        // Aplicar color dinámico según el badgeColor
+                                                        const colorMap = {
+                                                            'info': 'var(--info-color, #3498db)',
+                                                            'warning': 'var(--warning-color, #f39c12)',
+                                                            'error': 'var(--error-color, #e74c3c)',
+                                                            'success': 'var(--success-color, #2ecc71)',
+                                                            'default': 'inherit'
+                                                        };
+                                                        const color = colorMap[stockInfo.badgeColor] || colorMap['default'];
+                                                        return (
+                                                            <span style={{ color }}>
+                                                                {stockInfo.stockDisplay}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </p>
                                             </div>
                                         </div>

@@ -60,7 +60,7 @@ function LoginEmpresaCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
     const [errorMessage, setErrorMessage] = useState('');
     const [savedUsers, setSavedUsers] = useState([]);
 
-    const { loadUserData, clearUser } = useUser();
+    const { loadUserData, clearUser, setUserFromService } = useUser();
 
     // Cargar usuarios guardados al abrir el modal
     useEffect(() => {
@@ -99,15 +99,21 @@ function LoginEmpresaCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
                         localStorage.setItem('user', JSON.stringify(response.data.user));
                     }
 
-                    // Cargar datos del usuario en el contexto
-                    if (response.data.user && response.data.user.id) {
-                        await loadUserData(response.data.user.id);
+                    // Establecer datos del usuario directamente en el contexto (sin hacer otra petición)
+                    if (response.data.user) {
+                        setUserFromService(response.data.user);
+                        // Marcar que los datos ya están cargados para evitar petición en App.jsx
+                        localStorage.setItem('userDataFetched', 'true');
+                        
+                        // Esperar un momento para asegurar que el estado se actualice antes de redirigir
+                        await new Promise(resolve => setTimeout(resolve, 100));
                     }
 
+                    setIsOpen(false);
+                    
                     if (onLoginSuccess) {
                         onLoginSuccess(response.data);
                     }
-                    setIsOpen(false);
                     return;
                 } else {
                     setErrorMessage(response.message || response.error || 'Error al iniciar sesión');
@@ -157,36 +163,51 @@ function LoginEmpresaCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
             });
 
             if (response.success) {
-                // Obtener información completa del usuario para guardar
-                if (response.data && response.data.user && response.data.user.id) {
-                    try {
-                        const userInfoResponse = await UserService.getCurrentUser(response.data.user.id);
-                        if (userInfoResponse.success && userInfoResponse.data && userInfoResponse.data.user) {
-                            saveUser(userInfoResponse.data.user);
-                        } else {
-                            // Si no se puede obtener la info completa, guardar la básica
-                            saveUser(response.data.user);
-                        }
-                    } catch (error) {
-                        console.error('Error al obtener información completa del usuario:', error);
-                        // Guardar la información básica que tenemos
-                        saveUser(response.data.user);
-                    }
-                }
-
                 // Limpiar datos de empleado antes de cambiar
                 localStorage.removeItem('employeeData');
                 localStorage.removeItem('empresa_id');
+                localStorage.removeItem('employeeDataFetched');
 
-                // Cargar datos del usuario en el contexto
+                // Obtener información completa del usuario para establecer en el contexto
                 if (response.data && response.data.user && response.data.user.id) {
-                    await loadUserData(response.data.user.id);
+                        try {
+                            const userInfoResponse = await UserService.getCurrentUser(response.data.user.id);
+                            if (userInfoResponse.success && userInfoResponse.data && userInfoResponse.data.user) {
+                                // Guardar usuario en localStorage para acceso rápido
+                                saveUser(userInfoResponse.data.user);
+                                // Establecer datos del usuario directamente en el contexto (sin hacer otra petición)
+                                setUserFromService(userInfoResponse.data.user);
+                                // Marcar que los datos ya están cargados para evitar petición en App.jsx
+                                localStorage.setItem('userDataFetched', 'true');
+                                
+                                // Esperar un momento para asegurar que el estado se actualice antes de redirigir
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            } else {
+                                // Si no se puede obtener la info completa, usar la básica
+                                saveUser(response.data.user);
+                                setUserFromService(response.data.user);
+                                localStorage.setItem('userDataFetched', 'true');
+                                
+                                // Esperar un momento para asegurar que el estado se actualice antes de redirigir
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                        } catch (error) {
+                            console.error('Error al obtener información completa del usuario:', error);
+                            // Usar la información básica que tenemos
+                            saveUser(response.data.user);
+                            setUserFromService(response.data.user);
+                            localStorage.setItem('userDataFetched', 'true');
+                            
+                            // Esperar un momento para asegurar que el estado se actualice antes de redirigir
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        }
                 }
 
+                setIsOpen(false);
+                
                 if (onLoginSuccess) {
                     onLoginSuccess(response.data);
                 }
-                setIsOpen(false);
             } else {
                 setErrorMessage(response.message || response.error || 'Credenciales incorrectas');
                 setTimeout(() => setErrorMessage(''), 3000);

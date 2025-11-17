@@ -123,11 +123,17 @@ function LoginEmpleadoCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
                         if (response.data.personal.empresa_id) {
                             localStorage.setItem('empresa_id', response.data.personal.empresa_id);
                         }
+                        // Guardar sucursal si existe
+                        if (response.data.personal.sucursal) {
+                            localStorage.setItem('sucursalSeleccionada', JSON.stringify(response.data.personal.sucursal));
+                        }
                     }
 
-                    // Cargar datos del empleado en el contexto
-                    if (response.data.personal && response.data.personal.id) {
-                        await loadEmployeeData(response.data.personal.id);
+                    // Establecer datos del empleado directamente en el contexto (sin hacer otra petición)
+                    if (response.data.personal) {
+                        setEmployeeFromService(response.data.personal);
+                        // Marcar que los datos ya están cargados para evitar petición en App.jsx
+                        localStorage.setItem('employeeDataFetched', 'true');
                     }
 
                     if (onLoginSuccess) {
@@ -269,6 +275,11 @@ function LoginEmpleadoCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
                         ...response.data.personal,
                         codigo: codigo
                     });
+                    
+                    // Guardar sucursal si existe
+                    if (response.data.personal.sucursal) {
+                        localStorage.setItem('sucursalSeleccionada', JSON.stringify(response.data.personal.sucursal));
+                    }
                 }
 
                 // Si el empleado tiene rastreo activado, obtener y actualizar ubicación
@@ -289,9 +300,11 @@ function LoginEmpleadoCuentas({ isOpen, setIsOpen, onLoginSuccess }) {
                     }
                 }
 
-                // Cargar datos del empleado en el contexto
-                if (response.data.personal && response.data.personal.id) {
-                    await loadEmployeeData(response.data.personal.id);
+                // Establecer datos del empleado directamente en el contexto (sin hacer otra petición)
+                if (response.data.personal) {
+                    setEmployeeFromService(response.data.personal);
+                    // Marcar que los datos ya están cargados para evitar petición en App.jsx
+                    localStorage.setItem('employeeDataFetched', 'true');
                 }
 
                 if (onLoginSuccess) {
