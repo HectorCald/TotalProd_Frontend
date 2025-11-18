@@ -9,6 +9,8 @@ import { EmployeeProvider, useEmployee } from './context/EmployeeContext';
 import { ModalStackProvider } from './context/ModalStackContext';
 import { LayoutProvider } from './context/LayoutContext';
 import SeleccionarSucursal from './components/views/sucursales/SeleccionarSucursal';
+import LoadingSpinner from './components/common/LoadingSpinner';
+import sucursalesService from './services/sucursalesService';
 
 
 function App() {
@@ -89,6 +91,8 @@ function AppContent({ token, tokenType }) {
   const [showSucursalModal, setShowSucursalModal] = useState(false);
   const [userDataFetched, setUserDataFetched] = useState(false);
   const [employeeDataFetched, setEmployeeDataFetched] = useState(false);
+  const [loadingSucursal, setLoadingSucursal] = useState(false);
+  const [sucursalAutoSeleccionada, setSucursalAutoSeleccionada] = useState(false);
   
   // Determinar si hay una sesión activa
   const hasActiveSession = !!token;
@@ -98,19 +102,82 @@ function AppContent({ token, tokenType }) {
   // Determinar la sucursal seleccionada según el tipo de sesión
   const sucursalSeleccionada = isEmployeeSession ? employeeSucursal : userSucursal;
 
-  // Mostrar modal de sucursal si el usuario está cargado pero no hay sucursal seleccionada
-  // Solo para usuarios normales, no para empleados
+  // Resetear estado de auto-selección cuando cambia el usuario/empleado
   useEffect(() => {
-    if (isUserSession && user && !sucursalSeleccionada) {
-      setShowSucursalModal(true);
-    }
-  }, [isUserSession, user, sucursalSeleccionada]);
+    setSucursalAutoSeleccionada(false);
+  }, [user?.id, employee?.id]);
 
-  useEffect(() => {
-    if (isEmployeeSession && employee && employee.permisos?.sucursales && !sucursalSeleccionada) {
-      setShowSucursalModal(true);
+  // Función para auto-seleccionar la primera sucursal disponible
+  const autoSeleccionarSucursal = async (empresaId, isEmployee, canAdministrarSucursales) => {
+    if (!empresaId || !canAdministrarSucursales) return false;
+    
+    try {
+      setLoadingSucursal(true);
+      const response = await sucursalesService.getByEmpresaId(empresaId);
+      
+      if (response.success && response.data && response.data.length > 0) {
+        // Obtener nombre de empresa para determinar si es Damabrava
+        const nombreEmpresa = response.data[0]?.empresas?.name || '';
+        const esDamabrava = nombreEmpresa === 'Damabrava';
+        
+        // Filtrar sucursales según las reglas (igual que en SeleccionarSucursal)
+        const sucursalesFiltradas = response.data.filter(sucursal => {
+          const esCasaMatrizAsociada = sucursal.name && sucursal.name.startsWith('Casa Matriz (') && sucursal.name.endsWith(')');
+          
+          if (esDamabrava) {
+            return true;
+          }
+          
+          return !esCasaMatrizAsociada;
+        });
+
+        // Auto-seleccionar la primera sucursal disponible
+        if (sucursalesFiltradas.length > 0) {
+          const sucursal = sucursalesFiltradas[0];
+          if (isEmployee) {
+            seleccionarSucursalEmpleado(sucursal);
+          } else {
+            seleccionarSucursalUsuario(sucursal);
+          }
+          setSucursalAutoSeleccionada(true);
+          setLoadingSucursal(false);
+          return true;
+        }
+      }
+      setLoadingSucursal(false);
+      return false;
+    } catch (error) {
+      console.error('Error al auto-seleccionar sucursal:', error);
+      setLoadingSucursal(false);
+      return false;
     }
-  }, [isEmployeeSession, employee, sucursalSeleccionada]);
+  };
+
+  // Auto-seleccionar sucursal después de cargar usuario/empleado
+  useEffect(() => {
+    const autoSeleccionar = async () => {
+      if (isUserSession && user && !sucursalSeleccionada && !sucursalAutoSeleccionada && user.empresa_id) {
+        const autoSeleccionada = await autoSeleccionarSucursal(user.empresa_id, false, true);
+        if (!autoSeleccionada) {
+          // Si no se pudo auto-seleccionar, mostrar modal solo en este caso
+          setShowSucursalModal(true);
+        }
+      } else if (isEmployeeSession && employee && !sucursalSeleccionada && !sucursalAutoSeleccionada) {
+        const canAdministrarSucursales = employee?.permisos?.sucursales === true;
+        const empresaId = employee?.empresa_id || employee?.sucursal?.empresas?.id;
+        if (canAdministrarSucursales && empresaId) {
+          const autoSeleccionada = await autoSeleccionarSucursal(empresaId, true, canAdministrarSucursales);
+          if (!autoSeleccionada) {
+            // Si no se pudo auto-seleccionar, mostrar modal solo en este caso
+            setShowSucursalModal(true);
+          }
+        }
+      }
+    };
+
+    autoSeleccionar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUserSession, isEmployeeSession, user, employee, sucursalSeleccionada, sucursalAutoSeleccionada]);
 
   const handleSucursalSeleccionada = (sucursal) => {
     if (isEmployeeSession) {
@@ -118,6 +185,7 @@ function AppContent({ token, tokenType }) {
     } else {
       seleccionarSucursalUsuario(sucursal);
     }
+    setSucursalAutoSeleccionada(true);
     setShowSucursalModal(false);
   };
 
@@ -177,6 +245,11 @@ function AppContent({ token, tokenType }) {
     fetchEmployeeData();
   }, [isEmployeeSession, employeeDataFetched, loadEmployeeData, token]);
 
+  // Mostrar loading mientras se carga la sucursal
+  if (loadingSucursal) {
+    return <LoadingSpinner fullScreen={true} text="Cargando sucursal..." icon="building" />;
+  }
+
   return (
     <div className="App">
       <BrowserRouter>
@@ -205,8 +278,8 @@ function AppContent({ token, tokenType }) {
           />
         </Routes>
 
-        {/* Modal de selección de sucursal */}
-        {((isUserSession && user) || (isEmployeeSession && employee?.permisos?.sucursales)) && (
+        {/* Modal de selección de sucursal - Solo mostrar si no se pudo auto-seleccionar */}
+        {showSucursalModal && ((isUserSession && user) || (isEmployeeSession && employee?.permisos?.sucursales)) && (
           <SeleccionarSucursal
             isOpen={showSucursalModal}
             setIsOpen={setShowSucursalModal}

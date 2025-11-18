@@ -261,6 +261,31 @@ class transferenciasAlmacenService {
       };
     }
   }
+
+  // Anular una transferencia
+  static async anular(transferenciaId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/transferencias-almacen/${transferenciaId}/estado`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ estado: 'Anulado' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al anular la transferencia');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error anulando transferencia:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al anular la transferencia'
+      };
+    }
+  }
 }
 
 export default transferenciasAlmacenService;

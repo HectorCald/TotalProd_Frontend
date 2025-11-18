@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import styles from '../../styles/Canasta.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
@@ -13,19 +13,77 @@ import transferenciasAlmacenService from '../../../services/transferenciasAlmace
 import useCanastaProductos from '../almacen-general/hooks/useCanastaProductos';
 import calcularStockDisponible from '../almacen-general/hooks/useStockDisponible';
 import { useLayout } from '../../../context/LayoutContext';
+import { useUser } from '../../../context/UserContext';
 import Clientes from '../clientes/Clientes';
 import SelectorSucursal from '../../mixed/SelectorSucursal';
+import sucursalesService from '../../../services/sucursalesService';
 
 function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const { isLargeScreen } = useLayout();
+    const { sucursalSeleccionada: sucursalActual } = useUser();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
+    const [sucursalSeleccionadaData, setSucursalSeleccionadaData] = useState(null);
     const [concepto, setConcepto] = useState('');
     const [clienteSeleccionado, setClienteSeleccionado] = useState('');
     const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
     const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
+    
+    // Obtener empresa actual y empresas asociadas
+    const empresaIdActual = sucursalActual?.empresas?.id;
+    const empresasAsociadas = useMemo(() => {
+        try {
+            const FAVORITES_KEY = 'empresas_favoritas';
+            const stored = localStorage.getItem(FAVORITES_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return Array.isArray(parsed) ? parsed : [];
+            }
+            return [];
+        } catch (error) {
+            console.error('Error al obtener empresas favoritas:', error);
+            return [];
+        }
+    }, []);
+
+    // Función para obtener empresa_id de los productos en la canasta
+    const obtenerEmpresaIdDeProductos = useCallback(() => {
+        if (!productosCanasta || productosCanasta.length === 0) return null;
+        
+        // Obtener empresa_id del primer producto
+        const primerProducto = productosCanasta[0];
+        if (primerProducto.es_asociado === true) {
+            // Si es asociado, obtener empresa_id del producto
+            return primerProducto.empresa_id || null;
+        } else {
+            // Si no es asociado, es de la empresa actual
+            return empresaIdActual;
+        }
+    }, [productosCanasta, empresaIdActual]);
+
+    // Handler para cuando se selecciona una sucursal
+    const handleSucursalChange = useCallback((sucursalId) => {
+        setSucursalSeleccionada(sucursalId);
+        
+        // Obtener datos de la sucursal seleccionada desde el servicio
+        if (sucursalId && empresaIdActual) {
+            sucursalesService.getByEmpresaId(empresaIdActual).then(response => {
+                if (response.success && response.data) {
+                    const sucursalEncontrada = response.data.find(s => s.id === sucursalId);
+                    if (sucursalEncontrada) {
+                        setSucursalSeleccionadaData({
+                            id: sucursalEncontrada.id,
+                            empresa_id: sucursalEncontrada.empresas?.id || null
+                        });
+                    }
+                }
+            }).catch(() => {
+                // Si falla, el SelectorSucursal maneja esto internamente
+            });
+        }
+    }, [empresaIdActual]);
 
     // Estado para notificaciones
     const [notification, setNotification] = useState({
@@ -421,6 +479,24 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
                 return;
             }
 
+            // Validar compatibilidad de empresa
+            const empresaIdProductos = obtenerEmpresaIdDeProductos();
+            if (empresaIdProductos) {
+                // Obtener empresa_id de la sucursal seleccionada
+                const response = await sucursalesService.getByEmpresaId(empresaIdActual);
+                if (response.success && response.data) {
+                    const sucursalEncontrada = response.data.find(s => s.id === sucursalSeleccionada);
+                    if (sucursalEncontrada) {
+                        const empresaIdSucursal = sucursalEncontrada.empresas?.id;
+                        if (empresaIdSucursal && empresaIdSucursal !== empresaIdProductos) {
+                            mostrarNotificacion('error', 'La sucursal de destino no tiene los productos requeridos para transferir');
+                            setLoadingConfirmar(false);
+                            return;
+                        }
+                    }
+                }
+            }
+
             const productosTransferencia = prepararProductosTransferencia();
 
             // Preparar datos para la transferencia
@@ -685,7 +761,7 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
                                 {/* Selector de sucursal */}
                                 <SelectorSucursal
                                     value={sucursalSeleccionada}
-                                    onChange={setSucursalSeleccionada}
+                                    onChange={handleSucursalChange}
                                     placeholder='Sucursal de destino (obligatorio)'
                                     excludeCurrentSucursal={true}
                                     openUpward={true}

@@ -63,12 +63,13 @@ function SelectorSucursal({
                     );
                 }
                 
-                // Mapear a formato de opciones
+                // Mapear a formato de opciones (incluir empresa_id)
                 const opciones = sucursalesFiltradas.map(sucursal => ({
                     value: sucursal.id,
                     label: sucursal.name,
                     id: sucursal.id,
-                    name: sucursal.name
+                    name: sucursal.name,
+                    empresa_id: sucursal.empresas?.id || null
                 }));
                 
                 setSucursales(opciones);
@@ -107,12 +108,13 @@ function SelectorSucursal({
                 );
             }
             
-            // Mapear a formato de opciones
+            // Mapear a formato de opciones (incluir empresa_id)
             const opciones = sucursalesFiltradas.map(sucursal => ({
                 value: sucursal.id,
                 label: sucursal.name,
                 id: sucursal.id,
-                name: sucursal.name
+                name: sucursal.name,
+                empresa_id: sucursal.empresas?.id || null
             }));
             
             setSucursales(opciones);

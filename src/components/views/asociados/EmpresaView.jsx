@@ -4,10 +4,23 @@ import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemViewPerfil from '../../common/ItemViewPerfil';
 import ComponenteFull from '../../common/ComponenteFull';
+import { useUser } from '../../../context/UserContext';
+import { useEmployee } from '../../../context/EmployeeContext';
 
 const FAVORITES_KEY = 'empresas_favoritas';
 
 function EmpresaView({ isOpen, setIsOpen, empresa }) {
+    const { sucursalSeleccionada: sucursalSeleccionadaUsuario } = useUser();
+    const { employee, sucursalSeleccionada: sucursalSeleccionadaEmpleado } = useEmployee();
+    const isEmployeeMode = !!employee;
+    const sucursalSeleccionada = isEmployeeMode ? sucursalSeleccionadaEmpleado : sucursalSeleccionadaUsuario;
+    
+    // Obtener ID de la empresa actual
+    const empresaIdActual = sucursalSeleccionada?.empresas?.id;
+    
+    // Verificar si la empresa que se está viendo es la empresa actual
+    const esEmpresaActual = empresa?.id && empresaIdActual && empresa.id === empresaIdActual;
+    
     const [favorites, setFavorites] = useState([]);
     const [isFavorite, setIsFavorite] = useState(false);
 
@@ -57,6 +70,11 @@ function EmpresaView({ isOpen, setIsOpen, empresa }) {
     // Toggle favorito
     const toggleFavorite = () => {
         if (!empresa) return;
+        
+        // No permitir asociar si es la empresa actual
+        if (esEmpresaActual) {
+            return;
+        }
 
         const isFav = checkIsFavorite(empresa.id);
         let newFavorites;
@@ -105,13 +123,26 @@ function EmpresaView({ isOpen, setIsOpen, empresa }) {
         });
     }
 
-    badges.push({
-        text: isFavorite ? 'Asociado' : 'Asociarme',
-        icon: isFavorite ? 'heart' : 'heart',
-        backgroundColor: isFavorite ? 'rgba(239, 68, 68, 0.2)' : 'rgba(79, 79, 79, 0.2)',
-        color: isFavorite ? 'var(--error-color)' : 'var(--quinary-color)',
-        onClick: toggleFavorite
-    });
+    // Badge de asociación - solo si no es la empresa actual
+    if (esEmpresaActual) {
+        // Si es la empresa actual, mostrar badge informativo (no clickeable)
+        badges.push({
+            text: 'Empresa Actual',
+            icon: 'check-circle',
+            backgroundColor: 'rgba(34, 197, 94, 0.2)',
+            color: 'var(--success-color)'
+            // Sin onClick, no es clickeable
+        });
+    } else {
+        // Si no es la empresa actual, mostrar opción de asociarse
+        badges.push({
+            text: isFavorite ? 'Asociado' : 'Asociarme',
+            icon: isFavorite ? 'heart' : 'heart',
+            backgroundColor: isFavorite ? 'rgba(239, 68, 68, 0.2)' : 'rgba(79, 79, 79, 0.2)',
+            color: isFavorite ? 'var(--error-color)' : 'var(--quinary-color)',
+            onClick: toggleFavorite
+        });
+    }
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>

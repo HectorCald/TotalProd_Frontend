@@ -22,7 +22,9 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
     const [error, setError] = useState('');
     
     // Obtener nombre de la empresa actual
-    const nombreEmpresaActual = sucursalSeleccionada?.empresas?.name || '';
+    // Si hay sucursal seleccionada, usar su empresa; si no, usar la primera sucursal cargada
+    const nombreEmpresaActual = sucursalSeleccionada?.empresas?.name || 
+                                 (sucursales.length > 0 ? sucursales[0]?.empresas?.name : '');
     const esDamabrava = nombreEmpresaActual === 'Damabrava';
     
     useEffect(() => {
@@ -31,30 +33,44 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
         }
     }, [isOpen, empresaId, canAdministrarSucursales]);
 
-    // Auto-seleccionar si solo hay una sucursal Y no hay sucursal seleccionada previamente
+    // Auto-seleccionar la primera sucursal disponible cuando no hay sucursal seleccionada
     useEffect(() => {
         if (
-            sucursales.length === 1 &&
+            sucursales.length > 0 &&
             !loading &&
             isOpen &&
             !error &&
             !sucursalSeleccionada &&
             canAdministrarSucursales
         ) {
-            // Auto-seleccionar la única sucursal disponible sin mostrar el modal y sin refresh
-            const sucursal = sucursales[0];
-            seleccionarSucursal(sucursal);
-            
-            // Notificar al componente padre
-            if (onSucursalSeleccionada) {
-                onSucursalSeleccionada(sucursal);
+            // Filtrar sucursales según las reglas (igual que en el render)
+            const sucursalesFiltradas = sucursales.filter(sucursal => {
+                const esCasaMatrizAsociada = sucursal.name && sucursal.name.startsWith('Casa Matriz (') && sucursal.name.endsWith(')');
+                
+                if (esDamabrava) {
+                    return true;
+                }
+                
+                return !esCasaMatrizAsociada;
+            });
+
+            // Auto-seleccionar la primera sucursal disponible sin mostrar el modal y sin refresh
+            if (sucursalesFiltradas.length > 0) {
+                const sucursal = sucursalesFiltradas[0];
+                seleccionarSucursal(sucursal);
+                
+                // Notificar al componente padre
+                if (onSucursalSeleccionada) {
+                    onSucursalSeleccionada(sucursal);
+                }
+                
+                // Cerrar modal
+                setIsOpen(false);
+                // NO hacer refresh cuando es auto-selección
             }
-            
-            // Cerrar modal
-            setIsOpen(false);
-            // NO hacer refresh cuando es auto-selección
         }
-    }, [sucursales, loading, isOpen, error, sucursalSeleccionada, canAdministrarSucursales]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sucursales, loading, isOpen, error, sucursalSeleccionada, canAdministrarSucursales, esDamabrava]);
 
     const cargarSucursales = async () => {
         try {
@@ -97,19 +113,17 @@ function SeleccionarSucursal({ isOpen, setIsOpen, empresaId, onSucursalSeleccion
                 localStorage.setItem('empresa_id', empresaId);
             }
             localStorage.setItem('employeeSucursalOverride', 'true');
-            window.location.reload();
-            return;
         }
 
-        // Recargar la página cuando es selección manual desde el modal (solo usuarios normales)
-        window.location.reload();
+        // Disparar evento para actualizar componentes sin recargar la página
+        window.dispatchEvent(new CustomEvent('sucursal-changed'));
     };
 
-    // No mostrar el modal si solo hay una sucursal Y no hay sucursal seleccionada (se auto-selecciona)
-    // Si hay sucursal seleccionada, mostrar el modal aunque sea solo una (apertura manual)
+    // No mostrar el modal si no hay sucursal seleccionada (se auto-seleccionará la primera)
+    // Solo mostrar el modal si hay sucursal seleccionada (apertura manual)
     if (!canAdministrarSucursales) return null;
 
-    if (!isOpen || (sucursales.length === 1 && !loading && !error && !sucursalSeleccionada)) return null;
+    if (!isOpen || (!sucursalSeleccionada && !loading && !error)) return null;
 
     return (
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} closed={closed}>

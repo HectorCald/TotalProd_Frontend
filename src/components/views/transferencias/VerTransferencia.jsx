@@ -18,6 +18,7 @@ import DescargaTransferenciaBuilder from './DescargaTransferenciaBuilder';
 import AlmacenGeneralII from '../almacen-general-auxiliar-II/AlmacenGeneral-II';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 import { formatCurrency } from '../../../utils/numberUtils';
+import Text from '../../common/Text';
 
 const calcularPrecioAgrupado = (precioUnitario, grup) => {
     const precio = Number(precioUnitario) * (Number(grup) || 1);
@@ -34,6 +35,7 @@ function VerTransferencia({ isOpen, setIsOpen, transferencia, onTransferenciaAnu
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
+    const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isAlmacenOpen, setIsAlmacenOpen] = useState(false);
 
     const normalizeText = (value) =>
@@ -210,6 +212,44 @@ function VerTransferencia({ isOpen, setIsOpen, transferencia, onTransferenciaAnu
         setIsAlmacenOpen(true);
     };
 
+    // Handle para anular transferencia
+    const handleAnular = async () => {
+        setLoading(true);
+        try {
+            const response = await transferenciasAlmacenService.anular(transferenciaActual.id);
+
+            if (response.success) {
+                // Actualizar el estado local de la transferencia
+                const transferenciaActualizada = {
+                    ...transferenciaActual,
+                    estado: 'Anulado'
+                };
+                setTransferenciaActual(transferenciaActualizada);
+
+                setIsAnularOpen(false);
+                // NO cerrar VerTransferencia, solo actualizar el estado
+                mostrarNotificacion('success', 'Transferencia anulada correctamente');
+
+                // Notificar al componente padre del cambio
+                if (onTransferenciaActualizada) {
+                    onTransferenciaActualizada(transferenciaActualizada);
+                }
+
+                // También llamar al callback original para mantener compatibilidad
+                if (onTransferenciaAnulada) {
+                    onTransferenciaAnulada(transferenciaActual.id);
+                }
+            } else {
+                mostrarNotificacion('error', response.message || 'Error al anular la transferencia');
+            }
+        } catch (error) {
+            console.error('Error anulando transferencia:', error);
+            mostrarNotificacion('error', 'Error al anular la transferencia');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Handle para eliminar transferencia
     const handleEliminar = async () => {
         setLoading(true);
@@ -242,9 +282,12 @@ function VerTransferencia({ isOpen, setIsOpen, transferencia, onTransferenciaAnu
     // Solo puede eliminar si es sucursal origen y está anulada
     const puedeEliminar = esSucursalOrigen && transferenciaActual?.estado === 'Anulado';
     
-    // El estado siempre es "Finalizado" (las transferencias se auto-ingresan)
-    const estadoLabel = 'Finalizado';
-    const estadoColor = 'blue';
+    // Solo puede anular si es sucursal destino y no está anulada
+    const puedeAnular = esSucursalDestino && transferenciaActual?.estado !== 'Anulado';
+    
+    // El estado puede ser "Finalizado" o "Anulado"
+    const estadoLabel = transferenciaActual?.estado === 'Anulado' ? 'Anulado' : 'Finalizado';
+    const estadoColor = transferenciaActual?.estado === 'Anulado' ? 'red' : 'blue';
 
     // No renderizar si no hay transferencia válida
     if (!transferenciaActual || !transferenciaActual.id) return null;
@@ -352,6 +395,14 @@ function VerTransferencia({ isOpen, setIsOpen, transferencia, onTransferenciaAnu
                         style={{ marginTop: 'auto' }}
                         onClick={handleRepetirTransferencia}
                     />
+                    {puedeAnular && (
+                        <Boton
+                            className='btn-red'
+                            label='Anular Transferencia'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsAnularOpen(true)}
+                        />
+                    )}
                     {puedeEliminar && (
                         <Boton
                             className='btn-red'
@@ -423,6 +474,40 @@ function VerTransferencia({ isOpen, setIsOpen, transferencia, onTransferenciaAnu
                     </div>
                 </ViewModal>
             )}
+
+            {/* Modal de anular transferencia */}
+            <ViewModal isOpen={isAnularOpen} setIsOpen={setIsAnularOpen}>
+                <HeaderModal
+                    title="Anular Transferencia"
+                    onClose={() => setIsAnularOpen(false)}
+                />
+                <div className={styles.modalContent}>
+                    <p className={styles.subTitle}>
+                        ¿Estás seguro que deseas anular esta transferencia? Esta acción no se puede deshacer.
+                    </p>
+                    <div style={{ marginTop: '10px', marginBottom: '10px', width: '100%' }}>
+                        <Text type="error" align="left">
+                            Al anular esta transferencia se devolverán las cantidades de los productos a la sucursal de origen y se restarán de la sucursal de destino.
+                        </Text>
+                    </div>
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-default'
+                            label='Cancelar'
+                            style={{ marginTop: 'auto' }}
+                            onClick={() => setIsAnularOpen(false)}
+                        />
+                        <Boton
+                            className='btn-red'
+                            label='Sí, anular'
+                            style={{ marginTop: 'auto' }}
+                            onClick={handleAnular}
+                            loading={loading}
+                            segundosDisabled={5}
+                        />
+                    </div>
+                </div>
+            </ViewModal>
 
             {/* Modal de eliminar transferencia */}
             <ViewModal isOpen={isEliminarOpen} setIsOpen={setIsEliminarOpen}>

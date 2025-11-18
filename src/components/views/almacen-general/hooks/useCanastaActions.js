@@ -49,16 +49,18 @@ function useCanastaActions({
                 return p;
             });
 
-            // Validar compatibilidad de productos asociados/no asociados
+            // Validar compatibilidad de productos asociados/no asociados y empresas
             if (prevSanitizados.length > 0) {
                 const productoNuevoEsAsociado = producto.es_asociado === true;
+                const productoNuevoEmpresaId = producto.empresa_id || null;
                 const primerProductoEnCanasta = prevSanitizados[0];
                 const primerProductoEsAsociado = primerProductoEnCanasta.es_asociado === true;
+                const primerProductoEmpresaId = primerProductoEnCanasta.empresa_id || null;
 
                 // Si hay un producto no asociado en la canasta, no se puede agregar uno asociado
                 if (!primerProductoEsAsociado && productoNuevoEsAsociado) {
                     if (mostrarNotificacion) {
-                        mostrarNotificacion('error', 'No se pueden mezclar productos asociados con productos propios en el mismo pedido');
+                        mostrarNotificacion('error', 'No se pueden mezclar productos asociados con productos propios en la misma operación');
                     }
                     return prevSanitizados; // No agregar el producto
                 }
@@ -66,9 +68,19 @@ function useCanastaActions({
                 // Si hay un producto asociado en la canasta, no se puede agregar uno no asociado
                 if (primerProductoEsAsociado && !productoNuevoEsAsociado) {
                     if (mostrarNotificacion) {
-                        mostrarNotificacion('error', 'No se pueden mezclar productos propios con productos asociados en el mismo pedido');
+                        mostrarNotificacion('error', 'No se pueden mezclar productos propios con productos asociados en la misma operación');
                     }
                     return prevSanitizados; // No agregar el producto
+                }
+
+                // Si ambos son asociados, verificar que sean de la misma empresa asociada
+                if (primerProductoEsAsociado && productoNuevoEsAsociado) {
+                    if (primerProductoEmpresaId && productoNuevoEmpresaId && primerProductoEmpresaId !== productoNuevoEmpresaId) {
+                        if (mostrarNotificacion) {
+                            mostrarNotificacion('error', 'No se pueden mezclar productos de diferentes empresas asociadas en la misma operación');
+                        }
+                        return prevSanitizados; // No agregar el producto
+                    }
                 }
             }
 
@@ -199,6 +211,29 @@ function useCanastaActions({
                 }
                 return p;
             });
+
+            // Validar compatibilidad de productos asociados/no asociados (solo para transferencias)
+            if (prevSanitizados.length > 0 && tipoMovimiento === 'transferencia') {
+                const productoNuevoEsAsociado = producto.es_asociado === true;
+                const primerProductoEnCanasta = prevSanitizados[0];
+                const primerProductoEsAsociado = primerProductoEnCanasta.es_asociado === true;
+
+                // Si hay un producto no asociado en la canasta, no se puede agregar uno asociado
+                if (!primerProductoEsAsociado && productoNuevoEsAsociado) {
+                    if (mostrarNotificacion) {
+                        mostrarNotificacion('error', 'No se pueden mezclar productos asociados con productos propios en la misma operación');
+                    }
+                    return prevSanitizados; // No agregar el producto
+                }
+
+                // Si hay un producto asociado en la canasta, no se puede agregar uno no asociado
+                if (primerProductoEsAsociado && !productoNuevoEsAsociado) {
+                    if (mostrarNotificacion) {
+                        mostrarNotificacion('error', 'No se pueden mezclar productos propios con productos asociados en la misma operación');
+                    }
+                    return prevSanitizados; // No agregar el producto
+                }
+            }
 
             const productoExistente = prevSanitizados.find(p => p.id === producto.id);
 

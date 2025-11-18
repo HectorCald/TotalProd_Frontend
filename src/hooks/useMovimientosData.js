@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import movimientosAlmacenService from '../services/movimientosAlmacenService';
 import { logDataSize } from '../components/utils/DataSizeLogger';
 
@@ -11,28 +11,14 @@ export const useMovimientosData = () => {
     const [loading, setLoading] = useState(!cacheData);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        // Si ya tenemos datos en cache, usarlos
-        if (cacheData) {
-            setData(cacheData);
-            setLoading(false);
-            return;
-        }
+    const fetchData = useCallback(() => {
+        // Limpiar cache y promise para forzar nueva petición
+        cacheData = null;
+        cachePromise = null;
 
-        // Si ya hay una petición en curso, esperar a que termine
-        if (cachePromise) {
-            cachePromise.then(result => {
-                setData(result.data);
-                setLoading(false);
-            }).catch(err => {
-                setError(err);
-                setLoading(false);
-            });
-            return;
-        }
-
-        // Hacer la petición solo si no hay datos ni petición en curso
+        // Hacer la petición
         setLoading(true);
+        setError(null);
         cachePromise = movimientosAlmacenService.getStatsForCharts();
 
         cachePromise.then(result => {
@@ -58,5 +44,41 @@ export const useMovimientosData = () => {
         });
     }, []);
 
-    return { data, loading, error };
+    useEffect(() => {
+        // Si ya tenemos datos en cache, usarlos
+        if (cacheData) {
+            setData(cacheData);
+            setLoading(false);
+            return;
+        }
+
+        // Si ya hay una petición en curso, esperar a que termine
+        if (cachePromise) {
+            cachePromise.then(result => {
+                setData(result.data);
+                setLoading(false);
+            }).catch(err => {
+                setError(err);
+                setLoading(false);
+            });
+            return;
+        }
+
+        // Hacer la petición solo si no hay datos ni petición en curso
+        fetchData();
+    }, [fetchData]);
+
+    // Escuchar evento de cambio de sucursal
+    useEffect(() => {
+        const handleSucursalChange = () => {
+            fetchData();
+        };
+
+        window.addEventListener('sucursal-changed', handleSucursalChange);
+        return () => {
+            window.removeEventListener('sucursal-changed', handleSucursalChange);
+        };
+    }, [fetchData]);
+
+    return { data, loading, error, refresh: fetchData };
 };

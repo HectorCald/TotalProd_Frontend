@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import styles from '../../styles/Canasta.module.css';
 import View from '../../ui/View';
 import HeaderView from '../../common/HeaderView';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
 import Select from '../../common/Select';
+import SelectorSucursal from '../../mixed/SelectorSucursal';
 import { BoxIcon } from 'boxicons-react';
 import { motion } from 'framer-motion';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
+import sucursalesService from '../../../services/sucursalesService';
 import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
@@ -15,7 +17,7 @@ import useCanastaProductos from './hooks/useCanastaProductos';
 import usePedidoEdicion from './hooks/usePedidoEdicion';
 import { useLayout } from '../../../context/LayoutContext';
 
-function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], sucursales = [], loadingPrecios = false, loadingSucursales = false, productosActualizados = [], isCartMode = false }) {
+function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
     const { isLargeScreen } = useLayout();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
@@ -23,6 +25,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
+    const [sucursalSeleccionadaData, setSucursalSeleccionadaData] = useState(null);
 
     // Estado para notificaciones
     const [notification, setNotification] = useState({ isVisible: false, type: 'error', text: '' });
@@ -151,23 +154,60 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         };
     }, []);
 
-    // Cargar valores guardados cuando se abre (solo si no hay valores ya establecidos)
-    useEffect(() => {
-        if (isOpen && !pedidoId) {
-            // Cargar sucursal guardada
-            const sucursalGuardada = localStorage.getItem('sucursalPedidoGuardada');
-            if (sucursalGuardada && !sucursalSeleccionada) {
-                setSucursalSeleccionada(sucursalGuardada);
-            } else if (!sucursalGuardada && sucursales.length > 0 && !sucursalSeleccionada) {
-                // Si no hay sucursal guardada, establecer "Casa Matriz" como valor por defecto
-                const casaMatriz = sucursales.find(sucursal => sucursal.label === 'Casa Matriz');
-                if (casaMatriz) {
-                    setSucursalSeleccionada(casaMatriz.value);
-                }
+    // Obtener empresa actual y empresas asociadas
+    const empresaIdActual = sucursalActual?.empresas?.id;
+    const empresasAsociadas = useMemo(() => {
+        try {
+            const FAVORITES_KEY = 'empresas_favoritas';
+            const stored = localStorage.getItem(FAVORITES_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return Array.isArray(parsed) ? parsed : [];
             }
-            
+            return [];
+        } catch (error) {
+            console.error('Error al obtener empresas favoritas:', error);
+            return [];
         }
-    }, [isOpen, pedidoId, sucursales, sucursalSeleccionada]);
+    }, []);
+
+    // Función para obtener empresa_id de los productos en la canasta
+    const obtenerEmpresaIdDeProductos = useCallback(() => {
+        if (!productosCanasta || productosCanasta.length === 0) return null;
+        
+        // Obtener empresa_id del primer producto
+        const primerProducto = productosCanasta[0];
+        if (primerProducto.es_asociado === true) {
+            // Si es asociado, obtener empresa_id del producto
+            return primerProducto.empresa_id || null;
+        } else {
+            // Si no es asociado, es de la empresa actual
+            return empresaIdActual;
+        }
+    }, [productosCanasta, empresaIdActual]);
+
+    // Handler para cuando se selecciona una sucursal
+    const handleSucursalChange = useCallback((sucursalId) => {
+        setSucursalSeleccionada(sucursalId);
+        
+        // Obtener datos de la sucursal seleccionada desde el servicio
+        if (sucursalId && empresaIdActual) {
+            sucursalesService.getByEmpresaId(empresaIdActual).then(response => {
+                if (response.success && response.data) {
+                    const sucursalEncontrada = response.data.find(s => s.id === sucursalId);
+                    if (sucursalEncontrada) {
+                        setSucursalSeleccionadaData({
+                            id: sucursalEncontrada.id,
+                            empresa_id: sucursalEncontrada.empresas?.id || null
+                        });
+                    }
+                }
+            }).catch(() => {
+                // Si falla, intentar obtener desde las opciones del SelectorSucursal
+                // El SelectorSucursal maneja esto internamente
+            });
+        }
+    }, [empresaIdActual]);
 
     // Guardar valores en localStorage cuando cambian
     useEffect(() => {
@@ -279,6 +319,24 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 mostrarNotificacion('error', 'No puedes seleccionar tu sucursal actual como destino');
                 setLoadingConfirmar(false);
                 return;
+            }
+
+            // Validar compatibilidad de empresa
+            const empresaIdProductos = obtenerEmpresaIdDeProductos();
+            if (empresaIdProductos) {
+                // Obtener empresa_id de la sucursal seleccionada
+                const response = await sucursalesService.getByEmpresaId(empresaIdActual);
+                if (response.success && response.data) {
+                    const sucursalEncontrada = response.data.find(s => s.id === sucursalSeleccionada);
+                    if (sucursalEncontrada) {
+                        const empresaIdSucursal = sucursalEncontrada.empresas?.id;
+                        if (empresaIdSucursal && empresaIdSucursal !== empresaIdProductos) {
+                            mostrarNotificacion('error', 'La sucursal de destino no tiene los productos requeridos para pedir');
+                            setLoadingConfirmar(false);
+                            return;
+                        }
+                    }
+                }
             }
 
             // Preparar datos para enviar al backend
@@ -533,13 +591,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                             <hr className={styles.hr} />
                             {/* Selector de sucursal - Solo mostrar si no estamos editando */}
                             {!pedidoId && (
-                                <Select
+                                <SelectorSucursal
                                     value={sucursalSeleccionada}
-                                    onChange={setSucursalSeleccionada}
-                                    options={sucursales}
+                                    onChange={handleSucursalChange}
                                     placeholder='Sucursal de destino (obligatorio)'
-                                    disabled={loadingSucursales}
-                                    icon='building'
+                                    excludeCurrentSucursal={true}
                                     openUpward={true}
                                 />
                             )}
