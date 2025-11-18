@@ -137,6 +137,52 @@ class productsAlmacenService {
     }
   }
 
+  // Obtener productos por empresa_id específico (para catálogo de empresas asociadas)
+  static async getByEmpresaId(empresaIdParam) {
+    try {
+      if (!empresaIdParam) {
+        return {
+          success: false,
+          message: 'ID de la empresa es requerido'
+        };
+      }
+
+      // El backend requiere sucu_id, pero solo lo usa para el stock
+      // Usamos el sucu_id actual para cumplir con el requerimiento
+      const sucuId = getSucuId();
+      
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        empresa_id: empresaIdParam,
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/products-almacen?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al obtener productos');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error en productsAlmacenService.getByEmpresaId:', error);
+      return {
+        success: false,
+        message: error.message || 'Error de conexión con el servidor'
+      };
+    }
+  }
+
   // Obtener productos ligeros (solo id y name) para formularios de producción
   static async getAllForProduction() {
     try {

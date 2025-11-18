@@ -32,6 +32,15 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
         }
     }, [isOpen]);
 
+    // Cerrar el modal principal cuando se cierra EmpresaView
+    useEffect(() => {
+        if (!isEmpresaViewOpen && selectedEmpresa) {
+            // Si EmpresaView se cerró, también cerrar AsociadosSearch
+            setIsOpen(false);
+            setSelectedEmpresa(null);
+        }
+    }, [isEmpresaViewOpen, selectedEmpresa]);
+
     // Escuchar cambios en localStorage para actualizar favoritos
     useEffect(() => {
         const handleStorageChange = (e) => {
