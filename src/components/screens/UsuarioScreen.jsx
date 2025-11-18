@@ -19,9 +19,6 @@ import Comentarios from '../views/comentarios/Comentarios';
 import ImagenEmpresa from '../views/usuario/ImagenEmpresa';
 import Notification from '../common/Notification';
 import AtajosEmpleado from '../views/usuario/AtajosEmpleado';
-import AdministrarCuentasMedio from '../views/usuario/AdministrarCuentasMedio';
-import LoginEmpleadoCuentas from '../views/usuario/LoginEmpleadoCuentas';
-import LoginEmpresaCuentas from '../views/usuario/LoginEmpresaCuentas';
 import productsAlmacenService from '../../services/productsAlmacenService';
 import categoryAlmacenService from '../../services/categoryAlmacenService';
 import pricesTypesService from '../../services/pricesTypesService';
@@ -57,9 +54,6 @@ const UsuarioScreen = () => {
     const [isOpenComentarios, setIsOpenComentarios] = useState(false);
     const [isOpenImagenEmpresa, setIsOpenImagenEmpresa] = useState(false);
     const [isOpenAtajo, setIsOpenAtajo] = useState(false);
-    const [isOpenAdministrarCuentas, setIsOpenAdministrarCuentas] = useState(false);
-    const [isOpenLoginEmpleado, setIsOpenLoginEmpleado] = useState(false);
-    const [isOpenLoginEmpresa, setIsOpenLoginEmpresa] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [isOfflineMode, setIsOfflineMode] = useState(getInitialOfflineMode);
     const [isOfflineSyncing, setIsOfflineSyncing] = useState(false);
@@ -319,14 +313,6 @@ const UsuarioScreen = () => {
                 <p className={styles.subTitle}>CUENTA</p>
                 <div className={styles.content}>
                     <ComponenteFull
-                        title="Administrar cuentas"
-                        subtitle={isEmployee ? "Cambiar a otra cuenta de empleado o empresa" : "Cambiar a otra cuenta de empleado o empresa"}
-                        icon="user-circle"
-                        type="arrow"
-                        onClick={() => setIsOpenAdministrarCuentas(true)}
-                        disabled={areSettingsDisabled}
-                    />
-                    <ComponenteFull
                         title="Cambiar contraseña"
                         subtitle="Actualiza tu contraseña de acceso"
                         icon="lock-open"
@@ -449,38 +435,6 @@ const UsuarioScreen = () => {
             {isEmployee && (
                 <AtajosEmpleado isOpen={isOpenAtajo} setIsOpen={setIsOpenAtajo} />
             )}
-
-            <AdministrarCuentasMedio
-                isOpen={isOpenAdministrarCuentas}
-                setIsOpen={setIsOpenAdministrarCuentas}
-                onSelectEmpleado={() => setIsOpenLoginEmpleado(true)}
-                onSelectEmpresa={() => setIsOpenLoginEmpresa(true)}
-                isEmployee={isEmployee}
-            />
-            <LoginEmpleadoCuentas
-                isOpen={isOpenLoginEmpleado}
-                setIsOpen={setIsOpenLoginEmpleado}
-                onLoginSuccess={(data) => {
-                    // Los datos ya fueron limpiados y el token ya está guardado en LoginEmpleadoCuentas
-                    // Notificar a App.jsx que el token cambió para que re-renderice
-                    window.dispatchEvent(new Event('token-changed'));
-                    // Cerrar el modal
-                    setIsOpenLoginEmpleado(false);
-                    setIsOpenAdministrarCuentas(false);
-                }}
-            />
-            <LoginEmpresaCuentas
-                isOpen={isOpenLoginEmpresa}
-                setIsOpen={setIsOpenLoginEmpresa}
-                onLoginSuccess={(data) => {
-                    // Los datos ya fueron limpiados y el token ya está guardado en LoginEmpresaCuentas
-                    // Notificar a App.jsx que el token cambió para que re-renderice
-                    window.dispatchEvent(new Event('token-changed'));
-                    // Cerrar el modal
-                    setIsOpenLoginEmpresa(false);
-                    setIsOpenAdministrarCuentas(false);
-                }}
-            />
         </>
     );
 };

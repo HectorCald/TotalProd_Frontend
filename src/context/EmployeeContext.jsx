@@ -92,21 +92,6 @@ export const EmployeeProvider = ({ children }) => {
 
   // Función para seleccionar sucursal
   const seleccionarSucursal = (sucursal) => {
-    if (sucursal === null) {
-      setSucursalSeleccionada(null);
-      localStorage.removeItem('sucursalSeleccionada');
-      // Actualizar empleado para limpiar sucursal
-      setEmployee(prevEmployee => {
-        if (!prevEmployee) return prevEmployee;
-        const updatedEmployee = {
-          ...prevEmployee,
-          sucursal_id: null,
-          sucursal: null
-        };
-        localStorage.setItem('employeeData', JSON.stringify(updatedEmployee));
-        return updatedEmployee;
-      });
-    } else {
     setSucursalSeleccionada(sucursal);
     localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
 
@@ -132,7 +117,6 @@ export const EmployeeProvider = ({ children }) => {
       localStorage.setItem('employeeData', JSON.stringify(updatedEmployee));
       return updatedEmployee;
     });
-    }
   };
 
 
@@ -404,19 +388,6 @@ export const EmployeeProvider = ({ children }) => {
     });
   };
 
-  // Limpiar solo los datos del empleado sin eliminar el token (para cambio de cuenta)
-  const clearEmployeeDataOnly = () => {
-    setEmployee(null);
-    setSucursalSeleccionada(null);
-    setError(null);
-    
-    // Limpiar solo los datos específicos del empleado, NO el token
-    const keysToRemove = ['employee', 'sucursalSeleccionada', 'employeeData', 'empresa_id'];
-    keysToRemove.forEach(key => {
-      localStorage.removeItem(key);
-    });
-  };
-
   // Establecer empleado directamente desde una respuesta de servicio (sin re-fetch)
   const setEmployeeFromService = (newEmployee) => {
     if (!newEmployee) return;
@@ -426,12 +397,6 @@ export const EmployeeProvider = ({ children }) => {
     };
     setEmployee(normalizedEmployee);
     localStorage.setItem('employeeData', JSON.stringify(normalizedEmployee));
-    
-    // Si el empleado tiene sucursal, establecerla también
-    if (normalizedEmployee.sucursal) {
-      setSucursalSeleccionada(normalizedEmployee.sucursal);
-      localStorage.setItem('sucursalSeleccionada', JSON.stringify(normalizedEmployee.sucursal));
-    }
   };
 
   const value = {
@@ -440,7 +405,6 @@ export const EmployeeProvider = ({ children }) => {
     loading,
     error,
     clearEmployee,
-    clearEmployeeDataOnly,
     seleccionarSucursal,
     loadEmployeeData,
     updateEmpresaImage,

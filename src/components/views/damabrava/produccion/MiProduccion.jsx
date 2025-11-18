@@ -104,13 +104,13 @@ function MiProduccion({ isOpen, setIsOpen }) {
         
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            if (isLargeScreen && newCount > 0) {
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [currentPage, allRegistros.length, isLargeScreen, hasCachedItems]);
+    }, [currentPage, allRegistros.length, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -121,7 +121,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
         
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
-            if (newCount === 0 && isLargeScreen) {
+            if (newCount === 0) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setTimeout(() => {
@@ -131,7 +131,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [currentPage, isLargeScreen]);
+    }, [currentPage]);
 
     const handleError = useCallback((err) => {
         setError(err);

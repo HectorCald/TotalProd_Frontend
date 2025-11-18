@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -67,13 +67,13 @@ function Precios({ isOpen, setIsOpen }) {
         setActiveRequests(prev => {
             const newCount = prev + 1;
             // Mostrar RefreshIndicator solo cuando hay peticiones activas
-            if (isLargeScreen && newCount > 0) {
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [precios.length, isLargeScreen]);
+    }, [precios.length]);
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
@@ -82,7 +82,7 @@ function Precios({ isOpen, setIsOpen }) {
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
             // Ocultar RefreshIndicator cuando no hay peticiones activas
-            if (newCount === 0 && isLargeScreen) {
+            if (newCount === 0) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setTimeout(() => {
@@ -92,7 +92,7 @@ function Precios({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [isLargeScreen]);
+    }, []);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({
@@ -178,11 +178,33 @@ function Precios({ isOpen, setIsOpen }) {
         }
     }, [error, isOpen]);
 
-    // Filtrar precios localmente basado en la búsqueda
-    const preciosFiltrados = precios.filter(precio =>
-        precio.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (precio.description && precio.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    // Obtener empresa_id actual (se recalcula cuando cambia la sucursal)
+    const empresaIdActual = useMemo(() => {
+        try {
+            const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+            if (sucursalSeleccionada) {
+                const parsed = JSON.parse(sucursalSeleccionada);
+                return parsed.empresas?.id;
+            }
+        } catch (error) {
+            console.error('Error al obtener empresa_id:', error);
+        }
+        return null;
+    }, [isOpen]); // Recalcular cuando se abre la vista
+
+    // Filtrar precios localmente: excluir precios asociados y aplicar búsqueda
+    const preciosFiltrados = useMemo(() => {
+        return precios.filter(precio => {
+            // Excluir precios asociados (empresa_id diferente a la actual)
+            if (empresaIdActual && precio.empresa_id && precio.empresa_id !== empresaIdActual) {
+                return false;
+            }
+            
+            // Aplicar filtro de búsqueda
+            return precio.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (precio.description && precio.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        });
+    }, [precios, empresaIdActual, searchQuery]);
 
     // Función para manejar cuando se crea un nuevo precio
     const handlePrecioCreated = (newPrecio) => {
@@ -246,8 +268,7 @@ function Precios({ isOpen, setIsOpen }) {
                 {isLoading ? (
                     // Mostrar LoadingSpinner cuando está cargando
                     <LoadingSpinner />
-                ) : isLargeScreen ? (
-                    // Vista de tabla para pantallas grandes
+                ) : (
                     <>
                         <div className={styles.titleContainer}>
                             <RefreshIndicator
@@ -255,7 +276,10 @@ function Precios({ isOpen, setIsOpen }) {
                                 isLoading={isRefreshing}
                             />
                         </div>
-                        <div className={styles.content} style={{
+                        {isLargeScreen ? (
+                            // Vista de tabla para pantallas grandes
+                            <>
+                                <div className={styles.content} style={{
                             maxHeight: 'calc(100% - 80px)',
                             minHeight: 'calc(100% - 80px)'
                         }}>
@@ -268,10 +292,10 @@ function Precios({ isOpen, setIsOpen }) {
                                     handlePrecio(precioOriginal);
                                 }}
                             />
-                        </div>
-                    </>
-                ) : (
-                    // Vista de cards para pantallas pequeñas con PullToRefresh
+                                </div>
+                            </>
+                        ) : (
+                            // Vista de cards para pantallas pequeñas con PullToRefresh
                     <PullToRefresh
                         onRefresh={handleRefresh}
                         screenName="Precios"
@@ -300,7 +324,9 @@ function Precios({ isOpen, setIsOpen }) {
                                 minHeight="200px"
                             />
                         )}
-                    </PullToRefresh>
+                            </PullToRefresh>
+                        )}
+                    </>
                 )}
             </div>
 

@@ -163,13 +163,13 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
 
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            if (isLargeScreen && newCount > 0) {
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [allCotizaciones.length, currentPage, isLargeScreen, hasCachedItems]);
+    }, [allCotizaciones.length, currentPage, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -180,7 +180,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
 
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
-            if (newCount === 0 && isLargeScreen) {
+            if (newCount === 0) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setTimeout(() => {
@@ -190,7 +190,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [currentPage, isLargeScreen]);
+    }, [currentPage]);
 
     const handleHasMorePagesChange = useCallback((hasMore) => {
         setHasMorePages(Boolean(hasMore));

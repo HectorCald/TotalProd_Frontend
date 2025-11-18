@@ -279,3 +279,41 @@
     color: white !important;
     fill: white !important;
 }
+
+.favoriteButton {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    z-index: 10;
+    transition: transform 0.2s ease;
+    width: 28px;
+    height: 28px;
+}
+
+.favoriteButton:hover {
+    transform: scale(1.1);
+}
+
+.favoriteIcon {
+    font-size: 20px !important;
+    transition: all 0.2s ease;
+}
+
+.favoriteIconOutline {
+    color: gray !important;
+    fill: transparent !important;
+    stroke: gray !important;
+    stroke-width: 1.5px !important;
+}
+
+.favoriteIconFilled {
+    color: #ef4444 !important;
+    fill: #ef4444 !important;
+}

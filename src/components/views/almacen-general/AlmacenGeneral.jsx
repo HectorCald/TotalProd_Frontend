@@ -27,6 +27,7 @@ import { useUser } from '../../../context/UserContext';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import DescargaMovimientoBuilder from '../movimientos/DescargaMovimientoBuilder';
+import DescargaPedidoBuilder from '../pedidos/DescargaPedidoBuilder';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
@@ -74,6 +75,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [isCanastaMovimientosOpen, setIsCanastaMovimientosOpen] = useState(false);
     const [isDescargaMovimientoOpen, setIsDescargaMovimientoOpen] = useState(false);
     const [movimientoIdParaDescarga, setMovimientoIdParaDescarga] = useState(null);
+    const [isDescargaPedidoOpen, setIsDescargaPedidoOpen] = useState(false);
+    const [pedidoIdParaDescarga, setPedidoIdParaDescarga] = useState(null);
 
     // Estados para datos
     const {
@@ -88,7 +91,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [sucursalesData, setSucursalesData] = useState([]);
     
     const shouldShowSpinner = useCallback(() => productos.length === 0, [productos.length]);
-    const enableRefreshIndicator = useCallback(() => isLargeScreen, [isLargeScreen]);
+    const enableRefreshIndicator = useCallback(() => true, []);
     const {
         isLoading,
         showRefreshIndicator,
@@ -353,7 +356,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     // Función para manejar cuando se cargan los productos
     const handleProductosLoaded = useCallback((data) => {
-        let productosProcesados = data;
+        const empresaIdActual = sucursalActual?.empresas?.id;
+        let productosProcesados = data.map(producto => ({
+            ...producto,
+            es_asociado: producto.empresa_id && empresaIdActual && producto.empresa_id !== empresaIdActual
+        }));
 
         const productosEdicionStorage = localStorage.getItem('productosEdicion');
         if (productosEdicionStorage) {
@@ -369,7 +376,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     }, {});
 
                     if (Object.keys(cantidadesMap).length > 0) {
-                        productosProcesados = data.map((producto) => {
+                        productosProcesados = productosProcesados.map((producto) => {
                             const extra = cantidadesMap[producto.id];
                             if (!extra) return producto;
                             const stockActual = Number(producto.stock) || 0;
@@ -466,7 +473,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             producto.id === updatedProduct.id ? updatedProduct : producto
         ));
 
-        // Actualizar también el producto que se está viendo
         setInfoPersona(updatedProduct);
         // NO cerrar el modal de ver producto - se mantiene abierto para mostrar los cambios
         // setIsOpenVerProducto(false);
@@ -716,14 +722,12 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         <LoadingSpinner />
                     ) : (
                         <>
-                            {isLargeScreen && (
-                                <div className={styles.titleContainer}>
-                                    <RefreshIndicator
-                                        isVisible={showRefreshIndicator}
-                                        isLoading={isRefreshing}
-                                    />
-                                </div>
-                            )}
+                            <div className={styles.titleContainer}>
+                                <RefreshIndicator
+                                    isVisible={showRefreshIndicator}
+                                    isLoading={isRefreshing}
+                                />
+                            </div>
                             <Filtros options={opciones} />
                             {isLargeScreen ? (
                                 // Vista de tabla para pantallas grandes
@@ -1025,7 +1029,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     loadingSucursales={false}
                     productosActualizados={productos}
                     isCartMode={isCartMode && isLargeScreen}
-                    onCerrarCanasta={() => {
+                    onCerrarCanasta={(pedidoId) => {
                         setIsCanastaOpen(false);
                         // Limpiar pedidoIdEditando y precioIdEditando del localStorage cuando se confirma la edición
                         localStorage.removeItem('pedidoIdEditando');
@@ -1038,6 +1042,12 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         }
 
                         mostrarNotificacion('success', pedidoIdEditando ? 'Pedido actualizado correctamente' : 'Pedido confirmado correctamente');
+                        
+                        // Si hay pedidoId, abrir modal de descarga
+                        if (pedidoId) {
+                            setPedidoIdParaDescarga(pedidoId);
+                            setIsDescargaPedidoOpen(true);
+                        }
                     }}
                 />
 
@@ -1109,6 +1119,15 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     isOpen={isDescargaMovimientoOpen}
                     setIsOpen={setIsDescargaMovimientoOpen}
                     movimientoId={movimientoIdParaDescarga}
+                />
+
+                {/* Modal de descarga del pedido generado */}
+                <DescargaPedidoBuilder
+                    isOpen={isDescargaPedidoOpen}
+                    setIsOpen={setIsDescargaPedidoOpen}
+                    pedidoId={pedidoIdParaDescarga}
+                    tipo="almacen"
+                    esPedido={true}
                 />
 
                 {/* Modal de Categorías de Almacén */}

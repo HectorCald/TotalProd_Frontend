@@ -11,8 +11,16 @@ import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import gastosService from '../../../services/gastosService';
 
 function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, tipo = 'agregar', onGastoUpdated }) {
+  // Función para obtener la fecha actual en formato YYYY-MM-DD
+  const obtenerFechaActual = () => {
+    const hoy = new Date();
+    return hoy.getFullYear() + '-' + 
+      String(hoy.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(hoy.getDate()).padStart(2, '0');
+  };
+
   const [dataGasto, setDataGasto] = useState({
-    fecha: '',
+    fecha: obtenerFechaActual(),
     valor: '',
     concepto: '',
     proveedor_id: '',
@@ -49,7 +57,7 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
       if (tipo === 'editar' && gasto) {
         // Modo edición - cargar datos del gasto
         setDataGasto({
-          fecha: gasto.fecha_gasto,
+          fecha: gasto.fecha_gasto || obtenerFechaActual(),
           valor: gasto.valor?.toString() || '',
           concepto: gasto.concepto || '',
           proveedor_id: gasto.proveedor_id || '',
@@ -58,13 +66,8 @@ function EditarAgregarGasto({ isOpen, setIsOpen, onGastoCreated, gasto = null, t
         setProveedorSeleccionadoData(gasto.proveedor || null);
       } else {
         // Modo agregar - establecer fecha actual por defecto
-        const hoy = new Date();
-        const fechaHoy = hoy.getFullYear() + '-' + 
-          String(hoy.getMonth() + 1).padStart(2, '0') + '-' + 
-          String(hoy.getDate()).padStart(2, '0'); // Formato YYYY-MM-DD local
-        
         setDataGasto({
-          fecha: fechaHoy,
+          fecha: obtenerFechaActual(),
           valor: '',
           concepto: '',
           proveedor_id: '',

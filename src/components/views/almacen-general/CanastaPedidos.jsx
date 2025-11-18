@@ -10,7 +10,6 @@ import { motion } from 'framer-motion';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
-import Clientes from '../clientes/Clientes';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import usePedidoEdicion from './hooks/usePedidoEdicion';
@@ -24,9 +23,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
-    const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
-    const [clienteSeleccionado, setClienteSeleccionado] = useState('');
-    const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
 
     // Estado para notificaciones
     const [notification, setNotification] = useState({ isVisible: false, type: 'error', text: '' });
@@ -56,9 +52,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         clearEdicionStorage
     } = usePedidoEdicion({
         pedidoId,
-        isOpen,
-        setClienteSeleccionado,
-        setClienteSeleccionadoData
+        isOpen
     });
 
     const syncProductoPedido = useCallback(({
@@ -71,15 +65,9 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         let productoModificado = productoCarrito;
         let huboCambios = false;
 
+        // Para pedidos y entradas, NO validar stock ni ajustar cantidad
+        // Solo actualizar el stock para mostrar información actualizada
         if (productoActualizado.stock !== undefined && productoActualizado.stock !== productoCarrito.stock) {
-            if (productoCarrito.cantidad > productoActualizado.stock) {
-                mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoActualizado.stock}`);
-                productoModificado = {
-                    ...productoModificado,
-                    cantidad: productoActualizado.stock
-                };
-                huboCambios = true;
-            }
             productoModificado = {
                 ...productoModificado,
                 stock: productoActualizado.stock
@@ -105,7 +93,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }
 
         return huboCambios ? productoModificado : productoCarrito;
-    }, [mostrarNotificacion]);
+    }, []);
 
     const {
         precioSeleccionado,
@@ -178,18 +166,8 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 }
             }
             
-            // Cargar cliente guardado
-            const clienteIdGuardado = localStorage.getItem('clienteIdPedidoGuardado');
-            const clienteNameGuardado = localStorage.getItem('clienteNamePedidoGuardado');
-            if (clienteIdGuardado && clienteNameGuardado && !clienteSeleccionado) {
-                setClienteSeleccionadoData({
-                    id: clienteIdGuardado,
-                    name: clienteNameGuardado
-                });
-                setClienteSeleccionado(clienteIdGuardado);
-            }
         }
-    }, [isOpen, pedidoId, sucursales, sucursalSeleccionada, clienteSeleccionado]);
+    }, [isOpen, pedidoId, sucursales, sucursalSeleccionada]);
 
     // Guardar valores en localStorage cuando cambian
     useEffect(() => {
@@ -198,12 +176,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         }
     }, [sucursalSeleccionada, pedidoId]);
 
-    useEffect(() => {
-        if (clienteSeleccionadoData && !pedidoId) {
-            localStorage.setItem('clienteIdPedidoGuardado', clienteSeleccionadoData.id);
-            localStorage.setItem('clienteNamePedidoGuardado', clienteSeleccionadoData.name);
-        }
-    }, [clienteSeleccionadoData, pedidoId]);
 
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {
@@ -266,22 +238,12 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         handleActualizarPrecio(producto.id, valor);
     };
 
-    const handleClienteSeleccionado = (cliente) => {
-        setClienteSeleccionadoData(cliente);
-        setClienteSeleccionado(cliente.id);
-        setIsClientesSeleccionOpen(false);
-    };
-
     const handleLimpiarCanasta = () => {
         setProductosCanasta([]);
         localStorage.removeItem('canastaPedidos');
         // Limpiar valores guardados
         localStorage.removeItem('sucursalPedidoGuardada');
-        localStorage.removeItem('clienteIdPedidoGuardado');
-        localStorage.removeItem('clienteNamePedidoGuardado');
         setSucursalSeleccionada('');
-        setClienteSeleccionado('');
-        setClienteSeleccionadoData(null);
         setIsLimpiarModalOpen(false);
         setIsOpen(false);
     };
@@ -325,8 +287,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 precio_id: precioSeleccionado,
                 sucursal_destino_id: sucursalSeleccionada,
                 agrupado: modoAgrupacion === 'agrupado',
-                // Si no hay cliente seleccionado, no enviar el campo para evitar overwriting en backend
-                ...(clienteSeleccionado ? { cliente_id: clienteSeleccionado } : {}),
                 productos: prepararProductos()
             };
 
@@ -334,12 +294,13 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             const response = await pedidosAlmacenService.create(pedidoData);
 
             if (response.success) {
+                // Obtener el ID del pedido creado
+                const pedidoIdCreado = response.data?.id || null;
+
                 // Limpiar la canasta
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
                 setSucursalSeleccionada('');
-                setClienteSeleccionado('');
-                setClienteSeleccionadoData(null);
 
                 // Limpiar localStorage
                 localStorage.removeItem('canastaPedidos');
@@ -347,7 +308,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 // Cerrar canasta y mostrar notificación
                 setIsOpen(false);
                 if (onCerrarCanasta) {
-                    onCerrarCanasta();
+                    onCerrarCanasta(pedidoIdCreado);
                 }
 
             } else {
@@ -372,7 +333,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 observaciones: observacionesGenerales || null,
                 precio_id: precioSeleccionado,
                 agrupado: modoAgrupacion === 'agrupado',
-                ...(clienteSeleccionado ? { cliente_id: clienteSeleccionado } : {}),
                 productos: prepararProductos()
             };
 
@@ -380,6 +340,9 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
             const response = await pedidosAlmacenService.update(pedidoId, pedidoData);
 
             if (response.success) {
+                // Obtener el ID del pedido actualizado
+                const pedidoIdActualizado = response.data?.id || pedidoId;
+
                 // Notificar al componente padre sobre la actualización
                 if (onPedidoActualizado) {
                     onPedidoActualizado(response.data);
@@ -388,8 +351,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 // Limpiar la canasta
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
-                setClienteSeleccionado('');
-                setClienteSeleccionadoData(null);
 
                 // Limpiar localStorage
                 localStorage.removeItem('canastaPedidos');
@@ -398,7 +359,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 // Cerrar canasta y mostrar notificación
                 setIsOpen(false);
                 if (onCerrarCanasta) {
-                    onCerrarCanasta();
+                    onCerrarCanasta(pedidoIdActualizado);
                 }
 
             } else {
@@ -570,13 +531,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                                 </div>
                             ))}
                             <hr className={styles.hr} />
-                            {/* Botón para seleccionar cliente entre sucursal y observaciones */}
-                            <Boton
-                                className='btn-gray'
-                                label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
-                                onClick={() => setIsClientesSeleccionOpen(true)}
-                                style={{ width: '100%', justifyContent: 'flex-start' }}
-                            />
                             {/* Selector de sucursal - Solo mostrar si no estamos editando */}
                             {!pedidoId && (
                                 <Select
@@ -637,14 +591,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 isOpen={isLimpiarModalOpen}
                 setIsOpen={setIsLimpiarModalOpen}
                 onConfirmar={handleLimpiarCanasta}
-            />
-
-            {/* View de selección de clientes */}
-            <Clientes
-                isOpen={isClientesSeleccionOpen}
-                setIsOpen={setIsClientesSeleccionOpen}
-                modoSeleccion={true}
-                onClienteSeleccionado={handleClienteSeleccionado}
             />
 
             <Notification isVisible={notification.isVisible} type={notification.type} text={notification.text} />

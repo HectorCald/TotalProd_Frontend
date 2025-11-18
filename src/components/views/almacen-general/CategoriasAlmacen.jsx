@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -162,10 +162,32 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
         }
     }, [isOpen]);
 
-    // Filtrar categorías localmente basado en la búsqueda
-    const categoriasFiltradas = categorias.filter(categoria => 
-        categoria.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Obtener empresa_id actual (se recalcula cuando cambia la sucursal)
+    const empresaIdActual = useMemo(() => {
+        try {
+            const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
+            if (sucursalSeleccionada) {
+                const parsed = JSON.parse(sucursalSeleccionada);
+                return parsed.empresas?.id;
+            }
+        } catch (error) {
+            console.error('Error al obtener empresa_id:', error);
+        }
+        return null;
+    }, [isOpen]); // Recalcular cuando se abre la vista
+
+    // Filtrar categorías localmente: excluir categorías asociadas y aplicar búsqueda
+    const categoriasFiltradas = useMemo(() => {
+        return categorias.filter(categoria => {
+            // Excluir categorías asociadas (empresa_id diferente a la actual)
+            if (empresaIdActual && categoria.empresa_id && categoria.empresa_id !== empresaIdActual) {
+                return false;
+            }
+            
+            // Aplicar filtro de búsqueda
+            return categoria.name.toLowerCase().includes(searchQuery.toLowerCase());
+        });
+    }, [categorias, empresaIdActual, searchQuery]);
 
     // Headers para la tabla
     const tableHeaders = [

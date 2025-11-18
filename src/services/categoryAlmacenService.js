@@ -23,6 +23,23 @@ const getEmpresaId = () => {
   return null;
 };
 
+// Función helper para obtener IDs de empresas favoritas
+const getEmpresasAsociadasIds = () => {
+  try {
+    const FAVORITES_KEY = 'empresas_favoritas';
+    const stored = localStorage.getItem(FAVORITES_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const favorites = Array.isArray(parsed) ? parsed : [];
+      return favorites.map(empresa => empresa.id).filter(id => id);
+    }
+    return [];
+  } catch (error) {
+    console.error('Error al obtener empresas favoritas:', error);
+    return [];
+  }
+};
+
 
 const shouldUseOffline = () => {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
@@ -62,6 +79,8 @@ class categoryAlmacenService {
       }
 
       const empresaId = getEmpresaId();
+      const empresasAsociadasIds = getEmpresasAsociadasIds();
+      
       if (!empresaId) {
         return {
           success: false,
@@ -72,6 +91,13 @@ class categoryAlmacenService {
       const params = new URLSearchParams({
         empresa_id: empresaId
       });
+
+      // Agregar empresas asociadas si existen
+      if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
+        empresasAsociadasIds.forEach(id => {
+          params.append('empresas_asociadas', id);
+        });
+      }
 
       const response = await fetch(`${API_BASE_URL}/category-almacen?${params}`, {
         method: 'GET',

@@ -69,14 +69,14 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         // Incrementar contador de peticiones activas
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
-            if (isLargeScreen && newCount > 0) {
+            // Mostrar RefreshIndicator cuando hay peticiones activas (en PC y móvil)
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [clientes.length, isLargeScreen]);
+    }, [clientes.length]);
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
@@ -85,7 +85,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
             // Ocultar RefreshIndicator cuando no hay peticiones activas
-            if (newCount === 0 && isLargeScreen) {
+            if (newCount === 0) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setTimeout(() => {
@@ -95,7 +95,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
             }
             return newCount;
         });
-    }, [isLargeScreen]);
+    }, []);
 
 
 
@@ -283,8 +283,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                 {isLoading ? (
                     // Mostrar LoadingSpinner cuando está cargando
                     <LoadingSpinner />
-                ) : isLargeScreen ? (
-                    // Vista de tabla para pantallas grandes
+                ) : (
                     <>
                         <div className={styles.titleContainer}>
                             <RefreshIndicator
@@ -292,6 +291,9 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                                 isLoading={isRefreshing}
                             />
                         </div>
+                        {isLargeScreen ? (
+                    // Vista de tabla para pantallas grandes
+                    <>
                         <div className={styles.content}
                         style={
                             {
@@ -310,7 +312,7 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                             />
                         </div>
                     </>
-                ) : (
+                        ) : (
                     // Vista de cards para pantallas pequeñas con PullToRefresh
                     <PullToRefresh
                         onRefresh={handleRefresh}
@@ -340,6 +342,8 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                             />
                         )}
                     </PullToRefresh>
+                        )}
+                    </>
                 )}
                 <div className={styles.buttonFooter}>
                     <Boton

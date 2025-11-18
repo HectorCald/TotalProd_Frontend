@@ -145,13 +145,13 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            if (isLargeScreen && newCount > 0) {
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [currentPage, allMovimientos.length, hasCachedItems, isLargeScreen]);
+    }, [currentPage, allMovimientos.length, hasCachedItems]);
 
     const handleLoadingEnd = () => {
         if (currentPage === 1) {
@@ -162,7 +162,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
-            if (newCount === 0 && isLargeScreen) {
+            if (newCount === 0) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setTimeout(() => {
@@ -527,14 +527,14 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         if (tipoMovimiento === 'acopio') {
             productoValue = movimiento.product?.name || 'Sin producto';
         } else {
-            // Si es transferencia, mostrar concepto si existe, sino mostrar sucursales (origen → destino)
+            // Si es transferencia, mostrar concepto si existe, sino mostrar sucursales (origen > destino)
             if (movimiento.type === 'transferencia') {
                 if (movimiento.concepto && movimiento.concepto.trim() !== '') {
                     productoValue = movimiento.concepto;
                 } else {
                     const origen = movimiento.sucursal_origen?.name || movimiento.sucursal?.name || 'Origen';
                     const destino = movimiento.sucursal_destino?.name || 'Destino';
-                    productoValue = `${origen} → ${destino}`;
+                    productoValue = `${origen} > ${destino}`;
                 }
             } else if (movimiento.concepto && movimiento.concepto.trim() !== '') {
                 // Si tiene concepto, mostrarlo; sino mostrar cantidad/productos como antes
@@ -707,7 +707,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                                                 : (() => {
                                                                     const origen = movimiento.sucursal_origen?.name || movimiento.sucursal?.name || 'Origen';
                                                                     const destino = movimiento.sucursal_destino?.name || 'Destino';
-                                                                    return `${origen} → ${destino}`;
+                                                                    return `${origen} > ${destino}`;
                                                                 })()
                                                             : (movimiento.concepto && movimiento.concepto.trim() !== '')
                                                                 ? movimiento.concepto

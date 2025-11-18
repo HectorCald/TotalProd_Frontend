@@ -69,13 +69,13 @@ function Sucursales({ isOpen, setIsOpen }) {
         setActiveRequests(prev => {
             const newCount = prev + 1;
             // Mostrar RefreshIndicator solo cuando hay peticiones activas
-            if (isLargeScreen && newCount > 0) {
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [sucursales.length, isLargeScreen]);
+    }, [sucursales.length]);
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
@@ -84,7 +84,7 @@ function Sucursales({ isOpen, setIsOpen }) {
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
             // Ocultar RefreshIndicator cuando no hay peticiones activas
-            if (newCount === 0 && isLargeScreen) {
+            if (newCount === 0) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setTimeout(() => {
@@ -94,7 +94,7 @@ function Sucursales({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [isLargeScreen]);
+    }, []);
 
 
 
@@ -175,10 +175,28 @@ function Sucursales({ isOpen, setIsOpen }) {
         setIsSearchExpanded(isExpanded);
     };
 
-    // Filtrar sucursales localmente basado en la búsqueda
-    const sucursalesFiltradas = sucursales.filter(sucursal => 
-        sucursal.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Obtener nombre de la empresa actual
+    const nombreEmpresaActual = sucursalSeleccionada?.empresas?.name || '';
+    const esDamabrava = nombreEmpresaActual === 'Damabrava';
+
+    // Filtrar sucursales localmente basado en la búsqueda y ocultar "Casa Matriz" de empresas asociadas (excepto si es Damabrava)
+    const sucursalesFiltradas = sucursales.filter(sucursal => {
+        // Si la sucursal tiene formato "Casa Matriz (nombre empresa)", es de empresa asociada
+        const esCasaMatrizAsociada = sucursal.name && sucursal.name.startsWith('Casa Matriz (') && sucursal.name.endsWith(')');
+        
+        // Si es "Damabrava", mostrar todas las sucursales
+        if (esDamabrava) {
+            return sucursal.name.toLowerCase().includes(searchQuery.toLowerCase());
+        }
+        
+        // Si no es "Damabrava", ocultar las "Casa Matriz" de empresas asociadas
+        if (esCasaMatrizAsociada) {
+            return false;
+        }
+        
+        // Aplicar filtro de búsqueda
+        return sucursal.name.toLowerCase().includes(searchQuery.toLowerCase());
+    });
 
     // Función para manejar cuando se crea una nueva sucursal
     const handleSucursalCreated = (newSucursal) => {
@@ -260,8 +278,7 @@ function Sucursales({ isOpen, setIsOpen }) {
                 {isLoading ? (
                     // Mostrar LoadingSpinner cuando está cargando
                     <LoadingSpinner />
-                ) : isLargeScreen ? (
-                    // Vista de tabla para pantallas grandes
+                ) : (
                     <>
                         <div className={styles.titleContainer}>
                             <RefreshIndicator
@@ -269,7 +286,10 @@ function Sucursales({ isOpen, setIsOpen }) {
                                 isLoading={isRefreshing}
                             />
                         </div>
-                        <div className={styles.content} style={{
+                        {isLargeScreen ? (
+                            // Vista de tabla para pantallas grandes
+                            <>
+                                <div className={styles.content} style={{
                             maxHeight: 'calc(100% - 80px)',
                             minHeight: 'calc(100% - 80px)'
                         }}>
@@ -282,10 +302,10 @@ function Sucursales({ isOpen, setIsOpen }) {
                                     handleSucursal(sucursalOriginal);
                                 }}
                             />
-                        </div>
-                    </>
-                ) : (
-                    // Vista de cards para pantallas pequeñas con PullToRefresh
+                                </div>
+                            </>
+                        ) : (
+                            // Vista de cards para pantallas pequeñas con PullToRefresh
                     <PullToRefresh
                         onRefresh={handleRefresh}
                         screenName="Sucursales"
@@ -314,7 +334,9 @@ function Sucursales({ isOpen, setIsOpen }) {
                                 minHeight="200px"
                             />
                         )}
-                    </PullToRefresh>
+                            </PullToRefresh>
+                        )}
+                    </>
                 )}
             </div>
 

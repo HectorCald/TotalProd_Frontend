@@ -146,13 +146,13 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            if (isLargeScreen && newCount > 0) {
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [currentPage, isLargeScreen, hasCachedItems]);
+    }, [currentPage, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -164,21 +164,16 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
             if (newCount === 0) {
-                if (isLargeScreen) {
-                    setTimeout(() => {
-                        setIsRefreshing(false);
-                        setTimeout(() => {
-                            setShowRefreshIndicator(false);
-                        }, 500);
-                    }, 300);
-                } else {
+                setTimeout(() => {
                     setIsRefreshing(false);
-                    setShowRefreshIndicator(false);
-                }
+                    setTimeout(() => {
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
             }
             return newCount;
         });
-    }, [currentPage, isLargeScreen]);
+    }, [currentPage]);
 
     const handleError = useCallback((err) => {
         setError(err);
@@ -523,15 +518,15 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
                     />
                 ) : (
                     <>
+                        <div className={styles.titleContainer}>
+                            <RefreshIndicator
+                                isVisible={showRefreshIndicator}
+                                isLoading={isRefreshing}
+                            />
+                        </div>
                         <Filtros options={opcionesFiltros} />
                         {isLargeScreen ? (
                             <>
-                                <div className={styles.titleContainer}>
-                                    <RefreshIndicator
-                                        isVisible={showRefreshIndicator}
-                                        isLoading={isRefreshing}
-                                    />
-                                </div>
                                 <div
                                     className={styles.content}
                                     onScroll={handleScroll}

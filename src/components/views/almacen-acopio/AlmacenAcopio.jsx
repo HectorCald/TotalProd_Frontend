@@ -91,14 +91,14 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         // Incrementar contador de peticiones activas
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
-            if (isLargeScreen && newCount > 0) {
+            // Mostrar RefreshIndicator cuando hay peticiones activas (en PC y móvil)
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [productos.length, isLargeScreen]);
+    }, [productos.length]);
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
@@ -108,18 +108,16 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
             // Solo ocultar loading y RefreshIndicator cuando no hay peticiones activas
             if (newCount === 0) {
                 setIsLoading(false);
-                if (isLargeScreen) {
+                setTimeout(() => {
+                    setIsRefreshing(false);
                     setTimeout(() => {
-                        setIsRefreshing(false);
-                        setTimeout(() => {
-                            setShowRefreshIndicator(false);
-                        }, 500);
-                    }, 300);
-                }
+                        setShowRefreshIndicator(false);
+                    }, 500);
+                }, 300);
             }
             return newCount;
         });
-    }, [isLargeScreen]);
+    }, []);
 
 
     // Función para manejar cuando se cargan los productos
@@ -686,14 +684,12 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                         <LoadingSpinner />
                     ) : (
                         <>
-                            {isLargeScreen && (
-                                <div className={styles.titleContainer}>
-                                    <RefreshIndicator
-                                        isVisible={showRefreshIndicator}
-                                        isLoading={isRefreshing}
-                                    />
-                                </div>
-                            )}
+                            <div className={styles.titleContainer}>
+                                <RefreshIndicator
+                                    isVisible={showRefreshIndicator}
+                                    isLoading={isRefreshing}
+                                />
+                            </div>
                             <Filtros options={opciones} />
                             {isLargeScreen ? (
                                 // Vista de tabla para pantallas grandes

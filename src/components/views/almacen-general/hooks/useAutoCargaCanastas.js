@@ -21,7 +21,11 @@ function useAutoCargaCanastas({
             productosParaEntregar.forEach(productoPedido => {
                 const productoCompleto = productos.find(p => p.id === productoPedido.id);
                 if (productoCompleto) {
-                    onAgregarProductoMovimiento?.(productoCompleto, 'salida', null, productoPedido.cantidad);
+                    // Si el stock es 0, no agregar a la canasta
+                    const stockDisponible = productoCompleto.stock || 0;
+                    if (stockDisponible > 0) {
+                        onAgregarProductoMovimiento?.(productoCompleto, 'salida', null, productoPedido.cantidad);
+                    }
                 }
             });
             setTimeout(() => {
@@ -46,6 +50,8 @@ function useAutoCargaCanastas({
             productosParaEditar.forEach(productoPedido => {
                 const productoCompleto = productos.find(p => p.id === productoPedido.id);
                 if (productoCompleto) {
+                    // Para pedidos, no validar stock (pueden tener stock 0)
+                    // Solo verificar que el producto exista
                     onAgregarProductoPedido?.(productoCompleto, productoPedido.cantidad);
                 }
             });
@@ -70,7 +76,11 @@ function useAutoCargaCanastas({
             productosParaRepetir.forEach(productoMovimiento => {
                 const productoCompleto = productos.find(p => p.id === productoMovimiento.id);
                 if (productoCompleto) {
-                    onAgregarProductoMovimiento?.(productoCompleto, 'salida', null, productoMovimiento.cantidad);
+                    // Si el stock es 0, no agregar a la canasta
+                    const stockDisponible = productoCompleto.stock || 0;
+                    if (stockDisponible > 0) {
+                        onAgregarProductoMovimiento?.(productoCompleto, 'salida', null, productoMovimiento.cantidad);
+                    }
                 }
             });
             setTimeout(() => {

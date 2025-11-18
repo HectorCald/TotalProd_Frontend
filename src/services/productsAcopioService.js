@@ -24,7 +24,7 @@ const getEmpresaId = () => {
 class productsAcopioService {
 
   // Obtener todos los productos
-  static async getAll() {
+  static async getAll(empresasAsociadasIds = null) {
     try {
       const empresaId = getEmpresaId();
       if (!empresaId) {
@@ -37,6 +37,13 @@ class productsAcopioService {
       const params = new URLSearchParams({
         empresa_id: empresaId
       });
+
+      // Si se proporcionan empresas asociadas, agregarlas como parámetro
+      if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
+        empresasAsociadasIds.forEach(id => {
+          params.append('empresas_asociadas[]', id);
+        });
+      }
 
       const response = await fetch(`${API_BASE_URL}/products-acopio?${params}`, {
         method: 'GET',

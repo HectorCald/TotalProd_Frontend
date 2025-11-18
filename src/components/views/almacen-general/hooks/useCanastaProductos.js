@@ -358,7 +358,9 @@ function useCanastaProductos({
             const actualizados = prev.map(productoCarrito => {
                 const productoActualizado = productosActualizados.find(p => p.id === productoCarrito.id);
                 if (!productoActualizado) {
-                    return productoCarrito;
+                    // Si el producto no existe en productosActualizados, eliminarlo de la canasta
+                    huboCambios = true;
+                    return null;
                 }
 
                 if (typeof onSyncProducto === 'function') {

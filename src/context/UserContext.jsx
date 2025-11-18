@@ -46,13 +46,8 @@ export const UserProvider = ({ children }) => {
 
     // Función para seleccionar sucursal
     const seleccionarSucursal = (sucursal) => {
-        if (sucursal === null) {
-            setSucursalSeleccionada(null);
-            localStorage.removeItem('sucursalSeleccionada');
-        } else {
         setSucursalSeleccionada(sucursal);
         localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
-        }
     };
 
     // Función helper para detectar errores de conexión
@@ -192,25 +187,10 @@ export const UserProvider = ({ children }) => {
         });
     };
 
-    // Limpiar solo los datos del usuario sin eliminar el token (para cambio de cuenta)
-    const clearUserDataOnly = () => {
-        setUser(null);
-        setSucursalSeleccionada(null);
-        setError(null);
-        
-        // Limpiar solo los datos específicos del usuario, NO el token
-        const keysToRemove = ['user', 'sucursalSeleccionada', 'userData'];
-        keysToRemove.forEach(key => {
-            localStorage.removeItem(key);
-        });
-    };
-
     // Establecer usuario directamente desde una respuesta de servicio (sin re-fetch)
     const setUserFromService = (newUser) => {
         if (!newUser) return;
         setUser(newUser);
-        setLoading(false);
-        setError(null);
     };
 
     const value = {
@@ -219,7 +199,6 @@ export const UserProvider = ({ children }) => {
         loading,
         error,
         clearUser,
-        clearUserDataOnly,
         seleccionarSucursal,
         loadUserData,
         updateEmpresaImage,

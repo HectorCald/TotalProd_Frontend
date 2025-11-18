@@ -75,14 +75,14 @@ function Personal({ isOpen, setIsOpen }) {
         // Incrementar contador de peticiones activas
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            // Mostrar RefreshIndicator solo cuando hay peticiones activas
-            if (isLargeScreen && newCount > 0) {
+            // Mostrar RefreshIndicator cuando hay peticiones activas (en PC y móvil)
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [personal.length, isLargeScreen]);
+    }, [personal.length]);
 
     // Función para manejar cuando termina la carga
     const handleLoadingEnd = useCallback(() => {
@@ -91,7 +91,7 @@ function Personal({ isOpen, setIsOpen }) {
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
             // Ocultar RefreshIndicator cuando no hay peticiones activas
-            if (newCount === 0 && isLargeScreen) {
+            if (newCount === 0) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setTimeout(() => {
@@ -101,7 +101,7 @@ function Personal({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [isLargeScreen]);
+    }, []);
 
 
 
@@ -303,8 +303,7 @@ function Personal({ isOpen, setIsOpen }) {
                 {isLoading ? (
                     // Mostrar LoadingSpinner cuando está cargando
                     <LoadingSpinner />
-                ) : isLargeScreen ? (
-                    // Vista de tabla para pantallas grandes
+                ) : (
                     <>
                         <div className={styles.titleContainer}>
                             <RefreshIndicator
@@ -312,6 +311,9 @@ function Personal({ isOpen, setIsOpen }) {
                                 isLoading={isRefreshing}
                             />
                         </div>
+                        {isLargeScreen ? (
+                    // Vista de tabla para pantallas grandes
+                    <>
                         <div className={styles.content} style={{
                             maxHeight: 'calc(100% - 80px)',
                             minHeight: 'calc(100% - 80px)'
@@ -328,7 +330,7 @@ function Personal({ isOpen, setIsOpen }) {
                             />
                         </div>
                     </>
-                ) : (
+                        ) : (
                     // Vista de cards para pantallas pequeñas con PullToRefresh
                     <PullToRefresh
                         onRefresh={handleRefresh}
@@ -359,6 +361,8 @@ function Personal({ isOpen, setIsOpen }) {
                             />
                         )}
                     </PullToRefresh>
+                        )}
+                    </>
                 )}
                 <div className={styles.buttonFooter}>
                     <Boton

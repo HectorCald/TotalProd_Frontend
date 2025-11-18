@@ -49,6 +49,29 @@ function useCanastaActions({
                 return p;
             });
 
+            // Validar compatibilidad de productos asociados/no asociados
+            if (prevSanitizados.length > 0) {
+                const productoNuevoEsAsociado = producto.es_asociado === true;
+                const primerProductoEnCanasta = prevSanitizados[0];
+                const primerProductoEsAsociado = primerProductoEnCanasta.es_asociado === true;
+
+                // Si hay un producto no asociado en la canasta, no se puede agregar uno asociado
+                if (!primerProductoEsAsociado && productoNuevoEsAsociado) {
+                    if (mostrarNotificacion) {
+                        mostrarNotificacion('error', 'No se pueden mezclar productos asociados con productos propios en el mismo pedido');
+                    }
+                    return prevSanitizados; // No agregar el producto
+                }
+
+                // Si hay un producto asociado en la canasta, no se puede agregar uno no asociado
+                if (primerProductoEsAsociado && !productoNuevoEsAsociado) {
+                    if (mostrarNotificacion) {
+                        mostrarNotificacion('error', 'No se pueden mezclar productos propios con productos asociados en el mismo pedido');
+                    }
+                    return prevSanitizados; // No agregar el producto
+                }
+            }
+
             const productoExistente = prevSanitizados.find(p => p.id === producto.id);
 
             let precioProducto = 0;
@@ -114,7 +137,7 @@ function useCanastaActions({
                 }
             ];
         });
-    }, [pedidosExtraItemFields, pedidosModoGetterName, pedidosPrecioGetterName, setProductosCanasta]);
+    }, [pedidosExtraItemFields, pedidosModoGetterName, pedidosPrecioGetterName, setProductosCanasta, mostrarNotificacion]);
 
     const handleAgregarACanastaMovimientos = useCallback((producto, tipoMovimiento, precioSeleccionado = null, cantidadEspecifica = null) => {
         const esEntrada = tipoMovimiento === 'entrada';

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo = true, transparent = true, colorIcon = 'default', style = {}, button = false, onButtonClick, customIcon, disabled = false }) => {
+const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo = true, transparent = true, colorIcon = 'default', style = {}, button = false, onButtonClick, customIcon, disabled = false, showFavorite = false, isFavorite = false, onFavoriteToggle = () => {} }) => {
   const [fontSize, setFontSize] = useState(14);
   const titleRef = useRef(null);
   const hasFlots = flot1 || flot2 || flot3 || flot4 || flot5 || flot6;
@@ -230,6 +230,20 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
       {badge && (
         <div key={`badge-${badge}`} className={styles.badge}>
           {badge}
+        </div>
+      )}
+      {showFavorite && (
+        <div 
+          className={styles.favoriteButton}
+          onClick={(e) => {
+            e.stopPropagation();
+            onFavoriteToggle();
+          }}
+        >
+          <BoxIcon 
+            name="heart" 
+            className={`${styles.favoriteIcon} ${isFavorite ? styles.favoriteIconFilled : styles.favoriteIconOutline}`}
+          />
         </div>
       )}
     </div>

@@ -14,6 +14,7 @@ import ItemView from '../../common/ItemView';
 import Notification from '../../common/Notification';
 import FetchData from '../../mixed/FetchData';
 import NoData from '../../common/NoData';
+import Text from '../../common/Text';
 import { formatProductoAlmacenLog, prepareLogPayload } from '../../../utils/logFormatters';
 import useHistorialLogger from '../../ui/HistorialLogger';
 import VerMovimiento from '../movimientos/VerMovimiento';
@@ -40,6 +41,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
 
     // Actualizar el estado local cuando cambie el prop registro
     useEffect(() => {
+        console.log('🔍 [VerProducto] es_asociado:', registro?.es_asociado);
         setProductoActual(registro);
     }, [registro]);
 
@@ -221,6 +223,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         );
     }
 
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
@@ -296,6 +299,16 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                         setIsMovimientosOpen(true);
                     }}
                 />
+                
+                {/* Mensaje informativo para productos asociados */}
+                {productoActual?.es_asociado && (
+                    <Text type="info" icon="info-circle" align="left">
+                        Este producto pertenece a una empresa asociada. No es posible modificarlo o eliminarlo desde esta cuenta.
+                    </Text>
+                )}
+                
+                {/* Solo mostrar botones de editar y eliminar si NO es un producto asociado */}
+                {!productoActual?.es_asociado && (
                 <div className={styles.buttons}>
                     <Boton
                         className='btn-default'
@@ -308,6 +321,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                         onClick={() => setIsDeleteOpen(true)}
                     />
                 </div>
+                )}
             </div>
 
 

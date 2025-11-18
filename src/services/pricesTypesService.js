@@ -23,6 +23,23 @@ const getEmpresaId = () => {
   return null;
 };
 
+// Función helper para obtener IDs de empresas favoritas
+const getEmpresasAsociadasIds = () => {
+  try {
+    const FAVORITES_KEY = 'empresas_favoritas';
+    const stored = localStorage.getItem(FAVORITES_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const favorites = Array.isArray(parsed) ? parsed : [];
+      return favorites.map(empresa => empresa.id).filter(id => id);
+    }
+    return [];
+  } catch (error) {
+    console.error('Error al obtener empresas favoritas:', error);
+    return [];
+  }
+};
+
 // Función helper para obtener sucursal_id
 const getSucursalId = () => {
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
@@ -71,6 +88,8 @@ class pricesTypesService {
       }
 
       const empresaId = getEmpresaId();
+      const empresasAsociadasIds = getEmpresasAsociadasIds();
+      
       if (!empresaId) {
         return {
           success: false,
@@ -79,11 +98,22 @@ class pricesTypesService {
       }
 
       const sucursalId = getSucursalId();
-      const url = sucursalId 
-        ? `${API_BASE_URL}/prices-types?empresa_id=${empresaId}&sucursal_id=${sucursalId}`
-        : `${API_BASE_URL}/prices-types?empresa_id=${empresaId}`;
+      const params = new URLSearchParams({
+        empresa_id: empresaId
+      });
 
-      const response = await fetch(url, {
+      if (sucursalId) {
+        params.append('sucursal_id', sucursalId);
+      }
+
+      // Agregar empresas asociadas si existen
+      if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
+        empresasAsociadasIds.forEach(id => {
+          params.append('empresas_asociadas', id);
+        });
+      }
+
+      const response = await fetch(`${API_BASE_URL}/prices-types?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });

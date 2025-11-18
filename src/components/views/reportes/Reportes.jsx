@@ -823,15 +823,24 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   // Función para generar reporte de balance (ingresos vs gastos)
   const generarReporteBalance = async ({ fechaInicio, fechaFin }) => {
     const sucuId = getSucuId();
-    // 1) Obtener movimientos de almacén (solo salidas = ingresos/ventas)
-    const movimientosResponse = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucuId);
-    // 2) Obtener gastos (todos) y filtrar por fecha
-    const gastosResponse = await gastosService.getAllSinLimite();
 
+    // Preparar filtros de fecha
     const fechaInicioObj = new Date(fechaInicio);
     const fechaFinObj = new Date(fechaFin);
-    const fechaInicioStr = new Date(fechaInicioObj).toISOString().split('T')[0];
-    const fechaFinStr = new Date(fechaFinObj).toISOString().split('T')[0];
+    fechaInicioObj.setHours(0, 0, 0, 0);
+    fechaFinObj.setHours(23, 59, 59, 999);
+    const filtroFechaISO = {
+      inicio: fechaInicioObj.toISOString(),
+      fin: fechaFinObj.toISOString()
+    };
+    
+    const fechaInicioStr = fechaInicioObj.toISOString().split('T')[0];
+    const fechaFinStr = fechaFinObj.toISOString().split('T')[0];
+    
+    // 1) Obtener movimientos de almacén (solo salidas = ingresos/ventas)
+    const movimientosResponse = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucuId, filtroFechaISO);
+    // 2) Obtener gastos filtrados por fecha usando getAll
+    const gastosResponse = await gastosService.getAll(1, 999999, '', null, null, 'fecha_desc', null, filtroFechaISO);
 
     // Normalizar movimientos por día
     const movimientosFiltrados = (movimientosResponse?.data || []).filter(mov => {
@@ -1266,8 +1275,9 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
         case 'balance':
           // Para balance, obtener ingresos y gastos y validar si hay datos
+          // Nota: En este caso no hay filtros de fecha, así que obtenemos todos los datos
           const movimientosBalance = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucuId);
-          const gastosBalance = await gastosService.getAllSinLimite();
+          const gastosBalance = await gastosService.getAll(1, 999999, '', null, null, 'fecha_desc', null, null);
           if (DEBUG_REPORTES) console.log('API balance -> movimientos:', movimientosBalance?.data?.length ?? 0, 'gastos:', gastosBalance?.data?.length ?? 0);
           
           if (!movimientosBalance?.success && !gastosBalance?.success) {

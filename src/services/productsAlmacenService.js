@@ -33,6 +33,23 @@ const getSucuId = () => {
   return null;
 };
 
+// Función helper para obtener IDs de empresas favoritas
+const getEmpresasAsociadasIds = () => {
+  try {
+    const FAVORITES_KEY = 'empresas_favoritas';
+    const stored = localStorage.getItem(FAVORITES_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const favorites = Array.isArray(parsed) ? parsed : [];
+      return favorites.map(empresa => empresa.id).filter(id => id);
+    }
+    return [];
+  } catch (error) {
+    console.error('Error al obtener empresas favoritas:', error);
+    return [];
+  }
+};
+
 const shouldUseOffline = () => {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
   try {
@@ -72,6 +89,7 @@ class productsAlmacenService {
 
       const empresaId = getEmpresaId();
       const sucuId = getSucuId();
+      const empresasAsociadasIds = getEmpresasAsociadasIds();
       
       if (!empresaId) {
         return {
@@ -92,12 +110,18 @@ class productsAlmacenService {
         sucu_id: sucuId
       });
 
+      // Agregar empresas asociadas si existen
+      if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
+        empresasAsociadasIds.forEach(id => {
+          params.append('empresas_asociadas', id);
+        });
+      }
+
       const response = await fetch(`${API_BASE_URL}/products-almacen?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
       const data = await response.json();
-      
       
       if (!response.ok) {
         throw new Error(data.message || 'Error al obtener productos');

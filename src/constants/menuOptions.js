@@ -320,6 +320,13 @@ const MENU_OPTIONS_BASE = [
         viewName: 'importar-exportar'
       },
       {
+        id: 'asociados',
+        title: 'Asociados',
+        icon: 'user-check',
+        action: 'openView',
+        viewName: 'asociados'
+      },
+      {
         id: 'historial',
         title: 'Historial',
         icon: 'history',

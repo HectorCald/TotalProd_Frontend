@@ -5,7 +5,7 @@ function usePedidoEdicion({
     isOpen,
     setClienteSeleccionado,
     setClienteSeleccionadoData
-}) {
+} = {}) {
     const isEditing = Boolean(pedidoId);
 
     const resolvePrecioInicial = useCallback((preciosTipos = []) => {
@@ -30,6 +30,7 @@ function usePedidoEdicion({
 
     useEffect(() => {
         if (!isOpen || !isEditing) return;
+        if (!setClienteSeleccionado || !setClienteSeleccionadoData) return;
 
         const clienteId = localStorage.getItem('clienteIdEditando');
         const clienteName = localStorage.getItem('clienteNameEditando');

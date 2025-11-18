@@ -75,6 +75,7 @@ function useProductosFiltrados({
             costo_produccion: producto.costo_produccion || null,
             created_at: producto.created_at,
             empresa_id: producto.empresa_id,
+            es_asociado: producto.es_asociado || false,
             category_id: producto.category_id || '',
             category_name: producto.category_name || 'Sin categoría',
             category_almacen: producto.category_almacen || null,

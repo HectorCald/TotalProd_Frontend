@@ -96,7 +96,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
     const [isRepeatingConteo, setIsRepeatingConteo] = useState(false);
 
     const shouldShowSpinner = useCallback(() => productos.length === 0, [productos.length]);
-    const enableRefreshIndicator = useCallback(() => isLargeScreen, [isLargeScreen]);
+    const enableRefreshIndicator = useCallback(() => true, []);
     const {
         isLoading,
         showRefreshIndicator,
@@ -630,14 +630,12 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                         <LoadingSpinner />
                     ) : (
                         <>
-                            {isLargeScreen && (
-                                <div className={styles.titleContainer}>
-                                    <RefreshIndicator
-                                        isVisible={showRefreshIndicator}
-                                        isLoading={isRefreshing}
-                                    />
-                                </div>
-                            )}
+                            <div className={styles.titleContainer}>
+                                <RefreshIndicator
+                                    isVisible={showRefreshIndicator}
+                                    isLoading={isRefreshing}
+                                />
+                            </div>
                             <Filtros options={opciones} />
                             {isLargeScreen ? (
                                 // Vista de tabla para pantallas grandes

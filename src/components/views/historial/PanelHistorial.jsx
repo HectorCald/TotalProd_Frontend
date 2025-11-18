@@ -12,6 +12,7 @@ import Table from '../../common/Table';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import NoData from '../../common/NoData';
 import PullToRefresh from '../../common/PullToRefresh';
+import RefreshIndicator from '../../common/RefreshIndicator';
 import VerHistorial from './VerHistorial';
 import FiltroTipoHistorial from '../../mixed/FiltroTipoHistorial';
 import FiltroResponsable from '../../mixed/FiltroResponsable';
@@ -49,6 +50,11 @@ function PanelHistorial({ isOpen, setIsOpen }) {
 
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Estados para RefreshIndicator
+  const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeRequests, setActiveRequests] = useState(0);
 
   const [notification, setNotification] = useState({
     isVisible: false,
@@ -98,11 +104,33 @@ function PanelHistorial({ isOpen, setIsOpen }) {
     } else {
       setIsLoadingMore(true);
     }
+    
+    setActiveRequests(prev => {
+      const newCount = prev + 1;
+      if (newCount > 0) {
+        setShowRefreshIndicator(true);
+        setIsRefreshing(true);
+      }
+      return newCount;
+    });
   }, [currentPage]);
 
   const handleLoadingEnd = useCallback(() => {
     setIsLoading(false);
     setIsLoadingMore(false);
+    
+    setActiveRequests(prev => {
+      const newCount = Math.max(0, prev - 1);
+      if (newCount === 0) {
+        setTimeout(() => {
+          setIsRefreshing(false);
+          setTimeout(() => {
+            setShowRefreshIndicator(false);
+          }, 500);
+        }, 300);
+      }
+      return newCount;
+    });
   }, []);
 
   const handleError = useCallback((err) => {
@@ -146,6 +174,9 @@ function PanelHistorial({ isOpen, setIsOpen }) {
     if (isOpen) {
       setCurrentPage(1);
       setRecords([]);
+    } else {
+      setShowRefreshIndicator(false);
+      setIsRefreshing(false);
     }
   }, [isOpen, debouncedSearch, filtroTipo, filtroResponsable]);
 
@@ -274,6 +305,12 @@ function PanelHistorial({ isOpen, setIsOpen }) {
           <LoadingSpinner />
         ) : (
           <>
+            <div className={styles.titleContainer}>
+              <RefreshIndicator
+                isVisible={showRefreshIndicator}
+                isLoading={isRefreshing}
+              />
+            </div>
             <Filtros options={opcionesFiltros} />
             {isLargeScreen ? (
               <div

@@ -1,0 +1,144 @@
+
+/* Tarjeta de balance */
+.balanceCard {
+  width: 100%;
+  background-color: var(--tertiary-color);
+  border-radius: 10px;
+  padding: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--white-color);
+}
+
+.infoButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--white-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+
+.infoButton i {
+  font-size: 18px;
+}
+
+.balanceContent {
+  display: flex;
+  gap: 30px;
+  align-items: flex-end;
+}
+
+.balanceLeft {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.balanceRemaining {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.balanceAmount {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--white-color);
+  line-height: 1.2;
+}
+
+.balanceLabel {
+  font-size: 12px;
+  color: gray;
+  font-weight: 400;
+}
+
+.incomeSection,
+.expenseSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.incomeAmount,
+.expenseAmount {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white-color);
+  line-height: 1.2;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.percentageInline {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.incomeAmount .percentageInline {
+  color: #48ec56;
+}
+
+.expenseAmount .percentageInline {
+  color: rgb(207, 56, 56);
+}
+
+.incomeLabel,
+.expenseLabel {
+  font-size: 12px;
+  color: gray;
+  font-weight: 400;
+}
+
+.incomeChange,
+.expenseChange {
+  margin-top: 5px;
+}
+
+.positiveChange {
+  font-size: 12px;
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.negativeChange {
+  font-size: 12px;
+  color: #f44336;
+  font-weight: 500;
+}
+
+.balanceRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 100px;
+}
+
+.circularChart {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

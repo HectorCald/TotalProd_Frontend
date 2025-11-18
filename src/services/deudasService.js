@@ -132,51 +132,6 @@ class deudasService {
         }
     }
 
-    // Obtener todas las deudas sin límite (para reportes)
-    static async getAllSinLimite(ordenamiento = 'fecha_deuda_desc', sucuIdParam = null) {
-        try {
-            const sucuId = sucuIdParam || getSucuId();
-            if (!sucuId) {
-                return {
-                    success: false,
-                    message: 'No hay sucursal seleccionada'
-                };
-            }
-
-            const params = new URLSearchParams({
-                ordenamiento: ordenamiento,
-                sucu_id: sucuId
-            });
-
-            const response = await fetch(`${API_BASE_URL}/deudas/sin-limite?${params}`, {
-                method: 'GET',
-                headers: getAuthHeaders(),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                const error = new Error(data.message || 'Error al obtener las deudas');
-                error.status = response.status;
-                error.code = data.code;
-                error.currentPlan = data.currentPlan;
-                error.requiredModule = data.requiredModule;
-                throw error;
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error obteniendo deudas sin límite:', error);
-            // Si es un error 403, relanzarlo para que llegue al componente
-            if (error.status === 403) {
-                throw error;
-            }
-            return {
-                success: false,
-                message: error.message || 'Error al obtener las deudas'
-            };
-        }
-    }
 
     // Obtener una deuda por ID
     static async getById(id) {

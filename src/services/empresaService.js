@@ -49,6 +49,29 @@ class EmpresaService {
       };
     }
   }
+
+  // Buscar empresa por código
+  static async searchByCodigo(codigo) {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/empresas/search/codigo?codigo=${encodeURIComponent(codigo)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en searchByCodigo:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
 }
 
 export default EmpresaService;

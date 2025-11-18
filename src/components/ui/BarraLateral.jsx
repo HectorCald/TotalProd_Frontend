@@ -32,6 +32,7 @@ import PanelConteos from '../views/conteos/PanelConteos';
 import PanelCotizaciones from '../views/cotizaciones/PanelCotizaciones';
 import ImportExport from '../views/exportar-importar/ImportExport';
 import PanelHistorial from '../views/historial/PanelHistorial';
+import AsociadosSearch from '../views/asociados/AsociadosSearch';
 
 const BarraLateral = ({ 
   onMenuClick, 
@@ -344,6 +345,12 @@ const BarraLateral = ({
         setIsOpen={handleCloseView}
         {...viewProps}
       />
+      <AsociadosSearch
+        isOpen={activeView === 'asociados'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+
       <PanelHistorial
         isOpen={activeView === 'historial'}
         setIsOpen={handleCloseView}

@@ -125,13 +125,13 @@ function PanelGastos({ isOpen, setIsOpen }) {
         
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            if (isLargeScreen && newCount > 0) {
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [currentPage, allGastos.length, isLargeScreen, hasCachedItems]);
+    }, [currentPage, allGastos.length, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         if (currentPage === 1) {
@@ -142,7 +142,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
         
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
-            if (newCount === 0 && isLargeScreen) {
+            if (newCount === 0) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setTimeout(() => {
@@ -152,7 +152,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
             }
             return newCount;
         });
-    }, [currentPage, isLargeScreen]);
+    }, [currentPage]);
 
     const handleError = useCallback((err) => {
         setError(err);
@@ -470,16 +470,16 @@ function PanelGastos({ isOpen, setIsOpen }) {
                     <LoadingSpinner />
                 ) : (
                     <>
+                        <div className={styles.titleContainer}>
+                            <RefreshIndicator
+                                isVisible={showRefreshIndicator}
+                                isLoading={isRefreshing}
+                            />
+                        </div>
                         <Filtros options={opciones} />
                         {isLargeScreen ? (
                             // Vista de tabla para pantallas grandes
                             <>
-                                <div className={styles.titleContainer}>
-                                    <RefreshIndicator
-                                        isVisible={showRefreshIndicator}
-                                        isLoading={isRefreshing}
-                                    />
-                                </div>
                                 <div
                                     className={styles.content}
                                     onScroll={handleScroll}

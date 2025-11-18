@@ -86,13 +86,13 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
         
         setActiveRequests(prev => {
             const newCount = prev + 1;
-            if (isLargeScreen && newCount > 0) {
+            if (newCount > 0) {
                 setShowRefreshIndicator(true);
                 setIsRefreshing(true);
             }
             return newCount;
         });
-    }, [conteos.length, isLargeScreen, hasCachedItems]);
+    }, [conteos.length, hasCachedItems]);
 
     const handleLoadingEnd = useCallback(() => {
         setIsLoading(false);
@@ -100,7 +100,7 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
         
         setActiveRequests(prev => {
             const newCount = Math.max(0, prev - 1);
-            if (newCount === 0 && isLargeScreen) {
+            if (newCount === 0) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setTimeout(() => {
@@ -110,7 +110,7 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
             }
             return newCount;
         });
-    }, [isLargeScreen]);
+    }, []);
 
     const handleError = useCallback((err) => {
         setError(err);
@@ -264,15 +264,15 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                     <LoadingSpinner />
                 ) : (
                     <>
+                        <div className={styles.titleContainer}>
+                            <RefreshIndicator
+                                isVisible={showRefreshIndicator}
+                                isLoading={isRefreshing}
+                            />
+                        </div>
                         {isLargeScreen ? (
                             // Vista de tabla para pantallas grandes
                             <>
-                                <div className={styles.titleContainer}>
-                                    <RefreshIndicator
-                                        isVisible={showRefreshIndicator}
-                                        isLoading={isRefreshing}
-                                    />
-                                </div>
                                 <div className={styles.content} style={{ maxHeight: '100%' }}>
                                 <Table
                                     headers={tableHeaders}

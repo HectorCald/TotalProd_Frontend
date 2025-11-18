@@ -112,42 +112,6 @@ class gastosService {
         }
     }
 
-    // Obtener todos los gastos sin límite (para reportes)
-    static async getAllSinLimite(ordenamiento = 'fecha_gasto_desc', sucuIdParam = null) {
-        try {
-            const sucuId = sucuIdParam || getSucuId();
-            if (!sucuId) {
-                return {
-                    success: false,
-                    message: 'No hay sucursal seleccionada'
-                };
-            }
-
-            const params = new URLSearchParams({
-                ordenamiento: ordenamiento,
-                sucu_id: sucuId
-            });
-
-            const response = await fetch(`${API_BASE_URL}/gastos/sin-limite?${params}`, {
-                method: 'GET',
-                headers: getAuthHeaders(),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener los gastos');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error obteniendo gastos sin límite:', error);
-            return {
-                success: false,
-                message: error.message || 'Error al obtener los gastos'
-            };
-        }
-    }
 
     // Obtener un gasto por ID
     static async getById(id, empresaIdParam = null) {
