@@ -1198,11 +1198,12 @@ function ModalDescarga({
             container.style.left = '-9999px';
             container.style.top = '0';
             container.style.width = '794px'; // Ancho A4 en píxeles (210mm a 96 DPI)
-            container.style.minHeight = '1123px'; // Alto A4 en píxeles (297mm a 96 DPI)
             container.style.backgroundColor = '#ffffff';
             container.style.padding = '30px 36px';
             container.style.fontFamily = 'Arial, sans-serif';
             container.style.boxSizing = 'border-box';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
             document.body.appendChild(container);
 
             // Renderizar el contenido del documento
@@ -1714,19 +1715,25 @@ function ModalDescarga({
             footer.textContent = 'Generado por TotalProd - aplicación de gestión de procesos y ventas';
             container.appendChild(footer);
 
-            // Esperar a que las imágenes se carguen
+            // Esperar a que las imágenes se carguen y el contenido se renderice
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Generar la imagen con html2canvas
+            // Forzar recálculo del layout
+            container.style.height = 'auto';
+            
+            // Obtener la altura real del contenido
+            const contentHeight = container.scrollHeight;
+
+            // Generar la imagen con html2canvas ajustada al contenido
             const canvas = await html2canvas(container, {
                 scale: 2,
                 backgroundColor: '#ffffff',
                 useCORS: true,
                 logging: false,
                 width: container.scrollWidth,
-                height: container.scrollHeight,
+                height: contentHeight,
                 windowWidth: container.scrollWidth,
-                windowHeight: container.scrollHeight
+                windowHeight: contentHeight
             });
 
             // Convertir canvas a blob y descargar
