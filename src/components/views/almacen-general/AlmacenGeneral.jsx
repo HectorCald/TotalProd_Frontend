@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -38,6 +38,7 @@ import limpiarAlmacenLocalStorage from './helpers/limpiarAlmacenLocalStorage';
 import useCanastaActions from './hooks/useCanastaActions';
 import calcularStockDisponible from './hooks/useStockDisponible';
 import useSessionCache from '../../../hooks/useSessionCache';
+import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 
 function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null, isRepitiendoMovimiento = false, isVentaCotizacionProp = false, onMovimientoEditado = null }) {
@@ -58,6 +59,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     // Estados para filtros y modales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
+    const [ocultarStockCero, setOcultarStockCero] = useState(() => {
+        // Cargar desde localStorage al inicializar
+        const saved = localStorage.getItem('almacenOcultarStockCero');
+        return saved === 'true';
+    });
     const [isCategoriasAlmacenOpen, setIsCategoriasAlmacenOpen] = useState(false);
     const [isOfflineMovimientosOpen, setIsOfflineMovimientosOpen] = useState(false);
     const [offlineMovimientos, setOfflineMovimientos] = useState([]);
@@ -194,8 +200,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
     const {
         productosMapeados,
-        productosFiltrados,
-        visibleItems,
+        productosFiltrados: productosFiltradosBase,
+        visibleItems: visibleItemsBase,
         handleScroll: handleProductosScroll,
         searchQuery,
         isSearchExpanded,
@@ -215,6 +221,24 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         productos,
         paginaTamano: 30,
     });
+
+    // Aplicar filtro de stock 0 después de los otros filtros
+    const productosFiltrados = useMemo(() => {
+        if (!ocultarStockCero) {
+            return productosFiltradosBase;
+        }
+        return productosFiltradosBase.filter(producto => (Number(producto.stock) || 0) > 0);
+    }, [productosFiltradosBase, ocultarStockCero]);
+
+    // Recalcular visibleItems con el filtro de stock aplicado
+    const { visibleItems, handleScroll: handleStockScroll } = useVirtualPagination(productosFiltrados, 30);
+
+    // Función para toggle del filtro de stock 0
+    const handleToggleStockCero = useCallback(() => {
+        const nuevoValor = !ocultarStockCero;
+        setOcultarStockCero(nuevoValor);
+        localStorage.setItem('almacenOcultarStockCero', nuevoValor.toString());
+    }, [ocultarStockCero]);
 
     // Funciones para actualizar cantidad desde ItemProduct (después de productosFiltrados)
     const handleCantidadChange = useCallback((productoId, nuevaCantidad, tipoMovimiento = null) => {
@@ -392,17 +416,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             }
         }
 
-        // Filtrar productos asociados con stock 0 cuando no es tipo pedido ni entrada
-        if (tipo !== 'pedido' && tipo !== 'entrada') {
-            productosProcesados = productosProcesados.filter(producto => {
-                // Si es producto asociado y tiene stock 0, ocultarlo
-                if (producto.es_asociado && (Number(producto.stock) || 0) === 0) {
-                    return false;
-                }
-                return true;
-            });
-        }
-
         setProductos(productosProcesados);
         setProductosLoaded(true);
     }, [tipo, sucursalActual]);
@@ -561,6 +574,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             label: getOrdenamientoNombre(),
             active: ordenamiento !== 'nombre_asc',
             onClick: () => setOpenOrden(true)
+        },
+        {
+            label: ocultarStockCero ? 'Ocultar 0' : 'Mostrar 0',
+            active: ocultarStockCero,
+            onClick: handleToggleStockCero
         },
     ];
 
@@ -744,7 +762,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                 // Vista de tabla para pantallas grandes
                                 <div 
                                     className={styles.content}
-                                    onScroll={handleProductosScroll}
+                                    onScroll={handleStockScroll}
                                     style={{
                                         maxHeight: (tipo === 'entrada' || tipo === 'salida' || tipo === 'pedido') && isLargeScreen
                                             ? '100vh'
@@ -762,7 +780,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                         }}
                                         getBadge={getBadge}
                                         getCellBadge={getCellBadge}
-                                        onScroll={handleProductosScroll}
+                                        onScroll={handleStockScroll}
                                         columnWidths={{
                                             name: '25%',
                                             codigo_barras: '15%',
@@ -781,7 +799,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                         maxHeight: 'calc(100% - 80px)',
                                         minHeight: 'calc(100% - 80px)'
                                     }}
-                                    onScroll={handleProductosScroll}
+                                    onScroll={handleStockScroll}
                                 >
                                         {visibleItems.length > 0 ? (
                                             visibleItems.map((producto, index) => {

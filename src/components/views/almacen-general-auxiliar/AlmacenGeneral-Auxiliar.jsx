@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
@@ -48,6 +48,11 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [isOpenDiferencia, setOpenDiferencia] = useState(false);
     const [filtroDiferencia, setFiltroDiferencia] = useState('todos');
+    const [ocultarStockCero, setOcultarStockCero] = useState(() => {
+        // Cargar desde localStorage al inicializar
+        const saved = localStorage.getItem('almacenOcultarStockCero');
+        return saved === 'true';
+    });
 
     // Estados para datos (compartidos con AlmacenGeneral principal)
     const {
@@ -182,17 +187,6 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
             es_asociado: producto.empresa_id && empresaIdActual && producto.empresa_id !== empresaIdActual
         }));
 
-        // Filtrar productos asociados con stock 0 cuando no es tipo pedido ni entrada
-        if (tipo !== 'pedido' && tipo !== 'entrada') {
-            productosProcesados = productosProcesados.filter(producto => {
-                // Si es producto asociado y tiene stock 0, ocultarlo
-                if (producto.es_asociado && (Number(producto.stock) || 0) === 0) {
-                    return false;
-                }
-                return true;
-            });
-        }
-
         setProductos(productosProcesados);
         setProductosLoaded(true);
     }, [tipo, sucursalActual]);
@@ -219,7 +213,9 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
 
     const {
         productosMapeados,
-        productosFiltrados,
+        productosFiltrados: productosFiltradosBase,
+        visibleItems: visibleItemsBase,
+        handleScroll: handleProductosScroll,
         searchQuery,
         isSearchExpanded,
         categoriaFiltro,
@@ -237,6 +233,24 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
         productos,
         paginaTamano: 30,
     });
+
+    // Aplicar filtro de stock 0 después de los otros filtros
+    const productosFiltrados = useMemo(() => {
+        if (!ocultarStockCero) {
+            return productosFiltradosBase;
+        }
+        return productosFiltradosBase.filter(producto => (Number(producto.stock) || 0) > 0);
+    }, [productosFiltradosBase, ocultarStockCero]);
+
+    // Recalcular visibleItems con el filtro de stock aplicado (solo para tipos que no sean conteo)
+    const { visibleItems: visibleItemsStock, handleScroll: handleStockScroll } = useVirtualPagination(productosFiltrados, 30);
+
+    // Función para toggle del filtro de stock 0
+    const handleToggleStockCero = useCallback(() => {
+        const nuevoValor = !ocultarStockCero;
+        setOcultarStockCero(nuevoValor);
+        localStorage.setItem('almacenOcultarStockCero', nuevoValor.toString());
+    }, [ocultarStockCero]);
 
     // Efecto para resetear búsqueda y filtros cuando se abre
     useEffect(() => {
@@ -324,6 +338,11 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
             label: getOrdenamientoNombre(),
             active: ordenamiento !== 'nombre_asc',
             onClick: () => setOpenOrden(true)
+        },
+        {
+            label: ocultarStockCero ? 'Ocultar 0' : 'Mostrar 0',
+            active: ocultarStockCero,
+            onClick: handleToggleStockCero
         },
         ...(tipo === 'conteo' ? [{
             label: getDiferenciaNombre(),
@@ -462,8 +481,11 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
         return true;
     });
 
-    // Paginación virtual - mostrar solo 30 elementos inicialmente
-    const { visibleItems, hasMore, handleScroll } = useVirtualPagination(productosFiltradosPorDiferencia, 30);
+    // Paginación virtual - mostrar solo 30 elementos inicialmente (solo para modo conteo)
+    const { visibleItems: visibleItemsConteo, hasMore, handleScroll } = useVirtualPagination(productosFiltradosPorDiferencia, 30);
+    
+    // Usar visibleItems según el tipo
+    const visibleItems = tipo === 'conteo' ? visibleItemsConteo : visibleItemsStock;
 
     const tableData = visibleItems
         .map(producto => {
@@ -660,7 +682,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                                 // Vista de tabla para pantallas grandes
                                 <div 
                                     className={styles.content}
-                                    onScroll={handleScroll}
+                                    onScroll={tipo === 'conteo' ? handleScroll : handleStockScroll}
                                     style={{
                                         maxHeight: (tipo === 'conteo' || tipo === 'cotizar') && isLargeScreen
                                             ? '100%'
@@ -678,7 +700,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                                         }}
                                         getBadge={getBadge}
                                         getCellBadge={getCellBadge}
-                                        onScroll={handleScroll}
+                                        onScroll={tipo === 'conteo' ? handleScroll : handleStockScroll}
                                         columnWidths={tipo === 'cotizar' ? {
                                             name: '40%',
                                             stock: '20%',
@@ -802,7 +824,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                                         maxHeight: 'calc(100% - 80px)',
                                         minHeight: 'calc(100% - 80px)'
                                     }}
-                                    onScroll={handleScroll}
+                                    onScroll={tipo === 'conteo' ? handleScroll : handleStockScroll}
                                 >
                                         {visibleItems.length > 0 ? (
                                             visibleItems.map((producto, index) => {
