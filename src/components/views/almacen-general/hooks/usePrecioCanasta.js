@@ -23,13 +23,16 @@ function usePrecioCanasta({
     precioSeleccionado = null,
     isEditing = false,
 } = {}) {
+    // Clave única para guardar el precio en todas las canastas
+    const PRECIO_GUARDADO_KEY = 'precioIdMovimientoGuardado';
+
     // Configuración específica por tipo de canasta (memorizada para evitar recreaciones)
     const config = useMemo(() => ({
         salida: {
             precioRepitiendoKey: 'precioIdRepitiendo',
             precioEditandoKey: 'precioIdEditando',
             precioEntregandoKey: 'precioIdEntregando',
-            precioGuardadoKey: 'precioIdMovimientoGuardado',
+            precioGuardadoKey: PRECIO_GUARDADO_KEY, // Todas las canastas usan la misma clave
             modoRepitiendoKey: 'movimientoAgrupadoRepitiendo',
             modoEditandoKey: 'movimientoAgrupadoEditando',
         },
@@ -37,7 +40,7 @@ function usePrecioCanasta({
             precioRepitiendoKey: null,
             precioEditandoKey: 'precioIdEditando',
             precioEntregandoKey: null,
-            precioGuardadoKey: null, // Los pedidos no guardan precio permanente
+            precioGuardadoKey: PRECIO_GUARDADO_KEY, // Todas las canastas usan la misma clave
             modoRepitiendoKey: null,
             modoEditandoKey: 'pedidoAgrupadoEditando',
         },
@@ -45,7 +48,7 @@ function usePrecioCanasta({
             precioRepitiendoKey: 'precioIdCotizacionRepitiendo',
             precioEditandoKey: null,
             precioEntregandoKey: null,
-            precioGuardadoKey: null, // Las cotizaciones no guardan precio permanente
+            precioGuardadoKey: PRECIO_GUARDADO_KEY, // Todas las canastas usan la misma clave
             modoRepitiendoKey: 'cotizacionAgrupadoRepitiendo',
             modoEditandoKey: null,
         },
@@ -53,7 +56,7 @@ function usePrecioCanasta({
             precioRepitiendoKey: 'precioIdRepitiendo',
             precioEditandoKey: 'precioIdEditando',
             precioEntregandoKey: null,
-            precioGuardadoKey: null, // Las entradas no guardan precio permanente por ahora
+            precioGuardadoKey: PRECIO_GUARDADO_KEY, // Todas las canastas usan la misma clave
             modoRepitiendoKey: 'movimientoAgrupadoRepitiendo',
             modoEditandoKey: 'movimientoAgrupadoEditando',
         },
@@ -61,7 +64,7 @@ function usePrecioCanasta({
             precioRepitiendoKey: 'precioIdTransferenciaRepitiendo',
             precioEditandoKey: null,
             precioEntregandoKey: null,
-            precioGuardadoKey: null, // Las transferencias no guardan precio permanente
+            precioGuardadoKey: PRECIO_GUARDADO_KEY, // Todas las canastas usan la misma clave
             modoRepitiendoKey: 'transferenciaAgrupadoRepitiendo',
             modoEditandoKey: null,
         },
@@ -116,12 +119,10 @@ function usePrecioCanasta({
             }
         }
 
-        // 3. Luego buscar precio guardado permanentemente (solo para salidas)
-        if (tipoConfig.precioGuardadoKey) {
-            const precioIdGuardado = localStorage.getItem(tipoConfig.precioGuardadoKey);
-            if (precioIdGuardado && tipos.find(p => p.value === precioIdGuardado)) {
-                return precioIdGuardado;
-            }
+        // 3. Luego buscar precio guardado permanentemente (todas las canastas usan la misma clave)
+        const precioIdGuardado = localStorage.getItem(PRECIO_GUARDADO_KEY);
+        if (precioIdGuardado && tipos.find(p => p.value === precioIdGuardado)) {
+            return precioIdGuardado;
         }
 
         // 4. Por defecto, el primero disponible
@@ -158,11 +159,10 @@ function usePrecioCanasta({
 
     /**
      * Guarda el precio seleccionado en localStorage como permanente
-     * Solo si NO es un precio temporal y solo para tipos que lo soportan (salidas)
+     * Solo si NO es un precio temporal (todas las canastas guardan en la misma clave)
      */
     useEffect(() => {
-        // Solo guardar para salidas y si hay una clave de guardado configurada
-        if (!tipoConfig.precioGuardadoKey) return;
+        // Guardar para todas las canastas
         if (!precioSeleccionado) return;
         if (tipoCanasta === 'salida' && esEntrega) return; // No guardar en entregas
 
@@ -187,9 +187,10 @@ function usePrecioCanasta({
         const esPrecioTemporal = preciosTemporales.includes(precioSeleccionado);
 
         if (!hayPrecioTemporal && !esPrecioTemporal) {
-            localStorage.setItem(tipoConfig.precioGuardadoKey, precioSeleccionado);
+            // Todas las canastas guardan en la misma clave
+            localStorage.setItem(PRECIO_GUARDADO_KEY, precioSeleccionado);
         }
-    }, [precioSeleccionado, tipoCanasta, esEntrega, tipoConfig.precioGuardadoKey, tipoConfig.precioRepitiendoKey, tipoConfig.precioEditandoKey, tipoConfig.precioEntregandoKey]);
+    }, [precioSeleccionado, tipoCanasta, esEntrega, tipoConfig.precioRepitiendoKey, tipoConfig.precioEditandoKey, tipoConfig.precioEntregandoKey]);
 
     return {
         resolvePrecioInicial,

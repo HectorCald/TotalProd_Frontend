@@ -42,6 +42,16 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
     // UI envío y notificación
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [notif, setNotif] = useState({ visible: false, text: '', type: 'success' });
+    
+    // Función para mostrar notificaciones
+    const mostrarNotificacion = useCallback((tipo, texto) => {
+        setNotif({
+            visible: true,
+            text: texto,
+            type: tipo
+        });
+        setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 3000);
+    }, []);
 
     // Estados para filtros locales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
@@ -83,6 +93,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
     } = useCanastaActions({
         setProductosCanasta: setProductosCanastaCotizaciones,
         productosCanasta: productosCanastaCotizaciones,
+        mostrarNotificacion: mostrarNotificacion,
         pedidosConfig: {
             precioGetterName: 'getPrecioSeleccionadoCanastaCotizaciones',
             modoGetterName: 'getModoAgrupacionCanastaCotizaciones',

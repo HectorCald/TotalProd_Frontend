@@ -99,6 +99,18 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         return productoModificado;
     }, [mostrarNotificacion]);
 
+    // Hook para manejar la lógica de precios de entradas
+    const {
+        resolvePrecioInicial,
+        resolveModoInicial
+    } = usePrecioCanasta({
+        tipoCanasta: 'entrada',
+        esEntrega: false,
+        isOpen,
+        precioSeleccionado: null, // Se actualizará después
+        isEditing: false,
+    });
+
     const {
         precioSeleccionado,
         modoAgrupacion,
@@ -119,6 +131,8 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         localStorageKey: 'canastaEntradas',
         shouldPersistLocalStorage: true,
         shouldLoadLocalStorage: true,
+        resolveInitialPrecioId: resolvePrecioInicial,
+        resolveInitialModoAgrupacion: resolveModoInicial,
         isCartMode,
         autoFocusCantidad: true,
         exposeGlobals: {
@@ -126,6 +140,15 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
             modoGetterName: 'getModoAgrupacionCanastaMovimientosEntrada'
         },
         onSyncProducto: syncProductoEntrada
+    });
+
+    // Hook para guardar el precio cuando esté disponible
+    usePrecioCanasta({
+        tipoCanasta: 'entrada',
+        esEntrega: false,
+        isOpen,
+        precioSeleccionado, // Ahora pasamos el precioSeleccionado real
+        isEditing: false,
     });
 
     const handleActualizarCantidad = (productoId, nuevaCantidad, animar = false) => {

@@ -228,6 +228,15 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
         }
     });
 
+    // Hook para guardar el precio cuando esté disponible
+    usePrecioCanasta({
+        tipoCanasta: 'transferencia',
+        esEntrega: false,
+        isOpen,
+        precioSeleccionado, // Ahora pasamos el precioSeleccionado real
+        isEditing: false,
+    });
+
     // Actualizar el ref con setModoAgrupacion
     useEffect(() => {
         setModoAgrupacionRef.current = setModoAgrupacion;

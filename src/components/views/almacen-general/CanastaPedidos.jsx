@@ -157,6 +157,16 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         cambiarTipoPrecio(precioSeleccionado);
     }, [cambiarTipoPrecio, precioSeleccionado, productosCanasta]);
 
+    // Hook para guardar el precio cuando esté disponible
+    usePrecioCanasta({
+        tipoCanasta: 'pedido',
+        esEntrega: false,
+        isOpen,
+        precioSeleccionado, // Ahora pasamos el precioSeleccionado real
+        isEditing,
+    });
+
+
     useEffect(() => {
         return () => {
             if (notificationTimeoutRef.current) {

@@ -150,6 +150,15 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         }
     });
 
+    // Hook para guardar el precio cuando esté disponible
+    usePrecioCanasta({
+        tipoCanasta: 'cotizacion',
+        esEntrega: false,
+        isOpen,
+        precioSeleccionado, // Ahora pasamos el precioSeleccionado real
+        isEditing: false,
+    });
+
     const prepararProductosCotizacion = useCallback(() => {
         const productosBase = prepararProductos();
         const productosMap = new Map(productosBase.map(p => [p.id, p]));
