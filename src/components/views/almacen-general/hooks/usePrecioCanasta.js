@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import useEntregaMovimientos from './useEntregaMovimientos';
 
 /**
@@ -23,8 +23,8 @@ function usePrecioCanasta({
     precioSeleccionado = null,
     isEditing = false,
 } = {}) {
-    // Configuración específica por tipo de canasta
-    const config = {
+    // Configuración específica por tipo de canasta (memorizada para evitar recreaciones)
+    const config = useMemo(() => ({
         salida: {
             precioRepitiendoKey: 'precioIdRepitiendo',
             precioEditandoKey: 'precioIdEditando',
@@ -65,9 +65,9 @@ function usePrecioCanasta({
             modoRepitiendoKey: 'transferenciaAgrupadoRepitiendo',
             modoEditandoKey: null,
         },
-    };
+    }), []);
 
-    const tipoConfig = config[tipoCanasta] || config.salida;
+    const tipoConfig = useMemo(() => config[tipoCanasta] || config.salida, [config, tipoCanasta]);
 
     // Solo usar useEntregaMovimientos para salidas
     const {
@@ -189,7 +189,7 @@ function usePrecioCanasta({
         if (!hayPrecioTemporal && !esPrecioTemporal) {
             localStorage.setItem(tipoConfig.precioGuardadoKey, precioSeleccionado);
         }
-    }, [precioSeleccionado, tipoCanasta, esEntrega, tipoConfig]);
+    }, [precioSeleccionado, tipoCanasta, esEntrega, tipoConfig.precioGuardadoKey, tipoConfig.precioRepitiendoKey, tipoConfig.precioEditandoKey, tipoConfig.precioEntregandoKey]);
 
     return {
         resolvePrecioInicial,

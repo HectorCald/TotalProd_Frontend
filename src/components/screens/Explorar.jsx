@@ -7,7 +7,6 @@ import Sucursales from '../views/sucursales/Sucursales';
 import PanelGastos from '../views/gastos/PanelGastos';
 import PanelDeudas from '../views/deudas/PanelDeudas';
 import PanelHistorial from '../views/historial/PanelHistorial';
-import Balance from '../views/balance/Balance';
 import Reportes from '../views/reportes/Reportes';
 import Notification from '../common/Notification';
 import { EXTRAS as EXTRAS_DAMABRAVA } from '../../constants/damabravaFunctions';
@@ -25,7 +24,6 @@ const Explorar = () => {
   const [isOpenSucursales, setIsOpenSucursales] = useState(false);
   const [isOpenGastos, setIsOpenGastos] = useState(false);
   const [isOpenDeudas, setIsOpenDeudas] = useState(false);
-  const [isOpenBalance, setIsOpenBalance] = useState(false);
   const [isOpenReportes, setIsOpenReportes] = useState(false);
   const [isOpenHistorial, setIsOpenHistorial] = useState(false);
   const [isOpenFormularioProduccion, setIsOpenFormularioProduccion] = useState(false);
@@ -63,8 +61,6 @@ const Explorar = () => {
       setIsOpenGastos(true);
     } else if (viewName === 'deudas') {
       setIsOpenDeudas(true);
-    } else if (viewName === 'balance') {
-      setIsOpenBalance(true);
     } else if (viewName === 'reportes') {
       setIsOpenReportes(true);
     } else if (viewName === 'historial') {
@@ -124,7 +120,6 @@ const Explorar = () => {
       <PanelGastos isOpen={isOpenGastos} setIsOpen={setIsOpenGastos} />
       <PanelDeudas isOpen={isOpenDeudas} setIsOpen={setIsOpenDeudas} />
       <PanelHistorial isOpen={isOpenHistorial} setIsOpen={setIsOpenHistorial} />
-      <Balance isOpen={isOpenBalance} setIsOpen={setIsOpenBalance} />
       <Reportes isOpen={isOpenReportes} setIsOpen={setIsOpenReportes} />
       {isDamabrava() && (
         <>

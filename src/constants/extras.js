@@ -4,15 +4,9 @@ import imagePrecios from '../assets/precios.png';
 import imageReportIA from '../assets/reporte-ia.png';
 import imageDeudas from '../assets/deudas.png';
 import imageGastos from '../assets/gastos.png'
-import imageBalance from '../assets/balance.png';
 import imageHistorial from '../assets/historial.png';
 import imageAsociados from '../assets/asociados.png';
 export const EXTRAS = [
-    {
-        title: 'Balance',
-        image: imageBalance,
-        view: 'balance'
-    },
     {
         title: 'Reportes',
         image: imageReportIA,

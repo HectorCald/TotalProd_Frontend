@@ -252,11 +252,19 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             if (cantidadNueva === 0) {
                 setProductosCanasta(prev => prev.filter(p => p.id !== productoId));
             } else {
-                setProductosCanasta(prev => prev.map(p =>
-                    p.id === productoId
-                        ? { ...p, cantidad: cantidadNueva }
-                        : p
-                ));
+                // Verificar si el producto ya está en la canasta
+                const productoEnCanasta = productosCanasta.find(p => p.id === productoId);
+                if (productoEnCanasta) {
+                    // Si el producto ya está en la canasta, actualizar cantidad
+                    setProductosCanasta(prev => prev.map(p =>
+                        p.id === productoId
+                            ? { ...p, cantidad: cantidadNueva }
+                            : p
+                    ));
+                } else {
+                    // Si el producto no está en la canasta, agregarlo con la cantidad especificada
+                    handleAgregarACanasta(producto, cantidadNueva);
+                }
             }
         } else if (tipo === 'entrada' || tipo === 'salida') {
             const setCanasta = tipo === 'entrada' ? setProductosCanastaEntradas : setProductosCanastaSalidas;
@@ -303,7 +311,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 handleAgregarACanastaMovimientos(producto, tipo, null, cantidadNueva);
             }
         }
-    }, [tipo, productosFiltrados, productosCanastaEntradas, productosCanastaSalidas, setProductosCanasta, setProductosCanastaEntradas, setProductosCanastaSalidas, handleAgregarACanastaMovimientos, mostrarNotificacion]);
+    }, [tipo, productosFiltrados, productosCanasta, productosCanastaEntradas, productosCanastaSalidas, setProductosCanasta, setProductosCanastaEntradas, setProductosCanastaSalidas, handleAgregarACanasta, handleAgregarACanastaMovimientos, mostrarNotificacion]);
 
     const handleCantidadIncrement = useCallback((productoId) => {
         const producto = productosFiltrados.find(p => p.id === productoId);

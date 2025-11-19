@@ -18,9 +18,13 @@ import useCanastaProductos from './hooks/useCanastaProductos';
 import usePrecioCanasta from './hooks/usePrecioCanasta';
 import { useLayout } from '../../../context/LayoutContext';
 import OpcionDesplegable from '../../common/OpcionDesplegable';
+import { isSoloVentas } from '../../../utils/empresaHelper';
+import { useUser } from '../../../context/UserContext';
 
 function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const { isLargeScreen } = useLayout();
+    const { user } = useUser();
+    const soloVentas = isSoloVentas(user);
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
@@ -33,6 +37,13 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         const saved = localStorage.getItem('restarIngredientes');
         return saved !== null ? JSON.parse(saved) : true;
     });
+
+    // Asegurar que restarIngredientes sea false cuando es solo ventas
+    useEffect(() => {
+        if (soloVentas) {
+            setRestarIngredientes(false);
+        }
+    }, [soloVentas]);
     const [registrarGasto, setRegistrarGasto] = useState(false);
     const [costo, setCosto] = useState('');
     const [conceptoGasto, setConceptoGasto] = useState('');
@@ -254,7 +265,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 metodo_pago: registrarGasto ? (metodoPago || null) : null,
                 cliente_id: null,
                 proveedor_id: registrarGasto ? (proveedorSeleccionado || null) : null,
-                restar_ingredientes: restarIngredientes && tieneProductosConRecetas(),
+                restar_ingredientes: !soloVentas && restarIngredientes && tieneProductosConRecetas(),
                 agrupado: modoAgrupacion === 'agrupado',
                 concepto: concepto && concepto.trim() !== '' ? concepto.trim() : null,
                 productos: prepararProductos(),
@@ -495,8 +506,8 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                                     icon="money"
                                 />
                             </div>
-                            {/* Switch para restar ingredientes (solo si hay productos con recetas) */}
-                            {tieneProductosConRecetas() && (
+                            {/* Switch para restar ingredientes (solo si hay productos con recetas y no es solo ventas) */}
+                            {!soloVentas && tieneProductosConRecetas() && (
                                 <div className={styles.content} style={{ padding: '15px' }}>
                                     <Switch
                                         title="Restar ingredientes"

@@ -189,15 +189,28 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
     });
 
-    // El hook usePrecioCanasta ya tiene un useEffect interno que maneja el guardado
-    // cuando cambia precioSeleccionado. Como el hook se inicializa antes de obtener
-    // precioSeleccionado, necesitamos pasarle el precioSeleccionado cuando esté disponible.
-    // Como no podemos llamar hooks dos veces, el useEffect interno del hook se ejecutará
-    // cuando precioSeleccionado cambie de null a un valor real, lo cual activará el guardado.
-    // Para que funcione correctamente, actualizamos el hook con el precioSeleccionado actual.
-    // Nota: Esto es necesario porque los hooks se ejecutan en orden y precioSeleccionado
-    // se obtiene después de useCanastaProductos, pero el hook necesita el precioSeleccionado
-    // para el guardado. El useEffect interno del hook manejará esto automáticamente.
+    // Guardar el precio seleccionado en localStorage cuando cambia
+    // Solo si NO es un precio temporal (repetir/editar/entrega)
+    useEffect(() => {
+        if (!precioSeleccionado) return;
+        if (esEntrega) return; // No guardar en entregas
+
+        // Verificar si hay un precio temporal activo
+        const precioIdRepitiendo = localStorage.getItem('precioIdRepitiendo');
+        const precioIdEditando = localStorage.getItem('precioIdEditando');
+        const precioIdEntregando = localStorage.getItem('precioIdEntregando');
+
+        // Solo guardar como permanente si NO hay ningún precio temporal activo
+        // y el precio seleccionado NO coincide con los temporales
+        const hayPrecioTemporal = precioIdRepitiendo || precioIdEditando || precioIdEntregando;
+        const esPrecioTemporal = precioSeleccionado === precioIdRepitiendo ||
+            precioSeleccionado === precioIdEditando ||
+            precioSeleccionado === precioIdEntregando;
+
+        if (!hayPrecioTemporal && !esPrecioTemporal) {
+            localStorage.setItem('precioIdMovimientoGuardado', precioSeleccionado);
+        }
+    }, [precioSeleccionado, esEntrega]);
 
     // Actualizar el ref con setModoAgrupacion
     useEffect(() => {

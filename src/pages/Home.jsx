@@ -8,6 +8,7 @@ import { useUser } from '../context/UserContext';
 import Inicio from '../components/screens/Inicio';
 import InicioPC from '../components/screens/InicioPC';
 import Explorar from '../components/screens/Explorar';
+import BalanceScreen from '../components/screens/BalanceScreen';
 import ModalOffline from '../components/views/offline/ModalOffline';
 import HistorialMovimientosOffline from '../components/views/movimientos/HistorialMovimientosOffline';
 import { obtenerLocal, OFFLINE_DB_NAME, MOVIMIENTOS_SALIDA_STORE } from '../utils/indexedDB';
@@ -19,6 +20,7 @@ import { clearDataFetchLogsIfNeeded } from '../components/utils/DataSizeLogger';
 // Componentes de vistas modales para uso en Inicio.jsx y vistas
 import AlmacenMedio from '../components/views/almacen-acopio/AlmacenMedio';
 import AlmacenMedioGeneral from '../components/views/almacen-general/AlmacenMedioGeneral';
+import AlmacenGeneral from '../components/views/almacen-general/AlmacenGeneral';
 import ConteosMedio from '../components/views/conteos/ConteosMedio';
 import MovimientosMedio from '../components/views/movimientos/MovimientosMedio';
 import PedidosMedio from '../components/views/pedidos/PedidosMedio';
@@ -221,7 +223,9 @@ const Home = () => {
     const routeMap = {
       'inicio': '/dashboard/default',
       'explorar': '/dashboard/explorar',
-      'configuracion': '/dashboard/configuracion'
+      'configuracion': '/dashboard/configuracion',
+      'balance': '/dashboard/balance',
+      'ventas': '/dashboard/default' // Ventas no cambia la ruta, solo abre vista
     };
     const route = routeMap[screenId] || '/dashboard/default';
     setActiveRoute(route);
@@ -249,12 +253,16 @@ const Home = () => {
   // Función para renderizar las pantallas (igual que en BarraNavegacion)
   const renderScreen = () => {
     const currentScreen = activeRoute === '/dashboard/default' ? 'inicio' : 
-                         activeRoute === '/dashboard/explorar' ? 'explorar' : 'inicio';
+                         activeRoute === '/dashboard/explorar' ? 'explorar' : 
+                         activeRoute === '/dashboard/balance' ? 'balance' : 
+                         activeRoute === '/dashboard/configuracion' ? 'configuracion' : 'inicio';
     switch (currentScreen) {
       case 'inicio':
         return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} />;
       case 'explorar':
         return <Explorar />;
+      case 'balance':
+        return <BalanceScreen />;
       default:
         return isLargeScreen ? <InicioPC onViewOpen={handleViewOpen} /> : <Inicio onViewOpen={handleViewOpen} />;
     }
@@ -416,14 +424,23 @@ const Home = () => {
             setIsOpen={() => handleViewClose()}
             {...viewProps}
           />
+          <AlmacenGeneral
+            isOpen={activeView === 'almacenGeneral'}
+            setIsOpen={() => handleViewClose()}
+            {...viewProps}
+          />
         </div>
       ) : (
         <>
           {/* BarraNavegacion para pantallas pequeñas */}
           <BarraNavegacion 
-            activeScreen={activeRoute === '/dashboard/default' ? 'inicio' : 
-                         activeRoute === '/dashboard/explorar' ? 'explorar' : 
-                         activeRoute === '/dashboard/configuracion' ? 'configuracion' : 'inicio'} 
+            activeScreen={
+              activeRoute === '/dashboard/default' ? 'inicio' : 
+              activeRoute === '/dashboard/explorar' ? 'explorar' : 
+              activeRoute === '/dashboard/configuracion' ? 'configuracion' : 
+              activeRoute === '/dashboard/balance' ? 'balance' : 
+              'inicio'
+            } 
             onScreenChange={handleScreenChange}
             onViewOpen={handleViewOpen}
             isEmployee={false}
@@ -474,6 +491,11 @@ const Home = () => {
           />
           <AlmacenGeneralII
             isOpen={activeView === 'almacenGeneralAuxiliarII'}
+            setIsOpen={() => handleViewClose()}
+            {...viewProps}
+          />
+          <AlmacenGeneral
+            isOpen={activeView === 'almacenGeneral'}
             setIsOpen={() => handleViewClose()}
             {...viewProps}
           />

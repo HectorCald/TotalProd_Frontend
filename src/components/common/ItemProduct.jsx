@@ -29,14 +29,16 @@ const ItemProduct = ({
 }) => {
     // Estado temporal para el input (permite borrar el 0)
     const [cantidadTemp, setCantidadTemp] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [ultimaCantidadEnviada, setUltimaCantidadEnviada] = useState(null);
 
     // Sincronizar cantidadTemp cuando cantidad cambia desde fuera (si no está en edición)
     useEffect(() => {
-        if (cantidadTemp === null) {
-            // Solo actualizar si no estamos editando
-            return;
+        if (!isEditing && cantidadTemp === null) {
+            // Actualizar ultimaCantidadEnviada cuando cantidad cambia desde fuera
+            setUltimaCantidadEnviada(cantidad || 0);
         }
-    }, [cantidad]);
+    }, [cantidad, isEditing, cantidadTemp]);
 
     // Función para obtener la clase CSS del badge según el color
     const getBadgeColorClass = () => {
@@ -181,9 +183,10 @@ const ItemProduct = ({
                                         setCantidadTemp(nuevaCantidad);
                                     }
                                     
-                                    // Solo actualizar si es un número válido y mayor a 0
-                                    if (onCantidadChange && cantidadAjustada > 0) {
+                                    // Actualizar siempre que sea un número válido (incluyendo cuando cantidad era 0)
+                                    if (onCantidadChange && cantidadAjustada >= 0) {
                                         onCantidadChange(cantidadAjustada);
+                                        setUltimaCantidadEnviada(cantidadAjustada);
                                     }
                                 }
                             }}
@@ -195,6 +198,7 @@ const ItemProduct = ({
                             }}
                             onBlur={(e) => {
                                 const valor = e.target.value;
+                                setIsEditing(false);
                                 setCantidadTemp(null);
                                 // Siempre pasar un número válido: 0 si está vacío, o el valor parseado
                                 let cantidadFinal = valor === '' ? 0 : parseInt(valor, 10) || 0;
@@ -202,12 +206,20 @@ const ItemProduct = ({
                                 if (maxCantidad !== undefined && cantidadFinal > maxCantidad) {
                                     cantidadFinal = maxCantidad;
                                 }
-                                if (onCantidadChange) {
+                                // Asegurar que sea al menos 0
+                                if (cantidadFinal < 0) {
+                                    cantidadFinal = 0;
+                                }
+                                // Solo llamar a onCantidadChange si el valor cambió desde el último onChange
+                                // Esto evita que se elimine el producto cuando el usuario escribe desde 0
+                                if (onCantidadChange && cantidadFinal !== ultimaCantidadEnviada) {
                                     onCantidadChange(cantidadFinal);
+                                    setUltimaCantidadEnviada(cantidadFinal);
                                 }
                             }}
                             onFocus={(e) => {
                                 // Al hacer foco, permitir editar el valor actual (incluyendo 0)
+                                setIsEditing(true);
                                 const valorActual = cantidad === 0 ? 0 : (cantidad || 0);
                                 setCantidadTemp(valorActual);
                                 // Seleccionar todo el texto para facilitar borrar

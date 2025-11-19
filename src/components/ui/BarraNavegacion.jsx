@@ -5,6 +5,7 @@ import Inicio from '../screens/Inicio';
 import InicioEmpleado from '../screens/InicioEmpleado';
 import Explorar from '../screens/Explorar';
 import UsuarioScreen from '../screens/UsuarioScreen';
+import BalanceScreen from '../screens/BalanceScreen';
 import Notification from '../common/Notification';
 import AlmacenGeneral from '../views/almacen-general/AlmacenGeneral';
 import AlmacenMedioGeneral from '../views/almacen-general/AlmacenMedioGeneral';
@@ -216,6 +217,8 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
         return [
             { id: 'inicio', icon: 'home', title: '' },
             ...shortcutItems,
+            { id: 'ventas', icon: 'cart', title: '' },
+            { id: 'balance', icon: 'wallet', title: '' },
             { id: 'explorar', icon: 'category', title: '' },
             ...(hasUserData ? [{ id: 'configuracion', icon: 'cog', title: '' }] : []),
         ];
@@ -226,6 +229,9 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
     const handleNavigation = (screenId) => {
         if (screenId === 'configuracion') {
             onScreenChange('configuracion');
+        } else if (screenId === 'ventas') {
+            // Abrir AlmacenGeneral en modo salida
+            onViewOpen('almacenGeneral', { tipo: 'salida' });
         } else {
             onScreenChange(screenId);
         }
@@ -386,6 +392,18 @@ function BarraNavegacion({ activeScreen, onScreenChange, onViewOpen, isEmployee,
                 ) : (
                     <Inicio onViewOpen={onViewOpen} />
                 );
+            case 'ventas':
+                // Ventas se maneja a través de onViewOpen, no se renderiza aquí
+                return isEmployee ? (
+                    <InicioEmpleado 
+                        employee={employee} 
+                        onMainModuleClick={onMainModuleClick} 
+                    />
+                ) : (
+                    <Inicio onViewOpen={onViewOpen} />
+                );
+            case 'balance':
+                return <BalanceScreen />;
             case 'explorar':
                 return <Explorar />;
             case 'configuracion':
