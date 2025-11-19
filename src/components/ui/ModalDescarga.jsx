@@ -1736,18 +1736,59 @@ function ModalDescarga({
                 windowHeight: contentHeight
             });
 
-            // Convertir canvas a blob y descargar
-            canvas.toBlob((blob) => {
-                const fileName = `${nombreArchivoState.replace(/\s+/g, '_')}.png`;
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = fileName;
-                link.click();
+            // Convertir canvas a blob
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob((blob) => {
+                    resolve(blob);
+                }, 'image/png');
+            });
+
+            const fileName = `${nombreArchivoState.replace(/\s+/g, '_')}.png`;
+            
+            // Descargar archivo
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+
+            // Limpiar el contenedor
+            document.body.removeChild(container);
+            URL.revokeObjectURL(link.href);
+
+            // Intentar compartir usando Web Share API solo en móvil
+            if (isMobile && navigator.share) {
+                // Esperar un poco para que la descarga se complete
+                await new Promise(resolve => setTimeout(resolve, 300));
                 
-                // Limpiar
-                document.body.removeChild(container);
-                URL.revokeObjectURL(link.href);
-            }, 'image/png');
+                try {
+                    // Crear el archivo con el blob
+                    const file = new File([blob], fileName, { 
+                        type: 'image/png',
+                        lastModified: Date.now()
+                    });
+                    
+                    // Verificar si puede compartir archivos
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: nombreArchivoState,
+                            text: `Compartir ${nombreArchivoState}`
+                        });
+                    } else {
+                        // Intentar compartir con archivo directamente
+                        await navigator.share({
+                            files: [file],
+                            title: nombreArchivoState,
+                            text: `Compartir ${nombreArchivoState}`
+                        });
+                    }
+                } catch (shareError) {
+                    // Si el usuario cancela el share, no hacer nada
+                    if (shareError.name !== 'AbortError') {
+                        console.log('Error al compartir:', shareError);
+                    }
+                }
+            }
 
         } catch (error) {
             console.error('Error generando imagen:', error);
