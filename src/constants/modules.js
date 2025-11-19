@@ -45,6 +45,7 @@ const COMPONENT_TO_VIEW = {
     'PanelPagos': 'pagos',
     'Sucursales': 'sucursales',
     'AlmacenGeneralII': 'almacenGeneralAuxiliarII',
+    'AsociadosSearch': 'asociados',
 };
 
 // Mapeo de nombres de módulos del backend a claves del frontend
@@ -89,7 +90,8 @@ const getSubmoduleKey = (moduleKey, submoduleName) => {
             'Verificación': 'verificar',
             'Mi Producción': 'mi_produccion',
             'Reglas': 'reglas',
-            'Pagos': 'pagos'
+            'Pagos': 'pagos',
+            'Multi Cuentas': 'multi_cuentas'
         },
         'Cotizaciones': {
             'Cotizaciones': 'gestionar'
@@ -462,6 +464,14 @@ export const MODULES = {
             icon: 'wallet',
             component: 'PanelPagos',
             props: {}
+        },
+        multi_cuentas: {
+            name: 'Multi Cuentas',
+            description: 'Gestiona empresas asociadas.',
+            icon: 'user-check',
+            component: 'AsociadosSearch',
+            props: {},
+            view: 'asociados'
         },
     },
     Cotizaciones: {

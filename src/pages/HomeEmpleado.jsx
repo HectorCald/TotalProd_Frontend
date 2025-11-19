@@ -46,6 +46,7 @@ import Personal from '../components/views/personal/Personal';
 import PanelPagos from '../components/views/damabrava/produccion/pagos/PanelPagos';
 import Sucursales from '../components/views/sucursales/Sucursales';
 import ImportExport from '../components/views/exportar-importar/ImportExport';
+import AsociadosSearch from '../components/views/asociados/AsociadosSearch';
 
 const OFFLINE_EMPLOYEE_KEY = 'offline_employee_data';
 
@@ -584,6 +585,8 @@ const HomeEmpleado = () => {
                 return <Sucursales isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             case 'ImportExport':
                 return <ImportExport isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
+            case 'AsociadosSearch':
+                return <AsociadosSearch isOpen={isSubModuleOpen} setIsOpen={setIsSubModuleOpen} {...currentSubModule.props} />;
             default:
                 console.log('⚠️ Componente no encontrado:', currentSubModule.component);
                 return null;

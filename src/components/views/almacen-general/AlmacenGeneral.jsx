@@ -392,9 +392,20 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             }
         }
 
+        // Filtrar productos asociados con stock 0 cuando no es tipo pedido ni entrada
+        if (tipo !== 'pedido' && tipo !== 'entrada') {
+            productosProcesados = productosProcesados.filter(producto => {
+                // Si es producto asociado y tiene stock 0, ocultarlo
+                if (producto.es_asociado && (Number(producto.stock) || 0) === 0) {
+                    return false;
+                }
+                return true;
+            });
+        }
+
         setProductos(productosProcesados);
         setProductosLoaded(true);
-    }, []);
+    }, [tipo, sucursalActual]);
 
     // Función para manejar refresh
     const handleRefresh = async () => {

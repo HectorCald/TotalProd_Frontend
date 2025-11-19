@@ -11,6 +11,7 @@ import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import InputNormal from '../../common/InputNormal';
 import transferenciasAlmacenService from '../../../services/transferenciasAlmacenService';
 import useCanastaProductos from '../almacen-general/hooks/useCanastaProductos';
+import usePrecioCanasta from '../almacen-general/hooks/usePrecioCanasta';
 import calcularStockDisponible from '../almacen-general/hooks/useStockDisponible';
 import { useLayout } from '../../../context/LayoutContext';
 import { useUser } from '../../../context/UserContext';
@@ -104,22 +105,17 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
         }, 3000);
     };
 
-    const resolvePrecioInicial = useCallback((tipos) => {
-        if (!tipos || tipos.length === 0) return null;
-        const precioIdRepitiendo = localStorage.getItem('precioIdTransferenciaRepitiendo');
-        if (precioIdRepitiendo && tipos.find(p => p.value === precioIdRepitiendo)) {
-            return precioIdRepitiendo;
-        }
-        return tipos[0]?.value ?? null;
-    }, []);
-
-    const resolveModoInicial = useCallback(() => {
-        const modoTransferencia = localStorage.getItem('transferenciaAgrupadoRepitiendo');
-        if (modoTransferencia === 'agrupado' || modoTransferencia === 'no_agrupado') {
-            return modoTransferencia;
-        }
-        return null;
-    }, []);
+    // Hook para manejar la lógica de precios de transferencias
+    const {
+        resolvePrecioInicial,
+        resolveModoInicial
+    } = usePrecioCanasta({
+        tipoCanasta: 'transferencia',
+        esEntrega: false,
+        isOpen,
+        precioSeleccionado: null, // Se actualizará después
+        isEditing: false,
+    });
 
     // Ref para almacenar setModoAgrupacion (se actualizará después de obtenerlo del hook)
     const setModoAgrupacionRef = useRef(null);

@@ -218,12 +218,25 @@ function VerTransferencia({ isOpen, setIsOpen, transferencia, onTransferenciaAnu
         try {
             const response = await transferenciasAlmacenService.anular(transferenciaActual.id);
 
-            if (response.success) {
-                // Actualizar el estado local de la transferencia
-                const transferenciaActualizada = {
-                    ...transferenciaActual,
-                    estado: 'Anulado'
-                };
+            if (response.success && response.data) {
+                // Usar los datos actualizados del backend
+                const transferenciaActualizada = response.data;
+                
+                // Formatear los datos del usuario/personal si vienen del backend
+                if (transferenciaActualizada.user && typeof transferenciaActualizada.user === 'object') {
+                    transferenciaActualizada.user = {
+                        id: transferenciaActualizada.user.id,
+                        name: `${transferenciaActualizada.user.first_name || ''} ${transferenciaActualizada.user.last_name || ''}`.trim()
+                    };
+                }
+                
+                if (transferenciaActualizada.personal && typeof transferenciaActualizada.personal === 'object') {
+                    transferenciaActualizada.personal = {
+                        id: transferenciaActualizada.personal.id,
+                        name: `${transferenciaActualizada.personal.first_name || ''} ${transferenciaActualizada.personal.last_name || ''}`.trim()
+                    };
+                }
+                
                 setTransferenciaActual(transferenciaActualizada);
 
                 setIsAnularOpen(false);
@@ -279,15 +292,32 @@ function VerTransferencia({ isOpen, setIsOpen, transferencia, onTransferenciaAnu
 
     const totalTransferencia = (transferenciaActual?.productos || []).reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
     
+    // Obtener el estado actual (del estado local o del prop)
+    // Normalizar el estado para comparación (trim y case-insensitive)
+    const estadoActualRaw = transferenciaActual?.estado ? String(transferenciaActual.estado).trim() : null;
+    const estadoActual = estadoActualRaw ? estadoActualRaw.toLowerCase() : null;
+    
     // Solo puede eliminar si es sucursal origen y está anulada
-    const puedeEliminar = esSucursalOrigen && transferenciaActual?.estado === 'Anulado';
+    const puedeEliminar = esSucursalOrigen && estadoActual === 'anulado';
     
     // Solo puede anular si es sucursal destino y no está anulada
-    const puedeAnular = esSucursalDestino && transferenciaActual?.estado !== 'Anulado';
+    // (si está Finalizado o Transferido, puede anular)
+    const puedeAnular = esSucursalDestino && estadoActual !== 'anulado';
     
-    // El estado puede ser "Finalizado" o "Anulado"
-    const estadoLabel = transferenciaActual?.estado === 'Anulado' ? 'Anulado' : 'Finalizado';
-    const estadoColor = transferenciaActual?.estado === 'Anulado' ? 'red' : 'blue';
+    // Determinar el label y color del estado
+    // Solo hay dos estados visibles para el usuario: Finalizado y Anulado
+    let estadoLabel = 'Finalizado';
+    let estadoColor = 'blue';
+    
+    // Comparación case-insensitive del estado
+    if (estadoActual === 'anulado') {
+        estadoLabel = 'Anulado';
+        estadoColor = 'red';
+    } else {
+        // Cualquier otro estado (Finalizado, Transferido, etc.) se muestra como "Finalizado"
+        estadoLabel = 'Finalizado';
+        estadoColor = 'blue';
+    }
 
     // No renderizar si no hay transferencia válida
     if (!transferenciaActual || !transferenciaActual.id) return null;

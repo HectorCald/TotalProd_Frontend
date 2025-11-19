@@ -13,6 +13,7 @@ import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import InputDate from '../../common/InputDate';
 import cotizacionesService from '../../../services/cotizacionesService';
 import useCanastaProductos from '../almacen-general/hooks/useCanastaProductos';
+import usePrecioCanasta from '../almacen-general/hooks/usePrecioCanasta';
 import { useLayout } from '../../../context/LayoutContext';
 
 function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
@@ -48,22 +49,17 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         }, 3000);
     };
 
-    const resolvePrecioInicial = useCallback((tipos) => {
-        if (!tipos || tipos.length === 0) return null;
-        const precioIdRepitiendo = localStorage.getItem('precioIdCotizacionRepitiendo');
-        if (precioIdRepitiendo && tipos.find(p => p.value === precioIdRepitiendo)) {
-            return precioIdRepitiendo;
-        }
-        return tipos[0]?.value ?? null;
-    }, []);
-
-    const resolveModoInicial = useCallback(() => {
-        const modoCotizacion = localStorage.getItem('cotizacionAgrupadoRepitiendo');
-        if (modoCotizacion === 'agrupado' || modoCotizacion === 'no_agrupado') {
-            return modoCotizacion;
-        }
-        return null;
-    }, []);
+    // Hook para manejar la lógica de precios de cotizaciones
+    const {
+        resolvePrecioInicial,
+        resolveModoInicial
+    } = usePrecioCanasta({
+        tipoCanasta: 'cotizacion',
+        esEntrega: false,
+        isOpen,
+        precioSeleccionado: null, // Se actualizará después
+        isEditing: false,
+    });
 
     const syncProductoCotizacion = useCallback(({
         productoCarrito,

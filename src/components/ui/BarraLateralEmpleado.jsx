@@ -31,6 +31,7 @@ import Personal from '../views/personal/Personal';
 import PanelPagos from '../views/damabrava/produccion/pagos/PanelPagos';
 import Sucursales from '../views/sucursales/Sucursales';
 import ImportExport from '../views/exportar-importar/ImportExport';
+import AsociadosSearch from '../views/asociados/AsociadosSearch';
 
 const BarraLateralEmpleado = ({ 
   onMenuClick, 
@@ -509,6 +510,11 @@ const BarraLateralEmpleado = ({
       />
       <ImportExport
         isOpen={activeView === 'importar_exportar'}
+        setIsOpen={handleCloseView}
+        {...viewProps}
+      />
+      <AsociadosSearch
+        isOpen={activeView === 'asociados'}
         setIsOpen={handleCloseView}
         {...viewProps}
       />

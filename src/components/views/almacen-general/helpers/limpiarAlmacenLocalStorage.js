@@ -21,6 +21,8 @@ const ENTITIES = {
         'metodoPagoEntregando',
     ],
     movimientoRepeticion: [
+        'precioIdRepitiendo',
+        'precioIdEditando',
         'movimientoAgrupadoRepitiendo',
         'metodoPagoRepitiendo',
         'clienteIdRepitiendo',

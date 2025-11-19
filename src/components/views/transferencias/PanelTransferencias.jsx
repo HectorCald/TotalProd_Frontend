@@ -269,6 +269,11 @@ function PanelTransferencias({ isOpen, setIsOpen }) {
         setAllTransferencias(aplicarActualizacion);
         mutateCachedItems(aplicarActualizacion);
         
+        // Actualizar infoTransferencia si es la transferencia que se está viendo
+        if (infoTransferencia && String(infoTransferencia.id) === String(transferenciaActualizada.id)) {
+            setInfoTransferencia(transferenciaActualizada);
+        }
+        
         if (transferenciaActualizada.estado === 'Finalizado') {
             mostrarNotificacion('success', 'Transferencia finalizada correctamente');
         } else if (transferenciaActualizada.estado === 'Anulado') {

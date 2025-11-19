@@ -15,6 +15,7 @@ import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import gastosService from '../../../services/gastosService';
 import InputNormal from '../../common/InputNormal';
 import useCanastaProductos from './hooks/useCanastaProductos';
+import usePrecioCanasta from './hooks/usePrecioCanasta';
 import { useLayout } from '../../../context/LayoutContext';
 import OpcionDesplegable from '../../common/OpcionDesplegable';
 

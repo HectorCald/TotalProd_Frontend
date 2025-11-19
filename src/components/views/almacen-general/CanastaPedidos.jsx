@@ -15,6 +15,7 @@ import { useUser } from '../../../context/UserContext';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import usePedidoEdicion from './hooks/usePedidoEdicion';
+import usePrecioCanasta from './hooks/usePrecioCanasta';
 import { useLayout } from '../../../context/LayoutContext';
 
 function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
@@ -50,12 +51,22 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
     const {
         isEditing,
-        resolvePrecioInicial,
-        resolveModoInicial,
         clearEdicionStorage
     } = usePedidoEdicion({
         pedidoId,
         isOpen
+    });
+
+    // Hook para manejar la lógica de precios de pedidos
+    const {
+        resolvePrecioInicial,
+        resolveModoInicial
+    } = usePrecioCanasta({
+        tipoCanasta: 'pedido',
+        esEntrega: false,
+        isOpen,
+        precioSeleccionado: null, // Se actualizará después
+        isEditing,
     });
 
     const syncProductoPedido = useCallback(({

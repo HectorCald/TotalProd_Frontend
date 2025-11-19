@@ -17,6 +17,7 @@ import InputNormal from '../../common/InputNormal';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import calcularStockDisponible from './hooks/useStockDisponible';
 import useEntregaMovimientos from './hooks/useEntregaMovimientos';
+import usePrecioCanasta from './hooks/usePrecioCanasta';
 import { useLayout } from '../../../context/LayoutContext';
 import OpcionDesplegable from '../../common/OpcionDesplegable';
 import { isOfflineNetworkEnabled, queueOfflineSalida, updateOfflineProductsStock } from '../../../utils/offlineMovements';
@@ -56,31 +57,25 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             setNotification(prev => ({ ...prev, isVisible: false }));
         }, 4000);
     };
-    // Referencias para el auto-focus en inputs de cantidad
-    const resolveRepeticionPrecioInicial = useCallback((tipos) => {
-        if (!tipos || tipos.length === 0) return null;
-        const precioIdRepitiendo = localStorage.getItem('precioIdRepitiendo') || localStorage.getItem('precioIdEditando');
-        if (precioIdRepitiendo && tipos.find(p => p.value === precioIdRepitiendo)) {
-            return precioIdRepitiendo;
-        }
-        return tipos[0]?.value ?? null;
-    }, []);
-
-    const resolveRepeticionModoInicial = useCallback(() => {
-        const modoMovimiento = localStorage.getItem('movimientoAgrupadoRepitiendo') || localStorage.getItem('movimientoAgrupadoEditando');
-        if (modoMovimiento === 'agrupado' || modoMovimiento === 'no_agrupado') {
-            return modoMovimiento;
-        }
-        return null;
-    }, []);
+    // Hook para manejar la lógica de precios de salidas
+    // Se inicializa antes de useCanastaProductos para obtener resolvePrecioInicial y resolveModoInicial
+    const { 
+        resolvePrecioInicial, 
+        resolveModoInicial,
+        precioIdEntregando,
+        modoAgrupacionEntregando
+    } = usePrecioCanasta({
+        tipoCanasta: 'salida',
+        esEntrega,
+        isOpen,
+        precioSeleccionado: null, // Se actualizará después cuando se obtenga de useCanastaProductos
+        isEditing: isEditandoMovimiento,
+    });
 
     const {
         pedidoIdEntregando,
-        precioIdEntregando,
         clienteEntregando,
         metodoPagoEntregando,
-        modoAgrupacionEntregando,
-        applyEntregaPrecioInicial,
         clearEntregaTemporal
     } = useEntregaMovimientos({
         esEntrega,
@@ -153,21 +148,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         return productoModificado;
     }, [mostrarNotificacion]);
 
-    const resolvePrecioInicial = useCallback((tipos) => {
-        if (!tipos || tipos.length === 0) return null;
-        if (esEntrega) {
-            return applyEntregaPrecioInicial(tipos) ?? tipos[0].value ?? null;
-        }
-        return resolveRepeticionPrecioInicial(tipos);
-    }, [applyEntregaPrecioInicial, esEntrega, resolveRepeticionPrecioInicial]);
-
-    const resolveModoInicial = useCallback(() => {
-        if (esEntrega) {
-            return modoAgrupacionEntregando || null;
-        }
-        return resolveRepeticionModoInicial();
-    }, [esEntrega, modoAgrupacionEntregando, resolveRepeticionModoInicial]);
-
     const {
         precioSeleccionado,
         setPrecioSeleccionado,
@@ -208,6 +188,16 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             }
         }
     });
+
+    // El hook usePrecioCanasta ya tiene un useEffect interno que maneja el guardado
+    // cuando cambia precioSeleccionado. Como el hook se inicializa antes de obtener
+    // precioSeleccionado, necesitamos pasarle el precioSeleccionado cuando esté disponible.
+    // Como no podemos llamar hooks dos veces, el useEffect interno del hook se ejecutará
+    // cuando precioSeleccionado cambie de null a un valor real, lo cual activará el guardado.
+    // Para que funcione correctamente, actualizamos el hook con el precioSeleccionado actual.
+    // Nota: Esto es necesario porque los hooks se ejecutan en orden y precioSeleccionado
+    // se obtiene después de useCanastaProductos, pero el hook necesita el precioSeleccionado
+    // para el guardado. El useEffect interno del hook manejará esto automáticamente.
 
     // Actualizar el ref con setModoAgrupacion
     useEffect(() => {

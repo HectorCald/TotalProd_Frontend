@@ -114,16 +114,33 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
 
     // Handlers de carga de datos
     const handleProductosLoaded = useCallback((data) => {
-        setProductos(data);
+        const empresaIdActual = sucursalActual?.empresas?.id;
+        let productosProcesados = data.map(producto => ({
+            ...producto,
+            es_asociado: producto.empresa_id && empresaIdActual && producto.empresa_id !== empresaIdActual
+        }));
+
+        // Filtrar productos asociados con stock 0 cuando no es tipo pedido ni entrada
+        if (tipo !== 'pedido' && tipo !== 'entrada') {
+            productosProcesados = productosProcesados.filter(producto => {
+                // Si es producto asociado y tiene stock 0, ocultarlo
+                if (producto.es_asociado && (Number(producto.stock) || 0) === 0) {
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        setProductos(productosProcesados);
         setProductosLoaded(true);
-    }, []);
+    }, [tipo, sucursalActual]);
 
     // Función para manejar refresh
     const handleRefresh = async () => {
         try {
             const response = await productsAlmacenService.getAll();
             if (response.success) {
-                setProductos(response.data);
+                handleProductosLoaded(response.data);
             }
         } catch (error) {
             console.error('Error al refrescar productos:', error);
