@@ -424,9 +424,9 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
 
     const opciones = [
         {
-            label: getOrdenamientoNombre(),
-            active: ordenamiento !== 'fecha_desc',
-            onClick: () => setIsOpenFiltroOrden(true)
+            label: getResponsableNombre(),
+            active: filtroResponsable !== null,
+            onClick: () => setIsOpenFiltroResponsable(true)
         },
         {
             label: getEstadoNombre(),
@@ -439,10 +439,13 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             onClick: () => setIsOpenFiltroFecha(true)
         },
         {
-            label: getResponsableNombre(),
-            active: filtroResponsable !== null,
-            onClick: () => setIsOpenFiltroResponsable(true)
-        }
+            label: getOrdenamientoNombre(),
+            active: ordenamiento !== 'fecha_desc',
+            onClick: () => setIsOpenFiltroOrden(true)
+        },
+        
+       
+        
     ];
 
     // Headers para la tabla

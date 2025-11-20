@@ -288,6 +288,8 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     // Efectos
     useEffect(() => {
         if (isOpen) {
+            setCotizacionesLoaded(false);
+            setCurrentPage(1);
             setSearchQuery('');
             setSearchQueryNormalized('');
             setFiltroEstado(null);
@@ -375,11 +377,11 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     // Headers para la tabla
     const tableHeaders = [
         { key: 'numero_cotizacion', label: 'Nº', icon: 'hash' },
-        { key: 'cliente', label: 'Cliente', icon: 'user' },
+        { key: 'detalle', label: 'Detalle', icon: 'package' },
         { key: 'total', label: 'Total', icon: 'dollar' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
         { key: 'estado', label: 'Estado', icon: 'check-circle' },
-        { key: 'metodo_pago', label: 'Método', icon: 'credit-card' }
+        { key: 'metodo_pago', label: 'Método de pago', icon: 'credit-card' }
     ];
 
     // Filtrar cotizaciones localmente
@@ -423,10 +425,22 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             responsable = `${cotizacion.personal.first_name || ''} ${cotizacion.personal.last_name || ''}`.trim();
         }
 
+        // Determinar el valor de detalle: cliente si existe, sino cantidad de productos
+        let detalleValue;
+        if (cotizacion.cliente?.name) {
+            detalleValue = cotizacion.cliente.name;
+        } else if (cotizacion.productos && cotizacion.productos.length > 0) {
+            detalleValue = cotizacion.productos.length === 1
+                ? cotizacion.productos[0]?.producto?.name || 'Sin producto'
+                : `${cotizacion.productos.length} productos`;
+        } else {
+            detalleValue = 'Sin productos';
+        }
+
         return {
             id: cotizacion.id,
             numero_cotizacion: cotizacion.numero_cotizacion || 'Sin número',
-            cliente: cotizacion.cliente?.name || 'Sin cliente',
+            detalle: detalleValue,
             total: formatCurrency(parseFloat(cotizacion.total) || 0),
             fecha: new Date(cotizacion.fecha).toLocaleDateString(),
             estado: cotizacion.estado === 'anulado' ? 'Anulado' : cotizacion.estado === 'aprobada' ? 'Aprobada' : cotizacion.estado === 'completado' ? 'Completado' : 'Pendiente',
@@ -518,7 +532,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                                     onScroll={handleScroll}
                                     columnWidths={{
                                         numero_cotizacion: '5%',
-                                        cliente: '25%',
+                                        detalle: '20%',
                                         total: '15%',
                                         fecha: '15%',
                                         estado: '15%',
@@ -542,20 +556,34 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                             >
                                 {cotizacionesFiltradas.length > 0 ? (
                                     <>
-                                        {cotizacionesFiltradas.map((cotizacion, index) => (
-                                            <ItemView
-                                                key={cotizacion.id || index}
-                                                title={`Cotización #${cotizacion.numero_cotizacion || 'Sin número'} - ${cotizacion.cliente?.name || 'Sin cliente'}`}
-                                                description={`Total: ${formatCurrency(parseFloat(cotizacion.total) || 0)} • ${new Date(cotizacion.fecha).toLocaleDateString()}${cotizacion.metodo_pago ? ` • ${cotizacion.metodo_pago}` : ''}`}
-                                                icon='file'
-                                                onClick={() => handleRegistro(cotizacion)}
-                                                arrow={false}
-                                                flot3={cotizacion?.estado === 'anulado' ? 'Anulado' : ''}
-                                                flot4={cotizacion?.estado === 'aprobada' ? 'Aprobada' : ''}
-                                                flot2={cotizacion?.estado === 'pendiente' ? 'Pendiente' : ''}
-                                                flot5={cotizacion?.estado === 'completado' ? 'Completado' : ''}
-                                            />
-                                        ))}
+                                        {cotizacionesFiltradas.map((cotizacion, index) => {
+                                            // Determinar el título: cliente si existe, sino cantidad de productos
+                                            let tituloDetalle;
+                                            if (cotizacion.cliente?.name) {
+                                                tituloDetalle = cotizacion.cliente.name;
+                                            } else if (cotizacion.productos && cotizacion.productos.length > 0) {
+                                                tituloDetalle = cotizacion.productos.length === 1
+                                                    ? cotizacion.productos[0]?.producto?.name || 'Sin producto'
+                                                    : `${cotizacion.productos.length} productos`;
+                                            } else {
+                                                tituloDetalle = 'Sin productos';
+                                            }
+                                            
+                                            return (
+                                                <ItemView
+                                                    key={cotizacion.id || index}
+                                                    title={`Cotización #${cotizacion.numero_cotizacion || 'Sin número'} - ${tituloDetalle}`}
+                                                    description={`Total: ${formatCurrency(parseFloat(cotizacion.total) || 0)} • ${new Date(cotizacion.fecha).toLocaleDateString()}${cotizacion.metodo_pago ? ` • ${cotizacion.metodo_pago}` : ''}`}
+                                                    icon='file'
+                                                    onClick={() => handleRegistro(cotizacion)}
+                                                    arrow={false}
+                                                    flot3={cotizacion?.estado === 'anulado' ? 'Anulado' : ''}
+                                                    flot4={cotizacion?.estado === 'aprobada' ? 'Aprobada' : ''}
+                                                    flot2={cotizacion?.estado === 'pendiente' ? 'Pendiente' : ''}
+                                                    flot5={cotizacion?.estado === 'completado' ? 'Completado' : ''}
+                                                />
+                                            );
+                                        })}
 
                                         {isLoadingMore && (
                                             <LoadingSpinner />

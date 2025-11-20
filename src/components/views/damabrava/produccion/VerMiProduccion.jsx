@@ -11,8 +11,10 @@ import ItemView from '../../../common/ItemView';
 import Notification from '../../../common/Notification';
 import ModalDescarga from '../../../ui/ModalDescarga';
 import { formatFechaLiteral, formatHoraSinSegundos, formatFechaHoraLiteral } from '../../../../utils/dateUtils';
+import { useLayout } from '../../../../context/LayoutContext';
 
 function VerMiProduccion({ isOpen, setIsOpen, registro }) {
+    const { isLargeScreen } = useLayout();
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isDestacado, setIsDestacado] = useState(false);
 
@@ -89,7 +91,7 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
             'Microondas': `${registro?.microondas || '0'} min`,
             'Terminados': `${registro?.terminados || '0'} ud`,
             'Fecha de Registro': formatFechaHoraLiteral(registro?.fecha),
-            'Fecha de Vencimiento': formatFechaLiteral(registro?.vencimiento),
+            'Fecha de Vencimiento': formatFechaLiteral(registro?.vencimiento, !isLargeScreen),
             'Estado': registro?.estado === 'pendiente' ? 'Pendiente' :
                 registro?.estado === 'verificado' ? 'Verificado' :
                     registro?.estado === 'Ingresado' ? 'Ingresado' :
@@ -102,7 +104,7 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
         }
 
         if (registro?.fecha_verificado) {
-            informacionSuperior['Fecha de Verificación'] = formatFechaLiteral(registro.fecha_verificado);
+            informacionSuperior['Fecha de Verificación'] = formatFechaLiteral(registro.fecha_verificado, !isLargeScreen);
         }
 
         if (registro?.cantidad_verificada) {
@@ -148,10 +150,10 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                         </button>
                     </div>
                 </h1>
-                <p className={styles.subTitle}>INFORMACIÓN DEL REGISTRO</p>
+                <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
                 <ItemView
                     title={registro?.user?.name || registro?.personal?.name || 'Usuario desconocido'}
-                    description="Responsable del registro"
+                    description="Responsable"
                     transparent={false}
                 />
                 <p className={styles.subTitle}>INFORMACIÓN DE LA PRODUCCIÓN</p>
@@ -161,19 +163,21 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                     description2={`Proceso: ${registro?.proceso === 'cernido' ? 'Cernido' : registro?.proceso === 'seleccionado' ? 'Seleccionado' : registro?.proceso === 'ninguno' ? 'Ninguno' : registro?.proceso}`}
                     transparent={false}
                     icon='package'
-                    flot3={registro?.estado === 'pendiente' ? 'Pendiente' : ''}
-                    flot2={registro?.estado === 'verificado' ? 'Verificado' : ''}
-                    flot5={registro?.estado === 'Ingresado' ? 'Ingresado' : ''}
                 />
 
                 {/* Información de producción */}
                 <div className={styles.content}>
                     <Dato
+                        label="Fecha y hora"
+                        value={formatFechaLiteral(registro?.fecha, !isLargeScreen) + ' - ' + formatHoraSinSegundos(registro?.fecha)}
+                        vertical={false}
+                    />
+                    <Dato
                         label="Tiempo de Microondas"
                         value={`${registro?.microondas || '0'} segundos`}
                         vertical={false}
                     />
-                    
+
                     <Dato
                         label="Cantidad Terminados"
                         value={`${registro?.terminados || '0'} unidades`}
@@ -182,19 +186,10 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                     />
                     <Dato
                         label="Fecha de Vencimiento"
-                        value={formatFechaLiteral(registro?.vencimiento)}
+                        value={formatFechaLiteral(registro?.vencimiento, !isLargeScreen)}
                         vertical={false}
                     />
-                    <Dato
-                        label="Fecha de Registro"
-                        value={formatFechaLiteral(registro?.fecha)}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Hora de Registro"
-                        value={formatHoraSinSegundos(registro?.fecha)}
-                        vertical={false}
-                    />
+
                 </div>
 
                 {/* Información de verificación si existe */}
@@ -204,7 +199,7 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                         <div className={styles.content}>
                             <Dato
                                 label="Fecha de Verificación"
-                                value={formatFechaLiteral(registro.fecha_verificado)}
+                                value={formatFechaLiteral(registro.fecha_verificado, !isLargeScreen)}
                                 vertical={false}
                             />
 
@@ -246,7 +241,7 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Mi Registro de Producción"
                 subtitulo="Selecciona el formato que prefieras para descargar este registro."
-                nombreArchivo={`Mi_Registro_Produccion_${registro?.lote || '0'}_${formatFechaLiteral(registro?.fecha).replace(/\s+/g, '_')}`}
+                nombreArchivo={`Mi_Registro_Produccion_${registro?.lote || '0'}_${formatFechaLiteral(registro?.fecha, false).replace(/\s+/g, '_')}`}
                 {...prepararDatosDescarga()}
             />
 

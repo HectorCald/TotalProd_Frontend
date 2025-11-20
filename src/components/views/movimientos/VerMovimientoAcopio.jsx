@@ -13,8 +13,10 @@ import Notification from '../../common/Notification';
 import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
 import Text from '../../common/Text';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
+import { useLayout } from '../../../context/LayoutContext';
 
 function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
+    const { isLargeScreen } = useLayout();
     const [loading, setLoading] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
@@ -177,7 +179,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                     />
                     <Dato
                         label="Fecha"
-                        value={formatFechaLiteral(movimientoActual?.date)}
+                        value={formatFechaLiteral(movimientoActual?.date, !isLargeScreen)}
                     />
                     <Dato
                         label="Hora"

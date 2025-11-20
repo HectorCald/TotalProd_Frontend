@@ -20,10 +20,12 @@ import gastosService from '../../../services/gastosService';
 import productsAcopioService from '../../../services/productsAcopioService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
+import { useLayout } from '../../../context/LayoutContext';
 
 function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedidoActualizado }) {
     const { user, sucursalSeleccionada: sucursalActual } = useUser();
     const { employee } = useEmployee();
+    const { isLargeScreen } = useLayout();
     // Estados de loading individuales para cada botón
     const [loadingEliminar, setLoadingEliminar] = useState(false);
     const [loadingAnular, setLoadingAnular] = useState(false);
@@ -196,7 +198,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
         const now = new Date();
         const entregaParaHistorial = {
             id: Date.now(),
-            fecha: formatFechaLiteral(now),
+            fecha: formatFechaLiteral(now, !isLargeScreen),
             hora: formatHoraSinSegundos(now),
             productos: [{
                 nombre: pedidoActualizado.producto_acopio?.name || 'Producto desconocido',
@@ -495,7 +497,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                 <div className={styles.content}>
                     <Dato
                         label="Fecha"
-                        value={formatFechaLiteral(pedidoActual?.fecha || pedidoActual?.created_at)}
+                        value={formatFechaLiteral(pedidoActual?.fecha || pedidoActual?.created_at, !isLargeScreen)}
                         vertical={false}
                     />
                     <Dato
@@ -728,7 +730,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             />
                             <Dato
                                 label="Fecha"
-                                value={gasto.fecha_gasto ? formatFechaLiteral(gasto.fecha_gasto) : 'No especificada'}
+                                value={gasto.fecha_gasto ? formatFechaLiteral(gasto.fecha_gasto, !isLargeScreen) : 'No especificada'}
                             />
                             {gasto.observaciones && (
                                 <Dato
@@ -773,7 +775,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             />
                             <Dato
                                 label="Fecha de Entrega"
-                                value={pedidoActual.fecha_entregado ? formatFechaLiteral(pedidoActual.fecha_entregado) : 'No especificada'}
+                                value={pedidoActual.fecha_entregado ? formatFechaLiteral(pedidoActual.fecha_entregado, !isLargeScreen) : 'No especificada'}
                             />
                             {pedidoActual.observaciones_entrega && (
                                 <Dato
@@ -810,7 +812,7 @@ function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedid
                             />
                             <Dato
                                 label="Fecha y Hora"
-                                value={movimientoEntrada.date ? `${formatFechaLiteral(movimientoEntrada.date)} ${formatHoraSinSegundos(movimientoEntrada.date)}` : 'No especificada'}
+                                value={movimientoEntrada.date ? `${formatFechaLiteral(movimientoEntrada.date, !isLargeScreen)} ${formatHoraSinSegundos(movimientoEntrada.date)}` : 'No especificada'}
                             />
                             {movimientoEntrada.observations && (
                                 <Dato

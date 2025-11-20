@@ -1,8 +1,8 @@
 import imageFormulario from '../assets/damabrava/formulario.png';
 import imageVerificacion from '../assets/damabrava/verificacion.png';
-import imageMiProduccion from '../assets/mi-produccion.png';
-import imageReglas from '../assets/reglas.png';
-import imagePagos from '../assets/pagos.png';
+import imageMiProduccion from '../assets/damabrava/mi-produccion.png';
+import imageReglas from '../assets/damabrava/reglas.png';
+import imagePagos from '../assets/damabrava/pagos.png';
 export const EXTRAS = [
     {
         title: 'Formulario',

@@ -21,8 +21,10 @@ import { formatFechaLiteral, formatHoraSinSegundos, formatFechaHoraLiteral } fro
 import { seleccionarReglaParaProducto, calcularPagoProcesos } from '../../../../utils/reglasPagoHelper';
 import permissionsService from '../../../../services/permissionsService';
 import CalculoPagoModal from './CalculoPagoModal';
+import { useLayout } from '../../../../context/LayoutContext';
 
 function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegistroEliminado, onRegistroVerificado, reglas = [] }) {
+    const { isLargeScreen } = useLayout();
     const [loading, setLoading] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
@@ -138,7 +140,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
         }
 
         if (registroActual?.fecha_verificado) {
-            informacionSuperior['Fecha de Verificación'] = formatFechaLiteral(registroActual.fecha_verificado);
+            informacionSuperior['Fecha de Verificación'] = formatFechaLiteral(registroActual.fecha_verificado, !isLargeScreen);
         }
 
         if (registroActual?.cantidad_verificada) {
@@ -414,10 +416,10 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         </button>
                     </div>
                 </h1>
-                <p className={styles.subTitle}>INFORMACIÓN DEL REGISTRO</p>
+                <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
                 <ItemView
                     title={registroActual?.user?.name || registroActual?.personal?.name || 'Usuario desconocido'}
-                    description="Responsable del registro"
+                    description="Responsable"
                     transparent={false}
                 />
                 <p className={styles.subTitle}>INFORMACIÓN DE LA PRODUCCIÓN</p>
@@ -427,19 +429,21 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     description2={`${registroActual?.proceso === 'cernido' ? 'Cernido' : registroActual?.proceso === 'seleccionado' ? 'Seleccionado' : registroActual?.proceso === 'ninguno' ? 'Ninguno' : registroActual?.proceso}`}
                     transparent={false}
                     icon='package'
-                    flot3={registroActual?.estado === 'pendiente' ? 'Pendiente' : ''}
-                    flot2={registroActual?.estado === 'verificado' ? 'Verificado' : ''}
-                    flot5={registroActual?.estado === 'Ingresado' ? 'Ingresado' : ''}
                 />
 
                 {/* Información de producción */}
                 <div className={styles.content}>
                     <Dato
+                        label="Fecha y hora"
+                        value={formatFechaLiteral(registroActual?.fecha, !isLargeScreen) + ' - ' + formatHoraSinSegundos(registroActual?.fecha)}
+                        vertical={false}
+                    />
+                    <Dato
                         label="Tiempo de Microondas"
                         value={`${registroActual?.microondas || '0'} segundos`}
                         vertical={false}
                     />
-                    
+
                     <Dato
                         label="Cantidad Terminados"
                         value={`${registroActual?.terminados || '0'} unidades`}
@@ -450,16 +454,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         value={formatMesAnio(registroActual?.vencimiento)}
                         vertical={false}
                     />
-                    <Dato
-                        label="Fecha de Registro"
-                        value={formatFechaLiteral(registroActual?.fecha)}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Hora de Registro"
-                        value={formatHoraSinSegundos(registroActual?.fecha)}
-                        vertical={false}
-                    />
+
                 </div>
 
                 {/* Información de verificación si existe */}
@@ -469,7 +464,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         <div className={styles.content}>
                             <Dato
                                 label="Fecha de Verificación"
-                                value={formatFechaLiteral(registroActual.fecha_verificado)}
+                                value={formatFechaLiteral(registroActual.fecha_verificado, !isLargeScreen)}
                                 vertical={false}
                             />
 
@@ -477,13 +472,13 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                                 label="Cantidad Verificada"
                                 value={`${registroActual.cantidad_verificada} unidades`}
                                 vertical={false}
-                                especial='blue'
+                                especial='green'
                             />
                             <Dato
                                 label="Cantidad Ingresada"
                                 value={`${registroActual.cantidad_ingresada} unidades`}
                                 vertical={false}
-                                especial='green'
+                                especial='blue'
                             />
 
                         </div>
@@ -516,7 +511,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 {(registroActual?.estado === 'verificado' || registroActual?.estado === 'Ingresado') && (
                     <Boton
                         className='btn-gray'
-                        label='Movimientos'
+                        label='Movimientos de ingreso'
                         onClick={handleOpenMovimientos}
                     />
                 )}
@@ -567,7 +562,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 setIsOpen={setIsDescargaOpen}
                 titulo="Descargar Registro de Producción"
                 subtitulo="Selecciona el formato que prefieras para descargar este registro."
-                nombreArchivo={`Registro_Produccion_${registroActual?.lote || '0'}_${formatFechaLiteral(registroActual?.fecha).replace(/\s+/g, '_')}`}
+                nombreArchivo={`Registro_Produccion_${registroActual?.lote || '0'}_${formatFechaLiteral(registroActual?.fecha, false).replace(/\s+/g, '_')}`}
                 {...prepararDatosDescarga()}
             />
 
@@ -604,7 +599,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         const cantidadVer = parseFloat(cantidadVerificada) || 0;
                         const terminados = parseFloat(registroActual?.terminados) || 0;
                         const diferencia = cantidadVer - terminados;
-                        
+
                         if (cantidadVerificada && diferencia !== 0) {
                             if (diferencia > 0) {
                                 return (
@@ -767,7 +762,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                                             : `${movimiento.productos.length} productos`
                                         : 'Sin productos'
                                     }
-                                    description={`${movimiento.observaciones || 'Sin observaciones'} • ${formatFechaLiteral(movimiento.fecha)}`}
+                                    description={`${movimiento.observaciones || 'Sin observaciones'} • ${formatFechaLiteral(movimiento.fecha, !isLargeScreen)}`}
                                     circulo={false}
                                     onClick={() => handleMovimientoClick(movimiento)}
                                     arrow={false}

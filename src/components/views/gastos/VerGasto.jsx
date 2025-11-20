@@ -13,8 +13,12 @@ import Notification from '../../common/Notification';
 import ModalDescarga from '../../ui/ModalDescarga';
 import EditarAgregarGasto from './EditarAgregarGasto';
 import { formatCurrency } from '../../../utils/numberUtils';
+import { formatFechaLiteral } from '../../../utils/dateUtils';
+import { useLayout } from '../../../context/LayoutContext';
+
 
 function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualizado }) {
+    const { isLargeScreen } = useLayout();
     const [loading, setLoading] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
@@ -115,37 +119,22 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
                 />
 
                 <p className={styles.subTitle}>INFORMACIÓN DEL GASTO</p>
-
-                <ItemView
-                    title={gasto?.concepto || 'Sin concepto'}
-                    description2={`Valor: ${formatCurrency(gasto?.valor)}`}
-                    transparent={false}
-                    flot6="Gasto"
-                    icon='money'
-                />
                 {gasto?.proveedor?.name && (
                     <ItemView
                         title={gasto.proveedor.name}
                         description="Proveedor"
                         transparent={false}
-                        icon='truck'
                     />
                 )}
                 <div className={styles.content}>
                     <Dato
                         label="Fecha de gasto"
-                        value={formatearFecha(gasto?.fecha_gasto) || 'No especificada'}
-                        vertical={false}
-                    />
-
-                    <Dato
-                        label="Sucursal"
-                        value={gasto?.sucursal?.name || 'No especificada'}
+                        value={formatFechaLiteral(gasto?.fecha_gasto, !isLargeScreen)}
                         vertical={false}
                     />
                     <Dato
                         label="Método de Pago"
-                        value={gasto?.metodo_pago || 'No especificado'}
+                        value={gasto?.metodo_pago.toUpperCase() || 'No especificado'}
                         vertical={false}
                     />
                     <Dato
@@ -153,6 +142,10 @@ function VerGasto({ isOpen, setIsOpen, gasto, onGastoEliminado, onGastoActualiza
                         value={formatCurrency(gasto?.valor)}
                         vertical={false}
                         especial='red'
+                    />
+                    <Dato
+                        label="Concepto"
+                        value={gasto?.concepto || 'Sin concepto'}
                     />
                 </div>
 

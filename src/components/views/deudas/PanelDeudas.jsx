@@ -25,6 +25,7 @@ import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCache';
 import { formatCurrency } from '../../../utils/numberUtils';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
+import { formatFechaLiteral } from '../../../utils/dateUtils';
 
 function PanelDeudas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -517,17 +518,17 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                                     {allDeudas.length > 0 ? (
                                         allDeudas.map((deuda, index) => {
                                             const isVencida = new Date(deuda.fecha_vencimiento) < new Date() && deuda.estado === 'pendiente';
+                                            const fechaFormateada = (typeof deuda.fecha_deuda === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(deuda.fecha_deuda))
+                                                ? (() => { const [y,m,d]=deuda.fecha_deuda.split('-'); return `${parseInt(d,10)}/${parseInt(m,10)}/${y}`; })()
+                                                : `${new Date(deuda.fecha_deuda).toLocaleDateString()}`;
                                             return (
                                                 <ItemView
                                                     key={deuda.id || index}
                                                     title={deuda.concepto || 'Sin concepto'}
-                                            description={(typeof deuda.fecha_deuda === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(deuda.fecha_deuda))
-                                                ? (() => { const [y,m,d]=deuda.fecha_deuda.split('-'); return `${parseInt(d,10)}/${parseInt(m,10)}/${y}`; })()
-                                                : `${new Date(deuda.fecha_deuda).toLocaleDateString()}`}
+                                                    description={formatFechaLiteral(deuda.fecha_deuda, !isLargeScreen) + ' - ' + formatCurrency(deuda?.monto_total)}
                                                     icon='receipt'
                                                     onClick={() => handleDeuda(deuda)}
                                                     arrow={false}
-                                                    flot6={formatCurrency(deuda.monto_total)}
                                                     flot3={deuda.estado === 'pendiente' ? 'Pendiente' : ''}
                                                     flot1={deuda.estado === 'pagada' ? 'Pagada' : ''}
                                                 />

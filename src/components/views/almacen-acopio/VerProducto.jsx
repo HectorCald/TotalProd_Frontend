@@ -208,13 +208,8 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView onBack={() => setIsOpen(false)} title={productoActual.name}/>
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    {productoActual?.name}
-                    <div className={styles.iconButton} >
-                    </div>
-                </h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
                 <div className={styles.content}>
                     <Dato

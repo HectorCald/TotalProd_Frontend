@@ -11,7 +11,7 @@ import acopioImage from '../../assets/acopio.png';
 import movimientosImage from '../../assets/movimientos.png';
 import pedidosImage from '../../assets/pedidos.png';
 import conteosImage from '../../assets/conteos.png';
-import cotizacionesImage from '../../assets/cotizaciones.png';  
+import cotizacionesImage from '../../assets/cotizaciones.png';
 import styles from './Screen.module.css';
 import PullToRefresh from '../common/PullToRefresh';
 import { useUser } from '../../context/UserContext';
@@ -79,12 +79,12 @@ const Inicio = ({ onViewOpen }) => {
   useEffect(() => {
     // Verificación inicial al montar el componente
     checkAndNotifyCacheVersion(false, false);
-    
+
     // Verificación periódica cada 30 segundos (30000ms)
     const interval = setInterval(() => {
       checkAndNotifyCacheVersion(false, false);
     }, 30000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -134,71 +134,70 @@ const Inicio = ({ onViewOpen }) => {
           minHeight: '100%',
         }}
       >
-          <p className={styles.subTitle} style={{ marginTop: '0' }}>FUNCIONES</p>
-          <div className={styles.funciones}>
-            {FUNCTIONS.slice(0, 4).map((func) => (
-              <Coleccion
-                key={func.name}
-                title={func.name}
-                icon={func.icon}
-                onClick={() => handleFunctionClick(func)}
-                disabled={isOfflineMode}
-              />
-            ))}
-          </div>
-          <p className={styles.subTitle}>ATAJOS</p>
-          <div className={styles.atajoAnuncio}>
-            <AtajoAnuncio 
-              title="Almacén General" 
-              description="Administra tu almacén de productos terminados, realiza entradas y salidas." 
-              image={almacenImage} 
-              onClick={() => onViewOpen('almacenMedioGeneral')}
-            />
-            {!soloVentas && (
-              <AtajoAnuncio 
-                title="Materia Prima" 
-                description="Administra tu materia prima, realiza entradas y salidas." 
-                image={acopioImage} 
-                onClick={() => onViewOpen('almacenMedio')} 
-                disabled={isOfflineMode}
-              />
-            )}
-          </div>
-          <p className={styles.subTitle}>OTROS</p>
-          <div className={styles.atajoAnuncioOtros}>
-            <AtajoAnuncio 
-              title="Movimientos" 
-              description="" 
-              image={movimientosImage} 
-              onClick={() => onViewOpen('movimientos')}
+        <p className={styles.subTitle} style={{ marginTop: '0' }}>FUNCIONES</p>
+        <div className={styles.funciones}>
+          {FUNCTIONS.slice(0, 4).map((func) => (
+            <Coleccion
+              key={func.name}
+              title={func.name}
+              icon={func.icon}
+              onClick={() => handleFunctionClick(func)}
               disabled={isOfflineMode}
             />
-            <AtajoAnuncio 
-              title="Pedidos" 
-              description="" 
-              image={pedidosImage} 
-              onClick={() => onViewOpen('pedidos')}
+          ))}
+        </div>
+        <p className={styles.subTitle}>ATAJOS</p>
+        <div className={styles.atajoAnuncio}>
+          <AtajoAnuncio
+            title="Almacén General"
+            description="Administra tu almacén de productos terminados, realiza entradas y salidas."
+            image={almacenImage}
+            onClick={() => onViewOpen('almacenMedioGeneral')}
+          />
+          {!soloVentas && (
+            <AtajoAnuncio
+              title="Materia Prima"
+              description="Administra tu materia prima, realiza entradas y salidas."
+              image={acopioImage}
+              onClick={() => onViewOpen('almacenMedio')}
               disabled={isOfflineMode}
             />
-          </div>
-          <p className={styles.subTitle}>EXTRAS</p>
-          <div className={styles.atajoAnuncioOtros}>
-            <AtajoAnuncio 
-              title="Conteos" 
-              description="" 
-              image={conteosImage} 
-              onClick={() => onViewOpen('conteos')}
-              disabled={isOfflineMode}
-            />
-            <AtajoAnuncio 
-              title="Cotizaciones" 
-              description="" 
-              image={cotizacionesImage} 
-              onClick={() => onViewOpen('cotizaciones')}
-              disabled={isOfflineMode}
-            />
-          </div>
-        
+          )}
+        </div>
+        <p className={styles.subTitle}>OTROS</p>
+        <div className={styles.atajoAnuncioOtros}>
+          <AtajoAnuncio
+            title="Movimientos"
+            description=""
+            image={movimientosImage}
+            onClick={() => onViewOpen('movimientos')}
+            disabled={isOfflineMode}
+          />
+          <AtajoAnuncio
+            title="Pedidos"
+            description=""
+            image={pedidosImage}
+            onClick={() => onViewOpen('pedidos')}
+            disabled={isOfflineMode}
+          />
+        </div>
+        <div className={styles.atajoAnuncioOtros} style={{ marginTop: '10px' }}>
+          <AtajoAnuncio
+            title="Cotizaciones"
+            description=""
+            image={cotizacionesImage}
+            onClick={() => onViewOpen('cotizaciones')}
+            disabled={isOfflineMode}
+          />
+          <AtajoAnuncio
+            title="Conteos"
+            description=""
+            image={conteosImage}
+            onClick={() => onViewOpen('conteos')}
+            disabled={isOfflineMode}
+          />
+        </div>
+
       </PullToRefresh>
 
       {/* Contenido para pantallas grandes */}

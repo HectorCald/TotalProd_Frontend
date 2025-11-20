@@ -87,9 +87,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
         try {
             setLoadingSalida(true);
-            
+
             const response = await movimientosAlmacenService.getById(pedidoActual.movimiento_salida_id);
-            
+
             if (response.success) {
                 setMovimientoSalida(response.data);
                 setIsVerMovimientoOpen(true);
@@ -113,9 +113,9 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
 
         try {
             setLoadingSalida(true);
-            
+
             const response = await movimientosAlmacenService.getById(pedidoActual.movimiento_entrada_id);
-            
+
             if (response.success) {
                 setMovimientoSalida(response.data);
                 setIsVerMovimientoOpen(true);
@@ -609,40 +609,40 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
         return pedidoActual.pedido_almacen_detalle
             .sort((a, b) => (a?.producto_almacen?.name || '').localeCompare(b?.producto_almacen?.name || '', 'es', { sensitivity: 'base' }))
             .map((detalle) => {
-            const producto = detalle.producto_almacen || {};
-            const cantidad = parseFloat(detalle.cantidad) || 0;
-            const grup = parseFloat(producto.grup) || 0;
-            const esAgrupado = pedidoActual?.agrupado && grup > 0;
-            const precio = parseFloat(detalle.precio) || 0;
+                const producto = detalle.producto_almacen || {};
+                const cantidad = parseFloat(detalle.cantidad) || 0;
+                const grup = parseFloat(producto.grup) || 0;
+                const esAgrupado = pedidoActual?.agrupado && grup > 0;
+                const precio = parseFloat(detalle.precio) || 0;
 
-            let cantidadTexto;
-            let precioTexto;
+                let cantidadTexto;
+                let precioTexto;
 
-            if (esAgrupado) {
-                const grupos = Math.floor(cantidad / grup);
-                const unidades = cantidad % grup;
-                cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                // Precio unitario multiplicado por la cantidad de agrupación (redondeado)
-                const precioUnitarioAgrupado = Math.round(precio * grup);
-                precioTexto = formatCurrency(precioUnitarioAgrupado);
-            } else {
-                cantidadTexto = `${cantidad} ud`;
-                precioTexto = formatCurrency(precio);
-            }
+                if (esAgrupado) {
+                    const grupos = Math.floor(cantidad / grup);
+                    const unidades = cantidad % grup;
+                    cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
+                    // Precio unitario multiplicado por la cantidad de agrupación (redondeado)
+                    const precioUnitarioAgrupado = Math.round(precio * grup);
+                    precioTexto = formatCurrency(precioUnitarioAgrupado);
+                } else {
+                    cantidadTexto = `${cantidad} ud`;
+                    precioTexto = formatCurrency(precio);
+                }
 
-            // Calcular subtotal y redondear solo si el pedido es agrupado
-            let subtotal = precio * cantidad;
-            if (esAgrupado) {
-                subtotal = Math.round(subtotal);
-            }
+                // Calcular subtotal y redondear solo si el pedido es agrupado
+                let subtotal = precio * cantidad;
+                if (esAgrupado) {
+                    subtotal = Math.round(subtotal);
+                }
 
-            return [
-                producto.name || 'Sin nombre',
-                cantidadTexto,
-                precioTexto,
-                formatCurrency(subtotal)
-            ];
-        });
+                return [
+                    producto.name || 'Sin nombre',
+                    cantidadTexto,
+                    precioTexto,
+                    formatCurrency(subtotal)
+                ];
+            });
     }, [pedidoActual]);
 
     if (!pedidoActual) return null;
@@ -703,34 +703,30 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                     />
                 )}
                 <div className={styles.content}>
+                    {pedidoActual.numero_pedido !== undefined && pedidoActual.numero_pedido !== null && (
+                        <Dato
+                            label="Número de Pedido"
+                            value={pedidoActual.numero_pedido}
+                            vertical={false}
+                        />
+                    )}
+                    <Dato
+                        label="Fecha y hora"
+                        value={formatFechaLiteral(pedidoActual?.fecha || pedidoActual?.created_at, !isLargeScreen) + ' - ' + formatHoraSinSegundos(pedidoActual?.fecha || pedidoActual?.created_at)}
+                        vertical={false}
+                    />
                     <Dato
                         label="Tipo de precio"
                         value={pedidoActual.precio?.name || 'Precio desconocido'}
                         vertical={false}
                     />
-                    <Dato
-                        label="Fecha"
-                        value={formatFechaLiteral(pedidoActual?.fecha || pedidoActual?.created_at)}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Hora"
-                        value={formatHoraSinSegundos(pedidoActual?.fecha || pedidoActual?.created_at)}
-                        vertical={false}
-                    />
+
                     <Dato
                         label="Modalidad"
                         value={pedidoActual.agrupado ? 'Agrupado' : 'Unidades'}
                         vertical={false}
                     />
-                    {pedidoActual.numero_pedido !== undefined && pedidoActual.numero_pedido !== null && (
-                        <Dato
-                            label="Número de Pedido"
-                            value={`Nº ${pedidoActual.numero_pedido}`}
-                            vertical={false}
-                            especial="blue"
-                        />
-                    )}
+
                     <Dato
                         label="Estado"
                         value={pedidoActual.estado}
@@ -780,7 +776,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         loading={loadingSalida}
                     />
                 )}
-                
+
                 {/* Mostrar botón de entrada si la sucursal actual es la que hizo la entrada (sucursal_id) */}
                 {pedidoActual?.movimiento_entrada_id && pedidoActual.sucursal_id === sucursalActual?.id && (
                     <Boton
@@ -1009,7 +1005,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         </div>
                     )}
                     <div className={styles.buttons}>
-                    <Boton
+                        <Boton
                             className='btn-default'
                             label='Cancelar'
                             style={{ marginTop: 'auto' }}
@@ -1023,7 +1019,7 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                             loading={loading}
                             segundosDisabled={5}
                         />
-                        
+
                     </div>
                 </div>
             </ViewModal>

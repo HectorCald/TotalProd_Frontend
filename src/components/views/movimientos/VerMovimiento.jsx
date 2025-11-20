@@ -527,7 +527,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
                 <h1 className={styles.title}>
-                    Detalles
+                    Detalles del Movimiento
                     <div className={styles.iconButton}>
                         <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
                             <BoxIcon
@@ -552,7 +552,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                             ? `${movimientoActual?.proveedor?.total_orders || 0} órdenes`
                             : (() => {
                                 const numeroOrden = obtenerNumeroOrdenFormateado(movimientoActual?.numero_orden);
-                                return numeroOrden === '--' ? '' : `Orden Nº ${numeroOrden}`;
+                                return numeroOrden === '--' ? '' : `Nº ${numeroOrden}`;
                             })()
                         }
                         transparent={false}
@@ -561,17 +561,12 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 <div className={styles.content}>
                     <Dato
                         label="Tipo de movimiento"
-                        value={movimientoActual?.type === 'entrada' ? 'Entrada' : 'Salida'}
+                        value={movimientoActual?.type === 'entrada' ? 'Entrada' : 'Salida o Venta'}
                         vertical={false}
                     />
                     <Dato
-                        label="Fecha"
-                        value={formatFechaLiteral(movimientoActual?.fecha)}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Hora"
-                        value={formatHoraSinSegundos(movimientoActual?.fecha)}
+                        label="Fecha y hora"
+                        value={formatFechaLiteral(movimientoActual?.fecha, !isLargeScreen) + ' - ' + formatHoraSinSegundos(movimientoActual?.fecha)}
                         vertical={false}
                     />
                     <Dato
@@ -593,7 +588,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     {movimientoActual?.metodo_pago && (
                         <Dato
                             label="Método de pago"
-                            value={movimientoActual.metodo_pago}
+                            value={movimientoActual.metodo_pago.toUpperCase()}
                             vertical={false}
                         />
                     )}
@@ -683,7 +678,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                         <Dato
                             label="Concepto"
                             value={movimientoActual.concepto}
-                            vertical={false}
                         />
                     )}
                 </div>

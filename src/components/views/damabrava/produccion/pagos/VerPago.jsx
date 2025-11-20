@@ -50,9 +50,9 @@ const VerPago = ({
     const estadoActual = detallePago?.estado || 'pendiente';
     const responsableNombre = detallePago?.responsable?.name || 'Sin responsable';
     const periodoTexto = detallePago
-        ? `${formatFechaLiteral(detallePago.fecha_inicio)} - ${formatFechaLiteral(detallePago.fecha_fin)}`
+        ? `${formatFechaLiteral(detallePago.fecha_inicio, !isLargeScreen)} - ${formatFechaLiteral(detallePago.fecha_fin, !isLargeScreen)}`
         : '--';
-    const fechaCreacion = formatFechaLiteral(detallePago?.fecha);
+    const fechaCreacion = formatFechaLiteral(detallePago?.fecha, !isLargeScreen);
     const horaCreacion = formatHoraSinSegundos(detallePago?.fecha);
     const registrosAsociados = Array.isArray(detallePago?.registros) ? detallePago.registros.length : 0;
     const registradoPorNombre =

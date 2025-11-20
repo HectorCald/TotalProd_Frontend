@@ -24,6 +24,7 @@ import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCache';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 import { formatCurrency } from '../../../utils/numberUtils';
+import { formatFechaLiteral } from '../../../utils/dateUtils';
 
 function PanelGastos({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -526,10 +527,10 @@ function PanelGastos({ isOpen, setIsOpen }) {
                                             <ItemView
                                                 key={gasto.id || index}
                                                 title={gasto.concepto || 'Sin concepto'}
-                                                description={`${formatearFecha(gasto.fecha_gasto)} • ${gasto.metodo_pago || 'Sin método de pago'}${gasto.proveedor?.name ? ` • ${gasto.proveedor.name}` : ''}`}
-                                                icon='money'
+                                                description={formatFechaLiteral(gasto.fecha_gasto, !isLargeScreen)}
                                                 onClick={() => handleGasto(gasto)}
                                                 arrow={false}
+                                                icon='money'
                                                 flot3={formatCurrency(gasto.valor || 0)}
                                             />
                                         );

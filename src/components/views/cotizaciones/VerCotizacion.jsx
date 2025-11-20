@@ -442,24 +442,14 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                     <ItemView
                         title={cotizacionActual?.cliente?.name || 'Sin cliente'}
                         description="Cliente"
-                        flot2={`Cotización #${cotizacionActual?.numero_cotizacion || 'Sin número'}`}
+                        flot2={`#${cotizacionActual?.numero_cotizacion || 'Sin número'}`}
                         transparent={false}
                     />
                 )}
                 <div className={styles.content}>
                     <Dato
-                        label="Número de cotización"
-                        value={cotizacionActual?.numero_cotizacion || 'Sin número'}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Fecha"
-                        value={formatFechaLiteral(cotizacionActual?.fecha)}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Hora"
-                        value={formatHoraSinSegundos(cotizacionActual?.fecha)}
+                        label="Fecha y hora"
+                        value={formatFechaLiteral(cotizacionActual?.fecha, !isLargeScreen) + ' - ' + formatHoraSinSegundos(cotizacionActual?.fecha)}
                         vertical={false}
                     />
                     <Dato
@@ -481,14 +471,14 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                     {cotizacionActual?.metodo_pago && (
                         <Dato
                             label="Método de pago"
-                            value={cotizacionActual.metodo_pago}
+                            value={cotizacionActual.metodo_pago.toUpperCase()}
                             vertical={false}
                         />
                     )}
                     {cotizacionActual?.fecha_vencimiento && (
                         <Dato
                             label="Vencimiento"
-                            value={formatFechaLiteral(cotizacionActual.fecha_vencimiento)}
+                            value={formatFechaLiteral(cotizacionActual.fecha_vencimiento, !isLargeScreen)}
                             vertical={false}
                         />
                     )}

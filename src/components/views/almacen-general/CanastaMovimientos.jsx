@@ -307,24 +307,26 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 }
             }
             
-            // Cargar cliente (prioridad: repetir > guardado)
-            if (clienteIdRepitiendo && clienteNameRepitiendo && !clienteSeleccionado) {
-                setClienteSeleccionadoData({
-                    id: clienteIdRepitiendo,
-                    name: clienteNameRepitiendo
-                });
-                setClienteSeleccionado(clienteIdRepitiendo);
-            } else if (!clienteIdRepitiendo && !clienteSeleccionado) {
-                const clienteIdGuardado = localStorage.getItem('clienteIdMovimientoGuardado');
-                const clienteNameGuardado = localStorage.getItem('clienteNameMovimientoGuardado');
-                if (clienteIdGuardado && clienteNameGuardado) {
+            // Cargar cliente solo desde "repetir" (NO se guarda en localStorage permanente)
+            const hayValoresRepitiendo = localStorage.getItem('precioIdRepitiendo') || 
+                                        localStorage.getItem('productosMovimientoRepitiendo') ||
+                                        localStorage.getItem('movimientoIdEditando');
+            
+            if (hayValoresRepitiendo) {
+                // Si hay valores de repetir activos, cargar o limpiar cliente según corresponda
+                if (clienteIdRepitiendo && clienteNameRepitiendo) {
                     setClienteSeleccionadoData({
-                        id: clienteIdGuardado,
-                        name: clienteNameGuardado
+                        id: clienteIdRepitiendo,
+                        name: clienteNameRepitiendo
                     });
-                    setClienteSeleccionado(clienteIdGuardado);
+                    setClienteSeleccionado(clienteIdRepitiendo);
+                } else {
+                    // Si no hay cliente en repetir, limpiar el cliente del estado
+                    setClienteSeleccionadoData(null);
+                    setClienteSeleccionado('');
                 }
             }
+            // Si no hay valores de repetir, mantener el cliente que ya está en el estado (no hacer nada)
             
             // Cargar método de pago (prioridad: repetir > guardado)
             if (metodoPagoRepitiendo && !metodoPagoSeleccionado) {
@@ -369,13 +371,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
     }, [descuentoAumentoPorcentaje]);
 
-    useEffect(() => {
-        if (clienteSeleccionadoData) {
-            localStorage.setItem('clienteIdMovimientoGuardado', clienteSeleccionadoData.id);
-            localStorage.setItem('clienteNameMovimientoGuardado', clienteSeleccionadoData.name);
-        }
-    }, [clienteSeleccionadoData]);
-
+    // El cliente NO se guarda en localStorage, solo se mantiene en el estado
+    // useEffect para guardar método de pago
     useEffect(() => {
         if (metodoPagoSeleccionado) {
             localStorage.setItem('metodoPagoMovimientoGuardado', metodoPagoSeleccionado);
@@ -480,8 +477,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 localStorage.removeItem('aumentoMovimientoGuardado');
                 localStorage.removeItem('conceptoMovimientoGuardado');
                 localStorage.removeItem('descuentoAumentoPorcentajeMovimientoGuardado');
-                localStorage.removeItem('clienteIdMovimientoGuardado');
-                localStorage.removeItem('clienteNameMovimientoGuardado');
                 localStorage.removeItem('metodoPagoMovimientoGuardado');
         setDescuento('');
         setAumento('');
@@ -731,10 +726,17 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 let conceptoDeuda = 'Venta a crédito';
                         let destinoSucursalId = null;
 
+                        // Obtener el nombre del cliente para el concepto
+                        const clienteCredito = esEntrega
+                            ? (clienteSeleccionadoData || clientePedidoData || null)
+                            : (clienteSeleccionadoData || null);
+                        const nombreCliente = clienteCredito?.name || 'Cliente desconocido';
+
                         if (esEntrega) {
-                            const sucursalOrigenName = localStorage.getItem('pedidoDestinoSucursalName');
-                    conceptoDeuda = sucursalOrigenName ? `Pedido Nº ${numeroPedido || 'N/A'} - ${sucursalOrigenName}` : `Pedido Nº ${numeroPedido || 'N/A'}`;
+                            conceptoDeuda = `Pedido Nº ${numeroPedido || 'N/A'} (${nombreCliente})`;
                             destinoSucursalId = localStorage.getItem('pedidoDestinoSucursalId');
+                        } else {
+                            conceptoDeuda = `Venta (${nombreCliente})`;
                         }
 
                 const clienteIdCredito = esEntrega
@@ -809,8 +811,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 localStorage.removeItem('aumentoMovimientoGuardado');
                 localStorage.removeItem('conceptoMovimientoGuardado');
                 localStorage.removeItem('descuentoAumentoPorcentajeMovimientoGuardado');
-                localStorage.removeItem('clienteIdMovimientoGuardado');
-                localStorage.removeItem('clienteNameMovimientoGuardado');
                 localStorage.removeItem('metodoPagoMovimientoGuardado');
 
                 if (isEditandoMovimiento) {

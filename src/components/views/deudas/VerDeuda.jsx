@@ -20,6 +20,7 @@ import InputNormal from '../../common/InputNormal';
 import NoData from '../../common/NoData';
 import { useLayout } from '../../../context/LayoutContext';
 import { formatCurrency } from '../../../utils/numberUtils';
+import { formatFechaLiteral } from '../../../utils/dateUtils';
 
 function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualizada }) {
     const { isLargeScreen } = useLayout();
@@ -62,8 +63,8 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
         // Información superior
         const informacionSuperior = {
             'Responsable': deudaActual?.user?.name || deudaActual?.personal?.name || 'Usuario desconocido',
-            'Fecha Deuda': new Date(deudaActual?.fecha_deuda).toLocaleString(),
-            'Fecha Vencimiento': new Date(deudaActual?.fecha_vencimiento).toLocaleString(),
+            'Fecha Deuda': formatFechaLiteral(deudaActual?.fecha_deuda, !isLargeScreen),
+            'Fecha Vencimiento': formatFechaLiteral(deudaActual?.fecha_vencimiento, !isLargeScreen),
             'Concepto': deudaActual?.concepto || 'Sin concepto',
             'Monto Total': formatCurrency(deudaActual?.monto_total),
             'Saldo Pendiente': formatCurrency(deudaActual?.saldo_pendiente),
@@ -73,6 +74,11 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
 
         if (deudaActual?.cliente?.name) {
             informacionSuperior['Cliente'] = deudaActual.cliente.name;
+        }
+
+        if (deudaActual?.destino_sucursal_id && deudaActual?.sucursal_destino?.name) {
+            informacionSuperior['Sucursal Destino'] = deudaActual.sucursal_destino.name + 
+                (deudaActual.sucursal_destino.empresas?.name ? `(${deudaActual.sucursal_destino.empresas.name})` : '');
         }
 
         // No hay tabla para deudas, solo información
@@ -258,29 +264,6 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
     const hasPagosParciales = saldoPendienteNum > 0 && saldoPendienteNum < montoTotalNum;
     const isPagada = saldoPendienteNum === 0 || deudaActual?.estado === 'pagada';
 
-    // Formateador seguro de fechas YYYY-MM-DD sin cambiar de día por zona horaria
-    const formatDate = (val) => {
-        if (!val) return '';
-        // Manejar fechas con hora: "2025-11-07 00:00:00" o "2025-11-07T00:00:00"
-        if (typeof val === 'string') {
-            // Extraer solo la parte de la fecha (YYYY-MM-DD) si tiene hora
-            const fechaMatch = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
-            if (fechaMatch) {
-                const [, y, m, d] = fechaMatch;
-                return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
-            }
-            // Si es solo fecha sin hora
-            if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-                const [y, m, d] = val.split('-');
-                return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
-            }
-        }
-        try {
-            return new Date(val).toLocaleDateString();
-        } catch {
-            return String(val);
-        }
-    };
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -308,8 +291,12 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                 {/* Mostrar cliente o sucursal destino según corresponda */}
                 {deudaActual?.destino_sucursal_id ? (
                     <ItemView
-                        title={deudaActual.sucursal_destino?.name || 'Sucursal no encontrada'}
-                        description="Sucursal Destino"
+                        title={
+                            deudaActual.sucursal_destino?.name 
+                                ? `${deudaActual.sucursal_destino.name}${deudaActual.sucursal_destino.empresas?.name ? `(${deudaActual.sucursal_destino.empresas.name})` : ''}`
+                                : 'Sucursal no encontrada'
+                        }
+                        description="Sucursal deuda y destino"
                         transparent={false}
                         icon='store'
                     />
@@ -323,18 +310,15 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                     )
                 )}
                 <div className={styles.content}>
-                    <Dato
-                        label="Concepto"
-                        value={deudaActual?.concepto || 'Sin concepto'}
-                    />
+                    
                     <Dato
                         label="Fecha de deuda"
-                        value={formatDate(deudaActual?.fecha_deuda)}
+                        value={formatFechaLiteral(deudaActual?.fecha_deuda, !isLargeScreen)}
                         vertical={false}
                     />
                     <Dato
                         label="Fecha de vencimiento"
-                        value={formatDate(deudaActual?.fecha_vencimiento)}
+                        value={formatFechaLiteral(deudaActual?.fecha_vencimiento, !isLargeScreen)}
                         vertical={false}
                     />
                     <Dato
@@ -342,11 +326,6 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                         value={deudaActual?.estado}
                         vertical={false}
                         especial={deudaActual?.estado === 'pendiente' ? 'red' : deudaActual?.estado === 'pagada' ? 'blue' : 'gray'}
-                    />
-                    <Dato
-                        label="Sucursal deuda"
-                        value={deudaActual?.sucursal?.name || 'No especificada'}
-                        vertical={false}
                     />
                     <Dato
                         label="Monto Total"
@@ -360,6 +339,10 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                         value={formatCurrency(deudaActual?.saldo_pendiente)}
                         vertical={false}
                         especial={deudaActual?.saldo_pendiente > 0 ? 'red' : 'green'}
+                    />
+                    <Dato
+                        label="Concepto"
+                        value={deudaActual?.concepto || 'Sin concepto'}
                     />
                 </div>
                 {/* Botón Ver Detalle del Movimiento */}
@@ -567,7 +550,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                         pagos.map((p) => (
                             <React.Fragment key={p.id}>
                                 <Dato
-                                    label={`• ${formatDate(p.fecha)}`}
+                                    label={`• ${formatFechaLiteral(p.fecha, !isLargeScreen)}`}
                                     value={formatCurrency(p.monto)}
                                     icon={deletingPagoId === p.id ? 'loader-alt' : 'trash'}
                                     iconLoading={deletingPagoId === p.id}

@@ -28,7 +28,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
     const [detalles, setDetalles] = useState([]);
     const [isLoadingDetalles, setIsLoadingDetalles] = useState(false);
     const tipoNombre = conteo?.tipo === 'almacen' ? 'Almacén' : 'Materia Prima';
-    const fechaLocal = formatFechaLiteral(conteo?.fecha);
+    const fechaLocal = formatFechaLiteral(conteo?.fecha, !isLargeScreen);
     const horaLocal = formatHoraSinSegundos(conteo?.fecha);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
@@ -487,9 +487,7 @@ function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplace
                     />
                     <p className={styles.subTitle}>INFORMACIÓN DEL CONTEO</p>
                     <div className={styles.content}>
-                        <Dato label="Tipo" value={tipoNombre} vertical={false} />
-                        <Dato label="Fecha" value={fechaLocal} vertical={false} />
-                        <Dato label="Hora" value={horaLocal} vertical={false} />
+                        <Dato label="Fecha y hora" value={fechaLocal + ' - ' + horaLocal} vertical={false} />
                     </div>
                     {(conteo?.detalles_count || 0) > 0 && (
                         <Boton

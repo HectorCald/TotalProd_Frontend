@@ -17,10 +17,10 @@ const parseDateValue = (value) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const buildDateFormatter = () =>
+const buildDateFormatter = (abreviarMes = false) =>
   new Intl.DateTimeFormat('es-ES', {
     day: 'numeric',
-    month: 'long',
+    month: abreviarMes ? 'short' : 'long',
     year: 'numeric'
   });
 
@@ -32,13 +32,21 @@ const buildTimeFormatter = () =>
   });
 
 let dateFormatter;
+let dateFormatterAbreviado;
 let timeFormatter;
 
-const getDateFormatter = () => {
-  if (!dateFormatter) {
-    dateFormatter = buildDateFormatter();
+const getDateFormatter = (abreviarMes = false) => {
+  if (abreviarMes) {
+    if (!dateFormatterAbreviado) {
+      dateFormatterAbreviado = buildDateFormatter(true);
+    }
+    return dateFormatterAbreviado;
+  } else {
+    if (!dateFormatter) {
+      dateFormatter = buildDateFormatter(false);
+    }
+    return dateFormatter;
   }
-  return dateFormatter;
 };
 
 const getTimeFormatter = () => {
@@ -48,11 +56,11 @@ const getTimeFormatter = () => {
   return timeFormatter;
 };
 
-export const formatFechaLiteral = (value) => {
+export const formatFechaLiteral = (value, abreviarMes = false) => {
   const date = parseDateValue(value);
   if (!date) return DEFAULT_FALLBACK;
   try {
-    return getDateFormatter().format(date);
+    return getDateFormatter(abreviarMes).format(date);
   } catch (error) {
     return DEFAULT_FALLBACK;
   }

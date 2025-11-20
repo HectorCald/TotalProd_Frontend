@@ -15,7 +15,7 @@ export const FUNCTIONS = [
         view: 'personal'
     },
     {
-        name: 'Transferencias',
+        name: 'Transferir',
         icon: 'transfer',
         view: 'transferencias'
     },

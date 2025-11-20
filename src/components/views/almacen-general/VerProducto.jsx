@@ -226,9 +226,8 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={() => setIsOpen(false)} />
+            <HeaderView onBack={() => setIsOpen(false)} title={productoActual.name}/>
             <div className={styles.container}>
-                <h1 className={styles.title}>{productoActual.name}</h1>
                 <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
                 <div className={styles.content}>
                     <Dato
@@ -247,10 +246,12 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                         label="Código de barras"
                         value={productoActual.codigo_barras || '--'}
                     />
+                    {productoActual.grup ? <>
                     <Dato
                         label="Grupo"
-                        value={productoActual.grup ? `${productoActual.grup} unidades` : 'No agrupado'}
+                        value={`${productoActual.grup} unidades`}
                     />
+                    </> : ''}
                     <Dato
                         label="Categoría"
                         value={productoActual.category_name || '--'}
