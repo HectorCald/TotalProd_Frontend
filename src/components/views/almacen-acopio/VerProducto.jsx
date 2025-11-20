@@ -149,14 +149,19 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
 
     // Handle para eliminar producto
     const handleDelete = async () => {
+        if (!productoActual?.id) {
+            mostrarNotificacion('error', 'No se puede eliminar: producto no válido');
+            return;
+        }
+        
         setLoading(true);
         try {
             // Verificar si tiene movimientos
-            const movimientosResponse = await movimientosAcopioService.getByProduct(productoActual.id);
+            const movimientosResponse = await movimientosAcopioService.getByProduct(productoActual?.id);
             const tieneMovimientos = movimientosResponse.success && movimientosResponse.data && movimientosResponse.data.length > 0;
 
             // Verificar si tiene pedidos
-            const pedidosResponse = await pedidosAcopioService.verificarProductoEnPedidos(productoActual.id);
+            const pedidosResponse = await pedidosAcopioService.verificarProductoEnPedidos(productoActual?.id);
             const tienePedidos = pedidosResponse.success && pedidosResponse.data && pedidosResponse.data.tienePedidos;
 
             if (tieneMovimientos) {
@@ -172,7 +177,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
             }
 
             // Si no tiene movimientos ni pedidos, proceder con la eliminación
-            const response = await productsAcopioService.delete(productoActual.id);
+            const response = await productsAcopioService.delete(productoActual?.id);
             if (response.success) {
                 const logDatosAntes = formatProductoAcopioLog(productoActual, {
                     typeMeasures
@@ -190,7 +195,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     comentario: 'Eliminación de producto de materia prima',
                     campos
                 });
-                onProductDeleted(productoActual.id);
+                onProductDeleted(productoActual?.id);
                 setIsDeleteOpen(false);
                 setIsOpen(false);
                 mostrarNotificacion('success', 'Producto eliminado correctamente');
@@ -206,9 +211,27 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
         }
     };
 
+    // Early return if no product data
+    if (!productoActual) {
+        return (
+            <View isOpen={isOpen} setIsOpen={setIsOpen}>
+                <HeaderView onBack={() => setIsOpen(false)} title="Producto"/>
+                <div className={styles.container}>
+                    <NoData 
+                        icon="box"
+                        title="No hay datos del producto"
+                        detail="No se pudo cargar la información del producto"
+                        transparent={false}
+                        minHeight="200px"
+                    />
+                </div>
+            </View>
+        );
+    }
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderView onBack={() => setIsOpen(false)} title={productoActual.name}/>
+            <HeaderView onBack={() => setIsOpen(false)} title={productoActual.name || 'Producto'}/>
             <div className={styles.container}>
                 <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
                 <div className={styles.content}>
@@ -279,7 +302,7 @@ function VerProducto({ isOpen, setIsOpen, registro, onProductUpdated, onProductD
                     onClose={() => setIsDeleteOpen(false)}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Eliminar el producto "{productoActual?.name}"? Esta acción es irreversible y puede afectar registros relacionados.</p>
+                    <p className={styles.subTitle}>¿Eliminar el producto "{productoActual?.name || 'Sin nombre'}"? Esta acción es irreversible y puede afectar registros relacionados.</p>
                     <div className={styles.buttons}>
                         <Boton
                             className='btn-default'

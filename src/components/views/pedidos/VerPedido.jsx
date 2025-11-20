@@ -733,14 +733,6 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                         vertical={false}
                         especial={pedidoActual.estado === 'Pendiente' ? 'red' : pedidoActual.estado === 'Completado' ? 'blue' : pedidoActual.estado === 'Entregado' ? 'orange' : 'gray'}
                     />
-
-                    {(pedidoActual.estado === 'Entregado' || pedidoActual.estado === 'Completado') && (
-                        <Dato
-                            label="Método de Pago"
-                            value={pedidoActual.movimiento_salida?.metodo_pago || 'No especificado'}
-                            vertical={false}
-                        />
-                    )}
                     <Dato
                         label="Total"
                         value={formatCurrency((pedidoActual.pedido_almacen_detalle || []).reduce((total, detalle) => {
