@@ -335,9 +335,11 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
         localStorage.removeItem('productosMovimientoEditando');
         localStorage.removeItem('descuentoMovimientoRepitiendo');
         localStorage.removeItem('aumentoMovimientoRepitiendo');
+        localStorage.removeItem('descuentoAumentoPorcentajeRepitiendo');
         localStorage.removeItem('conceptoMovimientoRepitiendo');
         localStorage.removeItem('descuentoMovimientoEditando');
         localStorage.removeItem('aumentoMovimientoEditando');
+        localStorage.removeItem('descuentoAumentoPorcentajeEditando');
         localStorage.removeItem('fechaMovimientoEditando');
         localStorage.removeItem('movimientoIdEditando');
         localStorage.removeItem('productosEdicion');
@@ -354,22 +356,40 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             return sum + (parseFloat(producto.subtotal) || 0);
         }, 0);
 
-        // Convertir montos de descuento y aumento a porcentajes
+        // Convertir montos de descuento y aumento según el modo original
         const descuentoMonto = parseFloat(movimientoActual?.descuento ?? movimiento?.descuento ?? 0);
         const aumentoMonto = parseFloat(movimientoActual?.aumento ?? movimiento?.aumento ?? 0);
+        const esPorcentaje = movimientoActual?.porcentaje === true;
         
-        if (!isNaN(descuentoMonto) && descuentoMonto > 0 && subtotalMovimiento > 0) {
-            // Calcular porcentaje desde el monto y el subtotal
-            const descuentoPorcentaje = (descuentoMonto / subtotalMovimiento) * 100;
-            localStorage.setItem('descuentoMovimientoRepitiendo', descuentoPorcentaje.toFixed(2));
+        // Guardar el modo de descuento/aumento (porcentaje o monto)
+        if (descuentoMonto > 0 || aumentoMonto > 0) {
+            localStorage.setItem('descuentoAumentoPorcentajeRepitiendo', esPorcentaje ? 'true' : 'false');
+        } else {
+            localStorage.removeItem('descuentoAumentoPorcentajeRepitiendo');
+        }
+        
+        if (!isNaN(descuentoMonto) && descuentoMonto > 0) {
+            if (esPorcentaje && subtotalMovimiento > 0) {
+                // Si era porcentaje, calcular el porcentaje desde el monto y el subtotal
+                const descuentoPorcentaje = (descuentoMonto / subtotalMovimiento) * 100;
+                localStorage.setItem('descuentoMovimientoRepitiendo', descuentoPorcentaje.toFixed(2));
+            } else {
+                // Si era monto directo, guardar el monto
+                localStorage.setItem('descuentoMovimientoRepitiendo', descuentoMonto.toFixed(2));
+            }
         } else {
             localStorage.removeItem('descuentoMovimientoRepitiendo');
         }
 
-        if (!isNaN(aumentoMonto) && aumentoMonto > 0 && subtotalMovimiento > 0) {
-            // Calcular porcentaje desde el monto y el subtotal
-            const aumentoPorcentaje = (aumentoMonto / subtotalMovimiento) * 100;
-            localStorage.setItem('aumentoMovimientoRepitiendo', aumentoPorcentaje.toFixed(2));
+        if (!isNaN(aumentoMonto) && aumentoMonto > 0) {
+            if (esPorcentaje && subtotalMovimiento > 0) {
+                // Si era porcentaje, calcular el porcentaje desde el monto y el subtotal
+                const aumentoPorcentaje = (aumentoMonto / subtotalMovimiento) * 100;
+                localStorage.setItem('aumentoMovimientoRepitiendo', aumentoPorcentaje.toFixed(2));
+            } else {
+                // Si era monto directo, guardar el monto
+                localStorage.setItem('aumentoMovimientoRepitiendo', aumentoMonto.toFixed(2));
+            }
         } else {
             localStorage.removeItem('aumentoMovimientoRepitiendo');
         }
@@ -432,8 +452,10 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 return;
             }
 
-            // Si tiene permisos, continuar con la edición normal
+            // Si tiene permisos, continuar con la edición normal (usar las mismas claves de repetir)
             handleRepetirMovimiento();
+            
+            // Solo guardar fecha y número de orden para edición (lo demás usa las claves de repetir)
             if (movimientoActual?.fecha) {
                 try {
                     const fechaMovimiento = new Date(movimientoActual.fecha);
@@ -458,12 +480,6 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
             } else {
                 localStorage.removeItem('numeroOrdenEditando');
             }
-
-            const productosMovimientoRepetidos = localStorage.getItem('productosMovimientoRepitiendo');
-            if (productosMovimientoRepetidos) {
-                localStorage.setItem('productosMovimientoEditando', productosMovimientoRepetidos);
-            }
-
 
             const productosFuente = obtenerProductosFuente();
             if (productosFuente && productosFuente.length > 0) {
@@ -941,16 +957,14 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     // Limpiar productos del movimiento cuando se cierra AlmacenGeneral
                     if (!isOpen) {
                     localStorage.removeItem('productosMovimientoRepitiendo');
-                    localStorage.removeItem('productosMovimientoEditando');
                     localStorage.removeItem('descuentoMovimientoRepitiendo');
                     localStorage.removeItem('aumentoMovimientoRepitiendo');
                     localStorage.removeItem('conceptoMovimientoRepitiendo');
-                    localStorage.removeItem('descuentoMovimientoEditando');
-                    localStorage.removeItem('aumentoMovimientoEditando');
+                    localStorage.removeItem('descuentoAumentoPorcentajeRepitiendo');
                     localStorage.removeItem('fechaMovimientoEditando');
                     localStorage.removeItem('movimientoIdEditando');
                     localStorage.removeItem('productosEdicion');
-                localStorage.removeItem('numeroOrdenEditando');
+                    localStorage.removeItem('numeroOrdenEditando');
                     }
                 }}
                 tipo="salida"
