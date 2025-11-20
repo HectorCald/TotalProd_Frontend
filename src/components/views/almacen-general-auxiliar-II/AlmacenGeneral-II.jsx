@@ -178,7 +178,7 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
         searchQuery,
         isSearchExpanded,
         categoriaFiltro,
-        categoriaFiltroNombre,
+        categoriaFiltroNombres,
         ordenamiento,
         handleSearchChange,
         handleSearchClear,
@@ -237,7 +237,7 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
     const opciones = [
         {
             label: getCategoriaNombre(),
-            active: categoriaFiltro !== null,
+            active: categoriaFiltro && categoriaFiltro.length > 0,
             onClick: () => setOpenCategoria(true)
         },
         {
@@ -587,8 +587,8 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
                                         ) : (
                                             <NoData 
                                                 icon="box"
-                                                title={searchQuery || categoriaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
-                                                detail={searchQuery || categoriaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
+                                                title={searchQuery || (categoriaFiltro && categoriaFiltro.length > 0) ? 'Sin resultados' : 'No hay productos'}
+                                                detail={searchQuery || (categoriaFiltro && categoriaFiltro.length > 0) ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
                                                 transparent={true}
                                                 minHeight="200px"
                                             />
@@ -663,6 +663,7 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
                 isOpen={isOpenCategoria}
                 setIsOpen={setOpenCategoria}
                 onCategoriaSeleccionada={handleCategoriaFilter}
+                categoriasSeleccionadas={categoriaFiltro || []}
             />
             {/* Filtro de ordenamiento */}
             <FiltroOrdenamiento
