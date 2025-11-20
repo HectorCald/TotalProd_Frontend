@@ -173,7 +173,7 @@ const UsuarioScreen = () => {
                 preciosResponse,
                 clientesResponse
             ] = await Promise.all([
-                productsAlmacenService.getAll(),
+                productsAlmacenService.getAll(true), // true para solo obtener productos con stock > 0 en modo offline
                 categoryAlmacenService.getAll(),
                 pricesTypesService.getAll(),
                 clientService.getAll()

@@ -586,30 +586,60 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                     {(() => {
                         const descuentoMonto = parseFloat(movimientoActual?.descuento) || 0;
                         const aumentoMonto = parseFloat(movimientoActual?.aumento) || 0;
+                        const esPorcentaje = movimientoActual?.porcentaje === true;
                         
-                        // Calcular el subtotal para obtener el porcentaje
+                        // Calcular el subtotal para obtener el porcentaje (si es necesario)
                         const subtotal = movimientoActual?.productos?.reduce((sum, producto) => {
                             return sum + (parseFloat(producto.subtotal) || 0);
                         }, 0) || 0;
                         
-                        // Calcular porcentajes desde los montos y el subtotal
-                        const descuentoPorcentaje = subtotal > 0 ? ((descuentoMonto / subtotal) * 100) : 0;
-                        const aumentoPorcentaje = subtotal > 0 ? ((aumentoMonto / subtotal) * 100) : 0;
+                        // Determinar cómo mostrar el descuento y aumento
+                        let descuentoTexto = '';
+                        let aumentoTexto = '';
+                        
+                        if (descuentoMonto > 0) {
+                            if (esPorcentaje) {
+                                const descuentoPorcentaje = subtotal > 0 ? ((descuentoMonto / subtotal) * 100) : 0;
+                                descuentoTexto = `${descuentoPorcentaje.toFixed(2)}% (${formatCurrency(descuentoMonto)})`;
+                            } else {
+                                descuentoTexto = formatCurrency(descuentoMonto);
+                            }
+                        }
+                        
+                        if (aumentoMonto > 0) {
+                            if (esPorcentaje) {
+                                const aumentoPorcentaje = subtotal > 0 ? ((aumentoMonto / subtotal) * 100) : 0;
+                                aumentoTexto = `${aumentoPorcentaje.toFixed(2)}% (${formatCurrency(aumentoMonto)})`;
+                            } else {
+                                aumentoTexto = formatCurrency(aumentoMonto);
+                            }
+                        }
+                        
+                        // Compatibilidad hacia atrás: si porcentaje es null, asumir que era porcentaje (comportamiento anterior)
+                        if (descuentoMonto > 0 && movimientoActual?.porcentaje === null) {
+                            const descuentoPorcentaje = subtotal > 0 ? ((descuentoMonto / subtotal) * 100) : 0;
+                            descuentoTexto = `${descuentoPorcentaje.toFixed(2)}% (${formatCurrency(descuentoMonto)})`;
+                        }
+                        
+                        if (aumentoMonto > 0 && movimientoActual?.porcentaje === null) {
+                            const aumentoPorcentaje = subtotal > 0 ? ((aumentoMonto / subtotal) * 100) : 0;
+                            aumentoTexto = `${aumentoPorcentaje.toFixed(2)}% (${formatCurrency(aumentoMonto)})`;
+                        }
                         
                         return (
                             <>
-                                {descuentoMonto > 0 && (
+                                {descuentoMonto > 0 && descuentoTexto && (
                                     <Dato
                                         label="Descuento"
-                                        value={`${descuentoPorcentaje.toFixed(2)}% (${formatCurrency(descuentoMonto)})`}
+                                        value={descuentoTexto}
                                         vertical={false}
                                         especial='red'
                                     />
                                 )}
-                                {aumentoMonto > 0 && (
+                                {aumentoMonto > 0 && aumentoTexto && (
                                     <Dato
                                         label="Aumento"
-                                        value={`${aumentoPorcentaje.toFixed(2)}% (${formatCurrency(aumentoMonto)})`}
+                                        value={aumentoTexto}
                                         vertical={false}
                                         especial='green'
                                     />

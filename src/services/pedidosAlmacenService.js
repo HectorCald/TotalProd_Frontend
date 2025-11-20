@@ -92,7 +92,7 @@ class pedidosAlmacenService {
   }
 
   // Obtener todos los pedidos de la sucursal
-  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null, responsableId = null) {
+  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null, responsableId = null, filtroFecha = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -119,6 +119,15 @@ class pedidosAlmacenService {
 
       if (responsableId) {
         params.append('responsable_id', responsableId);
+      }
+
+      if (filtroFecha) {
+        if (filtroFecha.inicio) {
+          params.append('fecha_inicio', filtroFecha.inicio);
+        }
+        if (filtroFecha.fin) {
+          params.append('fecha_fin', filtroFecha.fin);
+        }
       }
 
       const response = await fetch(`${API_BASE_URL}/pedidos-almacen?${params}`, {
@@ -330,6 +339,34 @@ class pedidosAlmacenService {
         success: false,
         message: 'Error de conexión con el servidor'
       };
+    }
+  }
+
+  // Obtener solicitantes únicos de todos los pedidos
+  static async getSolicitantesUnicos() {
+    try {
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/pedidos-almacen/solicitantes-unicos?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en pedidosAlmacenService.getSolicitantesUnicos:', error);
+      return { success: false, message: 'Error de conexión con el servidor' };
     }
   }
 }

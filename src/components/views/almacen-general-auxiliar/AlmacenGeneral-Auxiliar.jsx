@@ -10,7 +10,6 @@ import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
 import FetchData from '../../mixed/FetchData';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import pricesTypesService from '../../../services/pricesTypesService';
-import sucursalesService from '../../../services/sucursalesService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import { useUser } from '../../../context/UserContext';
@@ -58,11 +57,11 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
     const [isOpenOrden, setOpenOrden] = useState(false);
     const [isOpenDiferencia, setOpenDiferencia] = useState(false);
     const [filtroDiferencia, setFiltroDiferencia] = useState('todos');
-    const [ocultarStockCero, setOcultarStockCero] = useState(() => {
-        // Cargar desde localStorage al inicializar
-        const saved = localStorage.getItem('almacenOcultarStockCero');
-        return saved === 'true';
-    });
+    
+    // Prop interno para determinar si mostrar solo productos con stock > 0
+    // true para transferir y salida, false para entrada, almacen y pedido
+    // En modo conteo siempre false
+    const ocultarStockCero = tipo === 'conteo' ? false : (tipo === 'transferir' || tipo === 'salida');
 
     // Estados para datos (compartidos con AlmacenGeneral principal)
     const {
@@ -73,13 +72,18 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
         key: 'almacenGeneralProductos',
         defaultValue: [],
     });
-    const [preciosData, setPreciosData] = useState([]);
-    const [sucursalesData, setSucursalesData] = useState([]);
+    const {
+        value: preciosData,
+        setValue: setPreciosData,
+        hasCache: hasPreciosCache,
+    } = useSessionCache({
+        key: 'almacenGeneralPrecios',
+        defaultValue: [],
+    });
     
     // Estados para rastrear qué datos se han cargado
     const [productosLoaded, setProductosLoaded] = useState(false);
     const [preciosLoaded, setPreciosLoaded] = useState(false);
-    const [sucursalesLoaded, setSucursalesLoaded] = useState(false);
 
     // Estados para canasta de cotizaciones
     const [productosCanastaCotizaciones, setProductosCanastaCotizaciones] = useState([]);
@@ -202,10 +206,11 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
         setProductosLoaded(true);
     }, [tipo, sucursalActual]);
 
+
     // Función para manejar refresh
     const handleRefresh = async () => {
         try {
-            const response = await productsAlmacenService.getAll();
+            const response = await productsAlmacenService.getAll(ocultarStockCero);
             if (response.success) {
                 handleProductosLoaded(response.data);
             }
@@ -216,11 +221,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
     const handlePreciosLoaded = useCallback((data) => {
         setPreciosData(data);
         setPreciosLoaded(true);
-    }, []);
-    const handleSucursalesLoaded = useCallback((data) => {
-        setSucursalesData(data);
-        setSucursalesLoaded(true);
-    }, []);
+    }, [setPreciosData]);
 
     const {
         productosMapeados,
@@ -245,23 +246,11 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
         paginaTamano: 30,
     });
 
-    // Aplicar filtro de stock 0 después de los otros filtros
-    const productosFiltrados = useMemo(() => {
-        if (!ocultarStockCero) {
-            return productosFiltradosBase;
-        }
-        return productosFiltradosBase.filter(producto => (Number(producto.stock) || 0) > 0);
-    }, [productosFiltradosBase, ocultarStockCero]);
+    // Ya no necesitamos filtrar stock 0 aquí, se hace en el backend
+    const productosFiltrados = productosFiltradosBase;
 
     // Recalcular visibleItems con el filtro de stock aplicado (solo para tipos que no sean conteo)
     const { visibleItems: visibleItemsStock, handleScroll: handleStockScroll } = useVirtualPagination(productosFiltrados, 30);
-
-    // Función para toggle del filtro de stock 0
-    const handleToggleStockCero = useCallback(() => {
-        const nuevoValor = !ocultarStockCero;
-        setOcultarStockCero(nuevoValor);
-        localStorage.setItem('almacenOcultarStockCero', nuevoValor.toString());
-    }, [ocultarStockCero]);
 
     // Efecto para resetear búsqueda y filtros cuando se abre
     useEffect(() => {
@@ -270,8 +259,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
 
             // Resetear estados de carga
             setProductosLoaded(hasProductosCache && productos.length > 0);
-            setPreciosLoaded(false);
-            setSucursalesLoaded(false);
+            setPreciosLoaded(hasPreciosCache && preciosData.length > 0);
             
             // Verificar si se está repitiendo un conteo
             const isRepeating = localStorage.getItem('isRepeatingConteo') === 'true';
@@ -349,11 +337,6 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
             label: getOrdenamientoNombre(),
             active: ordenamiento !== 'nombre_asc',
             onClick: () => setOpenOrden(true)
-        },
-        {
-            label: ocultarStockCero ? 'Ocultar 0' : 'Mostrar 0',
-            active: ocultarStockCero,
-            onClick: handleToggleStockCero
         },
         ...(tipo === 'conteo' ? [{
             label: getDiferenciaNombre(),
@@ -1067,6 +1050,8 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                         <FetchData
                             service={productsAlmacenService}
                             serviceName="productsAlmacenService"
+                            method="getAll"
+                            methodParams={[ocultarStockCero]}
                             isOpen={isOpen}
                             onDataLoaded={handleProductosLoaded}
                             onLoadingStart={handleLoadingStart}
@@ -1077,15 +1062,6 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                             serviceName="pricesTypesService"
                             isOpen={isOpen}
                             onDataLoaded={handlePreciosLoaded}
-                            onLoadingStart={handleLoadingStart}
-                            onLoadingEnd={handleLoadingEnd}
-                        />
-                        <FetchData
-                            service={sucursalesService}
-                            serviceName="sucursalesService"
-                            method="getByEmpresaId"
-                            isOpen={isOpen}
-                            onDataLoaded={handleSucursalesLoaded}
                             onLoadingStart={handleLoadingStart}
                             onLoadingEnd={handleLoadingEnd}
                         />

@@ -21,6 +21,7 @@ import usePrecioCanasta from './hooks/usePrecioCanasta';
 import { useLayout } from '../../../context/LayoutContext';
 import OpcionDesplegable from '../../common/OpcionDesplegable';
 import { isOfflineNetworkEnabled, queueOfflineSalida, updateOfflineProductsStock } from '../../../utils/offlineMovements';
+import Checkbox from '../../common/Checkbox';
 
 function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null, isEditandoMovimiento = false, movimientoIdEditando = null, numeroOrdenEditando: numeroOrdenEditandoProp = null, onMovimientoEditado = null }) {
     const { isLargeScreen } = useLayout();
@@ -31,6 +32,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const [descuento, setDescuento] = useState('');
     const [aumento, setAumento] = useState('');
     const [concepto, setConcepto] = useState('');
+    const [pagoParcial, setPagoParcial] = useState('');
+    const [descuentoAumentoPorcentaje, setDescuentoAumentoPorcentaje] = useState(true);
 
     // Estados para clientes y método de pago (solo para salidas)
     const [clienteSeleccionado, setClienteSeleccionado] = useState('');
@@ -427,6 +430,8 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         setDescuento('');
         setAumento('');
         setConcepto('');
+        setPagoParcial('');
+        setDescuentoAumentoPorcentaje(true);
         setClienteSeleccionado('');
         setClienteSeleccionadoData(null);
         setMetodoPagoSeleccionado('');
@@ -615,11 +620,20 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 return total + valorProducto;
             }, 0);
             
-            // Convertir porcentajes a montos
-            const descuentoPorcentaje = parseFloat(descuento) || 0;
-            const aumentoPorcentaje = parseFloat(aumento) || 0;
-            const descuentoMonto = (subtotalParaDescuentoAumento * descuentoPorcentaje) / 100;
-            const aumentoMonto = (subtotalParaDescuentoAumento * aumentoPorcentaje) / 100;
+            // Calcular descuento y aumento según el modo seleccionado
+            const descuentoValor = parseFloat(descuento) || 0;
+            const aumentoValor = parseFloat(aumento) || 0;
+            
+            let descuentoMonto, aumentoMonto;
+            if (descuentoAumentoPorcentaje) {
+                // Si es porcentaje, convertir a monto
+                descuentoMonto = (subtotalParaDescuentoAumento * descuentoValor) / 100;
+                aumentoMonto = (subtotalParaDescuentoAumento * aumentoValor) / 100;
+            } else {
+                // Si es monto directo, usar directamente
+                descuentoMonto = descuentoValor;
+                aumentoMonto = aumentoValor;
+            }
             
             const movimientoData = {
                 type: 'salida',
@@ -633,6 +647,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 descuento: descuentoMonto,
                 aumento: aumentoMonto,
                 concepto: concepto && concepto.trim() !== '' ? concepto.trim() : null,
+                porcentaje: (descuentoMonto > 0 || aumentoMonto > 0) ? descuentoAumentoPorcentaje : null,
                 productos: productosParaCalcular,
                 ...(fechaMovimientoEditando ? { fecha: fechaMovimientoEditando } : {}),
                 ...(numeroOrdenPayload !== null ? { numero_orden: numeroOrdenPayload } : {}),
@@ -699,9 +714,14 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
                 setProductosCanasta([]);
                 setObservacionesGenerales('');
-                setClienteSeleccionado('');
-                setMetodoPagoSeleccionado('');
+                setDescuento('');
+                setAumento('');
                 setConcepto('');
+                setPagoParcial('');
+                setDescuentoAumentoPorcentaje(true);
+                setClienteSeleccionado('');
+                setClienteSeleccionadoData(null);
+                setMetodoPagoSeleccionado('');
                 localStorage.removeItem('canastaSalidas');
 
                 if (esEntrega) {
@@ -729,6 +749,14 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 localStorage.removeItem('conceptoMovimientoEditando');
                 localStorage.removeItem('fechaMovimientoEditando');
                 localStorage.removeItem('productosEdicion');
+                
+                // Limpiar valores guardados (igual que en handleLimpiarCanasta)
+                localStorage.removeItem('descuentoMovimientoGuardado');
+                localStorage.removeItem('aumentoMovimientoGuardado');
+                localStorage.removeItem('conceptoMovimientoGuardado');
+                localStorage.removeItem('clienteIdMovimientoGuardado');
+                localStorage.removeItem('clienteNameMovimientoGuardado');
+                localStorage.removeItem('metodoPagoMovimientoGuardado');
 
                 if (isEditandoMovimiento) {
                     localStorage.removeItem('movimientoIdEditando');
@@ -758,17 +786,24 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                     precioSeleccionadoInfo?.name ||
                     precioSeleccionadoInfo?.nombre ||
                     '';
+                // Calcular pago parcial para offline
+                const pagoParcialValue = parseFloat(pagoParcial);
+                const pagoParcialData = pagoParcial && !Number.isNaN(pagoParcialValue) && pagoParcialValue > 0
+                    ? { monto: pagoParcialValue, fecha: fechaMovimientoEditando || null }
+                    : null;
+
                 await queueOfflineSalida({
                     movimientoData,
                     pedidoId,
                     pedidoData,
                     pedidoEstadoPayload,
                     deudaData: deudaPayloadBase,
+                    pagoParcialData,
                     clienteInfo: clienteOfflineInfo,
                     metodoPago: metodoPagoSeleccionado,
                     subtotal: subtotalParaDescuentoAumento,
-                    descuentoPorcentaje,
-                    aumentoPorcentaje,
+                    descuentoPorcentaje: descuentoAumentoPorcentaje ? descuentoValor : (subtotalParaDescuentoAumento > 0 ? (descuentoMonto / subtotalParaDescuentoAumento) * 100 : 0),
+                    aumentoPorcentaje: descuentoAumentoPorcentaje ? aumentoValor : (subtotalParaDescuentoAumento > 0 ? (aumentoMonto / subtotalParaDescuentoAumento) * 100 : 0),
                     observaciones: observacionesFinales,
                     productos: productosCanasta,
                     productosNormalizados: productosParaCalcular,
@@ -801,10 +836,29 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                         if (deudaPayloadOnline) {
                             const deudaResponse = await deudasService.create(deudaPayloadOnline);
                             if (deudaResponse.success) {
+                                const deudaId = deudaResponse.data.id;
                                 try {
-                                    await movimientosAlmacenService.update(movimientoId, { deuda_id: deudaResponse.data.id });
+                                    await movimientosAlmacenService.update(movimientoId, { deuda_id: deudaId });
                                 } catch (updateError) {
                                     console.warn('Error al actualizar movimiento con deuda_id:', updateError);
+                                }
+
+                                // Crear pago parcial si existe un valor
+                                const pagoParcialValue = parseFloat(pagoParcial);
+                                if (pagoParcial && !Number.isNaN(pagoParcialValue) && pagoParcialValue > 0) {
+                                    try {
+                                        const pagoParcialResponse = await deudasService.createPagoParcial(deudaId, { 
+                                            monto: pagoParcialValue,
+                                            fecha: fechaMovimientoEditando || null
+                                        });
+                                        if (!pagoParcialResponse.success) {
+                                            console.warn('Error al crear pago parcial:', pagoParcialResponse.message);
+                                            mostrarNotificacion('warning', `Deuda creada, pero error al registrar pago parcial: ${pagoParcialResponse.message}`);
+                                        }
+                                    } catch (pagoParcialError) {
+                                        console.error('Error creando pago parcial:', pagoParcialError);
+                                        mostrarNotificacion('warning', `Deuda creada, pero error al registrar pago parcial automático`);
+                                    }
                                 }
                             } else {
                                 mostrarNotificacion('warning', `Movimiento creado, pero error al registrar deuda: ${deudaResponse.message}`);
@@ -1087,22 +1141,30 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                     <OpcionDesplegable titulo="Otras opciones">
                                         <div className={styles.horizontal}>
                                             <InputNormal
-                                                placeholder="Descuento %"
+                                                placeholder={descuentoAumentoPorcentaje ? "Descuento %" : "Descuento (Bs.)"}
                                                 tipo="number"
-                                                step="0.01" min="0" max="100"
+                                                step="0.01" min="0"
+                                                max={descuentoAumentoPorcentaje ? "100" : undefined}
                                                 value={descuento}
                                                 onChange={(e) => setDescuento(e.target.value)}
                                                 icon='trending-down'
                                             />
                                             <InputNormal
-                                                placeholder="Aumento %"
+                                                placeholder={descuentoAumentoPorcentaje ? "Aumento %" : "Aumento (Bs.)"}
                                                 tipo="number"
-                                                step="0.01" min="0" max="100"
+                                                step="0.01" min="0"
+                                                max={descuentoAumentoPorcentaje ? "100" : undefined}
                                                 value={aumento}
                                                 onChange={(e) => setAumento(e.target.value)}
                                                 icon='trending-up'
                                             />
                                         </div>
+                                        <Checkbox
+                                            title="Aplicar como porcentaje"
+                                            checked={descuentoAumentoPorcentaje}
+                                            onChange={setDescuentoAumentoPorcentaje}
+                                            icon="calculator"
+                                        />
                                         <InputNormal
                                             placeholder="Concepto (opcional)"
                                             tipo="text"
@@ -1110,6 +1172,16 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                             onChange={(e) => setConcepto(e.target.value)}
                                             icon='text'
                                         />
+                                        {metodoPagoSeleccionado === 'credito' && (
+                                            <InputNormal
+                                                placeholder="Pago parcial (Bs.)"
+                                                tipo="number"
+                                                step="0.01" min="0"
+                                                value={pagoParcial}
+                                                onChange={(e) => setPagoParcial(e.target.value)}
+                                                icon='money'
+                                            />
+                                        )}
                                     </OpcionDesplegable>
 
 
@@ -1125,11 +1197,22 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                         const valorProducto = (producto.precio || 0) * producto.cantidad;
                                         return total + valorProducto;
                                     }, 0);
-                                    // Calcular descuento y aumento como porcentajes del subtotal
-                                    const descuentoPorcentaje = parseFloat(descuento) || 0;
-                                    const aumentoPorcentaje = parseFloat(aumento) || 0;
-                                    const descuentoMonto = (subtotal * descuentoPorcentaje) / 100;
-                                    const aumentoMonto = (subtotal * aumentoPorcentaje) / 100;
+                                    
+                                    // Calcular descuento y aumento según el modo seleccionado
+                                    const descuentoValor = parseFloat(descuento) || 0;
+                                    const aumentoValor = parseFloat(aumento) || 0;
+                                    
+                                    let descuentoMonto, aumentoMonto;
+                                    if (descuentoAumentoPorcentaje) {
+                                        // Si es porcentaje, convertir a monto
+                                        descuentoMonto = (subtotal * descuentoValor) / 100;
+                                        aumentoMonto = (subtotal * aumentoValor) / 100;
+                                    } else {
+                                        // Si es monto directo, usar directamente
+                                        descuentoMonto = descuentoValor;
+                                        aumentoMonto = aumentoValor;
+                                    }
+                                    
                                     const total = subtotal - descuentoMonto + aumentoMonto;
                                     
                                     // Determinar el color y formato del total
@@ -1139,12 +1222,20 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                     let totalTexto = `Bs. ${total.toFixed(2)}`;
                                     let claseColor = '';
                                     
-                                    // Agregar porcentaje de descuento o aumento si existe
+                                    // Agregar porcentaje o monto de descuento o aumento si existe
                                     if (tieneDescuento) {
-                                        totalTexto = `Bs. ${total.toFixed(2)} (-${descuentoPorcentaje.toFixed(2)}%)`;
+                                        if (descuentoAumentoPorcentaje) {
+                                            totalTexto = `Bs. ${total.toFixed(2)} (-${descuentoValor.toFixed(2)}%)`;
+                                        } else {
+                                            totalTexto = `Bs. ${total.toFixed(2)} (-Bs. ${descuentoMonto.toFixed(2)})`;
+                                        }
                                         claseColor = styles.totalRojo;
                                     } else if (tieneAumento) {
-                                        totalTexto = `Bs. ${total.toFixed(2)} (+${aumentoPorcentaje.toFixed(2)}%)`;
+                                        if (descuentoAumentoPorcentaje) {
+                                            totalTexto = `Bs. ${total.toFixed(2)} (+${aumentoValor.toFixed(2)}%)`;
+                                        } else {
+                                            totalTexto = `Bs. ${total.toFixed(2)} (+Bs. ${aumentoMonto.toFixed(2)})`;
+                                        }
                                         claseColor = styles.totalVerde;
                                     }
                                     

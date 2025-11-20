@@ -21,7 +21,6 @@ import FiltroCategorias from '../../mixed/FiltroCategorias';
 import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
 import FetchData from '../../mixed/FetchData';
 import pricesTypesService from '../../../services/pricesTypesService';
-import sucursalesService from '../../../services/sucursalesService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import { useUser } from '../../../context/UserContext';
 import { useLayout } from '../../../context/LayoutContext';
@@ -59,11 +58,10 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     // Estados para filtros y modales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
-    const [ocultarStockCero, setOcultarStockCero] = useState(() => {
-        // Cargar desde localStorage al inicializar
-        const saved = localStorage.getItem('almacenOcultarStockCero');
-        return saved === 'true';
-    });
+    
+    // Prop interno para determinar si mostrar solo productos con stock > 0
+    // true para transferir y salida, false para entrada, almacen y pedido
+    const ocultarStockCero = tipo === 'transferir' || tipo === 'salida';
     const [isCategoriasAlmacenOpen, setIsCategoriasAlmacenOpen] = useState(false);
     const [isOfflineMovimientosOpen, setIsOfflineMovimientosOpen] = useState(false);
     const [offlineMovimientos, setOfflineMovimientos] = useState([]);
@@ -93,8 +91,14 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         key: 'almacenGeneralProductos',
         defaultValue: [],
     });
-    const [preciosData, setPreciosData] = useState([])
-    const [sucursalesData, setSucursalesData] = useState([]);
+    const {
+        value: preciosData,
+        setValue: setPreciosData,
+        hasCache: hasPreciosCache,
+    } = useSessionCache({
+        key: 'almacenGeneralPrecios',
+        defaultValue: [],
+    });
     
     const shouldShowSpinner = useCallback(() => productos.length === 0, [productos.length]);
     const enableRefreshIndicator = useCallback(() => true, []);
@@ -112,7 +116,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     // Estados para rastrear qué datos se han cargado
     const [productosLoaded, setProductosLoaded] = useState(false);
     const [preciosLoaded, setPreciosLoaded] = useState(false);
-    const [sucursalesLoaded, setSucursalesLoaded] = useState(false);
 
     // Estados para la notificación
     const [notification, setNotification] = useState({ isVisible: false, type: 'success', text: '' });
@@ -190,13 +193,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const handlePreciosLoaded = useCallback((data) => {
         setPreciosData(data);
         setPreciosLoaded(true);
-    }, []);
-    
-    // Función para manejar cuando se cargan las sucursales
-    const handleSucursalesLoaded = useCallback((data) => {
-        setSucursalesData(data);
-        setSucursalesLoaded(true);
-    }, []);
+    }, [setPreciosData]);
 
     const {
         productosMapeados,
@@ -206,7 +203,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         searchQuery,
         isSearchExpanded,
         categoriaFiltro,
-        categoriaFiltroNombre,
+        categoriaFiltroNombres,
         ordenamiento,
         handleSearchChange,
         handleSearchClear,
@@ -222,23 +219,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         paginaTamano: 30,
     });
 
-    // Aplicar filtro de stock 0 después de los otros filtros
-    const productosFiltrados = useMemo(() => {
-        if (!ocultarStockCero) {
-            return productosFiltradosBase;
-        }
-        return productosFiltradosBase.filter(producto => (Number(producto.stock) || 0) > 0);
-    }, [productosFiltradosBase, ocultarStockCero]);
+    // Ya no necesitamos filtrar stock 0 aquí, se hace en el backend
+    const productosFiltrados = productosFiltradosBase;
 
-    // Recalcular visibleItems con el filtro de stock aplicado
+    // Recalcular visibleItems
     const { visibleItems, handleScroll: handleStockScroll } = useVirtualPagination(productosFiltrados, 30);
-
-    // Función para toggle del filtro de stock 0
-    const handleToggleStockCero = useCallback(() => {
-        const nuevoValor = !ocultarStockCero;
-        setOcultarStockCero(nuevoValor);
-        localStorage.setItem('almacenOcultarStockCero', nuevoValor.toString());
-    }, [ocultarStockCero]);
 
     // Funciones para actualizar cantidad desde ItemProduct (después de productosFiltrados)
     const handleCantidadChange = useCallback((productoId, nuevaCantidad, tipoMovimiento = null) => {
@@ -375,14 +360,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         name: precio.name,
         default_value: precio.default_value
     }));
-    const sucursales = sucursalesData
-        .filter(sucursal => sucursal.id !== sucursalActual?.id)
-        .map(sucursal => ({
-            value: sucursal.id,
-            label: sucursal.name,
-            id: sucursal.id,
-            name: sucursal.name
-        }));
 
 
 
@@ -428,10 +405,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         setProductosLoaded(true);
     }, [tipo, sucursalActual]);
 
+
     // Función para manejar refresh
     const handleRefresh = async () => {
         try {
-            const response = await productsAlmacenService.getAll();
+            const response = await productsAlmacenService.getAll(ocultarStockCero);
             if (response.success) {
                 handleProductosLoaded(response.data);
             }
@@ -464,8 +442,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
             
             // Resetear estados de carga
             setProductosLoaded(hasProductosCache && productos.length > 0);
-            setPreciosLoaded(false);
-            setSucursalesLoaded(false);
+            setPreciosLoaded(hasPreciosCache && preciosData.length > 0);
 
             // Si no se pasan los props específicos, no se está repitiendo un movimiento y no es venta de cotización, limpiar localStorage
             if (!onPedidoActualizado && !onEntregaConfirmada && !pedidoIdEditando && !isRepitiendoMovimiento && !isVentaCotizacionProp) {
@@ -575,18 +552,13 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const opciones = [
         {
             label: getCategoriaNombre(),
-            active: categoriaFiltro !== null,
+            active: categoriaFiltro && categoriaFiltro.length > 0,
             onClick: () => setOpenCategoria(true)
         },
         {
             label: getOrdenamientoNombre(),
             active: ordenamiento !== 'nombre_asc',
             onClick: () => setOpenOrden(true)
-        },
-        {
-            label: ocultarStockCero ? 'Ocultar 0' : 'Mostrar 0',
-            active: ocultarStockCero,
-            onClick: handleToggleStockCero
         },
     ];
 
@@ -912,8 +884,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                                         ) : (
                                             <NoData 
                                                 icon="box"
-                                                title={searchQuery || categoriaFiltro !== null ? 'Sin resultados' : 'No hay productos'}
-                                                detail={searchQuery || categoriaFiltro !== null ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
+                                                title={searchQuery || (categoriaFiltro && categoriaFiltro.length > 0) ? 'Sin resultados' : 'No hay productos'}
+                                                detail={searchQuery || (categoriaFiltro && categoriaFiltro.length > 0) ? 'Intenta ajustar los filtros de búsqueda para encontrar los productos que necesitas' : 'Agrega productos al almacén para comenzar a gestionar tu inventario general'}
                                                 transparent={true}
                                                 minHeight="200px"
                                             />
@@ -1028,6 +1000,8 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         <FetchData
                             service={productsAlmacenService}
                             serviceName="productsAlmacenService"
+                            method="getAll"
+                            methodParams={[ocultarStockCero]}
                             isOpen={isOpen}
                             onDataLoaded={handleProductosLoaded}
                             onLoadingStart={handleLoadingStart}
@@ -1038,15 +1012,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                             serviceName="pricesTypesService"
                             isOpen={isOpen}
                             onDataLoaded={handlePreciosLoaded}
-                            onLoadingStart={handleLoadingStart}
-                            onLoadingEnd={handleLoadingEnd}
-                        />
-                        <FetchData
-                            service={sucursalesService}
-                            serviceName="sucursalesService"
-                            method="getByEmpresaId"
-                            isOpen={isOpen}
-                            onDataLoaded={handleSucursalesLoaded}
                             onLoadingStart={handleLoadingStart}
                             onLoadingEnd={handleLoadingEnd}
                         />
@@ -1061,9 +1026,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     pedidoId={pedidoIdEditando}
                     onPedidoActualizado={onPedidoActualizado}
                     preciosTipos={preciosTipos}
-                    sucursales={sucursales}
                     loadingPrecios={false}
-                    loadingSucursales={false}
                     productosActualizados={productos}
                     isCartMode={isCartMode && isLargeScreen}
                     onCerrarCanasta={(pedidoId) => {
@@ -1178,6 +1141,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 isOpen={isOpenCategoria}
                 setIsOpen={setOpenCategoria}
                 onCategoriaSeleccionada={handleCategoriaFilter}
+                categoriasSeleccionadas={categoriaFiltro || []}
             />
             {/* Filtro de ordenamiento */}
             <FiltroOrdenamiento

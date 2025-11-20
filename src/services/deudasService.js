@@ -458,7 +458,7 @@ class deudasService {
     }
 
     // Crear pago parcial
-    static async createPagoParcial(deudaId, { monto, fecha = null }) {
+    static async createPagoParcial(deudaId, { monto, fecha = null, detalle = null }) {
         try {
             const body = { monto };
       if (fecha) {
@@ -466,6 +466,9 @@ class deudasService {
         if (fechaNormalizada) {
           body.fecha = fechaNormalizada;
         }
+      }
+      if (detalle) {
+        body.detalle = detalle;
       }
 
             const response = await fetch(`${API_BASE_URL}/deudas/${deudaId}/pagos-parciales`, {

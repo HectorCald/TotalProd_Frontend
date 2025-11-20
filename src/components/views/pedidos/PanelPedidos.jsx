@@ -17,7 +17,8 @@ import Table from '../../common/Table';
 import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
 import NoData from '../../common/NoData';
 import FiltroEstadoPedido from '../../mixed/FiltroEstadoPedido';
-import FiltroResponsable from '../../mixed/FiltroResponsable';
+import FiltroSolicitante from '../../mixed/FiltroSolicitante';
+import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 import Select from '../../common/Select';
 import HistorialWhatsapp from './HistorialWhatsapp';
 import PullToRefresh from '../../common/PullToRefresh';
@@ -60,20 +61,33 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Estados para filtros y modales
     const [isOpenFiltroOrden, setIsOpenFiltroOrden] = useState(false);
     const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
-    const [isOpenFiltroResponsable, setIsOpenFiltroResponsable] = useState(false);
+    const [isOpenFiltroSolicitante, setIsOpenFiltroSolicitante] = useState(false);
+    const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
 
     // Estados para filtros
     const [filtroEstado, setFiltroEstado] = useState(null);
     const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
-    const [filtroResponsable, setFiltroResponsable] = useState(null);
+    const [filtroSolicitante, setFiltroSolicitante] = useState(null);
+    const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
+    const fechaInicioKey = useMemo(
+        () => (filtroFecha.inicio ? filtroFecha.inicio.toISOString() : null),
+        [filtroFecha.inicio]
+    );
+    const fechaFinKey = useMemo(
+        () => (filtroFecha.fin ? filtroFecha.fin.toISOString() : null),
+        [filtroFecha.fin]
+    );
 
     const filterSignature = useMemo(() => JSON.stringify({
         tipoPedido: tipoPedido || 'all',
         filtroEstado,
         ordenamiento,
-        filtroResponsableId: filtroResponsable?.id || null,
+        filtroSolicitanteUserId: filtroSolicitante?.user_id || null,
+        filtroSolicitantePersonalId: filtroSolicitante?.personal_id || null,
         search: debouncedSearchQuery || '',
-    }), [tipoPedido, filtroEstado, ordenamiento, filtroResponsable?.id, debouncedSearchQuery]);
+        fechaInicio: fechaInicioKey,
+        fechaFin: fechaFinKey,
+    }), [tipoPedido, filtroEstado, ordenamiento, filtroSolicitante?.user_id, filtroSolicitante?.personal_id, debouncedSearchQuery, fechaInicioKey, fechaFinKey]);
 
     const {
         hasCachedItems,
@@ -240,7 +254,8 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setSearchQueryNormalized('');
             setPedidosLoaded(false);
             setCurrentTipoPedido(tipoPedido);
-            setFiltroResponsable(null);
+            setFiltroSolicitante(null);
+            setFiltroFecha({ inicio: null, fin: null });
             // FetchDataProgressive se encargará de recargar automáticamente
         }
     }, [tipoPedido, currentTipoPedido, isOpen]);
@@ -322,9 +337,9 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setCurrentPage(1);
     };
 
-    // Función para manejar filtro de responsable
-    const handleFiltroResponsable = (responsable) => {
-        setFiltroResponsable(responsable);
+    // Función para manejar filtro de solicitante
+    const handleFiltroSolicitante = (solicitante) => {
+        setFiltroSolicitante(solicitante);
         setCurrentPage(1);
     };
 
@@ -389,11 +404,14 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         return ordenamientos[ordenamiento] || 'Ordenamiento';
     };
 
-    // Función para obtener el nombre del responsable
-    const getResponsableNombre = () => {
-        if (!filtroResponsable) return 'Todos los responsables';
-        return filtroResponsable.name || 'Responsable';
+    // Función para obtener el nombre del solicitante
+    const getSolicitanteNombre = () => {
+        if (!filtroSolicitante) return 'Todos los solicitantes';
+        return filtroSolicitante.name || 'Solicitante';
     };
+
+    // Función para obtener el nombre del filtro de fecha
+    const getFechaNombre = () => formatDateRangeForDisplay(filtroFecha?.inicio, filtroFecha?.fin, 'Fecha');
 
     // Función para obtener el badge de estado
     const getCellBadge = (item, headerKey) => {
@@ -429,9 +447,14 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             onClick: () => setIsOpenFiltroEstado(true)
         },
         {
-            label: getResponsableNombre(),
-            active: filtroResponsable !== null,
-            onClick: () => setIsOpenFiltroResponsable(true)
+            label: getSolicitanteNombre(),
+            active: filtroSolicitante !== null,
+            onClick: () => setIsOpenFiltroSolicitante(true)
+        },
+        {
+            label: getFechaNombre(),
+            active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
+            onClick: () => setIsOpenFiltroFecha(true)
         },
         {
             label: getOrdenamientoNombre(),
@@ -443,17 +466,16 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     // Headers para la tabla
     const tableHeaders = tipoPedido === 'acopio' ? [
         { key: 'producto', label: 'Producto', icon: 'package' },
-        { key: 'usuario', label: 'Usuario', icon: 'user' },
+        { key: 'usuario', label: 'Solicitante', icon: 'user' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
         { key: 'estado', label: 'Estado', icon: 'check-circle' },
         { key: 'cantidad', label: 'Cantidad', icon: 'calculator' }
     ] : [
         { key: 'numero_pedido', label: 'Nº', icon: 'hash' },
         { key: 'sucursal', label: 'Sucursal', icon: 'store' },
-        { key: 'usuario', label: 'Usuario', icon: 'user' },
+        { key: 'usuario', label: 'Solicitante', icon: 'user' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
         { key: 'estado', label: 'Estado', icon: 'check-circle' },
-        { key: 'cliente', label: 'Cliente', icon: 'user' },
         { key: 'observaciones', label: 'Observaciones', icon: 'file' }
     ];
 
@@ -544,12 +566,11 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                     onScroll={handleScroll}
                                     columnWidths={tipoPedido === 'almacen' ? {
                                         numero_pedido: '3%',
-                                        sucursal: '15%',
-                                        usuario: '15%',
+                                        sucursal: '13%',
+                                        usuario: '20%',
                                         fecha: '15%',
                                         estado: '10%',
-                                        cliente: '15%',
-                                        observaciones: '15%'
+                                        observaciones: '20%'
                                     } : {
                                         producto: '15%',
                                         usuario: '15%',
@@ -665,12 +686,30 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 onOrdenamientoSeleccionado={handleOrdenamiento}
             />
 
-            {/* Filtro de responsable */}
-            <FiltroResponsable
-                isOpen={isOpenFiltroResponsable}
-                setIsOpen={setIsOpenFiltroResponsable}
-                onResponsableSeleccionado={handleFiltroResponsable}
-                responsableSeleccionado={filtroResponsable}
+            {/* Filtro de solicitante */}
+            <FiltroSolicitante
+                isOpen={isOpenFiltroSolicitante}
+                setIsOpen={setIsOpenFiltroSolicitante}
+                onSolicitanteSeleccionado={handleFiltroSolicitante}
+                solicitanteSeleccionado={filtroSolicitante}
+                tipoPedido={tipoPedido}
+            />
+
+            {/* Filtro de fecha */}
+            <FiltroFecha
+                isOpen={isOpenFiltroFecha}
+                setIsOpen={setIsOpenFiltroFecha}
+                startDate={filtroFecha?.inicio}
+                endDate={filtroFecha?.fin}
+                onApply={(inicio, fin) => {
+                    setFiltroFecha({ inicio, fin });
+                    setCurrentPage(1);
+                }}
+                onClear={() => {
+                    setFiltroFecha({ inicio: null, fin: null });
+                    setCurrentPage(1);
+                }}
+                title="Filtrar por fecha"
             />
 
             {/* Notificación */}
@@ -722,14 +761,26 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                             getPrimaryNormalizedValue(debouncedSearchQuery),
                             filtroEstado,
                             ordenamiento,
-                            filtroResponsable?.id || null
+                            filtroSolicitante?.user_id || filtroSolicitante?.personal_id || null,
+                            filtroFecha.inicio || filtroFecha.fin
+                                ? {
+                                    inicio: filtroFecha.inicio ? new Date(filtroFecha.inicio).toISOString() : null,
+                                    fin: filtroFecha.fin ? new Date(filtroFecha.fin).toISOString() : null,
+                                  }
+                                : null
                           ]
                         : [
                             getPrimaryNormalizedValue(debouncedSearchQuery),
                             filtroEstado,
                             ordenamiento,
                             null, // sucuIdParam (se obtiene internamente)
-                            filtroResponsable?.id || null
+                            filtroSolicitante?.user_id || filtroSolicitante?.personal_id || null,
+                            filtroFecha.inicio || filtroFecha.fin
+                                ? {
+                                    inicio: filtroFecha.inicio ? new Date(filtroFecha.inicio).toISOString() : null,
+                                    fin: filtroFecha.fin ? new Date(filtroFecha.fin).toISOString() : null,
+                                  }
+                                : null
                           ]
                     }
                     serviceName={tipoPedido === 'acopio' ? 'pedidosAcopioService' : 'pedidosAlmacenService'}

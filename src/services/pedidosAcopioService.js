@@ -84,7 +84,7 @@ class pedidosAcopioService {
     }
   }
 
-  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc', responsableId = null) {
+  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc', responsableId = null, filtroFecha = null) {
     try {
       const empresaId = getEmpresaId();
       if (!empresaId) {
@@ -111,6 +111,15 @@ class pedidosAcopioService {
 
       if (responsableId) {
         params.append('responsable_id', responsableId);
+      }
+
+      if (filtroFecha) {
+        if (filtroFecha.inicio) {
+          params.append('fecha_inicio', filtroFecha.inicio);
+        }
+        if (filtroFecha.fin) {
+          params.append('fecha_fin', filtroFecha.fin);
+        }
       }
       
       const finalUrl = `${API_BASE_URL}/pedidos-acopio?${params}`;
@@ -213,6 +222,34 @@ class pedidosAcopioService {
       return data;
     } catch (error) {
       console.error('Error en pedidosAcopioService.anularEntrega:', error);
+      return { success: false, message: 'Error de conexión con el servidor' };
+    }
+  }
+
+  // Obtener solicitantes únicos de todos los pedidos
+  static async getSolicitantesUnicos() {
+    try {
+      const empresaId = getEmpresaId();
+      if (!empresaId) {
+        return {
+          success: false,
+          message: 'No hay empresa seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        empresa_id: empresaId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/pedidos-acopio/solicitantes-unicos?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en pedidosAcopioService.getSolicitantesUnicos:', error);
       return { success: false, message: 'Error de conexión con el servidor' };
     }
   }

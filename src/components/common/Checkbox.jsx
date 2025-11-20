@@ -14,7 +14,7 @@ function Checkbox({ title, subtitle, checked, onChange, icon }) {
             </div>
             <div className={styles.text}>
                 <p className={styles.title}>{title}</p>
-                <p className={styles.subTitle}>{subtitle}</p>
+                {subtitle && <p className={styles.subTitle}>{subtitle}</p>}
             </div>
             <div className={styles.check}>
                 <input

@@ -11,8 +11,8 @@ function useProductosFiltrados({
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
-    const [categoriaFiltro, setCategoriaFiltro] = useState(null);
-    const [categoriaFiltroNombre, setCategoriaFiltroNombre] = useState('Categorías');
+    const [categoriaFiltro, setCategoriaFiltro] = useState([]);
+    const [categoriaFiltroNombres, setCategoriaFiltroNombres] = useState([]);
     const [ordenamiento, setOrdenamiento] = useState('nombre_asc');
 
     const handleSearchChange = useCallback((value) => {
@@ -32,15 +32,20 @@ function useProductosFiltrados({
         setIsSearchExpanded(isExpanded);
     }, []);
 
-    const handleCategoriaFilter = useCallback((categoriaId, categoriaNombre = null) => {
-        setCategoriaFiltro(categoriaId);
-        if (categoriaId === null) {
-            setCategoriaFiltroNombre('Categorías');
-        } else if (categoriaId === '') {
-            setCategoriaFiltroNombre('Sin categoría');
-        } else if (categoriaNombre) {
-            setCategoriaFiltroNombre(categoriaNombre);
-        }
+    const handleCategoriaFilter = useCallback((categoriaIds, categoriaNombres = []) => {
+        // categoriaIds puede ser un array o un valor único (para compatibilidad)
+        const ids = Array.isArray(categoriaIds) ? categoriaIds : [categoriaIds];
+        // categoriaNombres siempre debe ser un array de objetos { id, nombre }
+        const nombres = Array.isArray(categoriaNombres) && categoriaNombres.length > 0
+            ? categoriaNombres
+            : ids.map(id => {
+                if (id === null) return { id: null, nombre: 'Categorías' };
+                if (id === '') return { id: '', nombre: 'Sin categoría' };
+                return { id, nombre: 'Categoría' };
+            });
+        
+        setCategoriaFiltro(ids);
+        setCategoriaFiltroNombres(nombres);
     }, []);
 
     const handleOrdenamiento = useCallback((orden) => {
@@ -48,10 +53,16 @@ function useProductosFiltrados({
     }, []);
 
     const getCategoriaNombre = useCallback(() => {
-        if (categoriaFiltro === null) return 'Categorías';
-        if (categoriaFiltro === '') return 'Sin categoría';
-        return categoriaFiltroNombre || 'Categorías';
-    }, [categoriaFiltro, categoriaFiltroNombre]);
+        if (!categoriaFiltro || categoriaFiltro.length === 0) return 'Categorías';
+        if (categoriaFiltro.length === 1) {
+            const id = categoriaFiltro[0];
+            if (id === null) return 'Categorías';
+            if (id === '') return 'Sin categoría';
+            const nombreObj = categoriaFiltroNombres.find(n => n.id === id);
+            return nombreObj?.nombre || 'Categoría';
+        }
+        return 'Varias categorías';
+    }, [categoriaFiltro, categoriaFiltroNombres]);
 
     const getOrdenamientoNombre = useCallback(() => {
         const ordenamientos = {
@@ -94,8 +105,12 @@ function useProductosFiltrados({
                     (producto.description && normalizedIncludes(normalizeText(producto.description), query)) ||
                     (producto.codigo_barras && normalizedIncludes(normalizeText(producto.codigo_barras), query));
 
-                const matchesCategoria = categoriaFiltro === null ||
-                    (categoriaFiltro === '' ? !producto.category_id : producto.category_id === categoriaFiltro);
+                const matchesCategoria = !categoriaFiltro || categoriaFiltro.length === 0 ||
+                    categoriaFiltro.some(catId => {
+                        if (catId === null) return true; // Todas las categorías
+                        if (catId === '') return !producto.category_id; // Sin categoría
+                        return producto.category_id === catId;
+                    });
 
                 return matchesSearch && matchesCategoria;
             })
@@ -125,8 +140,8 @@ function useProductosFiltrados({
         setSearchQuery('');
         setSearchQueryNormalized('');
         setIsSearchExpanded(false);
-        setCategoriaFiltro(null);
-        setCategoriaFiltroNombre('Categorías');
+        setCategoriaFiltro([]);
+        setCategoriaFiltroNombres([]);
         setOrdenamiento('nombre_asc');
     }, []);
 
@@ -140,7 +155,7 @@ function useProductosFiltrados({
         searchQueryNormalized,
         isSearchExpanded,
         categoriaFiltro,
-        categoriaFiltroNombre,
+        categoriaFiltroNombres,
         ordenamiento,
         handleSearchChange,
         handleSearchClear,

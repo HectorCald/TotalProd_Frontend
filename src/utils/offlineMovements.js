@@ -25,6 +25,7 @@ export const queueOfflineSalida = async ({
     pedidoData = null,
     pedidoEstadoPayload = null,
     deudaData = null,
+    pagoParcialData = null,
     clienteInfo = null,
     metodoPago,
     subtotal,
@@ -80,6 +81,17 @@ export const queueOfflineSalida = async ({
             requires: ['movimientoId'],
             resultKey: 'deudaId',
         });
+
+        // Crear pago parcial después de crear la deuda si existe
+        if (pagoParcialData && pagoParcialData.monto > 0) {
+            actions.push({
+                service: 'deudasService',
+                method: 'createPagoParcial',
+                args: [null, pagoParcialData], // El deudaId se reemplazará con el resultKey
+                requires: ['deudaId'],
+                dynamicArgs: (results) => [results.deudaId, pagoParcialData],
+            });
+        }
     }
 
     if (pedidoEstadoPayload && pedidoEstadoPayload.pedidoId) {
@@ -124,6 +136,7 @@ export const queueOfflineSalida = async ({
             pedidoData,
             pedidoEstadoPayload,
             deudaData,
+            pagoParcialData,
             clienteInfo,
             productos,
             productosNormalizados,

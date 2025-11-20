@@ -522,7 +522,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
     // Datos para la tabla
     const tableData = allMovimientos.map(movimiento => {
-        // Para tipo almacen, mostrar concepto si existe, sino mostrar cantidad/productos
+        // Para tipo almacen, mostrar concepto si existe, sino nombre del cliente, sino cantidad/productos
         let productoValue;
         if (tipoMovimiento === 'acopio') {
             productoValue = movimiento.product?.name || 'Sin producto';
@@ -537,14 +537,24 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     productoValue = `${origen} > ${destino}`;
                 }
             } else if (movimiento.concepto && movimiento.concepto.trim() !== '') {
-                // Si tiene concepto, mostrarlo; sino mostrar cantidad/productos como antes
+                // Si tiene concepto, mostrarlo
                 productoValue = movimiento.concepto;
-            } else if (movimiento.productos && movimiento.productos.length > 0) {
-                productoValue = movimiento.productos.length === 1
-                    ? movimiento.productos[0]?.producto?.name || 'Sin producto'
-                    : `${movimiento.productos.length} productos`;
             } else {
-                productoValue = 'Sin productos';
+                // Si no tiene concepto, mostrar nombre del cliente o proveedor
+                const clienteNombre = movimiento.type === 'entrada' 
+                    ? (movimiento.proveedor?.name || null)
+                    : (movimiento.cliente?.name || null);
+                
+                if (clienteNombre) {
+                    productoValue = clienteNombre;
+                } else if (movimiento.productos && movimiento.productos.length > 0) {
+                    // Si no tiene cliente, mostrar cantidad/productos
+                    productoValue = movimiento.productos.length === 1
+                        ? movimiento.productos[0]?.producto?.name || 'Sin producto'
+                        : `${movimiento.productos.length} productos`;
+                } else {
+                    productoValue = 'Sin productos';
+                }
             }
         }
         
@@ -711,11 +721,23 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                                                 })()
                                                             : (movimiento.concepto && movimiento.concepto.trim() !== '')
                                                                 ? movimiento.concepto
-                                                                : (movimiento.productos && movimiento.productos.length > 0
-                                                                    ? movimiento.productos.length === 1
-                                                                        ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
-                                                                        : `${movimiento.productos.length} productos`
-                                                                    : 'Sin productos')
+                                                                : (() => {
+                                                                    // Si no tiene concepto, mostrar nombre del cliente o proveedor
+                                                                    const clienteNombre = movimiento.type === 'entrada' 
+                                                                        ? (movimiento.proveedor?.name || null)
+                                                                        : (movimiento.cliente?.name || null);
+                                                                    
+                                                                    if (clienteNombre) {
+                                                                        return clienteNombre;
+                                                                    } else if (movimiento.productos && movimiento.productos.length > 0) {
+                                                                        // Si no tiene cliente, mostrar cantidad/productos
+                                                                        return movimiento.productos.length === 1
+                                                                            ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
+                                                                            : `${movimiento.productos.length} productos`;
+                                                                    } else {
+                                                                        return 'Sin productos';
+                                                                    }
+                                                                })()
                                                     }
                                                     description={`${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}${movimiento.type === 'transferencia' ? (movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : movimiento.sucursal_destino?.name ? ` • → ${movimiento.sucursal_destino.name}` : '') : ''}`}
                                                     description2={`Total: ${totalLabel}`}

@@ -78,7 +78,7 @@ const getOfflineProducts = async () => {
 class productsAlmacenService {
 
   // Obtener todos los productos
-  static async getAll() {
+  static async getAll(ocultarStockCero = false) {
     try {
       if (shouldUseOffline()) {
         const offlineData = await getOfflineProducts();
@@ -107,7 +107,8 @@ class productsAlmacenService {
 
       const params = new URLSearchParams({
         empresa_id: empresaId,
-        sucu_id: sucuId
+        sucu_id: sucuId,
+        ocultar_stock_cero: ocultarStockCero ? 'true' : 'false'
       });
 
       // Agregar empresas asociadas si existen
@@ -125,6 +126,81 @@ class productsAlmacenService {
       
       if (!response.ok) {
         throw new Error(data.message || 'Error al obtener productos');
+      }
+
+      // Guardar logs de tamaño en localStorage si están disponibles
+      if (data.sizeInfo) {
+        const timestamp = new Date().toISOString();
+        const dateTime = new Date().toLocaleString('es-ES', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+
+        // Guardar cada tipo de tamaño por separado
+        const logEntries = [
+          {
+            sizeBytes: data.sizeInfo.productosBase.sizeBytes,
+            sizeKB: data.sizeInfo.productosBase.sizeKB,
+            sizeMB: data.sizeInfo.productosBase.sizeMB,
+            method: 'getAll',
+            service: 'productsAlmacenService',
+            type: 'productosBase',
+            description: 'Productos base (sin recetas, sin precios)',
+            dateTime: dateTime,
+            timestamp: timestamp
+          },
+          {
+            sizeBytes: data.sizeInfo.productosConRecetas.sizeBytes,
+            sizeKB: data.sizeInfo.productosConRecetas.sizeKB,
+            sizeMB: data.sizeInfo.productosConRecetas.sizeMB,
+            method: 'getAll',
+            service: 'productsAlmacenService',
+            type: 'productosConRecetas',
+            description: 'Productos con recetas (sin precios)',
+            dateTime: dateTime,
+            timestamp: timestamp
+          },
+          {
+            sizeBytes: data.sizeInfo.productosConPrecios.sizeBytes,
+            sizeKB: data.sizeInfo.productosConPrecios.sizeKB,
+            sizeMB: data.sizeInfo.productosConPrecios.sizeMB,
+            method: 'getAll',
+            service: 'productsAlmacenService',
+            type: 'productosConPrecios',
+            description: 'Productos con precios (sin recetas)',
+            dateTime: dateTime,
+            timestamp: timestamp
+          },
+          {
+            sizeBytes: data.sizeInfo.total.sizeBytes,
+            sizeKB: data.sizeInfo.total.sizeKB,
+            sizeMB: data.sizeInfo.total.sizeMB,
+            method: 'getAll',
+            service: 'productsAlmacenService',
+            type: 'total',
+            description: 'Total (productos completos con todo)',
+            dateTime: dateTime,
+            timestamp: timestamp
+          }
+        ];
+
+        try {
+          // Obtener registros existentes o crear array vacío
+          const existingLogs = localStorage.getItem('dataFetchLogs');
+          const logs = existingLogs ? JSON.parse(existingLogs) : [];
+
+          // Agregar nuevos registros
+          logs.push(...logEntries);
+
+          // Guardar de vuelta en localStorage
+          localStorage.setItem('dataFetchLogs', JSON.stringify(logs));
+        } catch (error) {
+          console.error('Error guardando logs de tamaño en localStorage:', error);
+        }
       }
 
       return data;

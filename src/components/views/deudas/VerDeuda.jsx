@@ -33,7 +33,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
     const [isVerPagosOpen, setIsVerPagosOpen] = useState(false);
     const [pagos, setPagos] = useState([]);
     const [loadingPagos, setLoadingPagos] = useState(false);
-    const [pagoForm, setPagoForm] = useState({ fecha: '', monto: '' });
+    const [pagoForm, setPagoForm] = useState({ fecha: '', monto: '', detalle: '' });
     const [deletingPagoId, setDeletingPagoId] = useState(null);
     const [isEditarVencOpen, setIsEditarVencOpen] = useState(false);
     const [fechaVencEdit, setFechaVencEdit] = useState('');
@@ -168,7 +168,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
         if (isRegistrarPagoOpen) {
             const hoy = new Date();
             const fechaHoy = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
-            setPagoForm({ fecha: fechaHoy, monto: '' });
+            setPagoForm({ fecha: fechaHoy, monto: '', detalle: '' });
         }
     }, [isRegistrarPagoOpen]);
 
@@ -183,7 +183,11 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
         }
         setLoading(true);
         try {
-            const response = await deudasService.createPagoParcial(deudaActual.id, { monto: parseFloat(pagoForm.monto), fecha: pagoForm.fecha });
+            const response = await deudasService.createPagoParcial(deudaActual.id, {
+                monto: parseFloat(pagoForm.monto),
+                fecha: pagoForm.fecha,
+                detalle: pagoForm.detalle || null
+            });
             if (response.success) {
                 const deudaActualizada = response.data?.deuda || { ...deudaActual };
                 setDeudaActual(deudaActualizada);
@@ -295,7 +299,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                 </h1>
 
                 <p className={styles.subTitle}>RESPONSABLE DE LA DEUDA</p>
-                    <ItemView
+                <ItemView
                     title={deudaActual?.user?.name || deudaActual?.personal?.name || 'Usuario desconocido'}
                     description="Registro de la deuda"
                     transparent={false}
@@ -368,7 +372,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                     />
 
                 )}
-                
+
                 <Boton
                     className='btn-gray'
                     label='Ver Pagos'
@@ -525,6 +529,13 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                         step='0.01'
                         min='0'
                     />
+                    <InputNormal
+                        tipo='text'
+                        value={pagoForm.detalle}
+                        placeholder='Detalle del pago (opcional)'
+                        onChange={(e) => setPagoForm(prev => ({ ...prev, detalle: e.target.value }))}
+                        icon='note'
+                    />
                     <Boton
                         className='btn-original'
                         label='Registrar Pago'
@@ -545,7 +556,7 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                 <div className={styles.modalContent} style={!isLargeScreen ? { minHeight: '50vh' } : undefined}>
                     <p className={styles.subTitle}>HISTORIAL DE PAGOS</p>
                     {loadingPagos ? (
-                        <NoData 
+                        <NoData
                             icon="loader-alt"
                             title="Cargando pagos..."
                             detail="Obteniendo el historial de pagos"
@@ -554,18 +565,26 @@ function VerDeuda({ isOpen, setIsOpen, deuda, onDeudaEliminada, onDeudaActualiza
                         />
                     ) : pagos.length > 0 ? (
                         pagos.map((p) => (
-                            <Dato
-                                key={p.id}
-                                label={formatDate(p.fecha)}
-                                value={formatCurrency(p.monto)}
-                                icon={deletingPagoId === p.id ? 'loader-alt' : 'trash'}
-                                iconLoading={deletingPagoId === p.id}
-                                onClick={() => (deletingPagoId ? null : handleEliminarPago(p.id))}
-                                vertical={false}
-                            />
+                            <React.Fragment key={p.id}>
+                                <Dato
+                                    label={`• ${formatDate(p.fecha)}`}
+                                    value={formatCurrency(p.monto)}
+                                    icon={deletingPagoId === p.id ? 'loader-alt' : 'trash'}
+                                    iconLoading={deletingPagoId === p.id}
+                                    onClick={() => (deletingPagoId ? null : handleEliminarPago(p.id))}
+                                    vertical={false}
+                                />
+                                <div style={{ marginLeft: '20px' }}>
+                                    <Dato
+                                        label="Detalle:"
+                                        value={p.detalle || 'Sin detalle'}
+                                        vertical={false}
+                                    />
+                                </div>
+                            </React.Fragment>
                         ))
                     ) : (
-                        <NoData 
+                        <NoData
                             icon="history"
                             title="No hay pagos"
                             detail="Esta deuda no tiene pagos registrados aún"

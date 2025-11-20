@@ -54,11 +54,10 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
     // Estados para filtros locales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
-    const [ocultarStockCero, setOcultarStockCero] = useState(() => {
-        // Cargar desde localStorage al inicializar
-        const saved = localStorage.getItem('almacenOcultarStockCero');
-        return saved === 'true';
-    });
+    
+    // Prop interno para determinar si mostrar solo productos con stock > 0
+    // true para transferir y salida, false para entrada, almacen y pedido
+    const ocultarStockCero = tipo === 'transferir' || tipo === 'salida';
 
     // Estados para datos (compartidos con AlmacenGeneral principal)
     const {
@@ -69,7 +68,14 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
         key: 'almacenGeneralProductos',
         defaultValue: [],
     });
-    const [preciosData, setPreciosData] = useState([]);
+    const {
+        value: preciosData,
+        setValue: setPreciosData,
+        hasCache: hasPreciosCache,
+    } = useSessionCache({
+        key: 'almacenGeneralPrecios',
+        defaultValue: [],
+    });
     
     // Estados para rastrear qué datos se han cargado
     const [productosLoaded, setProductosLoaded] = useState(false);
@@ -129,10 +135,11 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
         setProductosLoaded(true);
     }, [tipo, sucursalActual]);
 
+
     // Función para manejar refresh
     const handleRefresh = async () => {
         try {
-            const response = await productsAlmacenService.getAll();
+            const response = await productsAlmacenService.getAll(ocultarStockCero);
             if (response.success) {
                 handleProductosLoaded(response.data);
             }
@@ -143,7 +150,7 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
     const handlePreciosLoaded = useCallback((data) => {
         setPreciosData(data);
         setPreciosLoaded(true);
-    }, []);
+    }, [setPreciosData]);
 
     // Función para manejar cuando se actualizan múltiples productos (después de transferencias)
     const handleProductosUpdated = useCallback((productosActualizados) => {
@@ -186,23 +193,11 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
         paginaTamano: 30,
     });
 
-    // Aplicar filtro de stock 0 después de los otros filtros
-    const productosFiltrados = useMemo(() => {
-        if (!ocultarStockCero) {
-            return productosFiltradosBase;
-        }
-        return productosFiltradosBase.filter(producto => (Number(producto.stock) || 0) > 0);
-    }, [productosFiltradosBase, ocultarStockCero]);
+    // Ya no necesitamos filtrar stock 0 aquí, se hace en el backend
+    const productosFiltrados = productosFiltradosBase;
 
-    // Recalcular visibleItems con el filtro de stock aplicado
+    // Recalcular visibleItems
     const { visibleItems, handleScroll: handleStockScroll } = useVirtualPagination(productosFiltrados, 30);
-
-    // Función para toggle del filtro de stock 0
-    const handleToggleStockCero = useCallback(() => {
-        const nuevoValor = !ocultarStockCero;
-        setOcultarStockCero(nuevoValor);
-        localStorage.setItem('almacenOcultarStockCero', nuevoValor.toString());
-    }, [ocultarStockCero]);
 
     // Efecto para resetear búsqueda y filtros cuando se abre
     useEffect(() => {
@@ -211,7 +206,7 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
 
             // Resetear estados de carga
             setProductosLoaded(hasProductosCache && productos.length > 0);
-            setPreciosLoaded(false);
+            setPreciosLoaded(hasPreciosCache && preciosData.length > 0);
         }
     }, [isOpen, isLargeScreen, resetFilters, hasProductosCache, productos.length]);
 
@@ -249,11 +244,6 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
             label: getOrdenamientoNombre(),
             active: ordenamiento !== 'nombre_asc',
             onClick: () => setOpenOrden(true)
-        },
-        {
-            label: ocultarStockCero ? 'Ocultar 0' : 'Mostrar 0',
-            active: ocultarStockCero,
-            onClick: handleToggleStockCero
         },
     ];
 
@@ -625,6 +615,8 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
                         <FetchData
                             service={productsAlmacenService}
                             serviceName="productsAlmacenService"
+                            method="getAll"
+                            methodParams={[ocultarStockCero]}
                             isOpen={isOpen}
                             onDataLoaded={handleProductosLoaded}
                             onLoadingStart={handleLoadingStart}
