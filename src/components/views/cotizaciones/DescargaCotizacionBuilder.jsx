@@ -3,6 +3,23 @@ import ModalDescarga from '../../ui/ModalDescarga';
 import cotizacionesService from '../../../services/cotizacionesService';
 import { formatCurrency } from '../../../utils/numberUtils';
 
+// Función de redondeo igual que en movimientos: redondea a la décima más cercana
+const redondearADecima = (valor) => {
+    if (!Number.isFinite(valor)) return 0;
+    // Redondear a la décima más cercana (0.10, 0.20, etc.)
+    // Si el segundo decimal es >= 5, redondear hacia arriba, si no hacia abajo
+    const multiplicado = valor * 10;
+    const decimal = multiplicado % 1;
+    const redondeado = decimal >= 0.5 ? Math.ceil(multiplicado) : Math.floor(multiplicado);
+    return redondeado / 10;
+};
+
+const calcularPrecioAgrupado = (precioUnitario, grup) => {
+    const precio = Number(precioUnitario) * (Number(grup) || 1);
+    if (!Number.isFinite(precio)) return 0;
+    return redondearADecima(precio);
+};
+
 function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacionData = null, nombreArchivoDefault = null, tituloDocumentoDefault = null }) {
     const [informacionSuperior, setInformacionSuperior] = useState({});
     const [tablaHeaders, setTablaHeaders] = useState([]);
@@ -50,7 +67,19 @@ function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacion
                         infoSup['Modalidad'] = cotizacion.agrupado ? 'Agrupado' : 'Unidades';
                     }
                     if (cotizacion?.productos && cotizacion.productos.length > 0) {
-                        const total = cotizacion.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
+                        // Calcular total: redondear subtotales de productos agrupados, luego sumar y redondear el total final
+                        const total = (() => {
+                            const subtotalesRedondeados = cotizacion.productos.map(producto => {
+                                const subtotal = parseFloat(producto.subtotal) || 0;
+                                const grup = parseFloat(producto.producto?.grup) || 0;
+                                const esAgrupado = cotizacion?.agrupado && grup > 0;
+                                // Redondear subtotal si tiene grup
+                                return esAgrupado ? redondearADecima(subtotal) : subtotal;
+                            });
+                            const suma = subtotalesRedondeados.reduce((sum, subtotal) => sum + subtotal, 0);
+                            // Redondear el total final a la décima más cercana
+                            return redondearADecima(suma);
+                        })();
                         infoSup['Total'] = formatCurrency(total);
                     }
                     if (cotizacion?.observaciones) {
@@ -75,22 +104,38 @@ function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacion
                             const grupos = Math.floor(cantidad / grup);
                             const unidades = cantidad % grup;
                             cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                            precioTexto = formatCurrency(precioUnitario * grup);
+                            // Precio unitario agrupado redondeado
+                            precioTexto = formatCurrency(calcularPrecioAgrupado(precioUnitario, grup));
                         } else {
                             cantidadTexto = `${cantidad} ud`;
                             precioTexto = formatCurrency(precioUnitario);
+                        }
+
+                        // Redondear subtotal si es agrupado
+                        let subtotal = parseFloat(producto.subtotal) || 0;
+                        if (esAgrupado && grup > 0) {
+                            subtotal = redondearADecima(subtotal);
                         }
 
                         return [
                             producto.producto?.name || 'Sin producto',
                             cantidadTexto,
                             precioTexto,
-                            formatCurrency(parseFloat(producto.subtotal) || 0)
+                            formatCurrency(subtotal)
                         ];
                     });
 
-                    // Fila de total al final
-                    const totalFila = (cotizacion?.productos || []).reduce((sum, p) => sum + (parseFloat(p?.subtotal) || 0), 0);
+                    // Fila de total al final - calcular con redondeo
+                    const totalFila = (() => {
+                        const subtotalesRedondeados = (cotizacion?.productos || []).map(p => {
+                            const subtotal = parseFloat(p?.subtotal) || 0;
+                            const grup = parseFloat(p?.producto?.grup) || 0;
+                            const esAgrupado = cotizacion?.agrupado && grup > 0;
+                            return esAgrupado ? redondearADecima(subtotal) : subtotal;
+                        });
+                        const suma = subtotalesRedondeados.reduce((sum, subtotal) => sum + subtotal, 0);
+                        return redondearADecima(suma);
+                    })();
                     valores.push(['TOTAL', '', '', formatCurrency(totalFila)]);
 
                     setInformacionSuperior(infoSup);
@@ -140,7 +185,19 @@ function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacion
                         infoSup['Modalidad'] = cotizacion.agrupado ? 'Agrupado' : 'Unidades';
                     }
                     if (cotizacion?.productos && cotizacion.productos.length > 0) {
-                        const total = cotizacion.productos.reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
+                        // Calcular total: redondear subtotales de productos agrupados, luego sumar y redondear el total final
+                        const total = (() => {
+                            const subtotalesRedondeados = cotizacion.productos.map(producto => {
+                                const subtotal = parseFloat(producto.subtotal) || 0;
+                                const grup = parseFloat(producto.producto?.grup) || 0;
+                                const esAgrupado = cotizacion?.agrupado && grup > 0;
+                                // Redondear subtotal si tiene grup
+                                return esAgrupado ? redondearADecima(subtotal) : subtotal;
+                            });
+                            const suma = subtotalesRedondeados.reduce((sum, subtotal) => sum + subtotal, 0);
+                            // Redondear el total final a la décima más cercana
+                            return redondearADecima(suma);
+                        })();
                         infoSup['Total'] = formatCurrency(total);
                     }
                     if (cotizacion?.observaciones) {
@@ -165,22 +222,38 @@ function DescargaCotizacionBuilder({ isOpen, setIsOpen, cotizacionId, cotizacion
                             const grupos = Math.floor(cantidad / grup);
                             const unidades = cantidad % grup;
                             cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                            precioTexto = formatCurrency(precioUnitario * grup);
+                            // Precio unitario agrupado redondeado
+                            precioTexto = formatCurrency(calcularPrecioAgrupado(precioUnitario, grup));
                         } else {
                             cantidadTexto = `${cantidad} ud`;
                             precioTexto = formatCurrency(precioUnitario);
+                        }
+
+                        // Redondear subtotal si es agrupado
+                        let subtotal = parseFloat(producto.subtotal) || 0;
+                        if (esAgrupado && grup > 0) {
+                            subtotal = redondearADecima(subtotal);
                         }
 
                         return [
                             producto.producto?.name || 'Sin producto',
                             cantidadTexto,
                             precioTexto,
-                            formatCurrency(parseFloat(producto.subtotal) || 0)
+                            formatCurrency(subtotal)
                         ];
                     });
 
-                    // Fila de total al final
-                    const totalFila = (cotizacion?.productos || []).reduce((sum, p) => sum + (parseFloat(p?.subtotal) || 0), 0);
+                    // Fila de total al final - calcular con redondeo
+                    const totalFila = (() => {
+                        const subtotalesRedondeados = (cotizacion?.productos || []).map(p => {
+                            const subtotal = parseFloat(p?.subtotal) || 0;
+                            const grup = parseFloat(p?.producto?.grup) || 0;
+                            const esAgrupado = cotizacion?.agrupado && grup > 0;
+                            return esAgrupado ? redondearADecima(subtotal) : subtotal;
+                        });
+                        const suma = subtotalesRedondeados.reduce((sum, subtotal) => sum + subtotal, 0);
+                        return redondearADecima(suma);
+                    })();
                     valores.push(['TOTAL', '', '', formatCurrency(totalFila)]);
 
                     setInformacionSuperior(infoSup);

@@ -113,9 +113,9 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 precioTexto = formatCurrency(precioUnitario);
             }
 
-            // Redondear subtotal si el producto tiene grup
+            // Redondear subtotal si el producto tiene grup (independientemente del modo de la cotización)
             let subtotal = parseFloat(productoCotizacion.subtotal) || 0;
-            if (esAgrupado && grup > 0) {
+            if (grup > 0) {
                 subtotal = redondearADecima(subtotal);
             }
 
@@ -397,14 +397,13 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
     const puedeGestionarSalidas = !esSesionEmpleado || tienePermisoSalidas;
 
     const estadoCotizacion = cotizacionActual?.estado;
-    // Calcular total: redondear subtotales de productos agrupados, luego sumar y redondear el total final
+    // Calcular total: redondear subtotales de productos con grup, luego sumar y redondear el total final
     const totalCotizacion = (() => {
         const subtotalesRedondeados = (cotizacionActual?.productos || []).map(producto => {
             const subtotal = parseFloat(producto.subtotal) || 0;
             const grup = parseFloat(producto.producto?.grup) || 0;
-            const esAgrupado = cotizacionActual?.agrupado && grup > 0;
-            // Redondear subtotal si tiene grup
-            return esAgrupado ? redondearADecima(subtotal) : subtotal;
+            // Redondear subtotal si el producto tiene grup (independientemente del modo de la cotización)
+            return grup > 0 ? redondearADecima(subtotal) : subtotal;
         });
         const suma = subtotalesRedondeados.reduce((sum, subtotal) => sum + subtotal, 0);
         // Redondear el total final a la décima más cercana
@@ -672,9 +671,9 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                             precioTexto = formatCurrency(precioUnitario);
                                         }
                                         
-                                        // Mostrar subtotal redondeado si es agrupado
+                                        // Mostrar subtotal redondeado si el producto tiene grup (independientemente del modo de la cotización)
                                         let subtotalMostrar = parseFloat(productoCotizacion.subtotal) || 0;
-                                        if (esAgrupado && grup > 0) {
+                                        if (grup > 0) {
                                             subtotalMostrar = redondearADecima(subtotalMostrar);
                                         }
 
@@ -682,7 +681,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                             <ItemView
                                                 key={`${productoCotizacion.producto?.id || 'producto'}-${index}`}
                                                 title={productoCotizacion.producto?.name || 'Sin nombre'}
-                                                description={`Precio Unitario: ${precioTexto}`}
+                                                description={`Precio Unitario: ${precioTexto} • Subtotal: ${formatCurrency(subtotalMostrar)}`}
                                                 flot2={cantidadTexto}
                                                 circulo={false}
                                             />
