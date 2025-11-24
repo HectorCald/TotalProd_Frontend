@@ -19,11 +19,23 @@ import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import AlmacenGeneralAuxiliar from '../almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 import { formatCurrency } from '../../../utils/numberUtils';
-    const calcularPrecioAgrupado = (precioUnitario, grup) => {
-        const precio = Number(precioUnitario) * (Number(grup) || 1);
-        if (!Number.isFinite(precio)) return 0;
-        return Math.round(precio);
-    };
+
+// Función de redondeo igual que en movimientos: redondea a la décima más cercana
+const redondearADecima = (valor) => {
+    if (!Number.isFinite(valor)) return 0;
+    // Redondear a la décima más cercana (0.10, 0.20, etc.)
+    // Si el segundo decimal es >= 5, redondear hacia arriba, si no hacia abajo
+    const multiplicado = valor * 10;
+    const decimal = multiplicado % 1;
+    const redondeado = decimal >= 0.5 ? Math.ceil(multiplicado) : Math.floor(multiplicado);
+    return redondeado / 10;
+};
+
+const calcularPrecioAgrupado = (precioUnitario, grup) => {
+    const precio = Number(precioUnitario) * (Number(grup) || 1);
+    if (!Number.isFinite(precio)) return 0;
+    return redondearADecima(precio);
+};
 
 
 function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onCotizacionEliminada, onCotizacionActualizada }) {
@@ -101,7 +113,11 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 precioTexto = formatCurrency(precioUnitario);
             }
 
-            const subtotal = parseFloat(productoCotizacion.subtotal) || 0;
+            // Redondear subtotal si el producto tiene grup
+            let subtotal = parseFloat(productoCotizacion.subtotal) || 0;
+            if (esAgrupado && grup > 0) {
+                subtotal = redondearADecima(subtotal);
+            }
 
             return [
                 productoCotizacion.producto?.name || 'Sin nombre',
@@ -381,7 +397,19 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
     const puedeGestionarSalidas = !esSesionEmpleado || tienePermisoSalidas;
 
     const estadoCotizacion = cotizacionActual?.estado;
-    const totalCotizacion = (cotizacionActual?.productos || []).reduce((sum, producto) => sum + (parseFloat(producto.subtotal) || 0), 0);
+    // Calcular total: redondear subtotales de productos agrupados, luego sumar y redondear el total final
+    const totalCotizacion = (() => {
+        const subtotalesRedondeados = (cotizacionActual?.productos || []).map(producto => {
+            const subtotal = parseFloat(producto.subtotal) || 0;
+            const grup = parseFloat(producto.producto?.grup) || 0;
+            const esAgrupado = cotizacionActual?.agrupado && grup > 0;
+            // Redondear subtotal si tiene grup
+            return esAgrupado ? redondearADecima(subtotal) : subtotal;
+        });
+        const suma = subtotalesRedondeados.reduce((sum, subtotal) => sum + subtotal, 0);
+        // Redondear el total final a la décima más cercana
+        return redondearADecima(suma);
+    })();
     const puedeAprobar = esResponsable && estadoCotizacion === 'pendiente';
     const puedeAnularAprobacion = esResponsable && estadoCotizacion === 'aprobada';
     const puedeFinalizar = esResponsable && estadoCotizacion === 'aprobada' && puedeGestionarSalidas;
@@ -642,6 +670,12 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                         } else {
                                             cantidadTexto = `${cantidad} ud`;
                                             precioTexto = formatCurrency(precioUnitario);
+                                        }
+                                        
+                                        // Mostrar subtotal redondeado si es agrupado
+                                        let subtotalMostrar = parseFloat(productoCotizacion.subtotal) || 0;
+                                        if (esAgrupado && grup > 0) {
+                                            subtotalMostrar = redondearADecima(subtotalMostrar);
                                         }
 
                                         return (

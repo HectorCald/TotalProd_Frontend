@@ -22,6 +22,17 @@ import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha'
 import FiltroCliente from '../../mixed/FiltroCliente';
 import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCache';
 
+// Función de redondeo igual que en movimientos: redondea a la décima más cercana
+const redondearADecima = (valor) => {
+    if (!Number.isFinite(valor)) return 0;
+    // Redondear a la décima más cercana (0.10, 0.20, etc.)
+    // Si el segundo decimal es >= 5, redondear hacia arriba, si no hacia abajo
+    const multiplicado = valor * 10;
+    const decimal = multiplicado % 1;
+    const redondeado = decimal >= 0.5 ? Math.ceil(multiplicado) : Math.floor(multiplicado);
+    return redondeado / 10;
+};
+
 
 function PanelCotizaciones({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
@@ -437,11 +448,23 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             detalleValue = 'Sin productos';
         }
 
+        // Calcular total redondeado: sumar subtotales redondeados de productos con grup, luego redondear el total final
+        const totalCalculado = (cotizacion.productos || []).reduce((sum, producto) => {
+            const subtotal = parseFloat(producto.subtotal) || 0;
+            const grup = parseFloat(producto.producto?.grup) || 0;
+            const tieneGrup = grup > 0;
+            // Redondear subtotal a la décima más cercana si tiene grup
+            const subtotalRedondeado = tieneGrup ? redondearADecima(subtotal) : subtotal;
+            return sum + subtotalRedondeado;
+        }, 0);
+        // Redondear el total final a la décima más cercana
+        const totalRedondeado = redondearADecima(totalCalculado);
+
         return {
             id: cotizacion.id,
             numero_cotizacion: cotizacion.numero_cotizacion || 'Sin número',
             detalle: detalleValue,
-            total: formatCurrency(parseFloat(cotizacion.total) || 0),
+            total: formatCurrency(totalRedondeado),
             fecha: new Date(cotizacion.fecha).toLocaleDateString(),
             estado: cotizacion.estado === 'anulado' ? 'Anulado' : cotizacion.estado === 'aprobada' ? 'Aprobada' : cotizacion.estado === 'completado' ? 'Completado' : 'Pendiente',
             metodo_pago: cotizacion.metodo_pago || '--',
