@@ -3,43 +3,6 @@ import ModalDescarga from '../../ui/ModalDescarga';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 
-const DOCUMENT_NAMES_STORAGE_KEY = 'descargaMovimientoDocumentNames';
-
-const readStoredDocumentNames = (tipo) => {
-    if (typeof window === 'undefined') return null;
-    try {
-        const raw = localStorage.getItem(DOCUMENT_NAMES_STORAGE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') return null;
-        const entry = parsed[tipo];
-        if (!entry || typeof entry !== 'object') return null;
-        const { nombreArchivo, tituloDocumento } = entry;
-        return {
-            nombreArchivo: typeof nombreArchivo === 'string' ? nombreArchivo : null,
-            tituloDocumento: typeof tituloDocumento === 'string' ? tituloDocumento : null
-        };
-    } catch (error) {
-        console.error('Error leyendo nombres de documento almacenados:', error);
-        return null;
-    }
-};
-
-const writeStoredDocumentNames = (tipo, nombres) => {
-    if (typeof window === 'undefined') return;
-    try {
-        const raw = localStorage.getItem(DOCUMENT_NAMES_STORAGE_KEY);
-        const parsed = raw ? JSON.parse(raw) : {};
-        parsed[tipo] = {
-            nombreArchivo: typeof nombres.nombreArchivo === 'string' ? nombres.nombreArchivo : '',
-            tituloDocumento: typeof nombres.tituloDocumento === 'string' ? nombres.tituloDocumento : ''
-        };
-        localStorage.setItem(DOCUMENT_NAMES_STORAGE_KEY, JSON.stringify(parsed));
-    } catch (error) {
-        console.error('Error guardando nombres de documento:', error);
-    }
-};
-
 function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'almacen', movimientoData = null, nombreArchivoDefault = null, tituloDocumentoDefault = null }) {
     const [informacionSuperior, setInformacionSuperior] = useState({});
     const [tablaHeaders, setTablaHeaders] = useState([]);
@@ -48,51 +11,15 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
     const [tituloDocumento, setTituloDocumento] = useState('Movimiento');
     const [cargando, setCargando] = useState(false);
 
-    const applyDocumentNames = (defaultNombre, defaultTitulo) => {
-        const stored = readStoredDocumentNames(tipo);
-        const resolvedNombre = stored && stored.nombreArchivo !== null && stored.nombreArchivo !== undefined
-            ? stored.nombreArchivo
-            : defaultNombre;
-        const resolvedTitulo = stored && stored.tituloDocumento !== null && stored.tituloDocumento !== undefined
-            ? stored.tituloDocumento
-            : defaultTitulo;
-        setNombreArchivo(resolvedNombre);
-        setTituloDocumento(resolvedTitulo);
-    };
-
-    const handleSaveDocumentNames = ({ nombreArchivo: nombreBase, tituloDocumento: tituloBase }) => {
-        const toStore = {
-            nombreArchivo: typeof nombreBase === 'string' ? nombreBase : '',
-            tituloDocumento: typeof tituloBase === 'string' ? tituloBase : ''
-        };
-        writeStoredDocumentNames(tipo, toStore);
-        if (nombreBase !== undefined && nombreBase !== null) {
-            setNombreArchivo(nombreBase);
-        }
-        if (tituloBase !== undefined && tituloBase !== null) {
-            setTituloDocumento(tituloBase);
-        }
-    };
-
     useEffect(() => {
         if (!isOpen) return;
-        const stored = readStoredDocumentNames(tipo);
-        if (stored) {
-            if (stored.nombreArchivo !== null && stored.nombreArchivo !== undefined) {
-                setNombreArchivo(stored.nombreArchivo);
-            }
-            if (stored.tituloDocumento !== null && stored.tituloDocumento !== undefined) {
-                setTituloDocumento(stored.tituloDocumento);
-            }
-        } else {
-            if (nombreArchivoDefault) {
-                setNombreArchivo(nombreArchivoDefault);
-            }
-            if (tituloDocumentoDefault) {
-                setTituloDocumento(tituloDocumentoDefault);
-            }
+        if (nombreArchivoDefault) {
+            setNombreArchivo(nombreArchivoDefault);
         }
-    }, [isOpen, tipo, nombreArchivoDefault, tituloDocumentoDefault]);
+        if (tituloDocumentoDefault) {
+            setTituloDocumento(tituloDocumentoDefault);
+        }
+    }, [isOpen, nombreArchivoDefault, tituloDocumentoDefault]);
 
     useEffect(() => {
         const fetchMovimiento = async () => {
@@ -156,7 +83,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setTablaValores(valores);
                         const defaultNombre = nombreArchivoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA');
                         const defaultTitulo = tituloDocumentoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA');
-                        applyDocumentNames(defaultNombre, defaultTitulo);
+                        setNombreArchivo(defaultNombre);
+                        setTituloDocumento(defaultTitulo);
                         return;
                     } else {
                         const movimiento = movimientoData;
@@ -255,7 +183,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setTablaValores(valores);
                         const defaultNombre = nombreArchivoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA');
                         const defaultTitulo = tituloDocumentoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA');
-                        applyDocumentNames(defaultNombre, defaultTitulo);
+                        setNombreArchivo(defaultNombre);
+                        setTituloDocumento(defaultTitulo);
                         return;
                     }
                 }
@@ -324,7 +253,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setTablaValores(valores);
                         const defaultNombre = nombreArchivoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA');
                         const defaultTitulo = tituloDocumentoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA');
-                        applyDocumentNames(defaultNombre, defaultTitulo);
+                        setNombreArchivo(defaultNombre);
+                        setTituloDocumento(defaultTitulo);
                     }
                 } else {
                     const response = await movimientosAlmacenService.getById(movimientoId);
@@ -437,7 +367,8 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
                         setTablaValores(valores);
                         const defaultNombre = nombreArchivoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA');
                         const defaultTitulo = tituloDocumentoDefault || (movimiento?.type === 'entrada' ? 'NOTA DE INGRESO' : 'NOTA DE ENTREGA');
-                        applyDocumentNames(defaultNombre, defaultTitulo);
+                        setNombreArchivo(defaultNombre);
+                        setTituloDocumento(defaultTitulo);
                     }
                 }
             } catch (error) {
@@ -499,7 +430,6 @@ function DescargaMovimientoBuilder({ isOpen, setIsOpen, movimientoId, tipo = 'al
             tablaValores={tablaValores}
             loading={cargando}
             esMovimiento={true}
-            onSaveDocumentNames={handleSaveDocumentNames}
             clienteInfo={clienteInfo}
         />
     );

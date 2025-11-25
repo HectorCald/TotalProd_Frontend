@@ -411,7 +411,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
     })();
     const puedeAprobar = esResponsable && estadoCotizacion === 'pendiente';
     const puedeAnularAprobacion = esResponsable && estadoCotizacion === 'aprobada';
-    const puedeFinalizar = esResponsable && estadoCotizacion === 'aprobada' && puedeGestionarSalidas;
+    const puedeFinalizar = estadoCotizacion === 'aprobada' && puedeGestionarSalidas;
     const puedeAnularCompletado = estadoCotizacion === 'completado' && puedeGestionarSalidas;
     const puedeRealizarVenta = estadoCotizacion === 'aprobada' && puedeGestionarSalidas;
     const puedeAnular = (!esSesionEmpleado || esResponsable) && estadoCotizacion !== 'anulado' && estadoCotizacion !== 'aprobada' && estadoCotizacion !== 'completado' && !cotizacionActual?.tiene_pedido_relacionado;

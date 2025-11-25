@@ -225,6 +225,8 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
             setFiltroEstadoNombre('Aprobadas');
         } else if (estado === 'anulado') {
             setFiltroEstadoNombre('Anuladas');
+        } else if (estado === 'completado') {
+            setFiltroEstadoNombre('Completadas');
         }
         setCurrentPage(1);
     };
@@ -395,7 +397,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
         { key: 'metodo_pago', label: 'Método de pago', icon: 'credit-card' }
     ];
 
-    // Filtrar cotizaciones localmente
+    // Filtrar cotizaciones localmente (solo búsqueda, estado y cliente vienen filtrados del backend)
     const cotizacionesFiltradas = allCotizaciones.filter(cotizacion => {
         const normalizedQuery = searchQueryNormalized || normalizeSearchValue(searchQuery);
         
@@ -408,10 +410,8 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 normalizedIncludes(normalizeSearchValue(producto.producto?.description || ''), normalizedQuery)
             ));
 
-        const matchesEstado = filtroEstado === null || cotizacion.estado === filtroEstado;
-        const matchesCliente = !filtroCliente || cotizacion.cliente?.id === filtroCliente.id;
-
-        return matchesSearch && matchesEstado && matchesCliente;
+        // Estado y cliente ya vienen filtrados del backend, no filtrar localmente
+        return matchesSearch;
     }).sort((a, b) => {
         switch (ordenamiento) {
             case 'fecha_desc':

@@ -35,8 +35,7 @@ function ModalDescarga({
     esMovimiento = false,
     clienteInfo = null, // { nombre: string, numeroOrden: number }
     separarColumnas = false, // Prop para separar columnas con líneas
-    columnWidths = null, // { [key: string]: string } - Anchos personalizados para columnas
-    onSaveDocumentNames = null
+    columnWidths = null // { [key: string]: string } - Anchos personalizados para columnas
 }) {
     const [nombreArchivoState, setNombreArchivoState] = useState(nombreArchivo);
     const [tituloDocumentoState, setTituloDocumentoState] = useState(tituloDocumento);
@@ -50,30 +49,7 @@ function ModalDescarga({
     const [empresaImage, setEmpresaImage] = useState(null);
     const [empresaImageBase64, setEmpresaImageBase64] = useState(null);
 
-    const getClienteSuffix = () => {
-        if (!clienteInfo) return '';
-        return ` ${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden}`;
-    };
 
-    const sanitizeDocumentValue = (value) => {
-        if (value == null) return '';
-        const suffix = getClienteSuffix();
-        let cleaned = value;
-        if (suffix && cleaned.endsWith(suffix)) {
-            cleaned = cleaned.slice(0, -suffix.length);
-        }
-        return cleaned.trim();
-    };
-
-    const persistDocumentNames = () => {
-        if (!onSaveDocumentNames) return;
-        const baseNombre = sanitizeDocumentValue(nombreArchivoState);
-        const baseTitulo = sanitizeDocumentValue(tituloDocumentoState);
-        onSaveDocumentNames({
-            nombreArchivo: baseNombre,
-            tituloDocumento: baseTitulo
-        });
-    };
 
     // Obtener contexto de usuario y layout
     const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
@@ -103,9 +79,14 @@ function ModalDescarga({
 
     // Actualizar el estado cuando cambien las props
     useEffect(() => {
-        setNombreArchivoState(nombreArchivo);
+        // Por defecto, si es movimiento, usar "NT", sino usar el nombreArchivo que viene
+        if (esMovimiento) {
+            setNombreArchivoState('NT');
+        } else {
+            setNombreArchivoState(nombreArchivo);
+        }
         setTituloDocumentoState(tituloDocumento);
-    }, [nombreArchivo, tituloDocumento]);
+    }, [nombreArchivo, tituloDocumento, esMovimiento]);
 
     // Función para convertir imagen a base64
     const convertImageToBase64 = async (imageUrl) => {
@@ -192,22 +173,29 @@ function ModalDescarga({
     const handleVerNumeroChange = (ver) => {
         setVerNumero(ver);
 
-        if (ver && clienteInfo) {
-            // Agregar nombre del cliente y número al final
-            const sufijoCliente = ` ${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden}`;
-
-            // Solo agregar si no está ya presente
-            if (!nombreArchivoState.includes(clienteInfo.nombre)) {
-                setNombreArchivoState(prev => prev + sufijoCliente);
+        if (ver && clienteInfo && clienteInfo.numeroOrden && clienteInfo.nombre) {
+            // Agregar número y nombre del cliente al nombre del archivo: "NT - Nº X Nombre" (con guion)
+            setNombreArchivoState(`NT - Nº ${clienteInfo.numeroOrden} ${clienteInfo.nombre}`);
+            // Agregar número y nombre del cliente al final del título del documento (sin guion)
+            const sufijo = ` Nº ${clienteInfo.numeroOrden} ${clienteInfo.nombre}`;
+            setTituloDocumentoState(prev => {
+                // Si ya tiene el sufijo, no agregarlo de nuevo
+                if (prev.endsWith(sufijo)) return prev;
+                return prev + sufijo;
+            });
+        } else {
+            // Volver a solo "NT" en el nombre del archivo
+            setNombreArchivoState('NT');
+            // Remover el sufijo del título del documento si existe
+            if (clienteInfo && clienteInfo.numeroOrden && clienteInfo.nombre) {
+                const sufijo = ` Nº ${clienteInfo.numeroOrden} ${clienteInfo.nombre}`;
+                setTituloDocumentoState(prev => {
+                    if (prev.endsWith(sufijo)) {
+                        return prev.slice(0, -sufijo.length);
+                    }
+                    return prev;
+                });
             }
-            if (!tituloDocumentoState.includes(clienteInfo.nombre)) {
-                setTituloDocumentoState(prev => prev + sufijoCliente);
-            }
-        } else if (!ver && clienteInfo) {
-            // Remover el sufijo del cliente si está presente
-            const sufijoCliente = ` ${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden}`;
-            setNombreArchivoState(prev => prev.replace(sufijoCliente, ''));
-            setTituloDocumentoState(prev => prev.replace(sufijoCliente, ''));
         }
     };
 
@@ -1156,10 +1144,8 @@ function ModalDescarga({
         const executeDownload = async () => {
             try {
                 if (autoDownloadType === 'excel') {
-                    persistDocumentNames();
                     await handleDescargaExcel();
                 } else if (autoDownloadType === 'pdf') {
-                    persistDocumentNames();
                     await handleDescargaPDF();
                 }
             } finally {
@@ -1170,7 +1156,6 @@ function ModalDescarga({
     }, [autoDownloadType]);
 
     const handleExcelDownloadClick = async () => {
-        persistDocumentNames();
         if (onExcel) {
             onExcel();
             return;
@@ -1179,7 +1164,6 @@ function ModalDescarga({
     };
 
     const handlePdfDownloadClick = async () => {
-        persistDocumentNames();
         if (onPDF) {
             onPDF();
             return;
@@ -1796,7 +1780,6 @@ function ModalDescarga({
     };
 
     const handleImagenDownloadClick = async () => {
-        persistDocumentNames();
         await handleDescargaImagen();
     };
 
@@ -1830,7 +1813,7 @@ function ModalDescarga({
 
                         <Switch
                             title="Ver número"
-                            subtitle={`Nombre y número de orden (${clienteInfo.nombre} Nº ${clienteInfo.numeroOrden})`}
+                            subtitle={`Número de orden y nombre (Nº ${clienteInfo.numeroOrden} ${clienteInfo.nombre})`}
                             checked={verNumero}
                             onChange={handleVerNumeroChange}
                             icon="user"

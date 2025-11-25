@@ -44,6 +44,12 @@ function FiltroEstadoCotizacion({ isOpen, setIsOpen, onEstadoSeleccionado }) {
                     icon='x-circle'
                     onClick={() => handleEstadoSelect('anulado')}
                 />
+
+                <ItemLine
+                    title='Completadas'
+                    icon='check'
+                    onClick={() => handleEstadoSelect('completado')}
+                />
             </div>
         </ViewModal>
     );

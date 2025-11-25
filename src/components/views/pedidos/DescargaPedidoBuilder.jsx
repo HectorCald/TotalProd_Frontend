@@ -96,18 +96,21 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                             // Si no es agrupado, mostrar la cantidad real (unidades)
                             let cantidadVisual = detalle?.cantidad || 0;
                             let unidadVisual = detalle?.medida || detalle?.producto_almacen?.type_measure?.code || 'u';
+                            let precioUnitario = detalle?.precio || 0;
                             
                             if (pedido.agrupado && detalle?.producto_almacen?.grup) {
                                 // Calcular cantidad agrupada: cantidad real / factor de agrupación
                                 const factorAgrupacion = detalle.producto_almacen.grup || 1;
                                 cantidadVisual = Math.round((detalle?.cantidad || 0) / factorAgrupacion);
                                 unidadVisual = 'grp';
+                                // Precio unitario multiplicado por la cantidad de agrupación (redondeado)
+                                precioUnitario = Math.round(precioUnitario * factorAgrupacion);
                             }
                             
                             return [
                                 detalle?.producto_almacen?.name || 'Sin producto',
                                 `${cantidadVisual} ${unidadVisual}`,
-                                `Bs. ${(detalle?.precio || 0).toFixed(2)}`,
+                                `Bs. ${precioUnitario.toFixed(2)}`,
                                 `Bs. ${((detalle?.precio || 0) * (detalle?.cantidad || 0)).toFixed(2)}`
                             ];
                         });
@@ -206,18 +209,21 @@ function DescargaPedidoBuilder({ isOpen, setIsOpen, pedidoId, tipo = 'almacen', 
                             // Si no es agrupado, mostrar la cantidad real (unidades)
                             let cantidadVisual = detalle?.cantidad || 0;
                             let unidadVisual = detalle?.medida || detalle?.producto_almacen?.type_measure?.code || 'u';
+                            let precioUnitario = detalle?.precio || 0;
                             
                             if (pedido.agrupado && detalle?.producto_almacen?.grup) {
                                 // Calcular cantidad agrupada: cantidad real / factor de agrupación
                                 const factorAgrupacion = detalle.producto_almacen.grup || 1;
                                 cantidadVisual = Math.round((detalle?.cantidad || 0) / factorAgrupacion);
                                 unidadVisual = 'grp';
+                                // Precio unitario multiplicado por la cantidad de agrupación (redondeado)
+                                precioUnitario = Math.round(precioUnitario * factorAgrupacion);
                             }
                             
                             return [
                                 detalle?.producto_almacen?.name || 'Sin producto',
                                 `${cantidadVisual} ${unidadVisual}`,
-                                `Bs. ${(detalle?.precio || 0).toFixed(2)}`,
+                                `Bs. ${precioUnitario.toFixed(2)}`,
                                 `Bs. ${((detalle?.precio || 0) * (detalle?.cantidad || 0)).toFixed(2)}`
                             ];
                         });
