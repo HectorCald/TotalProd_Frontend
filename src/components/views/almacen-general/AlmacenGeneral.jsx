@@ -59,9 +59,20 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [isOpenCategoria, setOpenCategoria] = useState(false);
     const [isOpenOrden, setOpenOrden] = useState(false);
     
+    // Estado para rastrear si estamos editando un movimiento (tiene fechaMovimientoEditando)
+    const [isEditandoMovimiento, setIsEditandoMovimiento] = useState(false);
+    
     // Prop interno para determinar si mostrar solo productos con stock > 0
     // true para transferir y salida, false para entrada, almacen y pedido
-    const ocultarStockCero = tipo === 'transferir' || tipo === 'salida';
+    // Si estamos editando un movimiento (fechaMovimientoEditando existe), mostrar todos los productos incluso con stock 0
+    const ocultarStockCero = useMemo(() => {
+        // Si estamos editando un movimiento, mostrar todos los productos, incluso con stock 0
+        if (isEditandoMovimiento) {
+            return false; // Mostrar todos los productos, incluso con stock 0
+        }
+        // Comportamiento normal según el tipo
+        return tipo === 'transferir' || tipo === 'salida';
+    }, [tipo, isEditandoMovimiento]);
     const [isCategoriasAlmacenOpen, setIsCategoriasAlmacenOpen] = useState(false);
     const [isOfflineMovimientosOpen, setIsOfflineMovimientosOpen] = useState(false);
     const [offlineMovimientos, setOfflineMovimientos] = useState([]);
@@ -439,6 +450,10 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     useEffect(() => {
         if (isOpen) {
             resetFilters();
+            
+            // Verificar si estamos en modo edición (hay fechaMovimientoEditando en localStorage)
+            const hayFechaMovimientoEditando = localStorage.getItem('fechaMovimientoEditando');
+            setIsEditandoMovimiento(!!hayFechaMovimientoEditando);
             
             // Resetear estados de carga
             setProductosLoaded(hasProductosCache && productos.length > 0);

@@ -6,7 +6,7 @@ const API_CONFIG = {
     // URLs de los backends
     LOCAL: 'http://localhost:5000/api',
     PRODUCTION: 'https://total-prod-backend.vercel.app/api',
-    
+        
     // Obtener la URL base según el entorno
     getBaseURL() {
         switch(this.ENVIRONMENT) {
