@@ -262,12 +262,35 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                 // NO cerrar VerMovimiento, solo actualizar el estado
                 mostrarNotificacion('success', 'Movimiento anulado correctamente');
             } else {
-                const msg = response.message || 'Error al anular el movimiento';
-                mostrarNotificacion('error', msg);
+                // Manejar errores específicos de stock insuficiente
+                if (response.productosConStockInsuficiente && response.productosConStockInsuficiente.length > 0) {
+                    const productos = response.productosConStockInsuficiente;
+                    let mensajeError = 'No se puede anular: Stock insuficiente para revertir el ingreso\n\n';
+                    productos.forEach(prod => {
+                        mensajeError += `• ${prod.nombre}: Stock actual ${prod.stockActual}, necesitas ${prod.requerido} (faltan ${prod.faltante})\n`;
+                    });
+                    mensajeError += '\nEsto significa que los productos ingresados ya fueron vendidos o utilizados.';
+                    mostrarNotificacion('error', mensajeError);
+                } else {
+                    const msg = response.message || 'Error al anular el movimiento';
+                    mostrarNotificacion('error', msg);
+                }
             }
         } catch (error) {
             console.error('Error anulando movimiento:', error);
-            mostrarNotificacion('error', 'Error al anular el movimiento');
+            
+            // Manejar errores específicos de stock insuficiente desde el catch
+            if (error.response?.data?.productosConStockInsuficiente) {
+                const productos = error.response.data.productosConStockInsuficiente;
+                let mensajeError = 'No se puede anular: Stock insuficiente para revertir el ingreso\n\n';
+                productos.forEach(prod => {
+                    mensajeError += `• ${prod.nombre}: Stock actual ${prod.stockActual}, necesitas ${prod.requerido} (faltan ${prod.faltante})\n`;
+                });
+                mensajeError += '\nEsto significa que los productos ingresados ya fueron vendidos o utilizados.';
+                mostrarNotificacion('error', mensajeError);
+            } else {
+                mostrarNotificacion('error', error.message || 'Error al anular el movimiento');
+            }
         } finally {
             setLoading(false);
         }
@@ -756,7 +779,7 @@ function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onM
                                     disabled={loadingEditar}
                                 />
                             )}
-                            {!movimientoActual?.tiene_pedido_relacionado && (
+                            {(movimientoActual?.type === 'entrada' || !movimientoActual?.tiene_pedido_relacionado) && (
                                 <Boton
                                     className='btn-red'
                                     label='Anular Movimiento'

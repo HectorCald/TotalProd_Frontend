@@ -421,6 +421,26 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 }
             }
 
+            // Obtener el movimiento de salida para copiar descuento/aumento
+            let descuentoSalida = 0;
+            let aumentoSalida = 0;
+            let porcentajeSalida = null;
+
+            if (pedidoActual?.movimiento_salida_id) {
+                try {
+                    const movimientoSalidaResponse = await movimientosAlmacenService.getById(pedidoActual.movimiento_salida_id);
+                    if (movimientoSalidaResponse.success && movimientoSalidaResponse.data) {
+                        const movimientoSalida = movimientoSalidaResponse.data;
+                        descuentoSalida = parseFloat(movimientoSalida.descuento) || 0;
+                        aumentoSalida = parseFloat(movimientoSalida.aumento) || 0;
+                        porcentajeSalida = movimientoSalida.porcentaje;
+                    }
+                } catch (error) {
+                    console.warn('Error al obtener movimiento de salida para copiar descuento/aumento:', error);
+                    // Continuar sin descuento/aumento si falla
+                }
+            }
+
             // Preparar los productos del pedido para el ingreso
             const productosParaIngreso = pedidoActual.pedido_almacen_detalle?.map(detalle => ({
                 id: detalle.producto_almacen.id,
@@ -438,7 +458,10 @@ function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, o
                 type: 'entrada',
                 observaciones: `Ingreso automático del pedido Nº ${pedidoActual.numero_pedido || 'N/A'}`,
                 productos: productosParaIngreso,
-                precio_id: pedidoActual.precio_id
+                precio_id: pedidoActual.precio_id,
+                descuento: descuentoSalida,
+                aumento: aumentoSalida,
+                porcentaje: porcentajeSalida
             };
 
             const movimientoResponse = await movimientosAlmacenService.create(movimientoData);

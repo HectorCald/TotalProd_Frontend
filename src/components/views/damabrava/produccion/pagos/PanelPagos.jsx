@@ -275,7 +275,12 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
                 `${formatFechaCorta(pago.fecha_inicio)} ${formatFechaCorta(pago.fecha_fin)}`
             );
             const estado = normalizarTexto(pago?.estado || '');
-            const total = normalizarTexto(pago?.total || '');
+            const extras = Number(pago?.extras) || 0;
+            const descuento = Number(pago?.descuento) || 0;
+            const aumento = Number(pago?.aumento) || 0;
+            const totalProduccion = Number(pago?.total) || 0;
+            const totalConAjustes = totalProduccion + extras + aumento - descuento;
+            const total = normalizarTexto(totalConAjustes.toString() || '');
             const registradoPor = normalizarTexto(pago?.registrado_por?.name || pago?.personal?.name || pago?.user?.name || '');
             const productos = Array.isArray(pago?.registros)
                 ? pago.registros.map((registro) => normalizarTexto(registro?.producto_almacen?.name || '')).join(' ')
@@ -298,7 +303,12 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         return pagosFiltrados.map((pago) => {
             const responsable = pago?.responsable?.name || 'Sin responsable';
             const periodo = `${formatFechaCorta(pago.fecha_inicio)} - ${formatFechaCorta(pago.fecha_fin)}`;
-            const total = Number(pago.total || 0).toLocaleString('es-BO', {
+            const extras = Number(pago?.extras) || 0;
+            const descuento = Number(pago?.descuento) || 0;
+            const aumento = Number(pago?.aumento) || 0;
+            const totalProduccion = Number(pago?.total) || 0;
+            const totalConAjustes = totalProduccion + extras + aumento - descuento;
+            const total = totalConAjustes.toLocaleString('es-BO', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
@@ -583,7 +593,12 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
                                     pagosFiltrados.map((pago) => {
                                         const responsable = pago?.responsable?.name || 'Sin responsable';
                                         const periodo = `${formatFechaCorta(pago.fecha_inicio)} - ${formatFechaCorta(pago.fecha_fin)}`;
-                                        const total = Number(pago.total || 0).toLocaleString('es-BO', {
+                                        const extras = Number(pago?.extras) || 0;
+                                        const descuento = Number(pago?.descuento) || 0;
+                                        const aumento = Number(pago?.aumento) || 0;
+                                        const totalProduccion = Number(pago?.total) || 0;
+                                        const totalConAjustes = totalProduccion + extras + aumento - descuento;
+                                        const total = totalConAjustes.toLocaleString('es-BO', {
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2
                                         });
@@ -596,7 +611,7 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
                                                 title={responsable}
                                                 description={periodo}
                                                 arrow
-                                                flot2={pago.total}
+                                                flot2={`Bs. ${total}`}
                                                 flot3={estado === 'pendiente' ? 'Pendiente' : ''}
                                                 flot1={estado === 'pagado' ? 'Pagado' : ''}
                                                 onClick={() => handlePagoSeleccionado(pago)}

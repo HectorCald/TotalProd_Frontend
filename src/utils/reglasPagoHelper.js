@@ -166,11 +166,7 @@ export const calcularPagoProcesos = ({
     const procesoNormalizado = normalizeText(proceso) || 'ninguno';
 
     const sellado = redondear(cantidadTerminados * (Number(regla.sellado) || 0));
-    const factorEnvasado =
-        procesoNormalizado === 'seleccion' || procesoNormalizado === 'seleccionado' ? 2 : 1;
-    const envasado = redondear(
-        cantidadTerminados * ((Number(regla.envasado) || 0) * factorEnvasado)
-    );
+    const envasado = redondear(cantidadTerminados * (Number(regla.envasado) || 0));
     const etiquetado = redondear(cantidadTerminados * (Number(regla.etiquetado) || 0));
 
     let cernido = 0;
