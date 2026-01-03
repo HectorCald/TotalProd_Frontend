@@ -88,7 +88,7 @@ function App() {
 
 function AppContent({ token, tokenType }) {
   const { user, sucursalSeleccionada: userSucursal, seleccionarSucursal: seleccionarSucursalUsuario, loadUserData } = useUser();
-  const { employee, sucursalSeleccionada: employeeSucursal, seleccionarSucursal: seleccionarSucursalEmpleado, loadEmployeeData } = useEmployee();
+  const { employee, sucursalSeleccionada: employeeSucursal, seleccionarSucursal: seleccionarSucursalEmpleado, loadEmployeeData, loading: employeeLoading } = useEmployee();
   const [showSucursalModal, setShowSucursalModal] = useState(false);
   const [userDataFetched, setUserDataFetched] = useState(false);
   const [employeeDataFetched, setEmployeeDataFetched] = useState(false);
@@ -117,11 +117,13 @@ function AppContent({ token, tokenType }) {
       return;
     }
 
-    // Esperar a que el usuario o empleado esté cargado
-    if (isUserSession && !user) {
+    // Esperar a que el usuario o empleado esté cargado completamente
+    // Para usuarios: verificar que userDataFetched sea true
+    // Para empleados: verificar que no esté cargando Y que employee exista
+    if (isUserSession && (!user || !userDataFetched)) {
       return;
     }
-    if (isEmployeeSession && !employee) {
+    if (isEmployeeSession && (employeeLoading || !employee || !employeeDataFetched)) {
       return;
     }
 
@@ -235,7 +237,7 @@ function AppContent({ token, tokenType }) {
         clearInterval(intervalId);
       }
     };
-  }, [hasActiveSession, isUserSession, isEmployeeSession, user, employee]);
+  }, [hasActiveSession, isUserSession, isEmployeeSession, user, employee, userDataFetched, employeeDataFetched, employeeLoading]);
 
   // Función para auto-seleccionar la primera sucursal disponible
   const autoSeleccionarSucursal = async (empresaId, isEmployee, canAdministrarSucursales) => {

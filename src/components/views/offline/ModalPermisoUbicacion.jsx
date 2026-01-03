@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
@@ -9,62 +9,10 @@ import styles from '../../../styles/view.module.css';
 const ModalPermisoUbicacion = ({ isOpen, setIsOpen }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [permisoDenegado, setPermisoDenegado] = useState(false);
-    const [mostrarInstrucciones, setMostrarInstrucciones] = useState(false);
-
-    // Función para resetear y solicitar permiso automáticamente
-    const resetearYSolicitarPermiso = useCallback(async () => {
-        try {
-            // Intentar revocar el permiso primero si está disponible (para resetear el estado)
-            if ('permissions' in navigator && navigator.permissions.revoke) {
-                try {
-                    await navigator.permissions.revoke({ name: 'geolocation' });
-                    // Pequeño delay para que el navegador procese el revoke
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                } catch (revokeError) {
-                    // Ignorar error de revoke, no es crítico
-                    console.log('No se pudo revocar permiso (normal en algunos navegadores):', revokeError);
-                }
-            }
-
-            // Intentar obtener la ubicación para solicitar el permiso automáticamente
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    () => {
-                        // Permiso concedido
-                        setIsOpen(false);
-                        setPermisoDenegado(false);
-                        setMostrarInstrucciones(false);
-                    },
-                    (error) => {
-                        // Si fue denegado después de intentar resetear, mostrar instrucciones
-                        if (error.code === error.PERMISSION_DENIED) {
-                            setPermisoDenegado(true);
-                            setMostrarInstrucciones(true);
-                            // Ocultar instrucciones después de 10 segundos
-                            setTimeout(() => {
-                                setMostrarInstrucciones(false);
-                            }, 10000);
-                        }
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0
-                    }
-                );
-            }
-        } catch (error) {
-            console.error('Error al resetear y solicitar permiso:', error);
-        }
-    }, [setIsOpen]);
 
     // Verificar cambios en el permiso de ubicación
     useEffect(() => {
-        if (!isOpen) {
-            setPermisoDenegado(false);
-            setMostrarInstrucciones(false);
-            return;
-        }
+        if (!isOpen) return;
 
         const verificarPermiso = async () => {
             try {
@@ -76,15 +24,10 @@ const ModalPermisoUbicacion = ({ isOpen, setIsOpen }) => {
                             if (permissionStatus.state === 'granted') {
                                 setIsOpen(false);
                                 setPermisoDenegado(false);
-                                setMostrarInstrucciones(false);
                             } else if (permissionStatus.state === 'denied') {
-                                // Si está denegado, intentar resetear y solicitar automáticamente
                                 setPermisoDenegado(true);
-                                resetearYSolicitarPermiso();
                             } else {
-                                // Si está en 'prompt', intentar solicitar automáticamente
                                 setPermisoDenegado(false);
-                                resetearYSolicitarPermiso();
                             }
                         };
 
@@ -113,18 +56,13 @@ const ModalPermisoUbicacion = ({ isOpen, setIsOpen }) => {
                     // Permiso concedido
                     setIsOpen(false);
                     setPermisoDenegado(false);
-                    setMostrarInstrucciones(false);
                 },
                 (error) => {
                     // Verificar si fue denegado
                     if (error.code === error.PERMISSION_DENIED) {
                         setPermisoDenegado(true);
-                        // Intentar resetear y solicitar automáticamente
-                        resetearYSolicitarPermiso();
                     } else {
                         setPermisoDenegado(false);
-                        // Si no está denegado, intentar solicitar automáticamente
-                        resetearYSolicitarPermiso();
                     }
                 },
                 {
@@ -135,24 +73,64 @@ const ModalPermisoUbicacion = ({ isOpen, setIsOpen }) => {
             );
         };
 
-        // Verificar inmediatamente al abrir el modal
-        verificarPermiso();
-
         // Verificar periódicamente (cada 2 segundos)
         const intervalId = setInterval(() => {
             verificarPermiso();
         }, 2000);
 
+        // Verificar inmediatamente
+        verificarPermiso();
+
         return () => {
             clearInterval(intervalId);
         };
-    }, [isOpen, setIsOpen, resetearYSolicitarPermiso]);
+    }, [isOpen, setIsOpen]);
 
     const handleSolicitarPermiso = async () => {
         setIsLoading(true);
-        setMostrarInstrucciones(false);
-        await resetearYSolicitarPermiso();
-        setIsLoading(false);
+        try {
+            // Intentar revocar el permiso primero si está disponible (para resetear el estado)
+            // Nota: Esto no funciona en todos los navegadores por seguridad
+            if ('permissions' in navigator && navigator.permissions.revoke) {
+                try {
+                    await navigator.permissions.revoke({ name: 'geolocation' });
+                } catch (revokeError) {
+                    // Ignorar error de revoke, no es crítico
+                    console.log('No se pudo revocar permiso (normal en algunos navegadores):', revokeError);
+                }
+            }
+
+            // Intentar obtener la ubicación para solicitar el permiso
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    () => {
+                        // Permiso concedido, cerrar el modal
+                        setIsLoading(false);
+                        setIsOpen(false);
+                        setPermisoDenegado(false);
+                    },
+                    (error) => {
+                        // Error al obtener ubicación
+                        setIsLoading(false);
+                        if (error.code === error.PERMISSION_DENIED) {
+                            setPermisoDenegado(true);
+                        }
+                        console.error('Error al obtener ubicación:', error);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                setIsLoading(false);
+                console.error('Geolocalización no está disponible en este navegador');
+            }
+        } catch (error) {
+            setIsLoading(false);
+            console.error('Error al solicitar permiso:', error);
+        }
     };
 
     const razonesPermiso = useMemo(() => [
@@ -193,14 +171,13 @@ const ModalPermisoUbicacion = ({ isOpen, setIsOpen }) => {
 
                 <ListaProfesional title="¿Por qué es obligatorio?" items={razonesPermiso} />
 
-                {mostrarInstrucciones && permisoDenegado ? (
+                {permisoDenegado && (
                     <div style={{ 
                         backgroundColor: 'var(--warning-bg, rgba(255, 152, 0, 0.1))', 
                         border: '1px solid var(--warning-color, #ff9800)', 
                         borderRadius: '8px', 
                         padding: '15px', 
                         marginTop: '20px',
-                        marginBottom: '20px' 
                     }}>
                         <p style={{ 
                             fontSize: '14px', 
@@ -210,28 +187,30 @@ const ModalPermisoUbicacion = ({ isOpen, setIsOpen }) => {
                         }}>
                             Permiso denegado previamente
                         </p>
-                        <p style={{ fontSize: '13px', lineHeight: '1.5', margin: 0 }}>
+                        <p style={{ fontSize: '13px', lineHeight: '1.5', margin: 0, marginBottom: '8px' }}>
                             Para activar el permiso de ubicación, ve a:
                         </p>
                         <p style={{ 
                             fontSize: '13px', 
                             fontWeight: 600, 
-                            marginTop: '8px',
+                            margin: 0,
                             padding: '8px',
                             backgroundColor: 'var(--tertiary-color)',
                             borderRadius: '4px',
                             fontFamily: 'monospace'
                         }}>
-                            Configuraciones → Aplicaciones → TotalProd → Permisos → Ubicación
+                            Configuraciones → Aplicaciones → TotalProd → Administrar espacio → Permisos → Ubicación
                         </p>
                     </div>
-                ) : (
+                )}
+                
+                {!permisoDenegado && (
                     <p className={styles.subTitle} style={{ marginTop: '15px', fontSize: '14px', opacity: 0.8 }}>
                         Por favor, permite el acceso a tu ubicación cuando se te solicite.
                     </p>
                 )}
 
-                <Text type="warning" align="left" style={{ marginTop: '20px', marginBottom: '20px' }}>
+                <Text type="warning" align="left" style={{ marginTop: '20px', }}>
                     Debe conceder el permiso de ubicación para continuar
                 </Text>
 
