@@ -4,9 +4,11 @@ import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import Text from '../../common/Text';
 import ListaProfesional from '../../common/ListaProfesional';
+import { useLayout } from '../../../context/LayoutContext';
 import styles from '../../../styles/view.module.css';
 
 const ModalPermisoUbicacion = ({ isOpen, setIsOpen }) => {
+    const { isLargeScreen } = useLayout();
     const [isLoading, setIsLoading] = useState(false);
     const [permisoDenegado, setPermisoDenegado] = useState(false);
 
@@ -158,7 +160,7 @@ const ModalPermisoUbicacion = ({ isOpen, setIsOpen }) => {
     ], []);
 
     return (
-        <ViewModal isOpen={isOpen} setIsOpen={() => {}} closed={true}>
+        <ViewModal isOpen={isOpen} setIsOpen={() => {}} closed={true} style={{ zIndex: 1000 }}>
             <HeaderModal
                 title="Permiso de ubicación requerido"
                 onClose={() => {}}
@@ -199,7 +201,10 @@ const ModalPermisoUbicacion = ({ isOpen, setIsOpen }) => {
                             borderRadius: '4px',
                             fontFamily: 'monospace'
                         }}>
-                            Configuraciones → Aplicaciones → TotalProd → Administrar espacio → Permisos → Ubicación
+                            {isLargeScreen 
+                                ? 'Configuraciones → Privacidad → Permisos del sitio → Todos los permisos → Ubicación'
+                                : 'Configuraciones → Aplicaciones → TotalProd → Administrar espacio → Permisos → Ubicación'
+                            }
                         </p>
                     </div>
                 )}
@@ -214,15 +219,17 @@ const ModalPermisoUbicacion = ({ isOpen, setIsOpen }) => {
                     Debe conceder el permiso de ubicación para continuar
                 </Text>
 
-                <div className={styles.buttons}>
-                    <Boton
-                        className='btn-blue'
-                        label={permisoDenegado ? 'Intentar nuevamente' : 'Conceder permiso'}
-                        onClick={handleSolicitarPermiso}
-                        loading={isLoading}
-                        disabled={isLoading}
-                    />
-                </div>
+                {!permisoDenegado && (
+                    <div className={styles.buttons}>
+                        <Boton
+                            className='btn-blue'
+                            label='Conceder permiso'
+                            onClick={handleSolicitarPermiso}
+                            loading={isLoading}
+                            disabled={isLoading}
+                        />
+                    </div>
+                )}
             </div>
         </ViewModal>
     );

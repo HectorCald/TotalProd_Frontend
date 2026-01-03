@@ -54,7 +54,7 @@ function ModalActualizacion({
     };
 
     return (
-        <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} closed={true}>
+        <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} closed={true} style={{ zIndex: 2000 }}>
             <HeaderModal title={'Actualización disponible'} onClose={() => { }} closed={true} />
             <div className={styles.modalContent}>
                 <p className={styles.subTitle}>Versión anterior: {versionAnterior || 'N/A'}</p>

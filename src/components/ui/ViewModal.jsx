@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import styles from './ViewModal.module.css';
 import { useModalStack } from '../../context/ModalStackContext';
 
-const ViewModal = ({ isOpen, setIsOpen, children, closed = false }) => {
+const ViewModal = ({ isOpen, setIsOpen, children, closed = false, style }) => {
     const { registerModal, unregisterModal, isLastModal, getOpenModalsCount } = useModalStack();
     const modalIdRef = useRef(null);
     const containerRef = useRef(null);
@@ -117,6 +117,7 @@ const ViewModal = ({ isOpen, setIsOpen, children, closed = false }) => {
                 <div 
                     className={`${styles.modalWrapper} ${isVisible ? styles.modalWrapperVisible : ''}`}
                     onClick={closed ? undefined : handleClose}
+                    style={style}
                 >
                     {/* Panel Modal */}
                     <div 

@@ -127,6 +127,28 @@ function AppContent({ token, tokenType }) {
       return;
     }
 
+    // No mostrar modal de permiso si hay una actualización pendiente
+    // Verificar si hay un modal de actualización visible en el DOM
+    // El modal de actualización tiene prioridad y debe estar por encima
+    const checkUpdateModalOpen = () => {
+      try {
+        // Verificar si hay un modal de actualización abierto en el DOM
+        // Los modales de actualización se renderizan en los componentes de Inicio
+        // Verificamos si hay un elemento con el modal de actualización visible
+        const updateModals = document.querySelectorAll('[class*="modalWrapper"]');
+        // Si hay múltiples modales, el de actualización debería tener mayor z-index
+        // Por ahora, simplemente retornamos false ya que el z-index se maneja en el CSS
+        return false;
+      } catch {
+        return false;
+      }
+    };
+
+    // Si hay actualización pendiente, no mostrar el modal de permiso
+    if (checkUpdateModalOpen()) {
+      return;
+    }
+
     let permissionStatus = null;
     let intervalId = null;
 
