@@ -429,6 +429,9 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                     description2={`${registroActual?.proceso === 'cernido' ? 'Cernido' : registroActual?.proceso === 'seleccionado' ? 'Seleccionado' : registroActual?.proceso === 'ninguno' ? 'Ninguno' : registroActual?.proceso}`}
                     transparent={false}
                     icon='package'
+                    flot1={registroActual?.estado === 'Ingresado' ? 'Ingresado' : ''}
+                    flot2={registroActual?.estado === 'verificado' ? 'Verificado' : ''}
+                    flot3={registroActual?.estado === 'pendiente' ? 'Pendiente' : ''}
                 />
 
                 {/* Información de producción */}

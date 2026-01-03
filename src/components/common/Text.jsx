@@ -6,7 +6,8 @@ function Text({
     children, 
     type = 'info', 
     icon,
-    align = 'center'
+    align = 'center',
+    style = {}
 }) {
     const getTypeConfig = () => {
         switch (type) {
@@ -46,7 +47,8 @@ function Text({
             style={{
                 color: typeConfig.color,
                 backgroundColor: typeConfig.bgColor,
-                textAlign: align
+                textAlign: align,
+                ...style
             }}
         >
             <BoxIcon 

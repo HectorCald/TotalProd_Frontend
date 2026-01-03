@@ -12,6 +12,10 @@
         font-size: 20px !important;
         color: var(--primary-color) !important;
     }
+
+    .iconOrange {
+        color: #ff9800 !important;
+    }
 }
 .icon{
     position: relative;
@@ -31,6 +35,7 @@
     p{
         font-size: 13px;
         font-weight: 400;
+        white-space: pre-line;
     }
 
     .title{

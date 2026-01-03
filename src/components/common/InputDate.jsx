@@ -76,6 +76,7 @@ function getDaysInMonth(year, month) {
 // Props: mode: 'month' | 'date' | 'time' | 'datetime'
 // value: string; onChange: (valueString) => void
 // optional: minYear=2000, maxYear=2100, minDate, maxDate (formato YYYY-MM-DD)
+// yearDirection: 'past' (años anteriores) | 'future' (años futuros) - default 'future'
 function InputDate({
     mode = 'date',
     value,
@@ -85,7 +86,8 @@ function InputDate({
     placeholder,
     icon,
     minDate,
-    maxDate
+    maxDate,
+    yearDirection = 'future'
 }) {
     const parsedFromValue = useMemo(() => parseValueByMode(mode, value), [mode, value]);
     const [parts, setParts] = useState(parsedFromValue);
@@ -98,8 +100,18 @@ function InputDate({
     const years = useMemo(() => {
         const now = new Date();
         const current = now.getFullYear();
-        let start = current; // no años anteriores
-        let end = current + 10; // 10 años más
+        let start, end;
+        
+        // Configurar rango según la dirección
+        if (yearDirection === 'past') {
+            // Para filtros: 10 años atrás hasta el año actual
+            start = current - 10;
+            end = current;
+        } else {
+            // Para formularios: año actual hasta 10 años adelante
+            start = current;
+            end = current + 10;
+        }
         
         // Si hay minDate, no permitir años anteriores al año mínimo
         if (minDate) {
@@ -126,7 +138,7 @@ function InputDate({
         const list = [];
         for (let y = start; y <= end; y++) list.push(String(y));
         return list;
-    }, [minDate, maxDate]);
+    }, [minDate, maxDate, yearDirection]);
 
     const months = useMemo(() => {
         const allMonths = [

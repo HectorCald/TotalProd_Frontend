@@ -2,11 +2,12 @@ import React, {useState} from 'react';
 import styles from './Info.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-function Info({ title, message, onHover, onClick }) {
+function Info({ title, message, onHover, onClick, color = 'primary' }) {
     const [showText, setShowText] = useState(false);
+    const iconClassName = color === 'orange' ? `${styles.icon} ${styles.iconOrange}` : styles.icon;
     return (
         <div className={styles.info} onClick={onClick} onMouseEnter={() => setShowText(true)} onMouseLeave={() => setShowText(false)}>
-            <BoxIcon name='info-circle' className={styles.icon} />
+            <BoxIcon name='info-circle' className={iconClassName} />
             {showText &&
                 <div className={styles.text}>
                     <p className={styles.title}>{title}</p>

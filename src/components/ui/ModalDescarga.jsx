@@ -698,25 +698,66 @@ function ModalDescarga({
                                        'materiaPrima', 'cConsumida'];
                     
                     const widths = headers.map((header, index) => {
-                        const headerLower = header.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
-                        // Buscar key que coincida con el header
+                        const headerText = header.toString().toLowerCase();
+                        const headerLower = headerText.replace(/[^a-z0-9]/g, '');
+                        
+                        // Casos especiales MUY específicos primero (antes de la búsqueda genérica)
                         let matchedKey = null;
-                        for (const key of headerKeys) {
-                            const keyLower = key.toLowerCase();
-                            if (headerLower.includes(keyLower) || keyLower.includes(headerLower)) {
-                                matchedKey = key;
-                                break;
-                            }
+                        
+                        // Reportes de Almacén General
+                        if (headerText === 'entrada (grup)' || headerText.includes('entrada') && headerText.includes('grup')) {
+                            matchedKey = 'entradaGrup';
+                        } else if (headerText === 'entrada (ud)' || headerText.includes('entrada') && headerText.includes('ud') && !headerText.includes('grup')) {
+                            matchedKey = 'entradaUd';
+                        } else if (headerText === 'salida (grup)' || headerText.includes('salida') && headerText.includes('grup')) {
+                            matchedKey = 'salidaGrup';
+                        } else if (headerText === 'salida (ud)' || headerText.includes('salida') && headerText.includes('ud') && !headerText.includes('grup')) {
+                            matchedKey = 'salidaUd';
+                        }
+                        // Reportes de Materia Prima
+                        else if (headerText === 'tipo medida' || headerText.includes('tipo') && headerText.includes('medida')) {
+                            matchedKey = 'tipoMedida';
+                        }
+                        // Reportes de Producción
+                        else if (headerText === 'verificado' || headerText.includes('verificado')) {
+                            matchedKey = 'verificado';
+                        } else if (headerText === 'terminados' || headerText.includes('terminados')) {
+                            matchedKey = 'terminados';
+                        } else if (headerText === 'materia prima' || headerText.includes('materia') && headerText.includes('prima')) {
+                            matchedKey = 'materiaPrima';
+                        } else if (headerText === 'c. consumida' || headerText.includes('consumida')) {
+                            matchedKey = 'cConsumida';
+                        }
+                        // Reportes de Gastos
+                        else if (headerText.includes('fecha') || headerText === 'fecha') {
+                            matchedKey = 'fecha';
+                        } else if (headerText.includes('concepto')) {
+                            matchedKey = 'concepto';
+                        } else if (headerText.includes('proveedor')) {
+                            matchedKey = 'proveedor';
+                        } else if (headerText.includes('m. pago') || headerText.includes('metodo') || (headerText.includes('pago') && !headerText.includes('subtotal'))) {
+                            matchedKey = 'metodoPago';
+                        } else if (headerText.includes('subtotal')) {
+                            matchedKey = 'subtotal';
+                        }
+                        // Casos generales simples (entrada, salida, producto)
+                        else if (headerText === 'entrada' && !headerText.includes('(')) {
+                            matchedKey = 'entrada';
+                        } else if (headerText === 'salida' && !headerText.includes('(')) {
+                            matchedKey = 'salida';
+                        } else if (headerText === 'producto' || headerText.includes('producto')) {
+                            matchedKey = 'producto';
                         }
                         
-                        // Casos especiales para headers con espacios o caracteres especiales
+                        // Si no hay match específico, buscar genéricamente
                         if (!matchedKey) {
-                            const headerText = header.toString().toLowerCase();
-                            if (headerText.includes('fecha') || headerText === 'fecha') matchedKey = 'fecha';
-                            else if (headerText.includes('concepto')) matchedKey = 'concepto';
-                            else if (headerText.includes('proveedor')) matchedKey = 'proveedor';
-                            else if (headerText.includes('m. pago') || headerText.includes('metodo') || headerText.includes('pago')) matchedKey = 'metodoPago';
-                            else if (headerText.includes('subtotal')) matchedKey = 'subtotal';
+                            for (const key of headerKeys) {
+                                const keyLower = key.toLowerCase();
+                                if (headerLower === keyLower || headerLower.includes(keyLower) || keyLower.includes(headerLower)) {
+                                    matchedKey = key;
+                                    break;
+                                }
+                            }
                         }
                         
                         // Si hay un match en columnWidths, usar ese valor

@@ -15,7 +15,6 @@ import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import NoData from '../../common/NoData';
 import FiltroMetodoPago from '../../mixed/FiltroMetodoPago';
-import FiltroOrdenamientoGastos from '../../mixed/FiltroOrdenamientoGastos';
 import FiltroProveedor from '../../mixed/FiltroProveedor';
 import InfoModal from '../../common/InfoModal';
 import PullToRefresh from '../../common/PullToRefresh';
@@ -49,7 +48,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
     // Estados para filtros
     const [filtroMetodoPago, setFiltroMetodoPago] = useState(null);
     const [filtroProveedor, setFiltroProveedor] = useState(null);
-    const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
     const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
     const fechaInicioKey = useMemo(
         () => (filtroFecha.inicio ? filtroFecha.inicio.toISOString() : null),
@@ -64,11 +62,10 @@ function PanelGastos({ isOpen, setIsOpen }) {
     const filterSignature = useMemo(() => JSON.stringify({
         filtroMetodoPago,
         filtroProveedorId: filtroProveedor?.id || null,
-        ordenamiento,
         search: debouncedSearchQuery || '',
         fechaInicio: fechaInicioKey,
         fechaFin: fechaFinKey,
-    }), [filtroMetodoPago, filtroProveedor?.id, ordenamiento, debouncedSearchQuery, fechaInicioKey, fechaFinKey]);
+    }), [filtroMetodoPago, filtroProveedor?.id, debouncedSearchQuery, fechaInicioKey, fechaFinKey]);
 
     const {
         hasCachedItems,
@@ -203,7 +200,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
     };
 
     // Estados para filtros y modales
-    const [isOpenOrden, setOpenOrden] = useState(false);
     const [isOpenMetodoPago, setOpenMetodoPago] = useState(false);
     const [isOpenProveedor, setOpenProveedor] = useState(false);
     const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
@@ -230,12 +226,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
             setCurrentPage(prev => prev + 1);
         }
     };
-
-    // Función para manejar ordenamiento
-    const handleOrdenamiento = useCallback((orden) => {
-        setOrdenamiento(orden);
-        setCurrentPage(1);
-    }, []);
 
     // Función para manejar filtro de método de pago
     const handleFiltroMetodoPago = useCallback((metodo) => {
@@ -369,19 +359,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
         return metodo ? metodo.label : 'Todos los métodos';
     };
 
-    // Función para obtener el nombre del ordenamiento
-    const getOrdenamientoNombre = () => {
-        const ordenamientos = {
-            'fecha_desc': 'Más recientes',
-            'fecha_asc': 'Más antiguos',
-            'valor_desc': 'Mayor valor',
-            'valor_asc': 'Menor valor',
-            'concepto_asc': 'Concepto A-Z',
-            'concepto_desc': 'Concepto Z-A'
-        };
-        return ordenamientos[ordenamiento] || 'Ordenamiento';
-    };
-
     const getProveedorNombre = () => {
         if (!filtroProveedor) return 'Todos los proveedores';
         return filtroProveedor.name || 'Proveedor seleccionado';
@@ -404,11 +381,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
             label: getFechaNombre(),
             active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
             onClick: () => setIsOpenFiltroFecha(true)
-        },
-        {
-            label: getOrdenamientoNombre(),
-            active: ordenamiento !== 'fecha_desc',
-            onClick: () => setOpenOrden(true)
         },
     ];
 
@@ -603,12 +575,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 onMetodoSeleccionado={handleFiltroMetodoPago}
             />
 
-            <FiltroOrdenamientoGastos
-                isOpen={isOpenOrden}
-                setIsOpen={setOpenOrden}
-                onOrdenamientoSeleccionado={handleOrdenamiento}
-            />
-
             <FiltroProveedor
                 isOpen={isOpenProveedor}
                 setIsOpen={setOpenProveedor}
@@ -636,7 +602,7 @@ function PanelGastos({ isOpen, setIsOpen }) {
                         getPrimaryNormalizedValue(debouncedSearchQuery),
                         filtroMetodoPago,
                         filtroProveedor?.id || null,
-                        ordenamiento,
+                        null, // ordenamiento removido
                         null, // sucuIdParam (se obtiene internamente)
                         filtroFecha.inicio || filtroFecha.fin
                             ? {

@@ -14,8 +14,8 @@ import { BoxIcon } from 'boxicons-react';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
-import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
 import NoData from '../../common/NoData';
+import { formatCurrency } from '../../../utils/numberUtils';
 import FiltroEstadoPedido from '../../mixed/FiltroEstadoPedido';
 import FiltroSolicitante from '../../mixed/FiltroSolicitante';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
@@ -59,14 +59,12 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const [debouncedSearchQuery] = useDebounce(searchQueryNormalized, 500);
 
     // Estados para filtros y modales
-    const [isOpenFiltroOrden, setIsOpenFiltroOrden] = useState(false);
     const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
     const [isOpenFiltroSolicitante, setIsOpenFiltroSolicitante] = useState(false);
     const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
 
     // Estados para filtros
     const [filtroEstado, setFiltroEstado] = useState(null);
-    const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
     const [filtroSolicitante, setFiltroSolicitante] = useState(null);
     const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
     const fechaInicioKey = useMemo(
@@ -81,13 +79,12 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
     const filterSignature = useMemo(() => JSON.stringify({
         tipoPedido: tipoPedido || 'all',
         filtroEstado,
-        ordenamiento,
         filtroSolicitanteUserId: filtroSolicitante?.user_id || null,
         filtroSolicitantePersonalId: filtroSolicitante?.personal_id || null,
         search: debouncedSearchQuery || '',
         fechaInicio: fechaInicioKey,
         fechaFin: fechaFinKey,
-    }), [tipoPedido, filtroEstado, ordenamiento, filtroSolicitante?.user_id, filtroSolicitante?.personal_id, debouncedSearchQuery, fechaInicioKey, fechaFinKey]);
+    }), [tipoPedido, filtroEstado, filtroSolicitante?.user_id, filtroSolicitante?.personal_id, debouncedSearchQuery, fechaInicioKey, fechaFinKey]);
 
     const {
         hasCachedItems,
@@ -249,7 +246,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             setAllPedidos([]);
             setCurrentPage(1);
             setFiltroEstado(null);
-            setOrdenamiento('fecha_desc');
             setSearchQuery('');
             setSearchQueryNormalized('');
             setPedidosLoaded(false);
@@ -331,12 +327,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setCurrentPage(1);
     };
 
-    // Función para manejar ordenamiento
-    const handleOrdenamiento = (orden) => {
-        setOrdenamiento(orden);
-        setCurrentPage(1);
-    };
-
     // Función para manejar filtro de solicitante
     const handleFiltroSolicitante = (solicitante) => {
         setFiltroSolicitante(solicitante);
@@ -393,17 +383,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         return 'Todos los estados';
     };
 
-    // Función para obtener el nombre del ordenamiento
-    const getOrdenamientoNombre = () => {
-        const ordenamientos = {
-            'fecha_desc': 'Más recientes',
-            'fecha_asc': 'Más antiguos',
-            'estado_asc': 'Estado A-Z',
-            'estado_desc': 'Estado Z-A'
-        };
-        return ordenamientos[ordenamiento] || 'Ordenamiento';
-    };
-
     // Función para obtener el nombre del solicitante
     const getSolicitanteNombre = () => {
         if (!filtroSolicitante) return 'Todos los solicitantes';
@@ -456,11 +435,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
             active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
             onClick: () => setIsOpenFiltroFecha(true)
         },
-        {
-            label: getOrdenamientoNombre(),
-            active: ordenamiento !== 'fecha_desc',
-            onClick: () => setIsOpenFiltroOrden(true)
-        },
     ];
 
     // Headers para la tabla
@@ -476,7 +450,8 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         { key: 'usuario', label: 'Solicitante', icon: 'user' },
         { key: 'fecha', label: 'Fecha', icon: 'calendar' },
         { key: 'estado', label: 'Estado', icon: 'check-circle' },
-        { key: 'observaciones', label: 'Observaciones', icon: 'file' }
+        { key: 'observaciones', label: 'Observaciones', icon: 'file' },
+        { key: 'total', label: 'Total', icon: 'dollar-circle' }
     ];
 
     // Datos para la tabla
@@ -497,6 +472,18 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 estado: pedido.estado
             };
         } else {
+            // Calcular total del pedido (mismo cálculo que en VerPedido.jsx)
+            const total = (pedido.pedido_almacen_detalle || []).reduce((total, detalle) => {
+                const precio = detalle.precio || 0;
+                const cantidad = detalle.cantidad || 0;
+                let subtotal = precio * cantidad;
+                // Redondear subtotal solo si el pedido es agrupado
+                if (pedido.agrupado && detalle.producto_almacen?.grup) {
+                    subtotal = Math.round(subtotal);
+                }
+                return total + subtotal;
+            }, 0);
+
             return {
                 id: pedido.id,
                 numero_pedido: pedido.numero_pedido !== undefined && pedido.numero_pedido !== null ? `${pedido.numero_pedido}` : '0',
@@ -511,7 +498,8 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 }),
                 cliente: pedido.cliente?.name || '--',
                 observaciones: pedido.observaciones || '--',
-                estado: pedido.estado
+                estado: pedido.estado,
+                total: formatCurrency(total)
             };
         }
     });
@@ -566,11 +554,12 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                     onScroll={handleScroll}
                                     columnWidths={tipoPedido === 'almacen' ? {
                                         numero_pedido: '3%',
-                                        sucursal: '13%',
-                                        usuario: '20%',
-                                        fecha: '15%',
+                                        sucursal: '12%',
+                                        usuario: '18%',
+                                        fecha: '14%',
                                         estado: '10%',
-                                        observaciones: '20%'
+                                        observaciones: '18%',
+                                        total: '12%'
                                     } : {
                                         producto: '15%',
                                         usuario: '15%',
@@ -599,6 +588,21 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                 {allPedidos.length > 0 ? (
                                     <>
                                         {allPedidos.map((pedido, index) => {
+                                            // Calcular total del pedido para almacén
+                                            let totalPedido = 0;
+                                            if (tipoPedido !== 'acopio') {
+                                                totalPedido = (pedido.pedido_almacen_detalle || []).reduce((total, detalle) => {
+                                                    const precio = detalle.precio || 0;
+                                                    const cantidad = detalle.cantidad || 0;
+                                                    let subtotal = precio * cantidad;
+                                                    // Redondear subtotal solo si el pedido es agrupado
+                                                    if (pedido.agrupado && detalle.producto_almacen?.grup) {
+                                                        subtotal = Math.round(subtotal);
+                                                    }
+                                                    return total + subtotal;
+                                                }, 0);
+                                            }
+
                                             return (
                                                 <ItemView
                                                     key={pedido.id || index}
@@ -614,13 +618,13 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                                                             hour: '2-digit',
                                                             minute: '2-digit'
                                                         })}`
-                                                        : new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
+                                                        : `${new Date(pedido.fecha || pedido.created_at).toLocaleDateString('es-ES', {
                                                             year: 'numeric',
                                                             month: '2-digit',
                                                             day: '2-digit',
                                                             hour: '2-digit',
                                                             minute: '2-digit'
-                                                        })
+                                                        })} - ${formatCurrency(totalPedido)}`
                                                     }
                                                     icon="file"
                                                     onClick={() => handleVerPedido(pedido)}
@@ -677,13 +681,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                 isOpen={isOpenFiltroEstado}
                 setIsOpen={setIsOpenFiltroEstado}
                 onEstadoSeleccionado={handleFiltroEstado}
-            />
-
-            {/* Filtro de ordenamiento */}
-            <FiltroOrdenamiento
-                isOpen={isOpenFiltroOrden}
-                setIsOpen={setIsOpenFiltroOrden}
-                onOrdenamientoSeleccionado={handleOrdenamiento}
             />
 
             {/* Filtro de solicitante */}
@@ -760,7 +757,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         ? [
                             getPrimaryNormalizedValue(debouncedSearchQuery),
                             filtroEstado,
-                            ordenamiento,
+                            null, // ordenamiento removido
                             filtroSolicitante?.user_id || filtroSolicitante?.personal_id || null,
                             filtroFecha.inicio || filtroFecha.fin
                                 ? {
@@ -772,7 +769,7 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                         : [
                             getPrimaryNormalizedValue(debouncedSearchQuery),
                             filtroEstado,
-                            ordenamiento,
+                            null, // ordenamiento removido
                             null, // sucuIdParam (se obtiene internamente)
                             filtroSolicitante?.user_id || filtroSolicitante?.personal_id || null,
                             filtroFecha.inicio || filtroFecha.fin

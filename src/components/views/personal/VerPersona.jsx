@@ -200,7 +200,6 @@ function VerPersona({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedo
                     <Dato label="Cargo" value={localUsuario?.cargo || 'N/A'} icon='briefcase' />
                     <Dato label="Estado" value={localUsuario?.is_active ? 'Activo' : 'Inactivo'} especial={localUsuario?.is_active ? 'green' : 'red'} />
                     <Dato label="Sucursal" value={localUsuario?.sucursal?.name || 'Sin sucursal asignada'} />
-                    <Dato label="Rastreo" value={localUsuario?.rastrear ? 'Activado' : 'Desactivado'} especial={localUsuario?.rastrear ? 'green' : 'gray'} />
                 </div>
 
                 {/* Sección de ubicación - solo si tiene rastreo activado Y tiene coordenadas */}

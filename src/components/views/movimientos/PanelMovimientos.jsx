@@ -14,7 +14,6 @@ import movimientosAlmacenService from '../../../services/movimientosAlmacenServi
 import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
-import FiltroOrdenamiento from '../../mixed/FiltroOrdenamiento';
 import NoData from '../../common/NoData';
 import FiltroTipoMovimiento from '../../mixed/FiltroTipoMovimiento';
 import FiltroEstadoMovimiento from '../../mixed/FiltroEstadoMovimiento';
@@ -62,7 +61,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     // Estados para filtros
     const [filtroTipo, setFiltroTipo] = useState(null);
     const [filtroEstado, setFiltroEstado] = useState(null);
-    const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
     const [filtroCliente, setFiltroCliente] = useState(null);
     const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
     const fechaInicioKey = useMemo(
@@ -78,7 +76,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         tipoMovimiento: tipoMovimiento || 'all',
         filtroTipo,
         filtroEstado,
-        ordenamiento,
         filtroClienteId: filtroCliente?.id || null,
         search: debouncedSearchQuery || '',
         fechaInicio: fechaInicioKey,
@@ -87,7 +84,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         tipoMovimiento,
         filtroTipo,
         filtroEstado,
-        ordenamiento,
         filtroCliente?.id,
         debouncedSearchQuery,
         fechaInicioKey,
@@ -235,7 +231,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     };
 
     // Estados para filtros y modales
-    const [isOpenFiltroOrden, setIsOpenFiltroOrden] = useState(false);
     const [isOpenFiltroTipo, setIsOpenFiltroTipo] = useState(false);
     const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
     const [isOpenFiltroCliente, setIsOpenFiltroCliente] = useState(false);
@@ -260,12 +255,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         if (scrollHeight - scrollTop <= clientHeight + 100 && hasMorePages && !isLoading && !isLoadingMore) {
             setCurrentPage(prev => prev + 1);
         }
-    };
-
-    // Función para manejar ordenamiento
-    const handleOrdenamiento = (orden) => {
-        setOrdenamiento(orden);
-        setCurrentPage(1);
     };
 
     // Función para manejar filtro de tipo
@@ -319,7 +308,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             setCurrentPage(1);
             setFiltroTipo(null);
             setFiltroEstado(null);
-            setOrdenamiento('fecha_desc');
             setSearchQuery('');
             setSearchQueryNormalized('');
             setFiltroCliente(null);
@@ -415,17 +403,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         return filtroCliente.name || 'Cliente seleccionado';
     };
 
-    // Función para obtener el nombre del ordenamiento
-    const getOrdenamientoNombre = () => {
-        const ordenamientos = {
-            'fecha_desc': 'Más recientes',
-            'fecha_asc': 'Más antiguos',
-            'tipo_asc': 'Tipo A-Z',
-            'tipo_desc': 'Tipo Z-A'
-        };
-        return ordenamientos[ordenamiento] || 'Ordenamiento';
-    };
-
     const getFechaNombre = () => formatDateRangeForDisplay(filtroFecha?.inicio, filtroFecha?.fin, 'Fecha');
 
     const opciones = [
@@ -453,12 +430,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             onClick: () => setIsOpenFiltroCliente(true)
         });
     }
-
-    opciones.push({
-        label: getOrdenamientoNombre(),
-        active: ordenamiento !== 'fecha_desc',
-        onClick: () => setIsOpenFiltroOrden(true)
-    });
 
     const obtenerNumeroOrdenFormateado = (numeroOrden) => {
         if (numeroOrden === null || numeroOrden === undefined) {
@@ -510,15 +481,24 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
     };
 
     // Headers para la tabla
-    const tableHeaders = [
-        { key: 'numero_orden', label: 'Nº', icon: 'hash' },
-        { key: 'producto', label: 'Detalle', icon: 'package' },
-        { key: 'tipo', label: 'Tipo', icon: 'transfer' },
-        { key: 'fecha', label: 'Fecha', icon: 'calendar' },
-        { key: 'cliente_proveedor', label: tipoMovimiento === 'acopio' ? 'Proveedor' : 'Cliente', icon: 'user' },
-        { key: 'estado', label: 'Estado', icon: 'check-circle' },
-        { key: 'total', label: 'Total', icon: 'dollar-circle' }
-    ];
+    const tableHeaders = tipoMovimiento === 'acopio' 
+        ? [
+            { key: 'producto', label: 'Producto', icon: 'package' },
+            { key: 'tipo', label: 'Tipo', icon: 'transfer' },
+            { key: 'peso', label: 'Cantidad', icon: 'info-circle' },
+            { key: 'fecha', label: 'Fecha', icon: 'calendar' },
+            { key: 'cliente_proveedor', label: 'Proveedor', icon: 'user' },
+            { key: 'estado', label: 'Estado', icon: 'check-circle' }
+        ]
+        : [
+            { key: 'numero_orden', label: 'Nº', icon: 'hash' },
+            { key: 'producto', label: 'Detalle', icon: 'package' },
+            { key: 'tipo', label: 'Tipo', icon: 'transfer' },
+            { key: 'fecha', label: 'Fecha', icon: 'calendar' },
+            { key: 'cliente_proveedor', label: 'Cliente', icon: 'user' },
+            { key: 'estado', label: 'Estado', icon: 'check-circle' },
+            { key: 'total', label: 'Total', icon: 'dollar-circle' }
+        ];
 
     // Datos para la tabla
     const tableData = allMovimientos.map(movimiento => {
@@ -558,9 +538,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
             }
         }
         
-        return {
+        const baseData = {
             id: movimiento.id,
-            numero_orden: obtenerNumeroOrdenFormateado(movimiento.numero_orden),
             producto: productoValue,
             tipo: movimiento.type === 'entrada' ? 'Entrada' : movimiento.type === 'transferencia' ? 'Transferencia' : 'Salida',
             fecha: new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString(),
@@ -569,9 +548,21 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 : movimiento.type === 'transferencia'
                     ? (movimiento.cliente?.name || '--')
                     : (movimiento.type === 'entrada' ? (movimiento.proveedor?.name || '--') : (movimiento.cliente?.name || '--')),
-            estado: movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado',
-            total: obtenerTotalFormateado(movimiento)
+            estado: movimiento?.estado === 'anulado' ? 'Anulado' : 'Finalizado'
         };
+
+        if (tipoMovimiento === 'acopio') {
+            return {
+                ...baseData,
+                peso: `${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
+            };
+        } else {
+            return {
+                ...baseData,
+                numero_orden: obtenerNumeroOrdenFormateado(movimiento.numero_orden),
+                total: obtenerTotalFormateado(movimiento)
+            };
+        }
     });
 
     // Función para obtener el badge de estado
@@ -669,15 +660,25 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                     }}
                                     getCellBadge={getCellBadge}
                                     onScroll={handleScroll}
-                                    columnWidths={{
-                                        numero_orden: '5%',
-                                        producto: '20%',
-                                        tipo: '15%',
-                                        fecha: '10%',
-                                        cliente_proveedor: '20%',
-                                        estado: '12%',
-                                        total: '13%'
-                                    }}
+                                    columnWidths={tipoMovimiento === 'acopio' 
+                                        ? {
+                                            producto: '25%',
+                                            tipo: '15%',
+                                            peso: '15%',
+                                            fecha: '15%',
+                                            cliente_proveedor: '18%',
+                                            estado: '12%'
+                                        }
+                                        : {
+                                            numero_orden: '5%',
+                                            producto: '20%',
+                                            tipo: '15%',
+                                            fecha: '10%',
+                                            cliente_proveedor: '20%',
+                                            estado: '12%',
+                                            total: '13%'
+                                        }
+                                    }
                                 />
 
                                 {/* Loading al final de la tabla */}
@@ -710,7 +711,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                                 <ItemView
                                                     key={movimiento.id || index}
                                                     title={tipoMovimiento === 'acopio'
-                                                        ? `${movimiento.product?.name || 'Sin producto'} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`
+                                                        ? movimiento.product?.name || 'Sin producto'
                                                         : movimiento.type === 'transferencia'
                                                             ? (movimiento.concepto && movimiento.concepto.trim() !== '')
                                                                 ? movimiento.concepto
@@ -739,15 +740,18 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                                                                     }
                                                                 })()
                                                     }
-                                                    description={`${new Date(tipoMovimiento === 'acopio' ? movimiento.date : movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}${movimiento.type === 'transferencia' ? (movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : movimiento.sucursal_destino?.name ? ` • → ${movimiento.sucursal_destino.name}` : '') : ''}`}
-                                                    description2={`Total: ${totalLabel}`}
+                                                    description={tipoMovimiento === 'acopio' 
+                                                        ? `${new Date(movimiento.date).toLocaleDateString()} - ${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}`
+                                                        : `${new Date(movimiento.fecha).toLocaleDateString()}${movimiento.type === 'entrada' && movimiento.proveedor?.name ? ` • ${movimiento.proveedor.name}` : ''}${movimiento.type === 'salida' && movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : ''}${movimiento.type === 'transferencia' ? (movimiento.cliente?.name ? ` • ${movimiento.cliente.name}` : movimiento.sucursal_destino?.name ? ` • → ${movimiento.sucursal_destino.name}` : '') : ''}`
+                                                    }
+                                                    description2={tipoMovimiento === 'acopio' ? '' : `Total: ${totalLabel}`}
                                                     icon={movimiento.type === 'entrada' ? 'plus-circle' : movimiento.type === 'transferencia' ? 'transfer' : 'minus-circle'}
                                                     colorIcon={movimiento.type === 'entrada' ? 'verde' : movimiento.type === 'transferencia' ? 'naranja' : 'rojo'}
                                                     onClick={() => handleRegistro(movimiento)}
                                                     arrow={false}
                                                     flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
                                                     flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
-                                                    flot2={numeroOrdenLabel}
+                                                    flot2={tipoMovimiento === 'acopio' ? '' : numeroOrdenLabel}
                                                 />
                                             );
                                         })}
@@ -822,6 +826,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 isOpen={isOpenFiltroTipo}
                 setIsOpen={setIsOpenFiltroTipo}
                 onTipoSeleccionado={handleFiltroTipo}
+                showTransferencia={tipoMovimiento !== 'acopio'}
             />
 
             {/* Filtro de clientes */}
@@ -839,13 +844,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                 isOpen={isOpenFiltroEstado}
                 setIsOpen={setIsOpenFiltroEstado}
                 onEstadoSeleccionado={handleFiltroEstado}
-            />
-
-            {/* Filtro de ordenamiento */}
-            <FiltroOrdenamiento
-                isOpen={isOpenFiltroOrden}
-                setIsOpen={setIsOpenFiltroOrden}
-                onOrdenamientoSeleccionado={handleOrdenamiento}
             />
 
             {/* Filtro de fecha */}
@@ -867,7 +865,7 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     methodParams={[
                         filtroTipo,
                         filtroEstado,
-                        ordenamiento,
+                        null, // ordenamiento removido
                         tipoMovimiento === 'acopio' ? null : (filtroCliente?.id || null),
                         null, // sucuIdParam (se obtiene internamente)
                         getPrimaryNormalizedValue(debouncedSearchQuery),

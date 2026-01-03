@@ -17,7 +17,6 @@ import PullToRefresh from '../common/PullToRefresh';
 import { useUser } from '../../context/UserContext';
 import UserService from '../../services/userService';
 import { isSoloVentas } from '../../utils/empresaHelper';
-import { OFFLINE_NETWORK_FLAG } from '../../utils/offlineNetworkInterceptor';
 
 const Inicio = ({ onViewOpen }) => {
   const { user, setUserFromService } = useUser();
@@ -31,7 +30,6 @@ const Inicio = ({ onViewOpen }) => {
   const [oldVersion, setOldVersion] = useState(null);
   const [newVersion, setNewVersion] = useState(null);
   const checkingRef = useRef(false);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   const mostrarNotificacion = (tipo, texto) => {
     setNotification({
@@ -88,25 +86,6 @@ const Inicio = ({ onViewOpen }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const updateOfflineFlag = useCallback(() => {
-    try {
-      setIsOfflineMode(localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true');
-    } catch {
-      setIsOfflineMode(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    updateOfflineFlag();
-    const handler = () => updateOfflineFlag();
-    window.addEventListener('offline-mode-changed', handler);
-    window.addEventListener('storage', handler);
-    return () => {
-      window.removeEventListener('offline-mode-changed', handler);
-      window.removeEventListener('storage', handler);
-    };
-  }, [updateOfflineFlag]);
-
   const handleFunctionClick = (func) => {
     if (func.view === 'transferencias') {
       onViewOpen('almacenGeneralAuxiliarII', { tipo: 'transferir' });
@@ -142,7 +121,6 @@ const Inicio = ({ onViewOpen }) => {
               title={func.name}
               icon={func.icon}
               onClick={() => handleFunctionClick(func)}
-              disabled={isOfflineMode}
             />
           ))}
         </div>
@@ -160,7 +138,6 @@ const Inicio = ({ onViewOpen }) => {
               description="Administra tu materia prima, realiza entradas y salidas."
               image={acopioImage}
               onClick={() => onViewOpen('almacenMedio')}
-              disabled={isOfflineMode}
             />
           )}
         </div>
@@ -171,14 +148,12 @@ const Inicio = ({ onViewOpen }) => {
             description=""
             image={movimientosImage}
             onClick={() => onViewOpen('movimientos')}
-            disabled={isOfflineMode}
           />
           <AtajoAnuncio
             title="Pedidos"
             description=""
             image={pedidosImage}
             onClick={() => onViewOpen('pedidos')}
-            disabled={isOfflineMode}
           />
         </div>
         <div className={styles.atajoAnuncioOtros} style={{ marginTop: '10px' }}>
@@ -187,14 +162,12 @@ const Inicio = ({ onViewOpen }) => {
             description=""
             image={cotizacionesImage}
             onClick={() => onViewOpen('cotizaciones')}
-            disabled={isOfflineMode}
           />
           <AtajoAnuncio
             title="Conteos"
             description=""
             image={conteosImage}
             onClick={() => onViewOpen('conteos')}
-            disabled={isOfflineMode}
           />
         </div>
 

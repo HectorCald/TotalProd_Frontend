@@ -6,7 +6,6 @@ import RefreshIndicator from '../../common/RefreshIndicator';
 import ModalDescarga from '../../ui/ModalDescarga';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
-import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import gastosService from '../../../services/gastosService';
 import registrosProduccionDamabravaService from '../../../services/registrosProduccionDamabravaService';
 import productsAlmacenService from '../../../services/productsAlmacenService';
@@ -14,7 +13,7 @@ import deudasService from '../../../services/deudasService';
 import Notification from '../../common/Notification';
 import styles from '../../../styles/view.module.css';
 import Boton from '../../common/Boton';
-import DateRangePicker from '../../common/DateRangePicker';
+import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 import { isDamabrava, isSoloVentas } from '../../../utils/empresaHelper';
 import { useUser } from '../../../context/UserContext';
 
@@ -23,8 +22,8 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   const { user } = useUser();
   const soloVentas = isSoloVentas(user);
   // Estados para el rango de fechas
-  const [fechaInicio, setFechaInicio] = useState(new Date());
-  const [fechaFin, setFechaFin] = useState(new Date());
+  const [selectedRange, setSelectedRange] = useState({ inicio: null, fin: null });
+  const [isFechaModalOpen, setIsFechaModalOpen] = useState(false);
   const [areaSeleccionada, setAreaSeleccionada] = useState('');
   const [isDescargaOpen, setIsDescargaOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,9 +40,13 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const prepararFechasParaConsulta = () => {
-    const inicio = new Date(fechaInicio);
+    if (!selectedRange.inicio || !selectedRange.fin) {
+      return null;
+    }
+
+    const inicio = new Date(selectedRange.inicio);
     inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(fechaFin);
+    const fin = new Date(selectedRange.fin);
     fin.setHours(23, 59, 59, 999);
 
     return {
@@ -143,35 +146,23 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     }, 3000);
   };
 
-  // Función para manejar el cambio de fechas del DateRangePicker
-  const handleFechaChange = (start, end) => {
-    if (start) {
-      // Establecer inicio del día
-      const fechaInicioNormalizada = new Date(start);
-      fechaInicioNormalizada.setHours(0, 0, 0, 0);
-      setFechaInicio(fechaInicioNormalizada);
-    }
-
-    if (end) {
-      // Establecer fin del día
-      const fechaFinNormalizada = new Date(end);
-      fechaFinNormalizada.setHours(23, 59, 59, 999);
-      setFechaFin(fechaFinNormalizada);
-    } else if (start) {
-      // Si solo hay fecha de inicio, usar la misma como fin
-      const fechaFinNormalizada = new Date(start);
-      fechaFinNormalizada.setHours(23, 59, 59, 999);
-      setFechaFin(fechaFinNormalizada);
-    }
-
+  // Función para aplicar el rango de fechas seleccionado
+  const handleApplyRange = (inicio, fin) => {
+    setSelectedRange({ inicio, fin });
+    setIsFechaModalOpen(false);
+    
     if (DEBUG_REPORTES) {
       console.log('Fechas actualizadas:', {
-        fechaInicio: start,
-        fechaFin: end,
-        fechaInicioNormalizada: start ? new Date(start).setHours(0, 0, 0, 0) : null,
-        fechaFinNormalizada: end ? new Date(end).setHours(23, 59, 59, 999) : null
+        inicio,
+        fin
       });
     }
+  };
+
+  // Función para limpiar el rango de fechas
+  const handleClearRange = () => {
+    setSelectedRange({ inicio: null, fin: null });
+    setIsFechaModalOpen(false);
   };
 
   const opcionesArea = [
@@ -179,9 +170,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     { value: 'almacen_general', label: 'Almacen General', icon: 'store' },
     ...(soloVentas ? [] : [{ value: 'materia_Prima', label: 'Materia Prima', icon: 'leaf' }]),
     { value: 'deudas', label: 'Deudas', icon: 'credit-card' },
-    { value: 'pedidos', label: 'Pedidos', icon: 'cart' },
     { value: 'gastos', label: 'Gastos', icon: 'receipt' },
-    { value: 'balance', label: 'Balance', icon: 'transfer' },
     ...(isDamabrava() ? [{ value: 'produccion', label: 'Producción (Damabrava)', icon: 'factory' }] : []),
   ];
 
@@ -405,11 +394,11 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       tablaHeaders,
       tablaValores,
       columnWidths: {
-        producto: 'auto',
-        entradaGrup: '150px !important',
-        entradaUd: '60px !important',
-        salidaGrup: '90px !important',
-        salidaUd: '50px !important'
+        producto: '40%',
+        entradaGrup: '15%',
+        entradaUd: '15%',
+        salidaGrup: '15%',
+        salidaUd: '15%'
       }
     };
     if (DEBUG_REPORTES) {
@@ -515,10 +504,10 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       tablaHeaders,
       tablaValores,
       columnWidths: {
-        producto: 'auto',
-        tipoMedida: 'auto',
-        entrada: 'auto',
-        salida: 'auto'
+        producto: '40%',
+        tipoMedida: '20%',
+        entrada: '20%',
+        salida: '20%'
       }
     };
 
@@ -526,82 +515,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     return reporteData;
   };
 
-  // Función para generar reporte de pedidos
-  const generarReportePedidos = async (pedidos, { fechaInicio, fechaFin }) => {
-    if (DEBUG_REPORTES) {
-      console.group('Generar Reporte: Pedidos');
-      console.log('Pedidos recibidos:', pedidos?.length);
-      console.log('Fechas periodo:', {
-        fechaInicio,
-        fechaFin,
-        inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-        fin_locale_LaPaz: fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
-      });
-    }
-    // Agrupar productos de pedidos
-    const productosAgrupados = {};
-    pedidos.forEach(pedido => {
-      pedido.pedido_almacen_detalle.forEach(detalle => {
-        const key = detalle.producto_almacen.id;
-        if (!productosAgrupados[key]) {
-          productosAgrupados[key] = {
-            nombre: detalle.producto_almacen.name,
-            cantidad: 0,
-            precioUnitario: detalle.precio,
-            subtotal: 0,
-            grup: detalle.producto_almacen.grup || null
-          };
-        }
-        productosAgrupados[key].cantidad += parseFloat(detalle.cantidad);
-        productosAgrupados[key].subtotal += parseFloat(detalle.precio * detalle.cantidad);
-      });
-    });
-
-    const tablaHeaders = ['Producto', 'Cantidad', 'Cantidad Grup', 'Precio Unitario', 'Subtotal'];
-    // Ordenar productos alfabéticamente por nombre
-    const productosOrdenados = Object.values(productosAgrupados).sort((a, b) =>
-      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
-    );
-    const tablaValores = productosOrdenados.map(producto => [
-      producto.nombre,
-      producto.cantidad.toString(),
-      calcularCantidadGrup(producto.cantidad, producto.grup),
-      `Bs. ${parseFloat(producto.precioUnitario).toFixed(2)}`,
-      `Bs. ${parseFloat(producto.subtotal).toFixed(2)}`
-    ]);
-
-    const total = productosOrdenados.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
-
-    // No agregar fila TOTAL en la tabla
-
-    // Formatear período con fechas específicas
-    const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
-    const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
-
-    let periodoConFechas;
-    if (fechaInicio.getTime() === fechaFin.getTime()) {
-      periodoConFechas = fechaFinFormateada;
-    } else {
-      periodoConFechas = `${fechaInicioFormateada} a ${fechaFinFormateada}`;
-    }
-
-    const resultado = {
-      informacionSuperior: {
-        'Tipo de Reporte': 'Pedidos',
-        'Período': periodoConFechas,
-        'Sucursal': getSucursalName(),
-        'Total': `Bs. ${total.toFixed(2)}`,
-        'Cantidad de Pedidos': pedidos.length.toString()
-      },
-      tablaHeaders,
-      tablaValores
-    };
-    if (DEBUG_REPORTES) {
-      console.log('Resultado Pedidos:', resultado.informacionSuperior);
-      console.groupEnd();
-    }
-    return resultado;
-  };
 
   // Función para generar reporte de producción (Damabrava)
   const generarReporteProduccion = async (registros, { fechaInicio, fechaFin }) => {
@@ -820,117 +733,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     return resultado;
   };
 
-  // Función para generar reporte de balance (ingresos vs gastos)
-  const generarReporteBalance = async ({ fechaInicio, fechaFin }) => {
-    const sucuId = getSucuId();
-
-    // Preparar filtros de fecha
-    const fechaInicioObj = new Date(fechaInicio);
-    const fechaFinObj = new Date(fechaFin);
-    fechaInicioObj.setHours(0, 0, 0, 0);
-    fechaFinObj.setHours(23, 59, 59, 999);
-    const filtroFechaISO = {
-      inicio: fechaInicioObj.toISOString(),
-      fin: fechaFinObj.toISOString()
-    };
-    
-    const fechaInicioStr = fechaInicioObj.toISOString().split('T')[0];
-    const fechaFinStr = fechaFinObj.toISOString().split('T')[0];
-    
-    // 1) Obtener movimientos de almacén (solo salidas = ingresos/ventas)
-    const movimientosResponse = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucuId, filtroFechaISO);
-    // 2) Obtener gastos filtrados por fecha usando getAll
-    const gastosResponse = await gastosService.getAll(1, 999999, '', null, null, 'fecha_desc', null, filtroFechaISO);
-
-    // Normalizar movimientos por día
-    const movimientosFiltrados = (movimientosResponse?.data || []).filter(mov => {
-      const fechaMovimiento = new Date(mov.fecha);
-      const fMov = new Date(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
-      const fIni = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
-      const fFin = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
-      return fMov >= fIni && fMov <= fFin;
-    });
-
-    // Tabla de ingresos
-    const headersIngresos = ['Fecha', 'Cliente/Detalle', 'Productos', 'Subtotal'];
-    const valoresIngresos = [];
-    let totalIngresos = 0;
-    movimientosFiltrados.forEach(mov => {
-      const subtotal = (mov.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
-      totalIngresos += subtotal;
-
-      // Crear descripción de productos con cantidad grup
-      const productosDesc = (mov.productos || []).map(p => {
-        const cantidad = parseFloat(p.cantidad) || 0;
-        const grup = parseFloat(p.producto?.grup) || null;
-        const cantidadGrup = calcularCantidadGrup(cantidad, grup);
-        return `${p.producto?.name || 'Producto'} (${cantidad} - ${cantidadGrup})`;
-      }).join(', ');
-
-      valoresIngresos.push([
-        new Date(mov.fecha).toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' }),
-        mov?.cliente?.name || mov?.observaciones || '-',
-        productosDesc || '-',
-        `Bs. ${subtotal.toFixed(2)}`
-      ]);
-    });
-
-    // Ordenar ingresos alfabéticamente por cliente/detalle
-    valoresIngresos.sort((a, b) => a[1].localeCompare(b[1], 'es', { sensitivity: 'base' }));
-
-    // Tabla de gastos
-    const headersGastos = ['Fecha', 'Concepto', 'Valor'];
-    const valoresGastos = [];
-    let totalGastos = 0;
-    (gastosResponse?.data || []).forEach(g => {
-      const fechaG = g.fecha_gasto; // YYYY-MM-DD
-      if (fechaG >= fechaInicioStr && fechaG <= fechaFinStr) {
-        const valor = parseFloat(g.valor || 0);
-        totalGastos += valor;
-        valoresGastos.push([
-          fechaG,
-          g.concepto || '-',
-          `Bs. ${valor.toFixed(2)}`
-        ]);
-      }
-    });
-
-    // Ordenar gastos alfabéticamente por concepto
-    valoresGastos.sort((a, b) => a[1].localeCompare(b[1], 'es', { sensitivity: 'base' }));
-
-    const neto = totalIngresos - totalGastos;
-
-    // Para ModalDescarga: dos tablas separadas
-    const tablas = [
-      {
-        titulo: 'INGRESOS',
-        headers: headersIngresos,
-        valores: [...valoresIngresos, ['Total Ingresos', '', '', `Bs. ${totalIngresos.toFixed(2)}`]]
-      },
-      {
-        titulo: 'GASTOS',
-        headers: headersGastos,
-        valores: [...valoresGastos, ['Total Gastos', '', `Bs. ${totalGastos.toFixed(2)}`]]
-      }
-    ];
-
-    // Periodo para header
-    const fechaInicioFormateada = fechaInicio.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
-    const fechaFinFormateada = fechaFin.toLocaleDateString('es-BO', { timeZone: 'America/La_Paz' });
-    const periodoConFechas = fechaInicio.getTime() === fechaFin.getTime() ? fechaFinFormateada : `${fechaInicioFormateada} a ${fechaFinFormateada}`;
-
-    return {
-      informacionSuperior: {
-        'Tipo de Reporte': 'Balance',
-        'Período': periodoConFechas,
-        'Sucursal': getSucursalName(),
-        'Total Ingresos': `Bs. ${totalIngresos.toFixed(2)}`,
-        'Total Gastos': `Bs. ${totalGastos.toFixed(2)}`,
-        'Total': `Bs. ${neto.toFixed(2)}`
-      },
-      tablas
-    };
-  };
 
   // Función para generar reporte de gastos
   const generarReporteGastos = async (gastos, { fechaInicio, fechaFin }) => {
@@ -1107,7 +909,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
   // Función principal para generar el reporte
   const handleGenerarReporte = async () => {
-    if (!fechaInicio || !fechaFin || !areaSeleccionada) {
+    if (!selectedRange.inicio || !selectedRange.fin || !areaSeleccionada) {
       mostrarNotificacion('error', 'Por favor selecciona fechas y área');
       return;
     }
@@ -1127,11 +929,17 @@ const Reportes = ({ isOpen, setIsOpen }) => {
       }
     }
 
+    const fechasPreparadas = prepararFechasParaConsulta();
+    if (!fechasPreparadas) {
+      mostrarNotificacion('error', 'Error al preparar las fechas');
+      return;
+    }
+
     const {
       fechaInicioNormalizada,
       fechaFinNormalizada,
       filtroFechaISO
-    } = prepararFechasParaConsulta();
+    } = fechasPreparadas;
 
     const fechaEstaEnRango = (valorFecha) => {
       if (!valorFecha) return false;
@@ -1142,10 +950,10 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     setIsLoading(true);
     try {
       if (DEBUG_REPORTES) console.log('Rango de fechas ->', {
-        fechaInicio,
-        fechaFin,
-        inicio_locale_LaPaz: fechaInicio.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
-        fin_locale_LaPaz: fechaFin.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+        fechaInicio: fechaInicioNormalizada,
+        fechaFin: fechaFinNormalizada,
+        inicio_locale_LaPaz: fechaInicioNormalizada.toLocaleString('es-BO', { timeZone: 'America/La_Paz' }),
+        fin_locale_LaPaz: fechaFinNormalizada.toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
       });
       let reporteData = {};
 
@@ -1165,7 +973,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               return;
             }
 
-            reporteData = await generarReporteVentas(movimientosFiltradosVentas, { fechaInicio, fechaFin });
+            reporteData = await generarReporteVentas(movimientosFiltradosVentas, { fechaInicio: fechaInicioNormalizada, fechaFin: fechaFinNormalizada });
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de ventas');
             return;
@@ -1188,7 +996,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               return;
             }
 
-            reporteData = await generarReporteAlmacen(movimientosFiltradosAlmacen, { fechaInicio, fechaFin });
+            reporteData = await generarReporteAlmacen(movimientosFiltradosAlmacen, { fechaInicio: fechaInicioNormalizada, fechaFin: fechaFinNormalizada });
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de almacén');
             return;
@@ -1214,36 +1022,13 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               return;
             }
 
-            reporteData = await generarReporteMateriaPrima(movimientosFiltrados, { fechaInicio, fechaFin });
+            reporteData = await generarReporteMateriaPrima(movimientosFiltrados, { fechaInicio: fechaInicioNormalizada, fechaFin: fechaFinNormalizada });
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los movimientos de materia prima');
             return;
           }
           break;
 
-        case 'pedidos':
-          // Para pedidos, obtener todos los pedidos y filtrar por fecha en el frontend
-          const pedidos = await pedidosAlmacenService.getAllSinLimite(sucuId, filtroFechaISO);
-          if (DEBUG_REPORTES) console.log('API pedidos ->', pedidos?.data?.length ?? 0);
-
-          if (pedidos.success && pedidos.data) {
-            // Filtrar por fecha en el frontend
-            const pedidosFiltrados = pedidos.data.filter(pedido =>
-              fechaEstaEnRango(pedido.fecha || pedido.created_at)
-            );
-
-            if (pedidosFiltrados.length === 0) {
-              mostrarNotificacion('warning', 'No hay pedidos en el período seleccionado');
-              if (DEBUG_REPORTES) console.warn('Sin pedidos en rango. Total API:', pedidos.data.length);
-              return;
-            }
-
-            reporteData = await generarReportePedidos(pedidosFiltrados, { fechaInicio, fechaFin });
-          } else {
-            mostrarNotificacion('error', 'No se pudieron obtener los pedidos');
-            return;
-          }
-          break;
 
         case 'gastos':
           // Para gastos, obtener gastos por rango de fechas
@@ -1270,48 +1055,9 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             return;
           }
           
-          reporteData = await generarReporteGastos(gastosResp.data, { fechaInicio, fechaFin });
+          reporteData = await generarReporteGastos(gastosResp.data, { fechaInicio: fechaInicioNormalizada, fechaFin: fechaFinNormalizada });
           break;
 
-        case 'balance':
-          // Para balance, obtener ingresos y gastos y validar si hay datos
-          // Nota: En este caso no hay filtros de fecha, así que obtenemos todos los datos
-          const movimientosBalance = await movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucuId);
-          const gastosBalance = await gastosService.getAll(1, 999999, '', null, null, 'fecha_desc', null, null);
-          if (DEBUG_REPORTES) console.log('API balance -> movimientos:', movimientosBalance?.data?.length ?? 0, 'gastos:', gastosBalance?.data?.length ?? 0);
-          
-          if (!movimientosBalance?.success && !gastosBalance?.success) {
-            mostrarNotificacion('error', 'No se pudieron obtener los datos para el balance');
-            return;
-          }
-          
-          // Filtrar movimientos por fecha
-          const fechaInicioObjBalance = new Date(fechaInicioNormalizada);
-          const fechaFinObjBalance = new Date(fechaFinNormalizada);
-          const fechaInicioStrBalance = new Date(fechaInicioObjBalance).toISOString().split('T')[0];
-          const fechaFinStrBalance = new Date(fechaFinObjBalance).toISOString().split('T')[0];
-          
-          const movimientosFiltradosBalance = (movimientosBalance?.data || []).filter(mov => {
-            const fechaMovimiento = new Date(mov.fecha);
-            const fMov = new Date(fechaMovimiento.getFullYear(), fechaMovimiento.getMonth(), fechaMovimiento.getDate());
-            const fIni = new Date(fechaInicioObjBalance.getFullYear(), fechaInicioObjBalance.getMonth(), fechaInicioObjBalance.getDate());
-            const fFin = new Date(fechaFinObjBalance.getFullYear(), fechaFinObjBalance.getMonth(), fechaFinObjBalance.getDate());
-            return fMov >= fIni && fMov <= fFin;
-          });
-          
-          const gastosFiltradosBalance = (gastosBalance?.data || []).filter(g => {
-            const fechaG = g.fecha_gasto;
-            return fechaG >= fechaInicioStrBalance && fechaG <= fechaFinStrBalance;
-          });
-          
-          if (movimientosFiltradosBalance.length === 0 && gastosFiltradosBalance.length === 0) {
-            mostrarNotificacion('warning', 'No hay ingresos ni gastos en el período seleccionado');
-            if (DEBUG_REPORTES) console.warn('Sin datos en rango para balance');
-            return;
-          }
-          
-          reporteData = await generarReporteBalance({ fechaInicio, fechaFin });
-          break;
 
         case 'deudas':
           // Para deudas, obtener deudas por rango de fechas y validar si hay datos
@@ -1338,7 +1084,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             return;
           }
           
-          reporteData = await generarReporteDeudas({ fechaInicio, fechaFin });
+          reporteData = await generarReporteDeudas({ fechaInicio: fechaInicioNormalizada, fechaFin: fechaFinNormalizada });
           break;
 
         case 'produccion':
@@ -1348,19 +1094,9 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
           if (registrosProduccion.success && registrosProduccion.data) {
             // Filtrar por fecha en el frontend
-            const registrosFiltrados = registrosProduccion.data.filter(registro => {
-              const fechaRegistro = new Date(registro.fecha);
-              const fechaInicioObj = new Date(fechaInicio);
-              const fechaFinObj = new Date(fechaFin);
-
-              // Normalizar fechas a medianoche para comparación de días
-              const fechaRegistroNormalizada = new Date(fechaRegistro.getFullYear(), fechaRegistro.getMonth(), fechaRegistro.getDate());
-              const fechaInicioNormalizada = new Date(fechaInicioObj.getFullYear(), fechaInicioObj.getMonth(), fechaInicioObj.getDate());
-              const fechaFinNormalizada = new Date(fechaFinObj.getFullYear(), fechaFinObj.getMonth(), fechaFinObj.getDate());
-
-              const enRango = fechaRegistroNormalizada >= fechaInicioNormalizada && fechaRegistroNormalizada <= fechaFinNormalizada;
-              return enRango;
-            });
+            const registrosFiltrados = registrosProduccion.data.filter(registro =>
+              fechaEstaEnRango(registro.fecha)
+            );
 
             if (registrosFiltrados.length === 0) {
               mostrarNotificacion('warning', 'No hay registros de producción en el período seleccionado');
@@ -1368,7 +1104,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
               return;
             }
 
-            reporteData = await generarReporteProduccion(registrosFiltrados, { fechaInicio, fechaFin });
+            reporteData = await generarReporteProduccion(registrosFiltrados, { fechaInicio: fechaInicioNormalizada, fechaFin: fechaFinNormalizada });
           } else {
             mostrarNotificacion('error', 'No se pudieron obtener los registros de producción');
             return;
@@ -1404,20 +1140,18 @@ const Reportes = ({ isOpen, setIsOpen }) => {
           <p className={styles.subTitle}>SELECCIONAR</p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <DateRangePicker
-            startDate={fechaInicio}
-            endDate={fechaFin}
-            onChange={handleFechaChange}
-            placeholder="Seleccionar rango de fechas"
+          <Boton
+            className='btn-gray'
+            label={selectedRange.inicio || selectedRange.fin ? formatDateRangeForDisplay(selectedRange.inicio, selectedRange.fin, 'Rango seleccionado') : 'Seleccionar rango'}
+            onClick={() => setIsFechaModalOpen(true)}
           />
-            <Select
-              placeholder="Área"
-              options={opcionesArea}
-              value={areaSeleccionada}
-              onChange={handleAreaChange}
-              icon="category"
-            />
-    
+          <Select
+            placeholder="Área"
+            options={opcionesArea}
+            value={areaSeleccionada}
+            onChange={handleAreaChange}
+            icon="category"
+          />
         </div>
 
         <div className={styles.buttons}>
@@ -1437,8 +1171,20 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         setIsOpen={setIsDescargaOpen}
         titulo="Descargar Reporte"
         subtitulo="Selecciona el formato que prefieras para descargar este reporte."
-        nombreArchivo={`Reporte_${areaSeleccionada}_${fechaInicio.toLocaleDateString('es-BO').replace(/\//g, '-')}_${fechaFin.toLocaleDateString('es-BO').replace(/\//g, '-')}`}
+        nombreArchivo={`Reporte_${areaSeleccionada}_${selectedRange.inicio ? new Date(selectedRange.inicio).toLocaleDateString('es-BO').replace(/\//g, '-') : ''}_${selectedRange.fin ? new Date(selectedRange.fin).toLocaleDateString('es-BO').replace(/\//g, '-') : ''}`}
         {...datosReporte}
+      />
+
+      {/* Modal de filtro de fecha */}
+      <FiltroFecha
+        isOpen={isFechaModalOpen}
+        setIsOpen={setIsFechaModalOpen}
+        startDate={selectedRange.inicio}
+        endDate={selectedRange.fin}
+        onApply={handleApplyRange}
+        onClear={handleClearRange}
+        title="Seleccionar rango de fechas"
+        defaultToToday={false}
       />
 
       {/* Notificación */}

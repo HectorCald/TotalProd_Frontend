@@ -344,6 +344,7 @@ const FiltroFecha = ({
                     value={inicio}
                     onChange={setInicio}
                     placeholder="Desde"
+                    yearDirection="past"
                 />
                 <p className={styles.subTitle}>Selecciona la fecha de fin</p>
                 <InputDate
@@ -352,6 +353,7 @@ const FiltroFecha = ({
                     onChange={setFin}
                     placeholder="Hasta"
                     minDate={inicio || undefined}
+                    yearDirection="past"
                 />
                 {errorFecha && (
                     <div style={{ marginTop: '10px', width: '100%' }}>

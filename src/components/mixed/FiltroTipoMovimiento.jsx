@@ -4,7 +4,7 @@ import ViewModal from '../ui/ViewModal';
 import HeaderModal from '../common/HeaderModal';
 import ItemLine from '../common/ItemLine';
 
-function FiltroTipoMovimiento({ isOpen, setIsOpen, onTipoSeleccionado }) {
+function FiltroTipoMovimiento({ isOpen, setIsOpen, onTipoSeleccionado, showTransferencia = true }) {
     const opcionesTipo = [
         {
             value: null,
@@ -21,11 +21,11 @@ function FiltroTipoMovimiento({ isOpen, setIsOpen, onTipoSeleccionado }) {
             label: 'Salidas',
             icon: 'minus-circle'
         },
-        {
+        ...(showTransferencia ? [{
             value: 'transferencia',
             label: 'Transferencias',
             icon: 'transfer'
-        }
+        }] : [])
     ];
 
     const handleTipoSelect = (valor) => {

@@ -11,6 +11,7 @@ import { LayoutProvider } from './context/LayoutContext';
 import SeleccionarSucursal from './components/views/sucursales/SeleccionarSucursal';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import sucursalesService from './services/sucursalesService';
+import ModalPermisoUbicacion from './components/views/offline/ModalPermisoUbicacion';
 
 
 function App() {
@@ -93,6 +94,8 @@ function AppContent({ token, tokenType }) {
   const [employeeDataFetched, setEmployeeDataFetched] = useState(false);
   const [loadingSucursal, setLoadingSucursal] = useState(false);
   const [sucursalAutoSeleccionada, setSucursalAutoSeleccionada] = useState(false);
+  const [showPermisoUbicacion, setShowPermisoUbicacion] = useState(false);
+  const [permisoVerificado, setPermisoVerificado] = useState(false);
   
   // Determinar si hay una sesión activa
   const hasActiveSession = !!token;
@@ -106,6 +109,133 @@ function AppContent({ token, tokenType }) {
   useEffect(() => {
     setSucursalAutoSeleccionada(false);
   }, [user?.id, employee?.id]);
+
+  // Verificar permiso de geolocalización - Solo después de cargar usuario/empleado
+  useEffect(() => {
+    // Solo verificar si hay una sesión activa Y el usuario/empleado ya fue cargado
+    if (!hasActiveSession) {
+      return;
+    }
+
+    // Esperar a que el usuario o empleado esté cargado
+    if (isUserSession && !user) {
+      return;
+    }
+    if (isEmployeeSession && !employee) {
+      return;
+    }
+
+    let permissionStatus = null;
+    let intervalId = null;
+
+    // Función para verificar permiso directamente (fallback)
+    const verificarPermisoDirecto = () => {
+      if (!navigator.geolocation) {
+        // Geolocalización no disponible
+        setShowPermisoUbicacion(true);
+        setPermisoVerificado(false);
+        return;
+      }
+
+      // Intentar obtener ubicación para verificar el permiso
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          // Permiso concedido
+          setShowPermisoUbicacion(false);
+          setPermisoVerificado(true);
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
+        },
+        (error) => {
+          // Error al obtener ubicación
+          if (error.code === error.PERMISSION_DENIED) {
+            setShowPermisoUbicacion(true);
+            setPermisoVerificado(false);
+          } else {
+            // Otro tipo de error, no mostrar modal (podría ser timeout, etc.)
+            setPermisoVerificado(true);
+          }
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 3000,
+          maximumAge: 0
+        }
+      );
+    };
+
+    const verificarPermisoUbicacion = async () => {
+      try {
+        // Verificar si el navegador soporta la API de Permissions
+        if ('permissions' in navigator) {
+          try {
+            permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+            
+            const verificarEstado = () => {
+              if (permissionStatus.state === 'denied' || permissionStatus.state === 'prompt') {
+                setShowPermisoUbicacion(true);
+                setPermisoVerificado(false);
+              } else if (permissionStatus.state === 'granted') {
+                setShowPermisoUbicacion(false);
+                setPermisoVerificado(true);
+                if (intervalId) {
+                  clearInterval(intervalId);
+                  intervalId = null;
+                }
+              }
+            };
+
+            // Verificar estado inicial
+            verificarEstado();
+
+            // Escuchar cambios en el permiso
+            permissionStatus.onchange = () => {
+              verificarEstado();
+            };
+          } catch (error) {
+            // Si la API de permissions no está disponible o falla, intentar obtener ubicación directamente
+            console.warn('No se pudo verificar permiso con Permissions API:', error);
+            verificarPermisoDirecto();
+          }
+        } else {
+          // Si no hay soporte para Permissions API, intentar obtener ubicación directamente
+          verificarPermisoDirecto();
+        }
+      } catch (error) {
+        console.error('Error al verificar permiso de ubicación:', error);
+        // En caso de error, intentar verificación directa
+        verificarPermisoDirecto();
+      }
+    };
+
+    verificarPermisoUbicacion();
+
+    // Verificar periódicamente si el permiso cambió (solo si el modal está abierto)
+    intervalId = setInterval(() => {
+      if (permissionStatus) {
+        // Si tenemos permissionStatus, verificar su estado
+        if (permissionStatus.state === 'granted') {
+          setShowPermisoUbicacion(false);
+          setPermisoVerificado(true);
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
+        }
+      } else {
+        // Si no tenemos permissionStatus, intentar verificación directa
+        verificarPermisoDirecto();
+      }
+    }, 2000);
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [hasActiveSession, isUserSession, isEmployeeSession, user, employee]);
 
   // Función para auto-seleccionar la primera sucursal disponible
   const autoSeleccionarSucursal = async (empresaId, isEmployee, canAdministrarSucursales) => {
@@ -286,6 +416,20 @@ function AppContent({ token, tokenType }) {
             empresaId={isEmployeeSession ? (employee?.empresa_id || employee?.sucursal?.empresas?.id) : user.empresa_id}
             onSucursalSeleccionada={handleSucursalSeleccionada}
             canClose={!!sucursalSeleccionada}
+          />
+        )}
+
+        {/* Modal de permiso de ubicación - Obligatorio, no se puede cerrar */}
+        {hasActiveSession && showPermisoUbicacion && (
+          <ModalPermisoUbicacion
+            isOpen={showPermisoUbicacion}
+            setIsOpen={(value) => {
+              // Solo permitir cerrar si el valor es false (permiso concedido)
+              if (value === false) {
+                setShowPermisoUbicacion(false);
+                setPermisoVerificado(true);
+              }
+            }}
           />
         )}
       </BrowserRouter>

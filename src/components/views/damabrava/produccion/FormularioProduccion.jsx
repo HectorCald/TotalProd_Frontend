@@ -340,7 +340,7 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                     <InputNormal
                         tipo="number"
                         value={dataProduccion.microondas}
-                        placeholder='Tiempo de Microondas'
+                        placeholder='Tiempo Microondas (segundos)'
                         onChange={(e) => handleChange('microondas', e.target.value)}
                         icon='time'
                         step="1"
