@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import Filtros from '../../common/Filtros';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import historialService from '../../../services/historialService';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
@@ -31,8 +30,11 @@ const formatDateTime = (value) => {
 
 function PanelHistorial({ isOpen, setIsOpen }) {
   const { isLargeScreen } = useLayout();
+  const { showDanger } = useToast();
 
   const [records, setRecords] = useState([]);
+  const [recordsLoaded, setRecordsLoaded] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMorePages, setHasMorePages] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,11 +45,6 @@ function PanelHistorial({ isOpen, setIsOpen }) {
   const [isOpenFiltroTipo, setIsOpenFiltroTipo] = useState(false);
   const [isOpenFiltroResponsable, setIsOpenFiltroResponsable] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchNormalized, setSearchNormalized] = useState('');
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [debouncedSearch] = useDebounce(searchNormalized, 400);
-
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
@@ -55,23 +52,6 @@ function PanelHistorial({ isOpen, setIsOpen }) {
   const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeRequests, setActiveRequests] = useState(0);
-
-  const [notification, setNotification] = useState({
-    isVisible: false,
-    type: 'success',
-    text: ''
-  });
-
-  const showNotification = (type, text) => {
-    setNotification({
-      isVisible: true,
-      type,
-      text
-    });
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
-    }, 3000);
-  };
 
   const computeHasMore = (pagination = {}, pageValue = 1) => {
     const total = pagination.total ?? 0;
@@ -82,7 +62,8 @@ function PanelHistorial({ isOpen, setIsOpen }) {
 
   // Callbacks para FetchDataProgressive
   const handleDataLoaded = useCallback((data) => {
-    setRecords(data);
+    setRecords(data.length > 0 ? data : []);
+    setRecordsLoaded(true);
   }, []);
 
   const handleDataAccumulated = useCallback((data) => {
@@ -100,8 +81,10 @@ function PanelHistorial({ isOpen, setIsOpen }) {
 
   const handleLoadingStart = useCallback(() => {
     if (currentPage === 1) {
-      setIsLoading(true);
-    } else {
+      if (records.length === 0 && !recordsLoaded) {
+        setIsLoading(true);
+      }
+    } else if (currentPage > 1) {
       setIsLoadingMore(true);
     }
     
@@ -113,7 +96,7 @@ function PanelHistorial({ isOpen, setIsOpen }) {
       }
       return newCount;
     });
-  }, [currentPage]);
+  }, [currentPage, records.length, recordsLoaded]);
 
   const handleLoadingEnd = useCallback(() => {
     setIsLoading(false);
@@ -135,8 +118,8 @@ function PanelHistorial({ isOpen, setIsOpen }) {
 
   const handleError = useCallback((err) => {
     setError(err);
-    showNotification('error', err.message || 'Error al obtener el historial');
-  }, [showNotification]);
+    showDanger('Error', err.message || 'Error al obtener el historial');
+  }, [showDanger]);
 
   const handleHasMorePagesChange = useCallback((hasMore) => {
     setHasMorePages(hasMore);
@@ -149,10 +132,6 @@ function PanelHistorial({ isOpen, setIsOpen }) {
         page,
         limit
       };
-
-      if (debouncedSearch) {
-        params.search = debouncedSearch;
-      }
 
       if (filtroTipo) {
         params.accion = filtroTipo;
@@ -168,17 +147,18 @@ function PanelHistorial({ isOpen, setIsOpen }) {
 
       return await historialService.getAll(params);
     }
-  }), [debouncedSearch, filtroTipo, filtroResponsable]);
+  }), [filtroTipo, filtroResponsable]);
 
   useEffect(() => {
     if (isOpen) {
       setCurrentPage(1);
       setRecords([]);
+      setRecordsLoaded(false);
     } else {
       setShowRefreshIndicator(false);
       setIsRefreshing(false);
     }
-  }, [isOpen, debouncedSearch, filtroTipo, filtroResponsable]);
+  }, [isOpen, filtroTipo, filtroResponsable]);
 
   const handleScroll = (event) => {
     const { scrollTop, scrollHeight, clientHeight } = event.target;
@@ -190,6 +170,8 @@ function PanelHistorial({ isOpen, setIsOpen }) {
   const handleRefresh = async () => {
     setCurrentPage(1);
     setRecords([]);
+    setRecordsLoaded(false);
+    setRefreshKey((k) => k + 1);
     // FetchDataProgressive se encargará de recargar automáticamente
   };
 
@@ -223,11 +205,23 @@ function PanelHistorial({ isOpen, setIsOpen }) {
       const badgeConfig = {
         'CREAR': {
           text: 'Crear',
-          className: 'warning'
+          className: 'success'
         },
         'EDITAR': {
           text: 'Editar',
           className: 'info'
+        },
+        'ANULAR': {
+          text: 'Anular',
+          className: 'warning'
+        },
+        'REMPLAZO': {
+          text: 'Reemplazo',
+          className: 'remplazo'
+        },
+        'ENTREGAR': {
+          text: 'Entregar',
+          className: 'entregar'
         },
         'ELIMINAR': {
           text: 'Eliminar',
@@ -249,6 +243,9 @@ function PanelHistorial({ isOpen, setIsOpen }) {
     const labelMap = {
       CREAR: 'Crear',
       EDITAR: 'Editar',
+      ANULAR: 'Anular',
+      ENTREGAR: 'Entregar',
+      REMPLAZO: 'Reemplazo',
       ELIMINAR: 'Eliminar'
     };
     return labelMap[filtroTipo] || 'Todas las acciones';
@@ -275,28 +272,22 @@ function PanelHistorial({ isOpen, setIsOpen }) {
   const handleTipoSeleccionado = (tipo) => {
     setFiltroTipo(tipo);
     setCurrentPage(1);
+    setRecords([]);
+    setRecordsLoaded(false);
   };
 
   const handleResponsableSeleccionado = (responsable) => {
     setFiltroResponsable(responsable);
     setCurrentPage(1);
+    setRecords([]);
+    setRecordsLoaded(false);
   };
 
   return (
     <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
       <HeaderView
         onBack={() => setIsOpen(false)}
-        showSearch={true}
-        searchPlaceholder="Buscar por módulo o lugar afectado..."
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        onSearchNormalizedChange={setSearchNormalized}
-        onSearchClear={() => {
-          setSearchQuery('');
-          setSearchNormalized('');
-        }}
-        searchExpanded={isSearchExpanded}
-        onSearchToggle={setIsSearchExpanded}
+        showSearch={false}
         title="Historial"
       />
 
@@ -344,8 +335,8 @@ function PanelHistorial({ isOpen, setIsOpen }) {
                 ) : (
                   <NoData
                     icon="history"
-                    title={searchQuery ? 'Sin resultados' : 'Sin registros'}
-                    detail={searchQuery ? 'No se encontraron resultados con el criterio de búsqueda' : 'Aún no hay registros en el historial'}
+                    title="Sin registros"
+                    detail="Aún no hay registros en el historial"
                     transparent={true}
                     minHeight="200px"
                   />
@@ -356,10 +347,6 @@ function PanelHistorial({ isOpen, setIsOpen }) {
               <PullToRefresh
                 onRefresh={handleRefresh}
                 screenName="Historial"
-                containerStyle={{
-                  maxHeight: 'calc(100% - 80px)',
-                  minHeight: 'calc(100% - 80px)'
-                }}
                 onScroll={handleScroll}
               >
                 {records.length > 0 ? (
@@ -371,6 +358,12 @@ function PanelHistorial({ isOpen, setIsOpen }) {
                           return { icon: 'plus-circle', color: 'naranja' };
                         case 'EDITAR':
                           return { icon: 'edit', color: 'azul' };
+                        case 'ANULAR':
+                          return { icon: 'block', color: 'naranja' };
+                        case 'ENTREGAR':
+                          return { icon: 'package', color: 'cyan' };
+                        case 'REMPLAZO':
+                          return { icon: 'transfer-alt', color: 'morado' };
                         case 'ELIMINAR':
                           return { icon: 'trash', color: 'rojo' };
                         default:
@@ -384,6 +377,12 @@ function PanelHistorial({ isOpen, setIsOpen }) {
                           return { key: 'flot2', value: 'Crear' };
                         case 'EDITAR':
                           return { key: 'flot5', value: 'Editar' };
+                        case 'ANULAR':
+                          return { key: 'flot4', value: 'Anular' };
+                        case 'ENTREGAR':
+                          return { key: 'flot8', value: 'Entregar' };
+                        case 'REMPLAZO':
+                          return { key: 'flot7', value: 'Reemplazo' };
                         case 'ELIMINAR':
                           return { key: 'flot3', value: 'Eliminar' };
                         default:
@@ -413,8 +412,8 @@ function PanelHistorial({ isOpen, setIsOpen }) {
                 ) : (
                   <NoData
                     icon="history"
-                    title={searchQuery ? 'Sin resultados' : 'Sin registros'}
-                    detail={searchQuery ? 'No se encontraron resultados con el criterio de búsqueda' : 'Aún no hay registros en el historial'}
+                    title="Sin registros"
+                    detail="Aún no hay registros en el historial"
                     transparent={true}
                     minHeight="200px"
                   />
@@ -430,12 +429,6 @@ function PanelHistorial({ isOpen, setIsOpen }) {
         isOpen={isDetailOpen}
         setIsOpen={setIsDetailOpen}
         registro={selectedRecord}
-      />
-
-      <Notification
-        isVisible={notification.isVisible}
-        type={notification.type}
-        text={notification.text}
       />
 
       <FiltroTipoHistorial
@@ -456,9 +449,9 @@ function PanelHistorial({ isOpen, setIsOpen }) {
         <FetchDataProgressive
           service={historialServiceWrapper}
           method="getAll"
-          methodParams={[]}
+          methodParams={[filtroTipo, filtroResponsable?.id ?? filtroResponsable?.tipo ?? null, refreshKey]}
           serviceName="historialService"
-          isOpen={isOpen && (currentPage === 1 || (currentPage > 1 && hasMorePages))}
+          isOpen={isOpen && ((!recordsLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}
           page={currentPage}
           limit={PAGE_LIMIT}
           onDataLoaded={handleDataLoaded}

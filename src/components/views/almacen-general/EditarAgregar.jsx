@@ -3,22 +3,23 @@ import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
+import Input from '../../common/inputs/Input';
+import InputCall from '../../common/inputs/InputCall';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import EditarAgregarReceta from './EditarAgregarReceta';
 import Switch from '../../common/Switch';
-import Notification from '../../common/Notification';
 import CategoriasAlmacen from './CategoriasAlmacen';
+import { useToast } from '../../../context/ToastContext';
 import NoData from '../../common/NoData';
-import Text from '../../common/Text';
 import { useUser } from '../../../context/UserContext';
 import { isSoloVentas } from '../../../utils/empresaHelper';
-import { formatProductoAlmacenLog, prepareLogPayload } from '../../../utils/logFormatters';
+import { extractRecetaFromAlmacen } from '../../../utils/logFormatters';
 import useHistorialLogger from '../../ui/HistorialLogger';
 
 function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, preciosTipos = [], loadingPrecios = false }) {
   const { user } = useUser();
   const soloVentas = isSoloVentas(user);
+  const { showSuccess, showDanger, showWarning } = useToast();
   const { logAccion } = useHistorialLogger({
     modulo: 'Almacén General'
   });
@@ -43,30 +44,11 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [isCategoriasSeleccionOpen, setIsCategoriasSeleccionOpen] = useState(false);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
-
-  // Estado para notificaciones
-  const [notification, setNotification] = useState({
-    isVisible: false,
-    type: 'error',
-    text: ''
-  });
-
-  const mostrarNotificacion = (tipo, texto) => {
-    setNotification({
-      isVisible: true,
-      type: tipo,
-      text: texto
-    });
-
-    // Auto-ocultar después de 3 segundos
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
-    }, 3000);
-  };
-
+  const [fieldErrors, setFieldErrors] = useState({ name: false, stock: false, prices: {} });
 
   // Efecto para cargar los datos del producto en editar
   useEffect(() => {
+    setFieldErrors({ name: false, stock: false, prices: {} });
     if (data && tipo === 'editar') {
       // Convertir price_product a prices
       const prices = {};
@@ -141,12 +123,8 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       setHasReceta(false);
       setRecetaGuardada(null);
       setCategoriaSeleccionada(null);
+      setFieldErrors({ name: false, stock: false, prices: {} });
     }
-    setNotification({
-      isVisible: false,
-      type: 'error',
-      text: ''
-    });
   }, [isOpen, data, tipo]);
 
 
@@ -175,6 +153,9 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
   // Función para actualizar los datos del formulario
   const handleChange = (field, value) => {
     setDataMov({ ...dataMov, [field]: value });
+    if (field === 'name' || field === 'stock') {
+      setFieldErrors((prev) => ({ ...prev, [field]: false }));
+    }
   };
 
 
@@ -187,6 +168,10 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         ...prev.prices,
         [priceTypeId]: value
       }
+    }));
+    setFieldErrors((prev) => ({
+      ...prev,
+      prices: { ...prev.prices, [priceTypeId]: false }
     }));
   };
   // Función para manejar el switch de receta
@@ -220,38 +205,67 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
   // Función para enviar los datos
   const handleSubmit = async () => {
     if (!dataMov.name.trim()) {
-      mostrarNotificacion('error', 'El nombre es obligatorio');
+      setFieldErrors((prev) => ({ ...prev, name: true }));
+      showWarning('Validación', 'El nombre es obligatorio', 5000);
       return;
     }
 
     if (dataMov.stock === '' || dataMov.stock === null || dataMov.stock === undefined) {
-      mostrarNotificacion('error', 'El stock es obligatorio');
+      setFieldErrors((prev) => ({ ...prev, stock: true }));
+      showWarning('Validación', 'El stock es obligatorio', 5000);
       return;
     }
 
     if (isNaN(dataMov.stock) || parseInt(dataMov.stock) < 0) {
-      mostrarNotificacion('error', 'El stock debe ser un número válido mayor o igual a 0');
+      setFieldErrors((prev) => ({ ...prev, stock: true }));
+      showWarning('Validación', 'El stock debe ser un número válido mayor o igual a 0', 5000);
       return;
     }
 
     // Validar receta solo si está marcado el switch y no es solo ventas
     if (!soloVentas && hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0)) {
-      mostrarNotificacion('error', 'Debe crear una receta con al menos un producto');
+      showWarning('Validación', 'Debe crear una receta con al menos un producto', 5000);
       return;
     }
 
+    // Validar precios: todos deben tener valor (no vacío) y ser >= 0
+    if (preciosTipos && preciosTipos.length > 0) {
+      const priceErrors = {};
+      preciosTipos.forEach((pt) => {
+        const val = dataMov.prices[pt.id];
+        if (val === '' || val === null || val === undefined) priceErrors[pt.id] = true;
+        else {
+          const num = parseFloat(String(val).replace(',', '.'));
+          if (isNaN(num) || num < 0) priceErrors[pt.id] = true;
+        }
+      });
+      if (Object.keys(priceErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, prices: { ...prev.prices, ...priceErrors } }));
+        showWarning('Validación', 'Todos los precios son obligatorios y deben ser mayor o igual a 0', 5000);
+        return;
+      }
+    }
+
+    setFieldErrors({ name: false, stock: false, prices: {} });
     setLoading(true);
     try {
       let response;
+      // Campos numéricos opcionales: vacío → null (consistencia crear/actualizar)
+      const parseOptionalNum = (val, parser = parseFloat) => {
+        if (val === '' || val === null || val === undefined) return null;
+        const n = parser(val);
+        return isNaN(n) ? null : n;
+      };
+
       const productData = {
         name: dataMov.name,
-        description: dataMov.description,
+        description: dataMov.description || null,
         stock: parseInt(dataMov.stock),
-        codigo_barras: dataMov.codigo_barras,
-        category_id: dataMov.category_id,
-        grup: dataMov.grup ? parseInt(dataMov.grup) : null,
-        stock_minimo: dataMov.stock_minimo ? parseFloat(dataMov.stock_minimo) : 0,
-        costo_produccion: dataMov.costo_produccion ? parseFloat(dataMov.costo_produccion) : null,
+        codigo_barras: dataMov.codigo_barras || null,
+        category_id: dataMov.category_id || null,
+        grup: parseOptionalNum(dataMov.grup, (v) => parseInt(v)),
+        stock_minimo: parseOptionalNum(dataMov.stock_minimo),
+        costo_produccion: parseOptionalNum(dataMov.costo_produccion),
         prices: dataMov.prices,
         receta: (!soloVentas && hasReceta) ? recetaGuardada : null // Incluir receta solo si no es solo ventas y está marcado el switch
       };
@@ -263,51 +277,83 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       }
 
       if (response.success) {
-        const datosAntesOriginal = tipo === 'editar' ? data : null;
-        const datosDespuesOriginal = response.data || (tipo === 'agregar'
-          ? {
-            ...productData,
-            id: response.id || null
-          }
-          : null);
-
-        const logDatosAntes = datosAntesOriginal
-          ? formatProductoAlmacenLog(datosAntesOriginal, {
-              precioTipos: preciosTipos,
-              categoriaFallback: categoriaSeleccionada?.name || null
-            })
-          : null;
-
-        const logDatosDespues = formatProductoAlmacenLog(datosDespuesOriginal, {
-          precioTipos: preciosTipos,
-          categoriaFallback: categoriaSeleccionada?.name || null
-        });
-
-        const registroId = (response.data && response.data.id) || datosDespuesOriginal?.id || data?.id || null;
-        const nombreAfectado =
-          logDatosDespues?.nombre ||
-          logDatosAntes?.nombre ||
-          datosDespuesOriginal?.name ||
-          productData.name ||
-          data?.name ||
-          'Producto de almacén';
+        const registroId = (response.data && response.data.id) || response.id || data?.id || null;
         const comentarioAccion = tipo === 'editar'
           ? 'Actualización de producto de almacén'
           : 'Creación de producto de almacén';
-        const { datosAntes, datosDespues, campos } = prepareLogPayload({
-          accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
-          datosAntes: logDatosAntes,
-          datosDespues: logDatosDespues
+
+        // Detalles en orden del formulario. Keys en español. Precios como "Precio [nombre]".
+        const categoriaNombreAntes = tipo === 'editar'
+          ? (data?.category_almacen?.name ?? data?.category_name ?? categoriaSeleccionada?.name ?? null)
+          : null;
+        const categoriaNombreDespues = categoriaSeleccionada?.name ?? null;
+
+        const camposDetalle = {};
+        const camposOrden = [
+          'Nombre del Producto',
+          'Descripción',
+          'Stock',
+          'Stock mínimo',
+          'Código de barras',
+          'Grupo',
+          'Categoría'
+        ];
+
+        camposDetalle['Nombre del Producto'] = tipo === 'editar'
+          ? { antes: data?.name ?? null, despues: productData.name }
+          : { despues: productData.name };
+        camposDetalle['Descripción'] = tipo === 'editar'
+          ? { antes: data?.description ?? null, despues: productData.description ?? null }
+          : { despues: productData.description ?? null };
+        camposDetalle['Stock'] = tipo === 'editar'
+          ? { antes: data?.stock ?? null, despues: productData.stock }
+          : { despues: productData.stock };
+        camposDetalle['Stock mínimo'] = tipo === 'editar'
+          ? { antes: data?.stock_minimo ?? null, despues: productData.stock_minimo ?? null }
+          : { despues: productData.stock_minimo ?? null };
+        camposDetalle['Código de barras'] = tipo === 'editar'
+          ? { antes: data?.codigo_barras ?? null, despues: productData.codigo_barras ?? null }
+          : { despues: productData.codigo_barras ?? null };
+        camposDetalle['Grupo'] = tipo === 'editar'
+          ? { antes: data?.grup ?? null, despues: productData.grup ?? null }
+          : { despues: productData.grup ?? null };
+        camposDetalle['Categoría'] = tipo === 'editar'
+          ? { antes: categoriaNombreAntes, despues: categoriaNombreDespues }
+          : { despues: categoriaNombreDespues };
+
+        preciosTipos.forEach((pt) => {
+          const labelPrecio = `Precio ${pt.name}`;
+          camposOrden.push(labelPrecio);
+          const valAntes = tipo === 'editar' && data?.price_product
+            ? (data.price_product.find(p => String(p.prices_types?.id) === String(pt.id))?.valor ?? null)
+            : null;
+          const valDespues = productData.prices?.[pt.id] ?? null;
+          camposDetalle[labelPrecio] = tipo === 'editar'
+            ? { antes: valAntes, despues: valDespues }
+            : { despues: valDespues };
         });
+
+        camposOrden.push('Receta');
+        const recetaAntes = tipo === 'editar' ? extractRecetaFromAlmacen(data) : null;
+        const recetaDespues = productData.receta
+          ? { descripcion: productData.receta.descripcion ?? null, productos: productData.receta.productos ?? [] }
+          : null;
+        camposDetalle['Receta'] = tipo === 'editar'
+          ? { antes: recetaAntes, despues: recetaDespues }
+          : { despues: recetaDespues };
+
+        const detallesPersonalizados = {
+          campos: camposDetalle,
+          camposOrden,
+          comentario: comentarioAccion
+        };
 
         await logAccion({
           accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
-          lugarAfectado: nombreAfectado,
+          lugarAfectado: (response.data && response.data.name) || productData.name || data?.name || 'Producto de almacén',
           registroId,
-          datosAntes,
-          datosDespues,
           comentario: comentarioAccion,
-          campos
+          detallesPersonalizados
         });
 
         if (tipo === 'editar' && onProductUpdated) {
@@ -315,14 +361,18 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         } else if (tipo === 'agregar' && onProductCreated) {
           onProductCreated(response.data);
         }
+        showSuccess(
+          tipo === 'editar' ? 'Producto actualizado' : 'Producto creado',
+          `El producto "${dataMov.name}" ha sido ${tipo === 'editar' ? 'actualizado' : 'creado'} exitosamente`,
+          5000
+        );
         setIsOpen(false);
       } else {
-        mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el producto`);
+        showDanger('Error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el producto`, 5000);
       }
     } catch (error) {
       console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} producto:`, error);
-      // Mostrar el mensaje de error del servidor (incluyendo permisos) con notificación
-      mostrarNotificacion('error', error.message || 'Error de conexión con el servidor');
+      showDanger('Error', error.message || 'Error de conexión con el servidor', 5000);
     } finally {
       setLoading(false);
     }
@@ -332,82 +382,97 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
     <>
       <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
         <HeaderModal
-          title={tipo === 'editar' ? 'Editar producto' : 'Nuevo producto'}
+          title={tipo === 'editar' ? 'Editar Producto' : 'Nuevo Producto'}
           onClose={() => setIsOpen(false)}
         />
         <div className={styles.modalContent}>
-          <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
-            <InputNormal
-              tipo="text"
-              value={dataMov.name}
-              placeholder='Nombre del Producto'
-              onChange={(e) => handleChange('name', e.target.value)}
-              icon='box'
-            />
+          <hr className={styles.separator} />
+          <p className={styles.subTitle}>Información</p>
+          <Input
+            tipo="text"
+            label="Nombre del Producto"
+            value={dataMov.name}
+            onChange={(e) => handleChange('name', e.target.value)}
+            required={true}
+            readOnly={loading}
+            error={fieldErrors.name}
+            onClearError={() => setFieldErrors((prev) => ({ ...prev, name: false }))}
+          />
 
-            <InputNormal
-              tipo="text"
-              value={dataMov.description}
-              placeholder='Descripción'
-              onChange={(e) => handleChange('description', e.target.value)}
-              icon='text'
-            />
-
-            <InputNormal
+          <Input
+            tipo="text"
+            label="Descripción"
+            value={dataMov.description}
+            onChange={(e) => handleChange('description', e.target.value)}
+            readOnly={loading}
+          />
+          <div className={styles.horizontal}>
+            <Input
               tipo="number"
+              label="Stock"
               value={dataMov.stock}
-              placeholder='Stock'
               onChange={(e) => handleChange('stock', e.target.value)}
-              icon='calculator'
+              required={true}
+              readOnly={loading}
+              error={fieldErrors.stock}
+              onClearError={() => setFieldErrors((prev) => ({ ...prev, stock: false }))}
             />
 
-            <InputNormal
+            <Input
               tipo="number"
+              label="Stock mínimo"
               value={dataMov.stock_minimo}
-              placeholder='Stock mínimo (opcional)'
               onChange={(e) => handleChange('stock_minimo', e.target.value)}
-              icon='error'
               step="0.01"
               min="0"
+              readOnly={loading}
             />
-
-            <InputNormal
+          </div>
+          <div className={styles.horizontal}>
+            <Input
               tipo="text"
+              label="Código de barras"
               value={dataMov.codigo_barras}
-              placeholder='Código de barras'
               onChange={(e) => handleChange('codigo_barras', e.target.value)}
-              icon='barcode'
+              readOnly={loading}
             />
 
-            <InputNormal
+            <Input
               tipo="number"
+              label="Grupo"
               value={dataMov.grup}
-              placeholder='Grupo (ej: 12 para docena)'
               onChange={(e) => handleChange('grup', e.target.value)}
-              icon='package'
               step="1"
               min="1"
+              readOnly={loading}
             />
+          </div>
 
-            <InputNormal
-              tipo="number"
-              value={dataMov.costo_produccion}
-              placeholder='Costo de producción (opcional)'
-              onChange={(e) => handleChange('costo_produccion', e.target.value)}
-              icon='dollar'
-              step="0.01"
-              min="0"
-            />
+          {/* Costo de producción 
+          <Input
+            tipo="number"
+            label="Costo de producción (opcional)"
+            value={dataMov.costo_produccion}
+            onChange={(e) => handleChange('costo_produccion', e.target.value)}
+            step="0.01"
+            min="0"
+          />
+          */}
 
-          <Boton
-            className='btn-gray'
-            label={categoriaSeleccionada ? 'Categoría: ' + categoriaSeleccionada.name : 'Seleccionar Categoría (opcional)'}
+          <InputCall
+            label="Categoría"
+            value={categoriaSeleccionada?.name ?? ''}
+            placeholder="Seleccionar"
             onClick={() => setIsCategoriasSeleccionOpen(true)}
-            style={{ width: '100%', justifyContent: 'flex-start' }}
+            onClear={() => {
+              setCategoriaSeleccionada(null);
+              setDataMov(prev => ({ ...prev, category_id: '' }));
+            }}
+            readOnly={loading}
           />
 
           {/* Sección de Precios */}
-          <p className={styles.subTitle}>PRECIOS</p>
+          <p className={styles.subTitle}>Precios</p>
           {loadingPrecios ? (
             <NoData
               icon="loader-alt"
@@ -425,15 +490,18 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
               return rows.map((row, rowIndex) => (
                 <div className={styles.horizontal} key={`row-${rowIndex}`}>
                   {row.map((priceType) => (
-                    <InputNormal
+                    <Input
                       key={priceType.id}
                       tipo="number"
+                      label={priceType.name}
                       value={dataMov.prices[priceType.id] || ''}
-                      placeholder={priceType.name}
                       onChange={(e) => handlePriceChange(priceType.id, e.target.value)}
-                      icon='dollar'
                       step="0.01"
                       min="0"
+                      required={true}
+                      readOnly={loading}
+                      error={fieldErrors.prices?.[priceType.id]}
+                      onClearError={() => setFieldErrors((prev) => ({ ...prev, prices: { ...prev.prices, [priceType.id]: false } }))}
                     />
                   ))}
                 </div>
@@ -443,35 +511,27 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
           {/* Switch para receta (solo si no es solo ventas) */}
           {!soloVentas && (
             <>
-              <div className={styles.content} style={{ padding: '10px 15px' }}>
+              <p className={styles.subTitle}>Receta</p>
+              <div className={styles.content} style={{ padding: '10px 15px', marginBottom: '15px' }}>
                 <Switch
                   title="¿Tiene receta?"
                   subtitle="Marca si este producto se produce a partir de materias primas de acopio"
                   checked={hasReceta}
                   onChange={handleRecetaSwitch}
                   icon="receipt"
+                  readOnly={loading}
                 />
               </div>
 
               {/* Botón de receta (solo si está marcado el switch) */}
               {hasReceta && (
-                <>
-                  <Boton
-                    className='btn-gray'
-                    label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
-                    style={{ marginTop: 'auto' }}
-                    onClick={() => setIsRecetaOpen(true)}
-                  />
-                  {recetaGuardada && recetaGuardada.productos && recetaGuardada.productos.length > 0 ? (
-                    <Text type="success" align="left">
-                      Receta guardada con {recetaGuardada.productos.length} productos
-                    </Text>
-                  ) : (
-                    <Text type="error" align="left">
-                      Debe crear una receta con al menos un producto
-                    </Text>
-                  )}
-                </>
+                <Boton
+                  className='btn-gray'
+                  label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
+                  style={{ marginTop: 'auto' }}
+                  onClick={() => setIsRecetaOpen(true)}
+                  readOnly={loading}
+                />
               )}
             </>
           )}
@@ -482,16 +542,10 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
             style={{ marginTop: 'auto' }}
             onClick={handleSubmit}
             loading={loading}
-            disabled={!dataMov.name.trim() || dataMov.stock === '' || dataMov.stock === null || dataMov.stock === undefined || (!soloVentas && hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
+            disabled={loading}
           />
 
         </div>
-
-        <Notification
-          isVisible={notification.isVisible}
-          type={notification.type}
-          text={notification.text}
-        />
         {/* Modal de selección de categorías */}
         <CategoriasAlmacen
           isOpen={isCategoriasSeleccionOpen}

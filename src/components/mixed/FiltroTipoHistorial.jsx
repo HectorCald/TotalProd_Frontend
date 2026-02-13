@@ -22,6 +22,21 @@ function FiltroTipoHistorial({ isOpen, setIsOpen, onTipoSeleccionado }) {
       icon: 'edit'
     },
     {
+      value: 'ANULAR',
+      label: 'Anular',
+      icon: 'block'
+    },
+    {
+      value: 'ENTREGAR',
+      label: 'Entregar',
+      icon: 'package'
+    },
+    {
+      value: 'REMPLAZO',
+      label: 'Reemplazo',
+      icon: 'transfer-alt'
+    },
+    {
       value: 'ELIMINAR',
       label: 'Eliminar',
       icon: 'trash'

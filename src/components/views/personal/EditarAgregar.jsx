@@ -3,37 +3,26 @@ import styles from '../../../styles/view.module.css';
 import HeaderModal from '../../common/HeaderModal';
 import ViewModal from '../../ui/ViewModal';
 import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
-import Carousel from '../../common/Carousel';
-import MultiSelect from '../../common/MultiSelect';
+import Input from '../../common/inputs/Input';
+import InputCall from '../../common/inputs/InputCall';
 import personalService from '../../../services/personalService';
 import modulesService from '../../../services/modulesService';
 import Switch from '../../common/Switch';
-import Select from '../../common/Select';
-import Notification from '../../common/Notification';
+import InputSelect from '../../common/inputs/InputSelect';
+import { useToast } from '../../../context/ToastContext';
 import { isDamabrava, isSoloVentas } from '../../../utils/empresaHelper';
-import NoData from '../../common/NoData';
 import { useUser } from '../../../context/UserContext';
 import Text from '../../common/Text';
 import useHistorialLogger from '../../ui/HistorialLogger';
-import OpcionDesplegable from '../../common/OpcionDesplegable';
+import ModalConfiguracion from './modales/ModalConfiguracion';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, onPersonalUpdated, sucursales = [] }) {
     const { user } = useUser();
+    const { showSuccess, showDanger, showWarning } = useToast();
     const soloVentas = isSoloVentas(user);
     const { logAccion } = useHistorialLogger({
         modulo: 'Personal',
-        campos: [
-            'first_name',
-            'last_name',
-            'codigo',
-            'cargo',
-            'modules',
-            'is_active',
-            'sucursal_id',
-            'permisos',
-            'rastrear'
-        ]
+        campos: ['first_name', 'last_name', 'codigo', 'cargo', 'sucursal', 'is_active', 'permisos']
     });
 
     // Estados para los datos del personal
@@ -57,12 +46,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
 
     const [permisos, setPermisos] = useState(() => createPermisosIniciales());
     const [rastrear, setRastrear] = useState(false);
-    // Estado para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
 
     // Estados para módulos y submódulos
     const [modules, setModules] = useState([]);
@@ -76,7 +59,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
-
+    const [fieldErrors, setFieldErrors] = useState({ first_name: false, last_name: false, cargo: false, sucursalId: false });
 
     // Función para generar código automático
     const generarCodigo = (firstName, lastName) => {
@@ -93,33 +76,19 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
     };
 
 
-    // Función para mostrar notificación
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
     // Función para copiar código al portapapeles
     const handleCopyCode = async () => {
         if (!dataEdit.codigo) {
-            mostrarNotificacion('error', 'No hay código para copiar');
+            showWarning('Código', 'No hay código para copiar. Ingresa nombre y apellido para generarlo.', 5000);
             return;
         }
 
         try {
             await navigator.clipboard.writeText(dataEdit.codigo);
-            mostrarNotificacion('success', 'Código copiado al portapapeles');
+            showSuccess('Éxito', 'Código copiado al portapapeles');
         } catch (error) {
             console.error('Error al copiar:', error);
-            mostrarNotificacion('error', 'Error al copiar el código');
+            showDanger('Error', 'Error al copiar el código');
         }
     };
 
@@ -188,6 +157,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
 
     // Efecto para cargar los datos del personal
     useEffect(() => {
+        setFieldErrors({ first_name: false, last_name: false, cargo: false, sucursalId: false });
         if (usuario && tipo === 'editar') {
             setDataEdit({
                 first_name: usuario.first_name || '',
@@ -263,31 +233,28 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
 
     // Función para enviar los datos del personal
     const handleSubmit = async () => {
-        // Activar loading inmediatamente
-        setLoading(true);
-
         // Validar campos obligatorios
         if (!dataEdit.first_name.trim()) {
-            mostrarNotificacion('error', 'El nombre es obligatorio');
-            setLoading(false);
+            setFieldErrors((prev) => ({ ...prev, first_name: true }));
+            showWarning('Validación', 'El nombre es obligatorio', 5000);
             return;
         }
 
         if (!dataEdit.last_name.trim()) {
-            mostrarNotificacion('error', 'El apellido es obligatorio');
-            setLoading(false);
+            setFieldErrors((prev) => ({ ...prev, last_name: true }));
+            showWarning('Validación', 'El apellido es obligatorio', 5000);
             return;
         }
 
         if (!dataEdit.cargo.trim()) {
-            mostrarNotificacion('error', 'El cargo es obligatorio');
-            setLoading(false);
+            setFieldErrors((prev) => ({ ...prev, cargo: true }));
+            showWarning('Validación', 'El cargo es obligatorio', 5000);
             return;
         }
 
         if (!sucursalId) {
-            mostrarNotificacion('error', 'La sucursal es obligatoria');
-            setLoading(false);
+            setFieldErrors((prev) => ({ ...prev, sucursalId: true }));
+            showWarning('Validación', 'La sucursal es obligatoria', 5000);
             return;
         }
 
@@ -299,18 +266,18 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
 
         // Validar longitud del código
         if (codigoFinal.length !== 8) {
-            mostrarNotificacion('error', 'El código debe tener exactamente 8 caracteres');
-            setLoading(false);
+            showWarning('Validación', 'El código debe tener exactamente 8 caracteres', 5000);
             return;
         }
 
         // Validar que se seleccione al menos un submódulo
         if (selectedModules.length === 0) {
-            mostrarNotificacion('error', 'Debe seleccionar al menos un submódulo');
-            setLoading(false);
+            showWarning('Validación', 'Debe seleccionar al menos un submódulo', 5000);
             return;
         }
 
+        setFieldErrors({ first_name: false, last_name: false, cargo: false, sucursalId: false });
+        setLoading(true);
 
         // Preparar datos para enviar
         const datosParaEnviar = {
@@ -334,28 +301,54 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
             }
 
             if (response.success) {
-                const datosAntes = tipo === 'editar' ? usuario : null;
-                const datosDespues = response.data || (tipo === 'agregar'
-                    ? {
-                        ...datosParaEnviar,
-                        id: response.id || null
-                    }
-                    : null);
-                const registroId = (response.data && response.data.id) || datosDespues?.id || usuario?.id || null;
-                const lugarAfectado = datosDespues
-                    ? `${datosDespues.first_name || ''} ${datosDespues.last_name || ''}`.trim() || 'Personal'
+                const registroId = (response.data && response.data.id) || response.id || usuario?.id || null;
+                const lugarAfectado = (response.data && response.data.first_name)
+                    ? `${response.data.first_name || ''} ${response.data.last_name || ''}`.trim() || 'Personal'
                     : `${datosParaEnviar.first_name || ''} ${datosParaEnviar.last_name || ''}`.trim() || 'Personal';
                 const comentarioAccion = tipo === 'editar'
                     ? 'Actualización de personal'
                     : 'Creación de personal';
 
+                // Detalles: información general + todos los permisos (sin módulos). Keys = labels en español.
+                const sucursalNombreDespues = sucursales.find(s => s.id === datosParaEnviar.sucursal_id)?.name ?? null;
+                const sucursalNombreAntes = tipo === 'editar'
+                    ? (usuario?.sucursal?.name ?? sucursales.find(s => s.id === usuario?.sucursal_id)?.name ?? null)
+                    : null;
+                const labelsPermisos = {
+                    crear: 'Permiso de creación',
+                    eliminar: 'Permiso de eliminación',
+                    editar: 'Permiso de edición',
+                    anular: 'Permiso de anulación',
+                    reemplazar: 'Permiso de reemplazo',
+                    info: 'Permiso de información',
+                    sucursales: 'Permiso de sucursales'
+                };
+                const camposDetalle = {
+                    'Nombres': tipo === 'editar' ? { antes: usuario?.first_name ?? null, despues: datosParaEnviar.first_name } : { despues: datosParaEnviar.first_name },
+                    'Apellidos': tipo === 'editar' ? { antes: usuario?.last_name ?? null, despues: datosParaEnviar.last_name } : { despues: datosParaEnviar.last_name },
+                    'Código': tipo === 'editar' ? { antes: usuario?.codigo ?? null, despues: datosParaEnviar.codigo } : { despues: datosParaEnviar.codigo },
+                    'Cargo': tipo === 'editar' ? { antes: usuario?.cargo ?? null, despues: datosParaEnviar.cargo } : { despues: datosParaEnviar.cargo },
+                    'Sucursal': tipo === 'editar' ? { antes: sucursalNombreAntes, despues: sucursalNombreDespues } : { despues: sucursalNombreDespues },
+                    'Activo': tipo === 'editar' ? { antes: usuario?.is_active ?? false, despues: datosParaEnviar.is_active } : { despues: datosParaEnviar.is_active }
+                };
+                Object.entries(labelsPermisos).forEach(([key, label]) => {
+                    const pAntes = tipo === 'editar' ? (usuario?.permisos?.[key] ?? false) : null;
+                    const pDespues = datosParaEnviar.permisos?.[key] ?? false;
+                    camposDetalle[label] = tipo === 'editar'
+                        ? { antes: pAntes, despues: pDespues }
+                        : { despues: pDespues };
+                });
+                const detallesPersonalizados = {
+                    campos: camposDetalle,
+                    comentario: comentarioAccion
+                };
+
                 await logAccion({
                     accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
                     lugarAfectado,
                     registroId,
-                    datosAntes,
-                    datosDespues,
-                    comentario: comentarioAccion
+                    comentario: comentarioAccion,
+                    detallesPersonalizados
                 });
 
                 if (tipo === 'editar' && onPersonalUpdated) {
@@ -367,12 +360,13 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
 
                 // Cerrar modal inmediatamente
                 setIsOpen(false);
+                showSuccess('Éxito', `Personal ${tipo === 'editar' ? 'actualizado' : 'creado'} correctamente`);
             } else {
-                mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el personal`);
+                showDanger('Error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el personal`);
             }
         } catch (error) {
             console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} personal:`, error);
-            mostrarNotificacion('error', 'Error de conexión con el servidor');
+            showDanger('Error', 'Error de conexión con el servidor');
         } finally {
             setLoading(false);
         }
@@ -385,105 +379,115 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
         })
     }
 
+    const isReadOnly = tipo === 'ver' || loading;
+
     return (
         <>
             <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
-                <HeaderModal title={tipo === 'agregar' ? 'Nuevo personal' : tipo === 'editar' ? 'Editar personal' : 'Ver personal'} onClose={() => setIsOpen(false)} />
+                <HeaderModal title={tipo === 'agregar' ? 'Nuevo Empleado' : tipo === 'editar' ? 'Editar Empleado' : 'Ver Empleado'} onClose={() => setIsOpen(false)} />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>INFORMACION PERSONAL</p>
-                    <InputNormal
+                    <hr className={styles.separator} />
+                    <p className={styles.subTitle}>Información personal</p>
+                    <Input
                         tipo="text"
-                        icon="user"
+                        label="Nombres"
                         value={dataEdit.first_name}
-                        placeholder='Nombre'
                         onChange={(e) => {
                             const newFirstName = e.target.value;
                             setDataEdit(prev => ({
                                 ...prev,
                                 first_name: newFirstName,
-                                // Solo regenerar código si estamos en modo agregar
                                 codigo: (tipo === 'agregar' && prev.last_name) ? generarCodigo(newFirstName, prev.last_name) : prev.codigo
                             }));
+                            setFieldErrors((prev) => ({ ...prev, first_name: false }));
                         }}
-                        disabled={tipo === 'ver'}
+                        required={true}
+                        readOnly={isReadOnly}
+                        error={fieldErrors.first_name}
+                        onClearError={() => setFieldErrors((prev) => ({ ...prev, first_name: false }))}
                     />
-                    <InputNormal
+                    <Input
                         tipo="text"
-                        icon="user"
+                        label="Apellidos"
                         value={dataEdit.last_name}
-                        placeholder='Apellido'
                         onChange={(e) => {
                             const newLastName = e.target.value;
                             setDataEdit(prev => ({
                                 ...prev,
                                 last_name: newLastName,
-                                // Solo regenerar código si estamos en modo agregar
                                 codigo: (tipo === 'agregar' && prev.first_name) ? generarCodigo(prev.first_name, newLastName) : prev.codigo
                             }));
+                            setFieldErrors((prev) => ({ ...prev, last_name: false }));
                         }}
-                        disabled={tipo === 'ver'}
+                        required={true}
+                        readOnly={isReadOnly}
+                        error={fieldErrors.last_name}
+                        onClearError={() => setFieldErrors((prev) => ({ ...prev, last_name: false }))}
                     />
-                    <InputNormal
-                        tipo="text"
-                        icon="hash"
+                    <InputCall
+                        label="Código"
                         value={dataEdit.codigo}
-                        placeholder='Código (autogenerado)'
-                        onChange={(e) => setDataEdit({ ...dataEdit, codigo: e.target.value })}
-                        disabled={tipo === 'ver' || tipo === 'editar'}
-                        readonly={tipo === 'editar'}
-                        buttonIcon="copy"
-                        buttonIconClick={handleCopyCode}
+                        placeholder="Código Autogenerado"
+                        onClick={handleCopyCode}
+                        readOnly={isReadOnly}
                     />
-                    {dataEdit.codigo ?
-                    <Text type="warning" align="left">
-                         Una vez creado el personal con el código autogenerado, no es posible cambiarlo, intenta eliminarlo y crear uno nuevo.
-                    </Text>
-                    : ''}
-                    <InputNormal
+                    {dataEdit.codigo ? (
+                        <Text type="warning" align="left">
+                            Una vez creado el personal con el código autogenerado, no es posible cambiarlo. Presiona el campo para copiar el código.
+                        </Text>
+                    ) : null}
+                    <Input
                         tipo="text"
-                        icon="briefcase"
+                        label="Cargo"
                         value={dataEdit.cargo}
-                        placeholder='Cargo (obligatorio)'
-                        onChange={(e) => setDataEdit({ ...dataEdit, cargo: e.target.value })}
-                        disabled={tipo === 'ver'}
+                        onChange={(e) => {
+                            setDataEdit({ ...dataEdit, cargo: e.target.value });
+                            setFieldErrors((prev) => ({ ...prev, cargo: false }));
+                        }}
+                        required={true}
+                        readOnly={isReadOnly}
+                        error={fieldErrors.cargo}
+                        onClearError={() => setFieldErrors((prev) => ({ ...prev, cargo: false }))}
                     />
-                    <Select
+                    <InputSelect
+                        label="Sucursal"
                         value={sucursalId}
-                        onChange={(value) => setSucursalId(value)}
+                        onChange={(value) => {
+                            setSucursalId(value);
+                            setFieldErrors((prev) => ({ ...prev, sucursalId: false }));
+                        }}
                         options={sucursales.map(sucursal => ({
                             value: sucursal.id,
-                            label: sucursal.name,
-                            id: sucursal.id,
-                            name: sucursal.name
+                            label: sucursal.name
                         }))}
-                        placeholder='Sucursal (obligatorio)'
-                        disabled={tipo === 'ver'}
-                        icon='store'
+                        placeholder="Seleccionar sucursal (obligatorio)"
+                        disabled={isReadOnly}
+                        readOnly={isReadOnly}
+                        required={true}
+                        error={fieldErrors.sucursalId}
                     />
-
                     {tipo === 'editar' && (
-                        <>
-                            <p className={styles.subTitle}>ESTADO</p>
-                            <div className={styles.content}>
-                                <Switch
-                                    icon="check-circle"
-                                    title="Activo"
-                                    subtitle="Indica si el usuario está activo o inactivo"
-                                    checked={estado}
-                                    onChange={setEstado}
-                                />
-                            </div>
-                        </>
+
+                        <div className={styles.content} style={{ padding: '10px 15px',marginTop: '10px'}}>
+                            <Switch
+                                icon="check-circle"
+                                title="Activo"
+                                subtitle="Indica si el usuario está activo o inactivo"
+                                checked={estado}
+                                onChange={setEstado}
+                                readOnly={loading}
+                            />
+                        </div>
+
                     )}
-
+                    <div className={styles.space}></div>
                     {tipo !== 'ver' && (
-
                         <Boton
                             className='btn-gray'
                             label='Configuración'
                             onClick={() => setIsConfiguracionOpen(true)}
+                            readOnly={loading}
                         />
-
                     )}
 
                     {tipo !== 'ver' && (
@@ -494,140 +498,27 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onPersonalCreated, on
                                 style={{ marginTop: 'auto' }}
                                 onClick={handleSubmit}
                                 loading={loading}
-                                disabled={!dataEdit.first_name || !dataEdit.last_name || !dataEdit.cargo || !sucursalId}
+                                disabled={loading}
                             />
                         </div>
                     )}
                 </div>
 
-                <Notification
-                    isVisible={notification.isVisible}
-                    type={notification.type}
-                    text={notification.text}
-                />
 
             </ViewModal>
-            {/* Modal de Configuración */}
-            <ViewModal isOpen={isConfiguracionOpen} setIsOpen={setIsConfiguracionOpen}>
-                <HeaderModal
-                    title="Configuración"
-                    onClose={() => setIsConfiguracionOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>PERMISOS</p>
-                    <div className={styles.content}>
-                        <Switch
-                            icon="file"
-                            title="Crear"
-                            subtitle="Permite crear nuevos productos o items"
-                            checked={permisos.crear || false}
-                            onChange={(checked) => hanclePermisos('crear', checked)}
-                        />
-                        <Switch
-                            icon="trash"
-                            title="Eliminar"
-                            subtitle="Permite eliminar registros, productos, etc."
-                            checked={permisos.eliminar || false}
-                            onChange={(checked) => hanclePermisos('eliminar', checked)}
-                        />
-                        <Switch
-                            icon="edit"
-                            title="Editar"
-                            subtitle="Permite modificar registros o productos"
-                            checked={permisos.editar || false}
-                            onChange={(checked) => hanclePermisos('editar', checked)}
-                        />
-                        <Switch
-                            icon="x-circle"
-                            title="Anular"
-                            subtitle="Permite anular registros o pedidos"
-                            checked={permisos.anular || false}
-                            onChange={(checked) => hanclePermisos('anular', checked)}
-                        />
-                        <Switch
-                            icon="refresh"
-                            title="Reemplazar"
-                            subtitle="Permite reemplazar stocks por conteos"
-                            checked={permisos.reemplazar || false}
-                            onChange={(checked) => hanclePermisos('reemplazar', checked)}
-                        />
-                    </div>
-                    <OpcionDesplegable titulo="Otros permisos" scrollOnOpen={false} disableAnimation={true}>
-                        <div className={styles.content}>
-                            <Switch
-                                icon="show"
-                                title="Ver información"
-                                subtitle="Permite ver información (Costos, precios, etc.)"
-                                checked={permisos.info || false}
-                                onChange={(checked) => hanclePermisos('info', checked)}
-                            />
-                            <Switch
-                                icon="store"
-                                title="Administrar sucursales"
-                                subtitle="Permite cambiar la sucursal asignada a otras"
-                                checked={permisos.sucursales || false}
-                                onChange={(checked) => hanclePermisos('sucursales', checked)}
-                            />
-                        </div>
-                    </OpcionDesplegable>
-                    {/* <p className={styles.subTitle}>RASTREO</p>
-                    <div className={styles.content}>
-                        <Switch
-                            icon="map"
-                            title="Rastrear Ubicación"
-                            subtitle="Permite rastrear la ubicación del empleado"
-                            checked={rastrear || false}
-                            onChange={setRastrear}
-                        />
-                    </div> */}
-                    <p className={styles.subTitle}>MÓDULOS</p>
-                    {loadingModules ? (
-                        <NoData
-                            icon="loader-alt"
-                            title="Cargando módulos..."
-                            detail="Obteniendo módulos disponibles para asignar"
-                            transparent={true}
-                            minHeight="150px"
-                        />
-                    ) : modules.filter(module => module.sub_modulos && module.sub_modulos.length > 0).length > 0 ? (
-                        <div className={styles.content} style={{ paddingInline: '5px', paddingBottom: '5px' }}>
-                            <Carousel>
-                                {modules
-                                    .filter(module => module.sub_modulos && module.sub_modulos.length > 0)
-                                    .map((module) => (
-                                        <div key={module.id}>
-                                            <MultiSelect
-                                                title={`${module.name.toUpperCase()} (${module.sub_modulos.length})`}
-                                                options={module.sub_modulos.map(sub => ({
-                                                    name: sub.name,
-                                                    value: sub.id
-                                                }))}
-                                                selectedValues={selectedModules}
-                                                onChange={setSelectedModules}
-                                            />
-                                        </div>
-                                    ))}
-                            </Carousel>
-                        </div>
-                    ) : (
-                        <NoData
-                            icon="grid-alt"
-                            title="Sin módulos"
-                            detail="No hay módulos con submódulos disponibles para asignar"
-                            transparent={false}
-                            minHeight="150px"
-                        />
-                    )}
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-original'
-                            label='Cerrar Configuración'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsConfiguracionOpen(false)}
-                        />
-                    </div>
-                </div>
-            </ViewModal >
+            <ModalConfiguracion
+                isOpen={isConfiguracionOpen}
+                setIsOpen={setIsConfiguracionOpen}
+                permisos={permisos}
+                onPermisoChange={hanclePermisos}
+                selectedModules={selectedModules}
+                onSelectedModulesChange={setSelectedModules}
+                modules={modules.filter((m) => {
+                    const name = (m.name || '').toLowerCase();
+                    return name !== 'balance' && name !== 'reportes';
+                })}
+                loadingModules={loadingModules}
+            />
         </>
     );
 }

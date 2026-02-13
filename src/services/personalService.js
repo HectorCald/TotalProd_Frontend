@@ -90,8 +90,11 @@ const personalService = {
                 };
             }
 
-            // Obtener empresa_id del localStorage
-            const empresaId = localStorage.getItem('empresa_id');
+            // Obtener empresa_id (localStorage o sucursal seleccionada) para que moduleAuth lo tenga
+            let empresaId = localStorage.getItem('empresa_id');
+            if (!empresaId) {
+                empresaId = getEmpresaId();
+            }
             const params = new URLSearchParams();
             if (empresaId) {
                 params.append('empresa_id', empresaId);

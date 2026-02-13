@@ -133,10 +133,15 @@ class deudasService {
     }
 
 
-    // Obtener una deuda por ID
-    static async getById(id) {
+    // Obtener una deuda por ID (sucu_id necesario para moduleAuth)
+    static async getById(id, sucuIdParam = null) {
         try {
-            const response = await fetch(`${API_BASE_URL}/deudas/${id}`, {
+            const sucuId = sucuIdParam || getSucuId();
+            const params = new URLSearchParams();
+            if (sucuId) params.append('sucu_id', sucuId);
+
+            const url = `${API_BASE_URL}/deudas/${id}${params.toString() ? `?${params.toString()}` : ''}`;
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: getAuthHeaders(),
             });

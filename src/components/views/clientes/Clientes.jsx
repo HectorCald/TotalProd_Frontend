@@ -7,7 +7,6 @@ import VerCliente from './VerCliente';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
 import InfoModal from '../../common/InfoModal';
-import Notification from '../../common/Notification';
 import clientService from '../../../services/clientService';
 import { BoxIcon } from 'boxicons-react';
 import LoadingSpinner from '../../common/LoadingSpinner';
@@ -103,24 +102,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
 
 
 
-    // Estado para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -218,7 +199,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
 
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
-        mostrarNotificacion('success', 'Cliente agregado correctamente')
     };
 
 
@@ -229,7 +209,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
 
         // Cerrar el modal de ver cliente
         setIsOpenVerCliente(false);
-        mostrarNotificacion('success', 'Cliente eliminado correctamente')
     };
 
 
@@ -242,7 +221,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
 
         // Cerrar el modal de ver cliente
         setIsOpenVerCliente(false);
-        mostrarNotificacion('success', 'Cliente actualizado correctamente')
     };
 
     // Headers para la tabla
@@ -384,12 +362,6 @@ function Clientes({ isOpen, setIsOpen, modoSeleccion = false, onClienteSeleccion
                 buttonText="Aceptar"
                 onButtonClick={() => setIsOpen(false)}
             />
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
-
             {/* Carga de datos - solo cuando está abierto */}
             {isOpen && (
                 <FetchData

@@ -21,6 +21,10 @@
     align-items: center;
     justify-content: center;
 }
+
+.iconSquare {
+    border-radius: 10px !important;
+}
 .icon {
     font-size: 20px !important;
 }
@@ -53,6 +57,16 @@
 .iconGrey {
     color: var(--senary-color) !important;
     fill: var(--senary-color) !important;
+}
+
+.iconMorado {
+    color: #7c3aed !important;
+    fill: #7c3aed !important;
+}
+
+.iconCyan {
+    color: #0d9488 !important;
+    fill: #0d9488 !important;
 }
 
 .iconGris {
@@ -228,6 +242,24 @@
     border-radius: 5px;
     white-space: nowrap;
 }
+.flot7 {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7c3aed;
+    background-color: rgba(124, 58, 237, 0.2);
+    padding: 5px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+.flot8 {
+    font-size: 11px;
+    font-weight: 600;
+    color: #0d9488;
+    background-color: rgba(13, 148, 136, 0.2);
+    padding: 5px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
 
 .loadingMore {
     display: flex;
@@ -280,24 +312,20 @@
     fill: white !important;
 }
 
-.favoriteButton {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
+.itemViewFavorite {
+    margin-left: auto;
+    padding: 0;
+    line-height: 0;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
-    z-index: 10;
+    flex-shrink: 0;
+    cursor: pointer;
     transition: transform 0.2s ease;
-    width: 28px;
-    height: 28px;
 }
 
-.favoriteButton:hover {
+.itemViewFavorite:hover {
     transform: scale(1.1);
 }
 
@@ -310,10 +338,11 @@
     color: gray !important;
     fill: transparent !important;
     stroke: gray !important;
-    stroke-width: 1.5px !important;
+    stroke-width: 2px !important;
 }
 
 .favoriteIconFilled {
     color: #ef4444 !important;
     fill: #ef4444 !important;
+    stroke: none !important;
 }

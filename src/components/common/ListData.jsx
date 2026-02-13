@@ -7,7 +7,7 @@ function ListData({ label, items = [], emptyText = 'Sin datos', icon, vertical =
     return (
         <div className={styles.listData}>
             <div className={styles.content} style={{ flexDirection: vertical ? 'column' : 'row', justifyContent: vertical ? 'flex-start' : 'space-between' }}>
-                <span className={styles.label}>{label}</span>
+                {label && <span className={styles.label}>{label}</span>}
                 {hasItems ? (
                     <div className={styles.itemsContainer}>
                         {items.map((item, index) => {

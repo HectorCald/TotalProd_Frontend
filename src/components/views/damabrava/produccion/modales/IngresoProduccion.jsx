@@ -1,39 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import styles from '../../../../styles/view.module.css';
-import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import Dato from '../../../common/Dato';
-import InputNormal from '../../../common/InputNormal';
-import Boton from '../../../common/Boton';
-import Notification from '../../../common/Notification';
-import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
-import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
+import styles from '../../../../../styles/view.module.css';
+import ViewModal from '../../../../ui/ViewModal';
+import HeaderModal from '../../../../common/HeaderModal';
+import Dato from '../../../../common/Dato';
+import Input from '../../../../common/inputs/Input';
+import Boton from '../../../../common/Boton';
+import { useToast } from '../../../../../context/ToastContext';
+import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
+import registrosProduccionDamabravaService from '../../../../../services/registrosProduccionDamabravaService';
 
 function IngresoProduccion({ isOpen, setIsOpen, producto, cantidadVerificada, cantidadIngresada = 0, registroId, responsable, onIngresoRealizado }) {
+    const { showSuccess, showDanger, showWarning } = useToast();
     const [cantidadIngreso, setCantidadIngreso] = useState('');
     const [grupos, setGrupos] = useState(0);
     const [unidadesSueltas, setUnidadesSueltas] = useState(0);
     const [loading, setLoading] = useState(false);
-
-    // Estados para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Calcular grupos y unidades sueltas
     useEffect(() => {
@@ -72,7 +53,7 @@ function IngresoProduccion({ isOpen, setIsOpen, producto, cantidadVerificada, ca
 
         // No permitir más de la cantidad disponible
         if (cantidad > cantidadDisponible) {
-            mostrarNotificacion('error', `No puedes ingresar más de ${cantidadDisponible} unidades disponibles`);
+            showWarning('Advertencia', `No puedes ingresar más de ${cantidadDisponible} unidades disponibles`);
             return;
         }
 
@@ -103,17 +84,17 @@ function IngresoProduccion({ isOpen, setIsOpen, producto, cantidadVerificada, ca
     const handleRealizarIngreso = async () => {
         // Validaciones
         if (!cantidadIngreso || parseInt(cantidadIngreso) <= 0) {
-            mostrarNotificacion('error', 'Debes ingresar una cantidad válida');
+            showWarning('Advertencia', 'Debes ingresar una cantidad válida');
             return;
         }
 
         if (parseInt(cantidadIngreso) > cantidadDisponible) {
-            mostrarNotificacion('error', 'No puedes ingresar más de la cantidad disponible');
+            showWarning('Advertencia', 'No puedes ingresar más de la cantidad disponible');
             return;
         }
 
         if (!registroId) {
-            mostrarNotificacion('error', 'No se encontró el ID del registro de producción');
+            showWarning('Advertencia', 'No se encontró el ID del registro de producción');
             return;
         }
 
@@ -156,11 +137,9 @@ function IngresoProduccion({ isOpen, setIsOpen, producto, cantidadVerificada, ca
                     const registroCompleto = nuevaCantidadIngresada >= cantidadVerificada;
                     const estadoFinal = registroCompleto ? 'Ingresado' : 'verificado';
                     
-                    mostrarNotificacion('success', 
-                        registroCompleto 
-                            ? `Ingreso completado. El registro cambió a estado: ${estadoFinal}`
-                            : 'Ingreso de producción realizado correctamente'
-                    );
+                    showSuccess('Ingreso realizado', registroCompleto
+                        ? `Ingreso completado. El registro cambió a estado: ${estadoFinal}`
+                        : 'Ingreso de producción realizado correctamente');
 
                     // Notificar al componente padre sobre el ingreso realizado
                     if (onIngresoRealizado) {
@@ -178,17 +157,15 @@ function IngresoProduccion({ isOpen, setIsOpen, producto, cantidadVerificada, ca
                     setCantidadIngreso('');
                     setIsOpen(false);
                 } else {
-                    mostrarNotificacion('error', 
-                        `Movimiento creado, pero error al actualizar registro: ${updateResponse.message}`
-                    );
+                    showDanger('Error', `Movimiento creado, pero error al actualizar registro: ${updateResponse.message}`);
                 }
             } else {
-                mostrarNotificacion('error', response.message || 'Error al crear el movimiento de entrada');
+                showWarning('Advertencia', response.message || 'Error al crear el movimiento de entrada');
             }
 
         } catch (error) {
             console.error('Error realizando ingreso:', error);
-            mostrarNotificacion('error', error.message || 'Error al realizar el ingreso de producción');
+            showDanger('Error', error.message || 'Error al realizar el ingreso de producción');
         } finally {
             setLoading(false);
         }
@@ -208,21 +185,7 @@ function IngresoProduccion({ isOpen, setIsOpen, producto, cantidadVerificada, ca
                     onClose={handleClose}
                 />
                 <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        Ingresa la cantidad de producción que deseas registrar en el almacén.
-                    </p>
-
-                    {/* Información del responsable */}
-                    {responsable && (
-                        <div className={styles.content}>
-                            <Dato
-                                label="Responsable del Registro"
-                                value={responsable}
-                                vertical={false}
-                                especial="gray"
-                            />
-                        </div>
-                    )}
+                    <p className={styles.subTitle}>Información del ingreso:</p>
 
                     {/* Información del producto */}
                     {producto && (
@@ -269,17 +232,13 @@ function IngresoProduccion({ isOpen, setIsOpen, producto, cantidadVerificada, ca
                         </div>
                     )}
 
-                    {/* Cantidad verificada disponible */}
-
-
                     {/* Input para cantidad de ingreso */}
-                    <InputNormal
+                    <Input
                         tipo="number"
-                        placeholder="Cantidad a ingresar"
+                        label="Cantidad a Ingresar"
                         value={cantidadIngreso}
                         onChange={handleCantidadChange}
-                        icon="package"
-                        label="Cantidad a Ingresar"
+                        readOnly={loading}
                     />
 
                     <div className={styles.buttons}>
@@ -300,11 +259,6 @@ function IngresoProduccion({ isOpen, setIsOpen, producto, cantidadVerificada, ca
                 </div>
             </ViewModal>
 
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </>
     );
 }

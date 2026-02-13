@@ -7,7 +7,6 @@ import ItemView from '../../common/ItemView';
 import VerDeuda from './VerDeuda';
 import EditarAgregarDeuda from './EditarAgregarDeuda';
 import Filtros from '../../common/Filtros';
-import Notification from '../../common/Notification';
 import deudasService from '../../../services/deudasService';
 import { BoxIcon } from 'boxicons-react';
 import LoadingSpinner from '../../common/LoadingSpinner';
@@ -173,25 +172,6 @@ function PanelDeudas({ isOpen, setIsOpen }) {
     }, [isOpen]);
 
 
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
     // Estados para filtros y modales
     const [isOpenEstado, setOpenEstado] = useState(false);
     const [isOpenCliente, setOpenCliente] = useState(false);
@@ -317,8 +297,6 @@ function PanelDeudas({ isOpen, setIsOpen }) {
 
         setAllDeudas(aplicarEliminacion);
         mutateCachedItems(aplicarEliminacion);
-        
-        mostrarNotificacion('success', 'Deuda eliminada correctamente');
     };
 
     // Función para manejar cuando se actualiza una deuda
@@ -330,8 +308,6 @@ function PanelDeudas({ isOpen, setIsOpen }) {
 
         setAllDeudas(aplicarActualizacion);
         mutateCachedItems(aplicarActualizacion);
-        
-        mostrarNotificacion('success', 'Deuda actualizada correctamente');
     };
 
     // Función para manejar cuando se crea una nueva deuda
@@ -342,7 +318,6 @@ function PanelDeudas({ isOpen, setIsOpen }) {
         mutateCachedItems(aplicarCreacion);
         
         setIsOpenEditarAgregar(false);
-        mostrarNotificacion('success', 'Deuda agregada correctamente');
     };
 
     // Función para obtener el nombre del estado
@@ -577,11 +552,6 @@ function PanelDeudas({ isOpen, setIsOpen }) {
                 onDeudaCreated={handleDeudaCreated}
             />
 
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
 
             {/* FetchData eliminado: la carga ahora es interna como en PanelMovimientos */}
 

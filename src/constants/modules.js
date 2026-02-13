@@ -33,7 +33,7 @@ const COMPONENT_TO_VIEW = {
     'Proveedores': 'proveedores',
     'Gastos': 'gastos',
     'Deudas': 'deudas',
-    'Reportes': 'reportes',
+    // 'Reportes': 'reportes',
     'Balance': 'balance',
     'FormularioProduccion': 'formulario',
     'VerificarProduccion': 'verificacion',
@@ -60,7 +60,7 @@ const BACKEND_TO_FRONTEND_MODULE = {
     'Proveedores': 'Proveedores',
     'Gastos': 'Gastos',
     'Deudas': 'Deudas',
-    'Reportes': 'Reportes',
+    // 'Reportes': 'Reportes',
     'Balance': 'Balance',
     'Damabrava': 'Damabrava',
     'Historial': 'Historial',
@@ -394,20 +394,21 @@ export const MODULES = {
             props: { tipo: 'almacen' }
         },
     },
-    Reportes: {
-        name: 'Reportes',
-        imagen: imagenReportes,
-        descripcion: 'Genera reportes detallados de ventas, movimientos.',
-        icon: 'bar-chart-alt-2',
-        section: 'finanzas',
-        generar_reportes: {
-            name: 'Reportes',
-            description: 'Genera reportes de tu negocio.',
-            icon: 'bar-chart-alt-2',
-            component: 'Reportes',
-            props: { tipo: 'almacen' }
-        },
-    },
+    // Reportes (comentado)
+    // Reportes: {
+    //     name: 'Reportes',
+    //     imagen: imagenReportes,
+    //     descripcion: 'Genera reportes detallados de ventas, movimientos.',
+    //     icon: 'bar-chart-alt-2',
+    //     section: 'finanzas',
+    //     generar_reportes: {
+    //         name: 'Reportes',
+    //         description: 'Genera reportes de tu negocio.',
+    //         icon: 'bar-chart-alt-2',
+    //         component: 'Reportes',
+    //         props: { tipo: 'almacen' }
+    //     },
+    // },
     Balance: {
         name: 'Balance',
         imagen: imageBalance,
@@ -467,7 +468,7 @@ export const MODULES = {
         },
         multi_cuentas: {
             name: 'Multi Cuentas',
-            description: 'Gestiona empresas asociadas.',
+            description: 'Gestiona socios y empresas vinculadas.',
             icon: 'user-check',
             component: 'AsociadosSearch',
             props: {},

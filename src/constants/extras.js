@@ -7,11 +7,12 @@ import imageGastos from '../assets/gastos.png'
 import imageHistorial from '../assets/historial.png';
 import imageAsociados from '../assets/asociados.png';
 export const EXTRAS = [
-    {
-        title: 'Reportes',
-        image: imageReportIA,
-        view: 'reportes'
-    },
+    // Reportes (comentado)
+    // {
+    //     title: 'Reportes',
+    //     image: imageReportIA,
+    //     view: 'reportes'
+    // },
     {
         title: 'Sucursales',
         image: imageSucursales,
@@ -50,7 +51,7 @@ export const EXTRAS = [
         view: 'historial'
     },
     {
-        title: 'Asociados',
+        title: 'Socios',
         image: imageAsociados,
         view: 'asociados'
     },

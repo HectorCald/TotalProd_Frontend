@@ -14,7 +14,6 @@ import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import InfoModal from '../../common/InfoModal';
 import NoData from '../../common/NoData';
-import Notification from '../../common/Notification';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import useSessionCache from '../../../hooks/useSessionCache';
@@ -93,26 +92,6 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
             return newCount;
         });
     }, []);
-
-
-    // Estado para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
 
     // Estados y configuraciones para el modal de información
@@ -214,7 +193,6 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
         
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
-        mostrarNotificacion('success', 'Proveedor agregado correctamente')
     };
 
     // Función para manejar cuando se elimina un proveedor
@@ -224,7 +202,6 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
         
         // Cerrar el modal de ver proveedor
         setIsOpenVerProveedor(false);
-        mostrarNotificacion('success', 'Proveedor eliminado correctamente')
     };
 
     // Función para manejar cuando se actualiza un proveedor
@@ -236,7 +213,6 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
         
         // Cerrar el modal de ver proveedor
         setIsOpenVerProveedor(false);
-        mostrarNotificacion('success', 'Proveedor actualizado correctamente')
     };
 
     // Headers para la tabla
@@ -381,12 +357,6 @@ function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSele
                     onRefresh={isLargeScreen ? handleRefresh : undefined}
                 />
             )}
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </View>
         </>
     );

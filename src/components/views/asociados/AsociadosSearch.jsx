@@ -2,44 +2,44 @@ import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
-import InputNormal from '../../common/InputNormal';
+import Input from '../../common/inputs/Input';
 import Boton from '../../common/Boton';
 import ItemView from '../../common/ItemView';
 import NoData from '../../common/NoData';
 import EmpresaService from '../../../services/empresaService';
-import EmpresaView from './EmpresaView';
+import { useUser } from '../../../context/UserContext';
+import { useEmployee } from '../../../context/EmployeeContext';
 
 const FAVORITES_KEY = 'empresas_favoritas';
 
 function AsociadosSearch({ isOpen, setIsOpen }) {
+    const { sucursalSeleccionada: sucursalSeleccionadaUsuario } = useUser();
+    const { employee, sucursalSeleccionada: sucursalSeleccionadaEmpleado } = useEmployee();
+    const isEmployeeMode = !!employee;
+    const sucursalSeleccionada = isEmployeeMode ? sucursalSeleccionadaEmpleado : sucursalSeleccionadaUsuario;
+    const empresaIdActual = sucursalSeleccionada?.empresas?.id;
+
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
     const [empresas, setEmpresas] = useState([]);
     const [hasSearched, setHasSearched] = useState(false);
     const [favorites, setFavorites] = useState([]);
-    const [selectedEmpresa, setSelectedEmpresa] = useState(null);
-    const [isEmpresaViewOpen, setIsEmpresaViewOpen] = useState(false);
 
     // Cargar favoritos al montar el componente
     useEffect(() => {
         loadFavorites();
     }, []);
 
-    // Recargar favoritos cuando se abre el modal
+    // Recargar favoritos y limpiar búsqueda cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
             loadFavorites();
+            setSearchTerm('');
+            setEmpresas([]);
+            setHasSearched(false);
+            setLoading(false);
         }
     }, [isOpen]);
-
-    // Cerrar el modal principal cuando se cierra EmpresaView
-    useEffect(() => {
-        if (!isEmpresaViewOpen && selectedEmpresa) {
-            // Si EmpresaView se cerró, también cerrar AsociadosSearch
-            setIsOpen(false);
-            setSelectedEmpresa(null);
-        }
-    }, [isEmpresaViewOpen, selectedEmpresa]);
 
     // Escuchar cambios en localStorage para actualizar favoritos
     useEffect(() => {
@@ -88,16 +88,19 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
         return favorites.some(fav => fav.id === empresaId);
     };
 
+    // Verificar si es la empresa actual (no se puede agregar como favorito)
+    const esEmpresaActual = (empresaId) => empresaId && empresaIdActual && empresaId === empresaIdActual;
+
     // Toggle favorito
     const toggleFavorite = (empresa) => {
+        if (esEmpresaActual(empresa.id)) return;
+
         const isFav = isFavorite(empresa.id);
         let newFavorites;
 
         if (isFav) {
-            // Remover de favoritos
             newFavorites = favorites.filter(fav => fav.id !== empresa.id);
         } else {
-            // Agregar a favoritos
             newFavorites = [...favorites, {
                 id: empresa.id,
                 name: empresa.name,
@@ -110,12 +113,6 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
         }
 
         saveFavorites(newFavorites);
-    };
-
-    // Abrir vista de empresa
-    const handleEmpresaClick = (empresa) => {
-        setSelectedEmpresa(empresa);
-        setIsEmpresaViewOpen(true);
     };
 
     const handleSearch = async () => {
@@ -155,7 +152,7 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
 
         return (
             <>
-                <p className={styles.subTitle}>ASOCIADOS</p>
+                <p className={styles.subTitle}>SOCIOS</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '20px' }}>
                     {favorites.map((empresa) => (
                         <ItemView
@@ -164,8 +161,9 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
                             description={empresa.description || 'Sin descripción'}
                             circulo={true}
                             transparent={false}
-                            arrow={true}
-                            onClick={() => handleEmpresaClick(empresa)}
+                            showFavorite={!esEmpresaActual(empresa.id)}
+                            isFavorite={true}
+                            onFavoriteToggle={() => toggleFavorite(empresa)}
                             customIcon={empresa.logo_tipo ? (
                                 <div 
                                     style={{ 
@@ -188,20 +186,9 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
     };
 
     const renderContent = () => {
-        // Si no se ha buscado, mostrar solo favoritos
+        // Si no se ha buscado, mostrar solo favoritos (sin mensaje de NoData)
         if (!hasSearched) {
-            return (
-                <>
-                    {renderFavoritos()}
-                    <NoData
-                        icon="search"
-                        title="No hay búsquedas recientes"
-                        detail="Ingresa un código de empresa para buscar asociados"
-                        transparent={true}
-                        minHeight="200px"
-                    />
-                </>
-            );
+            return <>{renderFavoritos()}</>;
         }
 
         // Si está cargando, mostrar loading
@@ -225,6 +212,7 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
             return (
                 <>
                     {renderFavoritos()}
+                    <p className={styles.subTitle}>RESULTADOS DE BÚSQUEDA</p>
                     <NoData
                         icon="box"
                         title="No se encontraron empresas"
@@ -251,8 +239,9 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
                                     description={empresa.description || 'Sin descripción'}
                                     circulo={true}
                                     transparent={false}
-                                    arrow={true}
-                                    onClick={() => handleEmpresaClick(empresa)}
+                                    showFavorite={!esEmpresaActual(empresa.id)}
+                                    isFavorite={isFavorite(empresa.id)}
+                                    onFavoriteToggle={() => toggleFavorite(empresa)}
                                     customIcon={empresa.logo_tipo ? (
                                         <div 
                                             style={{ 
@@ -276,8 +265,6 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
         );
     };
 
-    const modalVisible = isOpen && !isEmpresaViewOpen;
-
     const handleModalToggle = (value) => {
         if (!value) {
             setIsOpen(false);
@@ -288,18 +275,17 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
 
     return (
         <>
-            <ViewModal isOpen={modalVisible} setIsOpen={handleModalToggle}>
+            <ViewModal isOpen={isOpen} setIsOpen={handleModalToggle}>
                 <HeaderModal
-                    title="Buscar Asociados"
+                    title="Socios"
                     onClose={() => handleModalToggle(false)}
                 />
                 <div className={styles.modalContent}>
-                    <InputNormal
-                        tipo="text"
+                    <Input
+                        type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Buscar empresa"
-                        icon="search"
                         onKeyPress={handleKeyPress}
                         disabled={loading}
                     />
@@ -315,16 +301,8 @@ function AsociadosSearch({ isOpen, setIsOpen }) {
                     {renderContent()}
                 </div>
             </ViewModal>
-            {selectedEmpresa && (
-                <EmpresaView 
-                    isOpen={isEmpresaViewOpen} 
-                    setIsOpen={setIsEmpresaViewOpen}
-                    empresa={selectedEmpresa}
-                />
-            )}
         </>
     );
 }
 
 export default AsociadosSearch;
-

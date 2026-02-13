@@ -4,7 +4,7 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import InputNormal from '../../common/InputNormal';
-import Select from '../../common/Select';
+import InputSelect from '../../common/inputs/InputSelect';
 import productsAcopioService from '../../../services/productsAcopioService';
 import MensajeError from '../../common/MensajeError';
 import { BoxIcon } from 'boxicons-react';
@@ -250,11 +250,11 @@ function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData 
         {dataReceta.productos.map((producto, index) => (
           <div key={index} className={styles.recetaProductoCard} style={{ padding: '10px 10px' }}>
             <div className={styles.recetaProductoHeader}>
-              <Select
+              <InputSelect
                 value={producto.producto_acopio_id}
                 onChange={(value) => actualizarProducto(index, 'producto_acopio_id', value)}
                 options={getOpcionesDisponibles(index)}
-                placeholder='Materia prima'
+                placeholder="Materia prima"
                 disabled={loadingProductos}
               />
 

@@ -3,39 +3,25 @@ import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
+import Input from '../../common/inputs/Input';
 import pricesTypesService from '../../../services/pricesTypesService';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreated, onPrecioUpdated }) {
+  const { showSuccess, showDanger, showWarning } = useToast();
+  const { logAccion } = useHistorialLogger({ modulo: 'Precios' });
   const [dataMov, setDataMov] = useState({
     name: '',
     description: ''
   });
 
   const [loading, setLoading] = useState(false);
-
-  // Estado para la notificación
-  const [notification, setNotification] = useState({
-    isVisible: false,
-    type: 'error',
-    text: ''
-  });
-  const mostrarNotificacion = (tipo, texto) => {
-    setNotification({
-      isVisible: true,
-      type: tipo,
-      text: texto
-    });
-
-    // Auto-ocultar después de 3 segundos
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
-    }, 3000);
-  };
+  const [fieldErrors, setFieldErrors] = useState({ name: false });
 
   // Efecto para cargar los datos del precio
   useEffect(() => {
+    setFieldErrors({ name: false });
     if (data && tipo === 'editar') {
       setDataMov({
         name: data.name || '',
@@ -46,21 +32,25 @@ function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreat
         name: '',
         description: ''
       });
+      setFieldErrors({ name: false });
     }
   }, [isOpen, data, tipo]);
 
   // Función para actualizar los datos del formulario
   const handleChange = (field, value) => {
     setDataMov({ ...dataMov, [field]: value });
+    if (field === 'name') setFieldErrors((prev) => ({ ...prev, name: false }));
   };
 
   // Función para enviar los datos
   const handleSubmit = async () => {
     if (!dataMov.name.trim()) {
-      mostrarNotificacion('error', 'El nombre es obligatorio');
+      setFieldErrors((prev) => ({ ...prev, name: true }));
+      showWarning('Validación', 'El nombre es obligatorio', 5000);
       return;
     }
 
+    setFieldErrors({ name: false });
     setLoading(true);
     try {
       let response;
@@ -76,18 +66,49 @@ function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreat
       }
 
       if (response.success) {
-        if (tipo === 'editar' && onPrecioUpdated) {
-          onPrecioUpdated(response.data);
-        } else if (tipo === 'agregar' && onPrecioCreated) {
-          onPrecioCreated(response.data);
+        const registroId = (response.data && response.data.id) || response.id || data?.id || null;
+        const comentarioAccion = tipo === 'editar' ? 'Actualización de tipo de precio' : 'Creación de tipo de precio';
+
+        const camposOrden = ['Nombre del tipo de precio', 'Descripción (opcional)'];
+        const camposDetalle = {
+          'Nombre del tipo de precio': tipo === 'editar'
+            ? { antes: data?.name ?? null, despues: precioData.name }
+            : { despues: precioData.name },
+          'Descripción (opcional)': tipo === 'editar'
+            ? { antes: data?.description ?? null, despues: precioData.description ?? null }
+            : { despues: precioData.description ?? null }
+        };
+        const detallesPersonalizados = {
+          campos: camposDetalle,
+          camposOrden,
+          comentario: comentarioAccion
+        };
+
+        await logAccion({
+          accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
+          lugarAfectado: precioData.name || 'Tipo de precio',
+          registroId,
+          comentario: comentarioAccion,
+          detallesPersonalizados
+        });
+
+        if (tipo === 'editar') {
+          if (onPrecioUpdated) {
+            const precioActualizado = { ...data, ...response.data };
+            onPrecioUpdated(precioActualizado);
+          }
+          showSuccess('Éxito', 'Tipo de precio actualizado correctamente', 5000);
+        } else {
+          if (onPrecioCreated) onPrecioCreated(response.data);
+          showSuccess('Éxito', 'Tipo de precio agregado correctamente', 5000);
         }
         setIsOpen(false);
       } else {
-        mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el tipo de precio`);
+        showDanger('Error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el tipo de precio`, 5000);
       }
     } catch (error) {
       console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} tipo de precio:`, error);
-      mostrarNotificacion('error', 'Error de conexión con el servidor');
+      showDanger('Error', 'Error de conexión con el servidor', 5000);
     } finally {
       setLoading(false);
     }
@@ -96,43 +117,42 @@ function EditarAgregarPrecio({ isOpen, setIsOpen, data = '', tipo, onPrecioCreat
   return (
     <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
       <HeaderModal
-        title={tipo === 'editar' ? 'Editar tipo de precio' : 'Nuevo tipo de precio'}
+        title={tipo === 'editar' ? 'Editar Tipo de Precio' : 'Nuevo Tipo de Precio'}
         onClose={() => setIsOpen(false)}
       />
       <div className={styles.modalContent}>
-        <p className={styles.subTitle}>INFORMACIÓN DEL TIPO DE PRECIO</p>
+        <hr className={styles.separator} />
+        <p className={styles.subTitle}>Información</p>
 
-        <InputNormal
+        <Input
           tipo="text"
+          label="Nombre del tipo de precio"
           value={dataMov.name}
-          placeholder='Nombre del tipo de precio'
           onChange={(e) => handleChange('name', e.target.value)}
-          icon='dollar'
+          required={true}
+          readOnly={loading}
+          error={fieldErrors.name}
+          onClearError={() => setFieldErrors((prev) => ({ ...prev, name: false }))}
         />
 
-        <InputNormal
+        <Input
           tipo="text"
+          label="Descripción (opcional)"
           value={dataMov.description}
-          placeholder='Descripción (opcional)'
           onChange={(e) => handleChange('description', e.target.value)}
-          icon='comment'
+          readOnly={loading}
         />
-
+  
+        <div className={styles.space}></div>
         <Boton
           className='btn-original'
           label={tipo === 'editar' ? 'Guardar cambios' : 'Agregar tipo de precio'}
           style={{ marginTop: 'auto' }}
           onClick={handleSubmit}
           loading={loading}
-          disabled={!dataMov.name.trim()}
+          disabled={loading}
         />
       </div>
-
-      <Notification
-        isVisible={notification.isVisible}
-        type={notification.type}
-        text={notification.text}
-      />
     </ViewModal>
   );
 }

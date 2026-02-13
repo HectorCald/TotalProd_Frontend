@@ -2,7 +2,6 @@
 .tableContainer {
   width: 100%;
   background: none;
-  border-radius: 10px 10px 0 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -16,7 +15,6 @@
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
-  border-radius: 10px 10px 0 0;
 }
 
 /* Wrapper del body (con scroll) */
@@ -61,20 +59,22 @@
   table-layout: fixed;
 }
 
-/* Headers de la tabla */
+/* Headers de la tabla - mismo padding que .cell para alineación */
 .header {
   background: var(--tertiary-color);
   color: var(--white-color);
-  padding: 16px 16px;
+  padding: 16px 18px;
   text-align: left;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 14px;
+  border: 1px solid var(--tertiary-color);
+  box-sizing: border-box;
 }
 
 .headerContent {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
 }
 
@@ -117,6 +117,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  border: 1px solid var(--tertiary-color);
+  box-sizing: border-box;
 }
 
 /* Celda con icono */
@@ -164,8 +166,15 @@
   background-color: #1f74fe3a;
 }
 
+.cellBadge.remplazo {
+  color: #7c3aed;
+  background-color: rgba(124, 58, 237, 0.2);
+}
 
-
+.cellBadge.entregar {
+  color: #0d9488;
+  background-color: rgba(13, 148, 136, 0.2);
+}
 
 /* Contenedor de badges */
 .badgeContainer {

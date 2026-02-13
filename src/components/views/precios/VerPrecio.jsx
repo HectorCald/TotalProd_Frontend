@@ -1,83 +1,73 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import Dato from '../../common/Dato';
+import ItemView from '../../common/ItemView';
 import Boton from '../../common/Boton';
 import EditarAgregarPrecio from './EditarAgregarPrecio';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
-import ItemView from '../../common/ItemView';
 import pricesTypesService from '../../../services/pricesTypesService';
-import productsAlmacenService from '../../../services/productsAlmacenService';
-import Notification from '../../common/Notification';
-import FetchData from '../../mixed/FetchData';
-import NoData from '../../common/NoData';
+import { useToast } from '../../../context/ToastContext';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated }) {
+    const { showSuccess, showDanger } = useToast();
+    const { logAccion } = useHistorialLogger({ modulo: 'Precios' });
     const [isEditarOpen, setIsEditarOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
-    const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [products, setProducts] = useState([]);
-    const [loadingProducts, setLoadingProducts] = useState(false);
 
-    // Callback para manejar los productos cargados
-    const handleProductosLoaded = useCallback((data) => {
-        if (data && precio?.id) {
-            // Filtrar productos que tienen este tipo de precio
-            const productosFiltrados = data.filter(producto =>
-                producto.price_product && producto.price_product.some(pp => pp.prices_types && pp.prices_types.id === precio.id)
-            );
-            setProducts(productosFiltrados);
-        }
-    }, [precio?.id]);
+    // Estado local para actualización en tiempo real (como VerProducto/VerGasto)
+    const [precioActual, setPrecioActual] = useState(precio);
 
-    // Callback para manejar el estado de carga
-    const handleLoading = useCallback((isLoading) => {
-        setLoadingProducts(isLoading);
-    }, []);
-
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
+    useEffect(() => {
+        setPrecioActual(precio);
+    }, [precio]);
 
     const handleEliminar = async () => {
         setLoading(true);
         try {
-            const response = await pricesTypesService.delete(precio.id);
+            const response = await pricesTypesService.delete(precioActual.id);
             if (response.success) {
+                const camposOrden = ['Nombre del tipo de precio', 'Descripción (opcional)'];
+                const camposDetalle = {
+                    'Nombre del tipo de precio': { antes: precioActual?.name ?? null },
+                    'Descripción (opcional)': { antes: precioActual?.description ?? null }
+                };
+                const detallesPersonalizados = {
+                    campos: camposDetalle,
+                    camposOrden,
+                    comentario: 'Eliminación de tipo de precio'
+                };
+                await logAccion({
+                    accion: 'ELIMINAR',
+                    lugarAfectado: precioActual?.name || 'Tipo de precio',
+                    registroId: precioActual.id,
+                    comentario: 'Eliminación de tipo de precio',
+                    detallesPersonalizados
+                });
+
                 setIsEliminarOpen(false);
                 setIsOpen(false);
                 if (onPrecioDeleted) {
-                    onPrecioDeleted(precio.id);
+                    onPrecioDeleted(precioActual.id);
                 }
+                showSuccess('Éxito', 'Tipo de precio eliminado correctamente');
             } else {
-                mostrarNotificacion('error', response.message || 'Error al eliminar el tipo de precio');
+                showDanger('Error', response.message || 'Error al eliminar el tipo de precio');
             }
         } catch (error) {
             console.error('Error eliminando tipo de precio:', error);
-            mostrarNotificacion('error', 'Error al eliminar el tipo de precio');
+            showDanger('Error', 'Error al eliminar el tipo de precio');
         } finally {
             setLoading(false);
         }
     };
 
     const handlePrecioUpdated = (updatedPrecio) => {
+        setPrecioActual(updatedPrecio);
         if (onPrecioUpdated) {
             onPrecioUpdated(updatedPrecio);
         }
@@ -88,37 +78,43 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    {precio?.name}
-                </h1>
-                <p className={styles.subTitle}>INFORMACIÓN DEL TIPO DE PRECIO</p>
+                <div className={styles.header}>
+                    <div className={styles.headerContent}>
+                        <h1 className={styles.title}>DETALLES</h1>
+                    </div>
+                </div>
                 <div className={styles.content}>
+                    <ItemView
+                        title="Información del tipo de precio"
+                        transparent={true}
+                        icon="dollar"
+                        iconShape="square"
+                        style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                    />
                     <Dato
                         label="Nombre"
-                        value={precio?.name || 'Sin nombre'}
+                        value={precioActual?.name || 'Sin nombre'}
                     />
                     <Dato
                         label="Descripción"
-                        value={precio?.description || 'Sin descripción'}
+                        value={precioActual?.description || 'Sin descripción'}
                     />
                 </div>
 
-                {/* Botón para ver productos */}
-                <Boton
-                    className='btn-gray'
-                    label='Ver Productos'
-                    onClick={() => setIsProductosOpen(true)}
-                />
                 <div className={styles.buttons}>
                     <Boton
                         className='btn-default'
                         label='Editar Tipo de Precio'
                         onClick={() => setIsEditarOpen(true)}
+                        iconName='edit'
+                        hideTextOnMobile={true}
                     />
                     <Boton
                         className='btn-red'
                         label='Eliminar Tipo de Precio'
                         onClick={() => setIsEliminarOpen(true)}
+                        iconName='trash'
+                        hideTextOnMobile={true}
                     />
                 </div>
             </div>
@@ -127,7 +123,7 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
             <EditarAgregarPrecio
                 isOpen={isEditarOpen}
                 setIsOpen={setIsEditarOpen}
-                data={precio}
+                data={precioActual}
                 tipo='editar'
                 onPrecioUpdated={handlePrecioUpdated}
             />
@@ -148,6 +144,7 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                             label='Cancelar'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(false)}
+                            iconName='x'
                         />
                         <Boton
                             className='btn-red'
@@ -156,77 +153,12 @@ function VerPrecio({ isOpen, setIsOpen, precio, onPrecioDeleted, onPrecioUpdated
                             onClick={handleEliminar}
                             loading={loading}
                             segundosDisabled={5}
+                            iconName='trash'
                         />
 
                     </div>
                 </div>
             </ViewModal>
-
-            {/* Modal de productos */}
-            <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
-                <HeaderModal
-                    title={`Productos con ${precio?.name}`}
-                    onClose={() => setIsProductosOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    {loadingProducts ? (
-                        <NoData 
-                            icon="loader-alt"
-                            title="Cargando productos..."
-                            detail="Obteniendo productos con este tipo de precio"
-                            transparent={true}
-                            minHeight="150px"
-                        />
-                    ) : products.length > 0 ? (
-                        <>
-                            <p className={styles.subTitle}>PRODUCTOS CON ESTE TIPO DE PRECIO</p>
-                            {products.map((product, index) => {
-                                // Encontrar el precio específico para este tipo de precio
-                                const precioProducto = product.price_product?.find(pp =>
-                                    pp.prices_types && pp.prices_types.id === precio.id
-                                );
-
-                                return (
-                                    <ItemView
-                                        key={product.id || index}
-                                        title={product.name || 'Sin nombre'}
-                                        description={product.description || 'Sin descripción'}
-                                        icon="box"
-                                        arrow={false}
-                                        flot1={`Bs. ${precioProducto?.valor || 0}`}
-                                    />
-                                );
-                            })}
-                        </>
-                    ) : (
-                        <NoData 
-                            icon="box"
-                            title="Sin productos"
-                            detail="No hay productos con este tipo de precio configurado"
-                            transparent={false}
-                            minHeight="150px"
-                        />
-                    )}
-                </div>
-            </ViewModal>
-
-            {/* FetchData para productos */}
-            {isProductosOpen && (
-                <FetchData
-                    service={productsAlmacenService}
-                    serviceName="productsAlmacenService"
-                    isOpen={isProductosOpen}
-                    onDataLoaded={handleProductosLoaded}
-                    onLoadingStart={() => handleLoading(true)}
-                    onLoadingEnd={() => handleLoading(false)}
-                />
-            )}
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </View>
     );
 }

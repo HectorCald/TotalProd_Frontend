@@ -14,8 +14,8 @@ import { useLayout } from '../../../context/LayoutContext';
 import { useUser } from '../../../context/UserContext';
 import Table from '../../common/Table';
 import Boton from '../../common/Boton';
-import Notification from '../../common/Notification';
 import CanastaTransferencias from './CanastaTransferencias';
+import { useToast } from '../../../context/ToastContext';
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
 import useLoadingManager from '../almacen-general/hooks/useLoadingManager';
 import useProductosFiltrados from '../almacen-general/hooks/useProductosFiltrados';
@@ -30,6 +30,7 @@ import useSessionCache from '../../../hooks/useSessionCache';
 function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTransferencia = false }) {
     const { isLargeScreen } = useLayout();
     const { sucursalSeleccionada: sucursalActual } = useUser();
+    const { showSuccess, showDanger } = useToast();
     
     // Obtener empresaId de la sucursal seleccionada
     const empresaId = sucursalActual?.empresas?.id || null;
@@ -37,19 +38,8 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
     // Determinar si es modo carrito (para panel lateral)
     const isCartMode = tipo === 'transferir' && isLargeScreen;
 
-    // UI envío y notificación
+    // UI envío
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [notif, setNotif] = useState({ visible: false, text: '', type: 'success' });
-    
-    // Función para mostrar notificaciones
-    const mostrarNotificacion = useCallback((tipo, texto) => {
-        setNotif({
-            visible: true,
-            text: texto,
-            type: tipo
-        });
-        setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 3000);
-    }, []);
 
     // Estados para filtros locales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
@@ -91,7 +81,6 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
     } = useCanastaActions({
         setProductosCanasta: setProductosCanastaTransferencias,
         productosCanasta: productosCanastaTransferencias,
-        mostrarNotificacion: mostrarNotificacion,
         pedidosConfig: {
             precioGetterName: 'getPrecioSeleccionadoCanastaTransferencias',
             modoGetterName: 'getModoAgrupacionCanastaTransferencias',
@@ -641,13 +630,7 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
                         setProductosCanasta={setProductosCanastaTransferencias}
                         onCerrarCanasta={(transferenciaData) => {
                             setIsCanastaTransferenciasOpen(false);
-                            
-                            setNotif({ 
-                                visible: true, 
-                                text: `Transferencia creada correctamente`, 
-                                type: 'success' 
-                            });
-                            setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 2500);
+                            showSuccess('Transferencia creada', 'La transferencia ha sido creada correctamente', 5000);
                         }}
                         onProductosUpdated={handleProductosUpdated}
                         preciosTipos={preciosTipos}
@@ -677,8 +660,6 @@ function AlmacenGeneralII({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoTra
                     { value: 'stock_desc', label: 'Stock ↓', icon: 'down-arrow-alt' }
                 ]}
             />
-
-            <Notification type={notif.type} text={notif.text} isVisible={notif.visible} onClose={() => setNotif(prev => ({ ...prev, visible: false }))} />
         </>
     );
 }

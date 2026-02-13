@@ -12,15 +12,32 @@
     gap: 10px;
     overflow-y: auto;
 }
-
-.title {
-    font-size: 16px !important;
-    font-weight: 600;
+.header{
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     width: 100%;
-    color: var(--white-color) !important; 
+}
+
+.headerContent{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.title {
+    font-size: 20px !important;
+    font-weight: 600;
+    color: var(--white-color) !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.title .statusBadge {
+    margin-left: auto;
 }
 .iconButton {
     border: none;
@@ -50,10 +67,22 @@
     font-size: 25px;
 }
 .subTitle {
-    font-size: 13px;
-    font-weight: 400;
-    color: gray;
+    font-size: 14px;
+    font-weight: 300;
+    border-radius: 8px;
     line-height: 1.2;
+    text-align: left;
+}
+.separator {
+    width: 100%;
+    height: 1px;
+    border-color: var(--quinary-color);
+}
+.valorAnterior {
+    color: var(--error-color);
+}
+.space {
+    height: 10px;
 }
 .content {
     display: flex;
@@ -66,6 +95,41 @@
     padding: 15px 20px;
     gap: 10px;
 }
+
+.contentRow {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.contentHalf {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+@media (min-width: 1024px) {
+    .contentRow {
+        flex-direction: row;
+    }
+    
+    .contentHalf {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .contentRow > .contentHalf:only-child {
+        flex: 1 1 100%;
+    }
+    
+    .contentRow > .contentHalf:not(:only-child) {
+        flex: 1 1 calc(50% - 5px);
+    }
+}
+
+
 
 .campoLista {
     display: flex;
@@ -129,22 +193,18 @@
 }
 .buttons {
     display: flex;
-    flex-direction: column;
-    flex-direction: column-reverse;
+    align-items: center;
+    justify-content: flex-end;
     gap: 7px;
     width: 100%;
     margin-top: auto;
-    padding-top: 20px;
-}
-@media (min-width: 700px) {
-    .buttons {
-        flex-direction: row;
-    }
+    padding-block: 10px;
 }
 
 .horizontal{
     display: flex;
     gap:7px;
+    align-items: flex-end;
 }
 
 .noData {

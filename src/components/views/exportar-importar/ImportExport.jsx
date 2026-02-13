@@ -4,7 +4,7 @@ import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
 import Checkbox from '../../common/Checkbox';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import Etapa from '../../common/Etapa';
 import InfoModal from '../../common/InfoModal';
 import productsAlmacenService from '../../../services/productsAlmacenService';
@@ -13,10 +13,12 @@ import * as XLSX from 'xlsx';
 import xlsIcon from '../../../assets/xls.png';
 
 function ImportExport({ isOpen, setIsOpen }) {
-    // Estados para los checkboxes de almacén
-    const [preciosChecked, setPreciosChecked] = useState(false);
-    const [codigoBarrasChecked, setCodigoBarrasChecked] = useState(false);
-    const [descripcionChecked, setDescripcionChecked] = useState(false);
+    const { showSuccess, showDanger } = useToast();
+
+    // Estados para los checkboxes de almacén (true por defecto)
+    const [preciosChecked, setPreciosChecked] = useState(true);
+    const [codigoBarrasChecked, setCodigoBarrasChecked] = useState(true);
+    const [stockChecked, setStockChecked] = useState(true);
 
     // Estados para datos
     const [productos, setProductos] = useState([]);
@@ -28,21 +30,6 @@ function ImportExport({ isOpen, setIsOpen }) {
     const [etapaActual, setEtapaActual] = useState(-1); // -1 = ninguna etapa activa
     const [mostrarEtapas, setMostrarEtapas] = useState(true);
     const [tipoOperacion, setTipoOperacion] = useState(''); // 'importar' o 'exportar'
-
-    // Estados para la notificación
-    const [notification, setNotification] = useState({ isVisible: false, type: 'success', text: '' });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -59,7 +46,7 @@ function ImportExport({ isOpen, setIsOpen }) {
             const errorMessage = error.message || 'No tienes acceso a este módulo';
             const currentPlan = error.currentPlan || 'Plan actual';
             const requiredModule = error.requiredModule || 'Importar/Exportar';
-            
+
             setModalConfig({
                 isOpen: true,
                 type: 'info',
@@ -132,20 +119,20 @@ function ImportExport({ isOpen, setIsOpen }) {
             }, 2000);
 
             const esPlantilla = data.formato?.tipo === 'plantilla';
-            
+
             // Mostrar errores específicos si los hay
             if (resultado.errores && resultado.errores.length > 0) {
-                mostrarNotificacion('error', `Errores: ${resultado.errores.join(', ')}`);
+                showDanger('Errores', resultado.errores.join(', '));
             } else {
-                const mensaje = esPlantilla 
+                const mensaje = esPlantilla
                     ? `Importación completada: ${resultado.creados || resultado.total} productos creados`
                     : `Importación completada: ${resultado.actualizados}/${resultado.total} productos actualizados`;
-                mostrarNotificacion('success', mensaje);
+                showSuccess(mensaje);
             }
 
         } catch (error) {
             setError(error);
-            mostrarNotificacion('error', `Error al procesar el archivo: ${error.message}`);
+            showDanger('Error al procesar el archivo', error.message);
             setMostrarEtapas(false);
             setEtapaActual(-1);
             setTipoOperacion('');
@@ -159,20 +146,20 @@ function ImportExport({ isOpen, setIsOpen }) {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    
+
                     // Buscar la hoja de productos
-                    const sheetName = workbook.SheetNames.find(name => 
-                        name.toLowerCase().includes('producto') || 
+                    const sheetName = workbook.SheetNames.find(name =>
+                        name.toLowerCase().includes('producto') ||
                         name.toLowerCase().includes('productos')
                     ) || workbook.SheetNames[0];
-                    
+
                     const worksheet = workbook.Sheets[sheetName];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                    
+
                     // Leer formato de la primera fila
                     const formatoRow = jsonData[0];
                     let formato = null;
-                    
+
                     if (formatoRow && formatoRow.length > 0) {
                         try {
                             formato = JSON.parse(formatoRow[0]);
@@ -180,10 +167,10 @@ function ImportExport({ isOpen, setIsOpen }) {
                             console.warn('No se pudo parsear el formato de la primera fila');
                         }
                     }
-                    
+
                     // Leer headers de la segunda fila
                     const headers = jsonData[1] || [];
-                    
+
                     // Leer datos desde la tercera fila
                     const datos = jsonData.slice(2).map(fila => {
                         const producto = {};
@@ -202,7 +189,7 @@ function ImportExport({ isOpen, setIsOpen }) {
                         // Para actualización, necesitamos ID
                         return producto.ID;
                     });
-                    
+
                     resolve({ formato, headers, datos });
                 } catch (error) {
                     reject(error);
@@ -215,7 +202,7 @@ function ImportExport({ isOpen, setIsOpen }) {
 
     const importarDatos = async (data) => {
         const { formato, datos } = data;
-        
+
         if (!formato || (formato.tipo !== 'almacen' && formato.tipo !== 'plantilla')) {
             throw new Error('Formato de archivo no válido');
         }
@@ -234,7 +221,7 @@ function ImportExport({ isOpen, setIsOpen }) {
                 continue;
             }
 
-            const productoData = { 
+            const productoData = {
                 name: nombreProducto.trim()
             };
 
@@ -246,10 +233,6 @@ function ImportExport({ isOpen, setIsOpen }) {
             // Actualizar según las opciones del formato
             if (opciones.includes('codigo_barras') && producto['Código de Barras']) {
                 productoData.codigo_barras = producto['Código de Barras'];
-            }
-
-            if (opciones.includes('descripcion') && producto.Descripción) {
-                productoData.description = producto.Descripción;
             }
 
             if (opciones.includes('precios')) {
@@ -267,9 +250,19 @@ function ImportExport({ isOpen, setIsOpen }) {
                         }
                     }
                 });
-                
+
                 if (Object.keys(precios).length > 0) {
                     productoData.precios = precios;
+                }
+            }
+
+            if (opciones.includes('stock')) {
+                const stockVal = producto.Stock ?? producto.stock;
+                if (stockVal !== undefined && stockVal !== null && stockVal !== '') {
+                    const num = parseInt(stockVal, 10);
+                    if (!isNaN(num) && num >= 0) {
+                        productoData.stock = num;
+                    }
                 }
             }
 
@@ -288,11 +281,11 @@ function ImportExport({ isOpen, setIsOpen }) {
             // Actualizar productos existentes
             response = await productsAlmacenService.bulkUpdate(productosParaProcesar);
         }
-        
+
         if (!response.success) {
             throw new Error(response.message || 'Error en la operación');
         }
-        
+
         return response.data;
     };
 
@@ -310,20 +303,20 @@ function ImportExport({ isOpen, setIsOpen }) {
             setLoading(true);
             setMostrarEtapas(true);
             setEtapaActual(0);
-            
+
             // Etapa 1: Preparando
             await new Promise(resolve => setTimeout(resolve, 500));
             setEtapaActual(1);
-            
+
             // Etapa 2: Obteniendo datos
             const response = await productsAlmacenService.getAll();
-            
+
             if (!response.success) {
                 throw new Error(response.message);
             }
-            
+
             const productosData = response.data;
-            
+
             // Hacer petición para obtener precios si está marcado
             let preciosData = [];
             if (preciosChecked) {
@@ -332,11 +325,11 @@ function ImportExport({ isOpen, setIsOpen }) {
                     preciosData = preciosResponse.data;
                 }
             }
-            
+
             if (productosData.length === 0) {
                 throw new Error('No hay productos para exportar');
             }
-            
+
             // Etapa 3: Generando archivo
             await new Promise(resolve => setTimeout(resolve, 500));
             setEtapaActual(2);
@@ -345,7 +338,7 @@ function ImportExport({ isOpen, setIsOpen }) {
             const opcionesSeleccionadas = [];
             if (preciosChecked) opcionesSeleccionadas.push('precios');
             if (codigoBarrasChecked) opcionesSeleccionadas.push('codigo_barras');
-            if (descripcionChecked) opcionesSeleccionadas.push('descripcion');
+            if (stockChecked) opcionesSeleccionadas.push('stock');
 
             const formatoDescarga = {
                 tipo: 'almacen',
@@ -355,7 +348,7 @@ function ImportExport({ isOpen, setIsOpen }) {
 
             // Crear headers dinámicos
             const headers = ['ID', 'Nombre'];
-            
+
             // Agregar headers de precios si está seleccionado
             if (preciosChecked && preciosData.length > 0) {
                 preciosData.forEach(precio => {
@@ -368,9 +361,9 @@ function ImportExport({ isOpen, setIsOpen }) {
                 headers.push('Código de Barras');
             }
 
-            // Agregar descripción si está seleccionado
-            if (descripcionChecked) {
-                headers.push('Descripción');
+            // Agregar stock si está seleccionado
+            if (stockChecked) {
+                headers.push('Stock');
             }
 
             // Crear datos de la tabla
@@ -392,10 +385,10 @@ function ImportExport({ isOpen, setIsOpen }) {
                     fila.push(codigo);
                 }
 
-                // Agregar descripción si está seleccionado
-                if (descripcionChecked) {
-                    const descripcion = producto.description || '';
-                    fila.push(descripcion);
+                // Agregar stock si está seleccionado
+                if (stockChecked) {
+                    const stock = producto.stock ?? 0;
+                    fila.push(stock);
                 }
 
                 return fila;
@@ -403,7 +396,7 @@ function ImportExport({ isOpen, setIsOpen }) {
 
             // Crear workbook
             const workbook = XLSX.utils.book_new();
-            
+
             // Crear datos completos: formato en A1, headers en fila 2, datos desde fila 3
             const formatoRow = [JSON.stringify(formatoDescarga)];
             const allData = [
@@ -411,7 +404,7 @@ function ImportExport({ isOpen, setIsOpen }) {
                 headers,     // Fila 2: Headers
                 ...datos     // Fila 3+: Datos de productos
             ];
-            
+
             const worksheet = XLSX.utils.aoa_to_sheet(allData);
 
             // Configurar anchos de columnas específicos
@@ -419,7 +412,7 @@ function ImportExport({ isOpen, setIsOpen }) {
                 if (index === 0) return { wch: 15 }; // ID - más pequeña
                 if (index === 1) return { wch: 30 }; // Nombre - se ajusta al contenido
                 if (header === 'Código de Barras') return { wch: 25 }; // Código de Barras - ajustado al contenido
-                if (header === 'Descripción') return { wch: 35 }; // Descripción - ajustado al contenido
+                if (header === 'Stock') return { wch: 10 }; // Stock
                 return { wch: 12 }; // Precios - más pequeñas
             });
             worksheet['!cols'] = colWidths;
@@ -446,7 +439,7 @@ function ImportExport({ isOpen, setIsOpen }) {
             // Etapa 4: Completado
             await new Promise(resolve => setTimeout(resolve, 500));
             setEtapaActual(3);
-            
+
             // Ocultar etapas después de un delay
             setTimeout(() => {
                 setMostrarEtapas(false);
@@ -454,10 +447,10 @@ function ImportExport({ isOpen, setIsOpen }) {
                 setTipoOperacion('');
             }, 2000);
 
-            mostrarNotificacion('success', 'Archivo exportado correctamente');
+            showSuccess('Archivo exportado correctamente');
         } catch (error) {
             setError(error);
-            mostrarNotificacion('error', 'Error al exportar el archivo');
+            showDanger('Error al exportar el archivo');
             setMostrarEtapas(false);
             setEtapaActual(-1);
             setTipoOperacion('');
@@ -472,11 +465,11 @@ function ImportExport({ isOpen, setIsOpen }) {
             setLoading(true);
             setMostrarEtapas(true);
             setEtapaActual(0);
-            
+
             // Etapa 1: Preparando
             await new Promise(resolve => setTimeout(resolve, 500));
             setEtapaActual(1);
-            
+
             // Etapa 2: Generando formato
             await new Promise(resolve => setTimeout(resolve, 500));
             setEtapaActual(2);
@@ -494,7 +487,7 @@ function ImportExport({ isOpen, setIsOpen }) {
             const opcionesSeleccionadas = [];
             if (preciosChecked) opcionesSeleccionadas.push('precios');
             if (codigoBarrasChecked) opcionesSeleccionadas.push('codigo_barras');
-            if (descripcionChecked) opcionesSeleccionadas.push('descripcion');
+            if (stockChecked) opcionesSeleccionadas.push('stock');
 
             const formatoPlantilla = {
                 tipo: 'plantilla',
@@ -504,7 +497,7 @@ function ImportExport({ isOpen, setIsOpen }) {
 
             // Crear headers dinámicos (sin ID)
             const headers = ['Nombre producto'];
-            
+
             // Agregar headers de precios si está seleccionado
             if (preciosChecked && preciosData.length > 0) {
                 preciosData.forEach(precio => {
@@ -517,28 +510,28 @@ function ImportExport({ isOpen, setIsOpen }) {
                 headers.push('Código de Barras');
             }
 
-            // Agregar descripción si está seleccionado
-            if (descripcionChecked) {
-                headers.push('Descripción');
+            // Agregar stock si está seleccionado
+            if (stockChecked) {
+                headers.push('Stock');
             }
 
             // Crear workbook
             const workbook = XLSX.utils.book_new();
-            
+
             // Crear datos completos: formato en A1, headers en fila 2, sin datos de productos
             const formatoRow = [JSON.stringify(formatoPlantilla)];
             const allData = [
                 formatoRow,  // Fila 1: Formato
                 headers      // Fila 2: Headers (sin datos)
             ];
-            
+
             const worksheet = XLSX.utils.aoa_to_sheet(allData);
 
             // Configurar anchos de columnas específicos
             const colWidths = headers.map((header, index) => {
                 if (index === 0) return { wch: 30 }; // Nombre - se ajusta al contenido
                 if (header === 'Código de Barras') return { wch: 25 }; // Código de Barras - ajustado al contenido
-                if (header === 'Descripción') return { wch: 35 }; // Descripción - ajustado al contenido
+                if (header === 'Stock') return { wch: 10 }; // Stock
                 return { wch: 12 }; // Precios - más pequeñas
             });
             worksheet['!cols'] = colWidths;
@@ -561,11 +554,11 @@ function ImportExport({ isOpen, setIsOpen }) {
             // Descargar archivo
             const nombreArchivo = `Plantilla_Almacen_${new Date().toISOString().split('T')[0]}`;
             XLSX.writeFile(workbook, `${nombreArchivo}.xlsx`);
-            
+
             // Etapa 3: Completado
             await new Promise(resolve => setTimeout(resolve, 500));
             setEtapaActual(3);
-            
+
             // Ocultar etapas después de un delay
             setTimeout(() => {
                 setMostrarEtapas(false);
@@ -573,10 +566,10 @@ function ImportExport({ isOpen, setIsOpen }) {
                 setTipoOperacion('');
             }, 2000);
 
-            mostrarNotificacion('success', 'Plantilla descargada correctamente');
+            showSuccess('Plantilla descargada correctamente');
         } catch (error) {
             setError(error);
-            mostrarNotificacion('error', 'Error al generar la plantilla');
+            showDanger('Error al generar la plantilla');
             setMostrarEtapas(false);
             setEtapaActual(-1);
             setTipoOperacion('');
@@ -594,13 +587,13 @@ function ImportExport({ isOpen, setIsOpen }) {
             <div className={styles.modalContent}>
                 <p className={styles.subTitle}>IMPORTA O EXPORTA EN EXCEL EL ALMACÉN GENERAL </p>
 
-                <Etapa 
+                <Etapa
                     etapas={
-                        tipoOperacion === 'importar' ? etapasImportar : 
-                        tipoOperacion === 'plantilla' ? etapasPlantilla : 
-                        etapasExportar
-                    } 
-                    etapaActual={etapaActual} 
+                        tipoOperacion === 'importar' ? etapasImportar :
+                            tipoOperacion === 'plantilla' ? etapasPlantilla :
+                                etapasExportar
+                    }
+                    etapaActual={etapaActual}
                 />
 
 
@@ -620,11 +613,11 @@ function ImportExport({ isOpen, setIsOpen }) {
                         icon="barcode"
                     />
                     <Checkbox
-                        title="Descripción"
-                        subtitle="Incluir descripciones de productos"
-                        checked={descripcionChecked}
-                        onChange={setDescripcionChecked}
-                        icon="text"
+                        title="Stock"
+                        subtitle="Incluir cantidades en stock"
+                        checked={stockChecked}
+                        onChange={setStockChecked}
+                        icon="box"
                     />
                 </div>
 
@@ -644,24 +637,16 @@ function ImportExport({ isOpen, setIsOpen }) {
                         disabled={loading}
                     />
                 </div>
-                
-                <div className={styles.buttons}>
-                    <Boton
-                        className='btn-default'
-                        label='Plantilla'
-                        icon={xlsIcon}
-                        onClick={handlePlantilla}
-                        disabled={loading}
-                    />
-                </div>
+
+                <Boton
+                    className='btn-default'
+                    label='Plantilla Vacia'
+                    icon={xlsIcon}
+                    onClick={handlePlantilla}
+                    disabled={loading}
+                />
+
             </div>
-
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
 
             {/* Modal de Información */}
             <InfoModal

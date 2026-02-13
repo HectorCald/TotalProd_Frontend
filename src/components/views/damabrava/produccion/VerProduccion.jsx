@@ -2,30 +2,28 @@ import React, { useState, useEffect } from 'react';
 import styles from '../../../../styles/view.module.css';
 import HeaderView from '../../../common/HeaderView';
 import View from '../../../ui/View';
-import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
 import Dato from '../../../common/Dato';
-import { BoxIcon } from 'boxicons-react';
 import Boton from '../../../common/Boton';
 import ItemView from '../../../common/ItemView';
-import Notification from '../../../common/Notification';
 import ModalDescarga from '../../../ui/ModalDescarga';
-import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
-import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
-import InputNormal from '../../../common/InputNormal';
-import IngresoProduccion from './IngresoProduccion';
 import VerMovimiento from '../../movimientos/VerMovimiento';
-import NoData from '../../../common/NoData';
-import Text from '../../../common/Text';
 import { formatFechaLiteral, formatHoraSinSegundos, formatFechaHoraLiteral } from '../../../../utils/dateUtils';
 import { seleccionarReglaParaProducto, calcularPagoProcesos } from '../../../../utils/reglasPagoHelper';
 import permissionsService from '../../../../services/permissionsService';
-import CalculoPagoModal from './CalculoPagoModal';
 import { useLayout } from '../../../../context/LayoutContext';
+import { useToast } from '../../../../context/ToastContext';
+import StatusBadge from '../../../common/StatusBadge';
+import NoData from '../../../common/NoData';
+import ModalVerificar from './modales/ModalVerificar';
+import ModalAnularVerificacion from './modales/ModalAnularVerificacion';
+import ModalEliminar from './modales/ModalEliminar';
+import ModalMovimientos from './modales/ModalMovimientos';
+import IngresoProduccion from './modales/IngresoProduccion';
+import CalculoPagoModal from './modales/CalculoPagoModal';
 
 function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegistroEliminado, onRegistroVerificado, reglas = [] }) {
     const { isLargeScreen } = useLayout();
-    const [loading, setLoading] = useState(false);
+    const { showDanger } = useToast();
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
@@ -34,18 +32,14 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
     const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
     const [isVerMovimientoOpen, setIsVerMovimientoOpen] = useState(false);
     const [movimientoSeleccionado, setMovimientoSeleccionado] = useState(null);
-    const [movimientos, setMovimientos] = useState([]);
-    const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
     const [isPagoOpen, setIsPagoOpen] = useState(false);
     const [resultadoPago, setResultadoPago] = useState(null);
     const [reglaAplicada, setReglaAplicada] = useState(null);
     const [isCalculandoPago, setIsCalculandoPago] = useState(false);
     const [isCheckingPermiso, setIsCheckingPermiso] = useState(false);
 
-    // Estado local para el registro actualizado
     const [registroActual, setRegistroActual] = useState(registro);
 
-    // Actualizar el registro local cuando cambie el prop
     useEffect(() => {
         setRegistroActual(registro);
         setReglaAplicada(null);
@@ -54,29 +48,6 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
         setIsCalculandoPago(false);
         setIsCheckingPermiso(false);
     }, [registro]);
-
-    // Estados para el modal de verificación
-    const [cantidadVerificada, setCantidadVerificada] = useState('');
-    const [observacionesVerificacion, setObservacionesVerificacion] = useState('');
-
-    // Estados para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
 
     // Formateo seguro Mes Año (evita desfase por zonas horarias)
@@ -98,11 +69,11 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 return allowed;
             }
 
-            mostrarNotificacion('error', response.message || 'No se pudo verificar los permisos.');
+            showDanger('Error', response.message || 'No se pudo verificar los permisos.');
             return false;
         } catch (error) {
             console.error('Error verificando permisos de información:', error);
-            mostrarNotificacion('error', error.message || 'No se pudo verificar los permisos.');
+            showDanger('Error', error.message || 'No se pudo verificar los permisos.');
             return false;
         } finally {
             setIsCheckingPermiso(false);
@@ -154,170 +125,22 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
         return { informacionSuperior, tablaHeaders, tablaValores };
     };
 
-    // Handle para anular verificación
-    const handleAnular = async () => {
-        // Validar que no haya cantidad ingresada
-        if ((registroActual?.cantidad_ingresada || 0) > 0) {
-            mostrarNotificacion('error', 'No se puede anular la verificación porque ya hay cantidad ingresada al almacén');
+    const handleOpenVerificar = () => setIsVerificarOpen(true);
+
+    const handleOpenIngreso = () => {
+        if (!registroActual?.producto_almacen) {
+            showDanger('Error', 'No se encontró la información del producto.');
             return;
         }
-
-        setLoading(true);
-        try {
-            const response = await registrosProduccionDamabravaService.unverify(registroActual.id);
-
-            if (response.success) {
-                setIsAnularOpen(false);
-                // NO cerrar el modal principal, solo actualizar la información
-
-                // Actualizar el registro local con los datos devueltos
-                setRegistroActual(response.data);
-                if (onRegistroVerificado) {
-                    onRegistroVerificado(response.data);
-                }
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al anular la verificación');
-            }
-        } catch (error) {
-            console.error('Error anulando verificación:', error);
-
-            // Manejar errores específicos de stock insuficiente
-            if (error.response?.data?.ingredientesConStockInsuficiente) {
-                const ingredientes = error.response.data.ingredientesConStockInsuficiente;
-                let mensajeError = 'Stock insuficiente de ingredientes:\n';
-                ingredientes.forEach(ing => {
-                    mensajeError += `• ${ing.nombre}: Necesitas ${ing.requerido}, tienes ${ing.stockActual} (faltan ${ing.requerido - ing.stockActual})\n`;
-                });
-                mostrarNotificacion('error', mensajeError);
-            } else {
-                mostrarNotificacion('error', error.message || 'Error al anular la verificación');
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Handle para eliminar registro
-    const handleEliminar = async () => {
-        setLoading(true);
-        try {
-            const response = await registrosProduccionDamabravaService.delete(registroActual.id);
-
-            if (response.success) {
-                setIsEliminarOpen(false);
-                setIsOpen(false);
-
-                if (onRegistroEliminado) {
-                    onRegistroEliminado(registroActual.id);
-                }
-                mostrarNotificacion('success', 'Registro eliminado correctamente');
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al eliminar el registro');
-            }
-        } catch (error) {
-            console.error('Error eliminando registro:', error);
-            mostrarNotificacion('error', 'Error al eliminar el registro');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Handle para verificar registro
-    const handleVerificar = async () => {
-        // Validaciones
-        if (!cantidadVerificada || isNaN(cantidadVerificada) || parseFloat(cantidadVerificada) < 0) {
-            mostrarNotificacion('error', 'La cantidad verificada debe ser un número válido mayor o igual a 0');
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const verificacionData = {
-                cantidad_verificada: parseFloat(cantidadVerificada),
-                observaciones: observacionesVerificacion || null
-            };
-
-            const response = await registrosProduccionDamabravaService.verify(registroActual.id, verificacionData);
-
-            if (response.success) {
-                setIsVerificarOpen(false);
-
-                // Limpiar campos del modal
-                setCantidadVerificada('');
-                setObservacionesVerificacion('');
-
-                // Actualizar el registro local con los datos devueltos
-                setRegistroActual(response.data);
-                if (onRegistroVerificado) {
-                    onRegistroVerificado(response.data);
-                }
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al verificar el registro');
-            }
-        } catch (error) {
-            console.error('Error verificando registro:', error);
-
-            // Manejar errores específicos de stock insuficiente
-            if (error.response?.data?.ingredientesConStockInsuficiente) {
-                const ingredientes = error.response.data.ingredientesConStockInsuficiente;
-                let mensajeError = 'Stock insuficiente de ingredientes:\n';
-                ingredientes.forEach(ing => {
-                    mensajeError += `• ${ing.nombre}: Necesitas ${ing.requerido}, tienes ${ing.stockActual} (faltan ${ing.requerido - ing.stockActual})\n`;
-                });
-                mostrarNotificacion('error', mensajeError);
-            } else {
-                mostrarNotificacion('error', error.message || 'Error al verificar el registro');
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Función para abrir el modal de verificación
-    const handleOpenVerificar = () => {
-        // Pre-llenar con la cantidad de terminados como sugerencia
-        setCantidadVerificada(registroActual?.terminados?.toString() || '');
-        setObservacionesVerificacion('');
-        setIsVerificarOpen(true);
-    };
-
-    // Función para obtener producto y abrir modal de ingreso
-    const handleOpenIngreso = async () => {
-        const detalle = registroActual?.producto_almacen;
-        if (!detalle) {
-            mostrarNotificacion('error', 'No se encontró la información del producto.');
-            return;
-        }
-
         setIsIngresoOpen(true);
     };
 
-    // Función para obtener movimientos de la producción
-    const handleOpenMovimientos = async () => {
+    const handleOpenMovimientos = () => {
         if (!registroActual?.id) {
-            mostrarNotificacion('error', 'No se encontró el ID del registro de producción');
+            showDanger('Error', 'No se encontró el ID del registro de producción');
             return;
         }
-
         setIsMovimientosOpen(true);
-        setLoadingMovimientosList(true);
-
-        try {
-            const response = await movimientosAlmacenService.getByProduccionDamabrava(registroActual.id);
-
-            if (response.success) {
-                setMovimientos(response.data || []);
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al obtener los movimientos');
-                setMovimientos([]);
-            }
-        } catch (error) {
-            console.error('Error obteniendo movimientos:', error);
-            mostrarNotificacion('error', 'Error al obtener los movimientos');
-            setMovimientos([]);
-        } finally {
-            setLoadingMovimientosList(false);
-        }
     };
 
     const handleCalcularPago = async () => {
@@ -326,13 +149,10 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
         }
 
         const permiso = await obtenerPermisoInfo();
-        if (!permiso) {
-            mostrarNotificacion('error', 'No tienes permisos para ver esta información.');
-            return;
-        }
+        if (!permiso) return;
 
         if (!reglas || reglas.length === 0) {
-            mostrarNotificacion('error', 'No hay reglas configuradas para calcular el pago.');
+            showDanger('Error', 'No hay reglas configuradas para calcular el pago.');
             return;
         }
 
@@ -341,14 +161,14 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
         try {
             const detalle = registroActual?.producto_almacen;
             if (!detalle) {
-                mostrarNotificacion('error', 'No se encontró la información del producto.');
+                showDanger('Error', 'No se encontró la información del producto.');
                 return;
             }
 
             const regla = seleccionarReglaParaProducto(reglas, registroActual, detalle);
 
             if (!regla) {
-                mostrarNotificacion('error', 'No existe una regla especial o general para realizar el cálculo de este registro.');
+                showDanger('Error', 'No existe una regla especial o general para realizar el cálculo de este registro.');
                 return;
             }
 
@@ -358,7 +178,7 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 : Number(registroActual?.terminados);
 
             if (!cantidadBase || cantidadBase <= 0) {
-                mostrarNotificacion('error', usarCantidadVerificada
+                showDanger('Error', usarCantidadVerificada
                     ? 'La cantidad verificada debe ser mayor a cero.'
                     : 'La cantidad de terminados debe ser mayor a cero.');
                 return;
@@ -380,159 +200,132 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
             setIsPagoOpen(true);
         } catch (error) {
             console.error('Error calculando pago:', error);
-            mostrarNotificacion('error', error.message || 'No se pudo calcular el pago.');
+            showDanger('Error', error.message || 'No se pudo calcular el pago.');
         } finally {
             setIsCalculandoPago(false);
         }
     };
 
-    // Función para manejar el click en un movimiento
     const handleMovimientoClick = (movimiento) => {
         setMovimientoSeleccionado(movimiento);
-        // Cerrar el modal de movimientos para que VerMovimiento quede visible al frente
         setIsMovimientosOpen(false);
         setIsVerMovimientoOpen(true);
     };
 
-    // Limpiar movimientos cuando se cierra el modal
-    useEffect(() => {
-        if (!isMovimientosOpen) {
-            setMovimientos([]);
-        }
-    }, [isMovimientosOpen]);
+    const nombreResponsable = registroActual?.user?.name || registroActual?.personal?.name || 'Usuario desconocido';
+    const procesoLabel = registroActual?.proceso === 'cernido' ? 'Cernido' : registroActual?.proceso === 'seleccionado' ? 'Seleccionado' : registroActual?.proceso === 'ninguno' ? 'Ninguno' : registroActual?.proceso || '--';
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    Detalles de Producción
-                    <div className={styles.iconButton}>
-                        <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
-                            <BoxIcon
-                                name='download'
-                                className={styles.iconDownload}
-                            />
-                        </button>
+                <div className={styles.header}>
+                    <div className={styles.headerContent}>
+                        <h1 className={styles.title}>Detalles<StatusBadge estado={registroActual?.estado} variant="produccion" /></h1>
+                        <p className={styles.subTitle}>Registrado el {formatFechaLiteral(registroActual?.fecha, !isLargeScreen)} - {formatHoraSinSegundos(registroActual?.fecha)}</p>
                     </div>
-                </h1>
-                <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
-                <ItemView
-                    title={registroActual?.user?.name || registroActual?.personal?.name || 'Usuario desconocido'}
-                    description="Responsable"
-                    transparent={false}
-                />
-                <p className={styles.subTitle}>INFORMACIÓN DE LA PRODUCCIÓN</p>
-                <ItemView
-                    title={registroActual?.producto_almacen?.name || 'Sin producto'}
-                    description={`Lote: ${registroActual?.lote || '0'}`}
-                    description2={`${registroActual?.proceso === 'cernido' ? 'Cernido' : registroActual?.proceso === 'seleccionado' ? 'Seleccionado' : registroActual?.proceso === 'ninguno' ? 'Ninguno' : registroActual?.proceso}`}
-                    transparent={false}
-                    icon='package'
-                    flot1={registroActual?.estado === 'Ingresado' ? 'Ingresado' : ''}
-                    flot2={registroActual?.estado === 'verificado' ? 'Verificado' : ''}
-                    flot3={registroActual?.estado === 'pendiente' ? 'Pendiente' : ''}
-                />
-
-                {/* Información de producción */}
-                <div className={styles.content}>
-                    <Dato
-                        label="Fecha y hora"
-                        value={formatFechaLiteral(registroActual?.fecha, !isLargeScreen) + ' - ' + formatHoraSinSegundos(registroActual?.fecha)}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Tiempo de Microondas"
-                        value={`${registroActual?.microondas || '0'} segundos`}
-                        vertical={false}
-                    />
-
-                    <Dato
-                        label="Cantidad Terminados"
-                        value={`${registroActual?.terminados || '0'} unidades`}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Fecha de Vencimiento"
-                        value={formatMesAnio(registroActual?.vencimiento)}
-                        vertical={false}
-                    />
-
+                    <div className={styles.iconButton}>
+                        <Boton
+                            iconName="download"
+                            label="Descargar"
+                            className="btn-default"
+                            onClick={() => setIsDescargaOpen(true)}
+                            hideTextOnMobile={true}
+                        />
+                    </div>
                 </div>
 
-                {/* Información de verificación si existe */}
-                {registroActual?.fecha_verificado && (
-                    <>
-                        <p className={styles.subTitle}>INFORMACIÓN DE VERIFICACIÓN</p>
-                        <div className={styles.content}>
-                            <Dato
-                                label="Fecha de Verificación"
-                                value={formatFechaLiteral(registroActual.fecha_verificado, !isLargeScreen)}
-                                vertical={false}
+                <div className={styles.contentRow}>
+                    {/* Primera columna: Responsable + todos los datos de producción */}
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content} style={{height:'100%'}}>
+                            <ItemView
+                                title="Información de la Producción"
+                                transparent={true}
+                                icon="box"
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
                             />
-
-                            <Dato
-                                label="Cantidad Verificada"
-                                value={`${registroActual.cantidad_verificada} unidades`}
-                                vertical={false}
-                                especial='green'
-                            />
-                            <Dato
-                                label="Cantidad Ingresada"
-                                value={`${registroActual.cantidad_ingresada} unidades`}
-                                vertical={false}
-                                especial='blue'
-                            />
-
+                            <Dato label="Nombre" value={nombreResponsable} vertical={false} />
+                            <Dato label="Producto" value={registroActual?.producto_almacen?.name || 'Sin producto'} vertical={false} />
+                            <Dato label="Lote" value={registroActual?.lote || '0'} vertical={false} />
+                            <Dato label="Proceso" value={procesoLabel} vertical={false} />
+                            <Dato label="Tiempo de Microondas" value={`${registroActual?.microondas || '0'} segundos`} vertical={false} />
+                            <Dato label="Cantidad Terminados" value={`${registroActual?.terminados || '0'} unidades`} vertical={false} />
+                            <Dato label="Fecha de Vencimiento" value={formatMesAnio(registroActual?.vencimiento)} vertical={false} />
+                            {registroActual?.observaciones && (
+                                <Dato label="Observaciones" value={registroActual.observaciones} vertical={false} />
+                            )}
                         </div>
-                    </>
-                )}
+                    </div>
 
-                {/* Observaciones del registro */}
-                {registroActual?.observaciones && (
-                    <>
-                        <p className={styles.subTitle}>OBSERVACIONES</p>
-                        <div className={styles.content}>
-                            <Dato
-                                label="Observaciones"
-                                value={registroActual.observaciones}
-                                vertical={true}
+                    {/* Segunda columna: Datos de verificación (o NoData si no está verificado) */}
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content} style={{ height: '100%' }}>
+                            <ItemView
+                                title="Información de Verificación"
+                                transparent={true}
+                                icon="check-double"
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
                             />
+                            {registroActual?.estado !== 'pendiente' && registroActual?.fecha_verificado ? (
+                                <>
+                                    <Dato label="Fecha de Verificación" value={formatFechaLiteral(registroActual.fecha_verificado, !isLargeScreen)} vertical={false} />
+                                    <Dato label="Cantidad Verificada" value={`${registroActual.cantidad_verificada} unidades`} vertical={false} especial='green' />
+                                    <Dato label="Cantidad Ingresada" value={`${registroActual.cantidad_ingresada} unidades`} vertical={false} especial='blue' />
+                                </>
+                            ) : (
+                                <NoData
+                                    icon="check-shield"
+                                    title="Falta información de verificación"
+                                    detail="Este registro aún no ha sido verificado. Use el botón 'Verificar Producción' cuando corresponda."
+                                    transparent={true}
+                                    minHeight="140px"
+                                />
+                            )}
                         </div>
-                    </>
-                )}
+                        <Boton
+                            className='btn-gray'
+                            label='Calcular Pago'
+                            onClick={handleCalcularPago}
+                            loading={isCalculandoPago || isCheckingPermiso}
+                            disabled={isCalculandoPago || isCheckingPermiso}
+                            readOnly={registroActual?.estado !== 'verificado' && registroActual?.estado !== 'Ingresado'}
+                            iconName='calculator'
+                        />
 
-                <Boton
-                    className='btn-gray'
-                    label='Calcular pago'
-                    onClick={handleCalcularPago}
-                    loading={isCalculandoPago || isCheckingPermiso}
-                    disabled={isCalculandoPago || isCheckingPermiso}
-                />
+                        <Boton
+                            className='btn-gray'
+                            label='Movimientos de Ingreso'
+                            onClick={handleOpenMovimientos}
+                            readOnly={registroActual?.estado !== 'verificado' && registroActual?.estado !== 'Ingresado'}
+                            iconName='transfer-alt'
+                        />
 
-                {/* Botón para ver movimientos */}
-                {(registroActual?.estado === 'verificado' || registroActual?.estado === 'Ingresado') && (
-                    <Boton
-                        className='btn-gray'
-                        label='Movimientos de ingreso'
-                        onClick={handleOpenMovimientos}
-                    />
-                )}
+                    </div>
+                </div>
+
+
 
                 <div className={styles.buttons}>
                     {registroActual?.estado === 'pendiente' ? (
                         <>
                             <Boton
                                 className='btn-default'
-                                label='Verificar Producción'
+                                label='Verificar Registro'
                                 style={{ marginTop: 'auto' }}
                                 onClick={handleOpenVerificar}
+                                iconName='check-double'
+                                hideTextOnMobile={true}
                             />
                             <Boton
                                 className='btn-red'
                                 label='Eliminar Registro'
                                 style={{ marginTop: 'auto' }}
                                 onClick={() => setIsEliminarOpen(true)}
+                                iconName='trash'
+                                hideTextOnMobile={true}
                             />
                         </>
                     ) : registroActual?.estado === 'verificado' || registroActual?.estado === 'Ingresado' ? (
@@ -543,7 +336,8 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                                     label='Ingresar Producción'
                                     style={{ marginTop: 'auto' }}
                                     onClick={handleOpenIngreso}
-                                    loading={loading}
+                                    iconName='plus'
+                                    hideTextOnMobile={true}
                                 />
                             )}
                             {(registroActual?.cantidad_ingresada || 0) === 0 && (
@@ -552,6 +346,8 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                                     label='Anular Verificación'
                                     style={{ marginTop: 'auto' }}
                                     onClick={() => setIsAnularOpen(true)}
+                                    iconName='block'
+                                    hideTextOnMobile={true}
                                 />
                             )}
                         </>
@@ -559,7 +355,6 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 </div>
             </div>
 
-            {/* Modal de descarga */}
             <ModalDescarga
                 isOpen={isDescargaOpen}
                 setIsOpen={setIsDescargaOpen}
@@ -569,151 +364,36 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 {...prepararDatosDescarga()}
             />
 
-            {/* Modal de verificar registro */}
-            <ViewModal isOpen={isVerificarOpen} setIsOpen={setIsVerificarOpen}>
-                <HeaderModal
-                    title="Verificar Producción"
-                    onClose={() => setIsVerificarOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        Ingresa los datos de verificación para este registro de producción.
-                    </p>
+            <ModalVerificar
+                isOpen={isVerificarOpen}
+                setIsOpen={setIsVerificarOpen}
+                registro={registroActual}
+                onVerificado={(data) => {
+                    setRegistroActual(data);
+                    if (onRegistroVerificado) onRegistroVerificado(data);
+                }}
+            />
 
-                    <InputNormal
-                        tipo="number"
-                        placeholder="Cantidad verificada"
-                        value={cantidadVerificada}
-                        onChange={(e) => setCantidadVerificada(e.target.value)}
-                        icon="hash"
-                        label="Cantidad Real Verificada"
-                    />
+            <ModalAnularVerificacion
+                isOpen={isAnularOpen}
+                setIsOpen={setIsAnularOpen}
+                registro={registroActual}
+                onAnulado={(data) => {
+                    setRegistroActual(data);
+                    if (onRegistroVerificado) onRegistroVerificado(data);
+                }}
+            />
 
-                    <InputNormal
-                        tipo="textarea"
-                        placeholder="Observaciones (Opcional)"
-                        value={observacionesVerificacion}
-                        onChange={(e) => setObservacionesVerificacion(e.target.value)}
-                        icon="comment"
-                        label="Observaciones"
-                    />
+            <ModalEliminar
+                isOpen={isEliminarOpen}
+                setIsOpen={setIsEliminarOpen}
+                registro={registroActual}
+                onEliminado={(id) => {
+                    if (onRegistroEliminado) onRegistroEliminado(id);
+                    setIsOpen(false);
+                }}
+            />
 
-                    {(() => {
-                        const cantidadVer = parseFloat(cantidadVerificada) || 0;
-                        const terminados = parseFloat(registroActual?.terminados) || 0;
-                        const diferencia = cantidadVer - terminados;
-
-                        if (cantidadVerificada && diferencia !== 0) {
-                            if (diferencia > 0) {
-                                return (
-                                    <div style={{ marginTop: '15px', marginBottom: '10px', width: '100%' }}>
-                                        <Text type="info" align="left">
-                                            Se restará materia prima de la receta del producto. La cantidad verificada ({cantidadVer}) es mayor que los terminados ({terminados}), diferencia de {diferencia}.
-                                        </Text>
-                                    </div>
-                                );
-                            } else {
-                                return (
-                                    <div style={{ marginTop: '15px', marginBottom: '10px', width: '100%' }}>
-                                        <Text type="info" align="left">
-                                            Se sumará materia prima de la receta del producto. La cantidad verificada ({cantidadVer}) es menor que los terminados ({terminados}), diferencia de {Math.abs(diferencia)}.
-                                        </Text>
-                                    </div>
-                                );
-                            }
-                        }
-                        return null;
-                    })()}
-
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsVerificarOpen(false)}
-                        />
-                        <Boton
-                            className='btn-original'
-                            label='Verificar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleVerificar}
-                            loading={loading}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
-
-            {/* Modal de anular verificación */}
-            <ViewModal isOpen={isAnularOpen} setIsOpen={setIsAnularOpen}>
-                <HeaderModal
-                    title="Anular Verificación"
-                    onClose={() => setIsAnularOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas anular la verificación de este registro? Esta acción no se puede deshacer.
-                    </p>
-
-                    <div style={{ marginTop: '10px', width: '100%' }}>
-                        <Text type="error" align="left">
-                            Al anular la verificación se regresará la materia prima de la receta del monto verificado. Si terminados es {registroActual?.terminados || 0} y se verificó {registroActual?.cantidad_verificada || 0}, se devolverá la materia prima de la receta pero de la diferencia de {Math.max(0, (registroActual?.cantidad_verificada || 0) - (registroActual?.terminados || 0))}.
-                        </Text>
-                    </div>
-
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsAnularOpen(false)}
-                        />
-                        <Boton
-                            className='btn-orange'
-                            label='Si, Anular'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleAnular}
-                            loading={loading}
-                            segundosDisabled={5}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
-
-            {/* Modal de eliminar registro */}
-            <ViewModal isOpen={isEliminarOpen} setIsOpen={setIsEliminarOpen}>
-                <HeaderModal
-                    title="Eliminar Registro"
-                    onClose={() => setIsEliminarOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas eliminar este registro? Esta acción no se puede deshacer.
-                    </p>
-                    <div style={{ marginTop: '10px', width: '100%' }}>
-                        <Text type="error" align="left">
-                            Al eliminar el registro de producción se devolverá el peso total de la materia prima de la receta del producto según terminados hayan ({registroActual?.terminados || 0}).
-                        </Text>
-                    </div>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsEliminarOpen(false)}
-                        />
-                        <Boton
-                            className='btn-red'
-                            label='Sí, eliminar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleEliminar}
-                            loading={loading}
-                            segundosDisabled={5}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
-
-            {/* Modal de ingreso de producción */}
             <IngresoProduccion
                 isOpen={isIngresoOpen}
                 setIsOpen={setIsIngresoOpen}
@@ -723,7 +403,6 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 registroId={registroActual?.id}
                 responsable={registroActual?.user?.name || registroActual?.personal?.name || 'Usuario desconocido'}
                 onIngresoRealizado={(datos) => {
-                    // Actualizar el registro local con los datos devueltos del backend
                     if (onRegistroVerificado) {
                         const registroActualizado = datos.registroActualizado || {
                             ...registroActual,
@@ -732,61 +411,19 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                         };
                         onRegistroVerificado(registroActualizado);
                     }
-
-                    // Cerrar el modal de VerProduccion
                     setIsOpen(false);
                 }}
             />
 
-            {/* Modal de movimientos */}
-            <ViewModal isOpen={isMovimientosOpen} setIsOpen={setIsMovimientosOpen}>
-                <HeaderModal
-                    title="Movimientos de la Producción"
-                    onClose={() => setIsMovimientosOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    {loadingMovimientosList ? (
-                        <NoData
-                            icon="loader-alt"
-                            title="Cargando movimientos..."
-                            detail="Obteniendo el historial de movimientos de la producción"
-                            transparent={true}
-                            minHeight="150px"
-                        />
-                    ) : movimientos.length > 0 ? (
-                        <>
-                            <p className={styles.subTitle}>HISTORIAL DE MOVIMIENTOS</p>
-                            {movimientos.map((movimiento, index) => (
-                                <ItemView
-                                    key={movimiento.id || index}
-                                    title={movimiento.productos && movimiento.productos.length > 0
-                                        ? movimiento.productos.length === 1
-                                            ? `${movimiento.productos[0]?.producto?.name || 'Sin producto'}`
-                                            : `${movimiento.productos.length} productos`
-                                        : 'Sin productos'
-                                    }
-                                    description={`${movimiento.observaciones || 'Sin observaciones'} • ${formatFechaLiteral(movimiento.fecha, !isLargeScreen)}`}
-                                    circulo={false}
-                                    onClick={() => handleMovimientoClick(movimiento)}
-                                    arrow={false}
-                                    flot3={movimiento?.estado === 'anulado' ? 'Anulado' : ''}
-                                    flot1={movimiento?.estado === 'anulado' ? '' : 'Finalizado'}
-                                />
-                            ))}
-                        </>
-                    ) : (
-                        <NoData
-                            icon="history"
-                            title="No hay movimientos"
-                            detail="Esta producción no tiene movimientos registrados aún"
-                            transparent={false}
-                            minHeight="150px"
-                        />
-                    )}
-                </div>
-            </ViewModal>
+            <ModalMovimientos
+                isOpen={isMovimientosOpen}
+                setIsOpen={setIsMovimientosOpen}
+                registroId={registroActual?.id}
+                onMovimientoClick={handleMovimientoClick}
+                formatFechaLiteral={formatFechaLiteral}
+                isLargeScreen={isLargeScreen}
+            />
 
-            {/* Modal de Ver Movimiento */}
             {movimientoSeleccionado && (
                 <VerMovimiento
                     isOpen={isVerMovimientoOpen}
@@ -800,12 +437,6 @@ function VerProduccion({ isOpen, setIsOpen, registro, onRegistroAnulado, onRegis
                 setIsOpen={setIsPagoOpen}
                 resultadoPago={resultadoPago}
                 reglaAplicada={reglaAplicada}
-            />
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
             />
         </View >
     );

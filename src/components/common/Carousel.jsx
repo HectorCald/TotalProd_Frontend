@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from './Carousel.module.css';
 
-function Carousel({ children }) {
+function Carousel({ children, onSlideChange }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const [startX, setStartX] = useState(0);
@@ -15,19 +15,35 @@ function Carousel({ children }) {
     useEffect(() => {
         if (screens.length > 0 && currentIndex >= screens.length) {
             setCurrentIndex(0);
+            if (onSlideChange) onSlideChange(0);
         }
     }, [screens.length, currentIndex]);
 
+    // Notificar el índice inicial
+    useEffect(() => {
+        if (onSlideChange) onSlideChange(0);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const goNext = () => {
-        setCurrentIndex((prev) => (prev + 1) % screens.length);
+        setCurrentIndex((prev) => {
+            const newIndex = (prev + 1) % screens.length;
+            if (onSlideChange) onSlideChange(newIndex);
+            return newIndex;
+        });
     };
 
     const goPrev = () => {
-        setCurrentIndex((prev) => (prev - 1 + screens.length) % screens.length);
+        setCurrentIndex((prev) => {
+            const newIndex = (prev - 1 + screens.length) % screens.length;
+            if (onSlideChange) onSlideChange(newIndex);
+            return newIndex;
+        });
     };
 
     const goToSlide = (index) => {
         setCurrentIndex(index);
+        if (onSlideChange) onSlideChange(index);
     };
 
     const handleMouseDown = (e) => {

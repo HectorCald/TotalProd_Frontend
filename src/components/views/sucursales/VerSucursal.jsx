@@ -4,14 +4,18 @@ import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import Dato from '../../common/Dato';
 import ListData from '../../common/ListData';
+import ItemView from '../../common/ItemView';
 import Boton from '../../common/Boton';
 import EditarAgregarSucursal from './EditarAgregarSucursal';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import sucursalesService from '../../../services/sucursalesService';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursalUpdated }) {
+    const { showSuccess, showDanger } = useToast();
+    const { logAccion } = useHistorialLogger({ modulo: 'Sucursales' });
     const [isEditarOpen, setIsEditarOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -24,94 +28,111 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
         setSucursalActual(sucursal);
     }, [sucursal]);
 
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
     const handleEliminar = async () => {
         setLoading(true);
         try {
             const response = await sucursalesService.delete(sucursalActual.id);
             if (response.success) {
+                const preciosItems = sucursalActual?.name === 'Casa Matriz'
+                    ? ['Todos los precios']
+                    : (sucursalActual?.precios?.map(p => p.name) || []);
+                const almacenLabel = sucursalActual?.almacen_sucursal_id ? 'No' : 'Sí';
+                const camposOrden = ['Nombre de la sucursal', 'Almacén separado', 'Tipos de precios'];
+                const camposDetalle = {
+                    'Nombre de la sucursal': { antes: sucursalActual?.name ?? null },
+                    'Almacén separado': { antes: almacenLabel },
+                    'Tipos de precios': { antes: preciosItems.length ? preciosItems : null }
+                };
+                const detallesPersonalizados = {
+                    campos: camposDetalle,
+                    camposOrden,
+                    comentario: 'Eliminación de sucursal'
+                };
+                await logAccion({
+                    accion: 'ELIMINAR',
+                    lugarAfectado: sucursalActual?.name || 'Sucursal',
+                    registroId: sucursalActual.id,
+                    comentario: 'Eliminación de sucursal',
+                    detallesPersonalizados
+                });
+
                 setIsEliminarOpen(false);
                 setIsOpen(false);
                 if (onSucursalDeleted) {
                     onSucursalDeleted(sucursalActual.id);
                 }
+                showSuccess('Éxito', 'Sucursal eliminada correctamente');
             } else {
-                mostrarNotificacion('error', response.message || 'Error al eliminar la sucursal');
+                showDanger('Error', response.message || 'Error al eliminar la sucursal');
             }
         } catch (error) {
             console.error('Error eliminando sucursal:', error);
-            mostrarNotificacion('error', 'Error al eliminar la sucursal');
+            showDanger('Error', 'Error al eliminar la sucursal');
         } finally {
             setLoading(false);
         }
     };
 
     const handleSucursalUpdated = (updatedSucursal) => {
-        // Actualizar el estado local de la sucursal
         setSucursalActual(updatedSucursal);
-
-        // Actualizar el estado en el componente padre
         if (onSucursalUpdated) {
             onSucursalUpdated(updatedSucursal);
         }
-
-        // Cerrar solo el modal de edición, NO el modal principal
         setIsEditarOpen(false);
-        
-        // Mostrar notificación de éxito
-        mostrarNotificacion('success', 'Sucursal actualizada correctamente');
     };
+
+    const preciosItems = sucursalActual?.name === 'Casa Matriz'
+        ? ['Todos los precios']
+        : (sucursalActual?.precios?.map(precio => precio.name) || []);
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    {sucursalActual?.name}
-                </h1>
-                <p className={styles.subTitle}>INFORMACIÓN DE LA SUCURSAL</p>
-                <div className={styles.content}>
-                    <Dato
-                        label="Nombre"
-                        value={sucursalActual?.name || 'Sin nombre'}
-                    />
-                    <Dato
-                        label="Tipo de almacén"
-                        value={sucursalActual?.almacen_sucursal_id ? 'Comparte' : 'Propio'}
-                    />
-                    <Dato
-                        label="Fecha de creación"
-                        value={sucursalActual?.created_at ? new Date(sucursalActual.created_at).toLocaleDateString('es-ES') : 'Sin fecha'}
-                    />
-                    <Dato
-                        label="Total de Pedidos"
-                        value={sucursalActual?.total_pedidos !== undefined ? sucursalActual.total_pedidos.toString() : '0'}
-                        especial="blue"
-                    />
-                    <ListData
-                        label="Precios asignados"
-                        items={sucursalActual?.name === 'Casa Matriz' ? ['Todos los precios'] : (sucursalActual?.precios?.map(precio => precio.name) || [])}
-                        emptyText={sucursalActual?.name === 'Casa Matriz' ? 'Todos los precios' : 'Sin precios asignados'}
-                        badgeColor="orange"
-                        badgeIcon="dollar"
-                    />
+                <div className={styles.header}>
+                    <div className={styles.headerContent}>
+                        <h1 className={styles.title}>DETALLES</h1>
+                    </div>
+                </div>
+                <div className={styles.contentRow}>
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content}>
+                            <ItemView
+                                title="Información de la sucursal"
+                                transparent={true}
+                                icon="building"
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                            />
+                            <Dato label="Nombre" value={sucursalActual?.name || 'Sin nombre'} vertical={true} />
+                            <Dato label="Tipo de almacén" value={sucursalActual?.almacen_sucursal_id ? 'Comparte' : 'Propio'} vertical={true} />
+                            <Dato label="Fecha de creación" value={sucursalActual?.created_at ? new Date(sucursalActual.created_at).toLocaleDateString('es-ES') : 'Sin fecha'} vertical={true} />
+                            <Dato
+                                label="Total de Pedidos"
+                                value={sucursalActual?.total_pedidos !== undefined ? sucursalActual.total_pedidos.toString() : '0'}
+                                especial="blue"
+                                vertical={true}
+                            />
+                        </div>
+                    </div>
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content} style={{ height:'100%' }}>
+                            <ItemView
+                                title="Precios asignados"
+                                transparent={true}
+                                icon="dollar"
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                            />
+                            <ListData
+                                label=""
+                                items={preciosItems}
+                                emptyText={sucursalActual?.name === 'Casa Matriz' ? 'Todos los precios' : 'Sin precios asignados'}
+                                badgeColor="orange"
+                                badgeIcon="dollar"
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 {sucursalActual?.name !== 'Casa Matriz' && (
@@ -119,14 +140,16 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
                         <Boton
                             className='btn-default'
                             label='Editar Sucursal'
-                            onClick={() => {
-                                setIsEditarOpen(true);
-                            }}
+                            onClick={() => setIsEditarOpen(true)}
+                            iconName='edit'
+                            hideTextOnMobile={true}
                         />
                         <Boton
                             className='btn-red'
                             label='Eliminar Sucursal'
                             onClick={() => setIsEliminarOpen(true)}
+                            iconName='trash'
+                            hideTextOnMobile={true}
                         />
                     </div>
                 )}
@@ -157,6 +180,7 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
                             label='Cancelar'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(false)}
+                            iconName='x'
                         />
                         <Boton
                             className='btn-red'
@@ -165,16 +189,11 @@ function VerSucursal({ isOpen, setIsOpen, sucursal, onSucursalDeleted, onSucursa
                             onClick={handleEliminar}
                             loading={loading}
                             segundosDisabled={5}
+                            iconName='trash'
                         />
                     </div>
                 </div>
             </ViewModal>
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </View>
     );
 }

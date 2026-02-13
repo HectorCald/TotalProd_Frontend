@@ -7,7 +7,6 @@ import ItemView from '../../common/ItemView';
 import VerPedido from './VerPedido';
 import VerPedidoAcopio from './VerPedidoAcopio';
 import Filtros from '../../common/Filtros';
-import Notification from '../../common/Notification';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import { BoxIcon } from 'boxicons-react';
@@ -214,24 +213,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         // FetchDataProgressive se encargará de recargar automáticamente
     };
 
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
-
     // Efecto para resetear búsqueda cuando se abre - solo resetear búsqueda, no limpiar datos
     useEffect(() => {
         if (isOpen) {
@@ -293,7 +274,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
         setAllPedidos(aplicarEliminacion);
         mutateCachedItems(aplicarEliminacion);
 
-        mostrarNotificacion('success', 'Pedido eliminado correctamente');
         setIsOpenVerPedido(false);
     };
     // Función para manejar cuando se actualiza un pedido
@@ -707,13 +687,6 @@ function PanelPedidos({ isOpen, setIsOpen, tipoPedido = '' }) {
                     setCurrentPage(1);
                 }}
                 title="Filtrar por fecha"
-            />
-
-            {/* Notificación */}
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
             />
 
             {/* Botón flotante de WhatsApp - solo para pedidos de acopio */}

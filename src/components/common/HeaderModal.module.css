@@ -9,7 +9,7 @@
 }
 
 .headerModalTitle {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--white-color);
 }
@@ -25,7 +25,7 @@
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s;
-    color: var(--primary-color);
+    color: gray;
 }
 
 .icon {

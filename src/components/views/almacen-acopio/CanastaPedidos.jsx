@@ -10,7 +10,7 @@ import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
 import { motion } from 'framer-motion';
 import pedidosAcopioService from '../../../services/pedidosAcopioService';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 
 const medidasPedido = [
     { value: 'kg', label: 'Kilogramo', icon: 'tag' },
@@ -22,32 +22,12 @@ const medidasPedido = [
 ];
 
 function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onPedidoCreado, isCartMode = false, onPedidoCreadoConDescarga = null, onWhatsAppSelect = null }) {
+    const { showDanger } = useToast();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [animarCantidad, setAnimarCantidad] = useState({});
-
-
-    // Estado para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'error',
-        text: ''
-    });
-
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Referencias para el auto-focus en inputs de cantidad
     const cantidadInputRefs = useRef({});
@@ -221,11 +201,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
 
             } else {
                 console.error('Error al crear el pedido:', response.message);
-                mostrarNotificacion('error', response.message || 'Error al crear el pedido');
+                showDanger('Error', response.message || 'Error al crear el pedido');
             }
         } catch (error) {
             console.error('Error al confirmar el pedido:', error);
-            mostrarNotificacion('error', error.message || 'Error al confirmar el pedido');
+            showDanger('Error', error.message || 'Error al confirmar el pedido');
         } finally {
             setLoadingConfirmar(false);
         }
@@ -420,11 +400,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 />
             </div>
 
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </View>
     );
 }

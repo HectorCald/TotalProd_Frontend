@@ -6,7 +6,7 @@ import Boton from '../../common/Boton';
 import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
 import { motion } from 'framer-motion';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import InputNormal from '../../common/InputNormal';
 import transferenciasAlmacenService from '../../../services/transferenciasAlmacenService';
@@ -22,6 +22,7 @@ import sucursalesService from '../../../services/sucursalesService';
 function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const { isLargeScreen } = useLayout();
     const { sucursalSeleccionada: sucursalActual } = useUser();
+    const { showInfo, showWarning, showDanger } = useToast();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
@@ -86,25 +87,6 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
         }
     }, [empresaIdActual]);
 
-    // Estado para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'error',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
     // Hook para manejar la lógica de precios de transferencias
     const {
         resolvePrecioInicial,
@@ -142,7 +124,7 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
             if (setModoAgrupacionRef.current) {
                 setModoAgrupacionRef.current('no_agrupado');
             }
-            mostrarNotificacion('info', `El producto ${productoCarrito.name} tiene menos de un grupo disponible. Cambiado a modo unidades.`);
+            showInfo('Info', `El producto ${productoCarrito.name} tiene menos de un grupo disponible. Cambiado a modo unidades.`);
         }
 
         let stockMostrado = stockOriginal;
@@ -157,7 +139,7 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
 
         if (productoCarrito.cantidad > stockMostrado) {
             if (stockCambio) {
-                mostrarNotificacion('warning', `Se ajustó la cantidad de algunos productos para que no excedan el stock disponible`);
+                showWarning('Aviso', `Se ajustó la cantidad de algunos productos para que no excedan el stock disponible`);
             }
             productoModificado.cantidad = stockMostrado;
         }
@@ -181,7 +163,7 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
         }
 
         return productoModificado;
-    }, [mostrarNotificacion]);
+    }, [showInfo, showWarning]);
 
     const calcularSubtotalProducto = useCallback((producto) => {
         if (!producto) return 0;
@@ -223,7 +205,7 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
         onSyncProducto: syncProductoTransferencia,
         onAfterModoAgrupacionChange: ({ producto, cantidadNueva }) => {
             if (producto?.name && cantidadNueva !== undefined) {
-                mostrarNotificacion('warning', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${cantidadNueva} grupos`);
+                showWarning('Aviso', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${cantidadNueva} grupos`);
             }
         }
     });
@@ -276,7 +258,7 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
             : (productoActual.stockOriginal || productoActual.stock);
         if (nuevaCantidad > stockParaValidar) {
             console.warn(`No se puede exceder el stock disponible: ${stockParaValidar}`);
-            mostrarNotificacion('error', 'No se puede exceder el stock disponible');
+            showDanger('Error', 'No se puede exceder el stock disponible');
             return; // No actualizar si excede el stock
         }
 
@@ -462,13 +444,13 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
 
         // Validar sucursal seleccionada
         if (!sucursalSeleccionada) {
-            mostrarNotificacion('error', 'La sucursal es obligatoria');
+            showDanger('Error', 'La sucursal es obligatoria');
             return false;
         }
 
         // Validar precio seleccionado
         if (!precioSeleccionado) {
-            mostrarNotificacion('error', 'El precio es obligatorio');
+            showDanger('Error', 'El precio es obligatorio');
             return false;
         }
 
@@ -494,7 +476,7 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
                     if (sucursalEncontrada) {
                         const empresaIdSucursal = sucursalEncontrada.empresas?.id;
                         if (empresaIdSucursal && empresaIdSucursal !== empresaIdProductos) {
-                            mostrarNotificacion('error', 'La sucursal de destino no tiene los productos requeridos para transferir');
+                            showDanger('Error', 'La sucursal de destino no tiene los productos requeridos para transferir');
                             setLoadingConfirmar(false);
                             return;
                         }
@@ -518,7 +500,7 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
             const result = await transferenciasAlmacenService.create(transferenciaData);
 
             if (!result.success) {
-                mostrarNotificacion('error', result.message || 'Error al crear la transferencia');
+                showDanger('Error', result.message || 'Error al crear la transferencia');
                 setLoadingConfirmar(false);
                 return;
             }
@@ -577,7 +559,7 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
 
         } catch (error) {
             console.error('Error al confirmar:', error);
-            mostrarNotificacion('error', error.message || 'Error al confirmar');
+            showDanger('Error', error.message || 'Error al confirmar');
         } finally {
             setLoadingConfirmar(false);
         }
@@ -839,7 +821,6 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
                 onClienteSeleccionado={handleClienteSeleccionado}
             />
 
-            <Notification isVisible={notification.isVisible} type={notification.type} text={notification.text} />
         </View>
     );
 }

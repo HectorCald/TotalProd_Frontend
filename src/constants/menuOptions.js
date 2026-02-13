@@ -284,13 +284,14 @@ const MENU_OPTIONS_BASE = [
         action: 'openView',
         viewName: 'balance'
       },
-      {
-        id: 'reportes',
-        title: 'Reportes',
-        icon: 'file',
-        action: 'openView',
-        viewName: 'reportes'
-      },
+      // Reportes (comentado)
+      // {
+      //   id: 'reportes',
+      //   title: 'Reportes',
+      //   icon: 'file',
+      //   action: 'openView',
+      //   viewName: 'reportes'
+      // },
     ]
   },
   {
@@ -321,7 +322,7 @@ const MENU_OPTIONS_BASE = [
       },
       {
         id: 'asociados',
-        title: 'Asociados',
+        title: 'Socios',
         icon: 'user-check',
         action: 'openView',
         viewName: 'asociados'

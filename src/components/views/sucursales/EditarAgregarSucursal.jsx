@@ -3,16 +3,19 @@ import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
+import Input from '../../common/inputs/Input';
 import Switch from '../../common/Switch';
 import MultiSelect from '../../common/MultiSelect';
 import NoData from '../../common/NoData';
 import sucursalesService from '../../../services/sucursalesService';
 import pricesTypesService from '../../../services/pricesTypesService';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import Text from '../../common/Text';
+import useHistorialLogger from '../../ui/HistorialLogger';
 
 function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalCreated, onSucursalUpdated }) {
+  const { showSuccess, showDanger, showWarning } = useToast();
+  const { logAccion } = useHistorialLogger({ modulo: 'Sucursales' });
   const [dataMov, setDataMov] = useState({
     name: ''
   });
@@ -22,25 +25,7 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
   const [precios, setPrecios] = useState([]);
   const [preciosSeleccionados, setPreciosSeleccionados] = useState([]);
   const [loadingPrecios, setLoadingPrecios] = useState(false);
-
-  // Estado para la notificación
-  const [notification, setNotification] = useState({
-    isVisible: false,
-    type: 'error',
-    text: ''
-  });
-  const mostrarNotificacion = (tipo, texto) => {
-    setNotification({
-      isVisible: true,
-      type: tipo,
-      text: texto
-    });
-
-    // Auto-ocultar después de 3 segundos
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
-    }, 3000);
-  };
+  const [fieldErrors, setFieldErrors] = useState({ name: false });
 
   // Función para cargar precios disponibles
   const loadPrecios = async () => {
@@ -52,7 +37,7 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
       }
     } catch (error) {
       console.error('Error al cargar precios:', error);
-      mostrarNotificacion('error', 'Error al cargar los tipos de precios');
+      showDanger('Error', 'Error al cargar los tipos de precios', 5000);
     } finally {
       setLoadingPrecios(false);
     }
@@ -67,15 +52,15 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
 
   // Efecto para cargar los datos de la sucursal y precios asignados cuando se está editando
   useEffect(() => {
+    setFieldErrors({ name: false });
     if (data && tipo === 'editar') {
       setDataMov({
         name: data.name || ''
       });
       setAlmacenSeparado(!data.almacen_sucursal_id);
-      
+
       // Usar los precios que ya vienen en data en lugar de hacer una petición
       if (data.precios && Array.isArray(data.precios)) {
-        // Extraer solo los IDs de los precios asignados
         const preciosIds = data.precios.map(precio => precio.id || precio).filter(Boolean);
         setPreciosSeleccionados(preciosIds);
       } else {
@@ -87,27 +72,30 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
       });
       setAlmacenSeparado(true);
       setPreciosSeleccionados([]);
+      setFieldErrors({ name: false });
     }
   }, [isOpen, data, tipo]);
 
   // Función para actualizar los datos del formulario
   const handleChange = (field, value) => {
     setDataMov({ ...dataMov, [field]: value });
+    if (field === 'name') setFieldErrors((prev) => ({ ...prev, name: false }));
   };
 
   // Función para enviar los datos
   const handleSubmit = async () => {
     if (!dataMov.name.trim()) {
-      mostrarNotificacion('error', 'El nombre es obligatorio');
+      setFieldErrors((prev) => ({ ...prev, name: true }));
+      showWarning('Validación', 'El nombre es obligatorio', 5000);
       return;
     }
 
+    setFieldErrors({ name: false });
     setLoading(true);
     try {
       let response;
       const sucursalData = {
         name: dataMov.name.trim(),
-        // Solo informativo para el service; no se envía al backend directamente
         almacenSeparado: almacenSeparado,
         precios: preciosSeleccionados
       };
@@ -119,22 +107,60 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
       }
 
       if (response.success) {
+        const registroId = (response.data && response.data.id) || response.id || data?.id || null;
+        const nombresPrecios = precios
+          .filter(p => preciosSeleccionados.includes(p.id))
+          .map(p => p.name)
+          .filter(Boolean);
+        const almacenLabel = almacenSeparado ? 'Sí' : 'No';
+        const almacenAntes = data?.almacen_sucursal_id ? 'No' : 'Sí';
+        const preciosAntes = (data?.precios && Array.isArray(data.precios))
+          ? data.precios.map(p => p.name || p).filter(Boolean)
+          : [];
+        const preciosDespues = nombresPrecios;
+
+        const camposOrden = ['Nombre de la sucursal', 'Almacén separado', 'Tipos de precios'];
+        const camposDetalle = tipo === 'editar'
+          ? {
+              'Nombre de la sucursal': { antes: data?.name ?? null, despues: sucursalData.name },
+              'Almacén separado': { antes: almacenAntes, despues: almacenLabel },
+              'Tipos de precios': { antes: preciosAntes.length ? preciosAntes : null, despues: preciosDespues.length ? preciosDespues : null }
+            }
+          : {
+              'Nombre de la sucursal': { despues: sucursalData.name },
+              'Almacén separado': { despues: almacenLabel },
+              'Tipos de precios': { despues: preciosDespues.length ? preciosDespues : null }
+            };
+        const detallesPersonalizados = {
+          campos: camposDetalle,
+          camposOrden,
+          comentario: tipo === 'editar' ? 'Actualización de sucursal' : 'Creación de sucursal'
+        };
+        await logAccion({
+          accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
+          lugarAfectado: sucursalData.name || 'Sucursal',
+          registroId,
+          comentario: tipo === 'editar' ? 'Actualización de sucursal' : 'Creación de sucursal',
+          detallesPersonalizados
+        });
+
         if (tipo === 'editar' && onSucursalUpdated) {
           onSucursalUpdated(response.data);
         } else if (tipo === 'agregar' && onSucursalCreated) {
           onSucursalCreated(response.data);
         }
+        showSuccess('Éxito', tipo === 'editar' ? 'Sucursal actualizada correctamente' : 'Sucursal agregada correctamente', 5000);
         setIsOpen(false);
       } else if (response.code === 'MODULE_NOT_INCLUDED') {
-        mostrarNotificacion('error', `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`);
+        showDanger('Error', `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}". Actualiza tu plan para acceder a esta función.`, 5000);
       } else if (response.code === 'NO_PLAN') {
-        mostrarNotificacion('error', 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.');
+        showDanger('Error', 'Necesitas un plan activo para acceder a esta función. Actualiza tu plan desde el perfil.', 5000);
       } else {
-        mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} la sucursal`);
+        showDanger('Error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} la sucursal`, 5000);
       }
     } catch (error) {
       console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} sucursal:`, error);
-      mostrarNotificacion('error', 'Error de conexión con el servidor');
+      showDanger('Error', 'Error de conexión con el servidor', 5000);
     } finally {
       setLoading(false);
     }
@@ -143,21 +169,26 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
   return (
     <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
       <HeaderModal
-        title={tipo === 'editar' ? 'Editar sucursal' : 'Nueva sucursal'}
+        title={tipo === 'editar' ? 'Editar Sucursal' : 'Nueva Sucursal'}
         onClose={() => setIsOpen(false)}
       />
       <div className={styles.modalContent}>
-        <p className={styles.subTitle}>INFORMACIÓN DE LA SUCURSAL</p>
+        <hr className={styles.separator} />
+        <p className={styles.subTitle}>Información</p>
 
-        <InputNormal
+        <Input
           tipo="text"
+          label="Nombre de la sucursal"
           value={dataMov.name}
-          placeholder='Nombre de la sucursal'
           onChange={(e) => handleChange('name', e.target.value)}
-          icon='building'
+          required={true}
+          readOnly={loading}
+          error={fieldErrors.name}
+          onClearError={() => setFieldErrors((prev) => ({ ...prev, name: false }))}
         />
 
-        <div className={styles.content}>
+        <p className={styles.subTitle}>Almacén</p>
+        <div className={styles.content} style={{ padding: '10px 15px', marginBottom: '15px' }}>
           <Switch
             title="Almacén separado"
             subtitle="La sucursal tendrá su propio almacén y stock"
@@ -165,16 +196,16 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
             onChange={setAlmacenSeparado}
             icon="store"
             disabled={tipo === 'editar' && data?.total_pedidos > 0 && !data?.almacen_sucursal_id}
+            readOnly={loading}
           />
-          
         </div>
         {data?.total_pedidos > 0 && !data?.almacen_sucursal_id && (
-            <Text type="warning" align="left">
-              No es posible separar el almacén si hay pedidos o movimientos en la sucursal
-            </Text>
-          )}
+          <Text type="warning" align="left">
+            No es posible separar el almacén si hay pedidos o movimientos en la sucursal
+          </Text>
+        )}
 
-        <p className={styles.subTitle}>PRECIOS DISPONIBLES</p>
+        <p className={styles.subTitle}>Precios disponibles</p>
         {loadingPrecios ? (
           <NoData
             icon="loader-alt"
@@ -204,6 +235,7 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
             minHeight="150px"
           />
         )}
+        <div className={styles.space}></div>
 
         <Boton
           className='btn-original'
@@ -211,15 +243,9 @@ function EditarAgregarSucursal({ isOpen, setIsOpen, data = '', tipo, onSucursalC
           style={{ marginTop: 'auto' }}
           onClick={handleSubmit}
           loading={loading}
-          disabled={!dataMov.name.trim()}
+          disabled={loading}
         />
       </div>
-
-      <Notification
-        isVisible={notification.isVisible}
-        type={notification.type}
-        text={notification.text}
-      />
     </ViewModal>
   );
 }

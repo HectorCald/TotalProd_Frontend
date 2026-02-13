@@ -10,8 +10,8 @@ import { BoxIcon } from 'boxicons-react';
 import { motion } from 'framer-motion';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import sucursalesService from '../../../services/sucursalesService';
-import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
+import { useToast } from '../../../context/ToastContext';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import usePedidoEdicion from './hooks/usePedidoEdicion';
@@ -21,33 +21,12 @@ import { useLayout } from '../../../context/LayoutContext';
 function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, pedidoId = null, onPedidoActualizado = null, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
     const { isLargeScreen } = useLayout();
+    const { showSuccess, showDanger, showWarning } = useToast();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
-    // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
     const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
     const [sucursalSeleccionadaData, setSucursalSeleccionadaData] = useState(null);
-
-    // Estado para notificaciones
-    const [notification, setNotification] = useState({ isVisible: false, type: 'error', text: '' });
-    const notificationTimeoutRef = useRef(null);
-    const mostrarNotificacion = useCallback((tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        if (notificationTimeoutRef.current) {
-            clearTimeout(notificationTimeoutRef.current);
-        }
-
-        // Auto-ocultar después de 3 segundos
-        notificationTimeoutRef.current = setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-            notificationTimeoutRef.current = null;
-        }, 3000);
-    }, []);
 
     const {
         isEditing,
@@ -140,11 +119,11 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         onSyncProducto: syncProductoPedido,
         onAfterModoAgrupacionChange: ({ producto, cantidadNueva }) => {
             if (producto?.grup) {
-                mostrarNotificacion('warning', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${cantidadNueva} grupos`);
+                showWarning('Cantidad ajustada', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${cantidadNueva} grupos`, 5000);
             } else if (producto?.name) {
-                mostrarNotificacion('warning', `La cantidad de ${producto.name} se ajustó al máximo disponible.`);
+                showWarning('Cantidad ajustada', `La cantidad de ${producto.name} se ajustó al máximo disponible.`, 5000);
             } else {
-                mostrarNotificacion('warning', `La cantidad se ajustó al máximo disponible.`);
+                showWarning('Cantidad ajustada', `La cantidad se ajustó al máximo disponible.`, 5000);
             }
         }
     });
@@ -165,15 +144,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         precioSeleccionado, // Ahora pasamos el precioSeleccionado real
         isEditing,
     });
-
-
-    useEffect(() => {
-        return () => {
-            if (notificationTimeoutRef.current) {
-                clearTimeout(notificationTimeoutRef.current);
-            }
-        };
-    }, []);
 
     // Obtener empresa actual y empresas asociadas
     const empresaIdActual = sucursalActual?.empresas?.id;
@@ -330,14 +300,14 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
         try {
             // Validar sucursal seleccionada
             if (!sucursalSeleccionada) {
-                mostrarNotificacion('error', 'La sucursal es obligatoria');
+                showDanger('Error de validación', 'La sucursal es obligatoria', 5000);
                 setLoadingConfirmar(false);
                 return;
             }
 
             // Validar que no se seleccione la sucursal actual
             if (sucursalSeleccionada === sucursalActual?.id) {
-                mostrarNotificacion('error', 'No puedes seleccionar tu sucursal actual como destino');
+                showDanger('Error de validación', 'No puedes seleccionar tu sucursal actual como destino', 5000);
                 setLoadingConfirmar(false);
                 return;
             }
@@ -352,7 +322,7 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                     if (sucursalEncontrada) {
                         const empresaIdSucursal = sucursalEncontrada.empresas?.id;
                         if (empresaIdSucursal && empresaIdSucursal !== empresaIdProductos) {
-                            mostrarNotificacion('error', 'La sucursal de destino no tiene los productos requeridos para pedir');
+                            showDanger('Error de validación', 'La sucursal de destino no tiene los productos requeridos para pedir', 5000);
                             setLoadingConfirmar(false);
                             return;
                         }
@@ -389,15 +359,16 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 if (onCerrarCanasta) {
                     onCerrarCanasta(pedidoIdCreado);
                 }
+                showSuccess('Pedido creado', 'El pedido ha sido creado exitosamente', 5000);
 
             } else {
                 console.error('Error al crear pedido:', response.message);
-                mostrarNotificacion('error', response.message || 'Error al crear el pedido');
+                showDanger('Error', response.message || 'Error al crear el pedido', 5000);
             }
 
         } catch (error) {
             console.error('Error al crear pedido:', error);
-            mostrarNotificacion('error', error.message || 'Error al crear el pedido');
+            showDanger('Error', error.message || 'Error al crear el pedido', 5000);
         } finally {
             setLoadingConfirmar(false);
         }
@@ -440,15 +411,16 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 if (onCerrarCanasta) {
                     onCerrarCanasta(pedidoIdActualizado);
                 }
+                showSuccess('Pedido actualizado', 'El pedido ha sido actualizado exitosamente', 5000);
 
             } else {
                 console.error('Error al actualizar pedido:', response.message);
-                mostrarNotificacion('error', response.message || 'Error al actualizar el pedido');
+                showDanger('Error', response.message || 'Error al actualizar el pedido', 5000);
             }
 
         } catch (error) {
             console.error('Error al actualizar pedido:', error);
-            mostrarNotificacion('error', error.message || 'Error al actualizar el pedido');
+            showDanger('Error', error.message || 'Error al actualizar el pedido', 5000);
         } finally {
             setLoadingConfirmar(false);
         }
@@ -669,8 +641,6 @@ function CanastaPedidos({ isOpen, setIsOpen, productosCanasta, setProductosCanas
                 setIsOpen={setIsLimpiarModalOpen}
                 onConfirmar={handleLimpiarCanasta}
             />
-
-            <Notification isVisible={notification.isVisible} type={notification.type} text={notification.text} />
         </View>
     );
 }

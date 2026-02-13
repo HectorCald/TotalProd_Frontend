@@ -10,7 +10,7 @@ import gastosService from '../../../services/gastosService';
 import registrosProduccionDamabravaService from '../../../services/registrosProduccionDamabravaService';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import deudasService from '../../../services/deudasService';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import styles from '../../../styles/view.module.css';
 import Boton from '../../common/Boton';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
@@ -21,6 +21,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   const DEBUG_REPORTES = false;
   const { user } = useUser();
   const soloVentas = isSoloVentas(user);
+  const { showSuccess, showDanger, showWarning, showInfo } = useToast();
   // Estados para el rango de fechas
   const [selectedRange, setSelectedRange] = useState({ inicio: null, fin: null });
   const [isFechaModalOpen, setIsFechaModalOpen] = useState(false);
@@ -28,13 +29,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   const [isDescargaOpen, setIsDescargaOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [datosReporte, setDatosReporte] = useState({});
-
-  // Estados para la notificación
-  const [notification, setNotification] = useState({
-    isVisible: false,
-    type: 'success',
-    text: ''
-  });
 
   const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -131,19 +125,13 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   };
 
 
-  // Función para mostrar notificaciones
-  const mostrarNotificacion = (tipo, texto) => {
-    if (DEBUG_REPORTES) console.log('Notificación ->', { tipo, texto });
-    setNotification({
-      isVisible: true,
-      type: tipo,
-      text: texto
-    });
-
-    // Auto-ocultar después de 3 segundos
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
-    }, 3000);
+  // Función para mostrar toast global: titulo corto + detalle (puede ser varias líneas)
+  const mostrarNotificacion = (tipo, titulo, detalle, duracion = 5000) => {
+    if (DEBUG_REPORTES) console.log('Toast ->', { tipo, titulo, detalle });
+    if (tipo === 'success') showSuccess(titulo, detalle, duracion);
+    else if (tipo === 'error') showDanger(titulo, detalle, duracion, false);
+    else if (tipo === 'warning') showWarning(titulo, detalle, duracion);
+    else showInfo(titulo, detalle, duracion);
   };
 
   // Función para aplicar el rango de fechas seleccionado
@@ -910,13 +898,13 @@ const Reportes = ({ isOpen, setIsOpen }) => {
   // Función principal para generar el reporte
   const handleGenerarReporte = async () => {
     if (!selectedRange.inicio || !selectedRange.fin || !areaSeleccionada) {
-      mostrarNotificacion('error', 'Por favor selecciona fechas y área');
+      mostrarNotificacion('error', 'Error', 'Por favor selecciona fechas y área');
       return;
     }
 
     const sucuId = getSucuId();
     if (!sucuId) {
-      mostrarNotificacion('error', 'No hay sucursal seleccionada');
+      mostrarNotificacion('error', 'Error', 'No hay sucursal seleccionada');
       return;
     }
 
@@ -924,14 +912,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
     if (areaSeleccionada === 'materia_Prima') {
       const sucursalName = getSucursalName();
       if (sucursalName !== 'Casa Matriz') {
-        mostrarNotificacion('error', 'Los reportes de materia prima solo están disponibles para Casa Matriz');
+        mostrarNotificacion('error', 'Error', 'Los reportes de materia prima solo están disponibles para Casa Matriz');
         return;
       }
     }
 
     const fechasPreparadas = prepararFechasParaConsulta();
     if (!fechasPreparadas) {
-      mostrarNotificacion('error', 'Error al preparar las fechas');
+      mostrarNotificacion('error', 'Error', 'Error al preparar las fechas');
       return;
     }
 
@@ -968,14 +956,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             );
 
             if (movimientosFiltradosVentas.length === 0) {
-              mostrarNotificacion('warning', 'No hay ventas en el período seleccionado');
+              mostrarNotificacion('warning', 'Aviso', 'No hay ventas en el período seleccionado');
               if (DEBUG_REPORTES) console.warn('Sin ventas en rango. Total API:', movimientosVentas.data.length);
               return;
             }
 
             reporteData = await generarReporteVentas(movimientosFiltradosVentas, { fechaInicio: fechaInicioNormalizada, fechaFin: fechaFinNormalizada });
           } else {
-            mostrarNotificacion('error', 'No se pudieron obtener los movimientos de ventas');
+            mostrarNotificacion('error', 'Error', 'No se pudieron obtener los movimientos de ventas');
             return;
           }
           break;
@@ -991,14 +979,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             );
 
             if (movimientosFiltradosAlmacen.length === 0) {
-              mostrarNotificacion('warning', 'No hay movimientos de almacén en el período seleccionado');
+              mostrarNotificacion('warning', 'Aviso', 'No hay movimientos de almacén en el período seleccionado');
               if (DEBUG_REPORTES) console.warn('Sin movimientos de almacén en rango. Total API:', movimientosAlmacen.data.length);
               return;
             }
 
             reporteData = await generarReporteAlmacen(movimientosFiltradosAlmacen, { fechaInicio: fechaInicioNormalizada, fechaFin: fechaFinNormalizada });
           } else {
-            mostrarNotificacion('error', 'No se pudieron obtener los movimientos de almacén');
+            mostrarNotificacion('error', 'Error', 'No se pudieron obtener los movimientos de almacén');
             return;
           }
           break;
@@ -1017,14 +1005,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
 
             if (movimientosFiltrados.length === 0) {
-              mostrarNotificacion('warning', 'No hay movimientos de materia prima en el período seleccionado');
+              mostrarNotificacion('warning', 'Aviso', 'No hay movimientos de materia prima en el período seleccionado');
               if (DEBUG_REPORTES) console.warn('Sin materia prima en rango. Total API:', movimientosAcopio.data.length);
               return;
             }
 
             reporteData = await generarReporteMateriaPrima(movimientosFiltrados, { fechaInicio: fechaInicioNormalizada, fechaFin: fechaFinNormalizada });
           } else {
-            mostrarNotificacion('error', 'No se pudieron obtener los movimientos de materia prima');
+            mostrarNotificacion('error', 'Error', 'No se pudieron obtener los movimientos de materia prima');
             return;
           }
           break;
@@ -1045,12 +1033,12 @@ const Reportes = ({ isOpen, setIsOpen }) => {
           if (DEBUG_REPORTES) console.log('API gastos ->', gastosResp?.data?.length ?? 0);
           
           if (!gastosResp?.success || !Array.isArray(gastosResp.data)) {
-            mostrarNotificacion('error', 'No se pudieron obtener los gastos');
+            mostrarNotificacion('error', 'Error', 'No se pudieron obtener los gastos');
             return;
           }
           
           if (gastosResp.data.length === 0) {
-            mostrarNotificacion('warning', 'No hay gastos en el período seleccionado');
+            mostrarNotificacion('warning', 'Aviso', 'No hay gastos en el período seleccionado');
             if (DEBUG_REPORTES) console.warn('Sin gastos en rango');
             return;
           }
@@ -1074,12 +1062,12 @@ const Reportes = ({ isOpen, setIsOpen }) => {
           if (DEBUG_REPORTES) console.log('API deudas ->', deudasResp?.data?.length ?? 0);
           
           if (!deudasResp?.success || !Array.isArray(deudasResp.data)) {
-            mostrarNotificacion('error', 'No se pudieron obtener las deudas');
+            mostrarNotificacion('error', 'Error', 'No se pudieron obtener las deudas');
             return;
           }
           
           if (deudasResp.data.length === 0) {
-            mostrarNotificacion('warning', 'No hay deudas en el período seleccionado');
+            mostrarNotificacion('warning', 'Aviso', 'No hay deudas en el período seleccionado');
             if (DEBUG_REPORTES) console.warn('Sin deudas en rango');
             return;
           }
@@ -1099,14 +1087,14 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             );
 
             if (registrosFiltrados.length === 0) {
-              mostrarNotificacion('warning', 'No hay registros de producción en el período seleccionado');
+              mostrarNotificacion('warning', 'Aviso', 'No hay registros de producción en el período seleccionado');
               if (DEBUG_REPORTES) console.warn('Sin registros de producción en rango. Total API:', registrosProduccion.data.length);
               return;
             }
 
             reporteData = await generarReporteProduccion(registrosFiltrados, { fechaInicio: fechaInicioNormalizada, fechaFin: fechaFinNormalizada });
           } else {
-            mostrarNotificacion('error', 'No se pudieron obtener los registros de producción');
+            mostrarNotificacion('error', 'Error', 'No se pudieron obtener los registros de producción');
             return;
           }
           break;
@@ -1117,10 +1105,10 @@ const Reportes = ({ isOpen, setIsOpen }) => {
 
       setDatosReporte(reporteData);
       setIsDescargaOpen(true);
-      mostrarNotificacion('success', 'Reporte generado correctamente');
+      mostrarNotificacion('success', 'Éxito', 'Reporte generado correctamente');
     } catch (error) {
       console.error('Error generando reporte:', error);
-      mostrarNotificacion('error', 'Error al generar el reporte');
+      mostrarNotificacion('error', 'Error', 'Error al generar el reporte');
     } finally {
       setIsLoading(false);
     }
@@ -1160,6 +1148,7 @@ const Reportes = ({ isOpen, setIsOpen }) => {
             label='Generar Reporte'
             onClick={handleGenerarReporte}
             loading={isLoading}
+            iconName="file-export"
           />
         </div>
 
@@ -1187,12 +1176,6 @@ const Reportes = ({ isOpen, setIsOpen }) => {
         defaultToToday={false}
       />
 
-      {/* Notificación */}
-      <Notification
-        isVisible={notification.isVisible}
-        type={notification.type}
-        text={notification.text}
-      />
     </View>
   );
 };

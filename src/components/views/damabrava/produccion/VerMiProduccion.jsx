@@ -1,77 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styles from '../../../../styles/view.module.css';
 import HeaderView from '../../../common/HeaderView';
 import View from '../../../ui/View';
-import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
 import Dato from '../../../common/Dato';
-import { BoxIcon } from 'boxicons-react';
-import { FaStar, FaRegStar } from 'react-icons/fa';
+import Boton from '../../../common/Boton';
 import ItemView from '../../../common/ItemView';
-import Notification from '../../../common/Notification';
 import ModalDescarga from '../../../ui/ModalDescarga';
+import StatusBadge from '../../../common/StatusBadge';
+import NoData from '../../../common/NoData';
 import { formatFechaLiteral, formatHoraSinSegundos, formatFechaHoraLiteral } from '../../../../utils/dateUtils';
 import { useLayout } from '../../../../context/LayoutContext';
 
 function VerMiProduccion({ isOpen, setIsOpen, registro }) {
     const { isLargeScreen } = useLayout();
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
-    const [isDestacado, setIsDestacado] = useState(false);
 
-    // Estados para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
+    // Formateo seguro Mes Año (evita desfase por zonas horarias)
+    const formatMesAnio = (v) => {
+        if (!v) return '';
+        const base = String(v).split('T')[0];
+        const [y, m] = base.split('-');
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const nombreMes = meses[(parseInt(m, 10) || 1) - 1] || '';
+        return `${nombreMes} ${y}`;
     };
 
-    // Función para manejar el destacado
-    const handleDestacar = () => {
-        if (!registro?.id) return;
-
-        let registrosDestacados = JSON.parse(localStorage.getItem('RegistrosProduccionDestacados') || '[]');
-
-        if (isDestacado) {
-            // Quitar de destacados
-            registrosDestacados = registrosDestacados.filter(r => r.id !== registro.id);
-            setIsDestacado(false);
-        } else {
-            // Verificar si ya hay 10 registros destacados
-            if (registrosDestacados.length >= 10) {
-                mostrarNotificacion('error', 'Solo puedes destacar máximo 10 registros de producción');
-                return;
-            }
-
-            // Agregar a destacados
-            registrosDestacados.push({
-                id: registro.id,
-                tipo: 'produccion'
-            });
-            setIsDestacado(true);
-        }
-
-        localStorage.setItem('RegistrosProduccionDestacados', JSON.stringify(registrosDestacados));
-    };
-
-    useEffect(() => {
-        if (registro?.id) {
-            const registrosDestacados = JSON.parse(localStorage.getItem('RegistrosProduccionDestacados') || '[]');
-            const esDestacado = registrosDestacados.some(r => r.id === registro.id);
-            setIsDestacado(esDestacado);
-        }
-    }, [registro?.id]);
+    const procesoLabel = registro?.proceso === 'cernido' ? 'Cernido' : registro?.proceso === 'seleccionado' ? 'Seleccionado' : registro?.proceso === 'ninguno' ? 'Ninguno' : registro?.proceso || '--';
 
     // Función para preparar datos de descarga
     const prepararDatosDescarga = () => {
@@ -80,9 +34,8 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
         // Obtener nombre de la sucursal
         const nombreSucursal = registro?.sucursal?.name || 'Sucursal no encontrada';
 
-        // Información superior
+        // Información superior (sin responsable)
         const informacionSuperior = {
-            'Responsable': registro?.user?.name || registro?.personal?.name || 'Usuario desconocido',
             'Producto': registro?.producto_almacen?.name || 'Sin producto',
             'Lote': registro?.lote || '0',
             'Proceso': registro?.proceso === 'cernido' ? 'Cernido' :
@@ -122,117 +75,73 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    Mis Detalles de Producción
-                    <div className={styles.iconButton}>
-                        <button
-                            className={styles.iconButton}
-                            onClick={handleDestacar}
-                            title={isDestacado ? 'Quitar de destacados' : 'Destacar registro'}
-                        >
-                            {isDestacado ? (
-                                <FaStar
-                                    className={styles.iconStar}
-                                    style={{ color: '#FFD700' }}
-                                />
-                            ) : (
-                                <FaRegStar
-                                    className={styles.iconStar}
-                                    style={{ color: '#666' }}
-                                />
-                            )}
-                        </button>
-                        <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
-                            <BoxIcon
-                                name='download'
-                                className={styles.iconDownload}
-                            />
-                        </button>
+                <div className={styles.header}>
+                    <div className={styles.headerContent}>
+                        <h1 className={styles.title}>Mis Detalles<StatusBadge estado={registro?.estado} variant="produccion" /></h1>
+                        <p className={styles.subTitle}>Registrado el {formatFechaLiteral(registro?.fecha, !isLargeScreen)}</p>
                     </div>
-                </h1>
-                <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
-                <ItemView
-                    title={registro?.user?.name || registro?.personal?.name || 'Usuario desconocido'}
-                    description="Responsable"
-                    transparent={false}
-                />
-                <p className={styles.subTitle}>INFORMACIÓN DE LA PRODUCCIÓN</p>
-                <ItemView
-                    title={registro?.producto_almacen?.name || 'Sin producto'}
-                    description={`Lote: ${registro?.lote || '0'}`}
-                    description2={`Proceso: ${registro?.proceso === 'cernido' ? 'Cernido' : registro?.proceso === 'seleccionado' ? 'Seleccionado' : registro?.proceso === 'ninguno' ? 'Ninguno' : registro?.proceso}`}
-                    transparent={false}
-                    icon='package'
-                />
-
-                {/* Información de producción */}
-                <div className={styles.content}>
-                    <Dato
-                        label="Fecha y hora"
-                        value={formatFechaLiteral(registro?.fecha, !isLargeScreen) + ' - ' + formatHoraSinSegundos(registro?.fecha)}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Tiempo de Microondas"
-                        value={`${registro?.microondas || '0'} segundos`}
-                        vertical={false}
-                    />
-
-                    <Dato
-                        label="Cantidad Terminados"
-                        value={`${registro?.terminados || '0'} unidades`}
-                        vertical={false}
-                        especial='green'
-                    />
-                    <Dato
-                        label="Fecha de Vencimiento"
-                        value={formatFechaLiteral(registro?.vencimiento, !isLargeScreen)}
-                        vertical={false}
-                    />
-
+                    <div className={styles.iconButton}>
+                        <Boton
+                            iconName="download"
+                            label="Descargar"
+                            className="btn-default"
+                            onClick={() => setIsDescargaOpen(true)}
+                            hideTextOnMobile={true}
+                        />
+                    </div>
                 </div>
 
-                {/* Información de verificación si existe */}
-                {registro?.fecha_verificado && (
-                    <>
-                        <p className={styles.subTitle}>INFORMACIÓN DE VERIFICACIÓN</p>
-                        <div className={styles.content}>
-                            <Dato
-                                label="Fecha de Verificación"
-                                value={formatFechaLiteral(registro.fecha_verificado, !isLargeScreen)}
-                                vertical={false}
+                <div className={styles.contentRow}>
+                    {/* Primera columna: Información de la producción (sin responsable) */}
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content} style={{ height: '100%' }}>
+                            <ItemView
+                                title="Información de la Producción"
+                                transparent={true}
+                                icon="box"
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
                             />
-
-                            <Dato
-                                label="Cantidad Verificada"
-                                value={`${registro.cantidad_verificada} unidades`}
-                                vertical={false}
-                                especial='blue'
-                            />
-                            <Dato
-                                label="Cantidad Ingresada"
-                                value={`${registro.cantidad_ingresada} unidades`}
-                                vertical={false}
-                                especial='green'
-                            />
-
+                            <Dato label="Producto" value={registro?.producto_almacen?.name || 'Sin producto'} vertical={false} />
+                            <Dato label="Lote" value={registro?.lote || '0'} vertical={false} />
+                            <Dato label="Proceso" value={procesoLabel} vertical={false} />
+                            <Dato label="Tiempo de Microondas" value={`${registro?.microondas || '0'} segundos`} vertical={false} />
+                            <Dato label="Cantidad Terminados" value={`${registro?.terminados || '0'} unidades`} vertical={false} />
+                            <Dato label="Fecha de Vencimiento" value={formatMesAnio(registro?.vencimiento)} vertical={false} />
+                            {registro?.observaciones && (
+                                <Dato label="Observaciones" value={registro.observaciones} vertical={false} />
+                            )}
                         </div>
-                    </>
-                )}
+                    </div>
 
-                {/* Observaciones del registro */}
-                {registro?.observaciones && (
-                    <>
-                        <p className={styles.subTitle}>OBSERVACIONES</p>
-                        <div className={styles.content}>
-                            <Dato
-                                label="Observaciones"
-                                value={registro.observaciones}
-                                vertical={true}
+                    {/* Segunda columna: Datos de verificación (o NoData si no está verificado) */}
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content} style={{ height: '100%' }}>
+                            <ItemView
+                                title="Información de Verificación"
+                                transparent={true}
+                                icon="check-double"
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
                             />
+                            {registro?.estado !== 'pendiente' && registro?.fecha_verificado ? (
+                                <>
+                                    <Dato label="Fecha de Verificación" value={formatFechaLiteral(registro.fecha_verificado, !isLargeScreen)} vertical={false} />
+                                    <Dato label="Cantidad Verificada" value={`${registro.cantidad_verificada} unidades`} vertical={false} especial="green" />
+                                    <Dato label="Cantidad Ingresada" value={`${registro.cantidad_ingresada} unidades`} vertical={false} especial="blue" />
+                                </>
+                            ) : (
+                                <NoData
+                                    icon="check-shield"
+                                    title="Falta información de verificación"
+                                    detail="Este registro aún no ha sido verificado."
+                                    transparent={true}
+                                    minHeight="140px"
+                                />
+                            )}
                         </div>
-                    </>
-                )}
+                    </div>
+                </div>
             </div>
 
             {/* Modal de descarga */}
@@ -244,13 +153,7 @@ function VerMiProduccion({ isOpen, setIsOpen, registro }) {
                 nombreArchivo={`Mi_Registro_Produccion_${registro?.lote || '0'}_${formatFechaLiteral(registro?.fecha, false).replace(/\s+/g, '_')}`}
                 {...prepararDatosDescarga()}
             />
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
-        </View >
+        </View>
     );
 }
 

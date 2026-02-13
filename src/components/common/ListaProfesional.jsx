@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './ListaProfesional.module.css';
 
-function ListaProfesional({ title = '', items = [] }) {
+function ListaProfesional({ title = '', items = [], getItemClassName }) {
     const renderItems = (list, level = 0) => {
         if (!Array.isArray(list) || list.length === 0) return null;
         return (
@@ -10,8 +10,9 @@ function ListaProfesional({ title = '', items = [] }) {
                     const isObject = item && typeof item === 'object' && !Array.isArray(item);
                     const label = isObject ? (item.label || '') : String(item);
                     const children = isObject ? (item.children || item.items || []) : [];
+                    const extraClass = isObject && getItemClassName ? getItemClassName(item) : '';
                     return (
-                        <li key={`${level}-${index}`} className={styles.item}>
+                        <li key={`${level}-${index}`} className={`${styles.item} ${extraClass || ''}`.trim()}>
                             <div className={styles.row}>
                                 <span className={level === 0 ? styles.labelRoot : styles.labelNested}>{label}</span>
                             </div>

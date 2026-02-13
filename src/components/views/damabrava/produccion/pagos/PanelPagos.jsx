@@ -7,8 +7,8 @@ import Table from '../../../../common/Table';
 import ItemView from '../../../../common/ItemView';
 import PullToRefresh from '../../../../common/PullToRefresh';
 import Boton from '../../../../common/Boton';
-import Notification from '../../../../common/Notification';
 import NoData from '../../../../common/NoData';
+import { useToast } from '../../../../../context/ToastContext';
 import LoadingSpinner from '../../../../common/LoadingSpinner';
 import Filtros from '../../../../common/Filtros';
 import RefreshIndicator from '../../../../common/RefreshIndicator';
@@ -42,17 +42,13 @@ const formatFechaCorta = (value) => {
 
 const PanelPagos = ({ isOpen, setIsOpen }) => {
     const { isLargeScreen } = useLayout();
+    const { showSuccess, showDanger } = useToast();
     const [pagos, setPagos] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchNormalized, setSearchNormalized] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
     const [isVerPagoOpen, setIsVerPagoOpen] = useState(false);
     const [selectedPago, setSelectedPago] = useState(null);
     const [isRegistroPagoOpen, setIsRegistroPagoOpen] = useState(false);
@@ -91,17 +87,6 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         filtersSignature: filterSignature,
         pageSize: PAGE_LIMIT,
     });
-
-    const mostrarNotificacion = (type, text) => {
-        setNotification({
-            isVisible: true,
-            type,
-            text
-        });
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     const sortPagos = useCallback((lista = []) => {
         return [...lista].sort((a, b) => {
@@ -177,12 +162,12 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
 
     const handleError = useCallback((err) => {
         setError(err);
-        mostrarNotificacion('error', err.message || 'Error al obtener los pagos.');
+        showDanger(err.message || 'Error al obtener los pagos.');
         setHasMorePages(false);
         if (currentPage === 1) {
             setPagosLoaded(true);
         }
-    }, [currentPage, mostrarNotificacion]);
+    }, [currentPage, showDanger]);
 
     const handleHasMorePagesChange = useCallback((hasMore) => {
         setHasMorePages(hasMore);
@@ -401,7 +386,7 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
         setIsVerPagoOpen(false);
         setSelectedPago(null);
         const texto = mensaje || 'Pago eliminado correctamente.';
-        mostrarNotificacion('success', texto);
+        showSuccess(texto);
         if (!pagoId) {
             return;
         }
@@ -481,12 +466,12 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
             return sortPagos([pagoDetallado, ...sinDuplicados]);
         });
         setSelectedPago(pagoDetallado);
-        mostrarNotificacion('success', 'Pago registrado correctamente.');
+        showSuccess('Pago registrado correctamente.');
         setCurrentPage(1);
         setHasMorePages(false);
         setPagosLoaded(false);
         // FetchDataProgressive se encargará de recargar automáticamente
-    }, [sortPagos, mutateCachedItems]);
+    }, [sortPagos, mutateCachedItems, showSuccess]);
 
     const handleRefresh = async () => {
         pagosRef.current = [];
@@ -653,7 +638,6 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
                 pago={selectedPago}
                 onPagoActualizado={handlePagoActualizado}
                 onPagoEliminado={handlePagoEliminado}
-                mostrarNotificacion={mostrarNotificacion}
                 reglas={reglasProduccion}
             />
 
@@ -676,12 +660,6 @@ const PanelPagos = ({ isOpen, setIsOpen }) => {
                 setIsOpen={setIsOpenFiltroResponsable}
                 onResponsableSeleccionado={handleFiltroResponsable}
                 responsableSeleccionado={filtroResponsable}
-            />
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
             />
 
             {/* Carga de datos progresiva - solo cuando está abierto */}

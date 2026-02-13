@@ -11,8 +11,14 @@ import pagosDamabravaService from '../../../../../services/pagosDamabravaService
 import { seleccionarReglaParaProducto, calcularPagoProcesos } from '../../../../../utils/reglasPagoHelper';
 import ItemView from '../../../../common/ItemView';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../../../utils/dateUtils';
+import { formatCurrency } from '../../../../../utils/numberUtils';
 import { useLayout } from '../../../../../context/LayoutContext';
 import NoData from '../../../../common/NoData';
+import ResumenFinanciero from '../../../../ui/ResumenFinanciero';
+import StatusBadge from '../../../../common/StatusBadge';
+import { useToast } from '../../../../../context/ToastContext';
+import useHistorialLogger from '../../../../ui/HistorialLogger';
+import { buildPagoDetallesParaHistorial } from '../../../../../utils/logFormatters';
 
 const formatNumber = (value, decimals = 2) => {
     const num = Number(value || 0);
@@ -28,10 +34,11 @@ const VerPago = ({
     pago,
     onPagoActualizado,
     onPagoEliminado,
-    mostrarNotificacion,
     reglas = []
 }) => {
     const { isLargeScreen } = useLayout();
+    const { showSuccess, showWarning, showDanger } = useToast();
+    const { logAccion } = useHistorialLogger({ modulo: 'Pagos' });
     const [detallePago, setDetallePago] = useState(pago || null);
     const [isRegistrosModalOpen, setIsRegistrosModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -65,6 +72,25 @@ const VerPago = ({
     const aumento = Number(detallePago?.aumento) || 0;
     const totalProduccion = Number(detallePago?.total) || 0;
     const totalConAjustes = totalProduccion + extras + aumento - descuento;
+
+    const resumenPago = useMemo(() => {
+        if (!detallePago) return null;
+        const filas = [];
+        if (extras > 0) {
+            filas.push({ label: 'Extras:', value: formatCurrency(extras, false), tipo: 'green' });
+        }
+        if (aumento > 0) {
+            filas.push({ label: 'Aumento:', value: formatCurrency(aumento, false), tipo: 'green' });
+        }
+        if (descuento > 0) {
+            filas.push({ label: 'Descuento:', value: `-${formatCurrency(descuento, false)}`, tipo: 'red' });
+        }
+        return {
+            subtotalFormatted: formatCurrency(totalProduccion),
+            filas,
+            totalFormatted: formatCurrency(totalConAjustes)
+        };
+    }, [detallePago, totalProduccion, descuento, extras, aumento, totalConAjustes]);
 
     const registrosCalculados = useMemo(() => {
         if (!detallePago?.registros || !Array.isArray(detallePago.registros)) {
@@ -113,9 +139,7 @@ const VerPago = ({
 
     const handleVerRegistros = async () => {
         if (!detallePago?.id) {
-            if (mostrarNotificacion) {
-                mostrarNotificacion('warning', 'No se pudo identificar el pago seleccionado.');
-            }
+            showWarning('No se pudo identificar el pago seleccionado.');
             return;
         }
 
@@ -135,9 +159,7 @@ const VerPago = ({
             setIsRegistrosModalOpen(true);
         } catch (error) {
             console.error('Error obteniendo registros asociados del pago:', error);
-            if (mostrarNotificacion) {
-                mostrarNotificacion('error', error.message || 'No se pudieron obtener los registros asociados.');
-            }
+            showDanger(error.message || 'No se pudieron obtener los registros asociados.');
         } finally {
             setRegistrosLoading(false);
         }
@@ -160,14 +182,10 @@ const VerPago = ({
                 }
                 return actualizado;
             });
-            if (mostrarNotificacion) {
-                mostrarNotificacion('success', estadoActualizado === 'pagado' ? 'Pago marcado como pagado.' : 'Pago marcado como pendiente.');
-            }
+            showSuccess(estadoActualizado === 'pagado' ? 'Pago marcado como pagado.' : 'Pago marcado como pendiente.');
         } catch (error) {
             console.error('Error actualizando estado del pago:', error);
-            if (mostrarNotificacion) {
-                mostrarNotificacion('error', error.message || 'Error al actualizar el estado.');
-            }
+            showDanger(error.message || 'Error al actualizar el estado.');
         } finally {
             setAccionesLoading(false);
         }
@@ -181,18 +199,25 @@ const VerPago = ({
             if (!response.success) {
                 throw new Error(response.message || 'Error al eliminar el pago.');
             }
+
+            const det = buildPagoDetallesParaHistorial(detallePago, 'ELIMINAR');
+            await logAccion({
+                accion: 'ELIMINAR',
+                lugarAfectado: `Pago ${responsableNombre} - ${periodoTexto}`,
+                registroId: detallePago?.id || null,
+                detallesPersonalizados: det
+            });
+
             const mensaje = response.message || 'Pago eliminado correctamente.';
             if (onPagoEliminado) {
                 onPagoEliminado(detallePago.id, mensaje);
-            } else if (mostrarNotificacion) {
-                mostrarNotificacion('success', mensaje);
+            } else {
+                showSuccess(mensaje);
             }
             setIsOpen(false);
         } catch (error) {
             console.error('Error eliminando pago:', error);
-            if (mostrarNotificacion) {
-                mostrarNotificacion('error', error.message || 'Error al eliminar el pago.');
-            }
+            showDanger(error.message || 'Error al eliminar el pago.');
         } finally {
             setAccionesLoading(false);
             setIsDeleteModalOpen(false);
@@ -205,81 +230,97 @@ const VerPago = ({
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView
                 onBack={() => setIsOpen(false)}
-                title="Pago Producción"
             />
             <div className={styles.container}>
                 {!detallePago ? (
                     <p className={styles.subTitle}>Selecciona un pago para ver los detalles.</p>
                 ) : (
                     <>
-                        <p className={styles.subTitle}>RESPONSABLE DEL PAGO</p>
-                        <ItemView
-                            title={detallePago?.user?.name || detallePago?.personal?.name || 'Usuario desconocido'}
-                            description="registrado por"
-                            transparent={false}
-                        />
-                        <p className={styles.subTitle}>INFORMACIÓN DEL PAGO</p>
-                        <ItemView
-                            title={responsableNombre}
-                            description="Beneficiario del pago"
-                            transparent={false}
-                            flot3={detallePago?.estado === 'pendiente' ? 'Pendiente' : ''}
-                            flot1={detallePago?.estado === 'pagado' ? 'Pagado' : ''}
-                        />
-                        <div className={styles.content}>
-                            <Dato label="Periodo" value={periodoTexto === '-- - --' ? '--' : periodoTexto} vertical={false}/>
-                            <Dato label="Fecha" value={fechaCreacion} vertical={false}/>
-                            <Dato label="Hora" value={horaCreacion} vertical={false}/>
+                        <div className={styles.header}>
+                            <div className={styles.headerContent}>
+                                <h1 className={styles.title}>Detalles del pago<StatusBadge estado={detallePago?.estado} /></h1>
+                                <p className={styles.subTitle}>Registrado el {fechaCreacion}</p>
+                            </div>
                         </div>
 
-                        <p className={styles.subTitle}>TOTALES</p>
-                        <div className={styles.content}>
-                            <Dato label="Cernido" value={`Bs. ${formatNumber(totales.cernido, 2)}`} vertical={false}/>
-                            <Dato label="Sellado" value={`Bs. ${formatNumber(totales.sellado, 2)}`} vertical={false}/>
-                            <Dato label="Envasado" value={`Bs. ${formatNumber(totales.envasado, 2)}`} vertical={false}/>
-                            <Dato label="Etiquetado" value={`Bs. ${formatNumber(totales.etiquetado, 2)}`} vertical={false}/>
-                        </div>
-                        <p className={styles.subTitle}>AJUSTES</p>
-                        <div className={styles.content}>
-                            <Dato label="Extras" value={`Bs. ${formatNumber(extras, 2)}`} vertical={false}/>
-                            <Dato label="Aumento" value={`Bs. ${formatNumber(aumento, 2)}`} vertical={false}/>
-                            <Dato label="Descuento" value={`- Bs. ${formatNumber(descuento, 2)}`} vertical={false}/>
-                        </div>
-                        <p className={styles.subTitle}>TOTALES</p>
-                        <div className={styles.content}>
-                            <Dato label="Total producción" value={`Bs. ${formatNumber(totalProduccion, 2)}`} vertical={false}/>
-                            <Dato label="Total con ajustes" value={`Bs. ${formatNumber(totalConAjustes, 2)}`} especial="green" vertical={false}/>
-                        </div>
+                        <div className={styles.contentRow}>
 
+                            {/* Columna derecha: Información general */}
+                            <div className={styles.contentHalf}>
+                                <div className={styles.content} style={{ height: '100%' }}>
+                                    <ItemView
+                                        title="Información general"
+                                        transparent={true}
+                                        icon="user"
+                                        iconShape="square"
+                                        style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                                    />
+                                    <Dato label="Beneficiario" value={responsableNombre} vertical={false} />
+                                    <Dato label="Estado" value={detallePago?.estado === 'pagado' ? 'Pagado' : 'Pendiente'} vertical={false} />
+                                    <Dato label="Periodo" value={periodoTexto === '-- - --' ? '--' : periodoTexto} vertical={false} />
+                                    <Dato label="Registrado por" value={registradoPorNombre} vertical={false} />
+                                </div>
+                            </div>
+                            {/* Columna izquierda: Información de números (totales y resumen financiero) */}
+                            <div className={styles.contentHalf}>
+                                <div className={styles.content} style={{ height: '100%' }}>
+                                    <ItemView
+                                        title="Totales por proceso"
+                                        transparent={true}
+                                        icon="calculator"
+                                        iconShape="square"
+                                        style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                                    />
+                                    <Dato label="Cernido" value={`Bs. ${formatNumber(totales.cernido, 2)}`} vertical={false} />
+                                    <Dato label="Sellado" value={`Bs. ${formatNumber(totales.sellado, 2)}`} vertical={false} />
+                                    <Dato label="Envasado" value={`Bs. ${formatNumber(totales.envasado, 2)}`} vertical={false} />
+                                    <Dato label="Etiquetado" value={`Bs. ${formatNumber(totales.etiquetado, 2)}`} vertical={false} />
+                                </div>
+
+
+                            </div>
+
+                        </div>
                         <Boton
-                            className='btn-gray'
-                            label='Registros de Producción'
+                            className="btn-gray"
+                            label="Registros de Producción"
                             onClick={handleVerRegistros}
                             loading={registrosLoading}
+                            iconName="list-ul"
                         />
+                        {resumenPago && <ResumenFinanciero resumen={resumenPago} />}
 
                         <div className={styles.buttons}>
                             {estadoActual !== 'pagado' ? (
                                 <Boton
-                                    className='btn-default'
-                                    label='Marcar como pagado'
+                                    className="btn-default"
+                                    label="Marcar como pagado"
                                     onClick={() => handleActualizarEstado('pagado')}
                                     loading={accionesLoading}
+                                    style={{ marginTop: 'auto' }}
+                                    iconName="check-circle"
+                                    hideTextOnMobile={true}
                                 />
                             ) : (
                                 <Boton
-                                    className='btn-orange'
-                                    label='Anular pagado'
+                                    className="btn-orange"
+                                    label="Anular pagado"
                                     onClick={() => handleActualizarEstado('pendiente')}
                                     loading={accionesLoading}
+                                    style={{ marginTop: 'auto' }}
+                                    iconName="undo"
+                                    hideTextOnMobile={true}
                                 />
                             )}
                             {estadoActual !== 'pagado' && (
                                 <Boton
-                                    className='btn-red'
-                                    label='Eliminar pago'
+                                    className="btn-red"
+                                    label="Eliminar pago"
                                     onClick={() => setIsDeleteModalOpen(true)}
                                     loading={accionesLoading}
+                                    style={{ marginTop: 'auto' }}
+                                    iconName="trash"
+                                    hideTextOnMobile={true}
                                 />
                             )}
                         </div>

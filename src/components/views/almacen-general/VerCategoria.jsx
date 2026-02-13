@@ -10,10 +10,11 @@ import EditarAgregarCategoria from './EditarAgregarCategoria';
 import ItemView from '../../common/ItemView';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import productsAlmacenService from '../../../services/productsAlmacenService';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import NoData from '../../common/NoData';
 
 function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCategoriaDeleted }) {
+    const { showDanger } = useToast();
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditarOpen, setIsEditarOpen] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
@@ -49,23 +50,6 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
     }, [isOpen, categoria]);
 
 
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
@@ -127,11 +111,11 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                                         setIsDeleteOpen(false);
                                         setIsOpen(false);
                                     } else {
-                                        mostrarNotificacion('error', response.message || 'Error al eliminar la categoría');
+                                        showDanger('Error', response.message || 'Error al eliminar la categoría');
                                     }
                                 } catch (error) {
                                     console.error('Error al eliminar categoría:', error);
-                                    mostrarNotificacion('error', 'Error al eliminar la categoría');
+                                    showDanger('Error', 'Error al eliminar la categoría');
                                 } finally {
                                     setLoading(false);
                                 }
@@ -199,12 +183,6 @@ function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCate
                 </div>
             </ViewModal>
 
-            {/* Modal de notificación*/}
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </View>
     );
 }

@@ -10,7 +10,7 @@
     position: relative;
 }
 .title {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
     display: flex;
     justify-content: space-between;
@@ -160,7 +160,7 @@
 }
 .buttons {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 7px;
     border: none;
     margin-top: 20px;

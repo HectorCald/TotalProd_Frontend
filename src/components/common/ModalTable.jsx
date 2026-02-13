@@ -7,7 +7,7 @@ import { formatCurrency } from '../../utils/numberUtils';
 const currencyHeaderRegex = /(total|subtotal|monto|saldo|precio)/i;
 const numericStringRegex = /^-?\d+(?:\.\d+)?$/;
 
-const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBadge = null, filters = {}, columnWidths = {}, onScroll = null }) => {
+const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBadge = null, filters = {}, columnWidths = {}, onScroll = null, children }) => {
     // filters: { [columnIndex]: { value, onChange, options: [{value,label}] } }
     const [isVisible, setIsVisible] = useState(false);
 
@@ -78,7 +78,9 @@ const ModalTable = ({ isOpen, title, headers = [], rows = [], onClose, getCellBa
                             <tbody>
                                 {rows.length === 0 ? (
                                     <tr>
-                                        <td className={styles.emptyCell} colSpan={headers.length}>Sin datos</td>
+                                        <td className={styles.emptyCell} colSpan={headers.length}>
+                                            {children || 'Sin datos'}
+                                        </td>
                                     </tr>
                                 ) : (
                                     rows.map((row, rIdx) => (

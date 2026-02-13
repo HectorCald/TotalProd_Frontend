@@ -6,10 +6,20 @@ const parseDateValue = (value) => {
     return Number.isNaN(value.getTime()) ? null : value;
   }
   if (typeof value === 'string') {
-    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (match) {
-      const [, year, month, day] = match;
+    const s = value.trim();
+    // Solo fecha sin hora (exactamente YYYY-MM-DD): usar día como fecha local a medianoche
+    const dateOnlyMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnlyMatch) {
+      const [, year, month, day] = dateOnlyMatch;
       const date = new Date(Number(year), Number(month) - 1, Number(day));
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+    // Fecha con hora (ej. 2026-02-13 16:18:55.9+00 o ISO): normalizar a ISO para respetar hora y zona
+    if (/^\d{4}-\d{2}-\d{2}[\sT]/.test(s)) {
+      const iso = s
+        .replace(/^(\d{4}-\d{2}-\d{2})\s+/, '$1T')
+        .replace(/([+-])(\d{2})$/, '$1$2:00');
+      const date = new Date(iso);
       return Number.isNaN(date.getTime()) ? null : date;
     }
   }

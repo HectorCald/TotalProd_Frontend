@@ -19,7 +19,6 @@ import categoryAcopioService from '../../../services/categoryAcopioService';
 import typeMeasureService from '../../../services/typeMeasureService';
 import { BoxIcon } from 'boxicons-react';
 import LoadingSpinner from '../../common/LoadingSpinner';
-import Notification from '../../common/Notification';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import FiltroCategoriasAcopio from '../../mixed/FiltroCategoriasAcopio';
@@ -163,25 +162,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
         recetas_acopio: producto.recetas_acopio || []
     }));
 
-
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Estados para filtros y modales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
@@ -328,54 +308,33 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     const handleProductCreated = (newProduct) => {
         // Actualizar el estado local con el producto que devuelve el servidor
         setProductos(prevProductos => [newProduct, ...prevProductos]);
-
-        // Cerrar el modal
         setIsAgregarOpen(false);
-        mostrarNotificacion('success', 'Producto agregado correctamente')
     };
 
     // Función para manejar cuando se elimina un producto
     const handleProductDeleted = (deletedId) => {
-        // Actualizar el estado local removiendo el producto eliminado
         setProductos(prevProductos => prevProductos.filter(producto => producto.id !== deletedId));
-
-        // Cerrar el modal de ver producto
         setIsOpenVerProducto(false);
-        mostrarNotificacion('success', 'Producto eliminado correctamente')
     };
 
     // Función para manejar cuando se actualiza un producto
     const handleProductUpdated = (updatedProduct) => {
-        // Actualizar el estado local con el producto actualizado que devuelve el servidor
         setProductos(prevProductos => prevProductos.map(producto =>
             producto.id === updatedProduct.id ? updatedProduct : producto
         ));
-
-        // Actualizar también el producto que se está viendo
         setInfoPersona(updatedProduct);
-        // NO cerrar el modal de ver producto - se mantiene abierto para mostrar los cambios
-        // setIsOpenVerProducto(false);
-        // Mostrar notificación
-        mostrarNotificacion('success', 'Producto actualizado correctamente');
     };
 
-    // Función para manejar cuando se crea un movimiento
+    // Función para manejar cuando se crea un movimiento (toast se muestra en el modal MovimientoAcopio)
     const handleMovimientoCreated = (movimiento, tieneReceta = false) => {
-
-        // Actualizar solo el stock del producto específico, sin hacer recarga completa
         if (movimiento && movimiento.product) {
             setProductos(prevProductos => prevProductos.map(producto =>
                 producto.id === movimiento.product.id
                     ? { ...producto, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) }
                     : producto
             ));
-
-            // Actualizar también el producto que se está viendo
             setInfoPersona(prev => prev ? { ...prev, quantity: parseFloat(movimiento.product.quantity || 0).toFixed(2) } : prev);
         }
-
-        // Mostrar notificación de éxito
-        mostrarNotificacion('success', `${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente`);
     };
 
     // Función para manejar la canasta de pedidos
@@ -401,10 +360,7 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
     };
 
     // Función para manejar cuando se crea un pedido
-    const handlePedidoCreado = (pedidoData) => {
-        // Mostrar notificación de éxito
-        mostrarNotificacion('success', 'Pedido registrado correctamente');
-    };
+    const handlePedidoCreado = (pedidoData) => {};
 
     // Función para manejar cuando se crea un pedido y se quiere descargar
     const handlePedidoCreadoConDescarga = (pedidoId) => {
@@ -897,12 +853,6 @@ function AlmacenAcopio({ isOpen, setIsOpen, tipo = '' }) {
                     tipo='agregar'
                     onProductCreated={handleProductCreated}
                     typeMeasures={tiposMedida}
-                />
-
-                <Notification
-                    isVisible={notification.isVisible}
-                    type={notification.type}
-                    text={notification.text}
                 />
 
                 {/* Modal de categorías de acopio*/}

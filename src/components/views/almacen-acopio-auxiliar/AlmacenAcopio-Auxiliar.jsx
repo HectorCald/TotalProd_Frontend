@@ -18,7 +18,7 @@ import productsAcopioService from '../../../services/productsAcopioService';
 import categoryAcopioService from '../../..//services/categoryAcopioService';
 import typeMeasureService from '../../..//services/typeMeasureService';
 import Boton from '../../common/Boton';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import conteosService from '../../../services/conteosService';
 import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
@@ -28,6 +28,7 @@ import useSessionCache from '../../../hooks/useSessionCache';
 
 function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const { isLargeScreen } = useLayout();
+    const { showSuccess, showDanger } = useToast();
 
     // Estados: búsqueda y loading
     const [searchQuery, setSearchQuery] = useState('');
@@ -39,9 +40,8 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeRequests, setActiveRequests] = useState(0);
 
-    // UI: envío y notificación
+    // UI: envío
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [notif, setNotif] = useState({ visible: false, text: '', type: 'success' });
     const [isOpenDescarga, setIsOpenDescarga] = useState(false);
 
     // Datos (compartidos con AlmacenAcopio principal vía sessionStorage)
@@ -396,11 +396,10 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             setQuantityInputsText({});
             setJustificationInputsText({});
             
-            setNotif({ visible: true, text: 'Conteo registrado correctamente', type: 'success' });
+            showSuccess('Éxito', 'Conteo registrado correctamente');
         } catch (e) {
-            setNotif({ visible: true, text: e.message || 'Error al registrar conteo', type: 'error' });
+            showDanger('Error', e.message || 'Error al registrar conteo');
         } finally {
-            setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 2500);
             setIsSubmitting(false);
         }
     };
@@ -411,8 +410,7 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
         setQuantityInputs({});
         setQuantityInputsText({});
         setJustificationInputsText({});
-        setNotif({ visible: true, text: 'Valores restablecidos correctamente', type: 'success' });
-        setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 2500);
+        showSuccess('Éxito', 'Valores restablecidos correctamente');
     };
 
     return (
@@ -695,7 +693,6 @@ function AlmacenAcopioAuxiliar({ isOpen, setIsOpen, tipo = 'almacen' }) {
             <FiltroCategoriasAcopio isOpen={isOpenCategoria} setIsOpen={setOpenCategoria} onCategoriaSeleccionada={handleCategoriaFilter} />
             <FiltroOrdenamientoAcopio isOpen={isOpenOrden} setIsOpen={setOpenOrden} onOrdenamientoSeleccionado={handleOrdenamiento} />
             <FiltroDiferenciaConteo isOpen={isOpenDiferencia} setIsOpen={setOpenDiferencia} onDiferenciaSeleccionada={(op) => setFiltroDiferencia(op)} />
-            <Notification type={notif.type} text={notif.text} isVisible={notif.visible} onClose={() => setNotif(prev => ({ ...prev, visible: false }))} />
             {tipo === 'conteo' && (
                 <DescargaConteoBuilder
                     isOpen={isOpenDescarga}

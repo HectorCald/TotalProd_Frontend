@@ -77,6 +77,38 @@ const getOfflinePrices = async () => {
 
 class pricesTypesService {
 
+  // Obtener un tipo de precio por ID (usa getAll y filtra por id)
+  static async getById(id) {
+    try {
+      const response = await this.getAll();
+      if (!response.success || !response.data) {
+        return {
+          success: false,
+          message: response.message || 'No se pudo obtener el tipo de precio'
+        };
+      }
+      const found = Array.isArray(response.data)
+        ? response.data.find((p) => String(p.id) === String(id))
+        : null;
+      if (!found) {
+        return {
+          success: false,
+          message: 'Tipo de precio no encontrado'
+        };
+      }
+      return {
+        success: true,
+        data: found
+      };
+    } catch (error) {
+      console.error('Error en pricesTypesService.getById:', error);
+      return {
+        success: false,
+        message: error.message || 'Error al obtener el tipo de precio'
+      };
+    }
+  }
+
   // Obtener todos los tipos de precios
   static async getAll() {
     try {

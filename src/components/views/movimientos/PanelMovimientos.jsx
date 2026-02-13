@@ -8,7 +8,6 @@ import VerMovimiento from './VerMovimiento';
 import VerMovimientoAcopio from './VerMovimientoAcopio';
 import VerTransferencia from '../transferencias/VerTransferencia';
 import Filtros from '../../common/Filtros';
-import Notification from '../../common/Notification';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import LoadingSpinner from '../../common/LoadingSpinner';
@@ -211,25 +210,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
         // FetchDataProgressive se encargará de recargar automáticamente
     };
 
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
     // Estados para filtros y modales
     const [isOpenFiltroTipo, setIsOpenFiltroTipo] = useState(false);
     const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
@@ -360,8 +340,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
         setAllMovimientos(aplicarAnulacion);
         mutateCachedItems(aplicarAnulacion);
-
-        mostrarNotificacion('success', 'Movimiento anulado correctamente');
     };
 
     // Función para manejar cuando se elimina un movimiento
@@ -371,13 +349,10 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
 
         setAllMovimientos(aplicarEliminacion);
         mutateCachedItems(aplicarEliminacion);
-
-        mostrarNotificacion('success', 'Movimiento eliminado correctamente');
     };
 
     const handleMovimientoEditado = () => {
         handleRefresh();
-        mostrarNotificacion('success', 'Movimiento actualizado correctamente');
     };
 
     // Función para obtener el nombre del tipo de filtro
@@ -814,12 +789,6 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                     />
                 </>
             )}
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
 
             {/* Filtro de tipo de movimiento */}
             <FiltroTipoMovimiento

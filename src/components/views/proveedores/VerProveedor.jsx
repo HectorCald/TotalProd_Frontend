@@ -7,31 +7,26 @@ import ViewModal from '../../ui/ViewModal';
 import Dato from '../../common/Dato';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
+import { useLayout } from '../../../context/LayoutContext';
 import FetchData from '../../mixed/FetchData';
-import proveedorService from '../../../services/proveedorService';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import ItemView from '../../common/ItemView';
 import ItemLine from '../../common/ItemLine';
 import MapaModal from '../clientes/MapaModal';
-import { useUser } from '../../../context/UserContext';
+import MapPin from '../clientes/MapPin';
 import NoData from '../../common/NoData';
-import useHistorialLogger from '../../ui/HistorialLogger';
+import ModalEliminar from './modales/ModalEliminar';
+import Skeleton from '../../common/Skeleton';
 
 function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated }) {
-    const { sucursalSeleccionada } = useUser();
-    const { logAccion } = useHistorialLogger({
-        modulo: 'Proveedores',
-        campos: ['name', 'phone', 'direccion', 'description', 'total_orders', 'location']
-    });
+    const { showInfo } = useToast();
+    const { isLargeScreen } = useLayout();
 
     // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
-
-    // Estados para la carga
-    const [loading, setLoading] = useState(false);
 
     // Estados para el mapa
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
@@ -40,67 +35,15 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
     const [movimientos, setMovimientos] = useState([]);
     const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
 
-    // Estado para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
+    // Estado para datos de ubicación del mapa
+    const [locationData, setLocationData] = useState(null);
+    const [loadingLocation, setLoadingLocation] = useState(false);
 
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
-    // Función para eliminar el proveedor
-    const handleEliminar = async (id) => {
-        if (!id) {
-            mostrarNotificacion('error', 'ID del proveedor no válido');
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const response = await proveedorService.delete(id, sucursalSeleccionada?.id);
-
-            if (response.success) {
-                await logAccion({
-                    accion: 'ELIMINAR',
-                    lugarAfectado: usuario?.name || 'Proveedor',
-                    registroId: usuario?.id || null,
-                    datosAntes: usuario,
-                    comentario: 'Eliminación de proveedor'
-                });
-
-                // Notificar al componente padre que se eliminó un proveedor
-                if (onProveedorDeleted) {
-                    onProveedorDeleted(id);
-                    setIsDeleteOpen(false);
-                    setIsOpen(false);
-                    mostrarNotificacion('success', 'Proveedor eliminado correctamente');
-                }
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al eliminar el proveedor');
-            }
-        } catch (error) {
-            console.error('Error al eliminar proveedor:', error);
-            mostrarNotificacion('error', 'Error de conexión con el servidor');
-        } finally {
-            setLoading(false);
-        }
-    }
     const handleOpenMap = () => {
         if (usuario.location) {
             setIsMapModalOpen(true);
         } else {
-            mostrarNotificacion('error', 'No hay ubicación para mostrar');
+            showInfo('Información', 'No hay ubicación para mostrar');
         }
     }
 
@@ -115,44 +58,91 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
         setLoadingMovimientosList(isLoading);
     }, []);
 
+    // Resetear movimientos cuando cambia el proveedor
+    useEffect(() => {
+        setMovimientos([]);
+        setLocationData(null); // Resetear datos de ubicación cuando cambia el proveedor
+        setLoadingLocation(false);
+    }, [usuario?.id]);
+
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    {usuario?.name}
-                    <div className={styles.iconButton} >
+                <div className={styles.header}>
+                    <h1 className={styles.title}>Detalles</h1>
+                </div>
+                <div className={styles.contentRow}>
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content}>
+                            <ItemView
+                                title="Información del Proveedor"
+                                transparent={true}
+                                icon="user"
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                            />
+                            <Dato label="Nombre" value={usuario?.name || 'N/A'} vertical={false} />
+                            <Dato label="Celular" value={usuario?.phone || 'N/A'} vertical={false} />
+                            <Dato label="Descripción" value={usuario?.description || 'Sin descripción'} vertical={false} />
+                            <Dato label="Total de pedidos" value={usuario?.total_orders || '0'} vertical={false} />
+                            {usuario?.location && (
+                                <>
+                                    {loadingLocation ? (
+                                        <>
+                                            <Skeleton width="100%" height="25px" />
+                                            <Skeleton width="100%" height="25px" />
+                                            <Skeleton width="100%" height="25px" />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Dato
+                                                label="País"
+                                                value={
+                                                    locationData?.pais && locationData?.ciudad
+                                                        ? `${locationData.pais} - ${locationData.ciudad}`
+                                                        : locationData?.pais || locationData?.ciudad || '--'
+                                                }
+                                                vertical={false}
+                                            />
+                                            <Dato label="Ciudad" value={locationData?.ciudad || '--'} vertical={false} />
+                                            <Dato label="Dirección" value={locationData?.direccion || locationData?.address || '--'} vertical={!isLargeScreen} />
+                                        </>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                        {/* Botón para ver movimientos */}
+                        <Boton
+                            className='btn-gray'
+                            label='Movimientos'
+                            onClick={() => setIsMovimientosOpen(true)}
+                        />
                     </div>
-
-                </h1>
-                <p className={styles.subTitle}>INFORMACIÓN PERSONAL</p>
-                <div className={styles.content}>
-                    <Dato label="Celular" value={usuario?.phone || 'N/A'} />
-                    <Dato label="Descripción" value={usuario?.description || 'Sin descripción'} />
-                    <Dato label="Total de pedidos" value={usuario?.total_orders || '0'} />
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content}>
+                            <MapPin 
+                                initialLocation={usuario?.location || null} 
+                                onLocationData={setLocationData}
+                                onLoadingChange={setLoadingLocation}
+                            />
+                        </div>
+                    </div>
                 </div>
-                <p className={styles.subTitle}>UBICACIÓN</p>
-                <div className={styles.content}>
-                    <ItemLine icon="map-pin" title="Ubicación" onClick={handleOpenMap} arrow={true} />
-                </div>
-
-                {/* Botón para ver movimientos */}
-                <Boton
-                    className='btn-gray'
-                    label={`Movimientos (${movimientos.length})`}
-                    onClick={() => setIsMovimientosOpen(true)}
-                />
-
                 <div className={styles.buttons}>
                     <Boton
                         className='btn-default'
                         label='Editar Proveedor'
                         onClick={() => setIsEditOpen(true)}
+                        iconName='edit'
+                        hideTextOnMobile={true}
                     />
                     <Boton
                         className='btn-red'
                         label='Eliminar Proveedor'
                         onClick={() => setIsDeleteOpen(true)}
+                        iconName='trash'
+                        hideTextOnMobile={true}
                     />
                 </div>
             </div>
@@ -167,30 +157,13 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
             />
 
             {/* Modal de Eliminar*/}
-            <ViewModal isOpen={isDeleteOpen} setIsOpen={setIsDeleteOpen}>
-                <HeaderModal
-                    title="Eliminar"
-                    onClose={() => setIsDeleteOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Eliminar al proveedor {usuario?.name}? Esta acción es irreversible y puede afectar registros relacionados.</p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsDeleteOpen(false)}
-                        />
-                        <Boton
-                            className='btn-red'
-                            label='Si, eliminar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => handleEliminar(usuario?.id)}
-                            loading={loading}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
+            <ModalEliminar
+                isOpen={isDeleteOpen}
+                setIsOpen={setIsDeleteOpen}
+                proveedor={usuario}
+                setIsOpenVerProveedor={setIsOpen}
+                onProveedorEliminado={onProveedorDeleted}
+            />
 
             {/* Modal de Mapa*/}
             <MapaModal
@@ -262,12 +235,6 @@ function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProvee
                 />
             )}
 
-            {/* Modal de Notificación*/}
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </View>
     );
 }

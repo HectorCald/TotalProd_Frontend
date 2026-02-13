@@ -7,7 +7,6 @@ import ItemView from '../../common/ItemView';
 import VerGasto from './VerGasto';
 import EditarAgregarGasto from './EditarAgregarGasto';
 import Filtros from '../../common/Filtros';
-import Notification from '../../common/Notification';
 import gastosService from '../../../services/gastosService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import Boton from '../../common/Boton';
@@ -180,25 +179,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
     }, [isOpen, currentPage, allGastos.length, hydrateFromCache]);
 
 
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
     // Estados para filtros y modales
     const [isOpenMetodoPago, setOpenMetodoPago] = useState(false);
     const [isOpenProveedor, setOpenProveedor] = useState(false);
@@ -316,8 +296,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
 
         setAllGastos(aplicarEliminacion);
         mutateCachedItems(aplicarEliminacion);
-
-        mostrarNotificacion('success', 'Gasto eliminado correctamente');
     };
 
     // Función para manejar cuando se actualiza un gasto
@@ -330,7 +308,10 @@ function PanelGastos({ isOpen, setIsOpen }) {
         setAllGastos(aplicarActualizacion);
         mutateCachedItems(aplicarActualizacion);
 
-        mostrarNotificacion('success', 'Gasto actualizado correctamente');
+        // Actualizar infoGasto para que VerGasto muestre los datos en tiempo real
+        if (infoGasto && String(infoGasto.id) === String(gastoActualizado.id)) {
+            setInfoGasto(gastoActualizado);
+        }
     };
 
     // Función para manejar cuando se crea un nuevo gasto
@@ -341,7 +322,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
         mutateCachedItems(aplicarCreacion);
 
         setIsOpenEditarAgregar(false);
-        mostrarNotificacion('success', 'Gasto agregado correctamente');
     };
 
     // Función para obtener el nombre del método de pago
@@ -548,12 +528,6 @@ function PanelGastos({ isOpen, setIsOpen }) {
                 isOpen={isOpenEditarAgregar}
                 setIsOpen={setIsOpenEditarAgregar}
                 onGastoCreated={handleGastoCreated}
-            />
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
             />
 
             {/* Modal de Información */}

@@ -16,7 +16,6 @@ import { useUser } from '../../../context/UserContext';
 import Table from '../../common/Table';
 import FiltroDiferenciaConteo from '../../mixed/FiltroDiferenciaConteo';
 import Boton from '../../common/Boton';
-import Notification from '../../common/Notification';
 import conteosService from '../../../services/conteosService';
 import CanastaCotizacion from './CanastaCotizacion';
 import DescargaCotizacionBuilder from '../cotizaciones/DescargaCotizacionBuilder';
@@ -30,27 +29,18 @@ import PullToRefresh from '../../common/PullToRefresh';
 import RefreshIndicator from '../../common/RefreshIndicator';
 import limpiarAlmacenLocalStorage from '../almacen-general/helpers/limpiarAlmacenLocalStorage';
 import useSessionCache from '../../../hooks/useSessionCache';
+import { useToast } from '../../../context/ToastContext';
 
 function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitiendoCotizacion = false }) {
     const { isLargeScreen } = useLayout();
     const { sucursalSeleccionada: sucursalActual } = useUser();
+    const { showSuccess, showDanger } = useToast();
 
     // Determinar si es modo carrito (para panel lateral)
     const isCartMode = tipo === 'cotizar' && isLargeScreen;
 
-    // UI envío y notificación
+    // UI envío
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [notif, setNotif] = useState({ visible: false, text: '', type: 'success' });
-    
-    // Función para mostrar notificaciones
-    const mostrarNotificacion = useCallback((tipo, texto) => {
-        setNotif({
-            visible: true,
-            text: texto,
-            type: tipo
-        });
-        setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 3000);
-    }, []);
 
     // Estados para filtros locales
     const [isOpenCategoria, setOpenCategoria] = useState(false);
@@ -97,7 +87,6 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
     } = useCanastaActions({
         setProductosCanasta: setProductosCanastaCotizaciones,
         productosCanasta: productosCanastaCotizaciones,
-        mostrarNotificacion: mostrarNotificacion,
         pedidosConfig: {
             precioGetterName: 'getPrecioSeleccionadoCanastaCotizaciones',
             modoGetterName: 'getModoAgrupacionCanastaCotizaciones',
@@ -547,11 +536,10 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
             setStockInputsText({});
             setGroupInputsText({});
             
-            setNotif({ visible: true, text: 'Conteo registrado correctamente', type: 'success' });
+            showSuccess('Éxito', 'Conteo registrado correctamente');
         } catch (e) {
-            setNotif({ visible: true, text: e.message || 'Error al registrar conteo', type: 'error' });
+            showDanger('Error', e.message || 'Error al registrar conteo');
         } finally {
-            setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 2500);
             setIsSubmitting(false);
         }
     };
@@ -563,8 +551,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
         setGroupInputs({});
         setStockInputsText({});
         setGroupInputsText({});
-        setNotif({ visible: true, text: 'Valores restablecidos correctamente', type: 'success' });
-        setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 2500);
+        showSuccess('Éxito', 'Valores restablecidos correctamente');
     };
 
     // Función para manejar el click en un producto (solo para modo cotizar)
@@ -1079,12 +1066,7 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                             const numeroCotizacion = cotizacionData?.numero_cotizacion || '';
                             const cotizacionId = cotizacionData?.id;
                             
-                            setNotif({ 
-                                visible: true, 
-                                text: `Cotización #${numeroCotizacion} creada correctamente`, 
-                                type: 'success' 
-                            });
-                            setTimeout(() => setNotif(prev => ({ ...prev, visible: false })), 2500);
+                            showSuccess('Éxito', `Cotización #${numeroCotizacion} creada correctamente`);
                             
                             // Abrir modal de descarga si hay ID de cotización
                             if (cotizacionId) {
@@ -1132,7 +1114,6 @@ function AlmacenGeneralAuxiliar({ isOpen, setIsOpen, tipo = 'almacen', isRepitie
                 cotizacionId={cotizacionIdParaDescarga}
             />
 
-            <Notification type={notif.type} text={notif.text} isVisible={notif.visible} onClose={() => setNotif(prev => ({ ...prev, visible: false }))} />
         </>
     );
 }

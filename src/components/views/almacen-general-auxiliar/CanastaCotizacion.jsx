@@ -7,7 +7,7 @@ import Select from '../../common/Select';
 import { BoxIcon } from 'boxicons-react';
 import { motion } from 'framer-motion';
 import Clientes from '../clientes/Clientes';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import InputDate from '../../common/InputDate';
@@ -18,6 +18,7 @@ import { useLayout } from '../../../context/LayoutContext';
 
 function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const { isLargeScreen } = useLayout();
+    const { showWarning, showDanger } = useToast();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     const [loadingConfirmar, setLoadingConfirmar] = useState(false);
@@ -29,25 +30,6 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
     // Estados para método de pago y fecha de vencimiento
     const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState('');
     const [fechaVencimiento, setFechaVencimiento] = useState('');
-
-    // Estado para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'error',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Hook para manejar la lógica de precios de cotizaciones
     const {
@@ -84,7 +66,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                 }
 
                 if (productoCarrito.cantidad > productoModificado.stock) {
-                    mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoModificado.stock}`);
+                    showWarning('Aviso', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoModificado.stock}`);
                     productoModificado.cantidad = productoModificado.stock;
                 }
             }
@@ -103,7 +85,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         }
 
         return productoModificado;
-    }, [mostrarNotificacion]);
+    }, [showWarning, showDanger]);
 
     const calcularSubtotalProducto = useCallback((producto) => {
         if (!producto) return 0;
@@ -145,7 +127,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         onSyncProducto: syncProductoCotizacion,
         onAfterModoAgrupacionChange: ({ producto, cantidadNueva }) => {
             if (producto?.name && cantidadNueva !== undefined) {
-                mostrarNotificacion('warning', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${cantidadNueva} grupos`);
+                showWarning('Aviso', `La cantidad de ${producto.name} se ajustó al máximo disponible: ${cantidadNueva} grupos`);
             }
         }
     });
@@ -193,7 +175,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         //     : (productoActual.stockOriginal || productoActual.stock);
         // if (nuevaCantidad > stockParaValidar) {
         //     console.warn(`No se puede exceder el stock disponible: ${stockParaValidar}`);
-        //     mostrarNotificacion('error', 'No se puede exceder el stock disponible');
+        //     showDanger('Error', 'No se puede exceder el stock disponible');
         //     return; // No actualizar si excede el stock
         // }
 
@@ -349,7 +331,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
         // Para cotizaciones, el método de pago y fecha de vencimiento son opcionales
         // Solo validar cliente si se selecciona crédito
         if (metodoPagoSeleccionado === 'credito' && !clienteSeleccionado) {
-            mostrarNotificacion('error', 'El cliente es obligatorio para cotizaciones a crédito');
+            showDanger('Error', 'El cliente es obligatorio para cotizaciones a crédito');
             return false;
         }
 
@@ -382,7 +364,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
             const result = await cotizacionesService.create(cotizacionData);
 
             if (!result.success) {
-                mostrarNotificacion('error', result.message || 'Error al crear la cotización');
+                showDanger('Error', result.message || 'Error al crear la cotización');
                 setLoadingConfirmar(false);
                 return;
             }
@@ -415,7 +397,7 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
 
         } catch (error) {
             console.error('Error al confirmar:', error);
-            mostrarNotificacion('error', error.message || 'Error al confirmar');
+            showDanger('Error', error.message || 'Error al confirmar');
         } finally {
             setLoadingConfirmar(false);
         }
@@ -659,7 +641,6 @@ function CanastaCotizacion({ isOpen, setIsOpen, productosCanasta, setProductosCa
                 onClienteSeleccionado={handleClienteSeleccionado}
             />
 
-            <Notification isVisible={notification.isVisible} type={notification.type} text={notification.text} />
         </View>
     );
 }

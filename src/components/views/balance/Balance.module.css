@@ -72,14 +72,16 @@
 }
 
 .incomeSection,
-.expenseSection {
+.expenseSection,
+.deudasSection {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 .incomeAmount,
-.expenseAmount {
+.expenseAmount,
+.deudasAmount {
   font-size: 15px;
   font-weight: 600;
   color: var(--white-color);
@@ -103,8 +105,13 @@
   color: rgb(207, 56, 56);
 }
 
+.deudasAmount .percentageInline {
+  color: #4a90d9;
+}
+
 .incomeLabel,
-.expenseLabel {
+.expenseLabel,
+.deudasLabel {
   font-size: 12px;
   color: gray;
   font-weight: 400;
@@ -134,11 +141,46 @@
   min-width: 100px;
 }
 
+.chartWithLegend {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
 .circularChart {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 140px;
+  height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.chartLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 120px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legendLine {
+  display: inline-block;
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legendLabel {
+  font-size: 12px;
+  color: var(--white-color);
+  font-weight: 400;
 }

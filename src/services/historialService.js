@@ -74,6 +74,29 @@ class historialService {
     }
   }
 
+  static async getResponsablesUnicos(params = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      const empresaId = params.empresa_id ?? getEmpresaId();
+      if (empresaId) queryParams.append('empresa_id', empresaId);
+
+      const response = await fetch(`${API_BASE_URL}/historial/responsables-unicos?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en historialService.getResponsablesUnicos:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor',
+        error
+      };
+    }
+  }
+
   static async getAll(params = {}) {
     try {
       const queryParams = new URLSearchParams();

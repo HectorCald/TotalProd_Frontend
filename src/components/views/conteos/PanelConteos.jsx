@@ -3,7 +3,7 @@ import styles from '../../../styles/Inicial.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
@@ -18,6 +18,7 @@ import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCach
 
 function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
     const { isLargeScreen } = useLayout();
+    const { showDanger } = useToast();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -34,26 +35,6 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
 
     // Estado para rastrear qué datos se han cargado
     const [conteosLoaded, setConteosLoaded] = useState(false);
-
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Callbacks para FetchDataProgressive
     const filterSignature = useMemo(() => JSON.stringify({
@@ -116,9 +97,9 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
         setError(err);
         // Solo mostrar notificación si NO es un error 403
         if (err.status !== 403) {
-            mostrarNotificacion('error', err.message || 'Error al obtener conteos');
+            showDanger('Error', err.message || 'Error al obtener conteos');
         }
-    }, [mostrarNotificacion]);
+    }, [showDanger]);
 
     const handleHasMorePagesChange = useCallback(() => {
         // No hay paginación en conteos, pero el callback debe existir
@@ -205,12 +186,9 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
 
         setConteos(aplicarEliminacion);
         mutateCachedItems(aplicarEliminacion);
-        mostrarNotificacion('success', 'Conteo eliminado exitosamente');
     };
 
     const handleConteoReemplazado = (conteoId) => {
-        // Podemos recargar o simplemente notificar; por ahora solo notificar
-        mostrarNotificacion('success', 'Stock reemplazado correctamente');
     };
 
     const [isOpenVerConteo, setIsOpenVerConteo] = useState(false);
@@ -320,12 +298,6 @@ function PanelConteos({ isOpen, setIsOpen, tipoConteo = 'almacen' }) {
                     </>
                 )}
             </div>
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
 
             {/* Modal de Información */}
             <InfoModal

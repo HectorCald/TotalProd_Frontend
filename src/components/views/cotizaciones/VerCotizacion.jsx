@@ -2,47 +2,38 @@ import React, { useState, useEffect, useMemo } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
 import Dato from '../../common/Dato';
-import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
-import cotizacionesService from '../../../services/cotizacionesService';
 import ItemView from '../../common/ItemView';
-import Notification from '../../common/Notification';
 import { useLayout } from '../../../context/LayoutContext';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
-import ModalTable from '../../common/ModalTable';
+import { useToast } from '../../../context/ToastContext';
 import DescargaCotizacionBuilder from './DescargaCotizacionBuilder';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import AlmacenGeneralAuxiliar from '../almacen-general-auxiliar/AlmacenGeneral-Auxiliar';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 import { formatCurrency } from '../../../utils/numberUtils';
+import { calcularResumenFinanciero } from '../../../utils/movimientoCalculations';
+import ResumenFinanciero from '../../ui/ResumenFinanciero';
+import ModalProductos from './modales/ModalProductos';
+import ModalEliminar from './modales/ModalEliminar';
+import ModalAnular from './modales/ModalAnular';
+import ModalAprobar from './modales/ModalAprobar';
+import ModalFinalizar from './modales/ModalFinalizar';
+import ModalRevertirAprobacion from './modales/ModalRevertirAprobacion';
+import ModalAnularCompletado from './modales/ModalAnularCompletado';
+import StatusBadge from '../../common/StatusBadge';
+import clientService from '../../../services/clientService';
+import Skeleton from '../../common/Skeleton';
 
-// Función de redondeo igual que en movimientos: redondea a la décima más cercana
-const redondearADecima = (valor) => {
-    if (!Number.isFinite(valor)) return 0;
-    // Redondear a la décima más cercana (0.10, 0.20, etc.)
-    // Si el segundo decimal es >= 5, redondear hacia arriba, si no hacia abajo
-    const multiplicado = valor * 10;
-    const decimal = multiplicado % 1;
-    const redondeado = decimal >= 0.5 ? Math.ceil(multiplicado) : Math.floor(multiplicado);
-    return redondeado / 10;
-};
-
-const calcularPrecioAgrupado = (precioUnitario, grup) => {
-    const precio = Number(precioUnitario) * (Number(grup) || 1);
-    if (!Number.isFinite(precio)) return 0;
-    return redondearADecima(precio);
-};
 
 
 function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onCotizacionEliminada, onCotizacionActualizada }) {
     const { isLargeScreen } = useLayout();
     const { user } = useUser();
     const { employee } = useEmployee();
-    const [loading, setLoading] = useState(false);
+    const { showDanger } = useToast();
     const [isProductosOpen, setIsProductosOpen] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
@@ -54,40 +45,48 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
     const [isFinalizarOpen, setIsFinalizarOpen] = useState(false);
     const [isAnularCompletadoOpen, setIsAnularCompletadoOpen] = useState(false);
 
-    const normalizeText = (value) =>
-        (value || '')
-            .toString()
-            .trim()
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '');
-
     // Estado local para la cotización actual
     const [cotizacionActual, setCotizacionActual] = useState(cotizacion);
+
+    // Estado para la información del cliente
+    const [clienteInfo, setClienteInfo] = useState(null);
+    const [loadingCliente, setLoadingCliente] = useState(false);
 
     // Actualizar el estado local cuando cambie el prop cotizacion
     useEffect(() => {
         setCotizacionActual(cotizacion);
     }, [cotizacion]);
 
-    // Estados para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
+    // Cargar información del cliente cuando hay cliente_id
+    useEffect(() => {
+        const cargarCliente = async () => {
+            if (cotizacionActual?.cliente_id) {
+                setLoadingCliente(true);
+                setClienteInfo(null); // Resetear antes de cargar
+                try {
+                    const response = await clientService.getById(cotizacionActual.cliente_id);
+                    if (response && response.success) {
+                        setClienteInfo(response.data);
+                    } else {
+                        console.warn('No se pudo cargar la información del cliente:', response?.message);
+                        setClienteInfo(null);
+                    }
+                } catch (error) {
+                    console.error('Error al cargar información del cliente:', error);
+                    setClienteInfo(null);
+                    // No mostrar notificación aquí para no molestar al usuario
+                } finally {
+                    setLoadingCliente(false);
+                }
+            } else {
+                setClienteInfo(null);
+                setLoadingCliente(false);
+            }
+        };
 
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
+        cargarCliente();
+    }, [cotizacionActual?.cliente_id]);
+
 
     // Filas preparadas para ModalTable (para PC)
     const rowsMemo = useMemo(() => (cotizacionActual?.productos || [])
@@ -105,166 +104,42 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 const grupos = Math.floor(cantidad / grup);
                 const unidades = cantidad % grup;
                 cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                // Precio unitario multiplicado por la cantidad de agrupación y redondeado
-                const precioAgrupado = calcularPrecioAgrupado(precioUnitario, grup);
-                precioTexto = formatCurrency(precioAgrupado);
+                // Precio unitario multiplicado por la cantidad de agrupación
+                precioTexto = formatCurrency(precioUnitario * grup);
             } else {
                 cantidadTexto = `${cantidad} ud`;
                 precioTexto = formatCurrency(precioUnitario);
-            }
-
-            // Redondear subtotal si el producto tiene grup (independientemente del modo de la cotización)
-            let subtotal = parseFloat(productoCotizacion.subtotal) || 0;
-            if (grup > 0) {
-                subtotal = redondearADecima(subtotal);
             }
 
             return [
                 productoCotizacion.producto?.name || 'Sin nombre',
                 cantidadTexto,
                 precioTexto,
-                formatCurrency(subtotal)
+                formatCurrency(productoCotizacion.subtotal)
             ];
         }), [cotizacionActual?.productos, cotizacionActual?.agrupado]);
 
 
-    const actualizarEstadoCotizacion = async (nuevoEstado, { mensajeExito, alCerrarModal, onSuccessExtra } = {}) => {
-        setLoading(true);
-        try {
-            const response = await cotizacionesService.actualizarEstado(cotizacionActual.id, nuevoEstado);
 
-            if (response.success) {
-                const cotizacionActualizada = response.data;
-                setCotizacionActual(cotizacionActualizada);
-
-                if (onCotizacionActualizada) {
-                    onCotizacionActualizada(cotizacionActualizada);
-                }
-
-                if (typeof onSuccessExtra === 'function') {
-                    onSuccessExtra(cotizacionActualizada);
-                }
-
-                if (typeof alCerrarModal === 'function') {
-                    alCerrarModal();
-                }
-
-                mostrarNotificacion('success', mensajeExito || 'Cotización actualizada correctamente');
-            } else {
-                const msg = response.message || 'Error al actualizar la cotización';
-                mostrarNotificacion('error', msg);
-            }
-        } catch (error) {
-            console.error('Error actualizando estado de cotización:', error);
-            mostrarNotificacion('error', 'Error al actualizar la cotización');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Handle para anular cotización
-    const handleAnular = async () => {
-        const cotizacionId = cotizacionActual?.id;
-        await actualizarEstadoCotizacion('anulado', {
-            mensajeExito: 'Cotización anulada correctamente',
-            alCerrarModal: () => setIsAnularOpen(false),
-            onSuccessExtra: () => {
-                if (onCotizacionAnulada && cotizacionId) {
-                    onCotizacionAnulada(cotizacionId);
-                }
-            }
-        });
-    };
-
-    // Handle para eliminar cotización
-    const handleEliminar = async () => {
-        setLoading(true);
-        try {
-            const response = await cotizacionesService.eliminar(cotizacionActual.id);
-
-            if (response.success) {
-                setIsEliminarOpen(false);
-                setIsOpen(false);
-
-                if (onCotizacionEliminada) {
-                    onCotizacionEliminada(cotizacionActual.id);
-                }
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al eliminar la cotización');
-            }
-        } catch (error) {
-            console.error('Error eliminando cotización:', error);
-            mostrarNotificacion('error', 'Error al eliminar la cotización');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Handle para aprobar cotización
-    const handleAprobar = async () => {
-        await actualizarEstadoCotizacion('aprobada', {
-            mensajeExito: 'Cotización aprobada correctamente',
-            alCerrarModal: () => setIsAprobarOpen(false)
-        });
-    };
-
-    // Handle para volver a pendiente
-    const handleRevertirAprobacion = async () => {
-        await actualizarEstadoCotizacion('pendiente', {
-            mensajeExito: 'Cotización marcada como pendiente nuevamente',
-            alCerrarModal: () => setIsRevertirAprobacionOpen(false)
-        });
-    };
-
-    // Handle para finalizar cotización
-    const handleFinalizar = async () => {
-        await actualizarEstadoCotizacion('completado', {
-            mensajeExito: 'Cotización finalizada correctamente',
-            alCerrarModal: () => setIsFinalizarOpen(false)
-        });
-    };
-
-    // Handle para revertir completado a aprobado
-    const handleAnularCompletado = async () => {
-        await actualizarEstadoCotizacion('aprobada', {
-            mensajeExito: 'Cotización marcada nuevamente como aprobada',
-            alCerrarModal: () => setIsAnularCompletadoOpen(false)
-        });
-    };
-
-    const obtenerProductosNormalizados = () => {
-        return (cotizacionActual?.productos || [])
-            .map((productoCotizacion) => {
-                const prodId = productoCotizacion?.producto?.id ?? productoCotizacion?.producto_id;
-                if (!prodId) return null;
-
-                let cantidadParaGuardar = Number(productoCotizacion?.cantidad) || 0;
-
-                if (cotizacionActual?.agrupado && productoCotizacion?.producto?.grup) {
-                    const grup = Number(productoCotizacion.producto.grup) || 0;
-                    if (grup > 0) {
-                        cantidadParaGuardar = Math.round(cantidadParaGuardar / grup);
-                    }
-                }
-
-                return {
-                    id: prodId,
-                    cantidad: cantidadParaGuardar
-                };
-            })
-            .filter(Boolean);
+    const obtenerProductosFuente = () => {
+        const productosAct = cotizacionActual?.productos || [];
+        const productosOriginales = cotizacion?.productos || [];
+        const productosActInvalidos =
+            cotizacionActual?.estado === 'anulado' &&
+            (!productosAct.length || productosAct.some(p => !p?.producto?.id || p.precio_unitario === 0));
+        return productosActInvalidos ? productosOriginales : productosAct;
     };
 
     // Handle para realizar venta
     const handleRealizarVenta = () => {
         if (!cotizacionActual?.productos || cotizacionActual.productos.length === 0) {
-            mostrarNotificacion('error', 'No hay productos en la cotización para realizar la venta');
+            showDanger('Error', 'No hay productos en la cotización para realizar la venta');
             return;
         }
 
-        const productosNormalizados = obtenerProductosNormalizados();
-        if (productosNormalizados.length === 0) {
-            mostrarNotificacion('error', 'No se pudo preparar la cotización para la venta');
+        const productosFuente = obtenerProductosFuente();
+        if (!productosFuente || productosFuente.length === 0) {
+            showDanger('Error', 'No se pudo preparar la cotización para la venta');
             return;
         }
 
@@ -294,8 +169,29 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
             'numeroOrdenEditando'
         ].forEach(key => localStorage.removeItem(key));
 
-        // Guardar datos en las mismas variables que repetir movimiento
-        localStorage.setItem('productosMovimientoRepitiendo', JSON.stringify(productosNormalizados));
+        // Guardar productos del movimiento para cargar automáticamente
+        const productosMovimiento = (productosFuente || [])
+            .map((productoCotizacion) => {
+                const prodId = productoCotizacion?.producto?.id ?? productoCotizacion?.producto_id;
+                if (!prodId) return null;
+
+                let cantidadParaGuardar = Number(productoCotizacion?.cantidad) || 0;
+
+                // Si la cotización es agrupada, convertir la cantidad a grupos
+                if (cotizacionActual?.agrupado && productoCotizacion?.producto?.grup) {
+                    const grup = Number(productoCotizacion.producto.grup) || 0;
+                    if (grup > 0) {
+                        cantidadParaGuardar = Math.round(cantidadParaGuardar / grup);
+                    }
+                }
+
+                return {
+                    id: prodId,
+                    cantidad: cantidadParaGuardar
+                };
+            })
+            .filter(Boolean);
+        localStorage.setItem('productosMovimientoRepitiendo', JSON.stringify(productosMovimiento));
         localStorage.setItem('precioIdRepitiendo', cotizacionActual.precio_id || '');
         localStorage.setItem('movimientoAgrupadoRepitiendo', cotizacionActual.agrupado ? 'agrupado' : 'no_agrupado');
         if (cotizacionActual.metodo_pago) {
@@ -319,7 +215,7 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
     // Handle para repetir cotización
     const handleRepetirCotizacion = () => {
         if (!cotizacionActual) {
-            mostrarNotificacion('error', 'No hay cotización para repetir');
+            showDanger('Error', 'No hay cotización para repetir');
             return;
         }
 
@@ -355,7 +251,28 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
         }
 
         // Guardar productos de la cotización para cargar automáticamente
-        const productosCotizacion = obtenerProductosNormalizados();
+        const productosFuente = obtenerProductosFuente();
+        const productosCotizacion = (productosFuente || [])
+            .map((productoCotizacion) => {
+                const prodId = productoCotizacion?.producto?.id ?? productoCotizacion?.producto_id;
+                if (!prodId) return null;
+
+                let cantidadParaGuardar = Number(productoCotizacion?.cantidad) || 0;
+
+                // Si la cotización es agrupada, convertir la cantidad a grupos
+                if (cotizacionActual?.agrupado && productoCotizacion?.producto?.grup) {
+                    const grup = Number(productoCotizacion.producto.grup) || 0;
+                    if (grup > 0) {
+                        cantidadParaGuardar = Math.round(cantidadParaGuardar / grup);
+                    }
+                }
+
+                return {
+                    id: prodId,
+                    cantidad: cantidadParaGuardar
+                };
+            })
+            .filter(Boolean);
         localStorage.setItem('productosCotizacionRepitiendo', JSON.stringify(productosCotizacion));
 
         // Abrir AlmacenGeneral-Auxiliar en modo cotizar
@@ -384,9 +301,9 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
         if (!employee?.modules || !Array.isArray(employee.modules)) return false;
 
         return employee.modules.some(module => {
-            const mainModule = normalizeText(module?.modulos?.name);
+            const mainModule = (module?.modulos?.name || '').toString().trim().toLowerCase();
             if (mainModule !== 'almacen') return false;
-            const subModule = normalizeText(module?.name);
+            const subModule = (module?.name || '').toString().trim().toLowerCase();
             return subModule === 'salida o venta' ||
                 subModule === 'salida' ||
                 subModule === 'realizar_salidas' ||
@@ -397,18 +314,6 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
     const puedeGestionarSalidas = !esSesionEmpleado || tienePermisoSalidas;
 
     const estadoCotizacion = cotizacionActual?.estado;
-    // Calcular total: redondear subtotales de productos con grup, luego sumar y redondear el total final
-    const totalCotizacion = (() => {
-        const subtotalesRedondeados = (cotizacionActual?.productos || []).map(producto => {
-            const subtotal = parseFloat(producto.subtotal) || 0;
-            const grup = parseFloat(producto.producto?.grup) || 0;
-            // Redondear subtotal si el producto tiene grup (independientemente del modo de la cotización)
-            return grup > 0 ? redondearADecima(subtotal) : subtotal;
-        });
-        const suma = subtotalesRedondeados.reduce((sum, subtotal) => sum + subtotal, 0);
-        // Redondear el total final a la décima más cercana
-        return redondearADecima(suma);
-    })();
     const puedeAprobar = esResponsable && estadoCotizacion === 'pendiente';
     const puedeAnularAprobacion = esResponsable && estadoCotizacion === 'aprobada';
     const puedeFinalizar = estadoCotizacion === 'aprobada' && puedeGestionarSalidas;
@@ -441,95 +346,112 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    Detalles de Cotización
-                    <div className={styles.iconButton}>
-                        <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
-                            <BoxIcon
-                                name='download'
-                                className={styles.iconDownload}
-                            />
-                        </button>
+                <div className={styles.header}>
+                    <div className={styles.headerContent}>
+                        <h1 className={styles.title}>{cotizacionActual?.codigo || 'Detalles'}<StatusBadge estado={cotizacionActual?.estado} pendienteColor="orange" /></h1>
+                        <p className={styles.subTitle}> Registrado el {formatFechaLiteral(cotizacionActual?.fecha, !isLargeScreen) + ' - ' + formatHoraSinSegundos(cotizacionActual?.fecha)}</p>
                     </div>
-                </h1>
-                <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
-                <ItemView
-                    title={
-                        cotizacionActual?.user 
-                            ? `${cotizacionActual.user.first_name || ''} ${cotizacionActual.user.last_name || ''}`.trim()
-                            : cotizacionActual?.personal 
-                                ? `${cotizacionActual.personal.first_name || ''} ${cotizacionActual.personal.last_name || ''}`.trim()
-                                : 'Usuario desconocido'
-                    }
-                    description="Responsable de la cotización"
-                    transparent={false}
-                />
-                <p className={styles.subTitle}>INFORMACIÓN DE LA COTIZACIÓN</p>
-                {cotizacionActual?.cliente_id && (
-                    <ItemView
-                        title={cotizacionActual?.cliente?.name || 'Sin cliente'}
-                        description="Cliente"
-                        flot2={`#${cotizacionActual?.numero_cotizacion || 'Sin número'}`}
-                        transparent={false}
-                    />
-                )}
-                <div className={styles.content}>
-                    <Dato
-                        label="Fecha y hora"
-                        value={formatFechaLiteral(cotizacionActual?.fecha, !isLargeScreen) + ' - ' + formatHoraSinSegundos(cotizacionActual?.fecha)}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Tipo de precio"
-                        value={cotizacionActual?.precio?.name || 'Precio desconocido'}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Modalidad"
-                        value={cotizacionActual?.agrupado ? 'Agrupado' : 'Unidades'}
-                        vertical={false}
-                    />
-                    <Dato
-                        label="Estado"
-                        value={estadoLabel}
-                        vertical={false}
-                        especial={estadoColor}
-                    />
-                    {cotizacionActual?.metodo_pago && (
-                        <Dato
-                            label="Método de pago"
-                            value={cotizacionActual.metodo_pago.toUpperCase()}
-                            vertical={false}
+                    <div className={styles.iconButton}>
+                        <Boton
+                            iconName='download'
+                            label='Descargar'
+                            className='btn-default'
+                            onClick={() => setIsDescargaOpen(true)}
+                            hideTextOnMobile={true}
                         />
-                    )}
-                    {cotizacionActual?.fecha_vencimiento && (
-                        <Dato
-                            label="Vencimiento"
-                            value={formatFechaLiteral(cotizacionActual.fecha_vencimiento, !isLargeScreen)}
-                            vertical={false}
-                        />
-                    )}
-
-                    {/* Total calculado para cotizaciones */}
-                    {cotizacionActual?.productos && cotizacionActual.productos.length > 0 && (
-                        <Dato
-                            label="Total de la Cotización"
-                            value={formatCurrency(totalCotizacion)}
-                            vertical={false}
-                            especial='green'
-                        />
-                    )}
+                    </div>
                 </div>
+                <div className={styles.contentRow}>
+                    {/* Primera columna: Información del cliente (solo para cotizaciones con cliente) */}
+                    {cotizacionActual?.cliente_id && (
+                        <div className={styles.contentHalf}>
+                            <div className={styles.content}>
+                                <ItemView
+                                    title="Información del Cliente"
+                                    transparent={true}
+                                    icon="user"
+                                    iconShape="square"
+                                    style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                                />
+                                {loadingCliente ? (
+                                    <>
+                                        <Skeleton width="100%" height="25px" />
+                                        <Skeleton width="100%" height="25px" />
+                                        <Skeleton width="100%" height="25px" />
+                                        <Skeleton width="100%" height="25px" />
+                                        <Skeleton width="100%" height="25px" />
+                                    </>
+                                ) : clienteInfo ? (
+                                    <>
+                                        <Dato label="Nombre" value={clienteInfo?.name || 'N/A'} vertical={false} />
+                                        <Dato label="Celular" value={clienteInfo?.phone || 'N/A'} vertical={false} />
+                                        <Dato label="Descripción" value={clienteInfo?.description || 'Sin descripción'} vertical={false} />
+                                        <Dato label="Pedidos realizados" value={clienteInfo?.total_orders + ' Pedidos' || '0 Pedidos'} vertical={false} />
+                                        <Dato label="Ubicación" value={clienteInfo?.location || 'Sin ubicación'} vertical={false} />
+                                    </>
+                                ) : (
+                                    <Dato label="Cliente" value="No se pudo cargar la información" vertical={false} />
+                                )}
+                            </div>
+                        </div>
+                    )}
 
-
+                    {/* Segunda columna: Detalles de la cotización */}
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content}>
+                            <ItemView
+                                title="Detalles de la Cotización"
+                                transparent={true}
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                                icon="file"
+                            />
+                            {cotizacionActual?.metodo_pago && (
+                                <Dato
+                                    label="Método de pago"
+                                    value={cotizacionActual.metodo_pago.toUpperCase()}
+                                    vertical={false}
+                                />
+                            )}
+                            <Dato
+                                label="Responsable"
+                                value={cotizacionActual?.user?.first_name + ' ' + cotizacionActual?.user?.last_name || cotizacionActual?.personal?.first_name + ' ' + cotizacionActual?.personal?.last_name || 'Usuario desconocido'}
+                                vertical={false}
+                            />
+                            <Dato
+                                label="Tipo de precio"
+                                value={cotizacionActual?.precio?.name || 'Precio desconocido'}
+                                vertical={false}
+                            />
+                            <Dato
+                                label="Modalidad"
+                                value={cotizacionActual?.agrupado ? 'Agrupado' : 'Unidades'}
+                                vertical={false}
+                            />
+                            <Dato
+                                label="Vencimiento"
+                                value={formatFechaLiteral(cotizacionActual?.fecha_vencimiento, !isLargeScreen)}
+                                vertical={false}
+                            />
+                        </div>
+                    </div>
+                </div>
                 {/* Botón para ver productos - solo para cotizaciones con múltiples productos */}
                 {cotizacionActual?.productos && cotizacionActual.productos.length > 0 && (
                     <Boton
                         className='btn-gray'
-                        label={`Productos (${cotizacionActual.productos.length})`}
+                        label={`Lista de Productos`}
                         onClick={() => setIsProductosOpen(true)}
                     />
                 )}
+
+                {/* Resumen Financiero - Fuera del content de transacción */}
+                {cotizacionActual?.productos && cotizacionActual.productos.length > 0 && (
+                    <ResumenFinanciero resumen={calcularResumenFinanciero(cotizacionActual)} />
+                )}
+
+
+
 
                 {/* Observaciones de la cotización */}
                 {cotizacionActual?.observaciones && (
@@ -549,28 +471,34 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                     {puedeAnularCompletado ? (
                         <>
                             {puedeRepetir && (
-                            <Boton
+                                <Boton
                                     className='btn-default'
-                                label='Repetir Cotización'
-                                style={{ marginTop: 'auto' }}
-                                onClick={handleRepetirCotizacion}
-                            />
+                                    label='Repetir Cotización'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={handleRepetirCotizacion}
+                                    hideTextOnMobile={true}
+                                    iconName='repeat'
+                                />
                             )}
                             <Boton
                                 className='btn-red'
                                 label='Anular Completado'
                                 style={{ marginTop: 'auto' }}
                                 onClick={() => setIsAnularCompletadoOpen(true)}
+                                hideTextOnMobile={true}
+                                iconName='trash'
                             />
                         </>
                     ) : (
                         <>
                             {puedeRepetir && (
-                            <Boton
-                                className='btn-default'
+                                <Boton
+                                    className='btn-default'
                                     label='Repetir Cotización'
                                     style={{ marginTop: 'auto' }}
                                     onClick={handleRepetirCotizacion}
+                                    hideTextOnMobile={true}
+                                    iconName='repeat'
                                 />
                             )}
                             {puedeAprobar && (
@@ -579,31 +507,39 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                     label='Aprobar Cotización'
                                     style={{ marginTop: 'auto' }}
                                     onClick={() => setIsAprobarOpen(true)}
+                                    hideTextOnMobile={true}
+                                    iconName='check-circle'
                                 />
                             )}
                             {puedeAnularAprobacion && (
                                 <Boton
                                     className='btn-red'
-                                label='Anular aprobación'
-                                style={{ marginTop: 'auto' }}
-                                onClick={() => setIsRevertirAprobacionOpen(true)}
-                            />
+                                    label='Anular aprobación'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={() => setIsRevertirAprobacionOpen(true)}
+                                    hideTextOnMobile={true}
+                                    iconName='trash'
+                                />
                             )}
                             {puedeFinalizar && (
-                            <Boton
-                                className='btn-gray'
+                                <Boton
+                                    className='btn-gray'
                                     label='Finalizar Cotización'
-                                style={{ marginTop: 'auto' }}
+                                    style={{ marginTop: 'auto' }}
                                     onClick={() => setIsFinalizarOpen(true)}
-                            />
+                                    hideTextOnMobile={true}
+                                    iconName='check'
+                                />
                             )}
                             {puedeRealizarVenta && (
-                            <Boton
-                                className='btn-green'
-                                label='Realizar Venta'
-                                style={{ marginTop: 'auto' }}
-                                onClick={handleRealizarVenta}
-                            />
+                                <Boton
+                                    className='btn-green'
+                                    label='Realizar Venta'
+                                    style={{ marginTop: 'auto' }}
+                                    onClick={handleRealizarVenta}
+                                    hideTextOnMobile={true}
+                                    iconName='check-circle'
+                                />
                             )}
                             {puedeAnular && (
                                 <Boton
@@ -611,6 +547,8 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                     label='Anular Cotización'
                                     style={{ marginTop: 'auto' }}
                                     onClick={() => setIsAnularOpen(true)}
+                                    hideTextOnMobile={true}
+                                    iconName='trash'
                                 />
                             )}
                             {puedeEliminar && (
@@ -619,6 +557,8 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                                     label='Eliminar Cotización'
                                     style={{ marginTop: 'auto' }}
                                     onClick={() => setIsEliminarOpen(true)}
+                                    hideTextOnMobile={true}
+                                    iconName='trash'
                                 />
                             )}
                         </>
@@ -629,241 +569,67 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
 
 
             {/* Modal de productos */}
-            {isLargeScreen ? (
-                <ModalTable
-                    isOpen={isProductosOpen}
-                    title="Productos de la Cotización"
-                    headers={['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal']}
-                    rows={rowsMemo}
-                    onClose={() => setIsProductosOpen(false)}
-                />
-            ) : (
-                <ViewModal isOpen={isProductosOpen} setIsOpen={setIsProductosOpen}>
-                    <HeaderModal
-                        title="Productos de la Cotización"
-                        onClose={() => setIsProductosOpen(false)}
-                    />
-                    <div className={styles.modalContent}>
-                        {cotizacionActual?.productos && cotizacionActual.productos.length > 0 && (
-                            <>
-                                <p className={styles.subTitle}>PRODUCTOS INCLUIDOS</p>
-
-                                {cotizacionActual.productos
-                                    .sort((a, b) => (a.producto?.name || '').localeCompare(b.producto?.name || '', 'es', { sensitivity: 'base' }))
-                                    .map((productoCotizacion, index) => {
-                                        const cantidad = parseFloat(productoCotizacion.cantidad) || 0;
-                                        const grup = parseFloat(productoCotizacion.producto?.grup) || 0;
-                                        const esAgrupado = cotizacionActual?.agrupado && grup > 0;
-                                        const precioUnitario = parseFloat(productoCotizacion.precio_unitario) || 0;
-
-                                        let cantidadTexto;
-                                        let precioTexto;
-
-                                        if (esAgrupado) {
-                                            const grupos = Math.floor(cantidad / grup);
-                                            const unidades = cantidad % grup;
-                                            cantidadTexto = unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                                            // Precio unitario multiplicado por la cantidad de agrupación y redondeado
-                                            const precioAgrupado = calcularPrecioAgrupado(precioUnitario, grup);
-                                            precioTexto = formatCurrency(precioAgrupado);
-                                        } else {
-                                            cantidadTexto = `${cantidad} ud`;
-                                            precioTexto = formatCurrency(precioUnitario);
-                                        }
-                                        
-                                        // Mostrar subtotal redondeado si el producto tiene grup (independientemente del modo de la cotización)
-                                        let subtotalMostrar = parseFloat(productoCotizacion.subtotal) || 0;
-                                        if (grup > 0) {
-                                            subtotalMostrar = redondearADecima(subtotalMostrar);
-                                        }
-
-                                        return (
-                                            <ItemView
-                                                key={`${productoCotizacion.producto?.id || 'producto'}-${index}`}
-                                                title={productoCotizacion.producto?.name || 'Sin nombre'}
-                                                description={`Precio Unitario: ${precioTexto} • Subtotal: ${formatCurrency(subtotalMostrar)}`}
-                                                flot2={cantidadTexto}
-                                                circulo={false}
-                                            />
-                                        );
-                                    })}
-                            </>
-                        )}
-                    </div>
-                </ViewModal>
-            )}
+            <ModalProductos
+                isOpen={isProductosOpen}
+                setIsOpen={setIsProductosOpen}
+                cotizacionActual={cotizacionActual}
+                rowsMemo={rowsMemo}
+            />
 
             {/* Modal de anular cotización */}
-            <ViewModal isOpen={isAnularOpen} setIsOpen={setIsAnularOpen}>
-                <HeaderModal
-                    title="Anular Cotización"
-                    onClose={() => setIsAnularOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas anular esta cotización? Esta acción no se puede deshacer.
-                    </p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsAnularOpen(false)}
-                        />
-                        <Boton
-                            className='btn-red'
-                            label='Sí, anular'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleAnular}
-                            loading={loading}
-                        />
-
-                    </div>
-                </div>
-            </ViewModal>
+            <ModalAnular
+                isOpen={isAnularOpen}
+                setIsOpen={setIsAnularOpen}
+                cotizacionActual={cotizacionActual}
+                setCotizacionActual={setCotizacionActual}
+                onCotizacionAnulada={onCotizacionAnulada}
+                onCotizacionActualizada={onCotizacionActualizada}
+            />
 
             {/* Modal para revertir aprobación */}
-            <ViewModal isOpen={isRevertirAprobacionOpen} setIsOpen={setIsRevertirAprobacionOpen}>
-                <HeaderModal
-                    title="Anular aprobación"
-                    onClose={() => setIsRevertirAprobacionOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Quieres volver a poner esta cotización en estado pendiente? Perderá el estado de aprobación actual.
-                    </p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsRevertirAprobacionOpen(false)}
-                        />
-                        <Boton
-                            className='btn-red'
-                            label='Sí, volver a pendiente'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleRevertirAprobacion}
-                            loading={loading}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
+            <ModalRevertirAprobacion
+                isOpen={isRevertirAprobacionOpen}
+                setIsOpen={setIsRevertirAprobacionOpen}
+                cotizacionActual={cotizacionActual}
+                setCotizacionActual={setCotizacionActual}
+                onCotizacionActualizada={onCotizacionActualizada}
+            />
 
             {/* Modal para finalizar cotización */}
-            <ViewModal isOpen={isFinalizarOpen} setIsOpen={setIsFinalizarOpen}>
-                <HeaderModal
-                    title="Finalizar Cotización"
-                    onClose={() => setIsFinalizarOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Deseas marcar esta cotización como completada? Luego solo podrás revertirla a estado aprobado.
-                    </p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsFinalizarOpen(false)}
-                        />
-                        <Boton
-                            className='btn-green'
-                            label='Sí, finalizar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleFinalizar}
-                            loading={loading}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
+            <ModalFinalizar
+                isOpen={isFinalizarOpen}
+                setIsOpen={setIsFinalizarOpen}
+                cotizacionActual={cotizacionActual}
+                setCotizacionActual={setCotizacionActual}
+                onCotizacionActualizada={onCotizacionActualizada}
+            />
 
             {/* Modal para anular completado */}
-            <ViewModal isOpen={isAnularCompletadoOpen} setIsOpen={setIsAnularCompletadoOpen}>
-                <HeaderModal
-                    title="Anular Completado"
-                    onClose={() => setIsAnularCompletadoOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Quieres devolver esta cotización al estado aprobado? Podrás finalizarla nuevamente cuando lo necesites.
-                    </p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsAnularCompletadoOpen(false)}
-                        />
-                        <Boton
-                            className='btn-gray'
-                            label='Sí, volver a aprobado'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleAnularCompletado}
-                            loading={loading}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
+            <ModalAnularCompletado
+                isOpen={isAnularCompletadoOpen}
+                setIsOpen={setIsAnularCompletadoOpen}
+                cotizacionActual={cotizacionActual}
+                setCotizacionActual={setCotizacionActual}
+                onCotizacionActualizada={onCotizacionActualizada}
+            />
 
             {/* Modal de eliminar cotización */}
-            <ViewModal isOpen={isEliminarOpen} setIsOpen={setIsEliminarOpen}>
-                <HeaderModal
-                    title="Eliminar Cotización"
-                    onClose={() => setIsEliminarOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas eliminar permanentemente esta cotización? Esta acción no se puede deshacer.
-                    </p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsEliminarOpen(false)}
-                        />
-                        <Boton
-                            className='btn-red'
-                            label='Sí, eliminar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleEliminar}
-                            loading={loading}
-                            segundosDisabled={5}
-                        />
-
-                    </div>
-                </div>
-            </ViewModal>
+            <ModalEliminar
+                isOpen={isEliminarOpen}
+                setIsOpen={setIsEliminarOpen}
+                cotizacionActual={cotizacionActual}
+                onCotizacionEliminada={onCotizacionEliminada}
+                onClose={() => setIsOpen(false)}
+            />
 
             {/* Modal de aprobar cotización */}
-            <ViewModal isOpen={isAprobarOpen} setIsOpen={setIsAprobarOpen}>
-                <HeaderModal
-                    title="Aprobar Cotización"
-                    onClose={() => setIsAprobarOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas aprobar esta cotización? Una vez aprobada, podrás realizar la venta de manera directa.
-                    </p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsAprobarOpen(false)}
-                        />
-                        <Boton
-                            className='btn-green'
-                            label='Sí, aprobar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleAprobar}
-                            loading={loading}
-                        />
-
-                    </div>
-                </div>
-            </ViewModal>
+            <ModalAprobar
+                isOpen={isAprobarOpen}
+                setIsOpen={setIsAprobarOpen}
+                cotizacionActual={cotizacionActual}
+                setCotizacionActual={setCotizacionActual}
+                onCotizacionActualizada={onCotizacionActualizada}
+            />
 
             {/* Modal de descarga */}
             <DescargaCotizacionBuilder
@@ -873,11 +639,6 @@ function VerCotizacion({ isOpen, setIsOpen, cotizacion, onCotizacionAnulada, onC
                 cotizacionData={cotizacionActual}
             />
 
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
 
             {/* Modal de AlmacenGeneral para realizar venta */}
             <AlmacenGeneral

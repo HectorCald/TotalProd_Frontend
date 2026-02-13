@@ -8,7 +8,6 @@ import Boton from '../../common/Boton';
 import EditarAgregarSucursal from './EditarAgregarSucursal';
 import sucursalesService from '../../../services/sucursalesService';
 import InfoModal from '../../common/InfoModal';
-import Notification from '../../common/Notification';
 import { useUser } from '../../../context/UserContext';
 import { BoxIcon } from 'boxicons-react';
 import LoadingSpinner from '../../common/LoadingSpinner';
@@ -98,25 +97,6 @@ function Sucursales({ isOpen, setIsOpen }) {
 
 
 
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
@@ -205,7 +185,6 @@ function Sucursales({ isOpen, setIsOpen }) {
 
         // Cerrar el modal
         setIsAgregarOpen(false);
-        mostrarNotificacion('success', 'Sucursal agregada correctamente');
     };
 
     // Función para manejar cuando se elimina una sucursal
@@ -215,7 +194,6 @@ function Sucursales({ isOpen, setIsOpen }) {
 
         // Cerrar el modal de ver sucursal
         setIsOpenVerSucursal(false);
-        mostrarNotificacion('success', 'Sucursal eliminada correctamente');
     };
 
     // Función para manejar cuando se actualiza una sucursal
@@ -392,11 +370,6 @@ function Sucursales({ isOpen, setIsOpen }) {
                 />
             )}
 
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </View>
     );
 }

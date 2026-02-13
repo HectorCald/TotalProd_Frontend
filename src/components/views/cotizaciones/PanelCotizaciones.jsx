@@ -6,7 +6,6 @@ import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import VerCotizacion from './VerCotizacion';
 import Filtros from '../../common/Filtros';
-import Notification from '../../common/Notification';
 import InfoModal from '../../common/InfoModal';
 import cotizacionesService from '../../../services/cotizacionesService';
 import LoadingSpinner from '../../common/LoadingSpinner';
@@ -117,25 +116,6 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
     const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
     const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
     const [isOpenFiltroCliente, setIsOpenFiltroCliente] = useState(false);
-
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Funciones de carga
     const handleCotizacionesLoaded = useCallback((data = []) => {
@@ -276,8 +256,6 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
 
         setAllCotizaciones(aplicarEliminacion);
         mutateCachedItems(aplicarEliminacion);
-        
-        mostrarNotificacion('success', 'Cotización eliminada correctamente');
     };
 
     const handleCotizacionActualizada = (cotizacionActualizada) => {
@@ -290,12 +268,7 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
 
         setAllCotizaciones(aplicarActualizacion);
         mutateCachedItems(aplicarActualizacion);
-        
-        if (cotizacionActualizada.estado === 'aprobada') {
-            mostrarNotificacion('success', 'Cotización aprobada correctamente');
-        } else if (cotizacionActualizada.estado === 'anulado') {
-            mostrarNotificacion('success', 'Cotización anulada correctamente');
-        }
+
     };
 
     // Efectos
@@ -635,12 +608,6 @@ function PanelCotizaciones({ isOpen, setIsOpen }) {
                 onCotizacionAnulada={handleCotizacionAnulada}
                 onCotizacionEliminada={handleCotizacionEliminada}
                 onCotizacionActualizada={handleCotizacionActualizada}
-            />
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
             />
 
             {/* Filtro de estado de cotización */}

@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from './ItemView.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, circulo = true, transparent = true, colorIcon = 'default', style = {}, button = false, onButtonClick, customIcon, disabled = false, showFavorite = false, isFavorite = false, onFavoriteToggle = () => {} }) => {
+const ItemView = ({ title, description, description2, icon, onClick, arrow, badge, flot1, flot2, flot3, flot4, flot5, flot6, flot7, flot8, circulo = true, transparent = true, colorIcon = 'default', style = {}, button = false, onButtonClick, customIcon, disabled = false, showFavorite = false, isFavorite = false, onFavoriteToggle = () => {}, iconShape = 'circle' }) => {
   const [fontSize, setFontSize] = useState(14);
   const titleRef = useRef(null);
-  const hasFlots = flot1 || flot2 || flot3 || flot4 || flot5 || flot6;
+  const hasFlots = flot1 || flot2 || flot3 || flot4 || flot5 || flot6 || flot7 || flot8;
 
   // Verificar si el texto se pasa a segunda línea
   useEffect(() => {
@@ -132,6 +132,8 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
       'azul': styles.iconBlue,
       'naranja': styles.iconOrange,
       'gris': styles.iconGrey,
+      'morado': styles.iconMorado,
+      'cyan': styles.iconCyan,
       'default': ''
     };
     return classMap[colorIcon] || classMap['default'];
@@ -145,6 +147,8 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
       'azul': 'rgba(59, 130, 246, 0.2)',
       'naranja': '#fb87133a',
       'gris': 'var(--tertiary-color)',
+      'morado': 'rgba(124, 58, 237, 0.2)',
+      'cyan': 'rgba(13, 148, 136, 0.2)',
       'default': 'rgba(40, 180, 152, 0.3)'
     };
     return backgroundMap[colorIcon] || backgroundMap['default'];
@@ -169,10 +173,10 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
     >
       {circulo && (
         <div 
-          className={`${styles.itemViewIcon} ${button ? styles.itemViewIconClickable : ''}`} 
+          className={`${styles.itemViewIcon} ${button ? styles.itemViewIconClickable : ''} ${iconShape === 'square' ? styles.iconSquare : ''}`} 
           style={{ 
             backgroundColor: icon ? getIconBackgroundColor() : initialsBackgroundColor,
-            borderRadius: customIcon ? '10px' : '50%'
+            borderRadius: customIcon ? '10px' : (iconShape === 'square' ? '10px' : '50%')
           }}
           onClick={button && onButtonClick ? onButtonClick : undefined}
         >
@@ -216,6 +220,8 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
             {flot4 ? <p className={styles.flot4}>{flot4}</p> : ''}
             {flot5 ? <p className={styles.flot5}>{flot5}</p> : ''}
             {flot6 ? <p className={styles.flot6}>{flot6}</p> : ''}
+            {flot7 ? <p className={styles.flot7}>{flot7}</p> : ''}
+            {flot8 ? <p className={styles.flot8}>{flot8}</p> : ''}
           </div>
         </div>
         {description ? <p className={styles.description}>{description}</p> : null}
@@ -234,14 +240,15 @@ const ItemView = ({ title, description, description2, icon, onClick, arrow, badg
       )}
       {showFavorite && (
         <div 
-          className={styles.favoriteButton}
+          className={styles.itemViewFavorite}
           onClick={(e) => {
             e.stopPropagation();
             onFavoriteToggle();
           }}
         >
           <BoxIcon 
-            name="heart" 
+            name="heart"
+            solid={isFavorite}
             className={`${styles.favoriteIcon} ${isFavorite ? styles.favoriteIconFilled : styles.favoriteIconOutline}`}
           />
         </div>

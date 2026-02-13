@@ -3,17 +3,19 @@ import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
+import Input from '../../common/inputs/Input';
 import InputNormal from '../../common/InputNormal';
 import Dato from '../../common/Dato';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import gastosService from '../../../services/gastosService';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import Switch from '../../common/Switch';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import Proveedores from '../proveedores/Proveedores';
 import Clientes from '../clientes/Clientes';
 
 function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreated }) {
+  const { showSuccess, showDanger, showWarning } = useToast();
   const [dataMov, setDataMov] = useState({
     observations: '',
     proveedor_id: '',
@@ -24,25 +26,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   });
 
   const [loading, setLoading] = useState(false);
-
-  // Estados para la notificación
-  const [notification, setNotification] = useState({
-    isVisible: false,
-    type: 'error',
-    text: ''
-  });
-  const mostrarNotificacion = (tipo, texto) => {
-    setNotification({
-      isVisible: true,
-      type: tipo,
-      text: texto
-    });
-
-    // Auto-ocultar después de 3 segundos
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
-    }, 3000);
-  };
+  const [cantidadError, setCantidadError] = useState(false);
   const [isProveedoresSeleccionOpen, setIsProveedoresSeleccionOpen] = useState(false);
   const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
   const [proveedorSeleccionadoData, setProveedorSeleccionadoData] = useState(null);
@@ -68,11 +52,6 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   // Estado para las cantidades personalizadas de ingredientes
   const [cantidadesPersonalizadas, setCantidadesPersonalizadas] = useState({});
 
-  // Estado para controlar si hay cambios pendientes en cada ingrediente
-  const [cambiosPendientes, setCambiosPendientes] = useState({});
-
-
-
   // Efecto para verificar si el producto tiene receta
   useEffect(() => {
     if (isOpen && producto) {
@@ -93,6 +72,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
         costo: '',
         metodo_pago: ''
       });
+      setCantidadError(false);
       // Resetear el switch de registrar gasto siempre a false
       setRegistrarGasto(false);
       // No resetear el switch de materia prima, mantener el valor del localStorage
@@ -100,47 +80,26 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
       // Limpiar estados de ingredientes cuando se cierra el modal
       setIngredienteEditando(null);
       setCantidadesPersonalizadas({});
-      setCambiosPendientes({});
       setIngredientesAConsumir([]);
     }
   }, [isOpen]);
 
-  // Efecto para calcular ingredientes cuando cambie la cantidad, la receta o las cantidades personalizadas
-  useEffect(() => {
-    if (tieneReceta && recetaData && dataMov.quantity) {
-      const ingredientes = calcularIngredientesAConsumir(dataMov.quantity, recetaData);
-      setIngredientesAConsumir(ingredientes);
-    } else {
-      setIngredientesAConsumir([]);
-    }
-  }, [dataMov.quantity, recetaData, tieneReceta, cantidadesPersonalizadas, ingredienteEditando]);
-
-  // Función para actualizar los datos del formulario
-  const handleChange = (field, value) => {
-    setDataMov({ ...dataMov, [field]: value });
-  };
-
-  // Función para calcular ingredientes que se van a consumir
+  // Función para calcular ingredientes que se van a consumir (definida antes del useEffect que la usa)
   const calcularIngredientesAConsumir = (cantidad, receta) => {
     if (!cantidad || !receta || !receta.recetas_acopio_detalle) {
       return [];
     }
-
     const cantidadNumerica = parseFloat(cantidad);
     if (isNaN(cantidadNumerica) || cantidadNumerica <= 0) {
       return [];
     }
-
     return receta.recetas_acopio_detalle.map((detalle, index) => {
       const cantidadCalculada = parseFloat(detalle.cantidad) * cantidadNumerica;
       const cantidadPersonalizada = cantidadesPersonalizadas[index];
-
-      // Solo usar cantidad personalizada si no está en modo edición
       let cantidadFinal = cantidadCalculada;
       if (cantidadPersonalizada !== undefined && ingredienteEditando !== index) {
         cantidadFinal = parseFloat(cantidadPersonalizada) || 0;
       }
-
       return {
         nombre: detalle.products_acopio?.name || 'Producto desconocido',
         cantidad: parseFloat(cantidadFinal.toFixed(3)),
@@ -153,6 +112,21 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
     });
   };
 
+  // Efecto para calcular ingredientes cuando cambie la cantidad, la receta o las cantidades personalizadas
+  useEffect(() => {
+    if (tieneReceta && recetaData && dataMov.quantity) {
+      const ingredientes = calcularIngredientesAConsumir(dataMov.quantity, recetaData);
+      setIngredientesAConsumir(ingredientes);
+    } else {
+      setIngredientesAConsumir([]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- calcularIngredientesAConsumir usa cantidadesPersonalizadas e ingredienteEditando ya listados
+  }, [dataMov.quantity, recetaData, tieneReceta, cantidadesPersonalizadas, ingredienteEditando]);
+
+  // Función para actualizar los datos del formulario
+  const handleChange = (field, value) => {
+    setDataMov({ ...dataMov, [field]: value });
+  };
 
   // Función para manejar cuando se selecciona un proveedor
   const handleProveedorSeleccionado = (proveedor) => {
@@ -203,19 +177,20 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
   // Función para enviar los datos
   const handleSubmit = async () => {
     if (!dataMov.quantity || dataMov.quantity <= 0) {
-      mostrarNotificacion('error', 'La cantidad es obligatoria y debe ser mayor a 0');
+      setCantidadError(true);
+      showWarning('Validación', 'La cantidad es obligatoria y debe ser mayor a 0', 5000);
       return;
     }
 
     // Validaciones específicas para entradas con registro de gasto
     if (tipo === 'entrada' && registrarGasto) {
       if (!dataMov.costo || dataMov.costo <= 0) {
-        mostrarNotificacion('error', 'El costo es obligatorio cuando se registra un gasto');
+        showWarning('Validación', 'El costo es obligatorio cuando se registra un gasto', 5000);
         return;
       }
 
       if (!dataMov.metodo_pago || dataMov.metodo_pago.trim() === '') {
-        mostrarNotificacion('error', 'El método de pago es obligatorio cuando se registra un gasto');
+        showWarning('Validación', 'El método de pago es obligatorio cuando se registra un gasto', 5000);
         return;
       }
     }
@@ -266,7 +241,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           movimientoData.gasto_id = gastoId;
           console.log('Gasto creado simultáneamente:', gastoResponse.data);
         } else {
-          mostrarNotificacion('error', `Error al crear gasto: ${gastoResponse.message}`);
+          showDanger('Error', `Error al crear gasto: ${gastoResponse.message}`, 5000);
           return;
         }
       }
@@ -275,7 +250,11 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
       const response = await movimientosAcopioService.create(movimientoData);
 
       if (response.success) {
-        // Cerrar el modal y notificar al componente padre
+        showSuccess(
+          tipo === 'entrada' ? 'Entrada registrada' : 'Salida registrada',
+          `${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente`,
+          5000
+        );
         setIsOpen(false);
         if (onMovimientoCreated) {
           onMovimientoCreated(response.data, tieneReceta && restarMateriaPrima);
@@ -298,14 +277,14 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
             `${ing.nombre}: Stock actual ${ing.stockActual}, requerido ${ing.requerido}`
           ).join('\n');
 
-          mostrarNotificacion('error', `Stock insuficiente de ingredientes:\n${ingredientesDetalle}`);
+          showDanger('Error', `Stock insuficiente de ingredientes:\n${ingredientesDetalle}`, 5000);
         } else {
-          mostrarNotificacion('error', response.message || `Error al registrar ${tipo}`);
+          showDanger('Error', response.message || `Error al registrar ${tipo}`, 5000);
         }
       }
     } catch (error) {
       console.error(`Error al registrar ${tipo}:`, error);
-      mostrarNotificacion('error', error.message || 'Error de conexión con el servidor');
+      showDanger('Error', error.message || 'Error de conexión con el servidor', 5000);
     } finally {
       setLoading(false);
     }
@@ -326,29 +305,37 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
             <Dato
               label="Cantidad Actual"
               value={`${parseFloat(producto?.quantity || 0).toFixed(2)} ${producto?.type_measure?.code || ''}`}
+              vertical={false}
             />
             <Dato
               label="Tipo de medida"
               value={producto?.type_measure?.name || 'No especificado'}
+              vertical={false}
             />
           </div>
 
           <p className={styles.subTitle}>INFORMACIÓN DE LA {tipo === 'entrada' ? 'ENTRADA' : 'SALIDA'}</p>
-          <InputNormal
+          <Input
             tipo="number"
+            label="Cantidad"
             value={dataMov.quantity}
-            placeholder='Cantidad (obligatorio)'
             onChange={(e) => handleChange('quantity', e.target.value)}
-            icon='calculator'
+            required={true}
+            error={cantidadError}
+            onClearError={() => setCantidadError(false)}
+            step="0.01"
+            min="0"
+            readOnly={loading}
           />
 
-          <InputNormal
+          <Input
             tipo="text"
+            label="Observaciones (opcional)"
             value={dataMov.observations}
-            placeholder='Observaciones (opcional)'
             onChange={(e) => handleChange('observations', e.target.value)}
-            icon='comment'
+            readOnly={loading}
           />
+          <div className={styles.space}></div>
 
           {/* Switch para registrar gasto solo para entradas */}
           {tipo === 'entrada' && (
@@ -359,6 +346,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
                 checked={registrarGasto}
                 onChange={setRegistrarGasto}
                 icon="money"
+                readOnly={loading}
               />
             </div>
           )}
@@ -374,17 +362,20 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
                 icon='money'
                 step="0.01"
                 min="0"
+                readonly={loading}
               />
 
               <SelectorMetodoPago
                 value={dataMov.metodo_pago}
                 onChange={(value) => handleChange('metodo_pago', value)}
+                readOnly={loading}
               />
 
               <Boton
                 className='btn-gray'
                 label={proveedorSeleccionadoData ? 'Proveedor: ' + proveedorSeleccionadoData.name : 'Seleccionar Proveedor (opcional)'}
                 onClick={() => setIsProveedoresSeleccionOpen(true)}
+                readOnly={loading}
               />
 
             </>
@@ -396,6 +387,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
               className='btn-gray'
               label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente (opcional)'}
               onClick={() => setIsClientesSeleccionOpen(true)}
+              readOnly={loading}
             />
 
           )}
@@ -411,6 +403,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
                   localStorage.setItem('restarMateriaPrima', JSON.stringify(value));
                 }}
                 icon="minus-circle"
+                readOnly={loading}
               />
             </div>
           )}
@@ -454,6 +447,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
                         buttonIconClick={() => handleGuardarCantidadIngrediente(index)}
                         step="0.01"
                         min="0"
+                        readonly={loading}
                       />
                     </div>
                   )}
@@ -468,11 +462,7 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
               style={{ marginTop: 'auto' }}
               onClick={handleSubmit}
               loading={loading}
-              disabled={
-                !dataMov.quantity ||
-                dataMov.quantity <= 0 ||
-                (tipo === 'entrada' && registrarGasto && (!dataMov.costo || dataMov.costo <= 0 || !dataMov.metodo_pago || dataMov.metodo_pago.trim() === ''))
-              }
+              disabled={loading}
             />
           </div>
         </div>
@@ -491,13 +481,6 @@ function MovimientoAcopio({ isOpen, setIsOpen, producto, tipo, onMovimientoCreat
           onClienteSeleccionado={handleClienteSeleccionado}
         />
       </ViewModal>
-      {/* Modal de selección de proveedores */}
-
-      <Notification
-        isVisible={notification.isVisible}
-        type={notification.type}
-        text={notification.text}
-      />
     </>
   );
 }

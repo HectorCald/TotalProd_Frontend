@@ -1,18 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useDebounce } from 'use-debounce';
 import styles from '../../../../styles/Inicial.module.css';
-import HeaderView, { getPrimaryNormalizedValue } from '../../../common/HeaderView';
+import HeaderView from '../../../common/HeaderView';
 import View from '../../../ui/View';
 import ItemView from '../../../common/ItemView';
 import VerMiProduccion from './VerMiProduccion';
 import Filtros from '../../../common/Filtros';
-import Notification from '../../../common/Notification';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
 import RefreshIndicator from '../../../common/RefreshIndicator';
 import { useLayout } from '../../../../context/LayoutContext';
 import Table from '../../../common/Table';
-import FiltroOrdenamiento from '../../../mixed/FiltroOrdenamiento';
 import FiltroEstados from '../../../mixed/FiltroEstados';
+import FiltroFecha, { formatDateRangeForDisplay } from '../../../mixed/FiltroFecha';
 import NoData from '../../../common/NoData';
 import LoadingSpinner from '../../../common/LoadingSpinner';
 import PullToRefresh from '../../../common/PullToRefresh';
@@ -26,11 +24,8 @@ function MiProduccion({ isOpen, setIsOpen }) {
     const [isOpenVerMiProduccion, setIsOpenVerMiProduccion] = useState(false);
     const [infoProduccion, setInfoProduccion] = useState(null);
 
-    // Estados para paginación y búsqueda
+    // Estados para paginación
     const [currentPage, setCurrentPage] = useState(1);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchQueryNormalized, setSearchQueryNormalized] = useState('');
-    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
     // Estados para RefreshIndicator
     const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
@@ -43,18 +38,25 @@ function MiProduccion({ isOpen, setIsOpen }) {
     // Estados para rastrear qué datos se han cargado
     const [registrosLoaded, setRegistrosLoaded] = useState(false);
 
-    // Debounce para búsqueda
-    const [debouncedSearchQuery] = useDebounce(searchQueryNormalized, 500);
-
-    // Estados para filtros (sin filtro de responsable)
+    // Estados para filtros
     const [filtroEstado, setFiltroEstado] = useState(null);
-    const [ordenamiento, setOrdenamiento] = useState('fecha_desc');
+    const [ordenamiento] = useState('fecha_desc');
+    const [filtroFecha, setFiltroFecha] = useState({ inicio: null, fin: null });
+    const fechaInicioKey = useMemo(
+        () => (filtroFecha.inicio ? filtroFecha.inicio.toISOString() : null),
+        [filtroFecha.inicio]
+    );
+    const fechaFinKey = useMemo(
+        () => (filtroFecha.fin ? filtroFecha.fin.toISOString() : null),
+        [filtroFecha.fin]
+    );
 
     const filterSignature = useMemo(() => JSON.stringify({
         filtroEstado,
         ordenamiento,
-        search: debouncedSearchQuery || '',
-    }), [filtroEstado, ordenamiento, debouncedSearchQuery]);
+        fechaInicio: fechaInicioKey,
+        fechaFin: fechaFinKey,
+    }), [filtroEstado, ordenamiento, fechaInicioKey, fechaFinKey]);
 
     const {
         hasCachedItems,
@@ -160,27 +162,8 @@ function MiProduccion({ isOpen, setIsOpen }) {
         }
     }, [isOpen]);
 
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
     // Estados para filtros y modales
-    const [isOpenFiltroOrden, setIsOpenFiltroOrden] = useState(false);
+    const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
     const [isOpenFiltroEstados, setIsOpenFiltroEstados] = useState(false);
 
     // Función para manejar el click en un registro
@@ -205,48 +188,6 @@ function MiProduccion({ isOpen, setIsOpen }) {
             setCurrentPage(prev => prev + 1);
         }
     };
-
-    // Función para manejar ordenamiento
-    const handleOrdenamiento = (orden) => {
-        setOrdenamiento(orden);
-        setCurrentPage(1);
-    };
-
-    // Funciones para el buscador expandible
-    const handleSearchChange = (value) => {
-        setSearchQuery(value);
-    };
-
-    const handleSearchNormalizedChange = (normalizedValue) => {
-        setSearchQueryNormalized(normalizedValue || '');
-    };
-
-    const handleSearchClear = () => {
-        setSearchQuery('');
-        setSearchQueryNormalized('');
-    };
-
-    const handleSearchToggle = (isExpanded) => {
-        setIsSearchExpanded(isExpanded);
-    };
-
-    // Efecto para resetear búsqueda cuando se abre
-    useEffect(() => {
-        if (isOpen) {
-            setSearchQuery('');
-            setSearchQueryNormalized('');
-            setCurrentPage(1);
-        }
-    }, [isOpen]);
-
-    // Efecto para limpiar datos acumulados SOLO cuando cambia la búsqueda, filtro o ordenamiento
-    useEffect(() => {
-        if (isOpen) {
-            setSearchQuery('');
-            setSearchQueryNormalized('');
-            setCurrentPage(1);
-        }
-    }, [isOpen]);
 
     useEffect(() => {
         if (!isOpen || currentPage !== 1 || allRegistros.length > 0) {
@@ -284,20 +225,13 @@ function MiProduccion({ isOpen, setIsOpen }) {
         return 'Todos los estados';
     };
 
-    // Función para obtener el nombre del ordenamiento
-    const getOrdenamientoNombre = () => {
-        const ordenamientos = {
-            'fecha_desc': 'Más recientes',
-            'fecha_asc': 'Más antiguos'
-        };
-        return ordenamientos[ordenamiento] || 'Ordenamiento';
-    };
+    const getFechaNombre = () => formatDateRangeForDisplay(filtroFecha?.inicio, filtroFecha?.fin, 'Fecha');
 
     const opciones = [
         {
-            label: getOrdenamientoNombre(),
-            active: ordenamiento !== 'fecha_desc',
-            onClick: () => setIsOpenFiltroOrden(true)
+            label: getFechaNombre(),
+            active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
+            onClick: () => setIsOpenFiltroFecha(true)
         },
         {
             label: getEstadoNombre(),
@@ -357,26 +291,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
         }
 
         if (headerKey === 'proceso') {
-            const proceso = item.proceso;
-            const badgeConfig = {
-                'Cernido': {
-                    text: 'Cernido',
-                    className: 'info' // azul
-                },
-                'Seleccionado': {
-                    text: 'Seleccionado',
-                    className: 'info' // verde
-                },
-                'Ninguno': {
-                    text: 'Ninguno',
-                    className: 'info' // gris
-                },
-            };
-
-            return badgeConfig[proceso] || {
-                text: proceso,
-                className: 'default'
-            };
+            return null;
         }
 
         return null;
@@ -386,14 +301,7 @@ function MiProduccion({ isOpen, setIsOpen }) {
         <View isOpen={isOpen} setIsOpen={setIsOpen} isMainView={true}>
             <HeaderView
                 onBack={() => setIsOpen(false)}
-                showSearch={true}
-                searchPlaceholder="Buscar mis registros..."
-                searchValue={searchQuery}
-                onSearchChange={handleSearchChange}
-                onSearchNormalizedChange={handleSearchNormalizedChange}
-                onSearchClear={handleSearchClear}
-                searchExpanded={isSearchExpanded}
-                onSearchToggle={handleSearchToggle}
+                showSearch={false}
                 title="Mi Producción"
             />
             <div className={styles.container}>
@@ -415,7 +323,8 @@ function MiProduccion({ isOpen, setIsOpen }) {
                         className={styles.content}
                         onScroll={handleScroll}
                         style={{
-                            maxHeight: '100%'
+                            maxHeight: 'calc(100% - 50px)',
+                            minHeight: 'calc(100% - 50px)'
                         }}
                     >
                         <Table
@@ -479,8 +388,8 @@ function MiProduccion({ isOpen, setIsOpen }) {
                         ) : (
                             <NoData
                                 icon="file"
-                                title={searchQuery ? 'Sin resultados' : 'No hay registros de producción'}
-                                detail={searchQuery ? 'Intenta ajustar los filtros de búsqueda para encontrar los registros de producción que necesitas' : 'Registra registros de producción para comenzar a gestionar tu producción'}
+                                title="No hay registros de producción"
+                                detail="Registra registros de producción para comenzar a gestionar tu producción"
                                 transparent={true}
                                 minHeight="200px"
                             />
@@ -498,17 +407,14 @@ function MiProduccion({ isOpen, setIsOpen }) {
                 registro={infoProduccion}
             />
 
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
-
-            {/* Filtro de ordenamiento */}
-            <FiltroOrdenamiento
-                isOpen={isOpenFiltroOrden}
-                setIsOpen={setIsOpenFiltroOrden}
-                onOrdenamientoSeleccionado={handleOrdenamiento}
+            <FiltroFecha
+                isOpen={isOpenFiltroFecha}
+                setIsOpen={setIsOpenFiltroFecha}
+                startDate={filtroFecha?.inicio}
+                endDate={filtroFecha?.fin}
+                onApply={(inicio, fin) => setFiltroFecha({ inicio, fin })}
+                onClear={() => setFiltroFecha({ inicio: null, fin: null })}
+                title="Filtrar por fecha"
             />
 
             {/* Filtro de estados */}
@@ -527,12 +433,24 @@ function MiProduccion({ isOpen, setIsOpen }) {
                     methodParams={[
                         filtroEstado,
                         ordenamiento,
-                        getPrimaryNormalizedValue(debouncedSearchQuery)
+                        '',
+                        filtroFecha.inicio || filtroFecha.fin
+                            ? (() => {
+                                const inicioDate = filtroFecha.inicio ? new Date(filtroFecha.inicio) : null;
+                                const finDate = filtroFecha.fin ? new Date(filtroFecha.fin) : null;
+                                if (inicioDate) inicioDate.setHours(0, 0, 0, 0);
+                                if (finDate) finDate.setHours(23, 59, 59, 999);
+                                return {
+                                    inicio: inicioDate ? inicioDate.toISOString() : null,
+                                    fin: finDate ? finDate.toISOString() : null,
+                                };
+                            })()
+                            : null
                     ]}
                     serviceName="registrosProduccionDamabravaService"
                     isOpen={isOpen && ((!registrosLoaded && currentPage === 1) || (currentPage > 1 && hasMorePages))}
                     page={currentPage}
-                    limit={10}
+                    limit={30}
                     onDataLoaded={handleDataLoaded}
                     onDataAccumulated={handleDataAccumulated}
                     onLoadingStart={handleLoadingStart}

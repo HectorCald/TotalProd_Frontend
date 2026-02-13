@@ -16,7 +16,7 @@
 
 .filter {
     padding: 8px 13px;
-    border-radius: 10px;
+    border-radius:8px;
     background-color: var(--tertiary-color);
     border: none;
     color: var(--white-color);

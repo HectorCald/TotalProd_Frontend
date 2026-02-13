@@ -3,8 +3,8 @@ import styles from '../../../../styles/view.module.css';
 import ViewModal from '../../../ui/ViewModal';
 import HeaderModal from '../../../common/HeaderModal';
 import Dato from '../../../common/Dato';
-import Notification from '../../../common/Notification';
 import reglasProduccionDamabravaService from '../../../../services/reglasProduccionDamabravaService';
+import { useToast } from '../../../../context/ToastContext';
 import Boton from '../../../common/Boton';
 
 const formatNumber = (value) => {
@@ -15,13 +15,9 @@ const formatNumber = (value) => {
 };
 
 function VerRegla({ isOpen, setIsOpen, regla, onReglaEliminada }) {
+    const { showSuccess, showDanger } = useToast();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
 
     const tipoRegla = useMemo(() => {
         if (!regla) return 'Desconocido';
@@ -50,21 +46,6 @@ function VerRegla({ isOpen, setIsOpen, regla, onReglaEliminada }) {
         return `Rango: ${formatNumber(regla.desde_gramaje)} - ${formatNumber(regla.hasta_gramaje)}`;
     }, [regla]);
 
-    const mostrarNotificacion = (type, text) => {
-        setNotification({
-            isVisible: true,
-            type,
-            text
-        });
-
-        setTimeout(() => {
-            setNotification((prev) => ({
-                ...prev,
-                isVisible: false
-            }));
-        }, 3000);
-    };
-
     if (!regla) {
         return null;
     }
@@ -72,7 +53,7 @@ function VerRegla({ isOpen, setIsOpen, regla, onReglaEliminada }) {
     return (
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderModal
-                title="Detalle de la regla"
+                title="Detalle de la Regla"
                 onClose={() => setIsOpen(false)}
             />
             <div className={styles.modalContent}>
@@ -82,28 +63,33 @@ function VerRegla({ isOpen, setIsOpen, regla, onReglaEliminada }) {
                     <Dato
                         label="Tipo de regla"
                         value={tipoRegla}
+                        vertical={false}
                     />
                     <Dato
                         label="Contiene"
                         value={regla.contiene || (regla.general === true ? 'No aplica' : '--')}
+                        vertical={false}
                     />
                     <Dato
-                        label="Producto asociado"
+                        label="Producto"
                         value={
                             regla.general === false
                                 ? (regla.producto_almacen?.name || 'No encontrado')
                                 : 'No aplica'
                         }
+                        vertical={false}
                     />
                     {regla.general === null && (
                         <>
                             <Dato
                                 label="Desde gramaje"
                                 value={`${formatNumber(regla.desde_gramaje)} gr`}
+                                vertical={false}
                             />
                             <Dato
                                 label="Hasta gramaje"
                                 value={`${formatNumber(regla.hasta_gramaje)} gr`}
+                                vertical={false}
                             />
                         </>
                     )}
@@ -114,18 +100,22 @@ function VerRegla({ isOpen, setIsOpen, regla, onReglaEliminada }) {
                     <Dato
                         label="Cernido"
                         value={`${formatNumber(regla.cernido)}`}
+                        vertical={false}
                     />
                     <Dato
                         label="Sellado"
                         value={`${formatNumber(regla.sellado)}`}
+                        vertical={false}
                     />
                     <Dato
                         label="Envasado"
                         value={`${formatNumber(regla.envasado)}`}
+                        vertical={false}
                     />
                     <Dato
                         label="Etiquetado"
                         value={`${formatNumber(regla.etiquetado)}`}
+                        vertical={false}
                     />
                 </div>
 
@@ -137,11 +127,6 @@ function VerRegla({ isOpen, setIsOpen, regla, onReglaEliminada }) {
                     />
                 </div>
             </div>
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
             <ViewModal isOpen={isDeleteConfirmOpen} setIsOpen={setIsDeleteConfirmOpen}>
                 <HeaderModal
                     title="Eliminar Regla"
@@ -170,7 +155,7 @@ function VerRegla({ isOpen, setIsOpen, regla, onReglaEliminada }) {
                                 try {
                                     const response = await reglasProduccionDamabravaService.delete(regla.id);
                                     if (response.success) {
-                                        mostrarNotificacion('success', 'Regla eliminada correctamente.');
+                                        showSuccess('Regla eliminada correctamente.');
                                         if (onReglaEliminada) {
                                             onReglaEliminada(regla.id);
                                         }
@@ -180,11 +165,11 @@ function VerRegla({ isOpen, setIsOpen, regla, onReglaEliminada }) {
                                             setIsOpen(false);
                                         }, 300);
                                     } else {
-                                        mostrarNotificacion('error', response.message || 'No se pudo eliminar la regla.');
+                                        showDanger(response.message || 'No se pudo eliminar la regla.');
                                         setIsDeleting(false);
                                     }
                                 } catch (error) {
-                                    mostrarNotificacion('error', error.message || 'No se pudo eliminar la regla.');
+                                    showDanger(error.message || 'No se pudo eliminar la regla.');
                                     setIsDeleting(false);
                                 }
                             }}

@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import Clientes from '../clientes/Clientes';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import deudasService from '../../../services/deudasService';
@@ -25,6 +25,7 @@ import Checkbox from '../../common/Checkbox';
 
 function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null, isEditandoMovimiento = false, movimientoIdEditando = null, numeroOrdenEditando: numeroOrdenEditandoProp = null, onMovimientoEditado = null }) {
     const { isLargeScreen } = useLayout();
+    const { showInfo, showWarning, showDanger, showSuccess } = useToast();
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
     // const [isConfirmarModalOpen, setIsConfirmarModalOpen] = useState(false); // Ya no se usa
@@ -42,24 +43,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
     const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
     // Estados para cliente del pedido (en entregas)
     const [clientePedidoData, setClientePedidoData] = useState(null);
-    // Estado para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'error',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
 
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 4000);
-    };
     // Hook para manejar la lógica de precios de salidas
     // Se inicializa antes de useCanastaProductos para obtener resolvePrecioInicial y resolveModoInicial
     const { 
@@ -110,7 +94,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             if (setModoAgrupacionRef.current) {
                 setModoAgrupacionRef.current('no_agrupado');
             }
-            mostrarNotificacion('info', `El producto ${productoCarrito.name} tiene menos de un grupo disponible. Cambiado a modo unidades.`);
+            showInfo('Info', `El producto ${productoCarrito.name} tiene menos de un grupo disponible. Cambiado a modo unidades.`);
         }
 
         let stockMostrado = stockOriginal;
@@ -125,7 +109,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
         if (productoCarrito.cantidad > stockMostrado) {
             if (stockCambio) {
-                mostrarNotificacion('warning', `Se ajustó la cantidad de algunos productos para que no excedan el stock disponible`);
+                showWarning('Aviso', `Se ajustó la cantidad de algunos productos para que no excedan el stock disponible`);
             }
             productoModificado.cantidad = stockMostrado;
         }
@@ -149,7 +133,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
 
         return productoModificado;
-    }, [mostrarNotificacion]);
+    }, [showInfo, showWarning]);
 
     const {
         precioSeleccionado,
@@ -185,9 +169,9 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         onSyncProducto: syncProductoSalida,
         onAfterModoAgrupacionChange: ({ producto, cantidadNueva }) => {
             if (producto && producto.name && cantidadNueva !== undefined) {
-                mostrarNotificacion('warning', `Se ajustó la cantidad de ${producto.name} para que no exceda el stock disponible`);
+                showWarning('Aviso', `Se ajustó la cantidad de ${producto.name} para que no exceda el stock disponible`);
             } else {
-                mostrarNotificacion('warning', `Se ajustó la cantidad de algunos productos para que no excedan el stock disponible`);
+                showWarning('Aviso', `Se ajustó la cantidad de algunos productos para que no excedan el stock disponible`);
             }
         }
     });
@@ -395,7 +379,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             : (productoActual.stockOriginal || productoActual.stock);
         if (nuevaCantidad > stockParaValidar) {
             console.warn(`No se puede exceder el stock disponible: ${stockParaValidar}`);
-            mostrarNotificacion('error', 'No se puede exceder el stock disponible');
+            showDanger('Error', 'No se puede exceder el stock disponible');
             return; // No actualizar si excede el stock
         }
 
@@ -530,18 +514,18 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
         }
 
         if (!metodoPagoSeleccionado) {
-            mostrarNotificacion('error', 'El método de pago es obligatorio');
+            showDanger('Error', 'El método de pago es obligatorio');
             return false;
         }
 
         if (metodoPagoSeleccionado === 'credito' && !esEntrega && !clienteSeleccionado) {
-            mostrarNotificacion('error', 'El cliente es obligatorio para ventas a crédito');
+            showDanger('Error', 'El cliente es obligatorio para ventas a crédito');
             return false;
         }
 
         // Para entregas, validar que haya un cliente si es crédito (del pedido o seleccionado)
         if (metodoPagoSeleccionado === 'credito' && esEntrega && !clientePedidoData && !clienteSeleccionadoData) {
-            mostrarNotificacion('error', 'Debe seleccionar un cliente para venta a crédito');
+            showDanger('Error', 'Debe seleccionar un cliente para venta a crédito');
             return false;
         }
 
@@ -604,7 +588,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 const anulacionResp = await movimientosAlmacenService.anular(movimientoIdEditando, false, true);
                 if (!anulacionResp?.success) {
                     const mensajeError = anulacionResp?.message || 'Error al anular el movimiento anterior';
-                    mostrarNotificacion('error', mensajeError);
+                    showDanger('Error', mensajeError);
                     setLoadingConfirmar(false);
                     return;
                 }
@@ -613,7 +597,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 const eliminacionResp = await movimientosAlmacenService.eliminar(movimientoIdEditando, true);
                 if (!eliminacionResp?.success) {
                     const mensajeEliminar = eliminacionResp?.message || 'Error al eliminar el movimiento anterior';
-                    mostrarNotificacion('error', mensajeEliminar);
+                    showDanger('Error', mensajeEliminar);
                     setLoadingConfirmar(false);
                     return;
                 }
@@ -629,7 +613,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
             if (esEntrega) {
                 pedidoId = pedidoIdEntregando || localStorage.getItem('pedidoIdEntregando');
                 if (!pedidoId) {
-                    mostrarNotificacion('error', 'No se encontró el ID del pedido');
+                    showDanger('Error', 'No se encontró el ID del pedido');
                     setLoadingConfirmar(false);
                     return;
                 }
@@ -874,7 +858,7 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 await updateOfflineProductsStock(productosStockActualizados);
 
                 ejecutarPostOperacion({ movimientoIdParam: null, pedidoActualizadoParam: null });
-                mostrarNotificacion('success', 'Movimiento guardado para sincronización offline.');
+                showSuccess('Éxito', 'Movimiento guardado para sincronización offline.');
                 return;
             }
 
@@ -908,19 +892,19 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                                         });
                                         if (!pagoParcialResponse.success) {
                                             console.warn('Error al crear pago parcial:', pagoParcialResponse.message);
-                                            mostrarNotificacion('warning', `Deuda creada, pero error al registrar pago parcial: ${pagoParcialResponse.message}`);
+                                            showWarning('Aviso', `Deuda creada, pero error al registrar pago parcial: ${pagoParcialResponse.message}`);
                                         }
                                     } catch (pagoParcialError) {
                                         console.error('Error creando pago parcial:', pagoParcialError);
-                                        mostrarNotificacion('warning', `Deuda creada, pero error al registrar pago parcial automático`);
+                                        showWarning('Aviso', `Deuda creada, pero error al registrar pago parcial automático`);
                                     }
                                 }
                             } else {
-                                mostrarNotificacion('warning', `Movimiento creado, pero error al registrar deuda: ${deudaResponse.message}`);
+                                showWarning('Aviso', `Movimiento creado, pero error al registrar deuda: ${deudaResponse.message}`);
                             }
                         }
                     } catch (deudaError) {
-                        mostrarNotificacion('warning', `Movimiento creado, pero error al registrar deuda automática`);
+                        showWarning('Aviso', `Movimiento creado, pero error al registrar deuda automática`);
                     }
                 }
 
@@ -955,12 +939,12 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
 
                 ejecutarPostOperacion({ movimientoIdParam: movimientoId, pedidoActualizadoParam: pedidoActualizado });
             } else {
-                mostrarNotificacion('error', 'Error al crear el movimiento');
+                showDanger('Error', 'Error al crear el movimiento');
             }
 
         } catch (error) {
             console.error('Error al confirmar:', error);
-            mostrarNotificacion('error', error.message || 'Error al confirmar');
+            showDanger('Error', error.message || 'Error al confirmar');
         } finally {
             setLoadingConfirmar(false);
         }
@@ -1345,7 +1329,6 @@ function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosC
                 onClienteSeleccionado={handleClienteSeleccionado}
             />
 
-            <Notification isVisible={notification.isVisible} type={notification.type} text={notification.text} />
         </View>
     );
 }

@@ -3,9 +3,9 @@ import styles from '../../../styles/view.module.css';
 import HeaderModal from '../../common/HeaderModal';
 import ViewModal from '../../ui/ViewModal';
 import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
-import Notification from '../../common/Notification';
-import MensajeError from '../../common/MensajeError';
+import Input from '../../common/inputs/Input';
+import InputCall from '../../common/inputs/InputCall';
+import { useToast } from '../../../context/ToastContext';
 import MapaModal from './MapaModal';
 import clientService from '../../../services/clientService';
 import { useUser } from '../../../context/UserContext';
@@ -13,6 +13,7 @@ import useHistorialLogger from '../../ui/HistorialLogger';
 
 function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onClientUpdated }) {
     const { sucursalSeleccionada } = useUser();
+    const { showSuccess, showDanger, showWarning } = useToast();
     const { logAccion } = useHistorialLogger({
         modulo: 'Clientes',
         campos: ['name', 'phone', 'direccion', 'description', 'total_orders', 'location']
@@ -28,25 +29,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
         coordenadas: null
     });
 
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'error',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
     // Estado para mensaje de error de contactos
     const [errorContactos, setErrorContactos] = useState('');
 
@@ -55,10 +37,11 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
 
     // Estados para la carga
     const [loading, setLoading] = useState(false);
-   
+    const [fieldErrors, setFieldErrors] = useState({ name: false });
 
     // Efecto para cargar los datos del cliente
     useEffect(() => {
+        setFieldErrors({ name: false });
         if (usuario && tipo === 'editar') {
             // Parsear las coordenadas del string a objeto
             let coordenadasObj = null;
@@ -91,14 +74,15 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
         }
     }, [isOpen, usuario, tipo]);
 
-
     // Función para enviar los datos del cliente
     const handleSubmit = async () => {
         if (!dataEdit.name.trim()) {
-            mostrarNotificacion('error', 'El nombre es obligatorio');
+            setFieldErrors((prev) => ({ ...prev, name: true }));
+            showWarning('Validación', 'El nombre es obligatorio', 5000);
             return;
         }
 
+        setFieldErrors({ name: false });
         // Preparar datos para enviar
         const datosParaEnviar = {
             name: dataEdit.name,
@@ -119,24 +103,44 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             }
 
             if (response.success) {
-                const datosAntes = tipo === 'editar' ? usuario : null;
-                const datosDespues = response.data || (tipo === 'agregar' ? {
-                    ...datosParaEnviar,
-                    id: response.id || null
-                } : null);
-                const registroId = (response.data && response.data.id) || datosDespues?.id || usuario?.id || null;
-                const lugarAfectado = (datosDespues && datosDespues.name) || datosParaEnviar.name || usuario?.name || 'Cliente';
+                const registroId = (response.data && response.data.id) || response.id || usuario?.id || null;
+                const lugarAfectado = (response.data && response.data.name) || datosParaEnviar.name || usuario?.name || 'Cliente';
                 const comentarioAccion = tipo === 'editar'
                     ? 'Actualización de datos del cliente'
                     : 'Creación de cliente';
+
+                // Detalles con TODOS los datos del formulario (keys = labels en español)
+                const mapeoCampos = {
+                    name: 'Nombre completo',
+                    phone: 'Celular',
+                    description: 'Descripción (opcional)',
+                    total_orders: 'Total de pedidos',
+                    location: 'Coordenadas'
+                };
+                const camposDetalle = {};
+                Object.entries(mapeoCampos).forEach(([campoDb, label]) => {
+                    if (tipo === 'editar') {
+                        camposDetalle[label] = {
+                            antes: usuario?.[campoDb] ?? null,
+                            despues: datosParaEnviar[campoDb] ?? null
+                        };
+                    } else {
+                        camposDetalle[label] = {
+                            despues: datosParaEnviar[campoDb] ?? null
+                        };
+                    }
+                });
+                const detallesPersonalizados = {
+                    campos: camposDetalle,
+                    comentario: comentarioAccion
+                };
 
                 await logAccion({
                     accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
                     lugarAfectado,
                     registroId,
-                    datosAntes,
-                    datosDespues,
-                    comentario: comentarioAccion
+                    comentario: comentarioAccion,
+                    detallesPersonalizados
                 });
 
                 if (tipo === 'editar' && onClientUpdated) {
@@ -145,12 +149,13 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                     onClientCreated(response.data);
                 }
                 setIsOpen(false);
+                showSuccess('Éxito', `Cliente ${tipo === 'editar' ? 'actualizado' : 'creado'} correctamente`);
             } else {
-                mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el cliente`);
+                showDanger('Error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el cliente`);
             }
         } catch (error) {
             console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} cliente:`, error);
-            mostrarNotificacion('error', 'Error de conexión con el servidor');
+            showDanger('Error', 'Error de conexión con el servidor');
         } finally {
             setLoading(false);
         }
@@ -321,7 +326,7 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                     phone: telefono || prev.phone
                 }));
                 
-                mostrarNotificacion('success', 'Contacto importado correctamente');
+                showSuccess('Éxito', 'Contacto importado correctamente');
             }
         } catch (err) {
             console.error('=== ERROR COMPLETO AL IMPORTAR CONTACTO ===');
@@ -333,10 +338,9 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             console.error('Error constructor:', err.constructor?.name);
             
             if (err.name === 'AbortError') {
-                // Usuario canceló, no mostrar error
                 return;
             }
-            
+
             // Construir mensaje de error detallado
             let mensajeError = '';
             let detallesTecnicos = '';
@@ -385,16 +389,19 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
             }
             
             setErrorContactos(mensajeError);
-            setTimeout(() => setErrorContactos(''), 8000); // Más tiempo para leer el error completo
+            setTimeout(() => setErrorContactos(''), 8000);
         }
     };
+
+    const isReadOnly = tipo === 'ver' || loading;
 
     return (
         <>
         <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
-            <HeaderModal title={tipo === 'agregar' ? 'Nuevo cliente' : tipo === 'editar' ? 'Editar cliente' : 'Ver cliente'} onClose={() => setIsOpen(false)} />
+            <HeaderModal title={tipo === 'agregar' ? 'Nuevo Cliente' : tipo === 'editar' ? 'Editar Cliente' : 'Ver Cliente'} onClose={() => setIsOpen(false)} />
             <div className={styles.modalContent}>
-                <p className={styles.subTitle}>INFORMACION PERSONAL</p>
+                <hr className={styles.separator} />
+                <p className={styles.subTitle}>Información personal</p>
                 {tipo === 'agregar' && (
                     <>
                         <Boton
@@ -402,39 +409,44 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                             label='Importar de contacto'
                             onClick={handleImportarContacto}
                             style={{ marginBottom: '10px' }}
+                            readOnly={loading}
                         />
-                        {errorContactos && <MensajeError mensaje={errorContactos} />}
+                        {errorContactos && (
+                            <p className={styles.subTitle} style={{ color: '#e53935', fontSize: '13px', marginTop: '4px' }}>{errorContactos}</p>
+                        )}
                     </>
                 )}
-                <InputNormal
+                <Input
                     tipo="text"
-                    icon="user"
+                    label="Nombre completo"
                     value={dataEdit.name}
-                    placeholder='Nombre completo'
-                    onChange={(e) => setDataEdit({ ...dataEdit, name: e.target.value })}
-                    disabled={tipo === 'ver'}
+                    onChange={(e) => {
+                        setDataEdit({ ...dataEdit, name: e.target.value });
+                        setFieldErrors((prev) => ({ ...prev, name: false }));
+                    }}
+                    required={true}
+                    readOnly={isReadOnly}
+                    error={fieldErrors.name}
+                    onClearError={() => setFieldErrors((prev) => ({ ...prev, name: false }))}
                 />
-                <InputNormal
+                <Input
                     tipo="number"
-                    icon="phone"
+                    label="Celular"
                     value={dataEdit.phone}
-                    placeholder='Celular'
                     onChange={(e) => setDataEdit({ ...dataEdit, phone: e.target.value })}
-                    disabled={tipo === 'ver'}
+                    readOnly={isReadOnly}
                 />
-                <InputNormal
+                <Input
                     tipo="text"
-                    icon="text"
+                    label="Descripción (opcional)"
                     value={dataEdit.description}
-                    placeholder='Descripción (opcional)'
                     onChange={(e) => setDataEdit({ ...dataEdit, description: e.target.value })}
-                    disabled={tipo === 'ver'}
+                    readOnly={isReadOnly}
                 />
-                <InputNormal
+                <Input
                     tipo="number"
-                    icon="cart"
+                    label="Total de pedidos"
                     value={dataEdit.total_orders === 0 ? '' : dataEdit.total_orders}
-                    placeholder='Total de pedidos'
                     onChange={(e) => {
                         const value = e.target.value;
                         if (value === '') {
@@ -443,20 +455,17 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                             setDataEdit({ ...dataEdit, total_orders: parseInt(value) || 0 });
                         }
                     }}
-                    disabled={tipo === 'ver'}
+                    readOnly={isReadOnly}
                 />
-                <p className={styles.subTitle}>UBICACIÓN</p>
-                <InputNormal
-                    tipo="text"
-                    icon="map-pin"
+                <InputCall
+                    label="Dirección"
                     value={getDireccionDisplay()}
-                    placeholder='Dirección'
-                    readonly={tipo !== 'ver'}
-                    onClick={tipo !== 'ver' ? handleOpenMap : undefined}
-                    buttonIcon="map"
-                    buttonIconClick={handleOpenMap}
-                    disabled={tipo === 'ver'}
+                    placeholder="Seleccionar ubicación en el mapa"
+                    onClick={!isReadOnly ? handleOpenMap : undefined}
+                    onClear={!isReadOnly ? () => setDataEdit((prev) => ({ ...prev, direccion: '', coordenadas: null })) : undefined}
+                    readOnly={isReadOnly}
                 />
+                <div className={styles.space}></div>
                 {tipo !== 'ver' && (
                     <Boton
                         className='btn-original'
@@ -464,12 +473,10 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                         style={{ marginTop: 'auto' }}
                         onClick={handleSubmit}
                         loading={loading}
-                        disabled={!dataEdit.name}
+                        disabled={loading}
                     />
                 )}
             </div>
-
-            
         </ViewModal>
         <MapaModal
                 isOpen={isMapModalOpen}
@@ -479,12 +486,6 @@ function EditarAgregar({ isOpen, setIsOpen, usuario, tipo, onClientCreated, onCl
                 readOnly={isMapReadOnly}
                 title={getMapTitle()}
             />
-
-        <Notification
-            isVisible={notification.isVisible}
-            type={notification.type}
-            text={notification.text}
-        />
         </>
     );
 }

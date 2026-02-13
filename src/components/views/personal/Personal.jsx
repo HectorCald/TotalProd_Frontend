@@ -12,7 +12,6 @@ import sucursalesService from '../../../services/sucursalesService';
 import { BoxIcon } from 'boxicons-react';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import InfoModal from '../../common/InfoModal';
-import Notification from '../../common/Notification';
 import { useLayout } from '../../../context/LayoutContext';
 import Table from '../../common/Table';
 import NoData from '../../common/NoData';
@@ -104,25 +103,6 @@ function Personal({ isOpen, setIsOpen }) {
     }, []);
 
 
-
-    // Estado para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -218,7 +198,6 @@ function Personal({ isOpen, setIsOpen }) {
         
         // Cerrar el modal
         setIsOpenEditarAgregar(false);
-        mostrarNotificacion('success', 'Personal agregado correctamente');
     };
 
     // Función para manejar cuando se elimina un personal
@@ -228,7 +207,6 @@ function Personal({ isOpen, setIsOpen }) {
         
         // Cerrar el modal de ver personal
         setIsOpenVerPersona(false);
-        mostrarNotificacion('success', 'Personal eliminado correctamente');
     };
 
     // Función para manejar cuando se actualiza un personal
@@ -240,7 +218,6 @@ function Personal({ isOpen, setIsOpen }) {
         
         // NO cerrar el modal de ver personal - se queda abierto para ver los cambios
         // El modal VerPersona maneja su propia actualización local
-        mostrarNotificacion('success', 'Personal actualizado correctamente');
     };
 
     // Headers para la tabla
@@ -425,12 +402,6 @@ function Personal({ isOpen, setIsOpen }) {
                     onDataLoaded={handleSucursalesLoaded}
                 />
             )}
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </View>
     );
 }

@@ -163,6 +163,13 @@ const buildDetallesPayload = ({
       return;
     }
 
+    if (accion === 'REMPLAZO' || accion === 'ENTREGAR') {
+      if (valorDespues !== undefined && valorDespues !== null && valorDespues !== '') {
+        camposDetalle[campo] = { despues: valorDespues };
+      }
+      return;
+    }
+
     // Acciones tipo EDITAR u otras
     if (!isValueEqual(valorAntes, valorDespues)) {
       camposDetalle[campo] = {

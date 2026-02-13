@@ -3,7 +3,6 @@ import ViewModal from './ViewModal';
 import HeaderModal from '../common/HeaderModal';
 import Boton from '../common/Boton';
 import InputNormal from '../common/InputNormal';
-import Switch from '../common/Switch';
 import styles from '../../styles/Inicial.module.css';
 import pdfIcon from '../../assets/pdf.png';
 import excelIcon from '../../assets/xls.png';
@@ -14,6 +13,7 @@ import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import { useLayout } from '../../context/LayoutContext';
 import EmpresaImagenService from '../../services/empresaImagenService';
+import Checkbox from '../common/Checkbox';
 
 function ModalDescarga({
     isOpen,
@@ -1849,10 +1849,10 @@ function ModalDescarga({
                     icon="text"
                 />
                 <p className={styles.subTitle}>OPCIONES ADICIONALES</p>
-                <div className={styles.contentModal} style={{ gap: '20px'}}>
+                <div className={styles.contentModal} style={{ gap: '10px', padding: '10px 5px'}}>
                     {clienteInfo && (
 
-                        <Switch
+                        <Checkbox
                             title="Ver número"
                             subtitle={`Número de orden y nombre (Nº ${clienteInfo.numeroOrden} ${clienteInfo.nombre})`}
                             checked={verNumero}
@@ -1861,11 +1861,9 @@ function ModalDescarga({
                         />
 
                     )}
-
-
-                    <Switch
+                    <Checkbox
                         title="Firmas"
-                        subtitle="Incluir espacios para firmas 'Entregado por' y 'Recibido por'"
+                        subtitle="Incluir espacios para firmas"
                         checked={incluirFirmas}
                         onChange={handleIncluirFirmasChange}
                         icon="edit"
@@ -1875,7 +1873,7 @@ function ModalDescarga({
                     {/* Solo mostrar switch de logos si la empresa tiene logo */}
                     {displayImage && (
 
-                        <Switch
+                        <Checkbox
                             title="Logos"
                             subtitle="Incluir logo de la empresa y marca de agua (PDF)"
                             checked={incluirLogos}
@@ -1888,7 +1886,7 @@ function ModalDescarga({
                 <div className={styles.buttons}>
                     <Boton
                         className='btn-default'
-                        label='Archivo Excel'
+                        label='XSLX'
                         style={{ marginTop: 'auto' }}
                         icon={excelIcon}
                         onClick={handleExcelDownloadClick}
@@ -1897,7 +1895,7 @@ function ModalDescarga({
                     />
                     <Boton
                         className='btn-default'
-                        label='Archivo PDF'
+                        label='PDF'
                         style={{ marginTop: 'auto' }}
                         icon={pdfIcon}
                         onClick={handlePdfDownloadClick}
@@ -1906,7 +1904,7 @@ function ModalDescarga({
                     />
                     <Boton
                         className='btn-default'
-                        label='Archivo Imagen'
+                        label='IMG'
                         style={{ marginTop: 'auto' }}
                         icon={imagenIcon}
                         onClick={handleImagenDownloadClick}

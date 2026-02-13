@@ -12,7 +12,6 @@ import CanastaPedidos from './CanastaPedidos';
 import CanastaMovimientos from './CanastaMovimientos';
 import CanastaMovimientosEntrada from './CanastaMovimientosEntrada';
 import CategoriasAlmacen from './CategoriasAlmacen';
-import Notification from '../../common/Notification';
 import Select from '../../common/Select';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import FiltroCategorias from '../../mixed/FiltroCategorias';
@@ -22,6 +21,7 @@ import pricesTypesService from '../../../services/pricesTypesService';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import { useUser } from '../../../context/UserContext';
 import { useLayout } from '../../../context/LayoutContext';
+import { useToast } from '../../../context/ToastContext';
 import Table from '../../common/Table';
 import DescargaMovimientoBuilder from '../movimientos/DescargaMovimientoBuilder';
 import DescargaPedidoBuilder from '../pedidos/DescargaPedidoBuilder';
@@ -41,6 +41,7 @@ import useVirtualPagination from '../../../hooks/useVirtualPagination';
 function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = null, onEntregaConfirmada = null, pedidoIdEditando = null, isRepitiendoMovimiento = false, isVentaCotizacionProp = false, onMovimientoEditado = null }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();
     const { isLargeScreen } = useLayout();
+    const { showSuccess } = useToast();
 
     // Determinar si es modo carrito (para panel lateral)
     const isCartMode = tipo === 'pedido' || tipo === 'entrada' || tipo === 'salida';
@@ -121,16 +122,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
     const [productosLoaded, setProductosLoaded] = useState(false);
     const [preciosLoaded, setPreciosLoaded] = useState(false);
 
-    // Estados para la notificación
-    const [notification, setNotification] = useState({ isVisible: false, type: 'success', text: '' });
-    const mostrarNotificacion = useCallback((tipo, texto) => {
-        setNotification({ isVisible: true, type: tipo, text: texto });
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 4000);
-    }, []);
-
-
     const {
         handleAgregarACanasta,
         handleAgregarACanastaMovimientos,
@@ -143,7 +134,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         productosCanasta,
         productosCanastaEntradas,
         productosCanastaSalidas,
-        mostrarNotificacion,
     });
 
 
@@ -254,7 +244,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                 handleAgregarACanastaMovimientos(producto, tipo, null, cantidadNueva);
             }
         }
-    }, [tipo, productosFiltrados, productosCanasta, productosCanastaEntradas, productosCanastaSalidas, setProductosCanasta, setProductosCanastaEntradas, setProductosCanastaSalidas, handleAgregarACanasta, handleAgregarACanastaMovimientos, mostrarNotificacion]);
+    }, [tipo, productosFiltrados, productosCanasta, productosCanastaEntradas, productosCanastaSalidas, setProductosCanasta, setProductosCanastaEntradas, setProductosCanastaSalidas, handleAgregarACanasta, handleAgregarACanastaMovimientos]);
 
     const handleCantidadIncrement = useCallback((productoId) => {
         const producto = productosFiltrados.find(p => p.id === productoId);
@@ -426,7 +416,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
         // Cerrar el modal
         setIsAgregarOpen(false);
-        mostrarNotificacion('success', 'Producto agregado correctamente');
     };
     // Función para manejar cuando se elimina un producto
     const handleProductDeleted = (deletedId) => {
@@ -435,7 +424,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
 
         // Cerrar el modal de ver producto
         setIsOpenVerProducto(false);
-        mostrarNotificacion('success', 'Producto eliminado correctamente');
     };
     // Función para manejar cuando se actualiza un producto
     const handleProductUpdated = (updatedProduct) => {
@@ -447,8 +435,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
         setInfoPersona(updatedProduct);
         // NO cerrar el modal de ver producto - se mantiene abierto para mostrar los cambios
         // setIsOpenVerProducto(false);
-        // Mostrar notificación
-        mostrarNotificacion('success', 'Producto actualizado correctamente');
     };
     // Función para manejar cuando se actualizan múltiples productos (después de movimientos)
     const handleProductosUpdated = (productosActualizados) => {
@@ -919,12 +905,6 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                     loadingPrecios={false}
                 />
 
-                <Notification
-                    isVisible={notification.isVisible}
-                    type={notification.type}
-                    text={notification.text}
-                />
-
                 {/* Carga de datos - solo cuando está abierto */}
                 {isOpen && (
                     <>
@@ -972,7 +952,11 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                             localStorage.removeItem('canastaPedidos');
                         }
 
-                        mostrarNotificacion('success', pedidoIdEditando ? 'Pedido actualizado correctamente' : 'Pedido confirmado correctamente');
+                        showSuccess(
+                            pedidoIdEditando ? 'Pedido actualizado' : 'Pedido confirmado',
+                            pedidoIdEditando ? 'El pedido ha sido actualizado correctamente' : 'El pedido ha sido confirmado correctamente',
+                            5000
+                        );
                         
                         // Si hay pedidoId, abrir modal de descarga
                         if (pedidoId) {
@@ -997,7 +981,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                         isCartMode={isCartMode && isLargeScreen}
                         onCerrarCanasta={(productosActualizados, precioId, movimientoId) => {
                             setIsCanastaMovimientosOpen(false);
-                            mostrarNotificacion('success', 'Entradas confirmadas correctamente');
+                            showSuccess('Entradas confirmadas', 'Las entradas han sido confirmadas correctamente', 5000);
                             if (movimientoId) {
                                 setMovimientoIdParaDescarga(movimientoId);
                                 setIsDescargaMovimientoOpen(true);
@@ -1035,7 +1019,7 @@ function AlmacenGeneral({ isOpen, setIsOpen, tipo = '', onPedidoActualizado = nu
                             } else {
                                 // Para movimientos normales, cerrar la canasta y mostrar notificación
                                 setIsCanastaMovimientosOpen(false);
-                                mostrarNotificacion('success', 'Salidas confirmadas correctamente');
+                                showSuccess('Salidas confirmadas', 'Las salidas han sido confirmadas correctamente', 5000);
                             }
                             if (movimientoId) {
                                 setMovimientoIdParaDescarga(movimientoId);

@@ -6,22 +6,17 @@ import View from '../../../ui/View';
 import ItemView from '../../../common/ItemView';
 import VerProduccion from './VerProduccion';
 import Filtros from '../../../common/Filtros';
-import Notification from '../../../common/Notification';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
 import reglasProduccionDamabravaService from '../../../../services/reglasProduccionDamabravaService';
 import RefreshIndicator from '../../../common/RefreshIndicator';
 import { useLayout } from '../../../../context/LayoutContext';
 import Table from '../../../common/Table';
-import FiltroOrdenamiento from '../../../mixed/FiltroOrdenamiento';
 import FiltroResponsable from '../../../mixed/FiltroResponsable';
 import FiltroEstados from '../../../mixed/FiltroEstados';
 import LoadingSpinner from '../../../common/LoadingSpinner';
 import NoData from '../../../common/NoData';
 import PullToRefresh from '../../../common/PullToRefresh';
-import Boton from '../../../common/Boton';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../../mixed/FiltroFecha';
-import Select from '../../../common/Select';
-import InputDate from '../../../common/InputDate';
 import FetchDataProgressive from '../../../mixed/FetchDataProgressive';
 import useProgressiveSessionCache from '../../../../hooks/useProgressiveSessionCache';
 
@@ -207,27 +202,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         }
     }, [isOpen]);
 
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
     // Estados para filtros y modales
-    const [isOpenFiltroOrden, setIsOpenFiltroOrden] = useState(false);
     const [isOpenFiltroResponsable, setIsOpenFiltroResponsable] = useState(false);
     const [isOpenFiltroEstados, setIsOpenFiltroEstados] = useState(false);
     const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
@@ -255,11 +230,6 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         }
     };
 
-    // Función para manejar ordenamiento
-    const handleOrdenamiento = (orden) => {
-        setOrdenamiento(orden);
-        setCurrentPage(1);
-    };
 
     // Funciones para el buscador expandible
     const handleSearchChange = (value) => {
@@ -317,73 +287,22 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     }, [error]);
 
 
-    // Función para manejar cuando se elimina un registro
     const handleRegistroEliminado = (registroId) => {
-        // Actualizar el estado local acumulado
         const aplicarEliminacion = (lista) =>
             lista.filter(registro => String(registro.id) !== String(registroId));
-
         setAllRegistros(aplicarEliminacion);
         mutateCachedItems(aplicarEliminacion);
-
-        mostrarNotificacion('success', 'Registro eliminado correctamente');
     };
 
-    // Función para manejar cuando se verifica un registro
     const handleRegistroVerificado = (registroActualizado) => {
-        // Si recibimos el registro completo actualizado, lo usamos
         if (typeof registroActualizado === 'object' && registroActualizado.id) {
-            // Obtener el registro anterior para comparar
-            const registroAnterior = allRegistros.find(r => r.id === registroActualizado.id);
-
             const aplicarActualizacion = (lista) =>
                 lista.map(registro =>
-                    registro.id === registroActualizado.id
-                        ? registroActualizado
-                        : registro
+                    registro.id === registroActualizado.id ? registroActualizado : registro
                 );
-
             setAllRegistros(aplicarActualizacion);
             mutateCachedItems(aplicarActualizacion);
-
-            // Mostrar notificación según el tipo de cambio
-            if (registroActualizado.estado === 'verificado' && registroAnterior?.estado === 'pendiente') {
-                mostrarNotificacion('success', 'Registro verificado correctamente');
-            } else if (registroActualizado.estado === 'pendiente' && registroAnterior?.estado === 'verificado') {
-                mostrarNotificacion('success', 'Verificación anulada correctamente');
-            } else if (registroActualizado.estado === 'Ingresado') {
-                // Determinar si es un ingreso completo o parcial
-                const cantidadIngresada = registroActualizado.cantidad_ingresada || 0;
-                const cantidadVerificada = registroActualizado.cantidad_verificada || 0;
-                const cantidadAnterior = registroAnterior?.cantidad_ingresada || 0;
-                const cantidadNuevaIngresada = cantidadIngresada - cantidadAnterior;
-
-                if (cantidadIngresada >= cantidadVerificada) {
-                    mostrarNotificacion('success',
-                        `¡Registro completado! Se ingresaron ${cantidadNuevaIngresada} unidades. Estado: Ingresado`
-                    );
-                } else {
-                    const cantidadRestante = cantidadVerificada - cantidadIngresada;
-                    mostrarNotificacion('success',
-                        `Se ingresaron ${cantidadNuevaIngresada} unidades. Quedan ${cantidadRestante} por ingresar`
-                    );
-                }
-            } else if (registroAnterior && registroActualizado.cantidad_ingresada !== registroAnterior.cantidad_ingresada) {
-                // Ingreso parcial (estado sigue siendo 'verificado')
-                const cantidadIngresada = registroActualizado.cantidad_ingresada || 0;
-                const cantidadVerificada = registroActualizado.cantidad_verificada || 0;
-                const cantidadAnterior = registroAnterior?.cantidad_ingresada || 0;
-                const cantidadNuevaIngresada = cantidadIngresada - cantidadAnterior;
-                const cantidadRestante = cantidadVerificada - cantidadIngresada;
-
-                mostrarNotificacion('success',
-                    `Se ingresaron ${cantidadNuevaIngresada} unidades. Quedan ${cantidadRestante} por ingresar`
-                );
-            } else {
-                mostrarNotificacion('success', 'Registro actualizado correctamente');
-            }
         } else {
-            // Fallback para compatibilidad (solo ID)
             const aplicarFallback = (lista) =>
                 lista.map(registro =>
                     registro.id === registroActualizado
@@ -392,7 +311,6 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                 );
             setAllRegistros(aplicarFallback);
             mutateCachedItems(aplicarFallback);
-            mostrarNotificacion('success', 'Registro verificado correctamente');
         }
     };
 
@@ -409,15 +327,6 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
     const getResponsableNombre = () => {
         if (!filtroResponsable) return 'Todos los responsables';
         return filtroResponsable.name;
-    };
-
-    // Función para obtener el nombre del ordenamiento
-    const getOrdenamientoNombre = () => {
-        const ordenamientos = {
-            'fecha_desc': 'Más recientes',
-            'fecha_asc': 'Más antiguos'
-        };
-        return ordenamientos[ordenamiento] || 'Ordenamiento';
     };
 
     const getFechaNombre = () => formatDateRangeForDisplay(filtroFecha?.inicio, filtroFecha?.fin, 'Fecha');
@@ -437,15 +346,8 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             label: getFechaNombre(),
             active: Boolean(filtroFecha?.inicio || filtroFecha?.fin),
             onClick: () => setIsOpenFiltroFecha(true)
-        },
-        {
-            label: getOrdenamientoNombre(),
-            active: ordenamiento !== 'fecha_desc',
-            onClick: () => setIsOpenFiltroOrden(true)
-        },
-        
+        }
        
-        
     ];
 
     // Headers para la tabla
@@ -484,15 +386,15 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
             const badgeConfig = {
                 'Pendiente': {
                     text: 'Pendiente',
-                    className: 'error' // amarillo
+                    className: 'error'
                 },
                 'Verificado': {
                     text: 'Verificado',
-                    className: 'warning' // verde
+                    className: 'success'
                 },
                 'Ingresado': {
                     text: 'Ingresado',
-                    className: 'info' // azul
+                    className: 'info'
                 },
             };
 
@@ -503,26 +405,7 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
         }
 
         if (headerKey === 'proceso') {
-            const proceso = item.proceso;
-            const badgeConfig = {
-                'Cernido': {
-                    text: 'Cernido',
-                    className: 'warning' // azul
-                },
-                'Seleccionado': {
-                    text: 'Seleccionado',
-                    className: 'warning' // verde
-                },
-                'Ninguno': {
-                    text: 'Ninguno',
-                    className: 'warning' // gris
-                },
-            };
-
-            return badgeConfig[proceso] || {
-                text: proceso,
-                className: 'default'
-            };
+            return null;
         }
 
         return null;
@@ -672,19 +555,6 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                 title="Filtrar por fecha"
             />
 
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
-
-            {/* Filtro de ordenamiento */}
-            <FiltroOrdenamiento
-                isOpen={isOpenFiltroOrden}
-                setIsOpen={setIsOpenFiltroOrden}
-                onOrdenamientoSeleccionado={handleOrdenamiento}
-            />
-
             {/* Filtro de estados */}
             <FiltroEstados
                 isOpen={isOpenFiltroEstados}
@@ -712,10 +582,17 @@ function VerificarProduccion({ isOpen, setIsOpen }) {
                         getPrimaryNormalizedValue(debouncedSearchQuery),
                         filtroResponsable,
                         filtroFecha.inicio || filtroFecha.fin
-                            ? {
-                                inicio: filtroFecha.inicio ? new Date(filtroFecha.inicio).toISOString() : null,
-                                fin: filtroFecha.fin ? new Date(filtroFecha.fin).toISOString() : null,
-                            }
+                            ? (() => {
+                                // Filtro por fecha de registro: inicio a 00:00:00 y fin a 23:59:59 para incluir todo el día
+                                const inicioDate = filtroFecha.inicio ? new Date(filtroFecha.inicio) : null;
+                                const finDate = filtroFecha.fin ? new Date(filtroFecha.fin) : null;
+                                if (inicioDate) inicioDate.setHours(0, 0, 0, 0);
+                                if (finDate) finDate.setHours(23, 59, 59, 999);
+                                return {
+                                    inicio: inicioDate ? inicioDate.toISOString() : null,
+                                    fin: finDate ? finDate.toISOString() : null,
+                                };
+                            })()
                             : null
                     ]}
                     serviceName="registrosProduccionDamabravaService"

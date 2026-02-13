@@ -14,6 +14,7 @@
     flex-direction: column;
     gap: 5px;
     width: 100%;
+    min-width: 0;
 }
 
 .clickable {
@@ -45,7 +46,10 @@
     font-size: 14px;
     font-weight: 500;
     color: var(--white-color);
-    max-width: fit-content;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .original {

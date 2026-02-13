@@ -16,6 +16,12 @@ export const detallesUpdate = [
                 ]
             },
             {
+                label: 'Diseño y experiencia de usuario',
+                children: [
+                    'Actualización de diseño y experiencia de usuario en todas las pantallas.'
+                ]
+            },
+            {
                 label: 'Corrección de Errores',
                 children: [
                     'Se corrigieron errores en el formulario de producción.',
@@ -25,7 +31,9 @@ export const detallesUpdate = [
                     'Se quitaron filtros innecesarios.',
                     'Se corrigio el bug que no mostraba los productos en las cotizaciones.',
                     'Se Agregaron nuevas columnas necesarias en algunos modulos.',
-                    'Se obliga a conceder ubicación para mejora de la seguridad y funcionalidad de la aplicación.'
+                    'Se obliga a conceder ubicación para mejora de la seguridad y funcionalidad de la aplicación.',
+                    'Ajustes de errores en diferentes módulos de la aplicación.',
+                    'Mejora del manejo de errores para una mejor retroalimentación al usuario.'
                 ]
             }
         ]

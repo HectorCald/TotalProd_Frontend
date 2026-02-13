@@ -3,12 +3,12 @@ import styles from '../../../../styles/view.module.css';
 import ViewModal from '../../../ui/ViewModal';
 import HeaderModal from '../../../common/HeaderModal';
 import Boton from '../../../common/Boton';
-import InputNormal from '../../../common/InputNormal';
-import InputDate from '../../../common/InputDate';
-import InputSugerencias from '../../../common/InputSugerencias';
-import Select from '../../../common/Select';
-import Notification from '../../../common/Notification';
+import Input from '../../../common/inputs/Input';
+import InputSelect from '../../../common/inputs/InputSelect';
+import InputFecha from '../../../common/inputs/InputFecha';
+import InputSearch from '../../../common/inputs/InputSearch';
 import FetchData from '../../../mixed/FetchData';
+import { useToast } from '../../../../context/ToastContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import productsAlmacenService from '../../../../services/productsAlmacenService';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
@@ -22,6 +22,7 @@ const initialRecetaState = {
 
 function FormularioProduccion({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
+    const { showSuccess, showDanger, showWarning } = useToast();
     const [dataProduccion, setDataProduccion] = useState({
         producto: '',
         lote: '',
@@ -36,33 +37,21 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
     const [loadingProductos, setLoadingProductos] = useState(false);
     const [productoSeleccionado, setProductoSeleccionado] = useState(null);
     const [recetaProductoState, setRecetaProductoState] = useState(initialRecetaState);
-
-    // Estado para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'error',
-        text: ''
+    const [fieldErrors, setFieldErrors] = useState({
+        producto: false,
+        lote: false,
+        proceso: false,
+        microondas: false,
+        terminados: false,
+        fechaVencimiento: false
     });
 
     // Opciones para el select de proceso
     const opcionesProceso = [
-        { value: 'cernido', label: 'Cernido', icon: 'filter' },
-        { value: 'seleccionado', label: 'Seleccionado', icon: 'check-circle' },
-        { value: 'ninguno', label: 'Ninguno', icon: 'x-circle' }
+        { value: 'cernido', label: 'Cernido' },
+        { value: 'seleccionado', label: 'Seleccionado' },
+        { value: 'ninguno', label: 'Ninguno' }
     ];
-
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     const resetRecetaProductoState = () => {
         setRecetaProductoState({ ...initialRecetaState });
@@ -112,7 +101,6 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
         }
     };
 
-    // Funciones para manejar la carga de productos
     const handleProductosLoaded = (data) => {
         setProductos(data || []);
     };
@@ -125,7 +113,6 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
         setLoadingProductos(false);
     };
 
-    // Limpiar formulario cuando se abre/cierra el modal
     useEffect(() => {
         if (isOpen) {
             setDataProduccion({
@@ -138,112 +125,136 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
             });
             setProductoSeleccionado(null);
             resetRecetaProductoState();
-            setNotification({
-                isVisible: false,
-                type: 'error',
-                text: ''
+            setFieldErrors({
+                producto: false,
+                lote: false,
+                proceso: false,
+                microondas: false,
+                terminados: false,
+                fechaVencimiento: false
             });
         }
     }, [isOpen]);
 
-    // Función para actualizar los datos del formulario
     const handleChange = (field, value) => {
-        setDataProduccion({ ...dataProduccion, [field]: value });
+        setDataProduccion(prev => ({ ...prev, [field]: value }));
+        if (fieldErrors[field]) {
+            setFieldErrors(prev => ({ ...prev, [field]: false }));
+        }
     };
 
-    // Función para manejar el cambio del select de proceso
     const handleProcesoChange = (value) => {
         setDataProduccion(prev => ({ ...prev, proceso: value }));
+        if (fieldErrors.proceso) {
+            setFieldErrors(prev => ({ ...prev, proceso: false }));
+        }
     };
 
-    // Función para manejar la selección de producto desde las sugerencias
     const handleProductoSelect = (producto) => {
         setProductoSeleccionado(producto);
         setDataProduccion(prev => ({ ...prev, producto: producto.name }));
+        if (fieldErrors.producto) {
+            setFieldErrors(prev => ({ ...prev, producto: false }));
+        }
         verificarRecetaProducto(producto.id);
     };
 
-    // Función para manejar el cambio manual del input de producto
     const handleProductoChange = (e) => {
         const value = e.target.value;
         setDataProduccion(prev => ({ ...prev, producto: value }));
-
-        // Si el valor no coincide exactamente con el producto seleccionado, limpiar la selección
+        if (fieldErrors.producto) {
+            setFieldErrors(prev => ({ ...prev, producto: false }));
+        }
         if (!productoSeleccionado || productoSeleccionado.name !== value) {
             setProductoSeleccionado(null);
             resetRecetaProductoState();
         }
     };
 
-    // Función para validar y enviar los datos
     const handleSubmit = async () => {
-        // Validaciones
         if (!dataProduccion.producto.trim()) {
-            mostrarNotificacion('error', 'El producto es obligatorio');
+            setFieldErrors(prev => ({ ...prev, producto: true }));
+            showWarning('Validación', 'El producto es obligatorio', 5000);
             return;
         }
 
         if (!productoSeleccionado || !productoSeleccionado.id) {
-            mostrarNotificacion('error', 'Debe seleccionar un producto válido de la lista');
+            setFieldErrors(prev => ({ ...prev, producto: true }));
+            showWarning('Validación', 'Debe seleccionar un producto válido de la lista', 5000);
             return;
         }
 
         if (recetaProductoState.loading) {
-            mostrarNotificacion('warning', 'Estamos validando la receta del producto, por favor espera.');
+            showWarning('Espera', 'Estamos validando la receta del producto, por favor espera.', 5000);
             return;
         }
 
         if (!recetaProductoState.tieneReceta) {
             const mensaje = recetaProductoState.error || 'El producto seleccionado no tiene receta. Informe al administrador.';
-            mostrarNotificacion('error', mensaje);
+            showWarning('Validación', mensaje, 5000);
             return;
         }
 
         if (!dataProduccion.lote || dataProduccion.lote.toString().trim() === '') {
-            mostrarNotificacion('error', 'El lote es obligatorio');
+            setFieldErrors(prev => ({ ...prev, lote: true }));
+            showWarning('Validación', 'El lote es obligatorio', 5000);
             return;
         }
-
         if (isNaN(dataProduccion.lote) || parseInt(dataProduccion.lote) <= 0) {
-            mostrarNotificacion('error', 'El lote debe ser un número válido mayor a 0');
+            setFieldErrors(prev => ({ ...prev, lote: true }));
+            showWarning('Validación', 'El lote debe ser un número válido mayor a 0', 5000);
             return;
         }
 
         if (!dataProduccion.proceso) {
-            mostrarNotificacion('error', 'Debe seleccionar un proceso');
+            setFieldErrors(prev => ({ ...prev, proceso: true }));
+            showWarning('Validación', 'Debe seleccionar un proceso', 5000);
             return;
         }
 
+        if (dataProduccion.microondas !== '' && (isNaN(dataProduccion.microondas) || parseInt(dataProduccion.microondas) < 0)) {
+            setFieldErrors(prev => ({ ...prev, microondas: true }));
+            showWarning('Validación', 'El tiempo en microondas debe ser un número mayor o igual a 0', 5000);
+            return;
+        }
 
         if (!dataProduccion.terminados || dataProduccion.terminados.toString().trim() === '') {
-            mostrarNotificacion('error', 'La cantidad de terminados es obligatoria');
+            setFieldErrors(prev => ({ ...prev, terminados: true }));
+            showWarning('Validación', 'La cantidad de terminados es obligatoria', 5000);
             return;
         }
-
         if (isNaN(dataProduccion.terminados) || parseInt(dataProduccion.terminados) < 0) {
-            mostrarNotificacion('error', 'La cantidad de terminados debe ser un número válido mayor o igual a 0');
+            setFieldErrors(prev => ({ ...prev, terminados: true }));
+            showWarning('Validación', 'La cantidad de terminados debe ser un número válido mayor o igual a 0', 5000);
             return;
         }
 
         if (!dataProduccion.fechaVencimiento) {
-            mostrarNotificacion('error', 'La fecha de vencimiento es obligatoria');
+            setFieldErrors(prev => ({ ...prev, fechaVencimiento: true }));
+            showWarning('Validación', 'La fecha de vencimiento es obligatoria', 5000);
             return;
         }
-
-        // Validar que el mes/año no sea anterior al actual
         const [año, mes] = dataProduccion.fechaVencimiento.split('-');
-        const fechaSeleccionada = new Date(parseInt(año), parseInt(mes) - 1); // mes - 1 porque Date usa 0-11
+        const fechaSeleccionada = new Date(parseInt(año), parseInt(mes) - 1);
         const hoy = new Date();
         const mesActual = new Date(hoy.getFullYear(), hoy.getMonth());
-
         if (fechaSeleccionada < mesActual) {
-            mostrarNotificacion('error', 'La fecha de vencimiento no puede ser anterior al mes actual');
+            setFieldErrors(prev => ({ ...prev, fechaVencimiento: true }));
+            showWarning('Validación', 'La fecha de vencimiento no puede ser anterior al mes actual', 5000);
             return;
         }
+
+        setFieldErrors({
+            producto: false,
+            lote: false,
+            proceso: false,
+            microondas: false,
+            terminados: false,
+            fechaVencimiento: false
+        });
 
         setLoading(true);
         try {
-            // Preparar datos para enviar al servidor
             const registroData = {
                 producto_almacen_id: productoSeleccionado?.id || null,
                 lote: parseInt(dataProduccion.lote),
@@ -253,13 +264,10 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                 vencimiento: dataProduccion.fechaVencimiento
             };
 
-            // Enviar datos al servidor
             const response = await registrosProduccionDamabravaService.create(registroData);
 
             if (response.success) {
-                mostrarNotificacion('success', 'Producción registrada exitosamente');
-
-                // Limpiar formulario pero no cerrar modal
+                showSuccess('Éxito', 'Producción registrada exitosamente', 5000);
                 setDataProduccion({
                     producto: '',
                     lote: '',
@@ -269,23 +277,28 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                     fechaVencimiento: ''
                 });
                 setProductoSeleccionado(null);
+                setFieldErrors({
+                    producto: false,
+                    lote: false,
+                    proceso: false,
+                    microondas: false,
+                    terminados: false,
+                    fechaVencimiento: false
+                });
             } else {
-                mostrarNotificacion('error', response.message || 'Error al registrar la producción');
+                showDanger('Error', response.message || 'Error al registrar la producción', 5000);
             }
-
         } catch (error) {
             console.error('Error al registrar producción:', error);
-
-            // Manejar errores específicos de stock insuficiente
             if (error.response?.data?.ingredientesConStockInsuficiente) {
                 const ingredientes = error.response.data.ingredientesConStockInsuficiente;
-                let mensajeError = 'Stock insuficiente de ingredientes:\n';
-                ingredientes.forEach(ing => {
-                    mensajeError += `• ${ing.ingrediente}: Necesitas ${ing.cantidadNecesaria}, tienes ${ing.stockActual} (faltan ${ing.faltante})\n`;
-                });
-                mostrarNotificacion('error', mensajeError);
+                let mensajeError = 'Stock insuficiente de ingredientes: ';
+                mensajeError += ingredientes.map(ing =>
+                    `${ing.ingrediente}: necesitas ${ing.cantidadNecesaria}, tienes ${ing.stockActual} (faltan ${ing.faltante})`
+                ).join('; ');
+                showDanger('Stock insuficiente', mensajeError, 6000);
             } else {
-                mostrarNotificacion('error', error.message || 'Error de conexión con el servidor');
+                showDanger('Error', error.message || 'Error de conexión con el servidor', 5000);
             }
         } finally {
             setLoading(false);
@@ -300,101 +313,95 @@ function FormularioProduccion({ isOpen, setIsOpen }) {
                     onClose={() => setIsOpen(false)}
                 />
                 <div className={styles.modalContent} style={!isLargeScreen ? { minHeight: '80vh' } : undefined}>
-                    <p className={styles.subTitle}>INFORMACIÓN DE PRODUCCIÓN</p>
 
-                    <InputSugerencias
-                        type="text"
+
+                    <InputSearch
+                        label="Producto"
+                        placeholder="Buscar y seleccionar producto"
                         value={dataProduccion.producto}
-                        placeholder='Nombre del Producto'
+                        required
                         onChange={handleProductoChange}
                         sugerencias={productos}
                         onSugerenciaSelect={handleProductoSelect}
                         mostrarCampo="name"
                         buscarCampo="name"
                         minCaracteres={1}
-                        showIcon={true}
-                        iconName="box"
                         disabled={loadingProductos}
                         loading={loadingProductos}
+                        error={fieldErrors.producto}
+                        onClearError={() => setFieldErrors(prev => ({ ...prev, producto: false }))}
+                        onInvalidBlur={() => showWarning('Validación', 'Debe seleccionar un producto válido de la lista', 5000)}
                     />
 
-                    <InputNormal
+                    <Input
                         tipo="number"
+                        label="Número de Lote"
                         value={dataProduccion.lote}
-                        placeholder='Número de Lote'
                         onChange={(e) => handleChange('lote', e.target.value)}
-                        icon='hash'
+                        required
+                        error={fieldErrors.lote}
+                        onClearError={() => setFieldErrors(prev => ({ ...prev, lote: false }))}
                         step="1"
                         min="1"
                     />
 
-
-                    <Select
-                        placeholder="Proceso"
-                        options={opcionesProceso}
+                    <InputSelect
+                        label="Proceso"
                         value={dataProduccion.proceso}
                         onChange={handleProcesoChange}
-                        icon="cog"
+                        options={opcionesProceso}
+                        placeholder="Seleccionar"
+                        required
+                        error={fieldErrors.proceso}
                     />
 
-                    <InputNormal
+                    <Input
                         tipo="number"
+                        label="Tiempo Microondas (segundos)"
                         value={dataProduccion.microondas}
-                        placeholder='Tiempo Microondas (segundos)'
                         onChange={(e) => handleChange('microondas', e.target.value)}
-                        icon='time'
+                        error={fieldErrors.microondas}
+                        onClearError={() => setFieldErrors(prev => ({ ...prev, microondas: false }))}
                         step="1"
                         min="0"
                     />
 
-                    <InputNormal
+                    <Input
                         tipo="number"
+                        label="Cantidad Terminados"
                         value={dataProduccion.terminados}
-                        placeholder='Cantidad Terminados'
                         onChange={(e) => handleChange('terminados', e.target.value)}
-                        icon='check-circle'
+                        required
+                        error={fieldErrors.terminados}
+                        onClearError={() => setFieldErrors(prev => ({ ...prev, terminados: false }))}
                         step="1"
                         min="0"
                     />
-                    <p className={styles.subTitle}>FECHA DE VENCIMIENTO</p>
 
-                    <InputDate
+                    <InputFecha
                         mode="month"
+                        label="Fecha de Vencimiento"
                         value={dataProduccion.fechaVencimiento}
                         onChange={(val) => handleChange('fechaVencimiento', val)}
-                        placeholder="Mes y Año de Vencimiento"
-                        icon="calendar"
+                        required
+                        error={fieldErrors.fechaVencimiento}
+                        onClearError={() => setFieldErrors(prev => ({ ...prev, fechaVencimiento: false }))}
+                        yearDirection="future"
+                        openDirection="up"
                     />
 
                     <div className={styles.buttons} style={{ marginTop: 'auto' }}>
                         <Boton
-                            className='btn-original'
-                            label='Registrar Producción'
+                            className="btn-original"
+                            label="Registrar Producción"
                             style={{ marginTop: 'auto' }}
                             onClick={handleSubmit}
                             loading={loading}
-                            disabled={
-                                !dataProduccion.producto.trim() ||
-                                !dataProduccion.lote ||
-                                !dataProduccion.proceso ||
-                                !dataProduccion.terminados ||
-                                !dataProduccion.fechaVencimiento ||
-                                !productoSeleccionado ||
-                                recetaProductoState.loading ||
-                                !recetaProductoState.tieneReceta
-                            }
                         />
                     </div>
                 </div>
-
-                <Notification
-                    isVisible={notification.isVisible}
-                    type={notification.type}
-                    text={notification.text}
-                />
             </ViewModal>
 
-            {/* FetchData para obtener productos del almacén (ligero, solo id y name) */}
             <FetchData
                 service={productsAlmacenService}
                 method="getAllForProduction"

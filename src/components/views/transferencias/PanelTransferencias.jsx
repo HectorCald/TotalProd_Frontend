@@ -6,7 +6,7 @@ import View from '../../ui/View';
 import ItemView from '../../common/ItemView';
 import VerTransferencia from './VerTransferencia';
 import Filtros from '../../common/Filtros';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import InfoModal from '../../common/InfoModal';
 import transferenciasAlmacenService from '../../../services/transferenciasAlmacenService';
 import LoadingSpinner from '../../common/LoadingSpinner';
@@ -24,6 +24,7 @@ import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCach
 
 function PanelTransferencias({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
+    const { showSuccess } = useToast();
     
     // Estados para los modales
     const [isOpenVerTransferencia, setIsOpenVerTransferencia] = useState(false);
@@ -102,25 +103,6 @@ function PanelTransferencias({ isOpen, setIsOpen }) {
 
     const [isOpenFiltroFecha, setIsOpenFiltroFecha] = useState(false);
     const [isOpenFiltroEstado, setIsOpenFiltroEstado] = useState(false);
-
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Funciones de carga
     const handleTransferenciasLoaded = useCallback((data = []) => {
@@ -255,7 +237,7 @@ function PanelTransferencias({ isOpen, setIsOpen }) {
         setAllTransferencias(aplicarEliminacion);
         mutateCachedItems(aplicarEliminacion);
         
-        mostrarNotificacion('success', 'Transferencia eliminada correctamente');
+        showSuccess('Éxito', 'Transferencia eliminada correctamente');
     };
 
     const handleTransferenciaActualizada = (transferenciaActualizada) => {
@@ -275,9 +257,9 @@ function PanelTransferencias({ isOpen, setIsOpen }) {
         }
         
         if (transferenciaActualizada.estado === 'Finalizado') {
-            mostrarNotificacion('success', 'Transferencia finalizada correctamente');
+            showSuccess('Éxito', 'Transferencia finalizada correctamente');
         } else if (transferenciaActualizada.estado === 'Anulado') {
-            mostrarNotificacion('success', 'Transferencia anulada correctamente');
+            showSuccess('Éxito', 'Transferencia anulada correctamente');
         }
     };
 
@@ -551,11 +533,6 @@ function PanelTransferencias({ isOpen, setIsOpen }) {
                 onTransferenciaActualizada={handleTransferenciaActualizada}
             />
 
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
 
             {/* Filtro de estado de transferencia */}
             <FiltroEstadoTransferencia

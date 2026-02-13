@@ -3,15 +3,22 @@ import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
-import InputDate from '../../common/InputDate';
+import Input from '../../common/inputs/Input';
+import InputFecha from '../../common/inputs/InputFecha';
+import InputCall from '../../common/inputs/InputCall';
 import Clientes from '../clientes/Clientes';
-import Notification from '../../common/Notification';
 import deudasService from '../../../services/deudasService';
 import { useLayout } from '../../../context/LayoutContext';
+import { useToast } from '../../../context/ToastContext';
+import useHistorialLogger from '../../ui/HistorialLogger';
+
+const fieldKeys = ['fecha_deuda', 'fecha_vencimiento', 'monto_total', 'concepto'];
+const initialFieldErrors = Object.fromEntries(fieldKeys.map(k => [k, false]));
 
 function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, tipo = 'agregar', onDeudaUpdated }) {
   const { isLargeScreen } = useLayout();
+  const { showSuccess, showDanger, showWarning } = useToast();
+  const { logAccion } = useHistorialLogger({ modulo: 'Deudas' });
   const [dataDeuda, setDataDeuda] = useState({
     fecha_deuda: '',
     fecha_vencimiento: '',
@@ -25,32 +32,13 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
   const [loading, setLoading] = useState(false);
   const [isClientesSeleccionOpen, setIsClientesSeleccionOpen] = useState(false);
   const [clienteSeleccionadoData, setClienteSeleccionadoData] = useState(null);
-
-  // Estado para la notificación
-  const [notification, setNotification] = useState({
-    isVisible: false,
-    type: 'error',
-    text: ''
-  });
-  const mostrarNotificacion = (tipo, texto) => {
-    setNotification({
-      isVisible: true,
-      type: tipo,
-      text: texto
-    });
-
-    // Auto-ocultar después de 3 segundos
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
-    }, 3000);
-  };
-
+  const [fieldErrors, setFieldErrors] = useState(initialFieldErrors);
 
   // Efecto para resetear el formulario y establecer fecha actual
   useEffect(() => {
+    setFieldErrors(initialFieldErrors);
     if (isOpen) {
       if (tipo === 'editar' && deuda) {
-        // Modo edición - cargar datos de la deuda
         setDataDeuda({
           fecha_deuda: deuda.fecha_deuda,
           fecha_vencimiento: deuda.fecha_vencimiento,
@@ -62,19 +50,15 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
         });
         setClienteSeleccionadoData(deuda.cliente || null);
       } else {
-        // Modo agregar - establecer fecha actual por defecto
         const hoy = new Date();
-        const fechaHoy = hoy.getFullYear() + '-' + 
-          String(hoy.getMonth() + 1).padStart(2, '0') + '-' + 
-          String(hoy.getDate()).padStart(2, '0'); // Formato YYYY-MM-DD local
-        
-        // Fecha de vencimiento por defecto: 30 días después
+        const fechaHoy = hoy.getFullYear() + '-' +
+          String(hoy.getMonth() + 1).padStart(2, '0') + '-' +
+          String(hoy.getDate()).padStart(2, '0');
         const fechaVencimiento = new Date(hoy);
         fechaVencimiento.setDate(fechaVencimiento.getDate() + 30);
-        const fechaVencimientoStr = fechaVencimiento.getFullYear() + '-' + 
-          String(fechaVencimiento.getMonth() + 1).padStart(2, '0') + '-' + 
+        const fechaVencimientoStr = fechaVencimiento.getFullYear() + '-' +
+          String(fechaVencimiento.getMonth() + 1).padStart(2, '0') + '-' +
           String(fechaVencimiento.getDate()).padStart(2, '0');
-        
         setDataDeuda({
           fecha_deuda: fechaHoy,
           fecha_vencimiento: fechaVencimientoStr,
@@ -89,18 +73,13 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
     }
   }, [isOpen, deuda, tipo]);
 
-  // Función para actualizar los datos del formulario
   const handleChange = (field, value) => {
     setDataDeuda(prev => {
       const newData = { ...prev, [field]: value };
-      
-      // Mantener saldo pendiente sincronizado con el monto total editable
-      if (field === 'monto_total') {
-        newData.saldo_pendiente = value;
-      }
-      
+      if (field === 'monto_total') newData.saldo_pendiente = value;
       return newData;
     });
+    if (fieldKeys.includes(field)) setFieldErrors(prev => ({ ...prev, [field]: false }));
   };
 
   // Función para manejar cuando se selecciona un cliente
@@ -110,41 +89,37 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
     setIsClientesSeleccionOpen(false);
   };
 
-  // Función para enviar los datos
   const handleSubmit = async () => {
     const soloVencimiento = tipo === 'editar' && deuda?.movimiento_salida_id;
-    // Cliente obligatorio solo al crear
-    if (!soloVencimiento && tipo !== 'editar' && !dataDeuda.cliente_id) {
-      mostrarNotificacion('error', 'El cliente es obligatorio');
-      return;
-    }
-    // Validaciones
+
     if (!soloVencimiento && !dataDeuda.fecha_deuda) {
-      mostrarNotificacion('error', 'La fecha de deuda es obligatoria');
+      setFieldErrors(prev => ({ ...prev, fecha_deuda: true }));
+      showWarning('Validación', 'La fecha de deuda es obligatoria', 5000);
       return;
     }
-
     if (!dataDeuda.fecha_vencimiento) {
-      mostrarNotificacion('error', 'La fecha de vencimiento es obligatoria');
+      setFieldErrors(prev => ({ ...prev, fecha_vencimiento: true }));
+      showWarning('Validación', 'La fecha de vencimiento es obligatoria', 5000);
       return;
     }
-
-    if (!soloVencimiento && (!dataDeuda.monto_total || dataDeuda.monto_total <= 0)) {
-      mostrarNotificacion('error', 'El monto total es obligatorio y debe ser mayor a 0');
+    const montoNum = parseFloat(String(dataDeuda.monto_total).replace(',', '.'));
+    if (!soloVencimiento && (dataDeuda.monto_total === '' || dataDeuda.monto_total == null || isNaN(montoNum) || montoNum <= 0)) {
+      setFieldErrors(prev => ({ ...prev, monto_total: true }));
+      showWarning('Validación', 'El monto total es obligatorio y debe ser mayor a 0', 5000);
       return;
     }
-
     if (!dataDeuda.concepto.trim()) {
-      mostrarNotificacion('error', 'El concepto es obligatorio');
+      setFieldErrors(prev => ({ ...prev, concepto: true }));
+      showWarning('Validación', 'El concepto es obligatorio', 5000);
       return;
     }
-
-    // Validar que la fecha de vencimiento sea posterior a la fecha de deuda
     if (!soloVencimiento && new Date(dataDeuda.fecha_vencimiento) <= new Date(dataDeuda.fecha_deuda)) {
-      mostrarNotificacion('error', 'La fecha de vencimiento debe ser posterior a la fecha de deuda');
+      setFieldErrors(prev => ({ ...prev, fecha_vencimiento: true, fecha_deuda: true }));
+      showWarning('Validación', 'La fecha de vencimiento debe ser posterior a la fecha de deuda', 5000);
       return;
     }
 
+    setFieldErrors(initialFieldErrors);
     setLoading(true);
     try {
       // En edición: si tiene movimiento, solo permitir fecha_vencimiento y concepto
@@ -180,12 +155,61 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
       }
       
       if (response.success) {
-        // Cerrar modal y notificar
+        const registroId = (response.data && response.data.id) || response.id || deuda?.id || null;
+        const comentarioAccion = tipo === 'editar'
+          ? 'Actualización de deuda'
+          : 'Creación de deuda';
+
+        // Detalles en orden del formulario. Keys en español.
+        const clienteNombreAntes = tipo === 'editar' ? (deuda?.cliente?.name ?? null) : null;
+        const clienteNombreDespues = clienteSeleccionadoData?.name ?? null;
+        const montoDespues = dataDeuda.monto_total !== '' && dataDeuda.monto_total != null
+          ? parseFloat(String(dataDeuda.monto_total).replace(',', '.'))
+          : null;
+
+        const camposOrden = [
+          'Fecha de deuda',
+          'Fecha de vencimiento',
+          'Monto total (Bs.)',
+          'Concepto',
+          'Cliente'
+        ];
+        const camposDetalle = {
+          'Fecha de deuda': tipo === 'editar'
+            ? { antes: deuda?.fecha_deuda ?? null, despues: dataDeuda.fecha_deuda ?? null }
+            : { despues: dataDeuda.fecha_deuda ?? null },
+          'Fecha de vencimiento': tipo === 'editar'
+            ? { antes: deuda?.fecha_vencimiento ?? null, despues: dataDeuda.fecha_vencimiento }
+            : { despues: dataDeuda.fecha_vencimiento },
+          'Monto total (Bs.)': tipo === 'editar'
+            ? { antes: deuda?.monto_total ?? null, despues: montoDespues }
+            : { despues: montoDespues },
+          'Concepto': tipo === 'editar'
+            ? { antes: deuda?.concepto ?? null, despues: dataDeuda.concepto }
+            : { despues: dataDeuda.concepto },
+          'Cliente': tipo === 'editar'
+            ? { antes: clienteNombreAntes, despues: clienteNombreDespues }
+            : { despues: clienteNombreDespues }
+        };
+
+        const detallesPersonalizados = {
+          campos: camposDetalle,
+          camposOrden,
+          comentario: comentarioAccion
+        };
+
+        await logAccion({
+          accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
+          lugarAfectado: dataDeuda.concepto || 'Deuda',
+          registroId,
+          comentario: comentarioAccion,
+          detallesPersonalizados
+        });
+
         setIsOpen(false);
         const mensaje = tipo === 'editar' ? 'Deuda actualizada correctamente' : 'Deuda registrada correctamente';
-        mostrarNotificacion('success', mensaje);
+        showSuccess('Éxito', mensaje);
         
-        // Notificar al componente padre
         if (tipo === 'editar' && onDeudaUpdated) {
           onDeudaUpdated(response.data);
         } else if (onDeudaCreated) {
@@ -193,12 +217,12 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
         }
       } else {
         const mensajeError = tipo === 'editar' ? 'Error al actualizar la deuda' : 'Error al crear la deuda';
-        mostrarNotificacion('error', response.message || mensajeError);
+        showDanger('Error', response.message || mensajeError);
       }
 
     } catch (error) {
       console.error('Error al registrar deuda:', error);
-      mostrarNotificacion('error', error.message || 'Error de conexión con el servidor');
+      showDanger('Error', error.message || 'Error de conexión con el servidor');
     } finally {
       setLoading(false);
     }
@@ -212,77 +236,77 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
         onClose={() => setIsOpen(false)}
       />
       <div className={styles.modalContent} style={!isLargeScreen ? { minHeight: '60vh' } : undefined}>
-        {/* Campo de fecha de deuda (oculto cuando solo se permite vencimiento/concepto) */}
+        <hr className={styles.separator} />
+
         {!(tipo === 'editar' && deuda?.movimiento_salida_id) && (
-          <>
-            <span className={styles.subTitle}>FECHA DE DEUDA</span>
-            <InputDate
-              mode="date"
-              value={dataDeuda.fecha_deuda}
-              onChange={(val) => handleChange('fecha_deuda', val)}
-              placeholder="Fecha de la deuda"
-              icon="calendar"
-            />
-          </>
+          <InputFecha
+            label="Fecha de deuda"
+            value={dataDeuda.fecha_deuda}
+            onChange={(val) => handleChange('fecha_deuda', val)}
+            required={true}
+            readOnly={loading}
+            error={fieldErrors.fecha_deuda}
+            onClearError={() => setFieldErrors(prev => ({ ...prev, fecha_deuda: false }))}
+          />
         )}
 
-        {/* Campo de fecha de vencimiento */}
-        <span className={styles.subTitle}>FECHA DE VENCIMIENTO</span>
-        <InputDate
-          mode="date"
+        <InputFecha
+          label="Fecha de vencimiento"
           value={dataDeuda.fecha_vencimiento}
           onChange={(val) => handleChange('fecha_vencimiento', val)}
-          placeholder="Fecha de vencimiento"
-          icon="time"
+          required={true}
+          readOnly={loading}
+          error={fieldErrors.fecha_vencimiento}
+          onClearError={() => setFieldErrors(prev => ({ ...prev, fecha_vencimiento: false }))}
         />
 
-        {/* Campo de monto total (oculto cuando solo se permite vencimiento/concepto) */}
         {!(tipo === 'editar' && deuda?.movimiento_salida_id) && (
-          <InputNormal
+          <Input
             tipo="number"
+            label="Monto total (Bs.)"
             value={dataDeuda.monto_total}
-            placeholder='Monto total (Bs.)'
             onChange={(e) => handleChange('monto_total', e.target.value)}
-            icon='dollar'
             step="0.01"
             min="0"
+            required={true}
+            readOnly={loading}
+            error={fieldErrors.monto_total}
+            onClearError={() => setFieldErrors(prev => ({ ...prev, monto_total: false }))}
           />
         )}
 
-        {/* Saldo pendiente no editable en modo edición */}
-
-        {/* Campo de concepto */}
-        <InputNormal
+        <Input
           tipo="text"
+          label="Concepto"
           value={dataDeuda.concepto}
-          placeholder='Concepto de la deuda'
           onChange={(e) => handleChange('concepto', e.target.value)}
-          icon='file'
+          required={true}
+          readOnly={loading}
+          error={fieldErrors.concepto}
+          onClearError={() => setFieldErrors(prev => ({ ...prev, concepto: false }))}
         />
 
-
-        {/* Selector de cliente (oculto cuando solo se permite vencimiento/concepto; obligatorio al crear) */}
         {!(tipo === 'editar' && deuda?.movimiento_salida_id) && (
-          <Boton
-            className='btn-gray'
-            label={clienteSeleccionadoData ? 'Cliente: ' + clienteSeleccionadoData.name : 'Seleccionar Cliente'}
+          <InputCall
+            label="Cliente"
+            value={clienteSeleccionadoData?.name ?? ''}
+            placeholder="Seleccionar"
             onClick={() => setIsClientesSeleccionOpen(true)}
-            style={{ width: '100%', justifyContent: 'flex-start' }}
+            onClear={() => {
+              setClienteSeleccionadoData(null);
+              setDataDeuda(prev => ({ ...prev, cliente_id: '' }));
+            }}
+            readOnly={loading}
           />
         )}
-
-
+        <div className={styles.space}></div>
         <Boton
           className='btn-original'
           label={tipo === 'editar' ? 'Actualizar Deuda' : 'Registrar Deuda'}
           style={{ marginTop: 'auto' }}
           onClick={handleSubmit}
           loading={loading}
-          disabled={
-            (tipo === 'editar' && deuda?.movimiento_salida_id)
-              ? (!dataDeuda.fecha_vencimiento || !dataDeuda.concepto)
-              : (!dataDeuda.fecha_deuda || !dataDeuda.fecha_vencimiento || !dataDeuda.monto_total || !dataDeuda.concepto || (tipo !== 'editar' && !dataDeuda.cliente_id))
-          }
+          disabled={loading}
         />
       </div>
       {/* Modal de selección de clientes */}
@@ -293,12 +317,6 @@ function EditarAgregarDeuda({ isOpen, setIsOpen, onDeudaCreated, deuda = null, t
         onClienteSeleccionado={handleClienteSeleccionado}
       />
     </ViewModal>
-
-      <Notification
-        isVisible={notification.isVisible}
-        type={notification.type}
-        text={notification.text}
-      />
     </>
   );
 }

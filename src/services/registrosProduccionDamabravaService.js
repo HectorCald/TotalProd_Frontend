@@ -60,7 +60,7 @@ class registrosProduccionDamabravaService {
   }
 
   // Obtener registros de producción del usuario actual
-  static async getByUser(page = 1, limit = 10, estado = null, ordenamiento = 'fecha_desc', search = '') {
+  static async getByUser(page = 1, limit = 10, estado = null, ordenamiento = 'fecha_desc', search = '', rangoFechas = null) {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -75,6 +75,15 @@ class registrosProduccionDamabravaService {
       }
       if (search && search.trim()) {
         params.append('search', search.trim());
+      }
+      if (rangoFechas) {
+        const { inicio, fin } = rangoFechas;
+        if (inicio) {
+          params.append('fecha_inicio', new Date(inicio).toISOString());
+        }
+        if (fin) {
+          params.append('fecha_fin', new Date(fin).toISOString());
+        }
       }
 
       const response = await fetch(`${API_BASE_URL}/registros-produccion-damabrava/my-production?${params}`, {
@@ -154,6 +163,34 @@ class registrosProduccionDamabravaService {
       return {
         success: false,
         message: error.message || 'Error al obtener los registros de producción'
+      };
+    }
+  }
+
+  // Obtener un registro de producción por ID
+  static async getById(id) {
+    try {
+      if (!id) {
+        return { success: false, message: 'ID es requerido' };
+      }
+
+      const response = await fetch(`${API_BASE_URL}/registros-produccion-damabrava/${id}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, message: data.message || 'Error al obtener el registro' };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error en registrosProduccionDamabravaService.getById:', error);
+      return {
+        success: false,
+        message: error.message || 'Error de conexión con el servidor',
       };
     }
   }

@@ -2,22 +2,19 @@ import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import HeaderView from '../../common/HeaderView';
 import View from '../../ui/View';
-import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
 import Dato from '../../common/Dato';
-import { BoxIcon } from 'boxicons-react';
 import Boton from '../../common/Boton';
-import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import ItemView from '../../common/ItemView';
-import Notification from '../../common/Notification';
 import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
 import Text from '../../common/Text';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 import { useLayout } from '../../../context/LayoutContext';
+import ModalAnularAcopio from './modales/ModalAnularAcopio';
+import ModalEliminarAcopio from './modales/ModalEliminarAcopio';
+import StatusBadge from '../../common/StatusBadge';
 
 function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
     const { isLargeScreen } = useLayout();
-    const [loading, setLoading] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
@@ -30,189 +27,129 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
         setMovimientoActual(movimiento);
     }, [movimiento]);
 
-    // Estados para notificaciones
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
-
-
-    // Handle para anular movimiento
-    const handleAnular = async () => {
-        setLoading(true);
-        try {
-            const response = await movimientosAcopioService.anular(movimientoActual.id);
-
-            if (response.success) {
-                // Usar la respuesta del servidor que incluye el movimiento actualizado
-                const movimientoActualizado = response.data;
-
-                // Preservar los datos originales que podrían perderse al anular
-                const movimientoConDatosPreservados = {
-                    ...movimientoActualizado,
-                    // Preservar datos importantes que podrían perderse
-                    date: movimientoActualizado.date || movimientoActual.date,
-                    quantity: movimientoActualizado.quantity || movimientoActual.quantity,
-                    costo: movimientoActualizado.costo || movimientoActual.costo,
-                    metodo_pago: movimientoActualizado.metodo_pago || movimientoActual.metodo_pago,
-                    observations: movimientoActualizado.observations || movimientoActual.observations,
-                    observaciones: movimientoActualizado.observaciones || movimientoActual.observaciones,
-                    restar_ingredientes: movimientoActualizado.restar_ingredientes !== undefined ? movimientoActualizado.restar_ingredientes : movimientoActual.restar_ingredientes,
-                    // Preservar información del responsable
-                    user: movimientoActualizado.user || movimientoActual.user,
-                    user_id: movimientoActualizado.user_id || movimientoActual.user_id,
-                    personal: movimientoActualizado.personal || movimientoActual.personal,
-                    personal_id: movimientoActualizado.personal_id || movimientoActual.personal_id,
-                    // Preservar información del cliente/proveedor
-                    cliente: movimientoActualizado.cliente || movimientoActual.cliente,
-                    cliente_id: movimientoActualizado.cliente_id || movimientoActual.cliente_id,
-                    proveedor: movimientoActualizado.proveedor || movimientoActual.proveedor,
-                    proveedor_id: movimientoActualizado.proveedor_id || movimientoActual.proveedor_id,
-                    // Preservar información del producto
-                    product: movimientoActualizado.product || movimientoActual.product,
-                    product_id: movimientoActualizado.product_id || movimientoActual.product_id
-                };
-
-                // Actualizar el estado local del movimiento
-                setMovimientoActual(movimientoConDatosPreservados);
-
-                setIsAnularOpen(false);
-                // NO cerrar VerMovimientoAcopio, solo actualizar el estado
-
-                // No mostrar notificación aquí, se muestra en PanelMovimientos.jsx
-                if (onMovimientoAnulado) {
-                    // Pasar el ID del movimiento anulado y los IDs de las salidas eliminadas
-                    onMovimientoAnulado(movimientoActual.id, response.salidasEliminadas || []);
-                }
-            } else {
-                const msg = response.message || 'Error al anular el movimiento';
-                mostrarNotificacion('error', msg);
-            }
-        } catch (error) {
-            console.error('Error anulando movimiento:', error);
-            mostrarNotificacion('error', 'Error al anular el movimiento');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Handle para eliminar movimiento
-    const handleEliminar = async () => {
-        setLoading(true);
-        try {
-            const response = await movimientosAcopioService.eliminar(movimiento.id);
-
-            if (response.success) {
-                setIsEliminarOpen(false);
-                setIsOpen(false);
-
-                if (onMovimientoEliminado) {
-                    onMovimientoEliminado(movimiento.id);
-                }
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al eliminar el movimiento');
-            }
-        } catch (error) {
-            console.error('Error eliminando movimiento:', error);
-            mostrarNotificacion('error', 'Error al eliminar el movimiento');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    Detalles
-                    <div className={styles.iconButton}>
-                        <button className={styles.iconButton} onClick={() => setIsDescargaOpen(true)}>
-                            <BoxIcon
-                                name='download'
-                                className={styles.iconDownload}
-                            />
-                        </button>
+                <div className={styles.header}>
+                    <div className={styles.headerContent}>
+                        <h1 className={styles.title}>{movimientoActual?.codigo || 'Detalles'}<StatusBadge estado={movimientoActual?.estado} /></h1>
+                        <p className={styles.subTitle}> Registrado el {formatFechaLiteral(movimientoActual?.date, !isLargeScreen) + ' - ' + formatHoraSinSegundos(movimientoActual?.date)}</p>
                     </div>
-                </h1>
-                <p className={styles.subTitle}>INFORMACIÓN DEL RESPONSABLE</p>
-                <ItemView
-                    title={movimientoActual?.user?.name || movimientoActual?.personal?.name || 'Usuario desconocido'}
-                    description="Responsable del movimiento"
-                    transparent={false}
-                />
-                <p className={styles.subTitle}>INFORMACIÓN DEL MOVIMIENTO</p>
-                <ItemView
-                    title={movimientoActual?.product?.name || 'Sin producto'}
-                    description={`${movimientoActual?.quantity || '0'} ${movimientoActual?.product?.type_measure?.code || ''}`}
-                    transparent={false}
-                    icon='package'
-                    flot5={movimientoActual?.estado === 'finalizado' ? 'Finalizado' : ''}
-                    flot3={movimientoActual?.estado === 'anulado' ? 'Anulado' : ''}
-                />
-                {(movimientoActual?.cliente_id || movimientoActual?.proveedor_id) && (
-                    <ItemView
-                        title={movimientoActual?.type === 'entrada' ? movimientoActual?.proveedor?.name || 'Sin proveedor' : movimientoActual?.cliente?.name || 'Sin cliente'}
-                        description={movimientoActual?.type === 'entrada' ? 'Proveedor' : 'Cliente'}
-                        transparent={false}
-                    />
-
-                )}
-                <div className={styles.content}>
-                    <Dato
-                        label="Tipo de movimiento"
-                        value={movimientoActual?.type === 'entrada' ? 'Entrada' : 'Salida'}
-                    />
-                    <Dato
-                        label="Fecha"
-                        value={formatFechaLiteral(movimientoActual?.date, !isLargeScreen)}
-                    />
-                    <Dato
-                        label="Hora"
-                        value={formatHoraSinSegundos(movimientoActual?.date)}
-                    />
-                    <Dato
-                        label="Cantidad"
-                        value={`${movimientoActual?.quantity || 0} ${movimientoActual?.product?.type_measure?.code || ''}`}
-                    />
+                    <div className={styles.iconButton}>
+                        <Boton
+                            iconName='download'
+                            label='Descargar'
+                            className='btn-default'
+                            onClick={() => setIsDescargaOpen(true)}
+                            hideTextOnMobile={true}
+                        />
+                    </div>
                 </div>
-                <p className={styles.subTitle}>OTROS DATOS</p>
+
+                <div className={styles.contentRow}>
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content}>
+                            <ItemView
+                                title="Detalles del Producto"
+                                transparent={true}
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                                icon="box"
+                            />
+                            <Dato
+                                label="Producto"
+                                value={movimientoActual?.product?.name || 'Sin producto'}
+                                vertical={false}
+                            />
+                            <Dato
+                                label="Cantidad"
+                                value={`${movimientoActual?.quantity || 0} ${movimientoActual?.product?.type_measure?.code || ''}`}
+                                vertical={false}
+                            />
+                            <Dato
+                                label="Unidad de medida"
+                                value={movimientoActual?.product?.type_measure?.code || 'Sin unidad de medida'}
+                                vertical={false}
+                            />
+                            {movimientoActual?.type === 'entrada' && (
+                                <Dato
+                                    label="Proveedor"
+                                    value={movimientoActual?.proveedor?.name || 'Sin proveedor'}
+                                    vertical={false}
+                                />
+                            )}
+                            {movimientoActual?.type === 'salida' && (
+                                <Dato
+                                    label="Cliente"
+                                    value={movimientoActual?.cliente?.name || 'Sin cliente'}
+                                    vertical={false}
+                                />
+                            )}
+                        </div>
+
+                    </div>
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content}>
+                            <ItemView
+                                title="Detalles del Movimiento"
+                                transparent={true}
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                                icon="package"
+                            />
+                            <Dato
+                                label="Responsable"
+                                value={movimientoActual?.user?.name || movimientoActual?.personal?.name || 'Usuario desconocido'}
+                                vertical={false}
+                            />
+                            <Dato
+                                label="Tipo de movimiento"
+                                value={movimientoActual?.type === 'entrada' ? 'Entrada' : 'Salida'}
+                                vertical={false}
+                            />
+                            <Dato
+                                label="Cantidad"
+                                value={`${movimientoActual?.quantity || 0} ${movimientoActual?.product?.type_measure?.code || ''}`}
+                                vertical={false}
+                            />
+                            <Dato
+                                label="Sucursal"
+                                value={movimientoActual?.sucursal?.name || 'Sin sucursal'}
+                                vertical={false}
+                            />
+                        </div>
+                    </div>
+                </div>
                 {/* Mostrar costo solo para movimientos de entrada */}
                 {movimientoActual?.type === 'entrada' && (
                     <div className={styles.content}>
-                        <Dato
-                            label="Costo"
-                            value={`Bs. ${(movimientoActual?.costo || 0).toFixed(2)}`}
-                            vertical={false}
-                        />
-                        <Dato
-                            label="Restar Ingredientes"
-                            value={movimientoActual?.restar_ingredientes ? 'Sí' : 'No'}
-                            vertical={false}
-                        />
+
+                        <>
+                            <ItemView
+                                title="Detalles del Costo"
+                                transparent={true}
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                                icon="money"
+                            />
+                            <Dato
+                                label="Costo"
+                                value={`Bs. ${(movimientoActual?.costo || 0).toFixed(2)}`}
+                                vertical={false}
+                            />
+                            <Dato
+                                label="Restar Ingredientes"
+                                value={movimientoActual?.restar_ingredientes ? 'Sí' : 'No'}
+                                vertical={false}
+                            />
+                            <Dato
+                                label="Método de pago"
+                                value={movimientoActual?.metodo_pago?.toUpperCase() || 'No especificado'}
+                                vertical={false}
+                            />
+                        </>
                     </div>
-           
-                )}
-                {movimientoActual?.metodo_pago && (
-                    <Dato
-                        label="Método de pago"
-                        value={movimientoActual.metodo_pago}
-                        vertical={false}
-                    />
                 )}
 
                 {/* Observaciones del movimiento */}
@@ -225,7 +162,7 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                         />
                     </div>
                 )}
-                
+
                 {/* Mensaje informativo si el movimiento está asociado a una entrada que restó ingredientes */}
                 {movimientoActual?.movimiento_entrada_id && (
                     <div style={{ marginTop: '10px', marginBottom: '10px', width: '100%' }}>
@@ -243,6 +180,8 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                             label='Eliminar Movimiento'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsEliminarOpen(true)}
+                            hideTextOnMobile={true}
+                            iconName='trash'
                         />
                     ) : !movimientoActual?.tiene_pedido_relacionado ? (
                         <Boton
@@ -250,6 +189,8 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
                             label='Anular Movimiento'
                             style={{ marginTop: 'auto' }}
                             onClick={() => setIsAnularOpen(true)}
+                            hideTextOnMobile={true}
+                            iconName='block'
                         />
                     ) : null}
                 </div>
@@ -265,79 +206,22 @@ function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulad
             />
 
             {/* Modal de anular movimiento */}
-            <ViewModal isOpen={isAnularOpen} setIsOpen={setIsAnularOpen}>
-                <HeaderModal
-                    title="Anular Movimiento"
-                    onClose={() => setIsAnularOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas anular este movimiento? Esta acción no se puede deshacer.
-                    </p>
-                    <div style={{ marginTop: '10px', marginBottom: '10px', width: '100%' }}>
-                        <Text type="warning" align="left">
-                            Si este movimiento está relacionado con un pedido de acopio, el pedido será actualizado a estado "Entregado" y se podrá hacer un nuevo ingreso.
-                        </Text>
-                    </div>
-                    {movimientoActual?.restar_ingredientes && (
-                        <div style={{ marginTop: '0', marginBottom: '10px', width: '100%' }}>
-                            <Text type="error" align="left">
-                                Este movimiento restó materia prima. Al anular este movimiento se devolverá el total de la materia prima de la receta del producto.
-                            </Text>
-                        </div>
-                    )}
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsAnularOpen(false)}
-                        />
-                        <Boton
-                            className='btn-red'
-                            label='Sí, anular'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleAnular}
-                            loading={loading}
-                            segundosDisabled={5}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
+            <ModalAnularAcopio
+                isOpen={isAnularOpen}
+                setIsOpen={setIsAnularOpen}
+                movimientoActual={movimientoActual}
+                setMovimientoActual={setMovimientoActual}
+                movimiento={movimiento}
+                onMovimientoAnulado={onMovimientoAnulado}
+            />
 
             {/* Modal de eliminar movimiento */}
-            <ViewModal isOpen={isEliminarOpen} setIsOpen={setIsEliminarOpen}>
-                <HeaderModal
-                    title="Eliminar Movimiento"
-                    onClose={() => setIsEliminarOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>
-                        ¿Estás seguro que deseas eliminar permanentemente este movimiento? Esta acción no se puede deshacer.
-                    </p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsEliminarOpen(false)}
-                        />
-                        <Boton
-                            className='btn-red'
-                            label='Sí, eliminar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={handleEliminar}
-                            loading={loading}
-                            segundosDisabled={5}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
+            <ModalEliminarAcopio
+                isOpen={isEliminarOpen}
+                setIsOpen={setIsEliminarOpen}
+                movimientoActual={movimientoActual}
+                setIsOpenVerMovimiento={setIsOpen}
+                onMovimientoEliminado={onMovimientoEliminado}
             />
         </View>
     );

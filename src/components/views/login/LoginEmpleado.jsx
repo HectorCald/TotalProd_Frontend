@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
-import InputNormal from '../../common/InputNormal';
+import Input from '../../common/inputs/Input';
 import Boton from '../../common/Boton';
-import MensajeError from '../../common/MensajeError';
 import ItemView from '../../common/ItemView';
 import personalService from '../../../services/personalService';
+import { useToast } from '../../../context/ToastContext';
 
 // Clave para localStorage
 const SAVED_EMPLOYEES_KEY = 'savedEmployees';
@@ -53,12 +53,15 @@ const saveEmployee = (employeeData) => {
 };
 
 function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
-    const [step, setStep] = useState(1); // 1: código, 2: contraseña
+    const { showWarning, showDanger } = useToast();
+    const [step, setStep] = useState(1);
     const [codigo, setCodigo] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
+    const [errorCodigo, setErrorCodigo] = useState('');
+    const [errorPassword, setErrorPassword] = useState('');
+    const [errorConfirmPassword, setErrorConfirmPassword] = useState('');
     const [personalData, setPersonalData] = useState(null);
     const [savedEmployees, setSavedEmployees] = useState([]);
     const [isCodigoEditable, setIsCodigoEditable] = useState(true);
@@ -91,123 +94,109 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                     setStep(3);
                 }
             } else {
-                setErrorMessage(response.message || 'Código de empleado no válido');
-                setTimeout(() => setErrorMessage(''), 3000);
+                showDanger('Error', response.message || 'Código de empleado no válido. Verifica e intenta nuevamente.', 5000, false);
             }
         } catch (error) {
             console.error('Error al validar código:', error);
-            setErrorMessage('Error de conexión con el servidor');
-            setTimeout(() => setErrorMessage(''), 3000);
+            showDanger('Error', 'Error de conexión. Revisa tu conexión e intenta nuevamente.', 5000, false);
         } finally {
             setLoading(false);
         }
     };
 
-    // Función para validar código de empleado
-    const handleValidateCode = async () => {
+    const handleValidateCode = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
         if (!codigo.trim()) {
-            setErrorMessage('El código es obligatorio');
-            setTimeout(() => setErrorMessage(''), 3000);
+            setErrorCodigo('El código es obligatorio');
+            showWarning('Validación', 'Ingresa tu código de empleado.');
             return;
         }
-
         if (codigo.length < 8) {
-            setErrorMessage('El código debe tener al menos 8 caracteres');
-            setTimeout(() => setErrorMessage(''), 3000);
+            setErrorCodigo('El código debe tener al menos 8 caracteres');
+            showWarning('Validación', 'El código debe tener al menos 8 caracteres.');
             return;
         }
-
+        setErrorCodigo('');
         setLoading(true);
         try {
-            const response = await personalService.validateEmployeeCode(codigo);
-
+            const response = await personalService.validateEmployeeCode(codigo.trim());
             if (response.success) {
                 if (response.data.hasPassword) {
-                    // Ya tiene contraseña, proceder al login
                     setPersonalData(response.data.personal);
                     setStep(2);
                 } else {
-                    // No tiene contraseña, establecer contraseña
                     setPersonalData(response.data.personal);
                     setStep(3);
                 }
             } else {
-                setErrorMessage(response.message || 'Código de empleado no válido');
-                setTimeout(() => setErrorMessage(''), 3000);
+                showDanger('Error', response.message || 'Código de empleado no válido. Verifica e intenta nuevamente.', 5000, false);
             }
         } catch (error) {
             console.error('Error al validar código:', error);
-            setErrorMessage('Error de conexión con el servidor');
-            setTimeout(() => setErrorMessage(''), 3000);
+            showDanger('Error', 'Error de conexión. Revisa tu conexión e intenta nuevamente.', 5000, false);
         } finally {
             setLoading(false);
         }
     };
 
-    // Función para establecer contraseña
-    const handleSetPassword = async () => {
+    const handleSetPassword = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
         if (!password.trim()) {
-            setErrorMessage('La contraseña es obligatoria');
-            setTimeout(() => setErrorMessage(''), 3000);
+            setErrorPassword('La contraseña es obligatoria');
+            setErrorConfirmPassword('');
+            showWarning('Validación', 'Ingresa una contraseña.');
             return;
         }
-
         if (password.length < 8) {
-            setErrorMessage('La contraseña debe tener al menos 8 caracteres');
-            setTimeout(() => setErrorMessage(''), 3000);
+            setErrorPassword('La contraseña debe tener al menos 8 caracteres');
+            setErrorConfirmPassword('');
+            showWarning('Validación', 'La contraseña debe tener al menos 8 caracteres.');
             return;
         }
-
+        if (!confirmPassword.trim()) {
+            setErrorPassword('');
+            setErrorConfirmPassword('Confirma tu contraseña');
+            showWarning('Validación', 'Confirma tu contraseña.');
+            return;
+        }
         if (password !== confirmPassword) {
-            setErrorMessage('Las contraseñas no coinciden');
-            setTimeout(() => setErrorMessage(''), 3000);
+            setErrorConfirmPassword('Las contraseñas no coinciden');
+            showWarning('Validación', 'Las contraseñas no coinciden.');
             return;
         }
-
+        setErrorPassword('');
+        setErrorConfirmPassword('');
         setLoading(true);
         try {
             const response = await personalService.setPassword(personalData.id, password);
-
             if (response.success) {
-                setErrorMessage('');
-                setStep(2); // Ir al login
+                setStep(2);
             } else {
-                setErrorMessage(response.message || 'Error al establecer contraseña');
-                setTimeout(() => setErrorMessage(''), 3000);
+                showDanger('Error', response.message || 'No se pudo establecer la contraseña. Intenta nuevamente.', 5000, false);
             }
         } catch (error) {
             console.error('Error al establecer contraseña:', error);
-            setErrorMessage('Error de conexión con el servidor');
-            setTimeout(() => setErrorMessage(''), 3000);
+            showDanger('Error', 'Error de conexión. Revisa tu conexión e intenta nuevamente.', 5000, false);
         } finally {
             setLoading(false);
         }
     };
 
-    // Función para login de empleado
-    const handleEmployeeLogin = async () => {
+    const handleEmployeeLogin = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
         if (!password.trim()) {
-            setErrorMessage('La contraseña es obligatoria');
-            setTimeout(() => setErrorMessage(''), 3000);
+            setErrorPassword('La contraseña es obligatoria');
+            showWarning('Validación', 'Ingresa tu contraseña.');
             return;
         }
-
+        setErrorPassword('');
         setLoading(true);
         try {
             const response = await personalService.loginEmployee(codigo, password);
-
             if (response.success) {
-                // El token ya se guardó en personalService.loginEmployee
-
-                // Guardar empleado en localStorage para acceso rápido
                 if (response.data.personal) {
-                    saveEmployee({
-                        ...response.data.personal,
-                        codigo: codigo
-                    });
+                    saveEmployee({ ...response.data.personal, codigo: codigo });
                 }
-
-                // Si el empleado tiene rastreo activado, obtener y actualizar ubicación
                 if (response.data.personal && response.data.personal.rastrear) {
                     try {
                         const locationResponse = await personalService.getCurrentLocation();
@@ -217,66 +206,35 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                                 locationResponse.data.latitude,
                                 locationResponse.data.longitude
                             );
-                            console.log('Ubicación actualizada al iniciar sesión');
                         }
                     } catch (locationError) {
                         console.error('Error al obtener ubicación:', locationError);
-                        // No mostrar error al usuario, solo log
                     }
                 }
-
                 onLoginSuccess(response.data);
                 setIsOpen(false);
             } else {
-                setErrorMessage(response.message || 'Credenciales incorrectas');
-                setTimeout(() => setErrorMessage(''), 3000);
+                showDanger('Error', response.message || 'La contraseña ingresada no es correcta. Verifica que estés usando la contraseña de tu cuenta e intenta nuevamente.', 5000, false);
             }
         } catch (error) {
             console.error('Error en login de empleado:', error);
-            setErrorMessage('Error de conexión con el servidor');
-            setTimeout(() => setErrorMessage(''), 3000);
+            showDanger('Error', 'Error de conexión. Revisa tu conexión e intenta nuevamente.', 5000, false);
         } finally {
             setLoading(false);
         }
     };
 
-    // Función para resetear el modal
     const handleClose = () => {
         setStep(1);
         setCodigo('');
         setIsCodigoEditable(true);
         setPassword('');
         setConfirmPassword('');
-        setErrorMessage('');
+        setErrorCodigo('');
+        setErrorPassword('');
+        setErrorConfirmPassword('');
         setPersonalData(null);
         setIsOpen(false);
-    };
-
-    const handleCodigoKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (!loading) {
-                handleValidateCode();
-            }
-        }
-    };
-
-    const handleEmployeeLoginKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (!loading) {
-                handleEmployeeLogin();
-            }
-        }
-    };
-
-    const handleSetPasswordKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (!loading) {
-                handleSetPassword();
-            }
-        }
     };
 
     return (
@@ -286,10 +244,8 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                 onClose={handleClose}
             />
             <div className={styles.modalContent}>
-                <MensajeError mensaje={errorMessage} />
-
                 {step === 1 && (
-                    <>
+                    <form onSubmit={handleValidateCode}>
                         {savedEmployees.length > 0 && (
                             <div style={{ marginBottom: '10px' }}>
                                 <p className={styles.subTitle} style={{ marginBottom: '10px' }}>EMPLEADOS RECIENTES</p>
@@ -306,54 +262,53 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                                 ))}
                             </div>
                         )}
-
-
                         <p className={styles.subTitle}>INGRESA TU CÓDIGO DE EMPLEADO</p>
-
-                        <InputNormal
-                            tipo="text"
-                            icon="hash"
-                            value={isCodigoEditable ? codigo : ''}
-                            placeholder="Código de empleado"
+                        <Input
+                            type="text"
+                            label="Código de empleado"
+                            value={codigo}
                             onChange={(e) => {
                                 if (isCodigoEditable) {
                                     setCodigo(e.target.value);
+                                    setErrorCodigo('');
                                 }
                             }}
-                            readonly={loading || !isCodigoEditable}
-                            disabled={loading || !isCodigoEditable}
-                        onKeyPress={handleCodigoKeyPress}
+                            readOnly={loading || !isCodigoEditable}
+                            required
+                            error={errorCodigo || undefined}
+                            onClearError={() => setErrorCodigo('')}
                         />
+                        <div className={styles.space}></div>
                         <div className={styles.buttons}>
-                            <Boton
-                                className="btn-original"
-                                label="Validar Código"
-                                onClick={handleValidateCode}
-                                loading={loading}
-                                disabled={!codigo.trim() || codigo.length < 8}
-                            />
+                            <Boton type="submit" className="btn-original" label="Validar Código" loading={loading} />
                         </div>
-                    </>
+                    </form>
                 )}
 
                 {step === 2 && personalData && (
-                    <>
+                    <form onSubmit={handleEmployeeLogin}>
                         <p className={styles.subTitle}>INICIAR SESIÓN</p>
                         <ItemView
                             title={`${personalData.first_name} ${personalData.last_name}`}
                             description={personalData.cargo || 'Sin cargo'}
                         />
-                        <InputNormal
-                            tipo="password"
-                            icon="lock"
+                        <Input
+                            type="password"
+                            label="Contraseña"
                             value={password}
-                            placeholder="Contraseña"
-                            onChange={(e) => setPassword(e.target.value)}
-                            onKeyPress={handleEmployeeLoginKeyPress}
-                            disabled={loading}
+                            onChange={(e) => {
+                                setPassword(e.target.value);
+                                setErrorPassword('');
+                            }}
+                            readOnly={loading}
+                            required
+                            error={errorPassword || undefined}
+                            onClearError={() => setErrorPassword('')}
                         />
+                        <div className={styles.space}></div>
                         <div className={styles.buttons}>
                             <Boton
+                                type="button"
                                 className="btn-default"
                                 label="Cambiar Código"
                                 onClick={() => {
@@ -364,53 +319,49 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                                     setIsCodigoEditable(true);
                                 }}
                             />
-                            <Boton
-                                className="btn-original"
-                                label="Iniciar Sesión"
-                                onClick={handleEmployeeLogin}
-                                loading={loading}
-                                disabled={!password.trim()}
-                            />
-
+                            <Boton type="submit" className="btn-original" label="Iniciar Sesión" loading={loading} />
                         </div>
-                    </>
+                    </form>
                 )}
 
                 {step === 3 && personalData && (
-                    <>
+                    <form onSubmit={handleSetPassword}>
                         <p className={styles.subTitle}>ESTABLECER CONTRASEÑA</p>
                         <ItemView
                             title={`${personalData.first_name} ${personalData.last_name}`}
                             description={personalData.cargo || 'Sin cargo'}
                             icon="user"
                         />
-                        <InputNormal
-                            tipo="password"
-                            icon="lock"
+                        <Input
+                            type="password"
+                            label="Nueva contraseña"
                             value={password}
-                            placeholder="Nueva contraseña"
-                            onChange={(e) => setPassword(e.target.value)}
-                            onKeyPress={handleSetPasswordKeyPress}
-                            disabled={loading}
+                            onChange={(e) => {
+                                setPassword(e.target.value);
+                                setErrorPassword('');
+                            }}
+                            readOnly={loading}
+                            required
+                            error={errorPassword || undefined}
+                            onClearError={() => setErrorPassword('')}
                         />
-                        <InputNormal
-                            tipo="password"
-                            icon="lock"
+                        <Input
+                            type="password"
+                            label="Confirmar contraseña"
                             value={confirmPassword}
-                            placeholder="Confirmar contraseña"
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            onKeyPress={handleSetPasswordKeyPress}
-                            disabled={loading}
+                            onChange={(e) => {
+                                setConfirmPassword(e.target.value);
+                                setErrorConfirmPassword('');
+                            }}
+                            readOnly={loading}
+                            required
+                            error={errorConfirmPassword || undefined}
+                            onClearError={() => setErrorConfirmPassword('')}
                         />
                         <div className={styles.buttons}>
+                            <Boton type="submit" className="btn-original" label="Establecer Contraseña" loading={loading} />
                             <Boton
-                                className="btn-original"
-                                label="Establecer Contraseña"
-                                onClick={handleSetPassword}
-                                loading={loading}
-                                disabled={!password.trim() || !confirmPassword.trim() || password !== confirmPassword}
-                            />
-                            <Boton
+                                type="button"
                                 className="btn-default"
                                 label="Cambiar Código"
                                 onClick={() => {
@@ -423,7 +374,7 @@ function LoginEmpleado({ isOpen, setIsOpen, onLoginSuccess }) {
                                 }}
                             />
                         </div>
-                    </>
+                    </form>
                 )}
             </div>
         </ViewModal>

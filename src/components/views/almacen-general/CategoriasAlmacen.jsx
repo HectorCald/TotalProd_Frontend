@@ -7,7 +7,7 @@ import ItemView from '../../common/ItemView';
 import VerCategoria from './VerCategoria';
 import Boton from '../../common/Boton';
 import EditarAgregarCategoria from './EditarAgregarCategoria';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import { BoxIcon } from 'boxicons-react';
 import RefreshIndicator from '../../common/RefreshIndicator';
@@ -21,6 +21,7 @@ import useSessionCache from '../../../hooks/useSessionCache';
     
 function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategoriaSeleccionada }) {
     const { isLargeScreen } = useLayout();
+    const { showSuccess } = useToast();
     // Estados para los modales
     const [isOpenVerCategoria, setIsOpenVerCategoria] = useState(false);
     const [infoCategoria, setInfoCategoria] = useState(null);
@@ -94,26 +95,6 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
             setIsRefreshing(false);
         }
     }, [isOpen]);
-
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
 
     // Función para manejar el click en una categoría
     const handleCategoria = (categoria) => {
@@ -208,7 +189,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
         
         // Cerrar el modal
         setIsAgregarOpen(false);
-        mostrarNotificacion('success', 'Categoría agregada correctamente');
+        showSuccess('Éxito', 'Categoría agregada correctamente');
     };
 
     // Función para manejar cuando se elimina una categoría
@@ -218,7 +199,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
         
         // Cerrar el modal de ver categoría
         setIsOpenVerCategoria(false);
-        mostrarNotificacion('success', 'Categoría eliminada correctamente');
+        showSuccess('Éxito', 'Categoría eliminada correctamente');
     };
 
     // Función para manejar cuando se actualiza una categoría
@@ -230,7 +211,7 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
         
         // Cerrar el modal de ver categoría
         setIsOpenVerCategoria(false);
-        mostrarNotificacion('success', 'Categoría actualizada correctamente');
+        showSuccess('Éxito', 'Categoría actualizada correctamente');
     };
 
 
@@ -330,12 +311,6 @@ function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategor
                 tipo='agregar'
                 onCategoriaCreated={handleCategoriaCreated}
             />
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
-
             {/* Carga de datos - solo cuando está abierto */}
             {isOpen && (
                 <FetchData

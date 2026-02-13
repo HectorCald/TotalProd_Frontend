@@ -1,0 +1,121 @@
+.root {
+  width: 100%;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--quinary-color);
+  margin-block: 4px;
+}
+
+.required {
+  color: #e53935;
+}
+
+.labelError {
+  color: #e53935;
+}
+
+.inputWrap {
+  position: relative;
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--white-color, #1a1a1a);
+  background: var(--tertiary-color, #2d2d2d);
+  border: 1px solid var(--tertiary-color);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  
+}
+
+.inputError {
+  border-color: #e53935;
+  padding-right: 36px;
+}
+
+.inputWrapWithIcon .input {
+  padding-right: 36px;
+}
+
+.togglePassword {
+  position: absolute;
+  right: 10px;
+  top: calc(50% + 3px);
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--quinary-color, rgba(255, 255, 255, 0.6));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.togglePassword:hover {
+  color: var(--white-color, #1a1a1a);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.togglePassword .icon {
+  font-size: 18px !important;
+}
+
+.errorIcon {
+  position: absolute;
+  right: 10px;
+  top: calc(50% + 3px);
+  transform: translateY(-50%);
+  color: #e53935;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.icon {
+  font-size: 18px !important;
+}
+.input::placeholder {
+  color: var(--quinary-color, rgba(255, 255, 255, 0.45));
+}
+
+.input:focus {
+  border-color: var(--primary-color);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inputWrapReadOnly .input,
+.inputWrapReadOnly .errorIcon {
+  opacity: 0.6;
+}
+
+.inputWrapReadOnly .input {
+  cursor: not-allowed;
+}
+
+.input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.input[type="number"]::-webkit-outer-spin-button,
+.input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

@@ -2,222 +2,150 @@ import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
-import InputNormal from '../../common/InputNormal';
+import Input from '../../common/inputs/Input';
 import Boton from '../../common/Boton';
-import MensajeError from '../../common/MensajeError';
 import UserService from '../../../services/userService';
-import InputCodigo from '../../common/InputCodigo';
-import Notification from '../../common/Notification';
-
+import { useToast } from '../../../context/ToastContext';
 
 function ContraseñaReset({ isOpen, setIsOpen }) {
+    const { showSuccess, showDanger } = useToast();
     const [email, setEmail] = useState('');
-    const [errorMessage, setErrorMessage] = useState('');
+    const [errorEmail, setErrorEmail] = useState('');
     const [isOpenCodigo, setIsOpenCodigo] = useState(false);
     const [codigo, setCodigo] = useState('');
+    const [errorCodigo, setErrorCodigo] = useState('');
     const [isOpenNuevaContraseña, setIsOpenNuevaContraseña] = useState(false);
     const [nuevaContraseña, setNuevaContraseña] = useState('');
+    const [errorPassword, setErrorPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    
-    // Estados para validación de botones
-    const [isEmailValid, setIsEmailValid] = useState(false);
-    const [isCodigoValid, setIsCodigoValid] = useState(false);
-    const [isPasswordValid, setIsPasswordValid] = useState(false);
-    // Estado para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
 
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 5000);
-    };
     useEffect(() => {
+        if (!isOpen) return;
         setEmail('');
         setCodigo('');
         setNuevaContraseña('');
-        setIsEmailValid(false);
-        setIsCodigoValid(false);
-        setIsPasswordValid(false);
+        setErrorEmail('');
+        setErrorCodigo('');
+        setErrorPassword('');
     }, [isOpen]);
 
-    // Validación de email en tiempo real
-    useEffect(() => {
+    const handleResetPassword = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        setIsEmailValid(email.trim() !== '' && email.includes('@') && email.includes('.com') && emailRegex.test(email));
-    }, [email]);
-
-    // Validación de código en tiempo real
-    useEffect(() => {
-        setIsCodigoValid(codigo.length === 6);
-    }, [codigo]);
-
-    // Validación de contraseña en tiempo real
-    useEffect(() => {
-        setIsPasswordValid(nuevaContraseña.length >= 1);
-    }, [nuevaContraseña]);
-
-    // Reset de contraseña
-    const handleResetPassword = async () => {
         if (!email.trim()) {
-            setErrorMessage('Ingresa tu correo electrónico');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+            setErrorEmail('Ingresa tu correo electrónico');
+            showDanger('Error', 'Ingresa tu correo electrónico.', 5000, false);
             return;
         }
-        if (!email.includes('@') || !email.includes('.com')) {
-            setErrorMessage('El correo electrónico no es válido');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+        if (!emailRegex.test(email)) {
+            setErrorEmail('El correo electrónico no es válido');
+            showDanger('Error', 'El correo electrónico no es válido.', 5000, false);
             return;
         }
-
+        setErrorEmail('');
         try {
             setLoading(true);
             const result = await UserService.requestPasswordReset(email);
             if (result.success) {
-                // Si el email se envió correctamente, no necesitamos guardar el token
-                // El usuario lo recibirá por email
-                if (result.data.token) {
-                    // Fallback: si el email falló, guardar el token
+                if (result.data?.token) {
                     localStorage.setItem('resetToken', result.data.token);
-                    mostrarNotificacion('success', 'Código enviado exitosamente. Revisa la consola del backend para ver el código.');
+                    showSuccess('Éxito', 'Código enviado. Revisa la consola del backend si no recibes el email.');
                 } else {
-                    // Email enviado correctamente
-                    mostrarNotificacion('success', 'Código de verificación enviado a tu email. Revisa tu bandeja de entrada.');
+                    showSuccess('Éxito', 'Código de verificación enviado a tu email. Revisa tu bandeja de entrada.');
                 }
                 setIsOpenCodigo(true);
             } else {
-                setErrorMessage(result.message || 'Error al enviar código');
-                setTimeout(() => {
-                    setErrorMessage('');
-                }, 3000);
+                const msg = result.message || 'Error al enviar código';
+                setErrorEmail(msg);
+                showDanger('Error', msg, 5000, false);
             }
         } catch (error) {
             console.error('Error al solicitar reset:', error);
-            setErrorMessage('Error al solicitar reset de contraseña');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+            showDanger('Error', 'Error al solicitar reset de contraseña.', 5000, false);
         } finally {
             setLoading(false);
         }
-    }
+    };
 
-    // Verificar código
-    const handleVerificarCodigo = async () => {
+    const handleVerificarCodigo = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
         if (!codigo.trim()) {
-            setErrorMessage('Ingresa el código de verificación');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+            setErrorCodigo('Ingresa el código de verificación');
+            showDanger('Error', 'Ingresa el código de verificación.', 5000, false);
             return;
         }
-
+        if (codigo.length !== 6) {
+            setErrorCodigo('El código debe tener 6 dígitos');
+            showDanger('Error', 'El código debe tener 6 dígitos.', 5000, false);
+            return;
+        }
+        setErrorCodigo('');
         try {
             setLoading(true);
             const result = await UserService.verifyResetToken(codigo);
             if (result.success) {
-                // Guardar el token verificado para usarlo en el cambio de contraseña
-                if (result.data && result.data.token) {
+                if (result.data?.token) {
                     localStorage.setItem('resetToken', result.data.token);
-                } else {
-                    console.log('❌ No se recibió token del backend'); // Debug
                 }
+                showSuccess('Éxito', 'Código verificado. Ahora puedes cambiar tu contraseña.');
                 setIsOpenNuevaContraseña(true);
-                mostrarNotificacion('success', 'Código verificado exitosamente. Ahora puedes cambiar tu contraseña.');
             } else {
-                setErrorMessage(result.message || 'Código inválido');
-                setTimeout(() => {
-                    setErrorMessage('');
-                }, 3000);
+                const msg = result.message || 'Código inválido';
+                setErrorCodigo(msg);
+                showDanger('Error', msg, 5000, false);
             }
         } catch (error) {
             console.error('Error al verificar código:', error);
-            setErrorMessage('Error al verificar código');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+            showDanger('Error', 'Error al verificar código.', 5000, false);
         } finally {
             setLoading(false);
         }
-    }
-
-    // Función para manejar cuando se completa el código
-    const handleCodigoCompleto = (codigoCompleto) => {
-        setCodigo(codigoCompleto);
-        // Verificar automáticamente cuando se complete
-        //handleVerificarCodigo();
     };
 
-    const handleRestablecerContraseña = async () => {
+    const handleRestablecerContraseña = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
         if (!nuevaContraseña.trim()) {
-            setErrorMessage('Ingresa la nueva contraseña');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+            setErrorPassword('Ingresa la nueva contraseña');
+            showDanger('Error', 'Ingresa la nueva contraseña.', 5000, false);
             return;
         }
         if (nuevaContraseña.length < 8) {
-            setErrorMessage('La contraseña debe tener al menos 8 caracteres');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+            setErrorPassword('La contraseña debe tener al menos 8 caracteres');
+            showDanger('Error', 'La contraseña debe tener al menos 8 caracteres.', 5000, false);
             return;
         }
-
+        setErrorPassword('');
+        const token = localStorage.getItem('resetToken');
+        if (!token) {
+            showDanger('Error', 'Sesión de restablecimiento expirada. Solicita un nuevo código.', 5000, false);
+            return;
+        }
         try {
             setLoading(true);
-            const token = localStorage.getItem('resetToken');
-            if (!token) {
-                setErrorMessage('Token no encontrado');
-                setTimeout(() => {
-                    setErrorMessage('');
-                }, 3000);
-                return;
-            }
-
             const result = await UserService.resetPassword(token, nuevaContraseña);
             if (result.success) {
-                mostrarNotificacion('success', 'Contraseña restablecida exitosamente')
-                // Limpiar formularios
+                showSuccess('Éxito', 'Contraseña restablecida exitosamente.');
                 setEmail('');
                 setCodigo('');
                 setNuevaContraseña('');
-                // Limpiar token y cerrar modal
                 localStorage.removeItem('resetToken');
                 setTimeout(() => {
                     setIsOpen(false);
                     setIsOpenCodigo(false);
                     setIsOpenNuevaContraseña(false);
-                }, 3000);
+                }, 2000);
             } else {
-                setErrorMessage(result.message || 'Error al restablecer contraseña');
-                setTimeout(() => {
-                    setErrorMessage('');
-                }, 3000);
+                const msg = result.message || 'Error al restablecer contraseña';
+                setErrorPassword(msg);
+                showDanger('Error', msg, 5000, false);
             }
         } catch (error) {
             console.error('Error al restablecer contraseña:', error);
-            setErrorMessage('Error al restablecer contraseña');
-            setTimeout(() => {
-                setErrorMessage('');
-            }, 3000);
+            showDanger('Error', 'Error al restablecer contraseña.', 5000, false);
         } finally {
             setLoading(false);
         }
-    }
+    };
     return (
         <ViewModal ViewModal isOpen={isOpen} setIsOpen={setIsOpen} >
             <HeaderModal
@@ -226,24 +154,25 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
             />
             <div className={styles.modalContent}>
                 <h1 className={styles.subTitle}>Ingresa tu correo electrónico y te enviaremos un código de verificación para restablecer tu contraseña.</h1>
-                <div>
-                    <MensajeError mensaje={errorMessage} />
-                </div>
-                <InputNormal
-                    tipo="text"
-                    icon="envelope"
-                    value={email}
-                    placeholder="Correo electrónico"
-                    onChange={(e) => setEmail(e.target.value)}
-                />
-                <div></div>
-                <Boton
-                    className='btn-original'
-                    label="Enviar código"
-                    onClick={handleResetPassword}
-                    loading={loading}
-                    disabled={!isEmailValid || loading}
-                />
+                <form onSubmit={handleResetPassword}>
+                    <Input
+                        type="email"
+                        label="Correo electrónico"
+                        value={email}
+                        onChange={(e) => {
+                            setEmail(e.target.value);
+                            setErrorEmail('');
+                        }}
+                        readOnly={loading}
+                        required
+                        error={errorEmail || undefined}
+                        onClearError={() => setErrorEmail('')}
+                    />
+                    <div className={styles.space}></div>
+                    <div className={styles.buttons}>
+                    <Boton type="submit" className="btn-original" label="Enviar código" loading={loading} />
+                    </div>
+                </form>
             </div>
 
 
@@ -255,24 +184,29 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                 />
                 <div className={styles.modalContent}>
                     <h1 className={styles.subTitle}>Ingresa el código de verificación que te enviamos a tu correo electrónico.</h1>
-                    <div>
-                        <MensajeError mensaje={errorMessage} />
-                    </div>
-                    <InputCodigo
-                        cantidad={6}
-                        value={codigo}
-                        onChange={setCodigo}
-                        onComplete={handleCodigoCompleto}
-                        disabled={loading}
-                    />
-                    <div></div>
-                    <Boton
-                        className='btn-original'
-                        label="Verificar"
-                        onClick={handleVerificarCodigo}
-                        loading={loading}
-                        disabled={!isCodigoValid || loading}
-                    />
+                    <form onSubmit={handleVerificarCodigo}>
+                        <Input
+                            type="text"
+                            label="Código de verificación (6 dígitos)"
+                            value={codigo}
+                            onChange={(e) => {
+                                const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                setCodigo(v);
+                                setErrorCodigo('');
+                            }}
+                            placeholder="000000"
+                            maxLength={6}
+                            inputMode="numeric"
+                            readOnly={loading}
+                            required
+                            error={errorCodigo || undefined}
+                            onClearError={() => setErrorCodigo('')}
+                        />
+                        <div className={styles.space}></div>
+                        <div className={styles.buttons}>
+                        <Boton type="submit" className="btn-original" label="Verificar" loading={loading} />
+                        </div>
+                    </form>
                 </div>
             </ViewModal >
             <ViewModal ViewModal isOpen={isOpenNuevaContraseña} setIsOpen={setIsOpenNuevaContraseña} >
@@ -282,32 +216,28 @@ function ContraseñaReset({ isOpen, setIsOpen }) {
                 />
                 <div className={styles.modalContent}>
                     <h1 className={styles.subTitle}>Ingresa tu nueva contraseña.</h1>
-                    <div>
-                        <MensajeError mensaje={errorMessage} />
-                    </div>
-                    <InputNormal
-                        tipo="password"
-                        icon="lock"
-                        value={nuevaContraseña}
-                        placeholder="Nueva contraseña"
-                        onChange={(e) => setNuevaContraseña(e.target.value)}
-                    />
-                    <div></div>
-                    <Boton
-                        className='btn-original'
-                        label="Restablecer contraseña"
-                        onClick={handleRestablecerContraseña}
-                        loading={loading}
-                        disabled={!isPasswordValid || loading}
-                    />
+                    <form onSubmit={handleRestablecerContraseña}>
+                        <Input
+                            type="password"
+                            label="Nueva contraseña"
+                            value={nuevaContraseña}
+                            onChange={(e) => {
+                                setNuevaContraseña(e.target.value);
+                                setErrorPassword('');
+                            }}
+                            readOnly={loading}
+                            required
+                            error={errorPassword || undefined}
+                            onClearError={() => setErrorPassword('')}
+                        />
+                        <div className={styles.space}></div>
+                        <div className={styles.buttons}>
+                        <Boton type="submit" className="btn-original" label="Restablecer contraseña" loading={loading} />
+                        </div>
+                    </form>
                 </div>
-            </ViewModal >
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
-        </ViewModal >
+            </ViewModal>
+        </ViewModal>
     );
 }
 export default ContraseñaReset;

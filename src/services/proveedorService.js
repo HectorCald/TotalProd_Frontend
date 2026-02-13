@@ -144,6 +144,53 @@ class proveedorService {
       };
     }
   }
+
+  // Obtener un proveedor por ID
+  static async getById(id) {
+    try {
+      if (!id) {
+        return {
+          success: false,
+          message: 'ID del proveedor es requerido'
+        };
+      }
+
+      // Obtener sucu_id para que el middleware moduleAuth pueda obtener empresa_id
+      const sucuId = getSucuId();
+      if (!sucuId) {
+        return {
+          success: false,
+          message: 'No hay sucursal seleccionada'
+        };
+      }
+
+      const params = new URLSearchParams({
+        sucu_id: sucuId
+      });
+
+      const response = await fetch(`${API_BASE_URL}/proveedores/${id}?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        const error = new Error(data.message || 'Error en la petición');
+        error.status = response.status;
+        error.code = data.code;
+        error.currentPlan = data.currentPlan;
+        error.requiredModule = data.requiredModule;
+        throw error;
+      }
+      
+      return data;
+
+    } catch (error) {
+      console.error('Error en getById:', error);
+      throw error;
+    }
+  }
 }
 
 export default proveedorService;

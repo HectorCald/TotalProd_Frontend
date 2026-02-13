@@ -7,34 +7,29 @@ import ViewModal from '../../ui/ViewModal';
 import Dato from '../../common/Dato';
 import Boton from '../../common/Boton';
 import EditarAgregar from './EditarAgregar';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
+import { useLayout } from '../../../context/LayoutContext';
 import FetchData from '../../mixed/FetchData';
-import clientService from '../../../services/clientService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
-import ItemLine from '../../common/ItemLine';
+import clientService from '../../../services/clientService';
 import ItemView from '../../common/ItemView';
 import MapaModal from './MapaModal';
+import MapPin from './MapPin';
 import VerMovimiento from '../movimientos/VerMovimiento';
-import { useUser } from '../../../context/UserContext';
 import NoData from '../../common/NoData';
-import useHistorialLogger from '../../ui/HistorialLogger';
+import LoadingSpinner from '../../common/LoadingSpinner';
+import ModalEliminar from './modales/ModalEliminar';
+import Skeleton from '../../common/Skeleton';
 
 function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdated }) {
-    const { sucursalSeleccionada } = useUser();
-    const { logAccion } = useHistorialLogger({
-        modulo: 'Clientes',
-        campos: ['name', 'phone', 'direccion', 'description', 'total_orders', 'location']
-    });
-
+    const { showInfo } = useToast();
+    const { isLargeScreen } = useLayout();
     // Estados para los modales
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
     const [isVerMovimientoOpen, setIsVerMovimientoOpen] = useState(false);
     const [movimientoSeleccionado, setMovimientoSeleccionado] = useState(null);
-
-    // Estados para la carga
-    const [loading, setLoading] = useState(false);
 
     // Estados para el mapa
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
@@ -43,70 +38,13 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
     const [movimientos, setMovimientos] = useState([]);
     const [loadingMovimientosList, setLoadingMovimientosList] = useState(false);
 
-    // Estado para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
+    // Estado para datos de ubicación del mapa
+    const [locationData, setLocationData] = useState(null);
+    const [loadingLocation, setLoadingLocation] = useState(false);
 
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
-
-    // Función para eliminar el cliente
-    const handleEliminar = async (id) => {
-        if (!id) {
-            mostrarNotificacion('error', 'ID del cliente no válido');
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const response = await clientService.delete(id, sucursalSeleccionada?.id);
-
-            if (response.success) {
-                await logAccion({
-                    accion: 'ELIMINAR',
-                    lugarAfectado: usuario?.name || 'Cliente',
-                    registroId: usuario?.id || null,
-                    datosAntes: usuario,
-                    comentario: 'Eliminación de cliente'
-                });
-
-                // Notificar al componente padre que se eliminó un cliente
-                if (onClientDeleted) {
-                    onClientDeleted(id);
-                    setIsDeleteOpen(false);
-                    setIsOpen(false);
-                    mostrarNotificacion('success', 'Cliente eliminado correctamente');
-                }
-            } else {
-                mostrarNotificacion('error', response.message || 'Error al eliminar el cliente');
-            }
-        } catch (error) {
-            console.error('Error al eliminar cliente:', error);
-            mostrarNotificacion('error', 'Error de conexión con el servidor');
-        } finally {
-            setLoading(false);
-        }
-    }
-    const handleOpenMap = () => {
-        if (usuario.location) {
-            setIsMapModalOpen(true);
-        } else {
-            mostrarNotificacion('error', 'No hay ubicación para mostrar');
-        }
-    }
-
+    // Ubicación resuelta: tabla clients o último movimiento (se obtiene al abrir VerCliente)
+    const [ubicacionResuelta, setUbicacionResuelta] = useState(null);
+    const [loadingUbicacion, setLoadingUbicacion] = useState(false);
     // Función para manejar el click en un movimiento
     const handleMovimientoClick = (movimiento) => {
         setMovimientoSeleccionado(movimiento);
@@ -126,52 +64,132 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
         setLoadingMovimientosList(isLoading);
     }, []);
 
-    // Resetear movimientos cuando cambia el cliente
+    // Resetear movimientos y ubicación cuando cambia el cliente; iniciar en loading para mostrar spinner desde el principio
     useEffect(() => {
         setMovimientos([]);
+        setLocationData(null);
+        setLoadingLocation(false);
+        setUbicacionResuelta(null);
+        setLoadingUbicacion(Boolean(usuario?.id));
     }, [usuario?.id]);
+
+    // Al abrir VerCliente, obtener ubicación (tabla clients o último movimiento)
+    useEffect(() => {
+        if (!isOpen || !usuario?.id) return;
+
+        setLoadingUbicacion(true);
+        clientService
+            .getLocation(usuario.id)
+            .then((res) => {
+                const loc = res?.success && res?.data ? res.data.location : null;
+                setUbicacionResuelta(loc ?? null);
+            })
+            .catch(() => setUbicacionResuelta(null))
+            .finally(() => setLoadingUbicacion(false));
+    }, [isOpen, usuario?.id]);
 
 
     return (
         <View isOpen={isOpen} setIsOpen={setIsOpen}>
             <HeaderView onBack={() => setIsOpen(false)} />
             <div className={styles.container}>
-                <h1 className={styles.title}>
-                    {usuario?.name}
-                    <div className={styles.iconButton} >
+                <div className={styles.header}>
+                    <h1 className={styles.title}>DETALLES</h1>
+                </div>
+                <div className={styles.contentRow}>
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content}>
+                            <ItemView
+                                title="Información del Cliente"
+                                transparent={true}
+                                icon="user"
+                                iconShape="square"
+                                style={{ padding: '0', minHeight: 'auto', marginBottom: '10px' }}
+                            />
+                            <Dato label="Nombre" value={usuario?.name || 'N/A'} vertical={false} />
+                            <Dato label="Celular" value={usuario?.phone || 'N/A'} vertical={false} />
+                            <Dato label="Descripción" value={usuario?.description || 'Sin descripción'} vertical={false} />
+                            <Dato label="Total de pedidos" value={usuario?.total_orders || '0'} vertical={false} />
+                            {(loadingUbicacion || ubicacionResuelta) && (
+                                <>
+                                    {loadingUbicacion ? (
+                                        <>
+                                            <Skeleton width="100%" height="25px" />
+                                            <Skeleton width="100%" height="25px" />
+                                            <Skeleton width="100%" height="25px" />
+                                        </>
+                                    ) : loadingLocation ? (
+                                        <>
+                                            <Skeleton width="100%" height="25px" />
+                                            <Skeleton width="100%" height="25px" />
+                                            <Skeleton width="100%" height="25px" />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Dato
+                                                label="País"
+                                                value={
+                                                    locationData?.pais && locationData?.ciudad
+                                                        ? `${locationData.pais} - ${locationData.ciudad}`
+                                                        : locationData?.pais || locationData?.ciudad || '--'
+                                                }
+                                                vertical={false}
+                                            />
+                                            <Dato label="Ciudad" value={locationData?.ciudad || '--'} vertical={false} />
+                                            <Dato label="Dirección" value={locationData?.direccion || locationData?.address || '--'} vertical={!isLargeScreen} />
+                                        </>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                        {/* Botón para ver movimientos */}
+                        <Boton
+                            className='btn-gray'
+                            label='Movimientos'
+                            onClick={() => setIsMovimientosOpen(true)}
+                        />
                     </div>
-
-                </h1>
-                <p className={styles.subTitle}>INFORMACIÓN PERSONAL</p>
-                <div className={styles.content}>
-                    <Dato label="Celular" value={usuario?.phone || 'N/A'} />
-                    <Dato label="Descripción" value={usuario?.description || 'Sin descripción'} />
-                    <Dato label="Total de pedidos" value={usuario?.total_orders || '0'} />
+                    <div className={styles.contentHalf}>
+                        <div className={styles.content} style={{ height: '100%', minHeight: '100%' }}>
+                            {loadingUbicacion ? (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', minHeight: '200px' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : !ubicacionResuelta ? (
+                                <NoData
+                                    icon="map"
+                                    title="No hay ubicación"
+                                    detail="Este cliente no tiene ubicación registrada ni en movimientos recientes"
+                                    transparent={false}
+                                    minHeight="200px"
+                                />
+                            ) : (
+                                <MapPin 
+                                    initialLocation={ubicacionResuelta} 
+                                    onLocationData={setLocationData}
+                                    onLoadingChange={setLoadingLocation}
+                                />
+                            )}
+                        </div>
+                    </div>
                 </div>
-                <p className={styles.subTitle}>UBICACIÓN</p>
-                <div className={styles.content}>
-                    <ItemLine icon="map-pin" title="Ubicación" onClick={handleOpenMap} arrow={true} />
-                </div>
-
-                {/* Botón para ver movimientos */}
-                <Boton
-                    className='btn-gray'
-                    label='Movimientos'
-                    onClick={() => setIsMovimientosOpen(true)}
-                />
 
                 <div className={styles.buttons}>
-                <Boton
+                    <Boton
                         className='btn-default'
                         label='Editar Cliente'
                         onClick={() => setIsEditOpen(true)}
+                        iconName='edit'
+                        hideTextOnMobile={true}
                     />
                     <Boton
                         className='btn-red'
                         label='Eliminar Cliente'
                         onClick={() => setIsDeleteOpen(true)}
+                        iconName='trash'
+                        hideTextOnMobile={true}
                     />
-                    
+
                 </div>
             </div>
 
@@ -185,36 +203,19 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
             />
 
             {/* Modal de Eliminar*/}
-            <ViewModal isOpen={isDeleteOpen} setIsOpen={setIsDeleteOpen}>
-                <HeaderModal
-                    title="Eliminar"
-                    onClose={() => setIsDeleteOpen(false)}
-                />
-                <div className={styles.modalContent}>
-                    <p className={styles.subTitle}>¿Eliminar al cliente {usuario?.name}? Esta acción es irreversible y puede afectar registros relacionados.</p>
-                    <div className={styles.buttons}>
-                        <Boton
-                            className='btn-default'
-                            label='Cancelar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => setIsDeleteOpen(false)}
-                        />
-                        <Boton
-                            className='btn-red'
-                            label='Si, eliminar'
-                            style={{ marginTop: 'auto' }}
-                            onClick={() => handleEliminar(usuario?.id)}
-                            loading={loading}
-                        />
-                    </div>
-                </div>
-            </ViewModal>
+            <ModalEliminar
+                isOpen={isDeleteOpen}
+                setIsOpen={setIsDeleteOpen}
+                cliente={usuario}
+                setIsOpenVerCliente={setIsOpen}
+                onClienteEliminado={onClientDeleted}
+            />
 
             {/* Modal de Mapa*/}
             <MapaModal
                 isOpen={isMapModalOpen}
                 setIsOpen={setIsMapModalOpen}
-                initialLocation={usuario?.location}
+                initialLocation={ubicacionResuelta}
                 readOnly={true}
             />
 
@@ -226,7 +227,7 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 />
                 <div className={styles.modalContent}>
                     {loadingMovimientosList ? (
-                        <NoData 
+                        <NoData
                             icon="loader-alt"
                             title="Cargando movimientos..."
                             detail="Obteniendo el historial de movimientos del cliente"
@@ -256,7 +257,7 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                             ))}
                         </>
                     ) : (
-                        <NoData 
+                        <NoData
                             icon="history"
                             title="No hay movimientos"
                             detail="Este cliente no tiene movimientos registrados aún"
@@ -286,13 +287,6 @@ function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdat
                 isOpen={isVerMovimientoOpen}
                 setIsOpen={setIsVerMovimientoOpen}
                 movimiento={movimientoSeleccionado}
-            />
-
-            {/* Modal de Notificación*/}
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
             />
         </View>
     );

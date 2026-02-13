@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import Switch from '../../common/Switch';
 import Proveedores from '../proveedores/Proveedores';
-import Notification from '../../common/Notification';
+import { useToast } from '../../../context/ToastContext';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import gastosService from '../../../services/gastosService';
@@ -24,6 +24,7 @@ import { useUser } from '../../../context/UserContext';
 function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false }) {
     const { isLargeScreen } = useLayout();
     const { user } = useUser();
+    const { showWarning, showDanger } = useToast();
     const soloVentas = isSoloVentas(user);
     const [observacionesGenerales, setObservacionesGenerales] = useState('');
     const [isLimpiarModalOpen, setIsLimpiarModalOpen] = useState(false);
@@ -50,13 +51,6 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
     const [concepto, setConcepto] = useState('');
     const [metodoPago, setMetodoPago] = useState('');
 
-    // Notificaciones
-    const [notification, setNotification] = useState({ isVisible: false, type: 'error', text: '' });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({ isVisible: true, type: tipo, text: texto });
-        setTimeout(() => { setNotification(prev => ({ ...prev, isVisible: false })); }, 3000);
-    };
-
     const syncProductoEntrada = useCallback(({
         productoCarrito,
         productoActualizado,
@@ -79,7 +73,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
             }
 
             if (productoCarrito.cantidad > productoModificado.stock) {
-                mostrarNotificacion('warning', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoModificado.stock}`);
+                showWarning('Aviso', `El stock de ${productoCarrito.name} cambió. Cantidad ajustada a ${productoModificado.stock}`);
                 productoModificado.cantidad = productoModificado.stock;
             }
         }
@@ -97,7 +91,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
         }
 
         return productoModificado;
-    }, [mostrarNotificacion]);
+    }, [showWarning]);
 
     // Hook para manejar la lógica de precios de entradas
     const {
@@ -299,12 +293,12 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
             let gastoId = null;
             if (registrarGasto) {
                 if (!costo || parseFloat(costo) <= 0) {
-                    mostrarNotificacion('error', 'El costo es obligatorio y debe ser mayor a 0');
+                    showDanger('Error', 'El costo es obligatorio y debe ser mayor a 0');
                     setLoadingConfirmar(false);
                     return;
                 }
                 if (!metodoPago || metodoPago.trim() === '') {
-                    mostrarNotificacion('error', 'El método de pago es obligatorio');
+                    showDanger('Error', 'El método de pago es obligatorio');
                     setLoadingConfirmar(false);
                     return;
                 }
@@ -327,7 +321,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 };
                 const gastoResponse = await gastosService.create(gastoData);
                 if (!gastoResponse.success) {
-                    mostrarNotificacion('error', `Error al crear gasto: ${gastoResponse.message}`);
+                    showDanger('Error', `Error al crear gasto: ${gastoResponse.message}`);
                     setLoadingConfirmar(false);
                     return;
                 }
@@ -361,7 +355,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                     onCerrarCanasta(productosStockActualizados, precioSeleccionado, movimientoId);
                 }
             } else {
-                mostrarNotificacion('error', 'Error al crear el movimiento');
+                showDanger('Error', 'Error al crear el movimiento');
                 // Si falló el movimiento y se creó gasto, intentar rollback
                 try {
                     if (registrarGasto && gastoId) {
@@ -372,7 +366,7 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 }
             }
         } catch (error) {
-            mostrarNotificacion('error', error.message || 'Error al confirmar movimientos');
+            showDanger('Error', error.message || 'Error al confirmar movimientos');
         } finally {
             setLoadingConfirmar(false);
         }
@@ -627,7 +621,6 @@ function CanastaMovimientosEntrada({ isOpen, setIsOpen, productosCanasta, setPro
                 onProveedorSeleccionado={handleProveedorSeleccionado}
             />
 
-            <Notification isVisible={notification.isVisible} type={notification.type} text={notification.text} />
         </View>
     );
 }

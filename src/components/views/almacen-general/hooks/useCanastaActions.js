@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useToast } from '../../../../context/ToastContext';
 
 const redondearPrecio = (precio) => {
     const decimal = precio % 1;
@@ -15,11 +16,11 @@ function useCanastaActions({
     productosCanasta = [],
     productosCanastaEntradas = [],
     productosCanastaSalidas = [],
-    mostrarNotificacion,
     pedidosConfig = {},
     movimientosEntradaConfig = {},
     movimientosSalidaConfig = {},
 }) {
+    const { showDanger } = useToast();
     const {
         precioGetterName: pedidosPrecioGetterName = 'getPrecioSeleccionadoCanastaPedidos',
         modoGetterName: pedidosModoGetterName = 'getModoAgrupacionCanastaPedidos',
@@ -59,26 +60,20 @@ function useCanastaActions({
 
                 // Si hay un producto no asociado en la canasta, no se puede agregar uno asociado
                 if (!primerProductoEsAsociado && productoNuevoEsAsociado) {
-                    if (mostrarNotificacion) {
-                        mostrarNotificacion('error', 'No se pueden mezclar productos asociados con productos propios en la misma operación');
-                    }
+                    showDanger('Error', 'No se pueden mezclar productos asociados con productos propios en la misma operación', 5000);
                     return prevSanitizados; // No agregar el producto
                 }
 
                 // Si hay un producto asociado en la canasta, no se puede agregar uno no asociado
                 if (primerProductoEsAsociado && !productoNuevoEsAsociado) {
-                    if (mostrarNotificacion) {
-                        mostrarNotificacion('error', 'No se pueden mezclar productos propios con productos asociados en la misma operación');
-                    }
+                    showDanger('Error', 'No se pueden mezclar productos propios con productos asociados en la misma operación', 5000);
                     return prevSanitizados; // No agregar el producto
                 }
 
                 // Si ambos son asociados, verificar que sean de la misma empresa asociada
                 if (primerProductoEsAsociado && productoNuevoEsAsociado) {
                     if (primerProductoEmpresaId && productoNuevoEmpresaId && primerProductoEmpresaId !== productoNuevoEmpresaId) {
-                        if (mostrarNotificacion) {
-                            mostrarNotificacion('error', 'No se pueden mezclar productos de diferentes empresas asociadas en la misma operación');
-                        }
+                        showDanger('Error', 'No se pueden mezclar productos de diferentes empresas asociadas en la misma operación', 5000);
                         return prevSanitizados; // No agregar el producto
                     }
                 }
@@ -149,7 +144,7 @@ function useCanastaActions({
                 }
             ];
         });
-    }, [pedidosExtraItemFields, pedidosModoGetterName, pedidosPrecioGetterName, setProductosCanasta, mostrarNotificacion]);
+    }, [pedidosExtraItemFields, pedidosModoGetterName, pedidosPrecioGetterName, setProductosCanasta, showDanger]);
 
     const handleAgregarACanastaMovimientos = useCallback((producto, tipoMovimiento, precioSeleccionado = null, cantidadEspecifica = null) => {
         const esEntrada = tipoMovimiento === 'entrada';
@@ -220,17 +215,13 @@ function useCanastaActions({
 
                 // Si hay un producto no asociado en la canasta, no se puede agregar uno asociado
                 if (!primerProductoEsAsociado && productoNuevoEsAsociado) {
-                    if (mostrarNotificacion) {
-                        mostrarNotificacion('error', 'No se pueden mezclar productos asociados con productos propios en la misma operación');
-                    }
+                    showDanger('Error', 'No se pueden mezclar productos asociados con productos propios en la misma operación', 5000);
                     return prevSanitizados; // No agregar el producto
                 }
 
                 // Si hay un producto asociado en la canasta, no se puede agregar uno no asociado
                 if (primerProductoEsAsociado && !productoNuevoEsAsociado) {
-                    if (mostrarNotificacion) {
-                        mostrarNotificacion('error', 'No se pueden mezclar productos propios con productos asociados en la misma operación');
-                    }
+                    showDanger('Error', 'No se pueden mezclar productos propios con productos asociados en la misma operación', 5000);
                     return prevSanitizados; // No agregar el producto
                 }
             }
@@ -304,7 +295,7 @@ function useCanastaActions({
         productosCanastaSalidas,
         setProductosCanastaEntradas,
         setProductosCanastaSalidas,
-        mostrarNotificacion,
+        showDanger,
         entradaModoGetterName,
         entradaPrecioGetterName,
         salidaModoGetterName,

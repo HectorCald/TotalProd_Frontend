@@ -3,19 +3,22 @@ import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
 import HeaderModal from '../../common/HeaderModal';
 import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
-import Select from '../../common/Select';
+import Input from '../../common/inputs/Input';
+import InputCall from '../../common/inputs/InputCall';
+import InputSelect from '../../common/inputs/InputSelect';
 import productsAcopioService from '../../../services/productsAcopioService';
 import EditarAgregarReceta from '../almacen-general/EditarAgregarReceta';
 import Switch from '../../common/Switch';
-import MensajeError from '../../common/MensajeError';
-import Notification from '../../common/Notification';
 import CategoriasAcopio from './CategoriasAcopio';
-import Text from '../../common/Text';
-import { formatProductoAcopioLog, prepareLogPayload } from '../../../utils/logFormatters';
+import { useToast } from '../../../context/ToastContext';
+import { extractRecetaFromAcopio } from '../../../utils/logFormatters';
 import useHistorialLogger from '../../ui/HistorialLogger';
 
 function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, onProductUpdated, typeMeasures = [] }) {
+  const { showSuccess, showDanger, showWarning } = useToast();
+  const { logAccion } = useHistorialLogger({
+    modulo: 'Almacén Acopio'
+  });
 
   const [dataMov, setDataMov] = useState({
     name: '',
@@ -26,7 +29,6 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
     stock_minimo: ''
   });
 
-  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRecetaOpen, setIsRecetaOpen] = useState(false);
   const [hasReceta, setHasReceta] = useState(false);
@@ -35,35 +37,13 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [isCategoriasSeleccionOpen, setIsCategoriasSeleccionOpen] = useState(false);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
-
-  const { logAccion } = useHistorialLogger({
-    modulo: 'Almacén Acopio'
-  });
-
-  // Estado para notificaciones
-  const [notification, setNotification] = useState({
-    isVisible: false,
-    type: 'error',
-    text: ''
-  });
-
-  const mostrarNotificacion = (tipo, texto) => {
-    setNotification({
-      isVisible: true,
-      type: tipo,
-      text: texto
-    });
-
-    // Auto-ocultar después de 3 segundos
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
-    }, 3000);
-  };
+  const [fieldErrors, setFieldErrors] = useState({ name: false, quantity: false, type_measure_id: false });
 
 
 
   // Efecto para cargar los datos del producto
   useEffect(() => {
+    setFieldErrors({ name: false, quantity: false, type_measure_id: false });
     if (data && tipo === 'editar') {
       // Cargar receta si existe
       let recetaData = null;
@@ -110,8 +90,8 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       setHasReceta(false);
       setRecetaGuardada(null);
       setCategoriaSeleccionada(null);
+      setFieldErrors({ name: false, quantity: false, type_measure_id: false });
     }
-    setErrorMessage('');
   }, [isOpen, data, tipo]);
 
   // Efecto para verificar movimientos cuando se está editando
@@ -140,6 +120,9 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
   // Función para actualizar los datos del formulario
   const handleChange = (field, value) => {
     setDataMov({ ...dataMov, [field]: value });
+    if (field === 'name' || field === 'quantity' || field === 'type_measure_id') {
+      setFieldErrors((prev) => ({ ...prev, [field]: false }));
+    }
   };
 
   // Función para manejar el switch de receta
@@ -165,23 +148,36 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
   // Función para enviar los datos
   const handleSubmit = async () => {
     if (!dataMov.name.trim()) {
-      setErrorMessage('El nombre es obligatorio');
-      setTimeout(() => setErrorMessage(''), 3000);
+      setFieldErrors((prev) => ({ ...prev, name: true }));
+      showWarning('Validación', 'El nombre es obligatorio', 5000);
       return;
     }
 
     if (dataMov.quantity === '' || dataMov.quantity === null || dataMov.quantity === undefined) {
-      setErrorMessage('La cantidad es obligatoria');
-      setTimeout(() => setErrorMessage(''), 3000);
+      setFieldErrors((prev) => ({ ...prev, quantity: true }));
+      showWarning('Validación', 'La cantidad es obligatoria', 5000);
+      return;
+    }
+
+    if (isNaN(parseFloat(String(dataMov.quantity).replace(',', '.'))) || parseFloat(String(dataMov.quantity).replace(',', '.')) < 0) {
+      setFieldErrors((prev) => ({ ...prev, quantity: true }));
+      showWarning('Validación', 'La cantidad debe ser un número mayor o igual a 0', 5000);
       return;
     }
 
     if (!dataMov.type_measure_id) {
-      setErrorMessage('Debe seleccionar un tipo de medida');
-      setTimeout(() => setErrorMessage(''), 3000);
+      setFieldErrors((prev) => ({ ...prev, type_measure_id: true }));
+      showWarning('Validación', 'Debe seleccionar un tipo de medida', 5000);
       return;
     }
 
+    // Validar receta si está marcado el switch
+    if (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0)) {
+      showWarning('Validación', 'Debe crear una receta con al menos un producto', 5000);
+      return;
+    }
+
+    setFieldErrors({ name: false, quantity: false, type_measure_id: false });
     setLoading(true);
     try {
       let response;
@@ -202,51 +198,75 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
       }
 
       if (response.success) {
-        const datosAntesOriginal = tipo === 'editar' ? data : null;
-        const datosDespuesOriginal = response.data || (tipo === 'agregar'
-          ? {
-            ...productData,
-            id: response.id || null
-          }
-          : null);
-
-        const logDatosAntes = datosAntesOriginal
-          ? formatProductoAcopioLog(datosAntesOriginal, {
-              typeMeasures,
-              categoriaFallback: categoriaSeleccionada?.name || null
-            })
-          : null;
-
-        const logDatosDespues = formatProductoAcopioLog(datosDespuesOriginal, {
-          typeMeasures,
-          categoriaFallback: categoriaSeleccionada?.name || null
-        });
-
-        const registroId = (response.data && response.data.id) || datosDespuesOriginal?.id || data?.id || null;
-        const nombreAfectado =
-          logDatosDespues?.nombre ||
-          logDatosAntes?.nombre ||
-          datosDespuesOriginal?.name ||
-          productData.name ||
-          data?.name ||
-          'Producto de acopio';
+        const registroId = (response.data && response.data.id) || response.id || data?.id || null;
         const comentarioAccion = tipo === 'editar'
           ? 'Actualización de producto de materia prima'
           : 'Creación de producto de materia prima';
-        const { datosAntes, datosDespues, campos } = prepareLogPayload({
-          accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
-          datosAntes: logDatosAntes,
-          datosDespues: logDatosDespues
-        });
+
+        // Detalles en orden del formulario. Keys en español.
+        const categoriaNombreAntes = tipo === 'editar'
+          ? (data?.category?.name ?? data?.category_name ?? categoriaSeleccionada?.name ?? null)
+          : null;
+        const categoriaNombreDespues = categoriaSeleccionada?.name ?? null;
+
+        const getTipoMedidaNombre = (typeMeasureId) => {
+          if (!typeMeasureId) return null;
+          const tm = typeMeasures.find(t => String(t.id) === String(typeMeasureId));
+          return tm?.name ?? tm?.code ?? null;
+        };
+        const tipoMedidaAntes = tipo === 'editar' ? (data?.type_measure?.name ?? data?.type_measure?.code ?? getTipoMedidaNombre(data?.type_measure_id)) : null;
+        const tipoMedidaDespues = getTipoMedidaNombre(productData.type_measure_id);
+
+        const camposDetalle = {};
+        const camposOrden = [
+          'Nombre del Producto',
+          'Descripción',
+          'Cantidad',
+          'Stock mínimo (opcional)',
+          'Tipo de medida',
+          'Categoría',
+          'Receta'
+        ];
+
+        camposDetalle['Nombre del Producto'] = tipo === 'editar'
+          ? { antes: data?.name ?? null, despues: productData.name }
+          : { despues: productData.name };
+        camposDetalle['Descripción'] = tipo === 'editar'
+          ? { antes: data?.description ?? null, despues: productData.description ?? null }
+          : { despues: productData.description ?? null };
+        camposDetalle['Cantidad'] = tipo === 'editar'
+          ? { antes: data?.quantity ?? null, despues: productData.quantity }
+          : { despues: productData.quantity };
+        camposDetalle['Stock mínimo (opcional)'] = tipo === 'editar'
+          ? { antes: data?.stock_minimo ?? null, despues: productData.stock_minimo ?? null }
+          : { despues: productData.stock_minimo ?? null };
+        camposDetalle['Tipo de medida'] = tipo === 'editar'
+          ? { antes: tipoMedidaAntes, despues: tipoMedidaDespues }
+          : { despues: tipoMedidaDespues };
+        camposDetalle['Categoría'] = tipo === 'editar'
+          ? { antes: categoriaNombreAntes, despues: categoriaNombreDespues }
+          : { despues: categoriaNombreDespues };
+
+        const recetaAntes = tipo === 'editar' ? extractRecetaFromAcopio(data) : null;
+        const recetaDespues = productData.receta
+          ? { descripcion: productData.receta.descripcion ?? null, productos: productData.receta.productos ?? [] }
+          : null;
+        camposDetalle['Receta'] = tipo === 'editar'
+          ? { antes: recetaAntes, despues: recetaDespues }
+          : { despues: recetaDespues };
+
+        const detallesPersonalizados = {
+          campos: camposDetalle,
+          camposOrden,
+          comentario: comentarioAccion
+        };
 
         await logAccion({
           accion: tipo === 'editar' ? 'EDITAR' : 'CREAR',
-          lugarAfectado: nombreAfectado,
+          lugarAfectado: (response.data && response.data.name) || productData.name || data?.name || 'Producto de acopio',
           registroId,
-          datosAntes,
-          datosDespues,
           comentario: comentarioAccion,
-          campos
+          detallesPersonalizados
         });
 
         if (tipo === 'editar' && onProductUpdated) {
@@ -254,14 +274,18 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
         } else if (tipo === 'agregar' && onProductCreated) {
           onProductCreated(response.data);
         }
+        showSuccess(
+          tipo === 'editar' ? 'Producto actualizado' : 'Producto creado',
+          `El producto "${dataMov.name}" ha sido ${tipo === 'editar' ? 'actualizado' : 'creado'} exitosamente`,
+          5000
+        );
         setIsOpen(false);
       } else {
-        mostrarNotificacion('error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el producto`);
+        showDanger('Error', response.message || `Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} el producto`, 5000);
       }
     } catch (error) {
       console.error(`Error al ${tipo === 'editar' ? 'actualizar' : 'crear'} producto:`, error);
-      // Mostrar el mensaje de error del servidor (incluyendo permisos) con notificación
-      mostrarNotificacion('error', error.message || 'Error de conexión con el servidor');
+      showDanger('Error', error.message || 'Error de conexión con el servidor', 5000);
     } finally {
       setLoading(false);
     }
@@ -279,105 +303,103 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
     <>
       <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
         <HeaderModal
-          title={tipo === 'editar' ? 'Editar producto' : 'Nuevo producto'}
+          title={tipo === 'editar' ? 'Editar Producto' : 'Nuevo Producto'}
           onClose={() => setIsOpen(false)}
         />
         <div className={styles.modalContent}>
-          <MensajeError mensaje={errorMessage} />
-          <p className={styles.subTitle}>INFORMACIÓN DEL PRODUCTO</p>
+          <hr className={styles.separator} />
+          <p className={styles.subTitle}>Información</p>
 
-          <InputNormal
+          <Input
             tipo="text"
+            label="Nombre del Producto"
             value={dataMov.name}
-            placeholder='Nombre del Producto'
             onChange={(e) => handleChange('name', e.target.value)}
-            icon='box'
+            required={true}
+            readOnly={loading}
+            error={fieldErrors.name}
+            onClearError={() => setFieldErrors((prev) => ({ ...prev, name: false }))}
           />
 
-          <InputNormal
+          <Input
             tipo="text"
+            label="Descripción"
             value={dataMov.description}
-            placeholder='Descripción'
             onChange={(e) => handleChange('description', e.target.value)}
-            icon='text'
+            readOnly={loading}
           />
 
-          <InputNormal
-            tipo="number"
-            value={dataMov.quantity}
-            placeholder='Cantidad'
-            onChange={(e) => handleChange('quantity', e.target.value)}
-            icon='calculator'
-          />
-
-          <InputNormal
-            tipo="number"
-            value={dataMov.stock_minimo}
-            placeholder='Stock mínimo (opcional)'
-            onChange={(e) => handleChange('stock_minimo', e.target.value)}
-            icon='error'
-            step="0.01"
-            min="0"
-          />
-            <Select
-              value={dataMov.type_measure_id}
-              onChange={(value) => handleChange('type_measure_id', value)}
-              options={typeMeasures?.map((item, index) => ({
-                value: item.id || item.value || `unique_${index}`,
-                label: item.name || item.label || item.code || 'Sin nombre'
-              })).filter((item, index, self) => 
-                // Eliminar duplicados basándose en el value
-                index === self.findIndex(t => t.value === item.value)
-              ) || []}
-              placeholder={hasMovements ? 'Tipo de medida (no editable - tiene movimientos)' : 'Tipo de medida'}
-              disabled={tipo === 'editar' && hasMovements}
-              icon='ruler'
+          <div className={styles.horizontal}>
+            <Input
+              tipo="number"
+              label="Cantidad"
+              value={dataMov.quantity}
+              onChange={(e) => handleChange('quantity', e.target.value)}
+              required={true}
+              readOnly={loading}
+              error={fieldErrors.quantity}
+              onClearError={() => setFieldErrors((prev) => ({ ...prev, quantity: false }))}
             />
-            {tipo === 'editar' && hasMovements && (
-              <Text type="error" align="center">
-                No se puede cambiar la unidad de medida porque el producto tiene movimientos registrados
-              </Text>
-            )}
-          
-
-          <Boton
-            className='btn-gray'
-            label={categoriaSeleccionada ? 'Categoría: ' + categoriaSeleccionada.name : 'Seleccionar Categoría (opcional)'}
-            onClick={() => setIsCategoriasSeleccionOpen(true)}
-            style={{ width: '100%', justifyContent: 'flex-start' }}
-          />
-
-
-          {/* Switch para receta */}
-          <div className={styles.content} style={{ padding: '10px 15px' }}>
-            <Switch
-              title="¿Tiene receta?"
-              subtitle="Marca si esta materia prima se produce apartir de otra materia prima"
-              checked={hasReceta}
-              onChange={handleRecetaSwitch}
-              icon="receipt"
+            <Input
+              tipo="number"
+              label="Stock mínimo"
+              value={dataMov.stock_minimo}
+              onChange={(e) => handleChange('stock_minimo', e.target.value)}
+              step="0.01"
+              min="0"
+              readOnly={loading}
             />
           </div>
 
-          {/* Botón de receta (solo si está marcado el switch) */}
+          <InputSelect
+            label="Tipo de medida"
+            value={dataMov.type_measure_id}
+            onChange={(value) => handleChange('type_measure_id', value)}
+            options={typeMeasures?.map((item, index) => ({
+              value: item.id || item.value || `unique_${index}`,
+              label: item.name || item.label || item.code || 'Sin nombre'
+            })).filter((item, index, self) =>
+              index === self.findIndex(t => t.value === item.value)
+            ) || []}
+            placeholder={tipo === 'editar' && hasMovements ? 'No editable - tiene movimientos' : 'Seleccionar'}
+            disabled={tipo === 'editar' && hasMovements}
+            readOnly={loading}
+            required={true}
+            error={fieldErrors.type_measure_id}
+          />
+
+          <InputCall
+            label="Categoría (opcional)"
+            value={categoriaSeleccionada?.name ?? ''}
+            placeholder="Seleccionar"
+            onClick={() => setIsCategoriasSeleccionOpen(true)}
+            onClear={() => {
+              setCategoriaSeleccionada(null);
+              setDataMov(prev => ({ ...prev, category_id: '' }));
+            }}
+            readOnly={loading}
+          />
+
+          <p className={styles.subTitle}>Receta</p>
+          <div className={styles.content} style={{ padding: '10px 15px', marginBottom: '15px' }}>
+            <Switch
+              title="¿Tiene receta?"
+              subtitle="Marca si esta materia prima se produce a partir de otra materia prima"
+              checked={hasReceta}
+              onChange={handleRecetaSwitch}
+              icon="receipt"
+              readOnly={loading}
+            />
+          </div>
+
           {hasReceta && (
-            <>
-              <Boton
-                className='btn-gray'
-                label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
-                style={{ marginTop: 'auto' }}
-                onClick={() => setIsRecetaOpen(true)}
-              />
-              {recetaGuardada && recetaGuardada.productos && recetaGuardada.productos.length > 0 ? (
-                <Text type="success" align="left">
-                  Receta guardada con {recetaGuardada.productos.length} productos
-                </Text>
-              ) : (
-                <Text type="error" align="left">
-                  Debe crear una receta con al menos un producto
-                </Text>
-              )}
-            </>
+            <Boton
+              className='btn-gray'
+              label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
+              style={{ marginTop: 'auto' }}
+              onClick={() => setIsRecetaOpen(true)}
+              readOnly={loading}
+            />
           )}
 
           <Boton
@@ -386,14 +408,9 @@ function EditarAgregar({ isOpen, setIsOpen, data = '', tipo, onProductCreated, o
             style={{ marginTop: 'auto' }}
             onClick={handleSubmit}
             loading={loading}
-            disabled={!dataMov.name.trim() || dataMov.quantity === '' || dataMov.quantity === null || dataMov.quantity === undefined || !dataMov.type_measure_id || (hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0))}
+            disabled={loading}
           />
         </div>
-        <Notification
-          isVisible={notification.isVisible}
-          type={notification.type}
-          text={notification.text}
-        />
         {/* Modal de selección de categorías */}
       <CategoriasAcopio
         isOpen={isCategoriasSeleccionOpen}

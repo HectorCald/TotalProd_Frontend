@@ -3,12 +3,13 @@ import ViewModal from '../../../../ui/ViewModal';
 import HeaderModal from '../../../../common/HeaderModal';
 import Boton from '../../../../common/Boton';
 import Dato from '../../../../common/Dato';
-import Notification from '../../../../common/Notification';
 import ModalTable from '../../../../common/ModalTable';
-import InputNormal from '../../../../common/InputNormal';
-import Select from '../../../../common/Select';
+import Input from '../../../../common/inputs/Input';
+import InputSearch from '../../../../common/inputs/InputSearch';
+import InputCall from '../../../../common/inputs/InputCall';
 import ItemView from '../../../../common/ItemView';
 import NoData from '../../../../common/NoData';
+import Text from '../../../../common/Text';
 import personalService from '../../../../../services/personalService';
 import registrosProduccionDamabravaService from '../../../../../services/registrosProduccionDamabravaService';
 import pagosDamabravaService from '../../../../../services/pagosDamabravaService';
@@ -16,6 +17,7 @@ import FiltroFecha, { formatDateRangeForDisplay } from '../../../../mixed/Filtro
 import { seleccionarReglaParaProducto, calcularPagoProcesos } from '../../../../../utils/reglasPagoHelper';
 import styles from '../../../../../styles/view.module.css';
 import { useLayout } from '../../../../../context/LayoutContext';
+import { useToast } from '../../../../../context/ToastContext';
 
 const initialTotals = {
     registros: 0,
@@ -36,39 +38,25 @@ const formatNumber = (value, decimals = 2) => {
 
 const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRegistrado }) => {
     const { isLargeScreen } = useLayout();
+    const { showSuccess, showWarning, showDanger } = useToast();
     const [isFechaModalOpen, setIsFechaModalOpen] = useState(false);
     const [selectedRange, setSelectedRange] = useState({ inicio: null, fin: null });
     const [detalles, setDetalles] = useState([]);
     const [totales, setTotales] = useState(initialTotals);
     const [isTablaOpen, setIsTablaOpen] = useState(false);
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const [responsablesOptions, setResponsablesOptions] = useState([
-        { value: '', label: 'Todos los responsables' }
-    ]);
+    const [responsablesOptions, setResponsablesOptions] = useState([]);
     const [responsablesLoaded, setResponsablesLoaded] = useState(false);
     const [loadingResponsables, setLoadingResponsables] = useState(false);
     const [responsableSeleccionado, setResponsableSeleccionado] = useState('');
+    const [responsableDisplayValue, setResponsableDisplayValue] = useState('');
+    const [errorResponsable, setErrorResponsable] = useState('');
+    const [errorRango, setErrorRango] = useState('');
     const [isBuscarLoading, setIsBuscarLoading] = useState(false);
     const [isRegistrarLoading, setIsRegistrarLoading] = useState(false);
     const [error, setError] = useState(null);
     const [extras, setExtras] = useState('0');
     const [descuento, setDescuento] = useState('0');
     const [aumento, setAumento] = useState('0');
-
-    const mostrarNotificacion = (type, text) => {
-        setNotification({
-            isVisible: true,
-            type,
-            text
-        });
-        setTimeout(() => {
-            setNotification((prev) => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     const handleClose = () => {
         setIsOpen(false);
@@ -82,6 +70,11 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
             setTotales(initialTotals);
             setIsTablaOpen(false);
             setResponsableSeleccionado('');
+            setResponsableDisplayValue('');
+            setResponsablesLoaded(false);
+            setResponsablesOptions([]);
+            setErrorResponsable('');
+            setErrorRango('');
             setError(null);
             setIsRegistrarLoading(false);
             setExtras('0');
@@ -100,15 +93,14 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
                     const response = await personalService.getAll();
                     if (response.success && Array.isArray(response.data)) {
                         const options = response.data
+                            .filter((personal) => personal.id != null && personal.id !== '')
                             .map((personal) => ({
                                 value: personal.id,
                                 label: `${personal.first_name || ''} ${personal.last_name || ''}`.trim() || 'Sin nombre'
                             }))
+                            .filter((opt) => opt.label.toLowerCase() !== 'todos los responsables')
                             .sort((a, b) => a.label.localeCompare(b.label, 'es'));
-                        setResponsablesOptions([
-                            { value: '', label: 'Todos los responsables' },
-                            ...options
-                        ]);
+                        setResponsablesOptions(options);
                     }
                     setResponsablesLoaded(true);
                 } catch (error) {
@@ -124,6 +116,7 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
 
     const handleApplyRange = (inicio, fin) => {
         setSelectedRange({ inicio, fin });
+        setErrorRango('');
         setIsFechaModalOpen(false);
     };
 
@@ -154,10 +147,19 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
     const handleAumentoChange = handleMontoChange(setAumento);
 
     const handleBuscar = async () => {
-        if (!selectedRange.inicio && !selectedRange.fin) {
-            mostrarNotificacion('warning', 'Selecciona al menos un rango de fechas.');
+        if (!responsableSeleccionado) {
+            setErrorResponsable('Selecciona un responsable.');
+            setErrorRango('');
+            showWarning('Validación', 'Selecciona un responsable.');
             return;
         }
+        setErrorResponsable('');
+        if (!selectedRange.inicio && !selectedRange.fin) {
+            setErrorRango('Selecciona un rango de fechas.');
+            showWarning('Validación', 'Selecciona un rango de fechas.');
+            return;
+        }
+        setErrorRango('');
 
         setIsBuscarLoading(true);
         setError(null);
@@ -180,9 +182,9 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
                 }
             );
 
-            if (!response.success) {
-                throw new Error(response.message || 'No se pudieron obtener los registros');
-            }
+        if (!response.success) {
+            throw new Error(response.message || 'No se pudieron obtener los registros');
+        }
 
             const datos = response.data || [];
 
@@ -192,7 +194,7 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
                 setExtras('0');
                 setDescuento('0');
                 setAumento('0');
-                mostrarNotificacion('warning', 'No hay registros para los filtros seleccionados.');
+                showWarning('Validación', 'No hay registros para los filtros seleccionados.');
                 return;
             }
 
@@ -258,14 +260,14 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
             setAumento('0');
 
             if (registrosSinRegla > 0) {
-                mostrarNotificacion('warning', `${registrosSinRegla} registro(s) no tienen regla aplicable.`);
+                showWarning('Validación', `${registrosSinRegla} registro(s) no tienen regla aplicable.`);
             } else {
-                mostrarNotificacion('success', 'Cálculo realizado correctamente.');
+                showSuccess('Cálculo realizado correctamente.');
             }
         } catch (err) {
             console.error('Error al buscar registros:', err);
             setError(err.message || 'Error al obtener los registros');
-            mostrarNotificacion('error', err.message || 'Error al obtener los registros.');
+            showDanger(err.message || 'Error al obtener los registros.');
         } finally {
             setIsBuscarLoading(false);
         }
@@ -285,17 +287,17 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
 
     const handleRegistrarPago = async () => {
         if (detalles.length === 0) {
-            mostrarNotificacion('warning', 'No hay detalles para registrar el pago.');
+            showWarning('Validación', 'No hay detalles para registrar el pago.');
             return;
         }
 
         if (!responsableSeleccionado) {
-            mostrarNotificacion('warning', 'Selecciona un responsable específico para registrar el pago.');
+            showWarning('Validación', 'Selecciona un responsable específico para registrar el pago.');
             return;
         }
 
         if (!selectedRange.inicio || !selectedRange.fin) {
-            mostrarNotificacion('warning', 'Selecciona un rango de fechas válido para registrar el pago.');
+            showWarning('Validación', 'Selecciona un rango de fechas válido para registrar el pago.');
             return;
         }
 
@@ -303,7 +305,7 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
         const fechaFin = formatDateForPayload(selectedRange.fin);
 
         if (!fechaInicio || !fechaFin) {
-            mostrarNotificacion('error', 'No se pudo interpretar el rango de fechas seleccionado.');
+            showDanger('No se pudo interpretar el rango de fechas seleccionado.');
             return;
         }
 
@@ -334,12 +336,13 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
                 throw new Error(response.message || 'Error al registrar el pago.');
             }
 
-            mostrarNotificacion('success', 'Pago registrado correctamente.');
+            showSuccess('Pago registrado correctamente.');
             setIsTablaOpen(false);
             setDetalles([]);
             setTotales(initialTotals);
             setSelectedRange({ inicio: null, fin: null });
             setResponsableSeleccionado('');
+            setResponsableDisplayValue('');
             setExtras('0');
             setDescuento('0');
             setAumento('0');
@@ -373,7 +376,7 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
             setIsOpen(false);
         } catch (err) {
             console.error('Error registrando pago Damabrava:', err);
-            mostrarNotificacion('error', err.message || 'Error al registrar el pago.');
+            showDanger(err.message || 'Error al registrar el pago.');
         } finally {
             setIsRegistrarLoading(false);
         }
@@ -410,21 +413,43 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
                     onClose={handleClose}
                 />
                 <div className={styles.modalContent}>
-                    <Select
+                    <InputSearch
                         label="Responsable"
-                        placeholder="Todos los responsables"
+                        placeholder="Buscar responsable"
                         options={responsablesOptions}
-                        value={responsableSeleccionado}
-                        onChange={(value) => setResponsableSeleccionado(value || '')}
+                        value={responsableDisplayValue}
+                        onChange={(e) => {
+                            setResponsableDisplayValue(e.target?.value ?? '');
+                            setErrorResponsable('');
+                        }}
+                        onSelect={(opt) => {
+                            setResponsableSeleccionado(opt?.value ?? '');
+                            setResponsableDisplayValue(opt?.label ?? '');
+                            setErrorResponsable('');
+                        }}
+                        onInvalidBlur={() => {
+                            setResponsableSeleccionado('');
+                            setResponsableDisplayValue('');
+                        }}
+                        onClearError={() => setErrorResponsable('')}
+                        getOptionLabel={(opt) => opt?.label ?? ''}
+                        getOptionValue={(opt) => opt?.value ?? ''}
+                        loading={loadingResponsables}
                         disabled={loadingResponsables}
-                        icon='user'
+                        error={errorResponsable || undefined}
+                        required
                     />
 
-                    <Boton
-                        className='btn-gray'
-                        label={selectedRange.inicio || selectedRange.fin ? rangoSeleccionado : 'Seleccionar rango'}
+                    <InputCall
+                        label="Rango de fechas"
+                        placeholder="Seleccionar rango"
+                        value={selectedRange.inicio || selectedRange.fin ? rangoSeleccionado : ''}
                         onClick={() => setIsFechaModalOpen(true)}
+                        onClear={handleClearRange}
+                        error={errorRango || undefined}
+                        required
                     />
+                    <div className={styles.space}></div>
                     <Boton
                         className='btn-default'
                         label='Buscar'
@@ -450,52 +475,45 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
                                 <Dato label="Etiquetado" value={`Bs. ${formatNumber(totales.etiquetado, 2)}`} vertical={false} />
                             </div>
                             <div className={styles.content}>
-                                <div
-                                    className={styles.horizontal}
-                                >
-                                        <InputNormal
-                                            tipo='number'
-                                            placeholder='Extras'
-                                            value={extras}
-                                            onChange={handleExtrasChange}
-                                            style={{ backgroundColor: 'var(--quaternary-color)' }}
-                                   
-                                        />
-
-                                        <InputNormal
-                                            tipo='number'
-                                            placeholder='Aumento'
-                                            value={aumento}
-                                            onChange={handleAumentoChange}
-                                            style={{ backgroundColor: 'var(--quaternary-color)' }}
-                                    
-                                        />
-
-                                        <InputNormal
-                                            tipo='number'
-                                            placeholder='Descuento'
-                                            value={descuento}
-                                            onChange={handleDescuentoChange}
-                                            style={{ backgroundColor: 'var(--quaternary-color)' }}
-                                        
-                                        />
-                                    
+                                <div className={styles.horizontal}>
+                                    <Input
+                                        label="Extras"
+                                        tipo="number"
+                                        placeholder="Extras"
+                                        value={extras}
+                                        onChange={handleExtrasChange}
+                                    />
+                                    <Input
+                                        label="Aumento"
+                                        tipo="number"
+                                        placeholder="Aumento"
+                                        value={aumento}
+                                        onChange={handleAumentoChange}
+                                    />
+                                    <Input
+                                        label="Descuento"
+                                        tipo="number"
+                                        placeholder="Descuento"
+                                        value={descuento}
+                                        onChange={handleDescuentoChange}
+                                    />
                                 </div>
                                 <Dato label="Total producción" value={`Bs. ${formatNumber(totalProduccion, 2)}`} vertical={false} />
                                 <Dato label="Total con ajustes" value={`Bs. ${formatNumber(totalConAjustes, 2)}`} especial='green' vertical={false} />
                             </div>
                         </>
                     ) : (
-                        <p className={styles.subTitle} style={{ marginTop: '10px' }}>
-                            Selecciona un rango de fechas y, opcionalmente, un responsable para calcular los pagos.
-                        </p>
+                        <Text type="info">
+                            Selecciona un rango de fechas y un responsable para calcular los pagos.
+                        </Text>
                     )}
-                    <Boton
-                        className='btn-gray'
-                        label='Detalle de registros'
-                        disabled={detalles.length === 0}
-                        onClick={() => setIsTablaOpen(true)}
-                    />
+                    {detalles.length > 0 && (
+                        <Boton
+                            className='btn-gray'
+                            label='Detalle de registros'
+                            onClick={() => setIsTablaOpen(true)}
+                        />
+                    )}
 
                     <div className={styles.buttons}>
                         <Boton
@@ -566,12 +584,6 @@ const RegistroPago = ({ isOpen, setIsOpen, registros = [], reglas = [], onPagoRe
                     </div>
                 </ViewModal>
             )}
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </>
     );
 };

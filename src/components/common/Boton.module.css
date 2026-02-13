@@ -1,26 +1,26 @@
 .btn{
   width: 100%;
-  min-height: 50px;
-  height: 50px;
-  max-height: 50px;
+  min-height: 40px;
+  height: 40px;
+  max-height: 40px;
   padding: 10px 20px;
   border: none;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 13px;
   position: relative;
-  font-weight: 500 !important;
+  font-weight: 400 !important;
   color: white;
   z-index: 1;
 }
 
 /* Botón cuadrado para buttonIcon */
 .btnSquare {
-  width: 50px !important;
-  min-width: 50px !important;
-  max-width: 50px !important;
-  height: 50px;
-  min-height: 50px;
-  max-height: 50px;
+  width: 45px !important;
+  min-width: 45px !important;
+  max-width: 45px !important;
+  height: 45px;
+  min-height: 45px;
+  max-height: 45px;
   padding: 0;
   display: flex;
   align-items: center;
@@ -29,19 +29,16 @@
 }
 
 .buttonIcon {
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  font-size: 18px !important;
 }
 
 .icon{
-  position: absolute;
-  left: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
   min-width: 20px;
   min-height: 20px;
   object-fit: contain;

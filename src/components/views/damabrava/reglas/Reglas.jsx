@@ -11,14 +11,15 @@ import NoData from '../../../common/NoData';
 import PullToRefresh from '../../../common/PullToRefresh';
 import RefreshIndicator from '../../../common/RefreshIndicator';
 import ReglasMedio from './ReglasMedio';
-import Notification from '../../../common/Notification';
 import FetchData from '../../../mixed/FetchData';
+import { useToast } from '../../../../context/ToastContext';
 import reglasProduccionDamabravaService from '../../../../services/reglasProduccionDamabravaService';
 import VerRegla from './VerRegla';
 import useSessionCache from '../../../../hooks/useSessionCache';
 
 function Reglas({ isOpen, setIsOpen }) {
     const { isLargeScreen } = useLayout();
+    const { showSuccess } = useToast();
 
     // Estados para reglas (persistidos en sesión)
     const {
@@ -39,28 +40,8 @@ function Reglas({ isOpen, setIsOpen }) {
     // Estado para el modal de nueva regla
     const [isOpenReglasMedio, setIsOpenReglasMedio] = useState(false);
     const [reloadToken, setReloadToken] = useState(0);
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
     const [isVerReglaOpen, setIsVerReglaOpen] = useState(false);
     const [reglaSeleccionada, setReglaSeleccionada] = useState(null);
-
-    const mostrarNotificacion = (type, text) => {
-        setNotification({
-            isVisible: true,
-            type,
-            text
-        });
-
-        setTimeout(() => {
-            setNotification((prev) => ({
-                ...prev,
-                isVisible: false
-            }));
-        }, 3000);
-    };
 
     const handleReglasLoaded = useCallback((data) => {
         setReglas(Array.isArray(data) ? data : []);
@@ -102,12 +83,6 @@ function Reglas({ isOpen, setIsOpen }) {
         });
     }, [isLargeScreen]);
 
-    useEffect(() => {
-        if (!isOpen) {
-            setNotification((prev) => ({ ...prev, isVisible: false }));
-        }
-    }, [isOpen]);
-
     const handleRefresh = async () => {
         try {
             const response = await reglasProduccionDamabravaService.getAll();
@@ -124,7 +99,7 @@ function Reglas({ isOpen, setIsOpen }) {
             setReglas((prev) => [nuevaRegla, ...prev]);
         }
         setReloadToken((prev) => prev + 1);
-        mostrarNotificacion('success', 'Regla registrada correctamente.');
+        showSuccess('Regla registrada correctamente.');
     };
 
     const handleReglaEliminada = (reglaId) => {
@@ -132,7 +107,7 @@ function Reglas({ isOpen, setIsOpen }) {
         setReglas((prev) => prev.filter((regla) => regla.id !== reglaId));
         setIsVerReglaOpen(false);
         setReglaSeleccionada(null);
-        mostrarNotificacion('success', 'Regla eliminada correctamente.');
+        showSuccess('Regla eliminada correctamente.');
     };
 
     // Headers para la tabla
@@ -276,11 +251,6 @@ function Reglas({ isOpen, setIsOpen }) {
                 setIsOpen={setIsOpenReglasMedio}
                 onReglaRegistrada={handleReglaRegistrada}
             />
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
             <VerRegla
                 isOpen={isVerReglaOpen}
                 setIsOpen={setIsVerReglaOpen}
@@ -304,4 +274,3 @@ function Reglas({ isOpen, setIsOpen }) {
 }
 
 export default Reglas;
-

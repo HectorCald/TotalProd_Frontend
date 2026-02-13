@@ -9,7 +9,6 @@ import EditarAgregarPrecio from './EditarAgregarPrecio';
 import FetchData from '../../mixed/FetchData';
 import pricesTypesService from '../../../services/pricesTypesService';
 import InfoModal from '../../common/InfoModal';
-import Notification from '../../common/Notification';
 import { BoxIcon } from 'boxicons-react';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
@@ -93,25 +92,6 @@ function Precios({ isOpen, setIsOpen }) {
             return newCount;
         });
     }, []);
-
-    // Estados para la notificación
-    const [notification, setNotification] = useState({
-        isVisible: false,
-        type: 'success',
-        text: ''
-    });
-    const mostrarNotificacion = (tipo, texto) => {
-        setNotification({
-            isVisible: true,
-            type: tipo,
-            text: texto
-        });
-
-        // Auto-ocultar después de 3 segundos
-        setTimeout(() => {
-            setNotification(prev => ({ ...prev, isVisible: false }));
-        }, 3000);
-    };
 
     // Estados y configuraciones para el modal de información
     const [modalConfig, setModalConfig] = useState({
@@ -206,36 +186,26 @@ function Precios({ isOpen, setIsOpen }) {
         });
     }, [precios, empresaIdActual, searchQuery]);
 
-    // Función para manejar cuando se crea un nuevo precio
+    // Función para manejar cuando se crea un nuevo precio (actualizar lista y cerrar modal)
     const handlePrecioCreated = (newPrecio) => {
-        // Actualizar el estado local con el precio que devuelve el servidor
         setPrecios(prevPrecios => [newPrecio, ...prevPrecios]);
-
-        // Cerrar el modal
         setIsAgregarOpen(false);
-        mostrarNotificacion('success', 'Tipo de precio agregado correctamente');
     };
 
-    // Función para manejar cuando se elimina un precio
+    // Función para manejar cuando se elimina un precio (actualizar lista y cerrar modal)
     const handlePrecioDeleted = (deletedId) => {
-        // Actualizar el estado local removiendo el precio eliminado
         setPrecios(prevPrecios => prevPrecios.filter(precio => precio.id !== deletedId));
-
-        // Cerrar el modal de ver precio
         setIsOpenVerPrecio(false);
-        mostrarNotificacion('success', 'Tipo de precio eliminado correctamente');
     };
 
-    // Función para manejar cuando se actualiza un precio
+    // Función para manejar cuando se actualiza un precio (actualizar lista e infoPrecio para tiempo real)
     const handlePrecioUpdated = (updatedPrecio) => {
-        // Actualizar el estado local con el precio actualizado que devuelve el servidor
         setPrecios(prevPrecios => prevPrecios.map(precio =>
             precio.id === updatedPrecio.id ? updatedPrecio : precio
         ));
-
-        // Cerrar el modal de ver precio
-        setIsOpenVerPrecio(false);
-        mostrarNotificacion('success', 'Tipo de precio actualizado correctamente');
+        if (infoPrecio && String(infoPrecio.id) === String(updatedPrecio.id)) {
+            setInfoPrecio(updatedPrecio);
+        }
     };
 
     // Headers para la tabla
@@ -379,12 +349,6 @@ function Precios({ isOpen, setIsOpen }) {
                     onRefresh={isLargeScreen ? handleRefresh : undefined}
                 />
             )}
-
-            <Notification
-                isVisible={notification.isVisible}
-                type={notification.type}
-                text={notification.text}
-            />
         </View>
     );
 }
