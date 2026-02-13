@@ -417,6 +417,7 @@ const BalanceScreen = () => {
                 disabled={isLoadingReporte}
                 loading={isLoadingReporte}
                 iconName="file-export"
+                hideTextOnMobile={true}
               />
             </div>
           </div>
