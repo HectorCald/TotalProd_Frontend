@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import styles from './ViewModal.module.css';
 import { useModalStack } from '../../context/ModalStackContext';
 
-const ViewModal = ({ isOpen, setIsOpen, children, closed = false, style }) => {
+const ViewModal = ({ isOpen, setIsOpen, children, closed = false, style, overflowVisible = false }) => {
     const { registerModal, unregisterModal, isLastModal, getOpenModalsCount } = useModalStack();
     const modalIdRef = useRef(null);
     const containerRef = useRef(null);
@@ -122,13 +122,13 @@ const ViewModal = ({ isOpen, setIsOpen, children, closed = false, style }) => {
                     {/* Panel Modal */}
                     <div 
                         ref={containerRef}
-                        className={styles.modalContainer}
+                        className={`${styles.modalContainer} ${overflowVisible ? styles.visibleOverflow : ''}`}
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Contenido - renderizado una vez, oculto durante medición, visible después del delay */}
                         <div 
                             ref={contentRef}
-                            className={styles.contentWrapper}
+                            className={`${styles.contentWrapper} ${overflowVisible ? styles.visibleOverflow : ''}`}
                             style={{ 
                                 visibility: isOpen ? 'visible' : 'hidden', // Visible para medir, pero opacity controla la visibilidad real
                                 opacity: shouldRenderContent ? 1 : 0,

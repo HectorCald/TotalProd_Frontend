@@ -330,12 +330,12 @@ const FiltroFecha = ({
     };
 
     return (
-        <ViewModal isOpen={isOpen} setIsOpen={setIsOpen}>
+        <ViewModal isOpen={isOpen} setIsOpen={setIsOpen} overflowVisible={true}>
             <HeaderModal
                 title={title}
                 onClose={() => setIsOpen(false)}
             />
-            <div className={styles.modalContent}>
+            <div className={styles.modalContent} style={{ overflow: 'visible', maxHeight: 'none' }}>
 
                 <p className={styles.subTitle}>Selecciona la fecha de inicio</p>
 

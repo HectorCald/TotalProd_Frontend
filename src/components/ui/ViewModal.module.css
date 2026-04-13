@@ -47,6 +47,11 @@
     overflow: hidden;
 }
 
+.visibleOverflow {
+    overflow: visible !important;
+    contain: layout style !important;
+}
+
 
 /* Estilos para pantallas grandes */
 @media (min-width: 1024px) {
