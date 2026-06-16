@@ -1,295 +1,202 @@
-import API_CONFIG from '../config/api';
-
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-// Función helper para obtener el token de autorización
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
-    };
-};
-
-// Función helper para obtener empresa_id
-const getEmpresaId = () => {
-    const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-    if (sucursalSeleccionada) {
-        const parsed = JSON.parse(sucursalSeleccionada);
-        return parsed.empresas?.id;
-    }
-    return null;
-};
-
-// Función helper para obtener IDs de empresas favoritas
-const getEmpresasAsociadasIds = () => {
-    try {
-        const FAVORITES_KEY = 'empresas_favoritas';
-        const stored = localStorage.getItem(FAVORITES_KEY);
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            const favorites = Array.isArray(parsed) ? parsed : [];
-            return favorites.map(empresa => empresa.id).filter(id => id);
-        }
-        return [];
-    } catch (error) {
-        console.error('Error al obtener empresas favoritas:', error);
-        return [];
-    }
-};
-
+import apiClient, { getEmpresaId } from '../config/apiClient';
 
 // Función helper para obtener el id de la sucursal "Casa Matriz" de la empresa
 const getCasaMatrizId = async (empresaId) => {
     try {
         if (!empresaId) return null;
-        const response = await fetch(`${API_BASE_URL}/sucursales/empresa/${empresaId}`, {
-            method: 'GET',
-            headers: getAuthHeaders()
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            return null;
+        const response = await sucursalesService.getAll(empresaId);
+        if (response.success && response.data) {
+            const lista = response.data || [];
+            const casaMatriz = lista.find(s => (s.name || '').trim() === 'Casa Matriz');
+            return casaMatriz ? casaMatriz.id : null;
         }
-        const lista = data?.data || [];
-        const casaMatriz = lista.find(s => (s.name || '').trim() === 'Casa Matriz');
-        return casaMatriz ? casaMatriz.id : null;
+        return null;
     } catch (e) {
         console.error('Error obteniendo Casa Matriz:', e);
         return null;
     }
 };
 
-const sucursalesService = {
-    // Obtener sucursales por empresa
-    async getByEmpresaId(empresaIdParam = null) {
+class sucursalesService {
+
+    static getEmpresaId() {
+        return getEmpresaId();
+    }
+
+    static getEmpresasAsociadasIds() {
         try {
-            // Si se pasa empresaId como parámetro, usarlo; si no, intentar obtenerlo del localStorage
-            const empresaId = empresaIdParam || getEmpresaId();
-            const empresasAsociadasIds = getEmpresasAsociadasIds();
-
-            if (!empresaId) {
-                console.log('❌ sucursalesService - No hay empresa seleccionada');
-                return {
-                    success: false,
-                    message: 'No hay empresa seleccionada'
-                };
+            const FAVORITES_KEY = 'empresas_favoritas';
+            const stored = localStorage.getItem(FAVORITES_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                const favorites = Array.isArray(parsed) ? parsed : [];
+                return favorites.map(empresa => empresa.id).filter(id => id);
             }
-
-            const params = new URLSearchParams();
-
-            // Agregar empresas asociadas si existen
-            if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
-                empresasAsociadasIds.forEach(id => {
-                    params.append('empresas_asociadas', id);
-                });
-            }
-
-            const url = params.toString() 
-                ? `${API_BASE_URL}/sucursales/empresa/${empresaId}?${params}`
-                : `${API_BASE_URL}/sucursales/empresa/${empresaId}`;
-
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
-                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
-                    return data;
-                }
-                throw new Error(data.message || 'Error al obtener las sucursales');
-            }
-
-            return data;
+            return [];
         } catch (error) {
-            console.error('Error en sucursalesService.getByEmpresaId:', error);
-            throw error;
-        }
-    },
-
-    // Obtener sucursal por ID
-    async getById(id) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/sucursales/${id}`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener la sucursal');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en sucursalesService.getById:', error);
-            throw error;
-        }
-    },
-
-    // Crear nueva sucursal
-    async create(sucursalData) {
-        try {
-            const empresaId = getEmpresaId();
-            if (!empresaId) {
-                return {
-                    success: false,
-                    message: 'No hay empresa seleccionada'
-                };
-            }
-            // Si el switch de almacén separado está inactivo en el frontend (Comparte),
-            // se debe enviar almacen_sucursal_id con el id de "Casa Matriz" de la misma empresa
-            const shouldUseAlmacenSucursal = (sucursalData && typeof sucursalData.almacenSeparado === 'boolean') ? !sucursalData.almacenSeparado : false;
-            const casaMatrizId = shouldUseAlmacenSucursal ? await getCasaMatrizId(empresaId) : null;
-            const { almacenSeparado, precios, ...payload } = sucursalData;
-            const response = await fetch(`${API_BASE_URL}/sucursales`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    ...payload,
-                    empresa_id: empresaId,
-                    ...(casaMatrizId ? { almacen_sucursal_id: casaMatrizId } : {}),
-                    ...(precios && Array.isArray(precios) ? { precios } : {})
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
-                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
-                    return data;
-                }
-                throw new Error(data.message || 'Error al crear la sucursal');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en sucursalesService.create:', error);
-            throw error;
-        }
-    },
-
-    // Actualizar sucursal
-    async update(id, sucursalData) {
-        try {
-            // Para update, también respetar el switch si viene
-            const hasFlag = sucursalData && typeof sucursalData.almacenSeparado === 'boolean';
-            const shouldUseAlmacenSucursal = hasFlag ? !sucursalData.almacenSeparado : false;
-            const empresaId = getEmpresaId();
-            const casaMatrizId = shouldUseAlmacenSucursal ? await getCasaMatrizId(empresaId) : null;
-            const { almacenSeparado, precios, ...payload } = sucursalData;
-            
-            // Siempre enviar precios como array (incluso si está vacío) para sincronización correcta
-            const preciosArray = Array.isArray(precios) ? precios : [];
-            
-            const response = await fetch(`${API_BASE_URL}/sucursales/${id}`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    ...payload,
-                    // Si vino el flag, siempre enviar el campo (incluso null para indicar propio)
-                    ...(hasFlag ? { almacen_sucursal_id: casaMatrizId } : {}),
-                    precios: preciosArray
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
-                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
-                    return data;
-                }
-                throw new Error(data.message || 'Error al actualizar la sucursal');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en sucursalesService.update:', error);
-            throw error;
-        }
-    },
-
-    // Eliminar sucursal
-    async delete(id) {
-        try {
-            if (!id) {
-                throw new Error('ID de sucursal es requerido');
-            }
-
-            const response = await fetch(`${API_BASE_URL}/sucursales/${id}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
-                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
-                    return data;
-                }
-                
-                // Manejar diferentes tipos de errores con mensajes específicos
-                let errorMessage = 'Error al eliminar la sucursal';
-                
-                if (response.status === 404) {
-                    errorMessage = 'La sucursal no existe o ya fue eliminada';
-                } else if (response.status === 409) {
-                    errorMessage = data.message || 'No se puede eliminar la sucursal porque tiene registros asociados';
-                } else if (response.status === 400) {
-                    errorMessage = data.message || 'No se puede eliminar esta sucursal';
-                } else if (response.status === 500) {
-                    errorMessage = data.message || 'Error interno del servidor al eliminar la sucursal';
-                } else if (data.message) {
-                    errorMessage = data.message;
-                }
-                
-                throw new Error(errorMessage);
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en sucursalesService.delete:', error);
-            // Re-lanzar el error con el mensaje específico
-            throw new Error(error.message || 'Error inesperado al eliminar la sucursal');
-        }
-    },
-
-    // Obtener precios por sucursal
-    async getPreciosBySucursalId(sucursalId) {
-        try {
-            if (!sucursalId) {
-                throw new Error('ID de sucursal es requerido');
-            }
-
-            const response = await fetch(`${API_BASE_URL}/sucursales/${sucursalId}/precios`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Si es un error de módulo, devolver la respuesta completa para que el frontend la maneje
-                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
-                    return data;
-                }
-                throw new Error(data.message || 'Error al obtener los precios de la sucursal');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en sucursalesService.getPreciosBySucursalId:', error);
-            throw error;
+            console.error('Error al obtener empresas favoritas:', error);
+            return [];
         }
     }
-};
+
+    static async _request(endpoint, options = {}, config = {}) {
+        const {
+            requireEmpresaId = false,
+            returnErrorObject = false,
+            throwOnError = false,
+            defaultData = undefined
+        } = config;
+
+        try {
+            if (requireEmpresaId) {
+                const empresaId = getEmpresaId();
+                if (!empresaId) {
+                    return {
+                        success: false,
+                        message: 'No hay empresa seleccionada',
+                        ...(defaultData !== undefined ? { data: defaultData } : {})
+                    };
+                }
+            }
+
+            const response = await apiClient.request(endpoint, options, false, requireEmpresaId);
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
+                    return data;
+                }
+
+                const error = new Error(data.message || 'Error en la petición');
+                error.status = response.status;
+                error.code = data.code;
+                error.currentPlan = data.currentPlan;
+                error.requiredModule = data.requiredModule;
+                throw error;
+            }
+
+            return data;
+        } catch (error) {
+            if (throwOnError) {
+                throw error;
+            }
+            
+            if (returnErrorObject) {
+                return {
+                    success: false,
+                    message: error.message || 'Error de conexión con el servidor',
+                    ...(defaultData !== undefined ? { data: defaultData } : {})
+                };
+            }
+            
+            return {
+                success: false,
+                message: error.message || 'Error de conexión con el servidor'
+            };
+        }
+    }
+
+    // Mantener nombre getByEmpresaId por compatibilidad
+    static async getByEmpresaId(empresaIdParam = null) {
+        return this.getAll(empresaIdParam);
+    }
+
+    static async getAll(empresaIdParam = null) {
+        let endpoint = '/sucursales';
+        const empresasAsociadasIds = this.getEmpresasAsociadasIds();
+
+        const params = new URLSearchParams();
+        if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
+            empresasAsociadasIds.forEach(id => {
+                params.append('empresas_asociadas', id);
+            });
+        }
+
+        if (empresaIdParam) {
+            params.append('empresa_id', empresaIdParam);
+            if (params.toString()) {
+                endpoint += `?${params.toString()}`;
+            }
+            return sucursalesService._request(endpoint, { method: 'GET' }, {
+                requireEmpresaId: false
+            });
+        }
+
+        if (params.toString()) {
+            endpoint += `?${params.toString()}`;
+        }
+
+        return sucursalesService._request(endpoint, { method: 'GET' }, {
+            requireEmpresaId: true
+        });
+    }
+
+    static async getById(id) {
+        return sucursalesService._request(`/sucursales/${id}`, { method: 'GET' }, {
+            requireEmpresaId: false
+        });
+    }
+
+    static async create(sucursalData) {
+        const empresaId = sucursalData.empresa_id || getEmpresaId();
+        const shouldUseAlmacenSucursal = (sucursalData && typeof sucursalData.almacenSeparado === 'boolean') ? !sucursalData.almacenSeparado : false;
+        const casaMatrizId = shouldUseAlmacenSucursal ? await getCasaMatrizId(empresaId) : null;
+        const { almacenSeparado, precios, ...payload } = sucursalData;
+
+        const bodyData = {
+            ...payload,
+            empresa_id: empresaId,
+            ...(casaMatrizId ? { almacen_sucursal_id: casaMatrizId } : {}),
+            ...(precios && Array.isArray(precios) ? { precios } : {})
+        };
+        
+        return sucursalesService._request('/sucursales', {
+            method: 'POST',
+            body: JSON.stringify(bodyData)
+        }, {
+            requireEmpresaId: true,
+            returnErrorObject: true
+        });
+    }
+
+    static async update(id, sucursalData) {
+        const hasFlag = sucursalData && typeof sucursalData.almacenSeparado === 'boolean';
+        const shouldUseAlmacenSucursal = hasFlag ? !sucursalData.almacenSeparado : false;
+        const empresaId = getEmpresaId();
+        const casaMatrizId = shouldUseAlmacenSucursal ? await getCasaMatrizId(empresaId) : null;
+        const { almacenSeparado, precios, ...payload } = sucursalData;
+        
+        const preciosArray = Array.isArray(precios) ? precios : [];
+        
+        const bodyData = {
+            ...payload,
+            ...(hasFlag ? { almacen_sucursal_id: casaMatrizId } : {}),
+            precios: preciosArray
+        };
+
+        return sucursalesService._request(`/sucursales/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(bodyData)
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
+    }
+
+    static async delete(id) {
+        return sucursalesService._request(`/sucursales/${id}`, {
+            method: 'DELETE'
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
+    }
+
+    static async getPreciosBySucursalId(sucursalId) {
+        return sucursalesService._request(`/sucursales/${sucursalId}/precios`, { method: 'GET' }, {
+            requireEmpresaId: false
+        });
+    }
+}
 
 export default sucursalesService;

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import Dato from '../../../common/Dato';
+import HeaderModal from '../../../common/old/HeaderModal';
+import Dato from '../../../common/old/Dato';
 import { formatFechaLiteral } from '../../../../utils/dateUtils';
 import { useLayout } from '../../../../context/LayoutContext';
 import { useToast } from '../../../../context/ToastContext';

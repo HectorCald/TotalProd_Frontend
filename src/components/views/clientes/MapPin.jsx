@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './MapaModal.module.css';
-import Dato from '../../common/Dato';
-import LoadingSpinner from '../../common/LoadingSpinner';
-import NoData from '../../common/NoData';
+import Dato from '../../common/old/Dato';
+import LoadingSpinner from '../../common/old/LoadingSpinner';
+import NoData from '../../common/widgets/NoData';
 
 // Estilos de mapa para tema oscuro
 const darkMapStyles = [

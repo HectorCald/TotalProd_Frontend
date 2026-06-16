@@ -1,601 +1,238 @@
-import API_CONFIG from '../config/api';
-import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
-import { obtenerLocal, OFFLINE_DB_NAME, PRODUCTOS_STORE } from '../utils/indexedDB';
-
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-// Función helper para obtener el token de autorización
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  };
-};
-
-// Función helper para obtener empresa_id
-const getEmpresaId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.empresas?.id;
-  }
-  return null;
-};
-// Función helper para obtener sucu_id
-const getSucuId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    // Si la sucursal usa el almacén de otra sucursal, usar ese ID; si no, usar su propio ID
-    return parsed.almacen_sucursal_id || parsed.id;
-  }
-  return null;
-};
-
-// Función helper para obtener IDs de empresas favoritas
-const getEmpresasAsociadasIds = () => {
-  try {
-    const FAVORITES_KEY = 'empresas_favoritas';
-    const stored = localStorage.getItem(FAVORITES_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      const favorites = Array.isArray(parsed) ? parsed : [];
-      return favorites.map(empresa => empresa.id).filter(id => id);
-    }
-    return [];
-  } catch (error) {
-    console.error('Error al obtener empresas favoritas:', error);
-    return [];
-  }
-};
-
-const shouldUseOffline = () => {
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
-  try {
-    return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
-  } catch {
-    return false;
-  }
-};
-
-const getOfflineProducts = async () => {
-  try {
-    const cachedProducts = await obtenerLocal(PRODUCTOS_STORE, OFFLINE_DB_NAME);
-    if (Array.isArray(cachedProducts) && cachedProducts.length > 0) {
-      return {
-        success: true,
-        data: cachedProducts,
-        offline: true
-      };
-    }
-  } catch (error) {
-    console.warn('No se pudo obtener productos offline:', error);
-  }
-  return null;
-};
+import apiClient from '../config/apiClient';
 
 class productsAlmacenService {
 
-  // Obtener todos los productos
-  static async getAll(ocultarStockCero = false) {
+  static async _request(endpoint, options = {}, config = {}) {
+    const {
+      requireSucuId = false,
+      requireEmpresaId = false,
+      returnErrorObject = false,
+      throwOnError = false,
+      defaultData = undefined
+    } = config;
+
     try {
-      if (shouldUseOffline()) {
-        const offlineData = await getOfflineProducts();
-        if (offlineData) {
-          return offlineData;
-        }
-      }
-
-      const empresaId = getEmpresaId();
-      const sucuId = getSucuId();
-      const empresasAsociadasIds = getEmpresasAsociadasIds();
-      
-      if (!empresaId) {
-        return {
-          success: false,
-          message: 'No hay empresa seleccionada'
-        };
-      }
-
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        empresa_id: empresaId,
-        sucu_id: sucuId,
-        ocultar_stock_cero: ocultarStockCero ? 'true' : 'false'
-      });
-
-      // Agregar empresas asociadas si existen
-      if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
-        empresasAsociadasIds.forEach(id => {
-          params.append('empresas_asociadas', id);
-        });
-      }
-
-      const response = await fetch(`${API_BASE_URL}/products-almacen?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
+      const response = await apiClient.request(endpoint, options, requireSucuId, requireEmpresaId);
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.message || 'Error al obtener productos');
-      }
-
-      // Guardar logs de tamaño en localStorage si están disponibles
-      if (data.sizeInfo) {
-        const timestamp = new Date().toISOString();
-        const dateTime = new Date().toLocaleString('es-ES', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-
-        // Guardar cada tipo de tamaño por separado
-        const logEntries = [
-          {
-            sizeBytes: data.sizeInfo.productosBase.sizeBytes,
-            sizeKB: data.sizeInfo.productosBase.sizeKB,
-            sizeMB: data.sizeInfo.productosBase.sizeMB,
-            method: 'getAll',
-            service: 'productsAlmacenService',
-            type: 'productosBase',
-            description: 'Productos base (sin recetas, sin precios)',
-            dateTime: dateTime,
-            timestamp: timestamp
-          },
-          {
-            sizeBytes: data.sizeInfo.productosConRecetas.sizeBytes,
-            sizeKB: data.sizeInfo.productosConRecetas.sizeKB,
-            sizeMB: data.sizeInfo.productosConRecetas.sizeMB,
-            method: 'getAll',
-            service: 'productsAlmacenService',
-            type: 'productosConRecetas',
-            description: 'Productos con recetas (sin precios)',
-            dateTime: dateTime,
-            timestamp: timestamp
-          },
-          {
-            sizeBytes: data.sizeInfo.productosConPrecios.sizeBytes,
-            sizeKB: data.sizeInfo.productosConPrecios.sizeKB,
-            sizeMB: data.sizeInfo.productosConPrecios.sizeMB,
-            method: 'getAll',
-            service: 'productsAlmacenService',
-            type: 'productosConPrecios',
-            description: 'Productos con precios (sin recetas)',
-            dateTime: dateTime,
-            timestamp: timestamp
-          },
-          {
-            sizeBytes: data.sizeInfo.total.sizeBytes,
-            sizeKB: data.sizeInfo.total.sizeKB,
-            sizeMB: data.sizeInfo.total.sizeMB,
-            method: 'getAll',
-            service: 'productsAlmacenService',
-            type: 'total',
-            description: 'Total (productos completos con todo)',
-            dateTime: dateTime,
-            timestamp: timestamp
-          }
-        ];
-
-        try {
-          // Obtener registros existentes o crear array vacío
-          const existingLogs = localStorage.getItem('dataFetchLogs');
-          const logs = existingLogs ? JSON.parse(existingLogs) : [];
-
-          // Agregar nuevos registros
-          logs.push(...logEntries);
-
-          // Guardar de vuelta en localStorage
-          localStorage.setItem('dataFetchLogs', JSON.stringify(logs));
-        } catch (error) {
-          console.error('Error guardando logs de tamaño en localStorage:', error);
-        }
+        const error = new Error(data.message || 'Error en la petición');
+        error.status = response.status;
+        error.code = data.code;
+        error.currentPlan = data.currentPlan;
+        error.requiredModule = data.requiredModule;
+        throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error en productsAlmacenService.getAll:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
+      if (throwOnError) {
+        throw error;
+      }
+      
+      if (returnErrorObject) {
+        return {
+          success: false,
+          message: error.message || 'Error de conexión con el servidor',
+          ...(defaultData !== undefined ? { data: defaultData } : {})
+        };
+      }
+      
+      return null;
     }
+  }
+
+  // Obtener todos los productos
+  static async getAll(page = 1, limit = 30, search = null, categoryId = null, sortOrder = null, ocultarStockCero = false) {
+    const params = new URLSearchParams({
+      page: page,
+      limit: limit,
+      ocultar_stock_cero: ocultarStockCero ? 'true' : 'false'
+    });
+
+    if (search) params.append('search', search);
+    if (categoryId) params.append('category_id', categoryId);
+    if (sortOrder) params.append('sort_order', sortOrder);
+
+    // Obtener empresas favoritas de localStorage y enviarlas
+    try {
+      const FAVORITES_KEY = 'empresas_favoritas';
+      const stored = localStorage.getItem(FAVORITES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const favorites = Array.isArray(parsed) ? parsed : [];
+        const empresasAsociadasIds = favorites.map(empresa => empresa.id).filter(id => id);
+        
+        if (empresasAsociadasIds.length > 0) {
+          empresasAsociadasIds.forEach(id => {
+            params.append('empresas_asociadas', id);
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("No se pudieron cargar empresas favoritas", e);
+    }
+
+    return productsAlmacenService._request(`/products-almacen?${params}`, { method: 'GET' }, {
+      requireSucuId: true,
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
   }
 
   // Obtener productos por empresa_id específico (para catálogo de empresas asociadas)
   static async getByEmpresaId(empresaIdParam) {
-    try {
-      if (!empresaIdParam) {
-        return {
-          success: false,
-          message: 'ID de la empresa es requerido'
-        };
-      }
-
-      // El backend requiere sucu_id, pero solo lo usa para el stock
-      // Usamos el sucu_id actual para cumplir con el requerimiento
-      const sucuId = getSucuId();
-      
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        empresa_id: empresaIdParam,
-        sucu_id: sucuId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/products-almacen?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al obtener productos');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en productsAlmacenService.getByEmpresaId:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
+    if (!empresaIdParam) {
+      return { success: false, message: 'ID de la empresa es requerido' };
     }
+    
+    const params = new URLSearchParams({
+      empresa_id: empresaIdParam
+    });
+
+    // Pasa requireEmpresaId=false porque ya lo pasamos en los params si es de otra empresa,
+    // pero igual requireSucuId=true para el stock de la sucursal actual
+    return productsAlmacenService._request(`/products-almacen?${params}`, { method: 'GET' }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
   }
 
   // Obtener productos ligeros (solo id y name) para formularios de producción
   static async getAllForProduction() {
-    try {
-      const empresaId = getEmpresaId();
-      
-      if (!empresaId) {
-        return {
-          success: false,
-          message: 'No hay empresa seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        empresa_id: empresaId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/products-almacen/for-production?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al obtener productos');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en productsAlmacenService.getAllForProduction:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
-    }
+    return productsAlmacenService._request('/products-almacen/for-production', { method: 'GET' }, {
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
   }
 
   // Obtener un producto por ID
   static async getById(id) {
-    try {
-      const sucuId = getSucuId();
-      
-      if (!id) {
-        return {
-          success: false,
-          message: 'ID del producto es requerido'
-        };
-      }
-
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        sucu_id: sucuId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/products-almacen/${id}?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al obtener el producto');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en productsAlmacenService.getById:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
+    if (!id) {
+      return { success: false, message: 'ID del producto es requerido' };
     }
+
+    return productsAlmacenService._request(`/products-almacen/${id}`, { method: 'GET' }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
   }
 
   // Crear un producto
   static async create(productData) {
-    try {
-      const empresaId = getEmpresaId();
-      const sucuId = getSucuId();
-      
-      if (!empresaId) {
-        return {
-          success: false,
-          message: 'No hay empresa seleccionada'
-        };
-      }
-
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const response = await fetch(`${API_BASE_URL}/products-almacen`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ...productData,
-          empresa_id: empresaId,
-          sucu_id: sucuId
-        })
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al crear producto');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en productsAlmacenService.create:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
-    }
+    return productsAlmacenService._request('/products-almacen', {
+      method: 'POST',
+      body: JSON.stringify(productData)
+    }, {
+      requireSucuId: true,
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
   }
 
   // Actualizar un producto
   static async update(id, productData) {
-    try {
-      const sucuId = getSucuId();
-      
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const response = await fetch(`${API_BASE_URL}/products-almacen/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ...productData,
-          sucu_id: sucuId
-        })
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al actualizar producto');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en productsAlmacenService.update:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
+    if (!id) {
+      return { success: false, message: 'ID del producto es requerido' };
     }
+
+    return productsAlmacenService._request(`/products-almacen/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(productData)
+    }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
   }
 
   // Eliminar un producto
   static async delete(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/products-almacen/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al eliminar producto');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en productsAlmacenService.delete:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
+    if (!id) {
+      return { success: false, message: 'ID del producto es requerido' };
     }
+
+    return productsAlmacenService._request(`/products-almacen/${id}`, {
+      method: 'DELETE'
+    }, {
+      returnErrorObject: true
+    });
   }
 
   // Actualizar múltiples productos en lote (para importación)
   static async bulkUpdate(productosData) {
-    try {
-      const empresaId = getEmpresaId();
-      const sucuId = getSucuId();
-      
-      if (!empresaId) {
-        return {
-          success: false,
-          message: 'ID de la empresa no encontrado'
-        };
-      }
-
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'ID de la sucursal no encontrado'
-        };
-      }
-
-      const response = await fetch(`${API_BASE_URL}/products-almacen/bulk-update`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          productosData,
-          empresa_id: empresaId,
-          sucu_id: sucuId
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return {
-          success: false,
-          message: data.message || 'Error al actualizar productos'
-        };
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en bulkUpdate:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
-    }
+    return productsAlmacenService._request('/products-almacen/bulk-update', {
+      method: 'PUT',
+      body: JSON.stringify({ productosData })
+    }, {
+      requireSucuId: true,
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
   }
 
   // Crear múltiples productos en lote (para plantillas)
   static async bulkCreate(productosData) {
-    try {
-      const empresaId = getEmpresaId();
-      const sucuId = getSucuId();
+    if (!productosData || !Array.isArray(productosData)) {
+      return { success: false, message: 'Datos inválidos para importación' };
+    }
+
+    const results = [];
+    const errors = [];
+
+    // Iteramos secuencialmente y usamos el método create/update para que maneje precios y categorías
+    for (let i = 0; i < productosData.length; i++) {
+      const prod = productosData[i];
+      let res;
+      if (prod.id) {
+        res = await this.update(prod.id, prod);
+      } else {
+        res = await this.create(prod);
+      }
       
-      if (!empresaId) {
-        return {
-          success: false,
-          message: 'ID de la empresa no encontrado'
-        };
+      if (res && res.success) {
+        results.push(res.data);
+      } else {
+        errors.push({ fila: i + 1, message: res?.message || 'Error desconocido' });
       }
+    }
 
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'ID de la sucursal no encontrado'
-        };
-      }
+    if (errors.length > 0) {
+      const uniqueErrors = [...new Set(errors.map(e => e.message))];
+      const errorDesc = uniqueErrors.join(' | ');
 
-      const response = await fetch(`${API_BASE_URL}/products-almacen/bulk-create`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          productosData,
-          empresa_id: empresaId,
-          sucu_id: sucuId
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return {
-          success: false,
-          message: data.message || 'Error al crear productos'
-        };
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en bulkCreate:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
+      return { 
+        success: false, 
+        message: errorDesc,
+        errores: errors,
+        data: results
       };
     }
+
+    return { 
+      success: true, 
+      message: `${results.length} productos importados correctamente.`, 
+      data: results 
+    };
   }
 
   // Obtener productos con recetas por IDs (para reportes)
   static async getByIdsWithRecipes(productIds) {
-    try {
-      const empresaId = getEmpresaId();
-      const sucuId = getSucuId();
-      
-      if (!empresaId) {
-        return {
-          success: false,
-          message: 'No hay empresa seleccionada'
-        };
-      }
-
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
-        return {
-          success: false,
-          message: 'IDs de productos son requeridos'
-        };
-      }
-
-      // Enviar IDs como cadena separada por comas para evitar problemas con el parser de Express
-      const idsString = productIds.join(',');
-      
-      const params = new URLSearchParams({
-        empresa_id: empresaId,
-        sucu_id: sucuId,
-        with_recipes: 'true',
-        ids: idsString
-      });
-
-      const response = await fetch(`${API_BASE_URL}/products-almacen/by-ids?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al obtener productos con recetas');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en getByIdsWithRecipes:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
+    if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+      return { success: false, message: 'IDs de productos son requeridos' };
     }
+
+    const idsString = productIds.join(',');
+    
+    const params = new URLSearchParams({
+      with_recipes: 'true',
+      ids: idsString
+    });
+
+    return productsAlmacenService._request(`/products-almacen/by-ids?${params}`, { method: 'GET' }, {
+      requireSucuId: true,
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
   }
 }
 

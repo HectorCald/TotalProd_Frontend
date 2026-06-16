@@ -1,23 +1,22 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDebounce } from 'use-debounce';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView, { getPrimaryNormalizedValue } from '../../common/HeaderView';
+import HeaderView, { getPrimaryNormalizedValue } from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import ItemView from '../../common/ItemView';
+import ItemView from '../../common/old/ItemView';
 import VerMovimiento from './VerMovimiento';
 import VerMovimientoAcopio from './VerMovimientoAcopio';
-import VerTransferencia from '../transferencias/VerTransferencia';
-import Filtros from '../../common/Filtros';
+import Filtros from '../../common/old/Filtros';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import LoadingSpinner from '../../common/old/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
-import Table from '../../common/Table';
-import NoData from '../../common/NoData';
+import Table from '../../common/old/Table';
+import NoData from '../../common/widgets/NoData';
 import FiltroTipoMovimiento from '../../mixed/FiltroTipoMovimiento';
 import FiltroEstadoMovimiento from '../../mixed/FiltroEstadoMovimiento';
-import PullToRefresh from '../../common/PullToRefresh';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import PullToRefresh from '../../common/old/PullToRefresh';
+import RefreshIndicator from '../../common/old/RefreshIndicator';
 import FiltroCliente from '../../mixed/FiltroCliente';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 import { formatCurrency } from '../../../utils/numberUtils';
@@ -769,23 +768,8 @@ function PanelMovimientos({ isOpen, setIsOpen, tipoMovimiento = '' }) {
                         isOpen={isOpenVerMovimiento}
                         setIsOpen={setIsOpenVerMovimiento}
                         movimiento={infoMovimiento}
-                        onMovimientoAnulado={handleMovimientoAnulado}
                         onMovimientoEliminado={handleMovimientoEliminado}
                         onMovimientoEditado={handleMovimientoEditado}
-                    />
-                    <VerTransferencia
-                        isOpen={isOpenVerTransferencia}
-                        setIsOpen={(isOpen) => {
-                            setIsOpenVerTransferencia(isOpen);
-                            // Limpiar infoTransferencia cuando se cierra el modal
-                            if (!isOpen) {
-                                setInfoTransferencia(null);
-                            }
-                        }}
-                        transferencia={infoTransferencia}
-                        onTransferenciaAnulada={handleMovimientoAnulado}
-                        onTransferenciaEliminada={handleMovimientoEliminado}
-                        onTransferenciaActualizada={handleMovimientoEditado}
                     />
                 </>
             )}

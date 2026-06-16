@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './MapaModal.module.css';
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import Boton from '../../common/Boton';
-import InputSugerencias from '../../common/InputSugerencias';
-import LoadingSpinner from '../../common/LoadingSpinner';
-import Notification from '../../common/Notification';
-import Dato from '../../common/Dato';
+import HeaderModal from '../../common/old/HeaderModal';
+import Boton from '../../common/botones/Boton';
+import InputSugerencias from '../../common/old/InputSugerencias';
+import LoadingSpinner from '../../common/old/LoadingSpinner';
+import Notification from '../../common/old/Notification';
+import Dato from '../../common/old/Dato';
 
 // Estilos de mapa para tema oscuro
 const darkMapStyles = [

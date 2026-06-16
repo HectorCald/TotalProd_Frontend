@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import ItemView from '../../common/ItemView';
+import ItemView from '../../common/old/ItemView';
 import { useToast } from '../../../context/ToastContext';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import LoadingSpinner from '../../common/old/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
-import Table from '../../common/Table';
+import Table from '../../common/old/Table';
 import conteosService from '../../../services/conteosService';
-import NoData from '../../common/NoData';
+import NoData from '../../common/widgets/NoData';
 import VerConteo from './VerConteo';
-import InfoModal from '../../common/InfoModal';
-import PullToRefresh from '../../common/PullToRefresh';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import InfoModal from '../../common/old/InfoModal';
+import PullToRefresh from '../../common/old/PullToRefresh';
+import RefreshIndicator from '../../common/old/RefreshIndicator';
 import FetchDataProgressive from '../../mixed/FetchDataProgressive';
 import useProgressiveSessionCache from '../../../hooks/useProgressiveSessionCache';
 

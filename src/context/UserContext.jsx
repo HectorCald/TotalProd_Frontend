@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import UserService from '../services/userService';
-import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
 
 const UserContext = createContext();
 
@@ -14,26 +13,17 @@ export const useUser = () => {
 
 export const UserProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [empresa, setEmpresa] = useState(null);
     const [sucursalSeleccionada, setSucursalSeleccionada] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Cargar sucursal seleccionada al inicializar
-    useEffect(() => {
-        const sucursalGuardada = localStorage.getItem('sucursalSeleccionada');
-        if (sucursalGuardada) {
-            try {
-                setSucursalSeleccionada(JSON.parse(sucursalGuardada));
-            } catch (error) {
-                console.error('Error al cargar sucursal seleccionada:', error);
-                localStorage.removeItem('sucursalSeleccionada');
-            }
-        }
-    }, []);
+    // La sucursal inicial será manejada por App.jsx que auto-seleccionará la sucursal basada en el ID guardado
 
     // Función para limpiar usuario (logout)
     const clearUser = () => {
         setUser(null);
+        setEmpresa(null);
         setSucursalSeleccionada(null);
         setError(null);
         
@@ -47,7 +37,17 @@ export const UserProvider = ({ children }) => {
     // Función para seleccionar sucursal
     const seleccionarSucursal = (sucursal) => {
         setSucursalSeleccionada(sucursal);
-        localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
+        if (sucursal?.id) {
+            localStorage.setItem('sucursalIdSeleccionada', sucursal.id);
+            const empresaId = sucursal.empresas?.id || sucursal.empresa_id;
+            if (empresaId) {
+                localStorage.setItem('empresa_id', empresaId);
+            }
+        } else {
+            localStorage.removeItem('sucursalIdSeleccionada');
+            localStorage.removeItem('empresa_id');
+        }
+        localStorage.removeItem('sucursalSeleccionada'); // Limpiar datos pesados si existían
     };
 
     // Función helper para detectar errores de conexión
@@ -92,43 +92,17 @@ export const UserProvider = ({ children }) => {
         return false;
     };
 
-    // Función para cargar datos completos del usuario
-    const getOfflineUserData = () => {
-        try {
-            const cached = localStorage.getItem('offline_user_data');
-            return cached ? JSON.parse(cached) : null;
-        } catch (error) {
-            console.warn('No se pudo leer usuario offline:', error);
-            return null;
-        }
-    };
-
-    const shouldUseOffline = () => {
-        if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
-        try {
-            return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
-        } catch {
-            return false;
-        }
-    };
-
     const loadUserData = async (userId) => {
         setLoading(true);
         setError(null);
-
-        if (shouldUseOffline()) {
-            const offlineUser = getOfflineUserData();
-            if (offlineUser) {
-                setUser(offlineUser);
-                setLoading(false);
-                return { success: true, data: offlineUser, offline: true };
-            }
-        }
         
         try {
             const userData = await UserService.getCurrentUser(userId);
             if (userData.success) {
                 setUser(userData.data.user);
+                if (userData.data.user?.empresa) {
+                    setEmpresa(userData.data.user.empresa);
+                }
                 setError(null);
                 setLoading(false);
                 return { success: true, data: userData.data.user };
@@ -195,6 +169,8 @@ export const UserProvider = ({ children }) => {
 
     const value = {
         user,
+        empresa,
+        setEmpresa,
         sucursalSeleccionada,
         loading,
         error,

@@ -1,551 +1,219 @@
-import API_CONFIG from '../config/api';
-
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-// Función helper para obtener empresa_id
-const getEmpresaId = () => {
-    const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-    if (sucursalSeleccionada) {
-        const parsed = JSON.parse(sucursalSeleccionada);
-        return parsed.empresas?.id;
-    }
-    return null;
-};
-// Función helper para obtener headers de autenticación
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
-    };
-};
+import apiClient, { getEmpresaId } from '../config/apiClient';
 
 const personalService = {
-    // Obtener todo el personal de una empresa
-    async getAll() {
+    async _request(endpoint, options = {}, config = {}) {
+        const {
+            requireEmpresaId = false,
+            returnErrorObject = false,
+            throwOnError = false,
+            defaultData = undefined
+        } = config;
+
         try {
-            // Primero intentar obtener empresa_id del localStorage (para empleados)
-            let empresaId = localStorage.getItem('empresa_id');
-            
-            // Si no hay empresa_id en localStorage, usar la función getEmpresaId (para usuarios normales)
-            if (!empresaId) {
-                empresaId = getEmpresaId();
+            if (requireEmpresaId) {
+                const empresaId = getEmpresaId();
+                if (!empresaId) {
+                    return {
+                        success: false,
+                        message: 'No hay empresa seleccionada',
+                        ...(defaultData !== undefined ? { data: defaultData } : {})
+                    };
+                }
             }
 
-            if (!empresaId) {
-                return {
-                    success: false,
-                    message: 'No hay empresa seleccionada'
-                };
-            }
-
-            const params = new URLSearchParams({
-                empresa_id: empresaId
-            });
-
-            const response = await fetch(`${API_BASE_URL}/personal?${params}`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
+            const response = await apiClient.request(endpoint, options, false, requireEmpresaId);
             const data = await response.json();
 
             if (!response.ok) {
-                // Si es un error 403, crear un error con toda la información para el modal
-                if (response.status === 403) {
-                    const error = new Error(data.message || 'Error en la petición');
-                    error.status = response.status;
-                    error.code = data.code;
-                    error.currentPlan = data.currentPlan;
-                    error.requiredModule = data.requiredModule;
-                    throw error;
+                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
+                    return data;
                 }
-                
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
 
-            // Log simple cuando la respuesta sea exitosa
-            if (data.success || response.ok) {
-                console.log('Información cargada del empleado');
+                const error = new Error(data.message || 'Error en la petición');
+                error.status = response.status;
+                error.code = data.code;
+                error.currentPlan = data.currentPlan;
+                error.requiredModule = data.requiredModule;
+                throw error;
             }
 
             return data;
         } catch (error) {
-            console.error('Error en personalService.getAll:', error);
-            // Re-lanzar el error para que FetchData lo capture correctamente
-            throw error;
+            if (throwOnError) {
+                throw error;
+            }
+            
+            if (returnErrorObject) {
+                return {
+                    success: false,
+                    message: error.message || 'Error de conexión con el servidor',
+                    ...(defaultData !== undefined ? { data: defaultData } : {})
+                };
+            }
+            
+            return {
+                success: false,
+                message: error.message || 'Error de conexión con el servidor'
+            };
         }
+    },
+
+    // Obtener todo el personal de una empresa
+    async getAll() {
+        return this._request('/personal', { method: 'GET' }, {
+            requireEmpresaId: true,
+            throwOnError: true
+        });
     },
 
     // Obtener personal por ID
     async getById(id) {
-        try {
-            if (!id) {
-                return {
-                    success: false,
-                    message: 'ID del personal es requerido'
-                };
-            }
-
-            // Obtener empresa_id (localStorage o sucursal seleccionada) para que moduleAuth lo tenga
-            let empresaId = localStorage.getItem('empresa_id');
-            if (!empresaId) {
-                empresaId = getEmpresaId();
-            }
-            const params = new URLSearchParams();
-            if (empresaId) {
-                params.append('empresa_id', empresaId);
-            }
-
-            const response = await fetch(`${API_BASE_URL}/personal/${id}?${params}`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            // Si hay error de conexión, el fetch puede lanzar excepción o la respuesta puede estar vacía
-            if (!response) {
-                return {
-                    success: false,
-                    message: 'No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.'
-                };
-            }
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Verificar si es un error de conexión basado en el status code
-                // Los errores 0, 408, 504, etc. pueden indicar problemas de conexión
-                if (response.status === 0 || response.status === 408 || response.status >= 500) {
-                    return {
-                        success: false,
-                        message: 'No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.'
-                    };
-                }
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            // Log simple cuando la respuesta sea exitosa
-            if (data.success || response.ok) {
-                console.log('Información cargada del empleado');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.getById:', error);
-            
-            // Detectar si es un error de conexión
-            const errorMsg = error.message || error.toString() || '';
-            const errorName = error.name || '';
-            
-            if (
-                errorMsg.includes('Failed to fetch') ||
-                errorMsg.includes('NetworkError') ||
-                errorMsg.includes('Network request failed') ||
-                errorMsg.includes('ERR_INTERNET_DISCONNECTED') ||
-                errorMsg.includes('ERR_NETWORK_CHANGED') ||
-                errorMsg.includes('ERR_CONNECTION_REFUSED') ||
-                errorMsg.includes('ERR_CONNECTION_RESET') ||
-                errorMsg.includes('ERR_CONNECTION_TIMED_OUT') ||
-                errorName === 'TypeError' ||
-                errorName === 'NetworkError'
-            ) {
-                return {
-                    success: false,
-                    message: 'No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.'
-                };
-            }
-            
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+        if (!id) {
+            return { success: false, message: 'ID del personal es requerido' };
         }
+        return this._request(`/personal/${id}`, { method: 'GET' }, {
+            requireEmpresaId: true,
+            throwOnError: true
+        });
     },
 
     // Crear personal
     async create(personalData) {
-        try {
-            const empresaId = getEmpresaId();
-
-            if (!empresaId) {
-                return {
-                    success: false,
-                    message: 'No hay empresa seleccionada'
-                };
-            }
-
-            const dataToSend = {
-                ...personalData,
-                empresa_id: empresaId
-            };
-
-            const response = await fetch(`${API_BASE_URL}/personal`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(dataToSend)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Si es un error 403, crear un error con toda la información para el modal
-                if (response.status === 403) {
-                    const error = new Error(data.message || 'Error en la petición');
-                    error.status = response.status;
-                    error.code = data.code;
-                    error.currentPlan = data.currentPlan;
-                    error.requiredModule = data.requiredModule;
-                    throw error;
-                }
-                
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.create:', error);
-            // Re-lanzar el error para que el componente lo capture correctamente
-            throw error;
-        }
+        return this._request('/personal', {
+            method: 'POST',
+            body: JSON.stringify(personalData)
+        }, {
+            requireEmpresaId: true,
+            returnErrorObject: true
+        });
     },
 
     // Actualizar personal
     async update(id, personalData) {
-        try {
-            if (!id) {
-                return {
-                    success: false,
-                    message: 'ID del personal es requerido'
-                };
-            }
-
-            const response = await fetch(`${API_BASE_URL}/personal/${id}`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(personalData)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.update:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+        if (!id) {
+            return { success: false, message: 'ID del personal es requerido' };
         }
+        return this._request(`/personal/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(personalData)
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
     },
 
     // Eliminar personal
     async delete(id) {
-        try {
-            if (!id) {
-                return {
-                    success: false,
-                    message: 'ID del personal es requerido'
-                };
-            }
-
-            const response = await fetch(`${API_BASE_URL}/personal/${id}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.delete:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+        if (!id) {
+            return { success: false, message: 'ID del personal es requerido' };
         }
+        return this._request(`/personal/${id}`, {
+            method: 'DELETE'
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
     },
-
 
     // Validar código de empleado
     async validateEmployeeCode(codigo) {
-        try {
-            if (!codigo) {
-                return {
-                    success: false,
-                    message: 'Código es requerido'
-                };
-            }
-
-            const encodedCodigo = encodeURIComponent(codigo);
-
-            const response = await fetch(`${API_BASE_URL}/personal/validate-employee/${encodedCodigo}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.validateEmployeeCode:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+        if (!codigo) {
+            return { success: false, message: 'Código es requerido' };
         }
+        const encodedCodigo = encodeURIComponent(codigo);
+        return this._request(`/personal/validate-employee/${encodedCodigo}`, {
+            method: 'GET'
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
     },
 
     // Establecer contraseña para empleado
     async setPassword(personalId, password) {
-        try {
-            if (!personalId || !password) {
-                return {
-                    success: false,
-                    message: 'ID del personal y contraseña son requeridos'
-                };
-            }
-
-            const response = await fetch(`${API_BASE_URL}/personal/${personalId}/set-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ password })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.setPassword:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+        if (!personalId || !password) {
+            return { success: false, message: 'ID del personal y contraseña son requeridos' };
         }
+        return this._request(`/personal/${personalId}/set-password`, {
+            method: 'POST',
+            body: JSON.stringify({ password })
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
     },
 
     // Login de empleado
     async loginEmployee(codigo, password) {
-        try {
-            if (!codigo || !password) {
-                return {
-                    success: false,
-                    message: 'Código y contraseña son requeridos'
-                };
-            }
-
-            const response = await fetch(`${API_BASE_URL}/personal/login-employee`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ codigo, password })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            // Guardar token si el login fue exitoso
-            if (data.success && data.data && data.data.token) {
-                localStorage.setItem('token', data.data.token);
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.loginEmployee:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+        if (!codigo || !password) {
+            return { success: false, message: 'Código y contraseña son requeridos' };
         }
+        const data = await this._request('/personal/login-employee', {
+            method: 'POST',
+            body: JSON.stringify({ codigo, password })
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
+        
+        if (data.success && data.data && data.data.token) {
+            localStorage.setItem('token', data.data.token);
+        }
+        return data;
     },
 
     // Cambiar contraseña de empleado
     async changePassword(personalId, currentPassword, newPassword) {
-        try {
-            if (!personalId || !currentPassword || !newPassword) {
-                return {
-                    success: false,
-                    message: 'ID del personal, contraseña actual y nueva contraseña son requeridos'
-                };
-            }
-
-            const response = await fetch(`${API_BASE_URL}/personal/${personalId}/change-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    currentPassword,
-                    newPassword
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.changePassword:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+        if (!personalId || !currentPassword || !newPassword) {
+            return { success: false, message: 'ID del personal, contraseña actual y nueva contraseña son requeridos' };
         }
+        return this._request(`/personal/${personalId}/change-password`, {
+            method: 'POST',
+            body: JSON.stringify({ currentPassword, newPassword })
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
     },
 
     // Resetear contraseña de empleado
     async resetPassword(personalId) {
-        try {
-            if (!personalId) {
-                return {
-                    success: false,
-                    message: 'ID del personal es requerido'
-                };
-            }
-
-            const response = await fetch(`${API_BASE_URL}/personal/${personalId}/reset-password`, {
-                method: 'POST',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.resetPassword:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+        if (!personalId) {
+            return { success: false, message: 'ID del personal es requerido' };
         }
+        return this._request(`/personal/${personalId}/reset-password`, {
+            method: 'POST'
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
     },
 
     // Actualizar ubicación del empleado
     async updateLocation(personalId, latitude, longitude) {
-        try {
-            if (!personalId || !latitude || !longitude) {
-                return {
-                    success: false,
-                    message: 'ID del personal, latitud y longitud son requeridos'
-                };
-            }
-
-            const response = await fetch(`${API_BASE_URL}/personal/${personalId}/update-location`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ latitude, longitude })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.updateLocation:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+        if (!personalId || !latitude || !longitude) {
+            return { success: false, message: 'ID del personal, latitud y longitud son requeridos' };
         }
+        return this._request(`/personal/${personalId}/update-location`, {
+            method: 'POST',
+            body: JSON.stringify({ latitude, longitude })
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
     },
 
     // Obtener ubicación del empleado
     async getLocation(personalId) {
-        try {
-            if (!personalId) {
-                return {
-                    success: false,
-                    message: 'ID del personal es requerido'
-                };
-            }
-
-            const response = await fetch(`${API_BASE_URL}/personal/${personalId}/location`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Error del servidor'
-                };
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en personalService.getLocation:', error);
-            return {
-                success: false,
-                message: 'Error de conexión con el servidor'
-            };
+        if (!personalId) {
+            return { success: false, message: 'ID del personal es requerido' };
         }
+        return this._request(`/personal/${personalId}/location`, {
+            method: 'GET'
+        }, {
+            requireEmpresaId: false,
+            returnErrorObject: true
+        });
     },
 
     // Obtener ubicación actual del navegador

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import Dato from '../../common/Dato';
-import Boton from '../../common/Boton';
-import ItemView from '../../common/ItemView';
+import Dato from '../../common/old/Dato';
+import Boton from '../../common/botones/Boton';
+import ItemView from '../../common/old/ItemView';
 import { useToast } from '../../../context/ToastContext';
 import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
 import { useLayout } from '../../../context/LayoutContext';
@@ -21,8 +21,8 @@ import { formatCurrency } from '../../../utils/numberUtils';
 import { calcularResumenFinanciero } from '../../../utils/movimientoCalculations';
 import ResumenFinanciero from '../../ui/ResumenFinanciero';
 import clientService from '../../../services/clientService';
-import Skeleton from '../../common/Skeleton';
-import StatusBadge from '../../common/StatusBadge';
+import Skeleton from '../../common/widgets/Skeleton';
+import StatusBadge from '../../common/old/StatusBadge';
 
 function VerMovimiento({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado, onMovimientoActualizado, onMovimientoEditado }) {
     const { isLargeScreen } = useLayout();

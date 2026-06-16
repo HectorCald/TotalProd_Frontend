@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ViewModal from '../ui/ViewModal';
-import HeaderModal from '../common/HeaderModal';
+import HeaderModal from '../common/old/HeaderModal';
 import styles from '../../styles/Inicial.module.css';
-import ItemLine from '../common/ItemLine';
+import ItemLine from '../common/old/ItemLine';
 import clientService from '../../services/clientService';
-import NoData from '../common/NoData';
+import NoData from '../common/widgets/NoData';
 
 function FiltroCliente({ isOpen, setIsOpen, onClienteSeleccionado, clienteSeleccionado = null }) {
     const [clientes, setClientes] = useState([]);

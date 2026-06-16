@@ -1,23 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
-import HeaderModal from '../../common/HeaderModal';
+import HeaderView from '../../common/old/HeaderView';
+import HeaderModal from '../../common/old/HeaderModal';
 import View from '../../ui/View';
 import ViewModal from '../../ui/ViewModal';
-import Dato from '../../common/Dato';
-import Boton from '../../common/Boton';
+import Dato from '../../common/old/Dato';
+import Boton from '../../common/botones/Boton';
 import EditarAgregar from './EditarAgregar';
 import { useToast } from '../../../context/ToastContext';
 import { useLayout } from '../../../context/LayoutContext';
 import FetchData from '../../mixed/FetchData';
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
-import ItemView from '../../common/ItemView';
-import ItemLine from '../../common/ItemLine';
+import ItemView from '../../common/old/ItemView';
+import ItemLine from '../../common/old/ItemLine';
 import MapaModal from '../clientes/MapaModal';
 import MapPin from '../clientes/MapPin';
-import NoData from '../../common/NoData';
+import NoData from '../../common/widgets/NoData';
 import ModalEliminar from './modales/ModalEliminar';
-import Skeleton from '../../common/Skeleton';
+import Skeleton from '../../common/widgets/Skeleton';
 
 function VerProveedor({ isOpen, setIsOpen, usuario, onProveedorDeleted, onProveedorUpdated }) {
     const { showInfo } = useToast();

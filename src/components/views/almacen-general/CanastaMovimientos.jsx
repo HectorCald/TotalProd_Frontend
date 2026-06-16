@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from '../../styles/Canasta.module.css';
 import View from '../../ui/View';
-import HeaderView from '../../common/HeaderView';
-import Boton from '../../common/Boton';
-import Select from '../../common/Select';
+import HeaderView from '../../common/old/HeaderView';
+import Boton from '../../common/botones/Boton';
+import Select from '../../common/old/Select';
 import { BoxIcon } from 'boxicons-react';
 import { motion } from 'framer-motion';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
@@ -13,15 +13,15 @@ import { useToast } from '../../../context/ToastContext';
 import SelectorMetodoPago from '../../mixed/SelectorMetodoPago';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
 import deudasService from '../../../services/deudasService';
-import InputNormal from '../../common/InputNormal';
+import InputNormal from '../../common/old/InputNormal';
 import useCanastaProductos from './hooks/useCanastaProductos';
 import calcularStockDisponible from './hooks/useStockDisponible';
 import useEntregaMovimientos from './hooks/useEntregaMovimientos';
 import usePrecioCanasta from './hooks/usePrecioCanasta';
 import { useLayout } from '../../../context/LayoutContext';
-import OpcionDesplegable from '../../common/OpcionDesplegable';
+import OpcionDesplegable from '../../common/old/OpcionDesplegable';
 import { isOfflineNetworkEnabled, queueOfflineSalida, updateOfflineProductsStock } from '../../../utils/offlineMovements';
-import Checkbox from '../../common/Checkbox';
+import Checkbox from '../../common/inputs/Checkbox';
 
 function CanastaMovimientos({ isOpen, setIsOpen, productosCanasta, setProductosCanasta, onCerrarCanasta, onProductosUpdated, esEntrega = false, preciosTipos = [], loadingPrecios = false, productosActualizados = [], isCartMode = false, onPedidoActualizado = null, isEditandoMovimiento = false, movimientoIdEditando = null, numeroOrdenEditando: numeroOrdenEditandoProp = null, onMovimientoEditado = null }) {
     const { isLargeScreen } = useLayout();

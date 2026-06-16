@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import Dato from '../../common/Dato';
-import Boton from '../../common/Boton';
-import ItemView from '../../common/ItemView';
+import Dato from '../../common/old/Dato';
+import Boton from '../../common/botones/Boton';
+import ItemView from '../../common/old/ItemView';
 import DescargaPedidoBuilder from './DescargaPedidoBuilder';
 import AlmacenGeneral from '../almacen-general/AlmacenGeneral';
 import { useUser } from '../../../context/UserContext';
@@ -21,7 +21,7 @@ import ModalProductos from './modales/ModalProductos';
 import ModalEliminar from './modales/ModalEliminar';
 import ModalCancelarEntrega from './modales/ModalCancelarEntrega';
 import ModalIngresar from './modales/ModalIngresar';
-import StatusBadge from '../../common/StatusBadge';
+import StatusBadge from '../../common/old/StatusBadge';
 
 function VerPedido({ isOpen, setIsOpen, pedido, tipoPedido, onPedidoEliminado, onPedidoActualizado }) {
     const { sucursalSeleccionada: sucursalActual } = useUser();

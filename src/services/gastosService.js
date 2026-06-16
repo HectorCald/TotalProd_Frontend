@@ -1,35 +1,4 @@
-import API_CONFIG from '../config/api';
-
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-// Función helper para obtener el token de autorización
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  };
-};
-
-// Función helper para obtener sucu_id
-const getSucuId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.id;
-  }
-  return null;
-};
-
-// Función helper para obtener empresa_id
-const getEmpresaId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.empresas?.id;
-  }
-  return null;
-};
+import apiClient, { getSucuId, getEmpresaId } from '../config/apiClient';
 
 // Función helper para obtener personal_id del token
 const getPersonalId = () => {
@@ -46,250 +15,166 @@ const getPersonalId = () => {
 };
 
 class gastosService {
-    // Obtener todos los gastos con paginación y filtros
-    static async getAll(page = 1, limit = 30, search = '', metodoPago = null, proveedor = null, ordenamiento = 'fecha_desc', sucuIdParam = null, filtroFecha = null) {
-        try {
-            const sucuId = sucuIdParam || getSucuId();
-            if (!sucuId) {
-                return {
-                    success: false,
-                    message: 'No hay sucursal seleccionada'
-                };
-            }
 
-            const params = new URLSearchParams({
-                page: page.toString(),
-                limit: limit.toString(),
-                ordenamiento: ordenamiento,
-                sucu_id: sucuId
-            });
+  static async _request(endpoint, options = {}, config = {}) {
+    const {
+      requireSucuId = false,
+      requireEmpresaId = true,
+      returnErrorObject = false,
+      throwOnError = false,
+      defaultData = undefined
+    } = config;
 
-            if (search) {
-                params.append('search', search);
-            }
-            if (metodoPago) {
-                params.append('metodo_pago', metodoPago);
-            }
-            if (proveedor) {
-                params.append('proveedor_id', proveedor);
-            }
-            if (filtroFecha) {
-                if (filtroFecha.inicio) {
-                    params.append('fecha_inicio', filtroFecha.inicio);
-                }
-                if (filtroFecha.fin) {
-                    params.append('fecha_fin', filtroFecha.fin);
-                }
-            }
-
-            const response = await fetch(`${API_BASE_URL}/gastos?${params}`, {
-                method: 'GET',
-                headers: getAuthHeaders(),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                const error = new Error(data.message || 'Error al obtener los gastos');
-                error.status = response.status;
-                error.code = data.code;
-                error.currentPlan = data.currentPlan;
-                error.requiredModule = data.requiredModule;
-                throw error;
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error obteniendo gastos:', error);
-            // Si es un error 403, relanzarlo para que llegue al componente
-            if (error.status === 403) {
-                throw error;
-            }
-            return {
-                success: false,
-                message: error.message || 'Error al obtener los gastos'
-            };
+    try {
+      if (requireSucuId) {
+        const sucuId = getSucuId();
+        if (!sucuId) {
+          return {
+            success: false,
+            message: 'No hay sucursal seleccionada',
+            ...(defaultData !== undefined ? { data: defaultData } : {})
+          };
         }
+      }
+
+      const response = await apiClient.request(endpoint, options, requireSucuId, requireEmpresaId);
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = new Error(data.message || 'Error en la petición');
+        error.status = response.status;
+        error.code = data.code;
+        error.currentPlan = data.currentPlan;
+        error.requiredModule = data.requiredModule;
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      if (throwOnError) {
+        throw error;
+      }
+      
+      if (returnErrorObject) {
+        return {
+          success: false,
+          message: error.message || 'Error de conexión con el servidor',
+          ...(defaultData !== undefined ? { data: defaultData } : {})
+        };
+      }
+      
+      return null;
+    }
+  }
+
+  // Obtener todos los gastos con paginación y filtros
+  static async getAll(page = 1, limit = 30, search = '', metodoPago = null, proveedor = null, ordenamiento = 'fecha_desc', sucuIdParam = null, filtroFecha = null) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ordenamiento: ordenamiento
+    });
+    
+    if (sucuIdParam) {
+      params.append('sucu_id', sucuIdParam);
     }
 
-
-    // Obtener un gasto por ID
-    static async getById(id, empresaIdParam = null) {
-        try {
-            const empresaId = empresaIdParam || getEmpresaId();
-            
-            const params = new URLSearchParams();
-            if (empresaId) {
-                params.append('empresa_id', empresaId);
-            }
-
-            const url = `${API_BASE_URL}/gastos/${id}${params.toString() ? `?${params.toString()}` : ''}`;
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: getAuthHeaders(),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Si es un error 403, relanzarlo para que llegue al componente
-                if (response.status === 403) {
-                    const error = new Error(data.message || 'Error al obtener el gasto');
-                    error.status = response.status;
-                    error.code = data.code;
-                    error.currentPlan = data.currentPlan;
-                    error.requiredModule = data.requiredModule;
-                    throw error;
-                }
-                throw new Error(data.message || 'Error al obtener el gasto');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error obteniendo gasto por ID:', error);
-            // Si es un error 403, relanzarlo para que llegue al componente
-            if (error.status === 403) {
-                throw error;
-            }
-            return {
-                success: false,
-                message: error.message || 'Error al obtener el gasto'
-            };
-        }
+    if (search) {
+      params.append('search', search);
+    }
+    if (metodoPago) {
+      params.append('metodo_pago', metodoPago);
+    }
+    if (proveedor) {
+      params.append('proveedor_id', proveedor);
+    }
+    if (filtroFecha) {
+      if (filtroFecha.inicio) {
+        params.append('fecha_inicio', filtroFecha.inicio);
+      }
+      if (filtroFecha.fin) {
+        params.append('fecha_fin', filtroFecha.fin);
+      }
     }
 
-    // Crear un nuevo gasto
-    static async create(gastoData) {
-        try {
-            const sucuId = getSucuId();
-            if (!sucuId) {
-                return {
-                    success: false,
-                    message: 'No hay sucursal seleccionada'
-                };
-            }
+    return gastosService._request(`/gastos?${params}`, { method: 'GET' }, {
+      requireSucuId: !sucuIdParam,
+      throwOnError: true
+    });
+  }
 
-            // Obtener personal_id si es un empleado
-            const personalId = getPersonalId();
-
-            const dataToSend = {
-                ...gastoData,
-                sucu_id: sucuId,
-                personal_id: personalId
-            };
-
-            const response = await fetch(`${API_BASE_URL}/gastos`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(dataToSend),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al crear el gasto');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error creando gasto:', error);
-            return {
-                success: false,
-                message: error.message || 'Error al crear el gasto'
-            };
-        }
+  // Obtener un gasto por ID
+  static async getById(id, empresaIdParam = null) {
+    const empresaId = empresaIdParam || getEmpresaId();
+    
+    const params = new URLSearchParams();
+    if (empresaId) {
+      params.append('empresa_id', empresaId);
     }
 
-    // Actualizar un gasto
-    static async update(id, updateData) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/gastos/${id}`, {
-                method: 'PUT',
-                headers: {
-                    ...getAuthHeaders(),
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(updateData),
-            });
+    const endpoint = `/gastos/${id}${params.toString() ? `?${params.toString()}` : ''}`;
 
-            const data = await response.json();
+    return gastosService._request(endpoint, { method: 'GET' }, {
+      requireEmpresaId: !empresaIdParam,
+      throwOnError: true
+    });
+  }
 
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al actualizar el gasto');
-            }
+  // Crear un nuevo gasto
+  static async create(gastoData) {
+    const personalId = getPersonalId();
+    
+    const bodyObj = {
+      ...gastoData,
+      personal_id: personalId
+    };
 
-            return data;
-        } catch (error) {
-            console.error('Error actualizando gasto:', error);
-            return {
-                success: false,
-                message: error.message || 'Error al actualizar el gasto'
-            };
-        }
+    return gastosService._request('/gastos', {
+      method: 'POST',
+      body: JSON.stringify(bodyObj)
+    }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
+  }
+
+  // Actualizar un gasto
+  static async update(id, updateData) {
+    return gastosService._request(`/gastos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData)
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
+  }
+
+  // Eliminar un gasto
+  static async delete(id) {
+    return gastosService._request(`/gastos/${id}`, {
+      method: 'DELETE'
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
+  }
+
+  // Obtener gastos por rango de fechas
+  static async getByDateRange(fechaInicio, fechaFin, sucuIdParam = null) {
+    const params = new URLSearchParams({
+      fechaInicio: fechaInicio,
+      fechaFin: fechaFin
+    });
+    
+    if (sucuIdParam) {
+      params.append('sucu_id', sucuIdParam);
     }
 
-    // Eliminar un gasto
-    static async delete(id) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/gastos/${id}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders(),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al eliminar el gasto');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error eliminando gasto:', error);
-            return {
-                success: false,
-                message: error.message || 'Error al eliminar el gasto'
-            };
-        }
-    }
-
-    // Obtener gastos por rango de fechas
-    static async getByDateRange(fechaInicio, fechaFin, sucuIdParam = null) {
-        try {
-            const sucuId = sucuIdParam || getSucuId();
-            if (!sucuId) {
-                return {
-                    success: false,
-                    message: 'No hay sucursal seleccionada'
-                };
-            }
-
-            const params = new URLSearchParams({
-                fechaInicio: fechaInicio,
-                fechaFin: fechaFin,
-                sucu_id: sucuId
-            });
-
-            const response = await fetch(`${API_BASE_URL}/gastos/por-fechas?${params}`, {
-                method: 'GET',
-                headers: getAuthHeaders(),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener los gastos');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error obteniendo gastos por fechas:', error);
-            return {
-                success: false,
-                message: error.message || 'Error al obtener los gastos'
-            };
-        }
-    }
+    return gastosService._request(`/gastos/por-fechas?${params}`, { method: 'GET' }, {
+      requireSucuId: !sucuIdParam,
+      returnErrorObject: true
+    });
+  }
 }
 
 export default gastosService;

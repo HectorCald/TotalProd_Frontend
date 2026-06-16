@@ -1,8 +1,8 @@
 import React from 'react';
 import ViewModal from '../ui/ViewModal';
-import HeaderModal from '../common/HeaderModal';
+import HeaderModal from '../common/old/HeaderModal';
 import styles from '../../styles/Inicial.module.css';
-import ItemLine from '../common/ItemLine';
+import ItemLine from '../common/old/ItemLine';
 
 function FiltroEstados({ isOpen, setIsOpen, onEstadoSeleccionado, estadoSeleccionado }) {
     const estados = [

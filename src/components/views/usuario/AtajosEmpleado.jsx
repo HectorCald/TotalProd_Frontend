@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import ComponenteFull from '../../common/ComponenteFull';
-import Notification from '../../common/Notification';
+import ComponenteFull from '../../common/old/ComponenteFull';
+import Notification from '../../common/old/Notification';
 import { useEmployee } from '../../../context/EmployeeContext';
 import { getAvailableMainModules } from '../../../constants/modules';
 

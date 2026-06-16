@@ -1,8 +1,8 @@
 import React from 'react';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import ItemView from '../../../common/ItemView';
-import NoData from '../../../common/NoData';
+import HeaderModal from '../../../common/old/HeaderModal';
+import ItemView from '../../../common/old/ItemView';
+import NoData from '../../../common/widgets/NoData';
 import styles from '../../../../styles/view.module.css';
 
 function ModalMovimientos({

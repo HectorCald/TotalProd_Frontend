@@ -1,25 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
-import HeaderModal from '../../common/HeaderModal';
+import HeaderView from '../../common/old/HeaderView';
+import HeaderModal from '../../common/old/HeaderModal';
 import View from '../../ui/View';
 import ViewModal from '../../ui/ViewModal';
-import Dato from '../../common/Dato';
-import Boton from '../../common/Boton';
+import Dato from '../../common/old/Dato';
+import Boton from '../../common/botones/Boton';
 import EditarAgregar from './EditarAgregar';
 import { useToast } from '../../../context/ToastContext';
 import { useLayout } from '../../../context/LayoutContext';
 import FetchData from '../../mixed/FetchData';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import clientService from '../../../services/clientService';
-import ItemView from '../../common/ItemView';
+import ItemView from '../../common/old/ItemView';
 import MapaModal from './MapaModal';
 import MapPin from './MapPin';
 import VerMovimiento from '../movimientos/VerMovimiento';
-import NoData from '../../common/NoData';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import NoData from '../../common/widgets/NoData';
+import LoadingSpinner from '../../common/old/LoadingSpinner';
 import ModalEliminar from './modales/ModalEliminar';
-import Skeleton from '../../common/Skeleton';
+import Skeleton from '../../common/widgets/Skeleton';
 
 function VerCliente({ isOpen, setIsOpen, usuario, onClientDeleted, onClientUpdated }) {
     const { showInfo } = useToast();

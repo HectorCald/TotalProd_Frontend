@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import InputSearch from '../../common/InputSearch';
-import ItemView from '../../common/ItemView';
+import InputSearch from '../../common/inputs/InputSearch';
+import ItemView from '../../common/old/ItemView';
 import VerCategoria from './VerCategoria';
-import Boton from '../../common/Boton';
+import Boton from '../../common/botones/Boton';
 import EditarAgregarCategoria from './EditarAgregarCategoria';
-import Notification from '../../common/Notification';
+import Notification from '../../common/old/Notification';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import { BoxIcon } from 'boxicons-react';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import RefreshIndicator from '../../common/old/RefreshIndicator';
 import { useLayout } from '../../../context/LayoutContext';
-import Table from '../../common/Table';
-import NoData from '../../common/NoData';
-import PullToRefresh from '../../common/PullToRefresh';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import Table from '../../common/old/Table';
+import NoData from '../../common/widgets/NoData';
+import PullToRefresh from '../../common/old/PullToRefresh';
+import LoadingSpinner from '../../common/old/LoadingSpinner';
 import useSessionCache from '../../../hooks/useSessionCache';
 
 function CategoriasAlmacen({ isOpen, setIsOpen, modoSeleccion = false, onCategoriaSeleccionada }) {

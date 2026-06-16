@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
+import HeaderModal from '../../common/old/HeaderModal';
 import Input from '../../common/inputs/Input';
-import Boton from '../../common/Boton';
-import ItemView from '../../common/ItemView';
+import Boton from '../../common/botones/Boton';
+import ItemView from '../../common/old/ItemView';
 import personalService from '../../../services/personalService';
 import { useToast } from '../../../context/ToastContext';
 

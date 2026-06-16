@@ -1,9 +1,9 @@
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import Dato from '../../common/Dato';
-import ItemView from '../../common/ItemView';
-import Notification from '../../common/Notification';
+import Dato from '../../common/old/Dato';
+import ItemView from '../../common/old/ItemView';
+import Notification from '../../common/old/Notification';
 import ImagenEmpresa from './ImagenEmpresa';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';

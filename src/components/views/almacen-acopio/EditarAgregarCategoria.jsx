@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
+import HeaderModal from '../../common/old/HeaderModal';
+import Boton from '../../common/botones/Boton';
+import InputNormal from '../../common/old/InputNormal';
 import categoryAcopioService from '../../../services/categoryAcopioService';
-import MensajeError from '../../common/MensajeError';
+import MensajeError from '../../common/old/MensajeError';
 
 function EditarAgregarCategoria({ isOpen, setIsOpen, data = '', tipo, onCategoriaCreated, onCategoriaUpdated }) {
   const [dataMov, setDataMov] = useState({

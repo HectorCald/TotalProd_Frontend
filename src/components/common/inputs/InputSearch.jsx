@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { BoxIcon } from 'boxicons-react';
 import Skeleton from '../Skeleton';
-import styles from './InputSearch.module.css';
-import selectStyles from './InputSelect.module.css';
+import styles from './Input.module.css';
+import selectStyles from './Input.module.css';
 
 function InputSearch({
   type = 'text',
@@ -205,7 +205,7 @@ function InputSearch({
     <div className={styles.root} ref={containerRef}>
       {label && (
         <label className={`${styles.label} ${error ? styles.labelError : ''}`}>
-          {label}
+          {typeof label === 'string' ? label.toUpperCase() : label}
           {required && <span className={styles.required}> *</span>}
         </label>
       )}
@@ -231,6 +231,20 @@ function InputSearch({
               <span className={styles.errorIcon} aria-hidden>
                 <BoxIcon name="error-circle" className={styles.icon} />
               </span>
+            )}
+            {!error && value && !disabled && (
+              <button
+                type="button"
+                className={styles.clearBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange?.({ target: { value: '' } });
+                }}
+                tabIndex={-1}
+                aria-label="Limpiar búsqueda"
+              >
+                <BoxIcon name="x" className={styles.icon} />
+              </button>
             )}
           </>
         )}

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import ViewModal from '../ui/ViewModal';
-import HeaderModal from '../common/HeaderModal';
-import Boton from '../common/Boton';
-import InputDate from '../common/InputDate';
-import Text from '../common/Text';
+import HeaderModal from '../common/old/HeaderModal';
+import Boton from '../common/botones/Boton';
+import InputDate from '../common/old/InputDate';
+import Text from '../common/old/Text';
 import styles from '../../styles/Inicial.module.css';
 import { parseDateWithoutOffset, formatFechaLiteral } from '../../utils/dateUtils';
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ViewModal from './ViewModal';
-import HeaderModal from '../common/HeaderModal';
-import Boton from '../common/Boton';
-import InputNormal from '../common/InputNormal';
+import HeaderModal from '../common/old/HeaderModal';
+import Boton from '../common/botones/Boton';
+import InputNormal from '../common/old/InputNormal';
 import styles from '../../styles/Inicial.module.css';
 import pdfIcon from '../../assets/pdf.png';
 import excelIcon from '../../assets/xls.png';
@@ -13,7 +13,7 @@ import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import { useLayout } from '../../context/LayoutContext';
 import EmpresaImagenService from '../../services/empresaImagenService';
-import Checkbox from '../common/Checkbox';
+import Checkbox from '../common/inputs/Checkbox';
 
 function ModalDescarga({
     isOpen,

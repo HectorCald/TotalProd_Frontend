@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import RefreshIndicator from '../../common/RefreshIndicator';
-import Boton from '../../common/Boton';
+import RefreshIndicator from '../../common/old/RefreshIndicator';
+import Boton from '../../common/botones/Boton';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../mixed/FiltroFecha';
 import EditarAgregarGasto from '../gastos/EditarAgregarGasto';
-import Dato from '../../common/Dato';
-import ItemView from '../../common/ItemView';
+import Dato from '../../common/old/Dato';
+import ItemView from '../../common/old/ItemView';
 import InputSelect from '../../common/inputs/InputSelect';
 import ModalDescarga from '../../ui/ModalDescarga';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';

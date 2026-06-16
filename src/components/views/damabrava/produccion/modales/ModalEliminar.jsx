@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import styles from '../../../../../styles/view.module.css';
 import ViewModal from '../../../../ui/ViewModal';
-import HeaderModal from '../../../../common/HeaderModal';
-import Boton from '../../../../common/Boton';
-import Text from '../../../../common/Text';
+import HeaderModal from '../../../../common/old/HeaderModal';
+import Boton from '../../../../common/botones/Boton';
+import Text from '../../../../common/old/Text';
 import { useToast } from '../../../../../context/ToastContext';
 import useHistorialLogger from '../../../../ui/HistorialLogger';
 import { buildProduccionDetallesParaHistorial } from '../../../../../utils/logFormatters';

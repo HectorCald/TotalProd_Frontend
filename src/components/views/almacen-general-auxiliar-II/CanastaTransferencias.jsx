@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import styles from '../../styles/Canasta.module.css';
 import View from '../../ui/View';
-import HeaderView from '../../common/HeaderView';
-import Boton from '../../common/Boton';
-import Select from '../../common/Select';
+import HeaderView from '../../common/old/HeaderView';
+import Boton from '../../common/botones/Boton';
+import Select from '../../common/old/Select';
 import { BoxIcon } from 'boxicons-react';
 import { motion } from 'framer-motion';
 import { useToast } from '../../../context/ToastContext';
 import LimpiarCanasta from '../../mixed/LimpiarCanasta';
-import InputNormal from '../../common/InputNormal';
-import transferenciasAlmacenService from '../../../services/transferenciasAlmacenService';
+import InputNormal from '../../common/old/InputNormal';
 import useCanastaProductos from '../almacen-general/hooks/useCanastaProductos';
 import usePrecioCanasta from '../almacen-general/hooks/usePrecioCanasta';
 import calcularStockDisponible from '../almacen-general/hooks/useStockDisponible';
@@ -496,8 +495,8 @@ function CanastaTransferencias({ isOpen, setIsOpen, productosCanasta, setProduct
                 productos: productosTransferencia
             };
 
-            // Crear la transferencia
-            const result = await transferenciasAlmacenService.create(transferenciaData);
+            // Mock de respuesta para la transferencia eliminada
+            const result = { success: false, message: 'Transferencias deshabilitadas.' };
 
             if (!result.success) {
                 showDanger('Error', result.message || 'Error al crear la transferencia');

@@ -1,0 +1,318 @@
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useDebounce } from 'use-debounce';
+import { useLayout } from '../../../context/LayoutContext';
+import SideBar from '../../../components/essentials/SideBar';
+import NavBar from '../../../components/essentials/NavBar';
+import styles from '../../../pages/home/View.module.css';
+import Tabla from '../../../components/common/information/Tabla';
+import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive';
+import cotizacionesService from '../../../services/cotizacionesService';
+import EliminarCotizacion from './modals/EliminarCotizacion';
+import ViewInfoCotizacion from './modals/ViewInfoCotizacion';
+import ProductosCotizacion from './modals/ProductosCotizacion';
+import { formatCurrency } from '../../../utils/numberUtils';
+
+const redondearADecima = (valor) => {
+    if (!Number.isFinite(valor)) return 0;
+    const multiplicado = valor * 10;
+    const decimal = multiplicado % 1;
+    const redondeado = decimal >= 0.5 ? Math.ceil(multiplicado) : Math.floor(multiplicado);
+    return redondeado / 10;
+};
+
+const Cotizaciones = () => {
+  const { isLargeScreen } = useLayout();
+  const location = useLocation();
+
+  const [cotizaciones, setCotizaciones] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Paginación y filtros
+  const [page, setPage] = useState(1);
+  const [hasMorePages, setHasMorePages] = useState(false);
+  const [search, setSearch] = useState('');
+  const [estadoId, setEstadoId] = useState(null);
+  const [sortOrder, setSortOrder] = useState('fecha_desc');
+
+  // Modals state
+  const [cotizacionEditando, setCotizacionEditando] = useState(null);
+  const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
+  const [cotizacionEliminar, setCotizacionEliminar] = useState(null);
+  const [modalInfoOpen, setModalInfoOpen] = useState(false);
+  const [cotizacionSeleccionada, setCotizacionSeleccionada] = useState(null);
+  const [modalProductosOpen, setModalProductosOpen] = useState(false);
+
+  const [debouncedSearch] = useDebounce(search, 500);
+  const [tablaFilters, setTablaFilters] = useState({});
+
+  const handleFiltersChange = (filters) => {
+    setTablaFilters(filters);
+    const order = (filters.sort_order && filters.sort_order[0] === 'asc') ? 'fecha_asc' : 'fecha_desc';
+    setSortOrder(order);
+
+    const estados = filters.estado || [];
+    setEstadoId(estados.length > 0 ? estados[0] : null);
+  };
+
+  const dynamicFilters = useMemo(() => [
+    {
+      id: 'sort_order',
+      title: 'Ordenamiento',
+      singleSelect: true,
+      options: [
+        { label: 'Más recientes', value: 'desc' },
+        { label: 'Más antiguos', value: 'asc' }
+      ]
+    },
+    {
+      id: 'estado',
+      title: 'Estado',
+      singleSelect: true,
+      options: [
+        { label: 'Pendiente', value: 'pendiente' },
+        { label: 'Aprobada', value: 'aprobada' },
+        { label: 'Completado', value: 'completado' },
+        { label: 'Anulado', value: 'anulado' }
+      ]
+    }
+  ], []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setCotizaciones([]);
+    setIsLoading(true);
+    setPage(1);
+  }, [debouncedSearch, estadoId, sortOrder]);
+
+  const handleCotizacionesLoaded = useCallback((data) => {
+    setCotizaciones(data);
+    setError(null);
+  }, []);
+
+  const handleDataAccumulated = useCallback((newData) => {
+    setCotizaciones(prev => {
+      const existingIds = new Set(prev.map(p => p.id));
+      const uniqueNewData = newData.filter(p => !existingIds.has(p.id));
+      return [...prev, ...uniqueNewData];
+    });
+  }, []);
+
+  const handleLoadingStart = useCallback(() => {
+    if (page === 1) {
+      if (cotizaciones.length === 0) {
+        setIsLoading(true);
+      }
+    } else {
+      setIsLoadingMore(true);
+    }
+  }, [page, cotizaciones.length]);
+
+  const handleLoadingEnd = useCallback(() => {
+    setIsLoading(false);
+    setIsLoadingMore(false);
+  }, []);
+
+  const handleError = useCallback((err) => {
+    setError(err);
+  }, []);
+
+  const handleLoadMore = useCallback(() => {
+    if (hasMorePages && !isLoading && !isLoadingMore) {
+      setPage(prev => prev + 1);
+    }
+  }, [hasMorePages, isLoading, isLoadingMore]);
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollHeight - scrollTop <= clientHeight + 100) {
+      handleLoadMore();
+    }
+  };
+
+  const tableActions = [
+    {
+      name: 'Detalles', icon: 'show', onClick: (cotizacion) => {
+        setCotizacionSeleccionada(cotizacion);
+        setModalInfoOpen(true);
+      }
+    },
+    {
+      name: 'Productos', icon: 'package', onClick: (cotizacion) => {
+        setCotizacionSeleccionada(cotizacion);
+        setModalProductosOpen(true);
+      }
+    },
+    {
+      name: 'Editar', icon: 'edit', onClick: (cotizacion) => {
+        setCotizacionEditando(cotizacion);
+        // Todavía no debe hacer nada
+      }
+    },
+    {
+      name: 'Eliminar', icon: 'trash', onClick: (cotizacion) => {
+        setCotizacionEliminar(cotizacion);
+        setModalEliminarOpen(true);
+      }
+    }
+  ];
+
+  const columns = [
+    {
+      header: 'Nº',
+      accessor: 'numero_cotizacion',
+      style: { fontWeight: 600, color: '#333' },
+      width: '10%'
+    },
+    {
+      header: 'Detalle',
+      accessor: 'detalle',
+      width: '25%',
+      render: (row) => {
+          if (row.cliente?.name) {
+              return row.cliente.name;
+          } else if (row.productos && row.productos.length > 0) {
+              return row.productos.length === 1
+                  ? row.productos[0]?.producto?.name || 'Sin producto'
+                  : `${row.productos.length} productos`;
+          }
+          return 'Sin productos';
+      }
+    },
+    {
+      header: 'Total',
+      accessor: 'total',
+      width: '15%',
+      render: (row) => {
+        const totalCalculado = (row.productos || []).reduce((sum, producto) => {
+            const subtotal = parseFloat(producto.subtotal) || 0;
+            const grup = parseFloat(producto.producto?.grup) || 0;
+            const tieneGrup = grup > 0;
+            const subtotalRedondeado = tieneGrup ? redondearADecima(subtotal) : subtotal;
+            return sum + subtotalRedondeado;
+        }, 0);
+        return formatCurrency(redondearADecima(totalCalculado));
+      }
+    },
+    {
+      header: 'Fecha',
+      accessor: 'fecha',
+      width: '15%',
+      render: (row) => new Date(row.fecha).toLocaleDateString()
+    },
+    {
+      header: 'Estado',
+      accessor: 'estado',
+      width: '15%',
+      render: (row) => {
+        const estado = row.estado || 'pendiente';
+        let color = 'gray';
+        if (estado === 'pendiente') color = 'var(--warning-color)';
+        if (estado === 'aprobada') color = 'var(--success-color)';
+        if (estado === 'anulado') color = 'var(--error-color)';
+        if (estado === 'completado') color = 'var(--info-color)';
+
+        return (
+          <span style={{
+            color,
+            fontWeight: 600,
+            borderRadius: '20px',
+            padding: '2px 10px',
+            display: 'inline-block',
+            backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
+            fontSize: '13px',
+          }}>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
+        );
+      }
+    },
+    {
+      header: 'Método de pago',
+      accessor: 'metodo_pago',
+      width: '20%',
+      render: (row) => row.metodo_pago || '--'
+    }
+  ];
+
+  return (
+    <>
+      {isLargeScreen && <NavBar />}
+      <div className={styles.dashboardContainer}>
+        {isLargeScreen && <SideBar />}
+        <div className={styles.contentArea} onScroll={handleScroll}>
+          <h1 className={styles.title}>Cotizaciones</h1>
+          <Tabla
+            data={cotizaciones}
+            columns={columns}
+            isLoading={isLoading}
+            isLoadingMore={isLoadingMore}
+            acciones={tableActions}
+            buttonLabel="Nueva Cotización"
+            onButtonClick={() => {
+              // Todavía no debe hacer nada
+            }}
+            searchKeys={['numero_cotizacion']}
+            sortKey="fecha"
+            onLoadMore={handleLoadMore}
+            onRowClick={(cotizacion) => {
+              setCotizacionSeleccionada(cotizacion);
+              setModalInfoOpen(true);
+            }}
+            remote={true}
+            searchValue={search}
+            onSearchChange={setSearch}
+            externalFilters={tablaFilters}
+            onFiltersChange={handleFiltersChange}
+            filters={dynamicFilters}
+          />
+        </div>
+      </div>
+      <FetchDataProgressive
+        service={cotizacionesService}
+        serviceName="cotizacionesService"
+        method="getAll"
+        methodParams={[estadoId, sortOrder, null, debouncedSearch, null]}
+        isOpen={true}
+        page={page}
+        limit={30}
+        onDataLoaded={handleCotizacionesLoaded}
+        onDataAccumulated={handleDataAccumulated}
+        onHasMorePagesChange={setHasMorePages}
+        onLoadingStart={handleLoadingStart}
+        onLoadingEnd={handleLoadingEnd}
+        onError={handleError}
+      />
+
+      <EliminarCotizacion
+        isOpen={modalEliminarOpen}
+        onClose={() => setModalEliminarOpen(false)}
+        cotizacionSeleccionada={cotizacionEliminar}
+        onEliminar={(idEliminado) => {
+          setCotizaciones(prev => prev.filter(c => c.id !== idEliminado));
+        }}
+      />
+
+      <ViewInfoCotizacion
+        isOpen={modalInfoOpen}
+        onClose={() => setModalInfoOpen(false)}
+        cotizacion={cotizacionSeleccionada}
+        onEdit={(cotizacion) => {
+          setCotizacionEditando(cotizacion);
+          // Todavía no debe hacer nada
+        }}
+      />
+
+      <ProductosCotizacion
+        isOpen={modalProductosOpen}
+        onClose={() => setModalProductosOpen(false)}
+        cotizacion={cotizacionSeleccionada}
+      />
+    </>
+  );
+};
+
+export default Cotizaciones;

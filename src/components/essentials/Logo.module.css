@@ -1,0 +1,25 @@
+.logo {
+    font-size: 45px;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    color: var(--white-color);
+}
+
+.primary_text {
+    color: var(--primary-color);
+}
+
+.secondary_text {
+    color: var(--secondary-color);
+}
+
+.icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color) !important;
+    font-size: 30px !important;
+    font-weight: 700;
+}

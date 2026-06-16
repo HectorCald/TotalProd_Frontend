@@ -1,9 +1,9 @@
 import React from 'react';
 import styles from '../../../../../styles/view.module.css';
 import ViewModal from '../../../../ui/ViewModal';
-import HeaderModal from '../../../../common/HeaderModal';
-import Dato from '../../../../common/Dato';
-import NoData from '../../../../common/NoData';
+import HeaderModal from '../../../../common/old/HeaderModal';
+import Dato from '../../../../common/old/Dato';
+import NoData from '../../../../common/widgets/NoData';
 import { formatGramajeDisplay } from '../../../../../utils/reglasPagoHelper';
 
 function CalculoPagoModal({ isOpen, setIsOpen, resultadoPago, reglaAplicada }) {

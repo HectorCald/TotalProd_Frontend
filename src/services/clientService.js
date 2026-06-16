@@ -1,263 +1,123 @@
-import API_CONFIG from '../config/api';
-import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
-import { obtenerLocal, OFFLINE_DB_NAME, CLIENTES_STORE } from '../utils/indexedDB';
-
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-// Función helper para obtener el token de autorización
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  };
-};
-
-// Función helper para obtener sucu_id
-const getSucuId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.id;
-  }
-  return null;
-};
+import apiClient, { getSucuId } from '../config/apiClient';
 
 class clientService {
 
-  static shouldUseOffline() {
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
-    try {
-      return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
-    } catch {
-      return false;
-    }
-  }
+  static async _request(endpoint, options = {}, config = {}) {
+    const {
+      requireSucuId = false,
+      returnErrorObject = false,
+      throwOnError = false,
+      defaultData = undefined
+    } = config;
 
-  static async getOfflineClients() {
     try {
-      const cached = await obtenerLocal(CLIENTES_STORE, OFFLINE_DB_NAME);
-      if (Array.isArray(cached) && cached.length > 0) {
+      if (requireSucuId) {
+        const sucuId = getSucuId();
+        if (!sucuId) {
+          return {
+            success: false,
+            message: 'No hay sucursal seleccionada',
+            ...(defaultData !== undefined ? { data: defaultData } : {})
+          };
+        }
+      }
+
+      const response = await apiClient.request(endpoint, options, requireSucuId);
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = new Error(data.message || 'Error en la petición');
+        error.status = response.status;
+        error.code = data.code;
+        error.currentPlan = data.currentPlan;
+        error.requiredModule = data.requiredModule;
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      if (throwOnError) {
+        throw error;
+      }
+      
+      if (returnErrorObject) {
         return {
-          success: true,
-          data: cached,
-          offline: true
+          success: false,
+          message: error.message || 'Error de conexión con el servidor',
+          ...(defaultData !== undefined ? { data: defaultData } : {})
         };
       }
-    } catch (error) {
-      console.warn('No se pudo obtener clientes offline:', error);
+      
+      return null;
     }
-    return null;
   }
 
   // Obtener todos los clientes de una sucursal
   static async getAll() {
-    try {
-      if (clientService.shouldUseOffline()) {
-        const offlineData = await clientService.getOfflineClients();
-        if (offlineData) {
-          return offlineData;
-        }
-      }
-
-      const sucuId = getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        sucu_id: sucuId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/clients?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      
-      const data = await response.json();
-      
-      // Si la respuesta no es exitosa, crear un error con toda la información
-      if (!response.ok) {
-        const error = new Error(data.message || 'Error en la petición');
-        error.status = response.status;
-        error.code = data.code;
-        error.currentPlan = data.currentPlan;
-        error.requiredModule = data.requiredModule;
-        throw error;
-      }
-      
-      return data;
-
-    } catch (error) {
-      console.error('Error en getAll:', error);
-      // Re-lanzar el error para que SWR lo capture correctamente
-      throw error;
-    }
+    return clientService._request('/clients', { method: 'GET' }, {
+      requireSucuId: true,
+      throwOnError: true
+    });
   }
 
   // Crear un cliente
   static async create(clientData) {
-    try {
-      const sucuId = getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const response = await fetch(`${API_BASE_URL}/clients`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ...clientData,
-          sucu_id: sucuId
-        }),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en create:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return clientService._request('/clients', {
+      method: 'POST',
+      body: JSON.stringify(clientData)
+    }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
   }
-
 
   // Eliminar un cliente
   static async delete(id) {
-    try {
-
-      const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-        }),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en delete:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return clientService._request(`/clients/${id}`, {
+      method: 'DELETE'
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
   }
-
 
   // Actualizar un cliente
   static async update(id, clientData) {
-    try {
-
-
-      const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ...clientData,
-        }),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en update:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return clientService._request(`/clients/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(clientData)
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
   }
 
   // Obtener ubicación del cliente (de la tabla o del último movimiento con ubicación)
   static async getLocation(id) {
-    try {
-      if (!id) {
-        return { success: false, message: 'ID del cliente es requerido', data: { location: null } };
-      }
-
-      const sucuId = getSucuId();
-      if (!sucuId) {
-        return { success: false, message: 'No hay sucursal seleccionada', data: { location: null } };
-      }
-
-      const params = new URLSearchParams({ sucu_id: sucuId });
-      const response = await fetch(`${API_BASE_URL}/clients/${id}/location?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const error = new Error(data.message || 'Error en la petición');
-        error.status = response.status;
-        throw error;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en getLocation:', error);
-      return { success: false, data: { location: null } };
+    if (!id) {
+      return { success: false, message: 'ID del cliente es requerido', data: { location: null } };
     }
+    
+    return clientService._request(`/clients/${id}/location`, { method: 'GET' }, {
+      requireSucuId: true,
+      returnErrorObject: true,
+      defaultData: { location: null }
+    });
   }
 
   // Obtener un cliente por ID
   static async getById(id) {
-    try {
-      if (!id) {
-        return {
-          success: false,
-          message: 'ID del cliente es requerido'
-        };
-      }
-
-      // Obtener sucu_id para que el middleware moduleAuth pueda obtener empresa_id
-      const sucuId = getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        sucu_id: sucuId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/clients/${id}?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        const error = new Error(data.message || 'Error en la petición');
-        error.status = response.status;
-        error.code = data.code;
-        error.currentPlan = data.currentPlan;
-        error.requiredModule = data.requiredModule;
-        throw error;
-      }
-      
-      return data;
-
-    } catch (error) {
-      console.error('Error en getById:', error);
-      throw error;
+    if (!id) {
+      return {
+        success: false,
+        message: 'ID del cliente es requerido'
+      };
     }
+    
+    return clientService._request(`/clients/${id}`, { method: 'GET' }, {
+      requireSucuId: true,
+      throwOnError: true
+    });
   }
 }
 

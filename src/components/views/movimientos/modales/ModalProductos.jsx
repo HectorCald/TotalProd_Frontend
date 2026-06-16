@@ -1,9 +1,9 @@
 import React from 'react';
 import { useLayout } from '../../../../context/LayoutContext';
-import ModalTable from '../../../common/ModalTable';
+import ModalTable from '../../../common/old/ModalTable';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import ItemView from '../../../common/ItemView';
+import HeaderModal from '../../../common/old/HeaderModal';
+import ItemView from '../../../common/old/ItemView';
 import { formatCurrency } from '../../../../utils/numberUtils';
 import styles from '../../../../styles/view.module.css';
 

@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
+import HeaderModal from '../../common/old/HeaderModal';
+import Boton from '../../common/botones/Boton';
+import InputNormal from '../../common/old/InputNormal';
 import InputSelect from '../../common/inputs/InputSelect';
 import productsAcopioService from '../../../services/productsAcopioService';
-import MensajeError from '../../common/MensajeError';
+import MensajeError from '../../common/old/MensajeError';
 import { BoxIcon } from 'boxicons-react';
-import NoData from '../../common/NoData';
-import Dato from '../../common/Dato';
+import NoData from '../../common/widgets/NoData';
+import Dato from '../../common/old/Dato';
 
 function EditarAgregarReceta({ isOpen, setIsOpen, productoAlmacenId, recetaData = null, onRecetaCreated, onRecetaUpdated }) {
   const [dataReceta, setDataReceta] = useState({

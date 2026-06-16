@@ -1,39 +1,53 @@
-import API_CONFIG from '../config/api';
-
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-// Función helper para obtener el token de autorización
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  };
-};
+import apiClient from '../config/apiClient';
 
 class typeMeasureService {
 
-  // Obtener todos los tipos de medida
-  static async getAll() {
+  static async _request(endpoint, options = {}, config = {}) {
+    const {
+      requireSucuId = false,
+      requireEmpresaId = false,
+      returnErrorObject = false,
+      throwOnError = false,
+      defaultData = undefined
+    } = config;
+
     try {
-      const response = await fetch(`${API_BASE_URL}/type-measures`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
+      const response = await apiClient.request(endpoint, options, requireSucuId, requireEmpresaId);
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.message || 'Error al obtener tipos de medida');
+        const errorMessage = data.message || 'Error en la petición';
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.code = data.code;
+        error.currentPlan = data.currentPlan;
+        error.requiredModule = data.requiredModule;
+        throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error en typeMeasureService.getAll:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
+      if (throwOnError || error.status === 403) {
+        throw error;
+      }
+      
+      if (returnErrorObject) {
+        return {
+          success: false,
+          message: error.message || 'Error de conexión con el servidor',
+          ...(defaultData !== undefined ? { data: defaultData } : {})
+        };
+      }
+      
+      return { success: false, message: error.message || 'Error de conexión con el servidor' };
     }
+  }
+
+  // Obtener todos los tipos de medida
+  static async getAll() {
+    return typeMeasureService._request('/type-measures', {
+      method: 'GET'
+    });
   }
 }
 

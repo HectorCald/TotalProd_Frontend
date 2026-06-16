@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderModal from '../../common/HeaderModal';
+import HeaderModal from '../../common/old/HeaderModal';
 import ViewModal from '../../ui/ViewModal';
-import Boton from '../../common/Boton';
+import Boton from '../../common/botones/Boton';
 import Input from '../../common/inputs/Input';
 import InputCall from '../../common/inputs/InputCall';
 import { useToast } from '../../../context/ToastContext';

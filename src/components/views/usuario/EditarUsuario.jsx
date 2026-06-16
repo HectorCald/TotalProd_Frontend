@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import styles from './EditarUsuario.module.css';
 import View from '../../ui/View';
-import HeaderView from '../../common/HeaderView';
-import Input from '../../common/Input';
-import Boton from '../../common/Boton';
+import HeaderView from '../../common/old/HeaderView';
+import Input from '../../common/inputs/Input';
+import Boton from '../../common/botones/Boton';
 import UserService from '../../../services/userService';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import LoadingSpinner from '../../common/old/LoadingSpinner';
 
 const EditarUsuario = ({ isOpen, setIsOpen }) => {
     const [formDataEditarUsuario, setFormDataEditarUsuario] = useState({

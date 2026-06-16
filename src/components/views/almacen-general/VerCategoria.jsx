@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
-import HeaderModal from '../../common/HeaderModal';
+import HeaderView from '../../common/old/HeaderView';
+import HeaderModal from '../../common/old/HeaderModal';
 import View from '../../ui/View';
 import ViewModal from '../../ui/ViewModal';
-import Dato from '../../common/Dato';
-import Boton from '../../common/Boton';
+import Dato from '../../common/old/Dato';
+import Boton from '../../common/botones/Boton';
 import EditarAgregarCategoria from './EditarAgregarCategoria';
-import ItemView from '../../common/ItemView';
+import ItemView from '../../common/old/ItemView';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import productsAlmacenService from '../../../services/productsAlmacenService';
 import { useToast } from '../../../context/ToastContext';
-import NoData from '../../common/NoData';
+import NoData from '../../common/widgets/NoData';
 
 function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCategoriaDeleted }) {
     const { showDanger } = useToast();

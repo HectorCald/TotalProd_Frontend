@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Select from '../common/Select';
+import Select from '../common/old/Select';
 import sucursalesService from '../../services/sucursalesService';
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
@@ -25,7 +25,7 @@ function SelectorSucursal({
         setValue: setSucursalesCache,
         hasCache: hasSucursalesCache
     } = useSessionCache({
-        key: `sucursalesSelector_${empresaId}`,
+        key: 'ListadoSucursales',
         defaultValue: []
     });
     

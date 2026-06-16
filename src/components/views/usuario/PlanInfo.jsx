@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import styles from './PlanInfo.module.css';
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
+import HeaderModal from '../../common/old/HeaderModal';
 import { useUser } from '../../../context/UserContext';
 import { BoxIcon } from 'boxicons-react';
-import Carousel from '../../common/Carousel';
-import Boton from '../../common/Boton';
+import Carousel from '../../common/old/Carousel';
+import Boton from '../../common/botones/Boton';
 import PlanService from '../../../services/planService';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import LoadingSpinner from '../../common/old/LoadingSpinner';
 
 function PlanInfo({ isOpen, setIsOpen }) {
     const { user: usuario } = useUser();

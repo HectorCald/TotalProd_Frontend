@@ -1,29 +1,6 @@
-import API_CONFIG from '../config/api';
-import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
-import { obtenerLocal, OFFLINE_DB_NAME, CATEGORIAS_STORE } from '../utils/indexedDB';
+import apiClient, { getEmpresaId } from '../config/apiClient';
 
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-// Función helper para obtener el token de autorización
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  };
-};
-
-// Función helper para obtener empresa_id
-const getEmpresaId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.empresas?.id;
-  }
-  return null;
-};
-
-// Función helper para obtener IDs de empresas favoritas
+// Helper for favorites companies
 const getEmpresasAsociadasIds = () => {
   try {
     const FAVORITES_KEY = 'empresas_favoritas';
@@ -40,165 +17,106 @@ const getEmpresasAsociadasIds = () => {
   }
 };
 
-
-const shouldUseOffline = () => {
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
-  try {
-    return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
-  } catch {
-    return false;
-  }
-};
-
-const getOfflineCategories = async () => {
-  try {
-    const cached = await obtenerLocal(CATEGORIAS_STORE, OFFLINE_DB_NAME);
-    if (Array.isArray(cached) && cached.length > 0) {
-      return {
-        success: true,
-        data: cached,
-        offline: true
-      };
-    }
-  } catch (error) {
-    console.warn('No se pudo obtener categorías offline:', error);
-  }
-  return null;
-};
-
 class categoryAlmacenService {
 
-  // Obtener todas las categorías
-  static async getAll() {
+  static async _request(endpoint, options = {}, config = {}) {
+    const {
+      requireEmpresaId = false,
+      returnErrorObject = false,
+      throwOnError = false,
+      defaultData = undefined
+    } = config;
+
     try {
-      if (shouldUseOffline()) {
-        const offlineData = await getOfflineCategories();
-        if (offlineData) {
-          return offlineData;
+      if (requireEmpresaId) {
+        const empresaId = getEmpresaId();
+        if (!empresaId) {
+          return {
+            success: false,
+            message: 'No hay empresa seleccionada',
+            ...(defaultData !== undefined ? { data: defaultData } : {})
+          };
         }
       }
 
-      const empresaId = getEmpresaId();
-      const empresasAsociadasIds = getEmpresasAsociadasIds();
-      
-      if (!empresaId) {
-        return {
-          success: false,
-          message: 'No hay empresa seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        empresa_id: empresaId
-      });
-
-      // Agregar empresas asociadas si existen
-      if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
-        empresasAsociadasIds.forEach(id => {
-          params.append('empresas_asociadas', id);
-        });
-      }
-
-      const response = await fetch(`${API_BASE_URL}/category-almacen?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
+      // apiClient.request(endpoint, options, includeSucuId, includeEmpresaId)
+      const response = await apiClient.request(endpoint, options, false, requireEmpresaId);
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.message || 'Error al obtener categorías');
+        const error = new Error(data.message || 'Error en la petición');
+        error.status = response.status;
+        error.code = data.code;
+        throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error en categoryAlmacenService.getAll:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
+      if (throwOnError) {
+        throw error;
+      }
+      
+      if (returnErrorObject) {
+        return {
+          success: false,
+          message: error.message || 'Error de conexión con el servidor',
+          ...(defaultData !== undefined ? { data: defaultData } : {})
+        };
+      }
+      
+      return null;
     }
+  }
+
+  // Obtener todas las categorías
+  static async getAll() {
+    const empresasAsociadasIds = getEmpresasAsociadasIds();
+    const params = new URLSearchParams();
+    if (empresasAsociadasIds && empresasAsociadasIds.length > 0) {
+      empresasAsociadasIds.forEach(id => {
+        params.append('empresas_asociadas', id);
+      });
+    }
+
+    const queryString = params.toString();
+    const endpoint = queryString ? `/category-almacen?${queryString}` : '/category-almacen';
+
+    return categoryAlmacenService._request(endpoint, { method: 'GET' }, {
+      requireEmpresaId: true,
+      throwOnError: true
+    });
   }
 
   // Crear una categoría
   static async create(categoryData) {
-    try {
-      const empresaId = getEmpresaId();
-      if (!empresaId) {
-        return {
-          success: false,
-          message: 'No hay empresa seleccionada'
-        };
-      }
-
-      const response = await fetch(`${API_BASE_URL}/category-almacen`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ...categoryData,
-          empresa_id: empresaId
-        })
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al crear categoría');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en categoryAlmacenService.create:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
-    }
+    return categoryAlmacenService._request('/category-almacen', {
+      method: 'POST',
+      body: JSON.stringify(categoryData)
+    }, {
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
   }
 
   // Actualizar una categoría
   static async update(id, categoryData) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/category-almacen/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(categoryData)
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al actualizar categoría');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en categoryAlmacenService.update:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
-    }
+    return categoryAlmacenService._request(`/category-almacen/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(categoryData)
+    }, {
+      requireEmpresaId: false,
+      returnErrorObject: true
+    });
   }
 
   // Eliminar una categoría
   static async delete(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/category-almacen/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al eliminar categoría');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en categoryAlmacenService.delete:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
-    }
+    return categoryAlmacenService._request(`/category-almacen/${id}`, {
+      method: 'DELETE'
+    }, {
+      requireEmpresaId: false,
+      returnErrorObject: true
+    });
   }
 }
 

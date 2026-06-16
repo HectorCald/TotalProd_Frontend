@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import styles from '../../../styles/paso.module.css';
 import LogoAnimation from '../../common/LogoAnimation';
-import ComponenteFull from '../../common/ComponenteFull';
-import Boton from '../../common/Boton';
+import ComponenteFull from '../../common/old/ComponenteFull';
+import Boton from '../../common/botones/Boton';
 import { useUser } from '../../../context/UserContext';
 import EmpresaService from '../../../services/empresaService';
 

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import Dato from '../../common/Dato';
-import Boton from '../../common/Boton';
-import ItemView from '../../common/ItemView';
+import Dato from '../../common/old/Dato';
+import Boton from '../../common/botones/Boton';
+import ItemView from '../../common/old/ItemView';
 import { useLayout } from '../../../context/LayoutContext';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
@@ -23,9 +23,9 @@ import ModalAprobar from './modales/ModalAprobar';
 import ModalFinalizar from './modales/ModalFinalizar';
 import ModalRevertirAprobacion from './modales/ModalRevertirAprobacion';
 import ModalAnularCompletado from './modales/ModalAnularCompletado';
-import StatusBadge from '../../common/StatusBadge';
+import StatusBadge from '../../common/old/StatusBadge';
 import clientService from '../../../services/clientService';
-import Skeleton from '../../common/Skeleton';
+import Skeleton from '../../common/widgets/Skeleton';
 
 
 

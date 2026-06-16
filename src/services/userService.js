@@ -21,221 +21,140 @@ class UserService {
     return localStorage.getItem('rememberSession') === 'true';
   }
 
+  // Helper centralizado para peticiones HTTP
+  static async _request(endpoint, options = {}, config = {}) {
+    const { 
+      saveTokenOnSuccess = false, 
+      requireAuth = false,
+      actionName = 'petición'
+    } = config;
 
-
-  // Crear usuario
-  static async createUser(user) {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(user),
+      const url = `${API_BASE_URL}${endpoint}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(options.headers || {})
+      };
+
+      if (requireAuth) {
+        const token = this.getToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+
+      const response = await fetch(url, {
+        ...options,
+        headers
       });
 
-
       const data = await response.json();
-      if (data.success && data.data && data.data.token) {
+
+      if (data.success && saveTokenOnSuccess && data.data?.token) {
         this.saveToken(data.data.token);
       }
 
       return data;
     } catch (error) {
-      console.error('Error en createUser:', error);
+      console.error(`❌ Error en ${actionName}:`, error);
       return {
         success: false,
-        error: 'Error de conexión con el servidor'
+        message: 'Error de conexión con el servidor'
       };
     }
+  }
+
+  // Crear usuario
+  static async createUser(user) {
+    return this._request('/users/create', {
+      method: 'POST',
+      body: JSON.stringify(user)
+    }, {
+      saveTokenOnSuccess: true,
+      actionName: 'createUser'
+    });
   }
 
   // Login de usuario
   static async login(credentials) {
-    try {
-      
-      const response = await fetch(`${API_BASE_URL}/users/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      
-      const data = await response.json();
-      
-      if (data.success && data.data && data.data.token) {
-        this.saveToken(data.data.token);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('❌ Error en loginUser:', error);
-      console.error('❌ URL intentada:', `${API_BASE_URL}/users/login`);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return this._request('/users/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials)
+    }, {
+      saveTokenOnSuccess: true,
+      actionName: 'loginUser'
+    });
   }
 
   // Obtener usuario por celular (sin autenticación, para verificar si existe)
   static async getUserByEmail(email) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/getUserByEmail`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error en getUserByEmail:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return this._request('/users/getUserByEmail', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    }, {
+      actionName: 'getUserByEmail'
+    });
   }
 
   // Obtener información del usuario logueado
   static async getCurrentUser(id) {
-    try {
-      const token = this.getToken();
-      const response = await fetch(`${API_BASE_URL}/users/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error en getCurrentUser:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return this._request(`/users/${id}`, {
+      method: 'GET'
+    }, {
+      requireAuth: true,
+      actionName: 'getCurrentUser'
+    });
   }
   
   // Verificar contraseña actual
   static async verifyCurrentPassword(userId, currentPassword) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/verifyPassword`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId, currentPassword }),
-      });
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error en verifyCurrentPassword:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return this._request('/users/verifyPassword', {
+      method: 'POST',
+      body: JSON.stringify({ userId, currentPassword })
+    }, {
+      actionName: 'verifyCurrentPassword'
+    });
   }
 
   // Cambiar contraseña
   static async changePassword(userId, currentPassword, newPassword) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/changePassword`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId, currentPassword, newPassword }),
-      });
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error en changePassword:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return this._request('/users/changePassword', {
+      method: 'POST',
+      body: JSON.stringify({ userId, currentPassword, newPassword })
+    }, {
+      actionName: 'changePassword'
+    });
   }
-
-
   
   // Solicitar reset de contraseña
   static async requestPasswordReset(email) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/passwordReset/request`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error en requestPasswordReset:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return this._request('/passwordReset/request', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    }, {
+      actionName: 'requestPasswordReset'
+    });
   }
 
   // Verificar token de reset
   static async verifyResetToken(token) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/passwordReset/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token }),
-      });
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error en verifyResetToken:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return this._request('/passwordReset/verify', {
+      method: 'POST',
+      body: JSON.stringify({ token })
+    }, {
+      actionName: 'verifyResetToken'
+    });
   }
 
   // Resetear contraseña
   static async resetPassword(token, newPassword) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/passwordReset/reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token, newPassword }),
-      });
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error en resetPassword:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return this._request('/passwordReset/reset', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword })
+    }, {
+      actionName: 'resetPassword'
+    });
   }
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BoxIcon } from 'boxicons-react';
-import styles from './InputCall.module.css';
+import styles from './Input.module.css';
 
 const InputCall = ({ value, onClick, onClear, label, placeholder, required, readOnly, error, ...rest }) => {
   const hasValue = value != null && value !== '';
@@ -9,7 +9,7 @@ const InputCall = ({ value, onClick, onClear, label, placeholder, required, read
     <div className={styles.root} {...rest}>
       {label && (
         <label className={`${styles.label} ${error ? styles.labelError : ''}`}>
-          {label}
+          {typeof label === 'string' ? label.toUpperCase() : label}
           {required && <span className={styles.required}> *</span>}
         </label>
       )}

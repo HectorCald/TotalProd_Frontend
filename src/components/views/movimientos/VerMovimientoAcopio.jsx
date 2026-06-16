@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import Dato from '../../common/Dato';
-import Boton from '../../common/Boton';
-import ItemView from '../../common/ItemView';
+import Dato from '../../common/old/Dato';
+import Boton from '../../common/botones/Boton';
+import ItemView from '../../common/old/ItemView';
 import DescargaMovimientoBuilder from './DescargaMovimientoBuilder';
-import Text from '../../common/Text';
+import Text from '../../common/old/Text';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
 import { useLayout } from '../../../context/LayoutContext';
 import ModalAnularAcopio from './modales/ModalAnularAcopio';
 import ModalEliminarAcopio from './modales/ModalEliminarAcopio';
-import StatusBadge from '../../common/StatusBadge';
+import StatusBadge from '../../common/old/StatusBadge';
 
 function VerMovimientoAcopio({ isOpen, setIsOpen, movimiento, onMovimientoAnulado, onMovimientoEliminado }) {
     const { isLargeScreen } = useLayout();

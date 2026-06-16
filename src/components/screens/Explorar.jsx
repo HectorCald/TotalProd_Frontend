@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ModuloExtra from '../common/ModuloExtra';
+import ModuloExtra from '../common/old/ModuloExtra';
 import { EXTRAS } from '../../constants/extras';
 import styles from './Screen.module.css';
 import Precios from '../views/precios/Precios';
@@ -8,16 +8,15 @@ import PanelGastos from '../views/gastos/PanelGastos';
 import PanelDeudas from '../views/deudas/PanelDeudas';
 import PanelHistorial from '../views/historial/PanelHistorial';
 import Reportes from '../views/reportes/Reportes';
-import Notification from '../common/Notification';
+import Notification from '../common/old/Notification';
 import { EXTRAS as EXTRAS_DAMABRAVA } from '../../constants/damabravaFunctions';
 import FormularioProduccion from '../views/damabrava/produccion/FormularioProduccion';
 import VerificarProduccion from '../views/damabrava/produccion/VerificarProduccion';
 import MiProduccion from '../views/damabrava/produccion/MiProduccion';
 import Reglas from '../views/damabrava/reglas/Reglas';
-import ImportExport from '../views/exportar-importar/ImportExport';
 import { isDamabrava } from '../../utils/empresaHelper';
 import PanelPagos from '../views/damabrava/produccion/pagos/PanelPagos';
-import AsociadosSearch from '../views/asociados/AsociadosSearch';
+
 
 const Explorar = () => {
   const [isOpenPrecios, setIsOpenPrecios] = useState(false);
@@ -30,9 +29,7 @@ const Explorar = () => {
   const [isOpenVerificarProduccion, setIsOpenVerificarProduccion] = useState(false);
   const [isOpenMiProduccion, setIsOpenMiProduccion] = useState(false);
   const [isOpenReglas, setIsOpenReglas] = useState(false);
-  const [isOpenImportExport, setIsOpenImportExport] = useState(false);
   const [isOpenPagos, setIsOpenPagos] = useState(false);
-  const [isOpenAsociados, setIsOpenAsociados] = useState(false);
   const [notification, setNotification] = useState({
     isVisible: false,
     type: 'info',
@@ -73,12 +70,8 @@ const Explorar = () => {
       setIsOpenMiProduccion(true);
     } else if (viewName === 'reglas') {
       setIsOpenReglas(true);
-    } else if (viewName === 'importar-exportar') {
-      setIsOpenImportExport(true);
     } else if (viewName === 'pagos') {
       setIsOpenPagos(true);
-    } else if (viewName === 'asociados') {
-      setIsOpenAsociados(true);
     } else {
       // Mostrar notificación para módulos no implementados
       mostrarNotificacion('info', `La función "${viewName}" estará disponible próximamente`);
@@ -130,8 +123,6 @@ const Explorar = () => {
           <PanelPagos isOpen={isOpenPagos} setIsOpen={setIsOpenPagos} />
         </>
       )}
-      <ImportExport isOpen={isOpenImportExport} setIsOpen={setIsOpenImportExport} />
-      <AsociadosSearch isOpen={isOpenAsociados} setIsOpen={setIsOpenAsociados} />
       <Notification
         isVisible={notification.isVisible}
         type={notification.type}

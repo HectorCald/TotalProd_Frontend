@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import ListaProfesional from '../../../common/ListaProfesional';
+import HeaderModal from '../../../common/old/HeaderModal';
+import ListaProfesional from '../../../common/old/ListaProfesional';
 import styles from '../../../../styles/view.module.css';
 
 function formatCantidadIngrediente(detalle) {

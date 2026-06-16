@@ -1,6 +1,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import 'boxicons/css/boxicons.min.css';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
 
 * {
   margin: 0;
@@ -8,7 +9,7 @@
   box-sizing: border-box;
   line-height: 1;
 
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Inter', sans-serif;
   user-select: none;      /* Bloquea selección de texto */
   -webkit-user-select: none; /* Para navegadores WebKit (Chrome, Safari) */
   -moz-user-select: none;    /* Para Firefox */
@@ -17,24 +18,24 @@
 }
 /* Scrollbar personalizado para pantallas grandes */
 *::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 *::-webkit-scrollbar-track {
-  background: var(--tertiary-color);
+  background: var(--quinary-color);
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--quinary-color);
+  background: var(--quaternary-color);
   border-radius: 2px;
-  min-height: 20px;
+  min-height: 10px;
 }
 
 *::-webkit-scrollbar-thumb:hover,
 *::-webkit-scrollbar-thumb:active {
-  background: var(--senary-color);
+  background: var(--tertiary-color);
   border-radius: 4px;
-  box-shadow: 0 0 0 2px var(--tertiary-color);
+  box-shadow: 0 0 0 2px var(--quaternary-color);
 }
 
 body, html {
@@ -50,7 +51,9 @@ code {
 }
 
 :root{
-  --primary-color: #28b498;
+  --primary-color: #2dbea1;
+  --primary-color-light: #31ceaf15;
+  --primary-color-dark: #29a990;
 
   --error-color: #ff4c4c;
   --success-color: rgb(96, 223, 67);
@@ -60,14 +63,14 @@ code {
 
 /* Tema claro */
 [data-theme="light"] {
-  --secondary-color: #ebebeb;
-  --tertiary-color: #ffffff;
-  --quaternary-color: #f0f0f0;
-  --quinary-color: #a9a9a9;
-  --senary-color: #3c3c3c;
+  --secondary-color: #3c3c3c;
+  --tertiary-color: #888888;
+  --quaternary-color: #c9c9c9;
+  --quinary-color: #f0f0f0;
+  --senary-color: #f7f7f7;
 
-  --dark-color: #ffffff;
-  --white-color: #212121;
+  --dark-color: #000000;
+  --white-color: #ffffff;
 }
 
 /* Tema oscuro (por defecto) */
@@ -75,18 +78,7 @@ code {
   --secondary-color: #171717;
   --tertiary-color: #272626;
   --quaternary-color: #343434;
-  --quinary-color: #5c5c5c;;
-  --senary-color: #e6e6e6;
 
   --dark-color: #000000;
   --white-color: #ffffff;
 }
-
-
-
-
-
-
-
-
-

@@ -1,143 +1,93 @@
-import API_CONFIG from '../config/api';
-
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-// Función helper para obtener el token de autorización
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  };
-};
-
-// Función helper para obtener empresa_id
-const getEmpresaId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.empresas?.id;
-  }
-  return null;
-};
+import apiClient, { getEmpresaId } from '../config/apiClient';
 
 class categoryAcopioService {
 
-  // Obtener todas las categorías
-  static async getAll() {
+  static async _request(endpoint, options = {}, config = {}) {
+    const {
+      requireEmpresaId = false,
+      returnErrorObject = false,
+      throwOnError = false,
+      defaultData = undefined
+    } = config;
+
     try {
-      const empresaId = getEmpresaId();
-      if (!empresaId) {
-        return {
-          success: false,
-          message: 'No hay empresa seleccionada'
-        };
+      if (requireEmpresaId) {
+        const empresaId = getEmpresaId();
+        if (!empresaId) {
+          return {
+            success: false,
+            message: 'No hay empresa seleccionada',
+            ...(defaultData !== undefined ? { data: defaultData } : {})
+          };
+        }
       }
 
-      const params = new URLSearchParams({
-        empresa_id: empresaId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/category-acopio?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
+      const response = await apiClient.request(endpoint, options, false, requireEmpresaId);
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.message || 'Error al obtener categorías');
+        const error = new Error(data.message || 'Error en la petición');
+        error.status = response.status;
+        error.code = data.code;
+        throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error en categoryAcopioService.getAll:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
+      if (throwOnError) {
+        throw error;
+      }
+      
+      if (returnErrorObject) {
+        return {
+          success: false,
+          message: error.message || 'Error de conexión con el servidor',
+          ...(defaultData !== undefined ? { data: defaultData } : {})
+        };
+      }
+      
+      return null;
     }
+  }
+
+  // Obtener todas las categorías
+  static async getAll() {
+    return categoryAcopioService._request('/category-acopio', { method: 'GET' }, {
+      requireEmpresaId: true,
+      throwOnError: true
+    });
   }
 
   // Crear una categoría
   static async create(categoryData) {
-    try {
-      const empresaId = getEmpresaId();
-      if (!empresaId) {
-        return {
-          success: false,
-          message: 'No hay empresa seleccionada'
-        };
-      }
-
-      const response = await fetch(`${API_BASE_URL}/category-acopio`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ...categoryData,
-          empresa_id: empresaId
-        })
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al crear categoría');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en categoryAcopioService.create:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
-    }
+    return categoryAcopioService._request('/category-acopio', {
+      method: 'POST',
+      body: JSON.stringify(categoryData)
+    }, {
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
   }
 
   // Actualizar una categoría
   static async update(id, categoryData) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/category-acopio/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(categoryData)
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al actualizar categoría');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en categoryAcopioService.update:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
-    }
+    return categoryAcopioService._request(`/category-acopio/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(categoryData)
+    }, {
+      requireEmpresaId: false,
+      returnErrorObject: true
+    });
   }
 
   // Eliminar una categoría
   static async delete(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/category-acopio/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al eliminar categoría');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error en categoryAcopioService.delete:', error);
-      return {
-        success: false,
-        message: error.message || 'Error de conexión con el servidor'
-      };
-    }
+    return categoryAcopioService._request(`/category-acopio/${id}`, {
+      method: 'DELETE'
+    }, {
+      requireEmpresaId: false,
+      returnErrorObject: true
+    });
   }
 }
 

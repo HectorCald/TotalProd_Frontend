@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import InputNormal from '../../common/InputNormal';
-import Boton from '../../common/Boton';
-import MensajeError from '../../common/MensajeError';
+import InputNormal from '../../common/old/InputNormal';
+import Boton from '../../common/botones/Boton';
+import MensajeError from '../../common/old/MensajeError';
 import personalService from '../../../services/personalService';
 import { useEmployee } from '../../../context/EmployeeContext';
-import Notification from '../../common/Notification';
+import Notification from '../../common/old/Notification';
 
 function CambiarContraseñaEmpleado({ isOpen, setIsOpen }) {
     // Estado para almacenar el mensaje de error y éxito

@@ -1,7 +1,7 @@
 import React from 'react';
 import ViewModal from '../ui/ViewModal';
-import HeaderModal from '../common/HeaderModal';
-import ItemLine from '../common/ItemLine';
+import HeaderModal from '../common/old/HeaderModal';
+import ItemLine from '../common/old/ItemLine';
 import styles from '../../styles/Inicial.module.css';
 
 function FiltroTipoHistorial({ isOpen, setIsOpen, onTipoSeleccionado }) {

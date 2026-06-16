@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/Inicial.module.css';
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import ItemLine from '../../common/ItemLine';
-import LoadingSpinner from '../../common/LoadingSpinner';
-import Notification from '../../common/Notification';
-import NoData from '../../common/NoData';
-import Boton from '../../common/Boton';
+import HeaderModal from '../../common/old/HeaderModal';
+import ItemLine from '../../common/old/ItemLine';
+import LoadingSpinner from '../../common/old/LoadingSpinner';
+import Notification from '../../common/old/Notification';
+import NoData from '../../common/widgets/NoData';
+import Boton from '../../common/botones/Boton';
 
 function ModalContactos({ isOpen, setIsOpen, onContactoSeleccionado }) {
     const [contactos, setContactos] = useState([]);

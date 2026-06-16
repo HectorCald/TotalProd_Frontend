@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import Dato from '../../common/Dato';
+import Dato from '../../common/old/Dato';
 import { BoxIcon } from 'boxicons-react';
-import Boton from '../../common/Boton';
-import ItemView from '../../common/ItemView';
+import Boton from '../../common/botones/Boton';
+import ItemView from '../../common/old/ItemView';
 import DescargaPedidoBuilder from './DescargaPedidoBuilder';
 import EntregaPedidoAcopio from './EntregaPedidoAcopio';
 import MovimientoAcopio from '../almacen-acopio/MovimientoAcopio';
@@ -23,7 +23,7 @@ import AnularEntregaAcopio from './modales/AnularEntregaAcopio';
 import VerGastoAcopio from './modales/VerGastoAcopio';
 import VerEntregaAcopio from './modales/VerEntregaAcopio';
 import VerEntradaAcopio from './modales/VerEntradaAcopio';
-import StatusBadge from '../../common/StatusBadge';
+import StatusBadge from '../../common/old/StatusBadge';
 
 function VerPedidoAcopio({ isOpen, setIsOpen, pedido, onPedidoEliminado, onPedidoActualizado }) {
     const { user, sucursalSeleccionada: sucursalActual } = useUser();

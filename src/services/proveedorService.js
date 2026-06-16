@@ -1,51 +1,30 @@
-import API_CONFIG from '../config/api';
-
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-// Función helper para obtener el token de autorización
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  };
-};
-
-// Función helper para obtener sucu_id
-const getSucuId = () => {
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.id;
-  }
-  return null;
-};
+import apiClient, { getSucuId } from '../config/apiClient';
 
 class proveedorService {
 
-  // Obtener todos los proveedores de una sucursal
-  static async getAll() {
+  static async _request(endpoint, options = {}, config = {}) {
+    const {
+      requireSucuId = false,
+      returnErrorObject = false,
+      throwOnError = false,
+      defaultData = undefined
+    } = config;
+
     try {
-      const sucuId = getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
+      if (requireSucuId) {
+        const sucuId = getSucuId();
+        if (!sucuId) {
+          return {
+            success: false,
+            message: 'No hay sucursal seleccionada',
+            ...(defaultData !== undefined ? { data: defaultData } : {})
+          };
+        }
       }
 
-      const params = new URLSearchParams({
-        sucu_id: sucuId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/proveedores?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      
+      const response = await apiClient.request(endpoint, options, requireSucuId);
       const data = await response.json();
-      
-      // Si la respuesta no es exitosa, crear un error con toda la información
+
       if (!response.ok) {
         const error = new Error(data.message || 'Error en la petición');
         error.status = response.status;
@@ -54,142 +33,78 @@ class proveedorService {
         error.requiredModule = data.requiredModule;
         throw error;
       }
-      
-      return data;
 
+      return data;
     } catch (error) {
-      console.error('Error en getAll:', error);
-      // Re-lanzar el error para que SWR lo capture correctamente
-      throw error;
+      if (throwOnError) {
+        throw error;
+      }
+      
+      if (returnErrorObject) {
+        return {
+          success: false,
+          message: error.message || 'Error de conexión con el servidor',
+          ...(defaultData !== undefined ? { data: defaultData } : {})
+        };
+      }
+      
+      return null;
     }
+  }
+
+  // Obtener todos los proveedores de una sucursal
+  static async getAll() {
+    return proveedorService._request('/proveedores', { method: 'GET' }, {
+      requireSucuId: true,
+      throwOnError: true
+    });
   }
 
   // Crear un proveedor
   static async create(proveedorData) {
-    try {
-      const sucuId = getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const response = await fetch(`${API_BASE_URL}/proveedores`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ...proveedorData,
-          sucu_id: sucuId
-        }),
-      });
-      
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en create:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return proveedorService._request('/proveedores', {
+      method: 'POST',
+      body: JSON.stringify(proveedorData)
+    }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
   }
-
 
   // Eliminar un proveedor
   static async delete(id) {
-    try {
-
-      const response = await fetch(`${API_BASE_URL}/proveedores/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-        }),
-      });
-      
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en delete:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return proveedorService._request(`/proveedores/${id}`, {
+      method: 'DELETE'
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
   }
-
 
   // Actualizar un proveedor
   static async update(id, proveedorData) {
-    try {
-
-      const response = await fetch(`${API_BASE_URL}/proveedores/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ...proveedorData,
-        }),
-      });
-      
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en update:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return proveedorService._request(`/proveedores/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(proveedorData)
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
   }
 
   // Obtener un proveedor por ID
   static async getById(id) {
-    try {
-      if (!id) {
-        return {
-          success: false,
-          message: 'ID del proveedor es requerido'
-        };
-      }
-
-      // Obtener sucu_id para que el middleware moduleAuth pueda obtener empresa_id
-      const sucuId = getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        sucu_id: sucuId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/proveedores/${id}?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        const error = new Error(data.message || 'Error en la petición');
-        error.status = response.status;
-        error.code = data.code;
-        error.currentPlan = data.currentPlan;
-        error.requiredModule = data.requiredModule;
-        throw error;
-      }
-      
-      return data;
-
-    } catch (error) {
-      console.error('Error en getById:', error);
-      throw error;
+    if (!id) {
+      return {
+        success: false,
+        message: 'ID del proveedor es requerido'
+      };
     }
+    
+    return proveedorService._request(`/proveedores/${id}`, { method: 'GET' }, {
+      requireSucuId: true,
+      throwOnError: true
+    });
   }
 }
 

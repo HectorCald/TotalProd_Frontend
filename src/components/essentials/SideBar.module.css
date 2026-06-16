@@ -1,0 +1,236 @@
+.sidebar {
+  width: 290px;
+  background-color: white;
+  height: calc(100vh - 60px);
+  margin-top: 60px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  transition: width 0.3s ease;
+  border-right: 1px solid var(--quaternary-color, #d8d8d8);
+}
+
+.sidebar.collapsed {
+  width: 80px;
+  align-items: center;
+  padding: 16px 5px;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+.section {
+  padding: 0;
+  margin-bottom: 2px;
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 12px;
+  color: #7b7b7b;
+  letter-spacing: 0.05em;
+  padding: 16px 16px 8px 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemContainer {
+  position: relative;
+  width: 100%;
+}
+
+.item {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease, padding 0.3s ease;
+  margin-bottom: 4px;
+  color: var(--secondary-color);
+  font-weight:600;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.collapsed .item {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.item:hover,
+.item.active {
+  background-color: var(--primary-color-light);
+  color: var(--primary-color);
+}
+
+.itemLeft {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.collapsed .itemLeft {
+  justify-content: center;
+}
+
+.icon {
+  margin-right: 5px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+}
+
+.collapsed .icon {
+  margin-right: 0;
+  font-size: 22px;
+}
+
+.chevron {
+  font-size: 22px;
+  transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.submenu {
+  border-radius: 8px;
+}
+
+.inlineSubmenuClosed {
+  display: none;
+}
+
+.inlineSubmenuOpen {
+  display: block;
+  padding-left: 30px;
+  overflow: hidden;
+}
+
+.floatingSubmenu {
+  position: fixed;
+  left: 80px;
+  width: max-content;
+  min-width: 200px;
+  background-color: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-left: 5px;
+  padding: 8px 0;
+  z-index: 1001;
+  border-radius: 8px;
+}
+
+.floatingSubmenu::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -15px;
+  width: 15px;
+  height: 100%;
+  background: transparent;
+}
+
+.tooltip {
+  position: fixed;
+  left: 80px;
+  background-color: var(--dark-color, #000);
+  color: var(--white-color, #fff);
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  font-weight: 600;
+  margin-left: 5px;
+  z-index: 1001;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.floatingTitle {
+  padding: 10px 16px;
+  font-weight: 600;
+  color: var(--secondary-color);
+  border-bottom: 1px solid var(--quaternary-color, #d8d8d8);
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.subitem {
+  padding: 10px 16px 10px 10px;
+  display: block;
+  color: var(--secondary-color);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 550;
+  transition: color 0.2s ease, background-color 0.2s ease;
+  cursor: pointer;
+  border-radius: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 5px;
+}
+
+.floatingSubmenu .subitem {
+  padding: 10px 16px;
+  margin: 0 8px;
+  border-radius: 4px;
+}
+
+.subitem:hover,
+.subitem.active {
+  color: var(--primary-color);
+  background-color: var(--primary-color-light);
+}
+
+/* NEW badge */
+.itemTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.newBadge {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e53935;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.newBadgeTooltip {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e53935;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+  margin-left: 6px;
+  flex-shrink: 0;
+}

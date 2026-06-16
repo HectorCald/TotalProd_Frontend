@@ -1,0 +1,75 @@
+.container {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.container:hover {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+.container.dragging {
+  border-color: var(--primary-color);
+  background-color: var(--primary-color-light);
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.iconWrapper {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  background-color: var(--primary-color-light);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  color: var(--primary-color) !important;
+}
+
+.arrowIcon {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  fill: var(--primary-color);
+  bottom: 8px;
+  right: 8px;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  padding: 1px;
+  font-size: 13px !important;
+  color: white !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}

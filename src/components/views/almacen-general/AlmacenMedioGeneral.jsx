@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import ItemView from '../../common/ItemView';
+import HeaderModal from '../../common/old/HeaderModal';
+import ItemView from '../../common/old/ItemView';
 import AlmacenGeneral from './AlmacenGeneral';
 
 import AlmacenGeneralAuxiliar from '../almacen-general-auxiliar/AlmacenGeneral-Auxiliar';

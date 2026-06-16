@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from 'react';
 import useVirtualPagination from '../../../../hooks/useVirtualPagination';
-import { normalizeSearchValue, normalizedIncludes } from '../../../common/HeaderView';
+import { normalizeSearchValue, normalizedIncludes } from '../../../common/old/HeaderView';
 
 const normalizeText = (text) => normalizeSearchValue(text);
 

@@ -14,8 +14,22 @@ export const LayoutProvider = ({ children }) => {
   // Estado para detectar si es pantalla grande
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   
+  // Estado persistente para la barra lateral (scroll y submenús)
+  const [openSubmenus, setOpenSubmenus] = useState({});
+  const [sidebarScroll, setSidebarScroll] = useState(0);
+
   // Estado para la barra lateral
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    if (saved !== null) {
+      return JSON.parse(saved);
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   // Detectar el tamaño de pantalla
   useEffect(() => {
@@ -47,7 +61,11 @@ export const LayoutProvider = ({ children }) => {
     isLargeScreen,
     sidebarCollapsed,
     toggleSidebar,
-    setSidebarState
+    setSidebarState,
+    openSubmenus,
+    setOpenSubmenus,
+    sidebarScroll,
+    setSidebarScroll
   };
 
   return (

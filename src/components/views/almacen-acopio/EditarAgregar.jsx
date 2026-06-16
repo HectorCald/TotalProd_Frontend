@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import Boton from '../../common/Boton';
+import HeaderModal from '../../common/old/HeaderModal';
+import Boton from '../../common/botones/Boton';
 import Input from '../../common/inputs/Input';
 import InputCall from '../../common/inputs/InputCall';
 import InputSelect from '../../common/inputs/InputSelect';
 import productsAcopioService from '../../../services/productsAcopioService';
 import EditarAgregarReceta from '../almacen-general/EditarAgregarReceta';
-import Switch from '../../common/Switch';
+import Switch from '../../common/old/Switch';
 import CategoriasAcopio from './CategoriasAcopio';
 import { useToast } from '../../../context/ToastContext';
 import { extractRecetaFromAcopio } from '../../../utils/logFormatters';

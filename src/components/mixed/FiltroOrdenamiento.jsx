@@ -1,8 +1,8 @@
 import React from 'react';
 import styles from '../../styles/Inicial.module.css';
 import ViewModal from '../ui/ViewModal';
-import HeaderModal from '../common/HeaderModal';
-import ItemLine from '../common/ItemLine';
+import HeaderModal from '../common/old/HeaderModal';
+import ItemLine from '../common/old/ItemLine';
 
 function FiltroOrdenamiento({ isOpen, setIsOpen, onOrdenamientoSeleccionado, opciones = [] }) {
     // Opciones por defecto si no se proporcionan

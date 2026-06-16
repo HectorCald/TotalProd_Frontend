@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
-import HeaderModal from '../../common/HeaderModal';
+import HeaderView from '../../common/old/HeaderView';
+import HeaderModal from '../../common/old/HeaderModal';
 import View from '../../ui/View';
 import ViewModal from '../../ui/ViewModal';
-import Dato from '../../common/Dato';
-import Boton from '../../common/Boton';
+import Dato from '../../common/old/Dato';
+import Boton from '../../common/botones/Boton';
 import EditarAgregarCategoria from './EditarAgregarCategoria';
-import ItemView from '../../common/ItemView';
+import ItemView from '../../common/old/ItemView';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import productsAcopioService from '../../../services/productsAcopioService';
-import Notification from '../../common/Notification';
-import NoData from '../../common/NoData';
+import Notification from '../../common/old/Notification';
+import NoData from '../../common/widgets/NoData';
 
 function VerCategoria({ isOpen, setIsOpen, categoria, onCategoriaUpdated, onCategoriaDeleted }) {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);

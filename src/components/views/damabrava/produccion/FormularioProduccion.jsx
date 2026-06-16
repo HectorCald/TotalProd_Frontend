@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../../styles/view.module.css';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import Boton from '../../../common/Boton';
+import HeaderModal from '../../../common/old/HeaderModal';
+import Boton from '../../../common/botones/Boton';
 import Input from '../../../common/inputs/Input';
 import InputSelect from '../../../common/inputs/InputSelect';
 import InputFecha from '../../../common/inputs/InputFecha';

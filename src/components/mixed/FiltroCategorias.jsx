@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../styles/Inicial.module.css';
 import ViewModal from '../ui/ViewModal';
-import HeaderModal from '../common/HeaderModal';
-import Checkbox from '../common/Checkbox';
-import Boton from '../common/Boton';
+import HeaderModal from '../common/old/HeaderModal';
+import Checkbox from '../common/inputs/Checkbox';
+import Boton from '../common/botones/Boton';
 import categoryAlmacenService from '../../services/categoryAlmacenService';
 
 function FiltroCategorias({ isOpen, setIsOpen, onCategoriaSeleccionada, categoriasSeleccionadas = [] }) {

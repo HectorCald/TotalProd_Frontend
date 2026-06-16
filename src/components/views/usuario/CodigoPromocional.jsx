@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import InputNormal from '../../common/InputNormal';
-import Boton from '../../common/Boton';
-import Notification from '../../common/Notification';
-import Dato from '../../common/Dato';
+import InputNormal from '../../common/old/InputNormal';
+import Boton from '../../common/botones/Boton';
+import Notification from '../../common/old/Notification';
+import Dato from '../../common/old/Dato';
 import codigoPromocionalService from '../../../services/codigoPromocionalService';
-import Checkbox from '../../common/Checkbox';
+import Checkbox from '../../common/inputs/Checkbox';
 
 function CodigoPromocional({ isOpen, setIsOpen }) {
     // Estado para habilitar/deshabilitar el botón

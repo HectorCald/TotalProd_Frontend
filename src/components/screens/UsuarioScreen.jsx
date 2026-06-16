@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import styles from './Screen.module.css';
-import ItemLine from '../common/ItemLine';
-import ItemView from '../common/ItemView';
-import Version from '../common/Version';
+import ItemLine from '../common/old/ItemLine';
+import ItemView from '../common/old/ItemView';
+import Version from '../common/old/Version';
 import CambiarContraseña from '../views/usuario/CambiarContraseña';
 import CambiarContraseñaEmpleado from '../views/usuario/CambiarContraseñaEmpleado';
 import Apariencia from '../views/usuario/Apariencia';
 import CodigoPromocional from '../views/usuario/CodigoPromocional';
-import ComponenteFull from '../common/ComponenteFull';
+import ComponenteFull from '../common/old/ComponenteFull';
 import ViewModal from '../ui/ViewModal';
-import HeaderModal from '../common/HeaderModal';
-import Boton from '../common/Boton';
+import HeaderModal from '../common/old/HeaderModal';
+import Boton from '../common/botones/Boton';
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import EmpresaImagenService from '../../services/empresaImagenService';
 import PlanInfo from '../views/usuario/PlanInfo';
-import Comentarios from '../views/comentarios/Comentarios';
 import ImagenEmpresa from '../views/usuario/ImagenEmpresa';
-import Notification from '../common/Notification';
+import Notification from '../common/old/Notification';
 import AtajosEmpleado from '../views/usuario/AtajosEmpleado';
 
 const UsuarioScreen = () => {
@@ -26,10 +25,8 @@ const UsuarioScreen = () => {
     const [isOpenApariencia, setIsOpenApariencia] = useState(false);
     const [isOpenPlan, setIsOpenPlan] = useState(false);
     const [isOpenCodigoPromocional, setIsOpenCodigoPromocional] = useState(false);
-    const [isOpenComentarios, setIsOpenComentarios] = useState(false);
     const [isOpenImagenEmpresa, setIsOpenImagenEmpresa] = useState(false);
     const [isOpenAtajo, setIsOpenAtajo] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(true);
     const [empresaImage, setEmpresaImage] = useState(null);
     const [loadingImage, setLoadingImage] = useState(false);
     const [notification, setNotification] = useState({ isVisible: false, type: 'success', text: '' });
@@ -41,29 +38,7 @@ const UsuarioScreen = () => {
     const currentUser = isEmployee ? employeeInfo : userInfo;
     const sucursal = isEmployee ? employeeSucursal : userSucursal;
 
-    const applyTheme = (theme) => {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-    };
 
-    const handleThemeChange = (isDark) => {
-        setIsDarkMode(isDark);
-        applyTheme(isDark ? 'dark' : 'light');
-    };
-
-    useEffect(() => {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            const isDark = savedTheme === 'dark';
-            setIsDarkMode(isDark);
-            applyTheme(isDark ? 'dark' : 'light');
-        } else {
-            setIsDarkMode(true);
-            applyTheme('dark');
-        }
-    }, []);
-
-    // Cargar imagen de empresa al montar o al cambiar de usuario/empleado
     useEffect(() => {
         if (!isEmployee) {
             loadEmpresaImage();
@@ -154,17 +129,6 @@ const UsuarioScreen = () => {
                     />
                 </div>
 
-                <p className={styles.subTitle}>PREFERENCIAS</p>
-                <div className={styles.content}>
-                    <ComponenteFull
-                        title="Modo oscuro"
-                        subtitle={isDarkMode ? "Activado - Tema oscuro" : "Desactivado - Tema claro"}
-                        icon={isDarkMode ? "moon" : "sun"}
-                        type="switch"
-                        checked={isDarkMode}
-                        onChange={handleThemeChange}
-                    />
-                </div>
                 <p className={styles.subTitle}>CUENTA</p>
                 <div className={styles.content}>
                     <ComponenteFull
@@ -229,7 +193,6 @@ const UsuarioScreen = () => {
             )}
             <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
             <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
-            <Comentarios isOpen={isOpenComentarios} setIsOpen={setIsOpenComentarios} />
 
             <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>
                 <HeaderModal

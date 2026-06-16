@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import ItemView from '../../common/ItemView';
-import Boton from '../../common/Boton';
-import Notification from '../../common/Notification';
+import HeaderModal from '../../common/old/HeaderModal';
+import ItemView from '../../common/old/ItemView';
+import Boton from '../../common/botones/Boton';
+import Notification from '../../common/old/Notification';
 import { BoxIcon } from 'boxicons-react';
 import EmpresaImagenService from '../../../services/empresaImagenService';
 import { useUser } from '../../../context/UserContext';

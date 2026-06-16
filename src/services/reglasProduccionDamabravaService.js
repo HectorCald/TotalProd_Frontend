@@ -1,133 +1,98 @@
-import API_CONFIG from '../config/api';
-
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : ''
-    };
-};
-
-const getEmpresaId = () => {
-    const empresaId = localStorage.getItem('empresa_id');
-    if (empresaId) {
-        return empresaId;
-    }
-
-    const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-    if (sucursalSeleccionada) {
-        try {
-            const parsed = JSON.parse(sucursalSeleccionada);
-            return parsed.empresas?.id || null;
-        } catch (error) {
-            console.error('Error al parsear sucursalSeleccionada:', error);
-        }
-    }
-
-    return null;
-};
+import apiClient, { getSucuId, getEmpresaId } from '../config/apiClient';
 
 class reglasProduccionDamabravaService {
-    static async create(reglaData) {
+
+    static async _request(endpoint, options = {}, config = {}) {
+        const {
+            requireSucuId = false,
+            requireEmpresaId = false,
+            returnErrorObject = false,
+            throwOnError = false,
+            defaultData = undefined
+        } = config;
+
         try {
-            const empresaId = getEmpresaId();
-            if (!empresaId) {
-                return {
-                    success: false,
-                    message: 'No hay empresa seleccionada'
-                };
+            if (requireSucuId) {
+                const sucuId = getSucuId();
+                if (!sucuId) {
+                    return {
+                        success: false,
+                        message: 'No hay sucursal seleccionada',
+                        ...(defaultData !== undefined ? { data: defaultData } : {})
+                    };
+                }
             }
 
-            const response = await fetch(`${API_BASE_URL}/reglas-produccion-damabrava`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    ...reglaData,
-                    empresa_id: empresaId
-                })
-            });
+            if (requireEmpresaId) {
+                const empresaId = getEmpresaId();
+                if (!empresaId) {
+                    return {
+                        success: false,
+                        message: 'No hay empresa seleccionada',
+                        ...(defaultData !== undefined ? { data: defaultData } : {})
+                    };
+                }
+            }
 
+            const response = await apiClient.request(endpoint, options, requireSucuId, requireEmpresaId);
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Error al registrar la regla de producción');
+                const errorMessage = data.message || 'Error en la petición';
+                const error = new Error(errorMessage);
+                error.status = response.status;
+                error.code = data.code;
+                error.currentPlan = data.currentPlan;
+                error.requiredModule = data.requiredModule;
+                throw error;
             }
 
             return data;
         } catch (error) {
-            console.error('Error en reglasProduccionDamabravaService.create:', error);
-            return {
-                success: false,
-                message: error.message || 'Error de conexión con el servidor'
-            };
+            if (throwOnError || error.status === 403) {
+                throw error;
+            }
+            
+            if (returnErrorObject) {
+                return {
+                    success: false,
+                    message: error.message || 'Error de conexión con el servidor',
+                    ...(defaultData !== undefined ? { data: defaultData } : {})
+                };
+            }
+            
+            return { success: false, message: error.message || 'Error de conexión con el servidor' };
         }
+    }
+
+    static async create(reglaData) {
+        return reglasProduccionDamabravaService._request('/reglas-produccion-damabrava', {
+            method: 'POST',
+            body: JSON.stringify(reglaData)
+        }, {
+            requireEmpresaId: true
+        });
     }
 
     static async getAll(_forceReload = null) {
-        try {
-            const empresaId = getEmpresaId();
-            if (!empresaId) {
-                return {
-                    success: false,
-                    message: 'No hay empresa seleccionada'
-                };
-            }
-
-            const params = new URLSearchParams({
-                empresa_id: empresaId
-            });
-
-            const response = await fetch(`${API_BASE_URL}/reglas-produccion-damabrava?${params.toString()}`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener las reglas de producción');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en reglasProduccionDamabravaService.getAll:', error);
-            return {
-                success: false,
-                message: error.message || 'Error de conexión con el servidor'
-            };
-        }
+        return reglasProduccionDamabravaService._request('/reglas-produccion-damabrava', {
+            method: 'GET'
+        }, {
+            requireEmpresaId: true
+        });
     }
 
     static async delete(reglaId) {
-        try {
-            if (!reglaId) {
-                return {
-                    success: false,
-                    message: 'El identificador de la regla es obligatorio'
-                };
-            }
-
-            const response = await fetch(`${API_BASE_URL}/reglas-produccion-damabrava/${reglaId}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al eliminar la regla de producción');
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Error en reglasProduccionDamabravaService.delete:', error);
+        if (!reglaId) {
             return {
                 success: false,
-                message: error.message || 'Error de conexión con el servidor'
+                message: 'El identificador de la regla es obligatorio'
             };
         }
+
+        return reglasProduccionDamabravaService._request(`/reglas-produccion-damabrava/${reglaId}`, {
+            method: 'DELETE'
+        });
     }
 }
 

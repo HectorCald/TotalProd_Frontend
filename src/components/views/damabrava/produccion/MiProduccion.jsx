@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import styles from '../../../../styles/Inicial.module.css';
-import HeaderView from '../../../common/HeaderView';
+import HeaderView from '../../../common/old/HeaderView';
 import View from '../../../ui/View';
-import ItemView from '../../../common/ItemView';
+import ItemView from '../../../common/old/ItemView';
 import VerMiProduccion from './VerMiProduccion';
-import Filtros from '../../../common/Filtros';
+import Filtros from '../../../common/old/Filtros';
 import registrosProduccionDamabravaService from '../../../../services/registrosProduccionDamabravaService';
-import RefreshIndicator from '../../../common/RefreshIndicator';
+import RefreshIndicator from '../../../common/old/RefreshIndicator';
 import { useLayout } from '../../../../context/LayoutContext';
-import Table from '../../../common/Table';
+import Table from '../../../common/old/Table';
 import FiltroEstados from '../../../mixed/FiltroEstados';
 import FiltroFecha, { formatDateRangeForDisplay } from '../../../mixed/FiltroFecha';
-import NoData from '../../../common/NoData';
-import LoadingSpinner from '../../../common/LoadingSpinner';
-import PullToRefresh from '../../../common/PullToRefresh';
+import NoData from '../../../common/widgets/NoData';
+import LoadingSpinner from '../../../common/old/LoadingSpinner';
+import PullToRefresh from '../../../common/old/PullToRefresh';
 import FetchDataProgressive from '../../../mixed/FetchDataProgressive';
 import useProgressiveSessionCache from '../../../../hooks/useProgressiveSessionCache';
 

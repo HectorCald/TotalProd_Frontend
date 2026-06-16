@@ -1,0 +1,202 @@
+.btn {
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 24px;
+  font-size: 11px;
+  font-weight: 600;
+  position: relative;
+  color: white;
+  z-index: 1;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.buttonIcon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px !important;
+  font-weight: 550 !important;
+}
+
+.objeto {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  background-color: var(--success-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+}
+
+/* BotonIcon / btnSquare styles */
+.btnSquare {
+  width: 45px;
+  height: 45px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  position: relative;
+  z-index: 1;
+  color: white;
+}
+.btnSquare .buttonIcon {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  font-size: 20px !important;
+  color: inherit !important;
+  fill: currentColor !important;
+}
+
+/* BotonFlotante / btnFloat styles */
+.btnFloat {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--primary-color, #2dbea1);
+  color: white;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 999;
+  transition: transform 0.2s, background-color 0.2s;
+}
+.btnFloat:hover {
+  background-color: var(--primary-color-dark, #29a990);
+  transform: scale(1.05);
+}
+.btnFloat:active {
+  transform: scale(0.95);
+}
+.btnFloat .buttonIcon {
+  width: 24px;
+  height: 24px;
+  font-size: 24px !important;
+  color: inherit !important;
+  fill: currentColor !important;
+}
+
+.btn-default {
+  background: none;
+  color: var(--secondary-color);
+  border: 1px solid var(--tertiary-color);
+}
+.btn-default-red {
+  background: none;
+  color: var(--error-color);
+}
+.btn-default-green {
+  background: none;
+  color: var(--success-color);
+}
+.btn-default-orange {
+  background: none;
+  color: var(--warning-color);
+}
+.btn-default-blue {
+  background: none;
+  color: var(--info-color);
+}
+.btn-gray {
+  background-color: var(--tertiary-color);
+  color: var(--white-color);
+}
+.btn-transparent {
+  background-color: transparent;
+  color: var(--white-color);
+}
+.btn-original {
+  background-color: var(--primary-color);
+  color: white;
+}
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+.btn-red {
+  background-color: var(--error-color);
+  color: white;
+}
+.btn-green {
+  color: black;
+  background-color: rgb(105, 205, 55);
+}
+.btn-blue {
+  background-color: var(--info-color);
+  color: white;
+}
+.btn-orange {
+  background-color: var(--warning-color);
+  color: white;
+}
+.btn-liquid {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  color: #2d3748 !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Estado de carga */
+.loading {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.loading:hover {
+  transform: none;
+}
+
+/* Spinner en lugar de dots */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: currentColor;
+  animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.disabledButton {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0);
+  z-index: 999999999;
+  pointer-events: none;
+}
+
+/* Hover effects solo en pantallas grandes */
+@media (min-width: 768px) {
+  .btn:hover{
+    opacity: 0.6;
+  }
+}

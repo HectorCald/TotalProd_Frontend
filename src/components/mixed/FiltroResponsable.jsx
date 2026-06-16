@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import ViewModal from '../ui/ViewModal';
-import HeaderModal from '../common/HeaderModal';
+import HeaderModal from '../common/old/HeaderModal';
 import styles from '../../styles/Inicial.module.css';
-import ItemLine from '../common/ItemLine';
-import LoadingSpinner from '../common/LoadingSpinner';
+import ItemLine from '../common/old/ItemLine';
+import LoadingSpinner from '../common/old/LoadingSpinner';
 import personalService from '../../services/personalService';
 import historialService from '../../services/historialService';
 

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ViewModal from '../ui/ViewModal';
-import HeaderModal from '../common/HeaderModal';
+import HeaderModal from '../common/old/HeaderModal';
 import styles from '../../styles/Inicial.module.css';
-import ItemLine from '../common/ItemLine';
+import ItemLine from '../common/old/ItemLine';
 import proveedorService from '../../services/proveedorService';
-import NoData from '../common/NoData';
+import NoData from '../common/widgets/NoData';
 
 function FiltroProveedor({ isOpen, setIsOpen, onProveedorSeleccionado, proveedorSeleccionado = null }) {
     const [proveedores, setProveedores] = useState([]);

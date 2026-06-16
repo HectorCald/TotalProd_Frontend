@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react';
-import Toast from '../components/common/Toast';
-import styles from '../components/common/Toast.module.css';
+import Toast from '../components/common/widgets/Toast';
+import styles from '../components/common/widgets/Toast.module.css';
 
 const ToastContext = createContext(null);
 

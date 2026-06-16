@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../styles/Inicial.module.css';
 import ViewModal from '../ui/ViewModal';
-import HeaderModal from '../common/HeaderModal';
-import ItemLine from '../common/ItemLine';
+import HeaderModal from '../common/old/HeaderModal';
+import ItemLine from '../common/old/ItemLine';
 import typeMeasureService from '../../services/typeMeasureService';
 
 function FiltroTipoMedida({ isOpen, setIsOpen, onTipoMedidaSeleccionado }) {

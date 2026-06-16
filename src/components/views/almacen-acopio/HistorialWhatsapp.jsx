@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import Boton from '../../common/Boton';
-import Notification from '../../common/Notification';
+import HeaderModal from '../../common/old/HeaderModal';
+import Boton from '../../common/botones/Boton';
+import Notification from '../../common/old/Notification';
 import styles from '../../../styles/view.module.css';
 import whatsappIcon from '../../../assets/whatsapp.png';
 

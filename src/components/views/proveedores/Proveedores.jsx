@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../../styles/Inicial.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import ItemView from '../../common/ItemView';
+import ItemView from '../../common/old/ItemView';
 import VerProveedor from './VerProveedor';
-import Boton from '../../common/Boton';
+import Boton from '../../common/botones/Boton';
 import EditarAgregar from './EditarAgregar';
 import FetchData from '../../mixed/FetchData';
 import proveedorService from '../../../services/proveedorService';
 import { BoxIcon } from 'boxicons-react';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import LoadingSpinner from '../../common/old/LoadingSpinner';
 import { useLayout } from '../../../context/LayoutContext';
-import Table from '../../common/Table';
-import InfoModal from '../../common/InfoModal';
-import NoData from '../../common/NoData';
-import PullToRefresh from '../../common/PullToRefresh';
-import RefreshIndicator from '../../common/RefreshIndicator';
+import Table from '../../common/old/Table';
+import InfoModal from '../../common/old/InfoModal';
+import NoData from '../../common/widgets/NoData';
+import PullToRefresh from '../../common/old/PullToRefresh';
+import RefreshIndicator from '../../common/old/RefreshIndicator';
 import useSessionCache from '../../../hooks/useSessionCache';
 
 function Proveedores({ isOpen, setIsOpen, modoSeleccion = false, onProveedorSeleccionado }) {

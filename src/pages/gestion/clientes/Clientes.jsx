@@ -1,0 +1,167 @@
+import React, { useState, useCallback } from 'react';
+import { useLayout } from '../../../context/LayoutContext';
+import SideBar from '../../../components/essentials/SideBar';
+import NavBar from '../../../components/essentials/NavBar';
+import styles from '../../../pages/home/View.module.css';
+import Tabla from '../../../components/common/information/Tabla';
+import useSessionCache from '../../../hooks/useSessionCache';
+import FetchData from '../../../components/mixed/FetchData';
+import clientService from '../../../services/clientService';
+import AgregarEditarCliente from './modals/AgregarEditarCliente';
+import EliminarCliente from './modals/EliminarCliente';
+import ViewInfo from './modals/ViewInfo';
+
+
+const Clientes = () => {
+  const { isLargeScreen } = useLayout();
+
+  const {
+    value: clientes,
+    setValue: setClientes,
+  } = useSessionCache({
+    key: 'clientesListado',
+    defaultValue: [],
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+
+  const handleClientesLoaded = useCallback((data) => {
+    setClientes(data);
+    setError(null);
+  }, [setClientes]);
+
+  const handleLoadingStart = useCallback(() => {
+    if (clientes.length === 0) {
+      setIsLoading(true);
+    }
+  }, [clientes.length]);
+
+  const handleLoadingEnd = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
+  const handleError = useCallback((err) => {
+    setError(err);
+  }, []);
+
+  const tableActions = [
+    {
+      name: 'Detalles', icon: 'show', onClick: (cliente) => {
+        setClienteSeleccionado(cliente);
+        setIsViewModalOpen(true);
+      }
+    },
+    {
+      name: 'Editar', icon: 'edit', onClick: (cliente) => {
+        setClienteSeleccionado(cliente);
+        setIsModalOpen(true);
+      }
+    },
+    {
+      name: 'Eliminar', icon: 'trash', onClick: (cliente) => {
+        setClienteSeleccionado(cliente);
+        setIsDeleteModalOpen(true);
+      }
+    },
+  ];
+
+  const columns = [
+    {
+      header: 'Nombre',
+      accessor: 'name',
+      style: { fontWeight: 600, color: '#333' },
+      hasIcon: true,
+      width: '20%'
+    },
+    {
+      header: 'Descripción',
+      accessor: 'description',
+      truncate: true,
+      width: '30%'
+    },
+    {
+      header: 'Teléfono',
+      accessor: 'phone',
+      width: '25%'
+    },
+    {
+      header: 'Total Pedidos',
+      accessor: 'total_orders',
+      width: '25%'
+    }
+  ];
+
+  return (
+    <>
+      {isLargeScreen && <NavBar />}
+      <div className={styles.dashboardContainer}>
+        {isLargeScreen && <SideBar />}
+        <div className={styles.contentArea}>
+          <h1 className={styles.title}>Clientes</h1>
+          <Tabla
+            data={clientes}
+            columns={columns}
+            isLoading={isLoading}
+            acciones={tableActions}
+            buttonLabel="Nuevo Cliente"
+            onButtonClick={() => {
+              setClienteSeleccionado(null);
+              setIsModalOpen(true);
+            }}
+            searchKeys={['name', 'phone']}
+            sortKey="name"
+            onRowClick={(cliente) => {
+              setClienteSeleccionado(cliente);
+              setIsViewModalOpen(true);
+            }}
+          />
+        </div>
+      </div>
+      <AgregarEditarCliente
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        clienteSeleccionado={clienteSeleccionado}
+        onGuardar={(nuevoCliente) => {
+          if (clienteSeleccionado) {
+            setClientes(prev => prev.map(c => c.id === clienteSeleccionado.id ? { ...c, ...nuevoCliente } : c));
+          } else {
+            setClientes(prev => [...prev, { id: nuevoCliente?.id || Date.now(), ...nuevoCliente }]);
+          }
+          setIsModalOpen(false);
+        }}
+      />
+      <EliminarCliente
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        clienteSeleccionado={clienteSeleccionado}
+        onEliminar={(idEliminado) => {
+          setClientes(prev => prev.filter(c => c.id !== idEliminado));
+        }}
+      />
+      <ViewInfo
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        cliente={clienteSeleccionado}
+        onEdit={(cliente) => {
+          setClienteSeleccionado(cliente);
+          setIsModalOpen(true);
+        }}
+      />
+      <FetchData
+        service={clientService}
+        serviceName="clientService"
+        isOpen={true}
+        onDataLoaded={handleClientesLoaded}
+        onLoadingStart={handleLoadingStart}
+        onLoadingEnd={handleLoadingEnd}
+        onError={handleError}
+      />
+    </>
+  );
+};
+
+export default Clientes;

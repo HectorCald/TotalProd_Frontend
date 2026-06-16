@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../../styles/view.module.css';
-import HeaderView from '../../../common/HeaderView';
+import HeaderView from '../../../common/old/HeaderView';
 import View from '../../../ui/View';
-import Dato from '../../../common/Dato';
-import Boton from '../../../common/Boton';
-import ItemView from '../../../common/ItemView';
+import Dato from '../../../common/old/Dato';
+import Boton from '../../../common/botones/Boton';
+import ItemView from '../../../common/old/ItemView';
 import ModalDescarga from '../../../ui/ModalDescarga';
 import VerMovimiento from '../../movimientos/VerMovimiento';
 import { formatFechaLiteral, formatHoraSinSegundos, formatFechaHoraLiteral } from '../../../../utils/dateUtils';
@@ -12,8 +12,8 @@ import { seleccionarReglaParaProducto, calcularPagoProcesos } from '../../../../
 import permissionsService from '../../../../services/permissionsService';
 import { useLayout } from '../../../../context/LayoutContext';
 import { useToast } from '../../../../context/ToastContext';
-import StatusBadge from '../../../common/StatusBadge';
-import NoData from '../../../common/NoData';
+import StatusBadge from '../../../common/old/StatusBadge';
+import NoData from '../../../common/widgets/NoData';
 import ModalVerificar from './modales/ModalVerificar';
 import ModalAnularVerificacion from './modales/ModalAnularVerificacion';
 import ModalEliminar from './modales/ModalEliminar';

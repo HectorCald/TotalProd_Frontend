@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import Dato from '../../../common/Dato';
-import Skeleton from '../../../common/Skeleton';
+import HeaderModal from '../../../common/old/HeaderModal';
+import Dato from '../../../common/old/Dato';
+import Skeleton from '../../../common/widgets/Skeleton';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../../utils/dateUtils';
 import { useLayout } from '../../../../context/LayoutContext';
 import { useToast } from '../../../../context/ToastContext';

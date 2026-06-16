@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../../../styles/view.module.css';
 import ViewModal from '../../../../ui/ViewModal';
-import HeaderModal from '../../../../common/HeaderModal';
-import Dato from '../../../../common/Dato';
+import HeaderModal from '../../../../common/old/HeaderModal';
+import Dato from '../../../../common/old/Dato';
 import Input from '../../../../common/inputs/Input';
-import Boton from '../../../../common/Boton';
+import Boton from '../../../../common/botones/Boton';
 import { useToast } from '../../../../../context/ToastContext';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
 import registrosProduccionDamabravaService from '../../../../../services/registrosProduccionDamabravaService';

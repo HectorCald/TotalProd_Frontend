@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import styles from '../../styles/Canasta.module.css';
 import View from '../../ui/View';
-import HeaderView from '../../common/HeaderView';
-import Boton from '../../common/Boton';
-import InputNormal from '../../common/InputNormal';
-import Select from '../../common/Select';
+import HeaderView from '../../common/old/HeaderView';
+import Boton from '../../common/botones/Boton';
+import InputNormal from '../../common/old/InputNormal';
+import Select from '../../common/old/Select';
 import SelectorSucursal from '../../mixed/SelectorSucursal';
 import { BoxIcon } from 'boxicons-react';
 import { motion } from 'framer-motion';

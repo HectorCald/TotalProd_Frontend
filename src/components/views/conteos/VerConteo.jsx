@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import ItemView from '../../common/ItemView';
-import Dato from '../../common/Dato';
-import Boton from '../../common/Boton';
+import ItemView from '../../common/old/ItemView';
+import Dato from '../../common/old/Dato';
+import Boton from '../../common/botones/Boton';
 import { useLayout } from '../../../context/LayoutContext';
 import conteosService from '../../../services/conteosService';
 import { useToast } from '../../../context/ToastContext';
@@ -16,7 +16,7 @@ import AlmacenAcopioAuxiliar from '../almacen-acopio-auxiliar/AlmacenAcopio-Auxi
 import { BoxIcon } from 'boxicons-react';
 import DescargaConteoBuilder from './DescargaConteoBuilder';
 import { formatFechaLiteral, formatHoraSinSegundos } from '../../../utils/dateUtils';
-import StatusBadge from '../../common/StatusBadge';
+import StatusBadge from '../../common/old/StatusBadge';
 
 function VerConteo({ isOpen, setIsOpen, conteo, onConteoDeleted, onConteoReplaced }) {
     const { isLargeScreen } = useLayout();

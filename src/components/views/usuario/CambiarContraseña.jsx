@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import InputNormal from '../../common/InputNormal';
-import Boton from '../../common/Boton';
-import MensajeError from '../../common/MensajeError';
+import InputNormal from '../../common/old/InputNormal';
+import Boton from '../../common/botones/Boton';
+import MensajeError from '../../common/old/MensajeError';
 import UserService from '../../../services/userService';
 import { useUser } from '../../../context/UserContext';
-import Notification from '../../common/Notification';
+import Notification from '../../common/old/Notification';
 
 function CambiarContraseña({ isOpen, setIsOpen }) {
     // Estado para almacenar el mensaje de error y éxito

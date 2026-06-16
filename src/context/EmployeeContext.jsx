@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import personalService from '../services/personalService';
 import sucursalesService from '../services/sucursalesService';
-import { OFFLINE_NETWORK_FLAG } from '../utils/offlineNetworkInterceptor';
 
 const EmployeeContext = createContext();
 
@@ -34,44 +33,9 @@ export const EmployeeProvider = ({ children }) => {
   // Cargar datos del empleado y sucursal al inicializar
   useEffect(() => {
     const cargarDatosIniciales = async () => {
-      // Cargar sucursal seleccionada
-      const sucursalGuardada = localStorage.getItem('sucursalSeleccionada');
-      if (sucursalGuardada) {
-        try {
-          setSucursalSeleccionada(JSON.parse(sucursalGuardada));
-        } catch (error) {
-          console.error('Error al cargar sucursal seleccionada:', error);
-          localStorage.removeItem('sucursalSeleccionada');
-        }
-      }
+      // La sucursal inicial será manejada por App.jsx que auto-seleccionará la sucursal basada en el ID guardado
 
-      // Cargar datos del empleado si existen
-      const employeeData = localStorage.getItem('employeeData');
-      if (employeeData) {
-        try {
-          const parsedEmployeeData = JSON.parse(employeeData);
-          // Guardar solo la parte personal del objeto, no el objeto completo
-          const personalData = parsedEmployeeData.personal || parsedEmployeeData;
-          const normalizedPersonalData = {
-            ...personalData,
-            permisos: normalizePermisos(personalData.permisos)
-          };
-          setEmployee(normalizedPersonalData);
-          localStorage.setItem('employeeData', JSON.stringify(normalizedPersonalData));
-          
-          // Si el empleado tiene sucursal_id, cargar la sucursal
-          if (personalData.sucursal_id) {
-            const sucursalData = await sucursalesService.getById(personalData.sucursal_id);
-            if (sucursalData.success) {
-              setSucursalSeleccionada(sucursalData.data);
-              localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursalData.data));
-            }
-          }
-        } catch (error) {
-          console.error('Error al cargar datos del empleado:', error);
-          localStorage.removeItem('employeeData');
-        }
-      }
+      // Los datos del empleado se cargarán mediante App.jsx (loadEmployeeData)
     };
 
     cargarDatosIniciales();
@@ -90,10 +54,19 @@ export const EmployeeProvider = ({ children }) => {
     });
   };
 
-  // Función para seleccionar sucursal
   const seleccionarSucursal = (sucursal) => {
     setSucursalSeleccionada(sucursal);
-    localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursal));
+    if (sucursal?.id) {
+        localStorage.setItem('sucursalIdSeleccionada', sucursal.id);
+        const empresaId = sucursal.empresas?.id || sucursal.empresa_id;
+        if (empresaId) {
+            localStorage.setItem('empresa_id', empresaId);
+        }
+    } else {
+        localStorage.removeItem('sucursalIdSeleccionada');
+        localStorage.removeItem('empresa_id');
+    }
+    localStorage.removeItem('sucursalSeleccionada'); // Limpiar datos pesados si existían
 
     setEmployee(prevEmployee => {
       if (!prevEmployee) return prevEmployee;
@@ -114,7 +87,6 @@ export const EmployeeProvider = ({ children }) => {
           : null
       };
 
-      localStorage.setItem('employeeData', JSON.stringify(updatedEmployee));
       return updatedEmployee;
     });
   };
@@ -173,25 +145,6 @@ export const EmployeeProvider = ({ children }) => {
     return false;
   };
 
-  const getOfflineEmployeeData = () => {
-    try {
-      const cached = localStorage.getItem('offline_employee_data');
-      return cached ? JSON.parse(cached) : null;
-    } catch (error) {
-      console.warn('No se pudo leer empleado offline:', error);
-      return null;
-    }
-  };
-
-  const shouldUseOffline = () => {
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
-    try {
-      return localStorage.getItem(OFFLINE_NETWORK_FLAG) === 'true';
-    } catch {
-      return false;
-    }
-  };
-
   // Función para cargar datos completos del empleado (memoizada para evitar bucles)
   const loadEmployeeData = useCallback(async (employeeId) => {
     // Evitar múltiples llamadas simultáneas
@@ -203,20 +156,6 @@ export const EmployeeProvider = ({ children }) => {
     loadingEmployeeRef.current = true;
     setLoading(true);
     setError(null);
-
-    if (shouldUseOffline()) {
-      const offlineEmployee = getOfflineEmployeeData();
-      if (offlineEmployee) {
-        const normalizedEmployee = {
-          ...offlineEmployee,
-          permisos: normalizePermisos(offlineEmployee.permisos)
-        };
-        setEmployee(normalizedEmployee);
-        setLoading(false);
-        loadingEmployeeRef.current = false;
-        return { success: true, data: normalizedEmployee, offline: true };
-      }
-    }
     
     try {
       const employeeData = await personalService.getById(employeeId);
@@ -236,7 +175,6 @@ export const EmployeeProvider = ({ children }) => {
         };
 
         setEmployee(normalizedEmployeeData);
-        localStorage.setItem('employeeData', JSON.stringify(normalizedEmployeeData));
         setError(null);
         
         const hasManualOverride = localStorage.getItem('employeeSucursalOverride') === 'true';
@@ -250,41 +188,53 @@ export const EmployeeProvider = ({ children }) => {
           }
         }
         
-        // Si tiene sucursal_id, cargar la sucursal
-        if (employeeData.data.sucursal_id && !hasManualOverride) {
-          const sucursalData = await sucursalesService.getById(employeeData.data.sucursal_id);
-          if (sucursalData.success) {
-            setSucursalSeleccionada(sucursalData.data);
-            localStorage.setItem('sucursalSeleccionada', JSON.stringify(sucursalData.data));
-            
-            // Si la sucursal tiene empresa pero no tiene logo_tipo, cargar la imagen
-            if (sucursalData.data.empresas && sucursalData.data.empresas.id && !sucursalData.data.empresas.logo_tipo) {
-              try {
-                const EmpresaImagenService = (await import('../services/empresaImagenService')).default;
-                const imageResponse = await EmpresaImagenService.getImage(sucursalData.data.empresas.id);
-                
-                if (imageResponse.success) {
-                  const imageUrl = imageResponse.data?.imagen_url || 
-                                 imageResponse.data?.secure_url || 
-                                 imageResponse.data?.url ||
-                                 imageResponse.data?.image_url;
-                  
-                  if (imageUrl) {
-                    // Actualizar la sucursal con la imagen
-                    const updatedSucursal = {
-                      ...sucursalData.data,
-                      empresas: {
-                        ...sucursalData.data.empresas,
-                        logo_tipo: imageUrl
-                      }
-                    };
-                    setSucursalSeleccionada(updatedSucursal);
-                    localStorage.setItem('sucursalSeleccionada', JSON.stringify(updatedSucursal));
-                  }
-                }
-              } catch (error) {
-                console.log('❌ EmployeeContext: No se pudo cargar la imagen de la empresa:', error);
+        // Si tiene sucursal_id, usar la sucursal que ya viene en los datos
+        if (employeeData.data.sucursal_id && employeeData.data.sucursal && !hasManualOverride) {
+          const sucursalActual = employeeData.data.sucursal;
+          setSucursalSeleccionada(sucursalActual);
+          if (sucursalActual?.id) {
+              localStorage.setItem('sucursalIdSeleccionada', sucursalActual.id);
+              const empresaId = sucursalActual.empresas?.id || sucursalActual.empresa_id;
+              if (empresaId) {
+                  localStorage.setItem('empresa_id', empresaId);
               }
+          }
+          localStorage.removeItem('sucursalSeleccionada');
+          
+          // Si la sucursal tiene empresa pero no tiene logo_tipo, cargar la imagen
+          if (sucursalActual.empresas && sucursalActual.empresas.id && !sucursalActual.empresas.logo_tipo) {
+            try {
+              const EmpresaImagenService = (await import('../services/empresaImagenService')).default;
+              const imageResponse = await EmpresaImagenService.getImage(sucursalActual.empresas.id);
+              
+              if (imageResponse.success) {
+                const imageUrl = imageResponse.data?.imagen_url || 
+                               imageResponse.data?.secure_url || 
+                               imageResponse.data?.url ||
+                               imageResponse.data?.image_url;
+                
+                if (imageUrl) {
+                  // Actualizar la sucursal con la imagen
+                  const updatedSucursal = {
+                    ...sucursalActual,
+                    empresas: {
+                      ...sucursalActual.empresas,
+                      logo_tipo: imageUrl
+                    }
+                  };
+                  setSucursalSeleccionada(updatedSucursal);
+                  if (updatedSucursal?.id) {
+                      localStorage.setItem('sucursalIdSeleccionada', updatedSucursal.id);
+                      const empresaId = updatedSucursal.empresas?.id || updatedSucursal.empresa_id;
+                      if (empresaId) {
+                          localStorage.setItem('empresa_id', empresaId);
+                      }
+                  }
+                  localStorage.removeItem('sucursalSeleccionada');
+                }
+              }
+            } catch (error) {
+              console.log('❌ EmployeeContext: No se pudo cargar la imagen de la empresa:', error);
             }
           }
         } else if (hasManualOverride && parsedStoredSucursal) {
@@ -295,7 +245,6 @@ export const EmployeeProvider = ({ children }) => {
             sucursal: parsedStoredSucursal
           };
           setEmployee(overrideEmployee);
-          localStorage.setItem('employeeData', JSON.stringify(overrideEmployee));
           localStorage.removeItem('employeeSucursalOverride');
         }
         
@@ -396,7 +345,6 @@ export const EmployeeProvider = ({ children }) => {
       permisos: normalizePermisos(newEmployee.permisos)
     };
     setEmployee(normalizedEmployee);
-    localStorage.setItem('employeeData', JSON.stringify(normalizedEmployee));
   };
 
   const value = {

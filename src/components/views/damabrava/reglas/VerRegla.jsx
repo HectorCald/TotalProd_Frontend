@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import styles from '../../../../styles/view.module.css';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import Dato from '../../../common/Dato';
+import HeaderModal from '../../../common/old/HeaderModal';
+import Dato from '../../../common/old/Dato';
 import reglasProduccionDamabravaService from '../../../../services/reglasProduccionDamabravaService';
 import { useToast } from '../../../../context/ToastContext';
-import Boton from '../../../common/Boton';
+import Boton from '../../../common/botones/Boton';
 
 const formatNumber = (value) => {
     if (value === undefined || value === null || value === '') return '--';

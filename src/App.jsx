@@ -1,23 +1,81 @@
 import React, { useEffect, useState } from 'react';
-import './styles/App.css';
-import Login from './pages/Login';
+import './styles/global.css';
+import Login from './pages/auth/Login';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Home from './pages/Home';
-import HomeEmpleado from './pages/HomeEmpleado';
+import Dashboard from './pages/home/Dashboard';
+
+// Section INVENTARIO - Almacen
+import AlmacenGeneral from './pages/inventario/almacen/AlmacenGeneral';
+
+// Section INVENTARIO - Materia Prima
+import MateriaPrima from './pages/inventario/materia-prima/MateriaPrima';
+
+// Section REGISTROS Y PEDIDOS - Movimientos
+import Movimientos from './pages/registros-pedidos/movimientos/Movimientos';
+
+// Section REGISTROS Y PEDIDOS - Pedidos
+import PedidosPage from './pages/registros-pedidos/pedidos/Pedidos';
+
+// Section REGISTROS Y PEDIDOS - Conteos
+import Conteos from './pages/registros-pedidos/conteos/Conteos';
+
+// Section REGISTROS Y PEDIDOS - Cotizaciones
+import Cotizaciones from './pages/registros-pedidos/cotizaciones/Cotizaciones';
+
+// Section GESTIÓN
+import Clientes from './pages/gestion/clientes/Clientes';
+import Proveedores from './pages/gestion/proveedores/Proveedores';
+import Personal from './pages/gestion/personal/Personal';
+
+// Section FINANZAS
+import Pagos from './pages/finanzas/pagos/Pagos';
+import Deudas from './pages/finanzas/deudas/Deudas';
+import Balance from './pages/finanzas/balance/Balance';
+
+// Section CONFIGURACIÓN
+import Precios from './pages/configuracion/precios/Precios';
+import Cargos from './pages/configuracion/cargos/Cargos';
+import Categorias from './pages/configuracion/categorias/Categorias';
+import Sucursales from './pages/configuracion/sucursales/Sucursales';
+import Socios from './pages/configuracion/socios/Socios';
+import Exportar from './pages/configuracion/exportar/Exportar';
+
+// Section DAMABRAVA
+import Verificacion from './pages/custom-pages/damabrava/Verificacion';
+import MiProduccion from './pages/custom-pages/damabrava/MiProduccion';
+import Reglas from './pages/custom-pages/damabrava/Reglas';
+
 import { UserProvider, useUser } from './context/UserContext';
 import { EmployeeProvider, useEmployee } from './context/EmployeeContext';
 import { ModalStackProvider } from './context/ModalStackContext';
 import { LayoutProvider } from './context/LayoutContext';
 import { ToastProvider } from './context/ToastContext';
-import SeleccionarSucursal from './components/views/sucursales/SeleccionarSucursal';
-import LoadingSpinner from './components/common/LoadingSpinner';
 import sucursalesService from './services/sucursalesService';
-import ModalPermisoUbicacion from './components/views/offline/ModalPermisoUbicacion';
+import NavBar from './components/essentials/NavBar';
+import SideBar from './components/essentials/SideBar';
+import viewStyles from './pages/home/View.module.css';
 
 
 function App() {
-  const [token, setToken] = useState(null);
-  const [tokenType, setTokenType] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [tokenType, setTokenType] = useState(() => {
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      try {
+        const base64Url = storedToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const decoded = JSON.parse(jsonPayload);
+        return decoded.type;
+      } catch (error) {
+        console.error('Error al decodificar token:', error);
+        return null;
+      }
+    }
+    return null;
+  });
 
   useEffect(() => {
     // Registrar Service Worker
@@ -30,76 +88,79 @@ function App() {
           console.error('❌ Error registrando Service Worker:', error);
         });
     }
-    
-    // Limpiar datos residuales de pedidos al iniciar la aplicación
-        localStorage.removeItem('pedidoIdEditando');
-        localStorage.removeItem('pedidoIdEntregando');
-        localStorage.removeItem('precioIdEditando');
-        localStorage.removeItem('precioIdEntregando');
-    
-    const storedToken = localStorage.getItem('token');
-    
-    if (storedToken) {
-      try {
-        // Decodificar token para obtener el tipo
-        const base64Url = storedToken.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        const decoded = JSON.parse(jsonPayload);
-        
-        setToken(storedToken);
-        setTokenType(decoded.type);
-      } catch (error) {
-        console.error('Error al decodificar token:', error);
-        setToken(null);
-        setTokenType(null);
-      }
-    } else {
-      setToken(null);
-      setTokenType(null);
-    }
 
-    // Cargar tema guardado
-    const savedTheme = localStorage.getItem('theme') || 'dark';
+    // Limpiar la caché de sesión cada vez que se recarga la página
+    sessionStorage.clear();
 
-    // Si el tema es 'system', detectar preferencia del sistema
-    let themeToApply = savedTheme;
-    if (savedTheme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      themeToApply = prefersDark ? 'dark' : 'light';
-    }
-
-    document.documentElement.setAttribute('data-theme', themeToApply);
+    // Establecer tema claro fijo (modo oscuro deshabilitado)
+    document.documentElement.setAttribute('data-theme', 'light');
   }, []);
 
+  // Escuchar cambios en el token de localStorage para redirigir/actualizar sesión
+  useEffect(() => {
+    const updateTokenState = () => {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken !== token) {
+        setToken(storedToken);
+        if (storedToken) {
+          try {
+            const base64Url = storedToken.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const decoded = JSON.parse(jsonPayload);
+            setTokenType(decoded.type);
+          } catch (error) {
+            console.error('Error al decodificar token:', error);
+            setTokenType(null);
+          }
+        } else {
+          setTokenType(null);
+        }
+      }
+    };
+
+    window.addEventListener('storage', updateTokenState);
+    window.addEventListener('local-logout', updateTokenState);
+    window.addEventListener('local-login', updateTokenState);
+
+    const interval = setInterval(updateTokenState, 500);
+
+    return () => {
+      window.removeEventListener('storage', updateTokenState);
+      window.removeEventListener('local-logout', updateTokenState);
+      window.removeEventListener('local-login', updateTokenState);
+      clearInterval(interval);
+    };
+  }, [token]);
+
   return (
-    <UserProvider>
-      <EmployeeProvider>
-        <ModalStackProvider>
-          <LayoutProvider>
-            <ToastProvider>
-              <AppContent token={token} tokenType={tokenType} />
-            </ToastProvider>
-          </LayoutProvider>
-        </ModalStackProvider>
-      </EmployeeProvider>
-    </UserProvider>
+    <BrowserRouter>
+      <UserProvider>
+        <EmployeeProvider>
+          <ModalStackProvider>
+            <LayoutProvider>
+              <ToastProvider>
+                <AppContent token={token} tokenType={tokenType} />
+              </ToastProvider>
+            </LayoutProvider>
+          </ModalStackProvider>
+        </EmployeeProvider>
+      </UserProvider>
+    </BrowserRouter>
   );
 }
 
 function AppContent({ token, tokenType }) {
-  const { user, sucursalSeleccionada: userSucursal, seleccionarSucursal: seleccionarSucursalUsuario, loadUserData } = useUser();
+  const { user, sucursalSeleccionada: userSucursal, seleccionarSucursal: seleccionarSucursalUsuario, loadUserData, setEmpresa } = useUser();
   const { employee, sucursalSeleccionada: employeeSucursal, seleccionarSucursal: seleccionarSucursalEmpleado, loadEmployeeData, loading: employeeLoading } = useEmployee();
   const [showSucursalModal, setShowSucursalModal] = useState(false);
   const [userDataFetched, setUserDataFetched] = useState(false);
   const [employeeDataFetched, setEmployeeDataFetched] = useState(false);
   const [loadingSucursal, setLoadingSucursal] = useState(false);
   const [sucursalAutoSeleccionada, setSucursalAutoSeleccionada] = useState(false);
-  const [showPermisoUbicacion, setShowPermisoUbicacion] = useState(false);
-  const [permisoVerificado, setPermisoVerificado] = useState(false);
-  
+
   // Determinar si hay una sesión activa
   const hasActiveSession = !!token;
   const isUserSession = tokenType === 'user';
@@ -113,188 +174,71 @@ function AppContent({ token, tokenType }) {
     setSucursalAutoSeleccionada(false);
   }, [user?.id, employee?.id]);
 
-  // Verificar permiso de geolocalización - Solo después de cargar usuario/empleado
+  // Resetear el estado de fetch cuando se cierra sesión
   useEffect(() => {
-    // Solo verificar si hay una sesión activa Y el usuario/empleado ya fue cargado
     if (!hasActiveSession) {
-      return;
+      setUserDataFetched(false);
+      setEmployeeDataFetched(false);
     }
+  }, [hasActiveSession]);
 
-    // Esperar a que el usuario o empleado esté cargado completamente
-    // Para usuarios: verificar que userDataFetched sea true
-    // Para empleados: verificar que no esté cargando Y que employee exista
-    if (isUserSession && (!user || !userDataFetched)) {
-      return;
-    }
-    if (isEmployeeSession && (employeeLoading || !employee || !employeeDataFetched)) {
-      return;
-    }
 
-    // No mostrar modal de permiso si hay una actualización pendiente
-    // Verificar si hay un modal de actualización visible en el DOM
-    // El modal de actualización tiene prioridad y debe estar por encima
-    const checkUpdateModalOpen = () => {
-      try {
-        // Verificar si hay un modal de actualización abierto en el DOM
-        // Los modales de actualización se renderizan en los componentes de Inicio
-        // Verificamos si hay un elemento con el modal de actualización visible
-        const updateModals = document.querySelectorAll('[class*="modalWrapper"]');
-        // Si hay múltiples modales, el de actualización debería tener mayor z-index
-        // Por ahora, simplemente retornamos false ya que el z-index se maneja en el CSS
-        return false;
-      } catch {
-        return false;
-      }
-    };
-
-    // Si hay actualización pendiente, no mostrar el modal de permiso
-    if (checkUpdateModalOpen()) {
-      return;
-    }
-
-    let permissionStatus = null;
-    let intervalId = null;
-
-    // Función para verificar permiso directamente (fallback)
-    const verificarPermisoDirecto = () => {
-      if (!navigator.geolocation) {
-        // Geolocalización no disponible
-        setShowPermisoUbicacion(true);
-        setPermisoVerificado(false);
-        return;
-      }
-
-      // Intentar obtener ubicación para verificar el permiso
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          // Permiso concedido
-          setShowPermisoUbicacion(false);
-          setPermisoVerificado(true);
-          if (intervalId) {
-            clearInterval(intervalId);
-            intervalId = null;
-          }
-        },
-        (error) => {
-          // Error al obtener ubicación
-          if (error.code === error.PERMISSION_DENIED) {
-            setShowPermisoUbicacion(true);
-            setPermisoVerificado(false);
-          } else {
-            // Otro tipo de error, no mostrar modal (podría ser timeout, etc.)
-            setPermisoVerificado(true);
-          }
-        },
-        {
-          enableHighAccuracy: false,
-          timeout: 3000,
-          maximumAge: 0
-        }
-      );
-    };
-
-    const verificarPermisoUbicacion = async () => {
-      try {
-        // Verificar si el navegador soporta la API de Permissions
-        if ('permissions' in navigator) {
-          try {
-            permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
-            
-            const verificarEstado = () => {
-              if (permissionStatus.state === 'denied' || permissionStatus.state === 'prompt') {
-                setShowPermisoUbicacion(true);
-                setPermisoVerificado(false);
-              } else if (permissionStatus.state === 'granted') {
-                setShowPermisoUbicacion(false);
-                setPermisoVerificado(true);
-                if (intervalId) {
-                  clearInterval(intervalId);
-                  intervalId = null;
-                }
-              }
-            };
-
-            // Verificar estado inicial
-            verificarEstado();
-
-            // Escuchar cambios en el permiso
-            permissionStatus.onchange = () => {
-              verificarEstado();
-            };
-          } catch (error) {
-            // Si la API de permissions no está disponible o falla, intentar obtener ubicación directamente
-            console.warn('No se pudo verificar permiso con Permissions API:', error);
-            verificarPermisoDirecto();
-          }
-        } else {
-          // Si no hay soporte para Permissions API, intentar obtener ubicación directamente
-          verificarPermisoDirecto();
-        }
-      } catch (error) {
-        console.error('Error al verificar permiso de ubicación:', error);
-        // En caso de error, intentar verificación directa
-        verificarPermisoDirecto();
-      }
-    };
-
-    verificarPermisoUbicacion();
-
-    // Verificar periódicamente si el permiso cambió (solo si el modal está abierto)
-    intervalId = setInterval(() => {
-      if (permissionStatus) {
-        // Si tenemos permissionStatus, verificar su estado
-        if (permissionStatus.state === 'granted') {
-          setShowPermisoUbicacion(false);
-          setPermisoVerificado(true);
-          if (intervalId) {
-            clearInterval(intervalId);
-            intervalId = null;
-          }
-        }
-      } else {
-        // Si no tenemos permissionStatus, intentar verificación directa
-        verificarPermisoDirecto();
-      }
-    }, 2000);
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [hasActiveSession, isUserSession, isEmployeeSession, user, employee, userDataFetched, employeeDataFetched, employeeLoading]);
-
-  // Función para auto-seleccionar la primera sucursal disponible
-  const autoSeleccionarSucursal = async (empresaId, isEmployee, canAdministrarSucursales) => {
+  const autoSeleccionarSucursal = async (empresaId, isEmployee, canAdministrarSucursales, sucursalesPrecargadas = null) => {
     if (!empresaId || !canAdministrarSucursales) return false;
-    
+
     try {
       setLoadingSucursal(true);
-      const response = await sucursalesService.getByEmpresaId(empresaId);
-      
-      if (response.success && response.data && response.data.length > 0) {
+      let sucursalesData = [];
+
+      if (sucursalesPrecargadas && sucursalesPrecargadas.length > 0) {
+        sucursalesData = sucursalesPrecargadas;
+      } else {
+        const response = await sucursalesService.getByEmpresaId(empresaId);
+        if (response.success && response.data) {
+          sucursalesData = response.data;
+        }
+      }
+
+      if (sucursalesData.length > 0) {
+        // Almacenar en session cache para uso instantáneo global sin re-fetch
+        sessionStorage.setItem('ListadoSucursales', JSON.stringify(sucursalesData));
+
         // Obtener nombre de empresa para determinar si es Damabrava
-        const nombreEmpresa = response.data[0]?.empresas?.name || '';
+        const empresaData = sucursalesData[0]?.empresas || null;
+        if (empresaData && setEmpresa) {
+          setEmpresa(empresaData);
+        }
+
+        const nombreEmpresa = empresaData?.name || '';
         const esDamabrava = nombreEmpresa === 'Damabrava';
-        
+
         // Filtrar sucursales según las reglas (igual que en SeleccionarSucursal)
-        const sucursalesFiltradas = response.data.filter(sucursal => {
+        const sucursalesFiltradas = sucursalesData.filter(sucursal => {
           const esCasaMatrizAsociada = sucursal.name && sucursal.name.startsWith('Casa Matriz (') && sucursal.name.endsWith(')');
-          
+
           if (esDamabrava) {
             return true;
           }
-          
+
           return !esCasaMatrizAsociada;
         });
 
-        // Auto-seleccionar la primera sucursal disponible
+        // Auto-seleccionar la sucursal previamente guardada o la primera disponible
         if (sucursalesFiltradas.length > 0) {
-          const sucursal = sucursalesFiltradas[0];
+          const savedSucursalId = localStorage.getItem('sucursalIdSeleccionada');
+          let sucursalASeleccionar = sucursalesFiltradas[0]; // Por defecto la primera
+
+          if (savedSucursalId) {
+            const found = sucursalesFiltradas.find(s => s.id === savedSucursalId);
+            if (found) {
+              sucursalASeleccionar = found;
+            }
+          }
+
           if (isEmployee) {
-            seleccionarSucursalEmpleado(sucursal);
+            seleccionarSucursalEmpleado(sucursalASeleccionar);
           } else {
-            seleccionarSucursalUsuario(sucursal);
+            seleccionarSucursalUsuario(sucursalASeleccionar);
           }
           setSucursalAutoSeleccionada(true);
           setLoadingSucursal(false);
@@ -314,7 +258,8 @@ function AppContent({ token, tokenType }) {
   useEffect(() => {
     const autoSeleccionar = async () => {
       if (isUserSession && user && !sucursalSeleccionada && !sucursalAutoSeleccionada && user.empresa_id) {
-        const autoSeleccionada = await autoSeleccionarSucursal(user.empresa_id, false, true);
+        const sucursalesPrecargadas = user.empresa?.sucursales || null;
+        const autoSeleccionada = await autoSeleccionarSucursal(user.empresa_id, false, true, sucursalesPrecargadas);
         if (!autoSeleccionada) {
           // Si no se pudo auto-seleccionar, mostrar modal solo en este caso
           setShowSucursalModal(true);
@@ -355,11 +300,11 @@ function AppContent({ token, tokenType }) {
             // Decodificar token para obtener ID
             const base64Url = token.split('.')[1];
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
               return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
             }).join(''));
             const decoded = JSON.parse(jsonPayload);
-            
+
             if (decoded && decoded.id && decoded.type === 'user') {
               await loadUserData(decoded.id);
               setUserDataFetched(true);
@@ -383,11 +328,11 @@ function AppContent({ token, tokenType }) {
             // Decodificar token para obtener ID del empleado
             const base64Url = token.split('.')[1];
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
               return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
             }).join(''));
             const decoded = JSON.parse(jsonPayload);
-            
+
             if (decoded && decoded.id && decoded.type === 'employee') {
               await loadEmployeeData(decoded.id);
               setEmployeeDataFetched(true);
@@ -402,64 +347,215 @@ function AppContent({ token, tokenType }) {
     fetchEmployeeData();
   }, [isEmployeeSession, employeeDataFetched, loadEmployeeData, token]);
 
-  // Mostrar loading mientras se carga la sucursal
-  if (loadingSucursal) {
-    return <LoadingSpinner fullScreen={true} text="Cargando sucursal..." icon="building" />;
+  // Determinar si falta cargar contexto esencial (usuario o sucursal)
+  const isContextLoading = hasActiveSession && (!user && !employee || !sucursalSeleccionada && !showSucursalModal);
+
+  // Mostrar loading mientras se carga la sucursal o el contexto de usuario
+  if (isContextLoading) {
+    return (
+      <div className="App">
+        <NavBar />
+        <div className={viewStyles.dashboardContainer}>
+          <SideBar />
+          <div className={viewStyles.contentArea}>
+            <div style={{ padding: '20px' }}>
+              <div style={{ width: '200px', height: '40px', backgroundColor: '#e0e0e0', borderRadius: '8px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}></div>
+              <div style={{ width: '100%', height: '400px', backgroundColor: '#e0e0e0', borderRadius: '8px', animation: 'pulse 1.5s infinite' }}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              hasActiveSession ? (
-                <Navigate to="/" replace />
-              ) : (
-                <Login />
-              )
-            }
-          />
-          <Route
-            path="/"
-            element={
-              !hasActiveSession ? (
-                <Navigate to="/login" replace />
-              ) : isEmployeeSession ? (
-                <HomeEmpleado />
-              ) : (
-                <Home />
-              )
-            }
-          />
-        </Routes>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            hasActiveSession ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Login />
+            )
+          }
+        />
+        <Route
+          path="/"
+          element={<Navigate to="/dashboard" replace />}
+        />
+        <Route
+          path="/dashboard"
+          element={
+            !hasActiveSession ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <Dashboard />
+            )
+          }
+        />
+        {/* Section INVENTARIO - Almacen */}
+        <Route
+          path="/almacen"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
+        />
+        <Route
+          path="/almacen/salidas"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
+        />
+        <Route
+          path="/almacen/entradas"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
+        />
+        <Route
+          path="/almacen/pedidos"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
+        />
+        <Route
+          path="/almacen/gestionar"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
+        />
+        <Route
+          path="/almacen/conteo"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
+        />
+        <Route
+          path="/almacen/cotizar"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
+        />
 
-        {/* Modal de selección de sucursal - Solo mostrar si no se pudo auto-seleccionar */}
-        {showSucursalModal && ((isUserSession && user) || (isEmployeeSession && employee?.permisos?.sucursales)) && (
-          <SeleccionarSucursal
-            isOpen={showSucursalModal}
-            setIsOpen={setShowSucursalModal}
-            empresaId={isEmployeeSession ? (employee?.empresa_id || employee?.sucursal?.empresas?.id) : user.empresa_id}
-            onSucursalSeleccionada={handleSucursalSeleccionada}
-            canClose={!!sucursalSeleccionada}
-          />
-        )}
+        {/* Section INVENTARIO - Materia Prima */}
+        <Route
+          path="/materia-prima"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <MateriaPrima />}
+        />
+        <Route
+          path="/materia-prima/entradas"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <MateriaPrima />}
+        />
+        <Route
+          path="/materia-prima/salidas"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <MateriaPrima />}
+        />
+        <Route
+          path="/materia-prima/pedidos"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <MateriaPrima />}
+        />
+        <Route
+          path="/materia-prima/gestionar"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <MateriaPrima />}
+        />
+        <Route
+          path="/materia-prima/pesaje"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <MateriaPrima />}
+        />
 
-        {/* Modal de permiso de ubicación - Obligatorio, no se puede cerrar */}
-        {hasActiveSession && showPermisoUbicacion && (
-          <ModalPermisoUbicacion
-            isOpen={showPermisoUbicacion}
-            setIsOpen={(value) => {
-              // Solo permitir cerrar si el valor es false (permiso concedido)
-              if (value === false) {
-                setShowPermisoUbicacion(false);
-                setPermisoVerificado(true);
-              }
-            }}
-          />
-        )}
-      </BrowserRouter>
+        {/* Section REGISTROS Y PEDIDOS - Movimientos */}
+        <Route
+          path="/movimientos/almacen"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Movimientos />}
+        />
+        <Route
+          path="/movimientos/acopio"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Movimientos />}
+        />
+
+
+        {/* Section REGISTROS Y PEDIDOS - Pedidos */}
+        <Route
+          path="/pedidos/almacen"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <PedidosPage />}
+        />
+        <Route
+          path="/pedidos/acopio"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <PedidosPage />}
+        />
+
+        {/* Section REGISTROS Y PEDIDOS - Conteos */}
+        <Route
+          path="/conteos/almacen"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Conteos />}
+        />
+        <Route
+          path="/conteos/acopio"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Conteos />}
+        />
+
+        {/* Section REGISTROS Y PEDIDOS - Cotizaciones */}
+        <Route
+          path="/cotizaciones"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Cotizaciones />}
+        />
+
+        {/* Section GESTIÓN */}
+        <Route
+          path="/clientes"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Clientes />}
+        />
+        <Route
+          path="/proveedores"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Proveedores />}
+        />
+        <Route
+          path="/personal"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Personal />}
+        />
+
+        {/* Section FINANZAS */}
+        <Route
+          path="/pagos"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Pagos />}
+        />
+        <Route
+          path="/deudas"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Deudas />}
+        />
+        <Route
+          path="/balance"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Balance />}
+        />
+
+        {/* Section CONFIGURACIÓN */}
+        <Route
+          path="/precios"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Precios />}
+        />
+        <Route
+          path="/cargos"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Cargos />}
+        />
+        <Route
+          path="/categorias"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Categorias />}
+        />
+        <Route
+          path="/sucursales"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Sucursales />}
+        />
+        <Route
+          path="/socios"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Socios />}
+        />
+        <Route
+          path="/exportar"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Exportar />}
+        />
+
+        {/* Section DAMABRAVA */}
+        <Route
+          path="/damabrava/verificacion"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Verificacion />}
+        />
+        <Route
+          path="/damabrava/mi_produccion"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <MiProduccion />}
+        />
+        <Route
+          path="/damabrava/reglas"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Reglas />}
+        />
+      </Routes>
     </div>
   );
 }

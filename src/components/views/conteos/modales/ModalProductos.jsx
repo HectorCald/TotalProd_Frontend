@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useLayout } from '../../../../context/LayoutContext';
-import ModalTable from '../../../common/ModalTable';
+import ModalTable from '../../../common/old/ModalTable';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import ItemView from '../../../common/ItemView';
-import Select from '../../../common/Select';
-import NoData from '../../../common/NoData';
-import LoadingSpinner from '../../../common/LoadingSpinner';
+import HeaderModal from '../../../common/old/HeaderModal';
+import ItemView from '../../../common/old/ItemView';
+import Select from '../../../common/old/Select';
+import NoData from '../../../common/widgets/NoData';
+import LoadingSpinner from '../../../common/old/LoadingSpinner';
 import conteosService from '../../../../services/conteosService';
 import { useToast } from '../../../../context/ToastContext';
 import useVirtualPagination from '../../../../hooks/useVirtualPagination';

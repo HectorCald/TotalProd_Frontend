@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { logDataSize } from '../utils/DataSizeLogger';
+import { logDataSize } from '../ui/DataSizeLogger';
 
 function FetchDataProgressive({
     service,
@@ -44,13 +44,13 @@ function FetchDataProgressive({
             // Construir los parámetros de la petición
             // page y limit se pasan primero, luego los demás filtros de methodParams
             const params = [page, limit, ...methodParams];
-            
+
             const response = await service[method](...params);
-            
+
             if (response.success) {
                 const data = response.data || [];
                 const hasMorePages = response.pagination?.hasNextPage || false;
-                
+
                 console.log(
                     `✅ Petición completada (Página ${page}):`,
                     serviceName || service.constructor.name,
@@ -59,19 +59,19 @@ function FetchDataProgressive({
                     'elementos',
                     hasMorePages ? '(hay más páginas)' : '(última página)'
                 );
-                
+
                 // Registrar el tamaño de los datos obtenidos
                 logDataSize(
                     data,
                     serviceName || service.constructor.name,
                     `${method}_page${page}`
                 );
-                
+
                 // Notificar sobre hasMorePages
                 if (onHasMorePagesChange) {
                     onHasMorePagesChange(hasMorePages);
                 }
-                
+
                 // Si es página 1, reemplazar datos; si es > 1, acumular
                 if (page === 1) {
                     if (onDataLoaded) {
@@ -90,6 +90,9 @@ function FetchDataProgressive({
             console.log('❌ Error obteniendo datos:', serviceName || service.constructor.name, error);
             if (onError) {
                 onError(error);
+            }
+            if (onHasMorePagesChange) {
+                onHasMorePagesChange(false);
             }
         } finally {
             isFetchingRef.current = false;

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BoxIcon } from 'boxicons-react';
-import styles from './InputSelect.module.css';
+import styles from './Input.module.css';
 
 const InputSelect = ({
   label,
@@ -12,6 +12,7 @@ const InputSelect = ({
   error,
   disabled,
   readOnly,
+  clearable = true,       // muestra X para limpiar cuando hay valor
   getOptionLabel,
   getOptionValue,
   openDirection = 'down', // 'down' | 'up'
@@ -30,8 +31,9 @@ const InputSelect = ({
     return typeof opt === 'object' && opt !== null && 'value' in opt ? opt.value : opt;
   };
 
-  const selectedOption = options.find((opt) => getVal(opt) === value);
+  const selectedOption = options.find((opt) => String(getVal(opt)) === String(value));
   const displayValue = selectedOption != null ? getLabel(selectedOption) : '';
+  const hasValue = displayValue !== '';
 
   useEffect(() => {
     if (isLocked) setOpen(false);
@@ -54,11 +56,21 @@ const InputSelect = ({
     setOpen(false);
   };
 
+  const handleClear = (e) => {
+    e.stopPropagation(); // no abrir el dropdown
+    onChange?.(null);
+    setOpen(false);
+  };
+
+  const handleToggle = () => {
+    if (!isLocked) setOpen((o) => !o);
+  };
+
   return (
     <div className={styles.root} ref={rootRef} {...rest}>
       {label && (
         <label className={`${styles.label} ${error ? styles.labelError : ''}`}>
-          {label}
+          {typeof label === 'string' ? label.toUpperCase() : label}
           {required && <span className={styles.required}> *</span>}
         </label>
       )}
@@ -67,44 +79,65 @@ const InputSelect = ({
           type="button"
           className={`${styles.input} ${error ? styles.inputError : ''} ${open ? styles.inputOpen : ''}`}
           style={{ paddingRight: 36 }}
-          onClick={() => !isLocked && setOpen((o) => !o)}
+          onClick={handleToggle}
           disabled={isLocked}
         >
           <span className={displayValue ? styles.value : styles.placeholder}>
             {displayValue || placeholder}
           </span>
         </button>
-        {error ? (
-          <span className={styles.errorIcon} aria-hidden>
-            <BoxIcon name="error-circle" className={styles.icon} />
-          </span>
+
+        {/* Ícono derecho: X (limpiar si hay valor y clearable) > flecha */}
+        {hasValue && clearable && !isLocked ? (
+          <button
+            type="button"
+            className={styles.clearBtn}
+            onClick={handleClear}
+            tabIndex={-1}
+            aria-label="Limpiar selección"
+          >
+            <BoxIcon name="x" className={styles.icon} />
+          </button>
         ) : (
-          <span className={styles.arrowWrap} aria-hidden>
+          <span 
+            className={styles.arrowWrap} 
+            aria-hidden 
+            onClick={handleToggle}
+            style={{ cursor: isLocked ? 'not-allowed' : 'pointer', pointerEvents: isLocked ? 'none' : 'auto' }}
+          >
             <BoxIcon
               name="chevron-down"
               className={`${styles.arrowIcon} ${open ? styles.arrowOpen : ''}`}
             />
           </span>
         )}
+
+        {open && !isLocked && (
+          <ul className={`${styles.dropdown} ${openDirection === 'up' ? styles.dropdownUp : ''}`} role="listbox">
+            {options.map((opt, idx) => {
+              const val = getVal(opt);
+              const isSelected = String(val) === String(value);
+              return (
+                <li
+                  key={val ?? idx}
+                  role="option"
+                  aria-selected={isSelected}
+                  className={`${styles.option} ${isSelected ? styles.optionSelected : ''}`}
+                  onClick={() => handleSelect(opt)}
+                >
+                  {getLabel(opt)}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
-      {open && !isLocked && (
-        <ul className={`${styles.dropdown} ${openDirection === 'up' ? styles.dropdownUp : ''}`} role="listbox">
-          {options.map((opt, idx) => {
-            const val = getVal(opt);
-            const isSelected = val === value;
-            return (
-              <li
-                key={val ?? idx}
-                role="option"
-                aria-selected={isSelected}
-                className={`${styles.option} ${isSelected ? styles.optionSelected : ''}`}
-                onClick={() => handleSelect(opt)}
-              >
-                {getLabel(opt)}
-              </li>
-            );
-          })}
-        </ul>
+
+      {error && (
+        <div className={styles.errorTextMessage}>
+          <BoxIcon name="error" className={styles.errorTextIcon} />
+          <span>{typeof error === 'string' ? error : 'El campo es obligatorio'}</span>
+        </div>
       )}
     </div>
   );

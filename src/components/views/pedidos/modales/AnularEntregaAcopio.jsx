@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import Boton from '../../../common/Boton';
-import Text from '../../../common/Text';
+import HeaderModal from '../../../common/old/HeaderModal';
+import Boton from '../../../common/botones/Boton';
+import Text from '../../../common/old/Text';
 import { useToast } from '../../../../context/ToastContext';
 import useHistorialLogger from '../../../ui/HistorialLogger';
 import { buildPedidoAcopioDetallesParaHistorial } from '../../../../utils/logFormatters';

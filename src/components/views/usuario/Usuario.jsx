@@ -1,28 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/view.module.css';
-import HeaderView from '../../common/HeaderView';
+import HeaderView from '../../common/old/HeaderView';
 import View from '../../ui/View';
-import ItemLine from '../../common/ItemLine';
-import ItemView from '../../common/ItemView';
-import Version from '../../common/Version';
+import ItemLine from '../../common/old/ItemLine';
+import ItemView from '../../common/old/ItemView';
+import Version from '../../common/old/Version';
 
 import CambiarContraseña from './CambiarContraseña';
 import CambiarContraseñaEmpleado from './CambiarContraseñaEmpleado';
 import Apariencia from './Apariencia';
 import CodigoPromocional from './CodigoPromocional';
-import ComponenteFull from '../../common/ComponenteFull';
+import ComponenteFull from '../../common/old/ComponenteFull';
 
 import ViewModal from '../../ui/ViewModal';
-import HeaderModal from '../../common/HeaderModal';
-import Boton from '../../common/Boton';
+import HeaderModal from '../../common/old/HeaderModal';
+import Boton from '../../common/botones/Boton';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
 import { useNavigate } from 'react-router-dom';
 import EmpresaImagenService from '../../../services/empresaImagenService';
 import PlanInfo from './PlanInfo';
-import Comentarios from '../comentarios/Comentarios';
 import ImagenEmpresa from './ImagenEmpresa';
-import Notification from '../../common/Notification';
+import Notification from '../../common/old/Notification';
 
 const Usuario = ({ isOpen, setIsOpen }) => {
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
@@ -30,9 +29,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const [isOpenApariencia, setIsOpenApariencia] = useState(false);
     const [isOpenPlan, setIsOpenPlan] = useState(false);
     const [isOpenCodigoPromocional, setIsOpenCodigoPromocional] = useState(false);
-    const [isOpenComentarios, setIsOpenComentarios] = useState(false);
     const [isOpenImagenEmpresa, setIsOpenImagenEmpresa] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(true);
     const [empresaImage, setEmpresaImage] = useState(null);
     const [loadingImage, setLoadingImage] = useState(false);
     const [notification, setNotification] = useState({ isVisible: false, type: 'success', text: '' });
@@ -51,10 +48,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     
     const handleCodigoPromocional = () => {
         setIsOpenCodigoPromocional(true);
-    };
-    
-    const handleComentarios = () => {
-        setIsOpenComentarios(true);
     };
     
     const handleImagenEmpresa = () => {
@@ -99,33 +92,7 @@ const Usuario = ({ isOpen, setIsOpen }) => {
     const currentUser = isEmployee ? employeeInfo : userInfo;
     const sucursal = isEmployee ? employeeSucursal : userSucursal;
 
-    // Función para aplicar el tema
-    const applyTheme = (theme) => {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-    };
 
-    // Función para cambiar tema
-    const handleThemeChange = (isDark) => {
-        setIsDarkMode(isDark);
-        applyTheme(isDark ? 'dark' : 'light');
-    };
-
-    // Cargar tema guardado al iniciar
-    useEffect(() => {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            const isDark = savedTheme === 'dark';
-            setIsDarkMode(isDark);
-            applyTheme(isDark ? 'dark' : 'light');
-        } else {
-            // Por defecto oscuro
-            setIsDarkMode(true);
-            applyTheme('dark');
-        }
-    }, []);
-
-    // Cargar imagen de empresa al abrir el componente (solo para usuarios normales)
     useEffect(() => {
         if (isOpen && !isEmployee) {
             loadEmpresaImage();
@@ -257,17 +224,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
                     />
                 </div>
 
-                <p className={styles.subTitle}>PREFERENCIAS</p>
-                <div className={styles.content}>
-                    <ComponenteFull
-                        title="Modo oscuro"
-                        subtitle={isDarkMode ? "Activado - Tema oscuro" : "Desactivado - Tema claro"}
-                        icon={isDarkMode ? "moon" : "sun"}
-                        type="switch"
-                        checked={isDarkMode}
-                        onChange={handleThemeChange}
-                    />
-                </div>
                 <p className={styles.subTitle}>CUENTA</p>
                 <div className={styles.content}>
                     <ComponenteFull
@@ -324,7 +280,6 @@ const Usuario = ({ isOpen, setIsOpen }) => {
             )}
             <Apariencia isOpen={isOpenApariencia} setIsOpen={setIsOpenApariencia} />
             <CodigoPromocional isOpen={isOpenCodigoPromocional} setIsOpen={setIsOpenCodigoPromocional} />
-            <Comentarios isOpen={isOpenComentarios} setIsOpen={setIsOpenComentarios} />
             
             {/* Modal de logout*/}
             <ViewModal isOpen={isLogoutOpen} setIsOpen={setIsLogoutOpen}>

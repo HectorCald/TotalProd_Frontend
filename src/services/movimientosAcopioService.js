@@ -27,10 +27,20 @@ const getPersonalId = () => {
 
 // Función helper para obtener sucu_id
 const getSucuId = () => {
+  const sucursalIdSeleccionada = localStorage.getItem('sucursalIdSeleccionada');
+  if (sucursalIdSeleccionada) {
+    return sucursalIdSeleccionada;
+  }
+  
+  // Fallback a sucursalSeleccionada por si acaso
   const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
   if (sucursalSeleccionada) {
-    const parsed = JSON.parse(sucursalSeleccionada);
-    return parsed.id;
+    try {
+      const parsed = JSON.parse(sucursalSeleccionada);
+      return parsed.id;
+    } catch (error) {
+      console.error('Error parsing sucursalSeleccionada:', error);
+    }
   }
   return null;
 };
@@ -172,7 +182,7 @@ class movimientosAcopioService {
   }
 
   // Obtener todos los movimientos
-  static async getAll(page = 1, limit = 10, tipo = null, estado = null, ordenamiento = 'fecha_desc', clienteId = null, sucuIdParam = null, search = null, filtroFecha = null) {
+  static async getAll(page = 1, limit = 10, tipo = null, estado = null, ordenamiento = 'fecha_desc', clienteId = null, sucuIdParam = null, search = null, filtroFecha = null, proveedorId = null) {
     try {
       const sucuId = sucuIdParam || getSucuId();
       if (!sucuId) {
@@ -199,6 +209,9 @@ class movimientosAcopioService {
       }
       if (clienteId) {
         params.append('cliente', clienteId);
+      }
+      if (proveedorId) {
+        params.append('proveedor', proveedorId);
       }
       if (search && search.trim() !== '') {
         params.append('search', search);

@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from '../../../../styles/view.module.css';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import ItemView from '../../../common/ItemView';
+import HeaderModal from '../../../common/old/HeaderModal';
+import ItemView from '../../../common/old/ItemView';
 import Input from '../../../common/inputs/Input';
 import InputSelect from '../../../common/inputs/InputSelect';
 import InputSearch from '../../../common/inputs/InputSearch';
-import Boton from '../../../common/Boton';
-import Switch from '../../../common/Switch';
+import Boton from '../../../common/botones/Boton';
+import Switch from '../../../common/old/Switch';
 import FetchData from '../../../mixed/FetchData';
 import productsAlmacenService from '../../../../services/productsAlmacenService';
 import reglasProduccionDamabravaService from '../../../../services/reglasProduccionDamabravaService';

@@ -1,70 +1,70 @@
-    import { useCallback, useEffect, useRef } from 'react';
-    import { logDataSize } from '../utils/DataSizeLogger';
+import { useCallback, useEffect, useRef } from 'react';
+import { logDataSize } from '../ui/DataSizeLogger';
 
-    function FetchData({
-        service,
-        method = 'getAll',
-        methodParams = [],
-        isOpen,
-        onDataLoaded,
-        onLoadingStart,
-        onLoadingEnd,
-        onError,
-        serviceName
-    }) {
-        const lastFetchKeyRef = useRef(null);
+function FetchData({
+    service,
+    method = 'getAll',
+    methodParams = [],
+    isOpen,
+    onDataLoaded,
+    onLoadingStart,
+    onLoadingEnd,
+    onError,
+    serviceName
+}) {
+    const lastFetchKeyRef = useRef(null);
 
-        const cacheKey = `${serviceName || service.constructor.name}-${method}-${JSON.stringify(methodParams)}`;
+    const cacheKey = `${serviceName || service.constructor.name}-${method}-${JSON.stringify(methodParams)}`;
 
-        const fetchData = useCallback(async () => {
-            if (onLoadingStart) onLoadingStart();
+    const fetchData = useCallback(async () => {
+        if (onLoadingStart) onLoadingStart();
 
-            try {
-                const response = await service[method](...methodParams);
-                if (response.success) {
-                    console.log(
-                        '✅ Petición completada:',
-                        serviceName || service.constructor.name,
-                        '-',
-                        response.data?.length,
-                        'elementos'
-                    );
-                    
-                    // Registrar el tamaño de los datos obtenidos
-                    logDataSize(
-                        response.data,
-                        serviceName || service.constructor.name,
-                        method
-                    );
-                    
-                    if (onDataLoaded) {
-                        onDataLoaded(response.data);
-                    }
+        try {
+            const response = await service[method](...methodParams);
+            if (response.success) {
+                console.log(
+                    '✅ Petición completada:',
+                    serviceName || service.constructor.name,
+                    '-',
+                    response.data?.length,
+                    'elementos'
+                );
+
+                // Registrar el tamaño de los datos obtenidos
+                logDataSize(
+                    response.data,
+                    serviceName || service.constructor.name,
+                    method
+                );
+
+                if (onDataLoaded) {
+                    onDataLoaded(response.data);
                 }
-            } catch (error) {
-                console.log('❌ Error obteniendo datos:', serviceName || service.constructor.name, error);
-                if (onError) {
-                    onError(error);
-                }
-            } finally {
-                if (onLoadingEnd) onLoadingEnd();
             }
-        }, [method, methodParams, onDataLoaded, onError, onLoadingEnd, onLoadingStart, service, serviceName]);
-
-        useEffect(() => {
-            if (isOpen) {
-                const shouldFetch = lastFetchKeyRef.current !== cacheKey;
-
-                if (shouldFetch) {
-                    lastFetchKeyRef.current = cacheKey;
-                    fetchData();
-                }
-            } else {
-                lastFetchKeyRef.current = null;
+        } catch (error) {
+            console.log('❌ Error obteniendo datos:', serviceName || service.constructor.name, error);
+            if (onError) {
+                onError(error);
             }
-        }, [cacheKey, fetchData, isOpen]);
+        } finally {
+            if (onLoadingEnd) onLoadingEnd();
+        }
+    }, [method, methodParams, onDataLoaded, onError, onLoadingEnd, onLoadingStart, service, serviceName]);
 
-        return null;
-    }
+    useEffect(() => {
+        if (isOpen) {
+            const shouldFetch = lastFetchKeyRef.current !== cacheKey;
 
-    export default FetchData;
+            if (shouldFetch) {
+                lastFetchKeyRef.current = cacheKey;
+                fetchData();
+            }
+        } else {
+            lastFetchKeyRef.current = null;
+        }
+    }, [cacheKey, fetchData, isOpen]);
+
+    return null;
+}
+
+export default FetchData;

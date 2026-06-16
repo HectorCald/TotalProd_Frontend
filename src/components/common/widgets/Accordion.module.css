@@ -1,0 +1,56 @@
+.accordion {
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #ffffff;
+    flex-shrink: 0;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.header:hover {
+    background-color: #f0f0f0;
+}
+
+.title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dark-color, #1a202c);
+    margin: 0;
+}
+
+.iconContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.iconContainer.open {
+    transform: rotate(180deg);
+}
+
+.content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease-in-out;
+}
+
+.content.open {
+    grid-template-rows: 1fr;
+}
+
+.innerContent {
+    overflow: hidden;
+}
+
+.paddingWrapper {
+    padding: 12px 16px;
+}

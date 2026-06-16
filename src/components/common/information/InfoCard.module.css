@@ -1,0 +1,350 @@
+.card {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    padding: 23px 26px;
+    height: 100%;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--primary-color-light);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+    font-weight: 700;
+    box-shadow: none;
+}
+
+.headerInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-color, #1a1a1a);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+}
+
+.statusDotTitle {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: super;
+}
+
+.statusDotTitle.success { background-color: var(--success-color); }
+.statusDotTitle.error { background-color: var(--error-color); }
+.statusDotTitle.warning { background-color: var(--warning-color); }
+.statusDotTitle.info { background-color: var(--info-color); }
+
+
+.subtitle {
+    margin: 6px 0 0 0;
+    font-size: 13px;
+    color: var(--tertiary-color);
+    font-weight: 400;
+}
+
+.tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-bottom: 15px;
+}
+
+.tag {
+    background-color: var(--white-color, #ffffff);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--dark-color, #000000);
+    border: 1px solid var(--quaternary-color, #d8d8d8);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    line-height: 1;
+    position: relative;
+}
+
+
+
+.tagDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--tertiary-color);
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.tagIcon {
+    width: 14px;
+    height: 14px;
+    font-size: 14px !important;
+    color: var(--primary-color) !important;
+    fill: var(--primary-color) !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Tag color states (no background, borders/text in state color) */
+.tag.success {
+    color: var(--success-color) !important;
+    border-color: var(--success-color) !important;
+    background: transparent !important;
+    box-shadow: none;
+}
+.tag.success .tagDot {
+    background-color: var(--success-color);
+}
+.tag.success .tagIcon {
+    color: currentColor;
+    fill: currentColor;
+}
+
+.tag.error {
+    color: var(--error-color) !important;
+    border-color: var(--error-color) !important;
+    background: transparent !important;
+    box-shadow: none;
+}
+.tag.error .tagDot {
+    background-color: var(--error-color);
+}
+.tag.error .tagIcon {
+    color: currentColor;
+    fill: currentColor;
+}
+
+.tag.warning {
+    color: var(--warning-color) !important;
+    border-color: var(--warning-color) !important;
+    background: transparent !important;
+    box-shadow: none;
+}
+.tag.warning .tagDot {
+    background-color: var(--warning-color);
+}
+.tag.warning .tagIcon {
+    color: currentColor;
+    fill: currentColor;
+}
+
+.tag.info {
+    color: var(--info-color) !important;
+    border-color: var(--info-color) !important;
+    background: transparent !important;
+    box-shadow: none;
+}
+.tag.info .tagDot {
+    background-color: var(--info-color);
+}
+.tag.info .tagIcon {
+    color: currentColor;
+    fill: currentColor;
+}
+
+.tag.primary {
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    background: transparent !important;
+    box-shadow: none;
+}
+.tag.primary .tagDot {
+    background-color: var(--primary-color);
+}
+.tag.primary .tagIcon {
+    color: currentColor;
+    fill: currentColor;
+}
+
+.description {
+    font-size: 14px;
+    color: var(--secondary-color);
+    line-height: 1.6;
+    margin-bottom: 24px;
+    background-color: var(--senary-color);
+    padding: 16px;
+    border-radius: 16px;
+}
+
+.stats {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 20px 0;;
+    border: 1px solid var(--quinary-color);
+    border-radius: 10px;
+}
+
+.statItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    position: relative;
+}
+
+.statItem:not(:last-child) {
+    border-right: 1px solid var(--tertiary-color);
+}
+
+.statValue {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a202c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    line-height: 1;
+    margin: 0;
+}
+
+.statIcon {
+    width: 20px;
+    height: 20px;
+    color: currentColor;
+    font-size: 16px !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 2px;
+}
+
+.statLabel {
+    font-size: 13px;
+    color: var(--tertiary-color);
+    margin-top: 4px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Medium stats overrides (e.g. 4-5 items) */
+.statsMedium .statValue {
+    font-size: 14px;
+    line-height: 1;
+    margin: 0;
+}
+.statsMedium .statIcon {
+    width: 15px;
+    height: 15px;
+    font-size: 15px !important;
+}
+.statsMedium .statLabel {
+    font-size: 11px;
+}
+
+/* Many stats overrides (e.g. 6+ items) */
+.statsMany .statValue {
+    font-size: 11px;
+    font-weight: 600;
+}
+.statsMany .statIcon {
+    width: 12px;
+    height: 12px;
+    font-size: 12px !important;
+}
+.statsMany .statLabel {
+    font-size: 9px;
+}
+
+.action {
+    display: flex;
+    width: 100%;
+}
+
+.hasTooltip {
+    cursor: help;
+}
+
+.tooltip {
+    position: absolute;
+    bottom: 115%;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: rgba(26, 32, 44, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    width: max-content;
+    max-width: 250px;
+    z-index: 10100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: rgba(26, 32, 44, 0.95) transparent transparent transparent;
+}
+
+.statItem:hover .tooltip, .tag:hover .tooltip {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+.tooltipItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 4px;
+}
+
+.tooltipItem:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.tooltipLabel {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.tooltipValue {
+    font-weight: 700;
+    color: #ffffff;
+}

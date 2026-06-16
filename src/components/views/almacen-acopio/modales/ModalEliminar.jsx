@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ViewModal from '../../../ui/ViewModal';
-import HeaderModal from '../../../common/HeaderModal';
-import Boton from '../../../common/Boton';
+import HeaderModal from '../../../common/old/HeaderModal';
+import Boton from '../../../common/botones/Boton';
 import useHistorialLogger from '../../../ui/HistorialLogger';
 import productsAcopioService from '../../../../services/productsAcopioService';
 import movimientosAcopioService from '../../../../services/movimientosAcopioService';
