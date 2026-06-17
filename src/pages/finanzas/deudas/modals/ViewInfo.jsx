@@ -10,6 +10,8 @@ import deudasService from '../../../../services/deudasService';
 import { BoxIcon } from 'boxicons-react';
 import NoData from '../../../../components/common/widgets/NoData';
 import AgregarPagoParcial from './AgregarPagoParcial';
+import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
+import ViewInfoMovimiento from '../../../registros-pedidos/movimientos/modals/ViewInfo';
 
 const PagoRow = ({ pago, onDelete, isDeleting }) => {
     const { formatPrice } = useFormatNumber();
@@ -77,6 +79,27 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
     const [pagos, setPagos] = useState([]);
     const [loadingPagos, setLoadingPagos] = useState(false);
     const [deletingPagoId, setDeletingPagoId] = useState(null);
+    const [isViewMovimientoOpen, setIsViewMovimientoOpen] = useState(false);
+    const [selectedMovimiento, setSelectedMovimiento] = useState(null);
+    const [loadingMovimiento, setLoadingMovimiento] = useState(false);
+
+    const handleVerMovimiento = async () => {
+        if (!deuda.movimiento_salida_id) return;
+        setLoadingMovimiento(true);
+        try {
+            const response = await movimientosAlmacenService.getById(deuda.movimiento_salida_id);
+            if (response.success && response.data) {
+                setSelectedMovimiento(response.data);
+                setIsViewMovimientoOpen(true);
+            } else {
+                showDanger('Error', response.message || 'Error al obtener el movimiento');
+            }
+        } catch (error) {
+            showDanger('Error', 'Error de conexión');
+        } finally {
+            setLoadingMovimiento(false);
+        }
+    };
 
     const loadPagos = async () => {
         if (!deuda?.id) return;
@@ -255,6 +278,15 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
                                     onClick={() => setIsAgregarOpen(true)}
                                     disabled={parseFloat(deuda.saldo_pendiente) <= 0}
                                 />
+                                {deuda.movimiento_salida_id && (
+                                    <BotonIcon
+                                        iconName="file"
+                                        className="btn-primary"
+                                        onClick={handleVerMovimiento}
+                                        loading={loadingMovimiento}
+                                        disabled={loadingMovimiento}
+                                    />
+                                )}
                                 <BotonIcon
                                     iconName="edit"
                                     className="btn-primary"
@@ -275,6 +307,14 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
                     onClose={() => setIsAgregarOpen(false)}
                     deuda={deuda}
                     onPagoRegistrado={handlePagoRegistrado}
+                />
+            )}
+
+            {isViewMovimientoOpen && selectedMovimiento && (
+                <ViewInfoMovimiento
+                    isOpen={isViewMovimientoOpen}
+                    onClose={() => setIsViewMovimientoOpen(false)}
+                    movimiento={selectedMovimiento}
                 />
             )}
         </>

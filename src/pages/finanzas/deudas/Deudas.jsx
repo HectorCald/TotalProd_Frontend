@@ -157,12 +157,6 @@ const Deudas = () => {
 
   const tableActions = [
     {
-      name: 'Detalles', icon: 'show', onClick: (deuda) => {
-        setDeudaSeleccionada(deuda);
-        setModalInfoOpen(true);
-      }
-    },
-    {
       name: 'Editar', icon: 'edit', onClick: (deuda) => {
         setDeudaEditando(deuda);
         setModalAgregarEditarOpen(true);

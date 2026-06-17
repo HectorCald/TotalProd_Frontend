@@ -222,6 +222,16 @@ class movimientosAlmacenService {
     });
   }
 
+  // Anular un movimiento rápido de golpe
+  static async anularFast(movimientoId) {
+    return this._request(`/movimientos-almacen/${movimientoId}/anular-fast`, {
+      method: 'PUT'
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
+  }
+
   // Eliminar un movimiento
   static async eliminar(movimientoId, esEdicion = false) {
     return this._request(`/movimientos-almacen/${movimientoId}`, {

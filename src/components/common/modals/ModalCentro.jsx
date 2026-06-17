@@ -19,7 +19,8 @@ const ModalCentro = ({
     width,
     children,
     confirmDisabled = false,
-    hideFooter = false
+    hideFooter = false,
+    visibleOverflow = false
 }) => {
     useEffect(() => {
         if (isOpen) {
@@ -54,7 +55,7 @@ const ModalCentro = ({
                     </div>
                 )}
                 
-                <div className={styles.content}>
+                <div className={styles.content} style={visibleOverflow ? { overflow: 'visible' } : {}}>
                     {mensaje && <p className={styles.mensaje}>{mensaje}</p>}
                     {detalle && <p className={styles.detalle}>{detalle}</p>}
                     {children}

@@ -323,6 +323,52 @@
     transform: translateX(-50%) translateY(0);
 }
 
+.statItem:last-child .tooltip {
+    left: auto;
+    right: -10px;
+    transform: translateY(8px);
+}
+
+.statItem:last-child .tooltip::after {
+    left: auto;
+    right: 25px;
+    transform: none;
+}
+
+.statItem:last-child:hover .tooltip {
+    transform: translateY(0);
+}
+
+.statItem:first-child .tooltip {
+    left: -10px;
+    transform: translateY(8px);
+}
+
+.statItem:first-child .tooltip::after {
+    left: 25px;
+    transform: none;
+}
+
+.statItem:first-child:hover .tooltip {
+    transform: translateY(0);
+}
+
+.statItem:only-child .tooltip {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(8px);
+}
+
+.statItem:only-child .tooltip::after {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+}
+
+.statItem:only-child:hover .tooltip {
+    transform: translateX(-50%) translateY(0);
+}
+
 .tooltipItem {
     display: flex;
     justify-content: space-between;

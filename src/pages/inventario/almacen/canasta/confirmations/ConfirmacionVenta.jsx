@@ -5,15 +5,20 @@ import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodo
 import Input from '../../../../../components/common/inputs/Input';
 import InputSwitch from '../../../../../components/common/inputs/InputSwitch';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
+import deudasService from '../../../../../services/deudasService';
+import useSessionCache from '../../../../../hooks/useSessionCache';
 import { useToast } from '../../../../../context/ToastContext';
 
 const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion }) => {
   const { showSuccess, showDanger } = useToast();
+  const { value: clientes } = useSessionCache({ key: 'clientesListado', defaultValue: [] });
+
   const [cliente, setCliente] = useState(null);
   const [metodoPago, setMetodoPago] = useState(null);
   const [descuento, setDescuento] = useState('');
   const [aumento, setAumento] = useState('');
   const [concepto, setConcepto] = useState('');
+  const [adelanto, setAdelanto] = useState('');
   const [esPorcentaje, setEsPorcentaje] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -33,6 +38,12 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
     if (!priceTypeId || !producto.price_product) return 0;
     const priceObj = producto.price_product.find(p => p.prices_types?.id === priceTypeId || p.prices_types_id === priceTypeId);
     return priceObj ? Number(priceObj.valor) : 0;
+  };
+
+  const getDateStr = (offsetMonths = 0) => {
+    const d = new Date();
+    if (offsetMonths) d.setMonth(d.getMonth() + offsetMonths);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   };
 
   const handleConfirm = async () => {
@@ -57,6 +68,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
         aumento: aumVal,
         porcentaje: esPorcentaje,
         concepto: concepto || null,
+        adelanto: metodoPago === 'credito' ? (Number(adelanto) || 0) : 0,
         precio_id: precioSeleccionado,
         agrupado: modoAgrupacion === 'grupo',
         productos: canasta.map(p => ({
@@ -68,24 +80,66 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
 
       console.log('Payload de venta frontend:', payload);
       const result = await movimientosAlmacenService.createFast(payload);
-      if (result.success) {
-        showSuccess('Éxito', 'Venta registrada con éxito');
-        if (vaciarCanasta) vaciarCanasta();
-        
-        // Limpiar campos
-        setCliente(null);
-        setMetodoPago(null);
-        setDescuento('');
-        setAumento('');
-        setConcepto('');
-        setEsPorcentaje(false);
-        setErrors({});
-        
-        onClose();
-      } else {
+
+      if (!result.success) {
         console.error('Error desde backend:', result);
         showDanger('Error', result.message || 'Error al registrar la venta');
+        return;
       }
+
+      // Si es crédito, crear deuda automáticamente
+      if (metodoPago === 'credito') {
+        const clienteObj = clientes.find(c => String(c.id) === String(cliente));
+        const clienteNombre = clienteObj?.name || 'Cliente';
+
+        const deudaPayload = {
+          fecha_deuda: getDateStr(0),
+          fecha_vencimiento: getDateStr(1),
+          monto_total: totalFinal,
+          saldo_pendiente: totalFinal,
+          concepto: `Venta a ${clienteNombre}`,
+          estado: 'pendiente',
+          cliente_id: cliente,
+          movimiento_salida_id: result.data?.id || null
+        };
+
+        const deudaResult = await deudasService.create(deudaPayload);
+
+        if (!deudaResult?.success) {
+          showDanger('Error', 'Venta registrada pero no se pudo crear la deuda: ' + (deudaResult?.message || 'Error desconocido'));
+          return;
+        }
+
+        // Si hay adelanto, registrar pago parcial
+        const adelantoNum = Number(adelanto) || 0;
+        if (adelantoNum > 0 && deudaResult.data?.id) {
+          const pagoResult = await deudasService.createPagoParcial(deudaResult.data.id, {
+            monto: adelantoNum,
+            fecha: getDateStr(0),
+            detalle: 'Adelanto al realizar la venta'
+          });
+
+          if (!pagoResult?.success) {
+            showDanger('Advertencia', 'Deuda creada pero no se pudo registrar el adelanto: ' + (pagoResult?.message || 'Error desconocido'));
+            return;
+          }
+        }
+      }
+
+      showSuccess('Éxito', 'Venta registrada con éxito');
+      if (vaciarCanasta) vaciarCanasta();
+
+      // Limpiar campos
+      setCliente(null);
+      setMetodoPago(null);
+      setDescuento('');
+      setAumento('');
+      setConcepto('');
+      setAdelanto('');
+      setEsPorcentaje(false);
+      setErrors({});
+
+      onClose();
     } catch (error) {
       showDanger('Error', 'Error de conexión');
     } finally {
@@ -132,6 +186,16 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
           required={true}
           error={errors.metodoPago}
         />
+
+        {metodoPago === 'credito' && (
+          <Input 
+            label="Adelanto (Bs.)"
+            tipo="number"
+            value={adelanto}
+            onChange={(e) => setAdelanto(e.target.value)}
+            placeholder="0"
+          />
+        )}
         
         <InputSwitch 
           label="Aplicar como porcentaje"

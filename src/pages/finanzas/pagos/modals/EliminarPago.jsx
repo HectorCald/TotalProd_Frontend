@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
+import Mensaje from '../../../../components/common/outputs/Mensaje';
 import { useToast } from '../../../../context/ToastContext';
 import gastosService from '../../../../services/gastosService';
 
@@ -55,7 +56,15 @@ const EliminarPago = ({ isOpen, onClose, pagoSeleccionado, onEliminar }) => {
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
-        />
+        >
+            <div style={{ marginTop: '15px' }}>
+                <Mensaje 
+                    type="warning" 
+                    title="Advertencia" 
+                    message="Si este pago está vinculado a un movimiento de almacén, el movimiento en el sistema quedará sin pago asociado." 
+                />
+            </div>
+        </ModalCentro>
     );
 };
 

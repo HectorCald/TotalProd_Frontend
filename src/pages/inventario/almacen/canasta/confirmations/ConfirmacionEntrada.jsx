@@ -5,6 +5,7 @@ import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodo
 import Input from '../../../../../components/common/inputs/Input';
 import InputSwitch from '../../../../../components/common/inputs/InputSwitch';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
+import gastosService from '../../../../../services/gastosService';
 import { useToast } from '../../../../../context/ToastContext';
 
 const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion }) => {
@@ -25,17 +26,23 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const getDateStr = () => {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+
   const getProductPrice = (producto, priceTypeId) => {
     if (!priceTypeId || !producto.price_product) return 0;
     const priceObj = producto.price_product.find(p => p.prices_types?.id === priceTypeId || p.prices_types_id === priceTypeId);
     return priceObj ? Number(priceObj.valor) : 0;
   };
 
+  const showConsumirReceta = canasta && canasta.some(p => p.has_receta || (p.recetas && p.recetas.length > 0));
+
   const handleConfirm = async () => {
     const newErrors = {};
     if (registrarGasto) {
       if (!costo) newErrors.costo = true;
-      if (!proveedor) newErrors.proveedor = true;
       if (!metodoPago) newErrors.metodoPago = true;
     }
 
@@ -50,7 +57,7 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
     try {
       const payload = {
         type: 'entrada',
-        proveedor_id: registrarGasto ? proveedor : null,
+        proveedor_id: proveedor || null,
         metodo_pago: registrarGasto && metodoPago ? metodoPago.toUpperCase() : null,
         concepto: concepto || null,
         restar_ingredientes: consumirReceta,
@@ -64,23 +71,44 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
       };
 
       const result = await movimientosAlmacenService.createFast(payload);
-      if (result.success) {
-        showSuccess('Éxito', 'Entrada registrada con éxito');
-        if (vaciarCanasta) vaciarCanasta();
 
-        // Limpiar campos
-        setConcepto('');
-        setRegistrarGasto(false);
-        setConsumirReceta(false);
-        setCosto('');
-        setProveedor(null);
-        setMetodoPago(null);
-        setErrors({});
-
-        onClose();
-      } else {
+      if (!result.success) {
         showDanger('Error', result.message || 'Error al registrar la entrada');
+        return;
       }
+
+      // Registrar pago (gasto) si está activo
+      if (registrarGasto) {
+        const gastoData = {
+          fecha_gasto: getDateStr(),
+          valor: parseFloat(costo) || 0,
+          concepto: concepto?.trim() || 'Pago de Entrada de Productos',
+          metodo_pago: metodoPago || 'efectivo',
+          proveedor_id: proveedor || null,
+          movimiento_entrada_id: result.data.id
+        };
+
+        const gastoResult = await gastosService.create(gastoData);
+
+        if (!gastoResult?.success) {
+          showDanger('Advertencia', 'Entrada registrada pero no se pudo crear el pago: ' + (gastoResult?.message || 'Error desconocido'));
+          return;
+        }
+      }
+
+      showSuccess('Éxito', 'Entrada registrada con éxito');
+      if (vaciarCanasta) vaciarCanasta();
+
+      // Limpiar campos
+      setConcepto('');
+      setRegistrarGasto(false);
+      setConsumirReceta(false);
+      setCosto('');
+      setProveedor(null);
+      setMetodoPago(null);
+      setErrors({});
+
+      onClose();
     } catch (error) {
       showDanger('Error', 'Error de conexión');
     } finally {
@@ -100,7 +128,7 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
       isOpen={isOpen}
       onClose={handleClose}
       title="Confirmar Entrada"
-      confirmText="Generar Entrada"
+      confirmText="Realizar Entrada"
       onConfirm={handleConfirm}
       width="450px"
       loading={isSubmitting}
@@ -127,11 +155,13 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
           }}
         />
 
-        <InputSwitch
-          label="Consumir receta"
-          checked={consumirReceta}
-          onChange={setConsumirReceta}
-        />
+        {showConsumirReceta && (
+          <InputSwitch
+            label="Consumir receta"
+            checked={consumirReceta}
+            onChange={setConsumirReceta}
+          />
+        )}
 
         {registrarGasto && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '5px' }}>
@@ -148,8 +178,6 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
             <SelectProveedores
               value={proveedor}
               onChange={(val) => { setProveedor(val); setErrors(prev => ({ ...prev, proveedor: false })); }}
-              required={true}
-              error={errors.proveedor}
               fetchTrigger={isOpen}
               openDirection="up"
             />

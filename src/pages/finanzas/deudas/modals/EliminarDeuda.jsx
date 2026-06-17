@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
+import Mensaje from '../../../../components/common/outputs/Mensaje';
 import { useToast } from '../../../../context/ToastContext';
 import deudasService from '../../../../services/deudasService';
 
@@ -55,7 +56,15 @@ const EliminarDeuda = ({ isOpen, onClose, deudaSeleccionada, onEliminar }) => {
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
-        />
+        >
+            <div style={{ marginTop: '15px' }}>
+                <Mensaje 
+                    type="warning" 
+                    title="Advertencia" 
+                    message="Al eliminar esta deuda se borrarán también todos los pagos parciales registrados. Si está vinculada a una venta, el movimiento en el sistema quedará sin deuda asociada." 
+                />
+            </div>
+        </ModalCentro>
     );
 };
 

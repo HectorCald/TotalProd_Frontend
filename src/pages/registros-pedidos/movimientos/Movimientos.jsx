@@ -214,7 +214,7 @@ const Movimientos = () => {
     },
     {
       name: 'Anular', 
-      icon: 'x-circle', 
+      icon: 'block', 
       show: (row) => !row.estado || row.estado.toLowerCase() !== 'anulado',
       onClick: (movimiento) => {
         setMovimientoSeleccionado(movimiento);

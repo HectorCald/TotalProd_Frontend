@@ -19,7 +19,7 @@ const AnularMovimiento = ({ isOpen, onClose, movimientoSeleccionado, onAnular })
             const isAcopio = !!movimientoSeleccionado.product;
             const response = isAcopio
                 ? await movimientosAcopioService.anular(movimientoSeleccionado.id)
-                : await movimientosAlmacenService.anular(movimientoSeleccionado.id);
+                : await movimientosAlmacenService.anularFast(movimientoSeleccionado.id);
 
             if (response.success) {
                 if (onAnular) {

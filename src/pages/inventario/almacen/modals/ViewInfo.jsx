@@ -63,43 +63,49 @@ const ViewInfo = ({ isOpen, onClose, producto, onEdit }) => {
         };
     }
 
-    // Receta tag
+    // Receta parameter
+    let recetaStat = null;
     if (!soloVentas) {
         const recetas = producto.recetas || [];
-        if (recetas.length > 0 && recetas[0].recetas_detalle && recetas[0].recetas_detalle.length > 0) {
-            tags.push({
-                text: 'Con Receta',
-                color: 'success',
-                icon: 'receipt',
-                tooltipItems: recetas[0].recetas_detalle.map(d => {
-                    const ingredienteNombre = d.products_acopio?.name || 'Ingrediente';
-                    const tm = d.products_acopio?.type_measure || {};
-                    const codeMayor = tm.code || '';
-                    const codeMenor = tm.code_menor || '';
-                    const measureValue = tm.value ? Number(tm.value) : null;
-                    const cantidadNum = Number(d.cantidad);
+        const tieneReceta = recetas.length > 0 && recetas[0].recetas_detalle && recetas[0].recetas_detalle.length > 0;
+        
+        let tooltipItems = [];
+        if (tieneReceta) {
+            tooltipItems = recetas[0].recetas_detalle.map(d => {
+                const ingredienteNombre = d.products_acopio?.name || 'Ingrediente';
+                const tm = d.products_acopio?.type_measure || {};
+                const codeMayor = tm.code || '';
+                const codeMenor = tm.code_menor || '';
+                const measureValue = tm.value ? Number(tm.value) : null;
+                const cantidadNum = Number(d.cantidad);
 
-                    let formattedValue = '';
-                    if (isNaN(cantidadNum) || cantidadNum <= 0) {
-                        formattedValue = `0 ${codeMayor}`;
-                    } else if (measureValue && cantidadNum < 1) {
-                        const menor = Math.round(cantidadNum * measureValue);
-                        formattedValue = `${menor} ${codeMenor}`;
-                    } else {
-                        const rounded = Math.round(cantidadNum * 1000) / 1000;
-                        const formatted = Number.isInteger(rounded)
-                            ? `${rounded}`
-                            : `${rounded}`.replace(/\.0+$/, '').replace(/(\.[0-9]*?)0+$/, '$1');
-                        formattedValue = `${formatted} ${codeMayor}`;
-                    }
+                let formattedValue = '';
+                if (isNaN(cantidadNum) || cantidadNum <= 0) {
+                    formattedValue = `0 ${codeMayor}`;
+                } else if (measureValue && cantidadNum < 1) {
+                    const menor = Math.round(cantidadNum * measureValue);
+                    formattedValue = `${menor} ${codeMenor}`;
+                } else {
+                    const rounded = Math.round(cantidadNum * 1000) / 1000;
+                    const formatted = Number.isInteger(rounded)
+                        ? `${rounded}`
+                        : `${rounded}`.replace(/\.0+$/, '').replace(/(\.[0-9]*?)0+$/, '$1');
+                    formattedValue = `${formatted} ${codeMayor}`;
+                }
 
-                    return {
-                        label: ingredienteNombre,
-                        value: formattedValue
-                    };
-                })
+                return {
+                    label: ingredienteNombre,
+                    value: formattedValue
+                };
             });
         }
+
+        recetaStat = {
+            label: 'Receta',
+            value: tieneReceta ? 'Sí' : 'No',
+            icon: 'receipt',
+            tooltipItems: tieneReceta ? tooltipItems : undefined
+        };
     }
 
     const stats = [
@@ -113,8 +119,9 @@ const ViewInfo = ({ isOpen, onClose, producto, onEdit }) => {
             value: producto.stock_minimo !== undefined && producto.stock_minimo !== null ? producto.stock_minimo : 0,
             icon: 'bell'
         },
-        priceStat
-    ];
+        priceStat,
+        recetaStat
+    ].filter(Boolean);
 
     return (
         <ModalCentro
@@ -128,6 +135,7 @@ const ViewInfo = ({ isOpen, onClose, producto, onEdit }) => {
             }}
             hideFooter={true}
             width="450px"
+            visibleOverflow={true}
         >
             <div style={{ margin: '-10px -24px -24px -24px' }}>
                 <InfoCard

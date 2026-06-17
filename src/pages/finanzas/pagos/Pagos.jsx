@@ -159,12 +159,6 @@ const Pagos = () => {
 
   const tableActions = [
     {
-      name: 'Detalles', icon: 'show', onClick: (pago) => {
-        setPagoSeleccionado(pago);
-        setModalInfoOpen(true);
-      }
-    },
-    {
       name: 'Editar', icon: 'edit', onClick: (pago) => {
         setPagoEditando(pago);
         setModalAgregarEditarOpen(true);
