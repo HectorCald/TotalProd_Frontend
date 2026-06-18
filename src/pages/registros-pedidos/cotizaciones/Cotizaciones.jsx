@@ -137,18 +137,6 @@ const Cotizaciones = () => {
 
   const tableActions = [
     {
-      name: 'Detalles', icon: 'show', onClick: (cotizacion) => {
-        setCotizacionSeleccionada(cotizacion);
-        setModalInfoOpen(true);
-      }
-    },
-    {
-      name: 'Productos', icon: 'package', onClick: (cotizacion) => {
-        setCotizacionSeleccionada(cotizacion);
-        setModalProductosOpen(true);
-      }
-    },
-    {
       name: 'Editar', icon: 'edit', onClick: (cotizacion) => {
         setCotizacionEditando(cotizacion);
         // Todavía no debe hacer nada
@@ -189,14 +177,26 @@ const Cotizaciones = () => {
       accessor: 'total',
       width: '15%',
       render: (row) => {
-        const totalCalculado = (row.productos || []).reduce((sum, producto) => {
+        const subtotalCalculado = (row.productos || []).reduce((sum, producto) => {
             const subtotal = parseFloat(producto.subtotal) || 0;
             const grup = parseFloat(producto.producto?.grup) || 0;
             const tieneGrup = grup > 0;
             const subtotalRedondeado = tieneGrup ? redondearADecima(subtotal) : subtotal;
             return sum + subtotalRedondeado;
         }, 0);
-        return formatCurrency(redondearADecima(totalCalculado));
+
+        let subtotalNum = Math.round(subtotalCalculado * 10) / 10;
+        let descValNum = parseFloat(row.descuento) || 0;
+        let aumValNum = parseFloat(row.aumento) || 0;
+        let esPorcentaje = row.porcentaje;
+
+        let descCalculadoNum = esPorcentaje ? subtotalNum * (descValNum / 100) : descValNum;
+        let aumCalculadoNum = esPorcentaje ? subtotalNum * (aumValNum / 100) : aumValNum;
+
+        let totalFinalRaw = subtotalNum - descCalculadoNum + aumCalculadoNum;
+        let totalFinalNum = Math.round(totalFinalRaw * 10) / 10;
+
+        return formatCurrency(totalFinalNum);
       }
     },
     {
@@ -234,7 +234,11 @@ const Cotizaciones = () => {
       header: 'Método de pago',
       accessor: 'metodo_pago',
       width: '20%',
-      render: (row) => row.metodo_pago || '--'
+      render: (row) => {
+          if (!row.metodo_pago) return '--';
+          const metodo = row.metodo_pago.toLowerCase();
+          return metodo.charAt(0).toUpperCase() + metodo.slice(1);
+      }
     }
   ];
 
@@ -303,6 +307,10 @@ const Cotizaciones = () => {
         onEdit={(cotizacion) => {
           setCotizacionEditando(cotizacion);
           // Todavía no debe hacer nada
+        }}
+        onUpdate={(id, nuevoEstado) => {
+          setCotizaciones(prev => prev.map(c => c.id === id ? { ...c, estado: nuevoEstado } : c));
+          setCotizacionSeleccionada(prev => prev && prev.id === id ? { ...prev, estado: nuevoEstado } : prev);
         }}
       />
 

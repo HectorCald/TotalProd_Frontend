@@ -405,6 +405,10 @@ function AppContent({ token, tokenType }) {
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
         />
         <Route
+          path="/almacen/salidas/cotizacion"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
+        />
+        <Route
           path="/almacen/entradas"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
         />

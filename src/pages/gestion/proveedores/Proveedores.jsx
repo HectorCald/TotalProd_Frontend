@@ -12,6 +12,8 @@ import EliminarProveedor from './modals/EliminarProveedor';
 import ViewInfo from './modals/ViewInfo';
 
 
+import useVirtualPagination from '../../../hooks/useVirtualPagination';
+
 const Proveedores = () => {
   const { isLargeScreen } = useLayout();
 
@@ -28,6 +30,19 @@ const Proveedores = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [proveedorSeleccionado, setProveedorSeleccionado] = useState(null);
+
+  const [search, setSearch] = useState('');
+
+  const filteredProveedores = React.useMemo(() => {
+    if (!search) return proveedores;
+    const s = search.toLowerCase();
+    return proveedores.filter(p => 
+      (p.name && p.name.toLowerCase().includes(s)) ||
+      (p.phone && p.phone.toLowerCase().includes(s))
+    );
+  }, [proveedores, search]);
+
+  const { visibleItems, hasMore, loadMore } = useVirtualPagination(filteredProveedores, 30);
 
   const handleProveedoresLoaded = useCallback((data) => {
     setProveedores(data);
@@ -103,7 +118,7 @@ const Proveedores = () => {
         <div className={styles.contentArea}>
           <h1 className={styles.title}>Proveedores</h1>
           <Tabla
-            data={proveedores}
+            data={visibleItems}
             columns={columns}
             isLoading={isLoading}
             acciones={tableActions}
@@ -118,6 +133,10 @@ const Proveedores = () => {
               setProveedorSeleccionado(proveedor);
               setIsViewModalOpen(true);
             }}
+            remote={true}
+            searchValue={search}
+            onSearchChange={setSearch}
+            onLoadMore={hasMore ? loadMore : undefined}
           />
         </div>
       </div>

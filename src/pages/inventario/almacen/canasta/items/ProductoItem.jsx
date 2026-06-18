@@ -5,8 +5,7 @@ const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, precioUn
   const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
   const rawStock = Number(producto.stock || 0);
   const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(producto.grup)) : rawStock;
-  
-  const esVenta = modo === 'VENTA';
+  const esVenta = modo === 'VENTA' || modo === 'VENTA_COTIZACION';
   const inputRef = useRef(null);
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { BoxIcon } from 'boxicons-react';
+import Tooltip from '../outputs/Tooltip';
 import styles from './InfoCard.module.css';
 
 const InfoCard = ({ title, subtitle, description, customBlock, tags = [], stats = [], actionButton, icon = 'user', statusDot }) => {
@@ -70,10 +71,9 @@ const InfoCard = ({ title, subtitle, description, customBlock, tags = [], stats 
                         const tagLabel = isObject ? getDefaultLabel(tag) : 'Detalle';
                         const hasTooltip = isObject && (tag.label || tag.icon || tag.hasDot || (tag.tooltipItems && tag.tooltipItems.length > 0));
 
-                        return (
+                        const tagContent = (
                             <span 
-                                key={index} 
-                                className={`${styles.tag} ${colorClass} ${hasTooltip ? styles.hasTooltip : ''}`}
+                                className={`${styles.tag} ${colorClass}`}
                             >
                                 {icon && (
                                     <BoxIcon 
@@ -83,22 +83,24 @@ const InfoCard = ({ title, subtitle, description, customBlock, tags = [], stats 
                                 )}
                                 {hasDot && <span className={styles.tagDot}></span>}
                                 {text}
-                                {hasTooltip && (
-                                    <div className={styles.tooltip}>
-                                        {(!tag.tooltipItems || tag.tooltipItems.length === 0) && (
-                                            <div className={styles.tooltipItem}>
-                                                <span className={styles.tooltipLabel}>{tagLabel}</span>
-                                            </div>
-                                        )}
-                                        {tag.tooltipItems && tag.tooltipItems.length > 0 && tag.tooltipItems.map((item, idx) => (
-                                            <div key={idx} className={styles.tooltipItem}>
-                                                <span className={styles.tooltipLabel}>{item.label}</span>
-                                                <span className={styles.tooltipValue}>{item.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
                             </span>
+                        );
+
+                        return (
+                            <React.Fragment key={index}>
+                                {hasTooltip ? (
+                                    <Tooltip 
+                                        text={(!tag.tooltipItems || tag.tooltipItems.length === 0) ? tagLabel : undefined}
+                                        items={tag.tooltipItems} 
+                                        position="top" 
+                                        align={index === 0 ? 'start' : index === tags.length - 1 ? 'end' : 'center'}
+                                    >
+                                        {tagContent}
+                                    </Tooltip>
+                                ) : (
+                                    tagContent
+                                )}
+                            </React.Fragment>
                         );
                     })}
                 </div>
@@ -112,31 +114,44 @@ const InfoCard = ({ title, subtitle, description, customBlock, tags = [], stats 
             
             {stats && stats.length > 0 && (
                 <div className={`${styles.stats} ${stats.length > 5 ? styles.statsMany : stats.length > 3 ? styles.statsMedium : ''}`}>
-                    {stats.map((stat, index) => (
-                        <div key={index} className={`${styles.statItem} ${stat.tooltipItems && stat.tooltipItems.length > 0 ? styles.hasTooltip : ''}`}>
-                            <div className={styles.statValue}>
-                                {stat.icon && (
-                                    typeof stat.icon === 'string' ? (
-                                        <BoxIcon name={stat.icon} className={styles.statIcon} />
-                                    ) : (
-                                        <span>{stat.icon}</span>
-                                    )
-                                )}
-                                {stat.value}
-                            </div>
-                            <div className={styles.statLabel}>{stat.label}</div>
-                            {stat.tooltipItems && stat.tooltipItems.length > 0 && (
-                                <div className={styles.tooltip}>
-                                    {stat.tooltipItems.map((item, idx) => (
-                                        <div key={idx} className={styles.tooltipItem}>
-                                            <span className={styles.tooltipLabel}>{item.label}</span>
-                                            <span className={styles.tooltipValue}>{item.value}</span>
-                                        </div>
-                                    ))}
+                    {stats.map((stat, index) => {
+                        const hasTooltip = stat.tooltipItems && stat.tooltipItems.length > 0;
+
+                        const statContent = (
+                            <>
+                                <div className={styles.statValue}>
+                                    {stat.icon && (
+                                        typeof stat.icon === 'string' ? (
+                                            <BoxIcon name={stat.icon} className={styles.statIcon} />
+                                        ) : (
+                                            <span>{stat.icon}</span>
+                                        )
+                                    )}
+                                    {stat.value}
                                 </div>
-                            )}
-                        </div>
-                    ))}
+                                <div className={styles.statLabel}>{stat.label}</div>
+                            </>
+                        );
+
+                        return (
+                            <React.Fragment key={index}>
+                                {hasTooltip ? (
+                                    <Tooltip 
+                                        items={stat.tooltipItems} 
+                                        position="top" 
+                                        align={index === 0 ? 'start' : index === stats.length - 1 ? 'end' : 'center'} 
+                                        className={styles.statItem}
+                                    >
+                                        {statContent}
+                                    </Tooltip>
+                                ) : (
+                                    <div className={styles.statItem}>
+                                        {statContent}
+                                    </div>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
             )}
 

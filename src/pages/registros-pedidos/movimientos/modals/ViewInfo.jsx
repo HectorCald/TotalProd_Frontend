@@ -21,7 +21,6 @@ const ViewInfo = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnular })
     };
 
     const handleMovimientoAnulado = (updatedMovimiento) => {
-        onClose();
         if (onAnular) onAnular(updatedMovimiento);
     };
 
@@ -51,13 +50,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnular })
         });
     }
 
-    if (movimiento.agrupado !== undefined && movimiento.agrupado !== null) {
-        tags.push({
-            label: 'Modalidad',
-            text: movimiento.agrupado ? 'Grupos' : 'Unidades',
-            icon: 'category'
-        });
-    }
+
 
     let clienteProveedorNombre = '';
     let esProveedor = false;
@@ -95,6 +88,15 @@ const ViewInfo = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnular })
             label: 'Responsable',
             text: responsableNombre,
             icon: 'user'
+        });
+    }
+
+    if (movimiento.type === 'salida' && movimiento.metodo_pago) {
+        const metodo = movimiento.metodo_pago.toLowerCase();
+        tags.push({
+            label: 'Pago',
+            text: metodo.charAt(0).toUpperCase() + metodo.slice(1),
+            icon: 'credit-card'
         });
     }
 
@@ -138,6 +140,14 @@ const ViewInfo = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnular })
         value: movimiento.type === 'entrada' ? 'Entrada' : movimiento.type === 'transferencia' ? 'Transferencia' : 'Salida',
         icon: 'transfer'
     });
+
+    if (movimiento.agrupado !== undefined && movimiento.agrupado !== null) {
+        stats.push({
+            label: 'Modalidad',
+            value: movimiento.agrupado ? 'Grps.' : 'Unds.',
+            icon: movimiento.agrupado ? 'layer' : 'box'
+        });
+    }
 
     if (isAcopio) {
         stats.push({
@@ -306,6 +316,8 @@ const ViewInfo = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnular })
                                 <BotonIcon
                                     iconName="edit"
                                     className="btn-primary"
+                                    tooltip="Editar Movimiento"
+                                    tooltipAlign="end"
                                     onClick={() => {
                                         onClose();
                                         if (onEdit) onEdit(movimiento);

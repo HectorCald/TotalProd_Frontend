@@ -1,0 +1,179 @@
+.tooltipWrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Cuando tiene tooltip, el cursor puede ser de ayuda (o heredado del botón) */
+.tooltipWrapper {
+    cursor: inherit;
+}
+
+.tooltipContent {
+    position: absolute;
+    background: rgba(26, 32, 44, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    width: max-content;
+    max-width: 250px;
+    z-index: 10100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    visibility: hidden;
+    color: #fff;
+    font-size: 12px;
+}
+
+/* Contenido interno (items) para Tooltip */
+.tooltipItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 4px;
+}
+
+.tooltipItem:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.tooltipLabel {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.tooltipValue {
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* Arrow */
+.tooltipContent::after {
+    content: '';
+    position: absolute;
+    border-style: solid;
+}
+
+/* POSITIONS */
+/* TOP (Default) */
+.top .tooltipContent {
+    bottom: 115%;
+}
+.top.align-center .tooltipContent {
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+}
+.top.align-center .tooltipContent::after {
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Ajustes de alineación para Top y Bottom */
+.top.align-start .tooltipContent, .bottom.align-start .tooltipContent {
+    left: -10px;
+}
+.top.align-start .tooltipContent::after, .bottom.align-start .tooltipContent::after {
+    left: 25px;
+}
+
+.top.align-end .tooltipContent, .bottom.align-end .tooltipContent {
+    right: -10px;
+}
+.top.align-end .tooltipContent::after, .bottom.align-end .tooltipContent::after {
+    right: 25px;
+}
+
+/* Transforms iniciales por alineación */
+.top.align-start .tooltipContent { transform: translateY(8px); }
+.top.align-end .tooltipContent { transform: translateY(8px); }
+
+.top .tooltipContent::after {
+    top: 100%;
+    border-width: 6px 6px 0 6px;
+    border-color: rgba(26, 32, 44, 0.95) transparent transparent transparent;
+}
+
+
+/* BOTTOM */
+.bottom .tooltipContent {
+    top: 115%;
+}
+.bottom.align-center .tooltipContent {
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+}
+.bottom.align-center .tooltipContent::after {
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.bottom.align-start .tooltipContent { transform: translateY(-8px); }
+.bottom.align-end .tooltipContent { transform: translateY(-8px); }
+
+.bottom .tooltipContent::after {
+    bottom: 100%;
+    border-width: 0 6px 6px 6px;
+    border-color: transparent transparent rgba(26, 32, 44, 0.95) transparent;
+}
+
+
+/* LEFT */
+.left .tooltipContent {
+    right: 115%;
+    top: 50%;
+    transform: translateY(-50%) translateX(8px);
+}
+.left .tooltipContent::after {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 6px 0 6px 6px;
+    border-color: transparent transparent transparent rgba(26, 32, 44, 0.95);
+}
+
+
+/* RIGHT */
+.right .tooltipContent {
+    left: 115%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-8px);
+}
+.right .tooltipContent::after {
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 6px 6px 6px 0;
+    border-color: transparent rgba(26, 32, 44, 0.95) transparent transparent;
+}
+
+/* Hover logic ONLY on PC (min-width: 768px) */
+@media (min-width: 768px) {
+    .tooltipWrapper:hover .tooltipContent {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+    
+    .top.align-center:hover .tooltipContent { transform: translateX(-50%) translateY(0); }
+    .top.align-start:hover .tooltipContent { transform: translateY(0); }
+    .top.align-end:hover .tooltipContent { transform: translateY(0); }
+
+    .bottom.align-center:hover .tooltipContent { transform: translateX(-50%) translateY(0); }
+    .bottom.align-start:hover .tooltipContent { transform: translateY(0); }
+    .bottom.align-end:hover .tooltipContent { transform: translateY(0); }
+
+    .left:hover .tooltipContent { transform: translateY(-50%) translateX(0); }
+    .right:hover .tooltipContent { transform: translateY(-50%) translateX(0); }
+}

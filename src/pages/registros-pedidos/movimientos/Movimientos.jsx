@@ -192,6 +192,7 @@ const Movimientos = () => {
     setMovimientos(prev => 
       prev.map(m => m.id === updatedMovimiento.id ? { ...m, ...updatedMovimiento, estado: 'anulado' } : m)
     );
+    setMovimientoSeleccionado(prev => prev && prev.id === updatedMovimiento.id ? { ...prev, ...updatedMovimiento, estado: 'anulado' } : prev);
   };
 
   const tableActions = [

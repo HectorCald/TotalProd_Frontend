@@ -9,7 +9,7 @@ import deudasService from '../../../../../services/deudasService';
 import useSessionCache from '../../../../../hooks/useSessionCache';
 import { useToast } from '../../../../../context/ToastContext';
 
-const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion }) => {
+const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion, cotizacionDefaults = null }) => {
   const { showSuccess, showDanger } = useToast();
   const { value: clientes } = useSessionCache({ key: 'clientesListado', defaultValue: [] });
 
@@ -21,6 +21,28 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
   const [adelanto, setAdelanto] = useState('');
   const [esPorcentaje, setEsPorcentaje] = useState(false);
   const [errors, setErrors] = useState({});
+
+  React.useEffect(() => {
+    if (isOpen) {
+      if (cotizacionDefaults) {
+        setCliente(cotizacionDefaults.cliente_id || null);
+        setMetodoPago(cotizacionDefaults.metodo_pago?.toLowerCase() || null);
+        setDescuento(cotizacionDefaults.descuento ? String(cotizacionDefaults.descuento) : '');
+        setAumento(cotizacionDefaults.aumento ? String(cotizacionDefaults.aumento) : '');
+        setEsPorcentaje(!!cotizacionDefaults.porcentaje);
+      } else {
+        setCliente(null);
+        setMetodoPago(null);
+        setDescuento('');
+        setAumento('');
+        setEsPorcentaje(false);
+      }
+      setConcepto('');
+      setAdelanto('');
+      setErrors({});
+      setIsSubmitting(false);
+    }
+  }, [isOpen, cotizacionDefaults]);
 
   const descVal = Number(descuento) || 0;
   const aumVal = Number(aumento) || 0;

@@ -159,6 +159,24 @@ class cotizacionesService {
     });
   }
 
+  // Crear cotización rápida de golpe
+  static async createFast(cotizacionData) {
+    const personalId = getPersonalId();
+    const dataToSend = {
+      ...cotizacionData,
+      personal_id: personalId
+    };
+
+    return cotizacionesService._request('/cotizaciones/fast', {
+      method: 'POST',
+      body: JSON.stringify(dataToSend)
+    }, {
+      requireSucuId: true,
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
+  }
+
   // Actualizar estado de una cotización
   static async actualizarEstado(cotizacionId, estado) {
     return cotizacionesService._request(`/cotizaciones/${cotizacionId}/estado`, {

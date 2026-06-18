@@ -11,6 +11,7 @@ import AgregarEditarPersonal from './modals/AgregarEditarPersonal';
 import EliminarPersonal from './modals/EliminarPersonal';
 import ResetPasswordPersonal from './modals/ResetPasswordPersonal';
 import ViewInfo from './modals/ViewInfo';
+import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 const Personal = () => {
   const { isLargeScreen } = useLayout();
@@ -108,14 +109,30 @@ const Personal = () => {
     }
   ];
 
-  const mappedPersonal = personal.map(p => ({
-    ...p,
-    nombre_completo: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
-    estado_texto: p.is_active ? 'Activo' : 'Inactivo',
-    sucursal_nombre: p.sucursal?.name || 'Sin sucursal',
-    cargo: p.cargo || '--',
-    codigo: p.codigo || '--'
-  }));
+  const mappedPersonal = React.useMemo(() => {
+    return personal.map(p => ({
+      ...p,
+      nombre_completo: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+      estado_texto: p.is_active ? 'Activo' : 'Inactivo',
+      sucursal_nombre: p.sucursal?.name || 'Sin sucursal',
+      cargo: p.cargo || '--',
+      codigo: p.codigo || '--'
+    }));
+  }, [personal]);
+
+  const [search, setSearch] = useState('');
+
+  const filteredPersonal = React.useMemo(() => {
+    if (!search) return mappedPersonal;
+    const s = search.toLowerCase();
+    return mappedPersonal.filter(p => 
+      (p.nombre_completo && p.nombre_completo.toLowerCase().includes(s)) ||
+      (p.codigo && p.codigo.toLowerCase().includes(s)) ||
+      (p.cargo && p.cargo.toLowerCase().includes(s))
+    );
+  }, [mappedPersonal, search]);
+
+  const { visibleItems, hasMore, loadMore } = useVirtualPagination(filteredPersonal, 30);
 
   return (
     <>
@@ -125,7 +142,7 @@ const Personal = () => {
         <div className={styles.contentArea}>
           <h1 className={styles.title}>Personal</h1>
           <Tabla
-            data={mappedPersonal}
+            data={visibleItems}
             columns={columns}
             isLoading={isLoading}
             acciones={tableActions}
@@ -140,6 +157,10 @@ const Personal = () => {
               setPersonalSeleccionado(personal);
               setIsViewModalOpen(true);
             }}
+            remote={true}
+            searchValue={search}
+            onSearchChange={setSearch}
+            onLoadMore={hasMore ? loadMore : undefined}
           />
         </div>
       </div>

@@ -194,9 +194,17 @@
   pointer-events: none;
 }
 
-/* Hover effects solo en pantallas grandes */
 @media (min-width: 768px) {
-  .btn:hover{
+  .btn:hover {
     opacity: 0.6;
   }
+  .btnSquare:hover {
+    opacity: 0.8;
+  }
+  .hasTooltip:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
 }
+
+

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
@@ -21,13 +21,30 @@ const AlmacenGeneral = () => {
 
   const path = location.pathname;
   const isCanastaMode = path.includes('/almacen/salidas') || path.includes('/almacen/entradas') || path.includes('/almacen/pedidos') || path.includes('/almacen/cotizar');
-  const modoCanastaStr = path.includes('/almacen/salidas') ? 'VENTA' : path.includes('/almacen/entradas') ? 'ENTRADA' : path.includes('/almacen/pedidos') ? 'PEDIDO' : 'COTIZACIÓN';
+  const modoCanastaStr = path.includes('/almacen/salidas/cotizacion') ? 'VENTA_COTIZACION' : path.includes('/almacen/salidas') ? 'VENTA' : path.includes('/almacen/entradas') ? 'ENTRADA' : path.includes('/almacen/pedidos') ? 'PEDIDO' : 'COTIZACIÓN';
   const { canasta, agregarProducto, eliminarProducto, actualizarCantidad, vaciarCanasta, modoAgrupacion, setModoAgrupacion } = useCanasta();
   const { showDanger } = useToast();
+  const navigate = useNavigate();
+
+  // Leer variables de sesión para precargar datos y manejar redirecciones de seguridad
+  const preloadedData = useMemo(() => {
+    if (modoCanastaStr === 'VENTA_COTIZACION') {
+      const rawData = sessionStorage.getItem('cotizacionParaVenta');
+      return rawData ? JSON.parse(rawData) : null;
+    }
+    return null;
+  }, [modoCanastaStr]);
+
+  useEffect(() => {
+    if (modoCanastaStr === 'VENTA_COTIZACION' && !preloadedData) {
+      navigate('/almacen/salidas');
+    }
+  }, [modoCanastaStr, preloadedData, navigate]);
 
   // Determinar título basado en la ruta
   const getTitulo = () => {
     const path = location.pathname;
+    if (path.includes('/almacen/salidas/cotizacion')) return 'Venta desde Cotización';
     if (path.includes('/almacen/salidas')) return 'Salida o Venta';
     if (path.includes('/almacen/entradas')) return 'Entrada';
     if (path.includes('/almacen/pedidos')) return 'Nuevo Pedido';
@@ -97,6 +114,8 @@ const AlmacenGeneral = () => {
     setIsLoading(true);
     setPage(1);
   }, [debouncedSearch, categoriaId, sortOrder]);
+
+
 
   const handleProductosLoaded = useCallback((data) => {
     setProductos(data);
@@ -250,7 +269,7 @@ const AlmacenGeneral = () => {
               const inCanasta = canasta.find(c => c.id === p.id);
               const qty = inCanasta ? inCanasta.cantidad : 0;
               const qtyUnits = (modoAgrupacion === 'grupo' && p.grup && p.grup > 0) ? (qty * p.grup) : qty;
-              const displayStock = modoCanastaStr === 'VENTA' ? Number(p.stock || 0) - qtyUnits : Number(p.stock || 0);
+              const displayStock = (modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION') ? Number(p.stock || 0) - qtyUnits : Number(p.stock || 0);
               return { ...p, displayStock };
             })}
             columns={columns}
@@ -273,7 +292,7 @@ const AlmacenGeneral = () => {
                 const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
                 const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(producto.grup)) : rawStock;
 
-                if (modoCanastaStr === 'VENTA' && qty >= baseStockValue) {
+                if ((modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION') && qty >= baseStockValue) {
                   showDanger('Stock insuficiente', 'El producto no tiene stock suficiente');
                   return;
                 }
@@ -294,12 +313,14 @@ const AlmacenGeneral = () => {
         {isCanastaMode && (
           <CanastaAlmacen 
             canasta={canasta} 
+            agregarProducto={agregarProducto}
             actualizarCantidad={actualizarCantidad} 
             eliminarProducto={eliminarProducto} 
             vaciarCanasta={vaciarCanasta}
             modo={modoCanastaStr} 
             modoAgrupacion={modoAgrupacion}
             setModoAgrupacion={setModoAgrupacion}
+            preloadedData={preloadedData}
           />
         )}
       </div>

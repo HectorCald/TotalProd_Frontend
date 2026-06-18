@@ -12,6 +12,8 @@ import EliminarCliente from './modals/EliminarCliente';
 import ViewInfo from './modals/ViewInfo';
 
 
+import useVirtualPagination from '../../../hooks/useVirtualPagination';
+
 const Clientes = () => {
   const { isLargeScreen } = useLayout();
 
@@ -28,6 +30,19 @@ const Clientes = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  
+  const [search, setSearch] = useState('');
+
+  const filteredClientes = React.useMemo(() => {
+    if (!search) return clientes;
+    const s = search.toLowerCase();
+    return clientes.filter(c => 
+      (c.name && c.name.toLowerCase().includes(s)) ||
+      (c.phone && c.phone.toLowerCase().includes(s))
+    );
+  }, [clientes, search]);
+
+  const { visibleItems, hasMore, loadMore } = useVirtualPagination(filteredClientes, 30);
 
   const handleClientesLoaded = useCallback((data) => {
     setClientes(data);
@@ -103,7 +118,7 @@ const Clientes = () => {
         <div className={styles.contentArea}>
           <h1 className={styles.title}>Clientes</h1>
           <Tabla
-            data={clientes}
+            data={visibleItems}
             columns={columns}
             isLoading={isLoading}
             acciones={tableActions}
@@ -118,6 +133,10 @@ const Clientes = () => {
               setClienteSeleccionado(cliente);
               setIsViewModalOpen(true);
             }}
+            remote={true}
+            searchValue={search}
+            onSearchChange={setSearch}
+            onLoadMore={hasMore ? loadMore : undefined}
           />
         </div>
       </div>
