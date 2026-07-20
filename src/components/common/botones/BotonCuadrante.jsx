@@ -1,12 +1,57 @@
-import React from 'react';
+import React, { useRef, useLayoutEffect, useState } from 'react';
 import styles from './BotonCuadrante.module.css';
 
 const BotonCuadrante = ({ icon, title, onClick, isNew }) => {
+  const textRef = useRef(null);
+  const containerRef = useRef(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const adjustScale = () => {
+      if (textRef.current && containerRef.current) {
+        textRef.current.style.transform = 'none';
+        
+        const containerWidth = containerRef.current.clientWidth - 10;
+        const textWidth = textRef.current.scrollWidth;
+        
+        if (textWidth > containerWidth && containerWidth > 0) {
+          setScale(containerWidth / textWidth);
+        } else {
+          setScale(1);
+        }
+      }
+    };
+
+    adjustScale();
+    
+    const observer = new ResizeObserver(() => adjustScale());
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    
+    return () => observer.disconnect();
+  }, [title]);
+
+  const displayTitle = typeof title === 'string' ? title.toUpperCase() : title;
+
   return (
-    <div className={styles.menuItem} onClick={onClick}>
+    <div className={styles.menuItem} onClick={onClick} ref={containerRef}>
       {isNew && <span className={styles.newBadge}>NEW</span>}
       <i className={`bx bx-${icon} ${styles.icon}`}></i>
-      <span className={styles.title}>{typeof title === 'string' ? title.toUpperCase() : title}</span>
+      <div style={{ width: '100%', overflow: 'hidden', display: 'flex', justifyContent: 'center' }}>
+        <span 
+          ref={textRef} 
+          className={styles.title}
+          style={{
+            whiteSpace: 'nowrap',
+            transform: `scale(${scale})`,
+            transformOrigin: 'center',
+            display: 'inline-block'
+          }}
+        >
+          {displayTitle}
+        </span>
+      </div>
     </div>
   );
 };

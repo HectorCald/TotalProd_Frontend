@@ -157,22 +157,24 @@ const CanastaAlmacen = ({
 
   const displayModo = (modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO') ? 'VENTA' : modo;
 
-  if (!isOpen) return null;
+  const preloader = preloadedData && productIdsToFetch.length > 0 ? (
+    <FetchData
+      service={productsAlmacenService}
+      serviceName="productsAlmacenService"
+      method="getByIdsFast"
+      methodParams={[productIdsToFetch]}
+      isOpen={true}
+      onDataLoaded={handleProductsLoaded}
+      onLoadingStart={() => setLoadingCotizacion(true)}
+      onLoadingEnd={() => setLoadingCotizacion(false)}
+    />
+  ) : null;
+
+  if (!isOpen) return preloader;
 
   const content = (
     <div className={isLargeScreen ? styles.canastaContainer : modalStyles.drawer} onClick={(e) => !isLargeScreen && e.stopPropagation()}>
-      {preloadedData && productIdsToFetch.length > 0 && (
-        <FetchData
-          service={productsAlmacenService}
-          serviceName="productsAlmacenService"
-          method="getByIdsFast"
-          methodParams={[productIdsToFetch]}
-          isOpen={true}
-          onDataLoaded={handleProductsLoaded}
-          onLoadingStart={() => setLoadingCotizacion(true)}
-          onLoadingEnd={() => setLoadingCotizacion(false)}
-        />
-      )}
+      {preloader}
       
       <div className={styles.header}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -250,6 +252,7 @@ const CanastaAlmacen = ({
               precioUnitario={getProductPrice(producto, precioSeleccionado)}
               modoAgrupacion={modoAgrupacion}
               modo={modo}
+              isLargeScreen={isLargeScreen}
             />
           ))
         )}

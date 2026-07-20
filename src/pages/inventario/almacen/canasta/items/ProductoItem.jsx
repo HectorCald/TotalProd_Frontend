@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import styles from './ProductoItem.module.css';
 
-const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, precioUnitario, modoAgrupacion, modo }) => {
+const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, precioUnitario, modoAgrupacion, modo, isLargeScreen }) => {
   const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
   const rawStock = Number(producto.stock || 0);
   const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(producto.grup)) : rawStock;
@@ -9,11 +9,11 @@ const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, precioUn
   const inputRef = useRef(null);
 
   useEffect(() => {
-    if (inputRef.current) {
+    if (isLargeScreen && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, []);
+  }, [isLargeScreen]);
   
   useEffect(() => {
     if (esVenta && producto.cantidad > baseStockValue) {

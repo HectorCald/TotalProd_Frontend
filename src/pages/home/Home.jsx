@@ -466,10 +466,10 @@ const Home = () => {
   }, [filtroFecha]);
 
   const ItemRow = ({ label, value, loadingState, color }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #f0f0f0' }}>
       <span style={{ fontSize: '14px', fontWeight: '500', color: '#555' }}>{label}</span>
       {loadingState ? (
-        <Skeleton width="80px" height="20px" />
+        <Skeleton width="80px" height="18px" />
       ) : (
         <span style={{ fontSize: '15px', fontWeight: 'bold', color: color || '#333' }}>
           {value}
