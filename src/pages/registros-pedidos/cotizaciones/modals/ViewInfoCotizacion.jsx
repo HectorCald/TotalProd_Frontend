@@ -169,6 +169,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
             porcentaje: !!cotizacion.porcentaje,
             metodo_pago: cotizacion.metodo_pago
         };
+        localStorage.removeItem('ventaEnProgreso');
         sessionStorage.setItem('cotizacionParaVenta', JSON.stringify(ventaData));
         onClose();
         navigate('/almacen/salidas/cotizacion');

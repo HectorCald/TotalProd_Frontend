@@ -227,6 +227,7 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
                                             }),
                                             pedido_id: pedido.id
                                         };
+                                        localStorage.removeItem('ventaEnProgreso');
                                         sessionStorage.setItem('pedidoParaEntregar', JSON.stringify(entregaData));
                                         if (setIsOpen) setIsOpen(false);
                                         if (onClose) onClose();
