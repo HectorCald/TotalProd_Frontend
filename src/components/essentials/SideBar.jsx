@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './SideBar.module.css';
 import { SideBarOptions } from '../../constants/SideBarOptions';
@@ -28,14 +28,23 @@ const SideBar = () => {
   const sucursalSeleccionada = userSucursal || employeeSucursal;
   const isEmployee = !!employeeInfo;
 
-  const getFilteredOptions = () => {
-    const codigoEmpresa = sucursalSeleccionada?.empresas?.codigo || userInfo?.empresa?.codigo || employeeInfo?.sucursal?.empresas?.codigo || '';
+  // IDs estables para usar como dependencias del useMemo
+  const usuarioId = usuario?.id;
+  const sucursalId = sucursalSeleccionada?.id;
+  const modulesLength = usuario?.modules?.length;
+
+
+  const visibleOptions = useMemo(() => {
+    const codigoEmpresaRaw = sucursalSeleccionada?.empresas?.codigo || userInfo?.empresa?.codigo || employeeInfo?.sucursal?.empresas?.codigo || '';
+    const codigoEmpresa = codigoEmpresaRaw.toLowerCase();
     const tipoEmpresa = sucursalSeleccionada?.empresas?.tipo || userInfo?.empresa?.tipo || employeeInfo?.sucursal?.empresas?.tipo || 'ventas_produccion';
     const isSoloVentas = tipoEmpresa === 'ventas';
 
     let filteredSections = SideBarOptions.filter(section => {
-      if (section.empresaCodigo && section.empresaCodigo !== codigoEmpresa) {
-        return false;
+      // Para empleados: el filtro de módulos controla qué ven.
+      // Para usuarios (owner): ocultar secciones de empresa que no coincidan.
+      if (section.empresaCodigo && !isEmployee) {
+        if (section.empresaCodigo.toLowerCase() !== codigoEmpresa) return false;
       }
       return true;
     });
@@ -62,11 +71,9 @@ const SideBar = () => {
 
     return filteredSections.map(section => {
       const filteredItems = section.items.map(item => {
-        // Ignorar home o items sin key de módulo
         if (!item.key && item.id === 'home') return item;
         if (!item.key) return item;
 
-        // Comprobar si tiene el módulo principal
         const hasModule = usuario.modules.some(m => m.modulos?.clave === item.key);
         if (!hasModule) return null;
 
@@ -80,7 +87,6 @@ const SideBar = () => {
           });
           if (filteredSubmenu.length === 0) return null;
         } else if (item.key_submenu) {
-          // Si requiere un submódulo en específico para ver esta opción (ej: Conteos requiere gestionar)
           const hasSpecificSubModule = usuario.modules.some(m => 
             m.modulos?.clave === item.key && m.name === item.key_submenu
           );
@@ -93,9 +99,11 @@ const SideBar = () => {
       if (filteredItems.length === 0) return null;
       return { ...section, items: filteredItems };
     }).filter(Boolean);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuarioId, sucursalId, isEmployee, modulesLength]);
 
-  const visibleOptions = getFilteredOptions();
+
+
 
   // Auto-expand submenus if current path matches any of their subitems
   useEffect(() => {

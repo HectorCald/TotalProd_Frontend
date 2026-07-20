@@ -142,13 +142,10 @@ function App() {
     window.addEventListener('local-logout', updateTokenState);
     window.addEventListener('local-login', updateTokenState);
 
-    const interval = setInterval(updateTokenState, 500);
-
     return () => {
       window.removeEventListener('storage', updateTokenState);
       window.removeEventListener('local-logout', updateTokenState);
       window.removeEventListener('local-login', updateTokenState);
-      clearInterval(interval);
     };
   }, [token]);
 

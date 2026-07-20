@@ -81,10 +81,11 @@ export const SideBarOptions = [
     title: "DAMABRAVA",
     empresaCodigo: "damabrava",
     items: [
-      { id: "Verificación", title: "Verificación", icon: "check-circle", route: "/damabrava/verificacion", key: "verificar" },
-      { id: "Mi Producción", title: "Mi Producción", icon: "archive", route: "/damabrava/mi_produccion", key: "mi_produccion" },
-      { id: "Reglas", title: "Reglas", icon: "book", route: "/damabrava/reglas", key: "reglas" },
-      { id: "Pagos", title: "Pagos", icon: "wallet", route: "/damabrava/pagos", key: "pagos" },
+      { id: "Verificación", title: "Verificación", icon: "check-circle", route: "/damabrava/verificacion", key: "damabrava", key_submenu: "verificar" },
+      { id: "Mi Producción", title: "Mi Producción", icon: "archive", route: "/damabrava/mi_produccion", key: "damabrava", key_submenu: "mi_produccion" },
+      { id: "Reglas", title: "Reglas", icon: "book", route: "/damabrava/reglas", key: "damabrava", key_submenu: "reglas" },
+      { id: "Pagos", title: "Pagos", icon: "wallet", route: "/damabrava/pagos", key: "damabrava", key_submenu: "pagos_damabrava" },
     ]
   }
+
 ];

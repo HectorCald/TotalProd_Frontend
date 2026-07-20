@@ -110,11 +110,14 @@ const Home = () => {
   const isSoloVentas = tipoEmpresa === 'ventas';
 
   const getCarouselItems = () => {
-    const codigoEmpresa = sucursalSeleccionada?.empresas?.codigo || userInfo?.empresa?.codigo || employeeInfo?.sucursal?.empresas?.codigo || '';
+    const codigoEmpresaRaw = sucursalSeleccionada?.empresas?.codigo || userInfo?.empresa?.codigo || employeeInfo?.sucursal?.empresas?.codigo || '';
+    const codigoEmpresa = codigoEmpresaRaw.toLowerCase();
     
     const filteredSections = SideBarOptions.filter(section => {
-      if (section.empresaCodigo && section.empresaCodigo !== codigoEmpresa) {
-        return false;
+      // Para empleados, omitir filtro por empresa — los módulos asignados lo controlan.
+      // Solo ocultar para usuarios (owner) cuya empresa no coincida.
+      if (section.empresaCodigo && !isEmployee) {
+        if (section.empresaCodigo.toLowerCase() !== codigoEmpresa) return false;
       }
       return true;
     });
