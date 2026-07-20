@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './ModalCentro.module.css';
 import Boton from '../botones/Boton';
+import { useModalStack } from '../../../context/ModalStackContext';
 
 
 import { BoxIcon } from 'boxicons-react';
@@ -26,6 +27,21 @@ const ModalCentro = ({
     receipt = false,
     hideCancel = false
 }) => {
+    const { registerModal, unregisterModal } = useModalStack();
+    const modalIdRef = useRef(null);
+
+    // Registrar el modal cuando se abre
+    useEffect(() => {
+        if (isOpen && !modalIdRef.current) {
+            const modalId = `modal-centro-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            modalIdRef.current = modalId;
+            registerModal(modalId, onClose);
+        } else if (!isOpen && modalIdRef.current) {
+            unregisterModal(modalIdRef.current);
+            modalIdRef.current = null;
+        }
+    }, [isOpen, registerModal, unregisterModal, onClose]);
+
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
