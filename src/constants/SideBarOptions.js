@@ -74,7 +74,7 @@ export const SideBarOptions = [
       { id: "cargos", title: "Cargos", icon: "briefcase", route: "/cargos", isNew: true, key: "cargos", key_submenu: "gestionar" },
       { id: "categorias", title: "Categorías", icon: "category", route: "/categorias", isNew: true, key: "categorias", key_submenu: "gestionar" },
       { id: "socios", title: "Socios", icon: "group", route: "/socios", isNew: true, key: "socios", key_submenu: "gestionar" },
-      { id: "exportar", title: "Exportar", icon: "export", route: "/exportar", isNew: true, key: "exportar_importar", key_submenu: "gestionar" }
+      { id: "exportar", title: "Exportar", icon: "export", route: "/exportar", isNew: true, key: "exportar_importar"}
     ]
   },
   {

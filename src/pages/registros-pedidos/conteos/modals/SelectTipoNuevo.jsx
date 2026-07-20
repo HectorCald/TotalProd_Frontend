@@ -1,10 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useUser } from '../../../../context/UserContext';
+import { useEmployee } from '../../../../context/EmployeeContext';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Boton from '../../../../components/common/botones/Boton';
 import AgregarEditarConteo from './AgregarEditarConteo';
 
 const SelectTipoNuevo = ({ isOpen, onClose }) => {
     const [tipoSeleccionado, setTipoSeleccionado] = useState(null);
+
+    const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
+    const { employee: employeeInfo, sucursalSeleccionada: employeeSucursal } = useEmployee();
+    const sucursalSeleccionada = userSucursal || employeeSucursal;
+    const tipoEmpresa = sucursalSeleccionada?.empresas?.tipo || userInfo?.empresa?.tipo || employeeInfo?.sucursal?.empresas?.tipo || 'ventas_produccion';
+    const isSoloVentas = tipoEmpresa === 'ventas';
+
+    useEffect(() => {
+        if (isOpen && isSoloVentas && !tipoSeleccionado) {
+            setTipoSeleccionado('almacen');
+        }
+    }, [isOpen, isSoloVentas, tipoSeleccionado]);
 
     const handleClose = (nuevoConteo) => {
         setTipoSeleccionado(null);
