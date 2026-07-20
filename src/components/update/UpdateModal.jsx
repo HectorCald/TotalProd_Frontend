@@ -11,7 +11,10 @@ const UpdateModal = ({ isOpen, onClose, version }) => {
             title={UPDATE_INFO.title}
             hideCancel={true}
             confirmText="¡Entendido!"
-            onConfirm={onClose}
+            onConfirm={() => {
+                onClose();
+                window.location.reload();
+            }}
             contentStyle={{ paddingBlock: 0 }}
         >
 
