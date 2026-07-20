@@ -83,8 +83,13 @@ const CanastaAlmacen = ({
     return preloadedData.productos_lista.map(p => p.id);
   }, [preloadedData]);
 
+  // Guard: solo ejecutar la carga inicial UNA vez, evitar re-cargas al cerrar/abrir el drawer
+  const preloadDoneRef = useRef(false);
+
   const handleProductsLoaded = useCallback((productsFetched) => {
     if (!preloadedData || !productsFetched) return;
+    if (preloadDoneRef.current) return; // ya se cargó, ignorar re-ejecuciones
+    preloadDoneRef.current = true;
     
     if (preloadedData.modalidad === 'grupos') {
       setModoAgrupacion('grupo');
