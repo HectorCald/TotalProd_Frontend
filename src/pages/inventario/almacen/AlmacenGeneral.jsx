@@ -64,6 +64,17 @@ const AlmacenGeneral = () => {
       localStorage.removeItem(canastaStorageKey);
     }
   }, [vaciarCanasta, canastaStorageKey]);
+
+  // Wrapper de eliminarProducto que limpia localStorage si era el último item
+  const handleEliminarProducto = useCallback((id) => {
+    eliminarProducto(id);
+    if (canastaStorageKey) {
+      const restantes = canasta.filter(p => p.id !== id);
+      if (restantes.length === 0) {
+        localStorage.removeItem(canastaStorageKey);
+      }
+    }
+  }, [eliminarProducto, canasta, canastaStorageKey]);
   const { showDanger } = useToast();
   const navigate = useNavigate();
 
@@ -512,7 +523,7 @@ const AlmacenGeneral = () => {
             canasta={canasta}
             agregarProducto={agregarProducto}
             actualizarCantidad={actualizarCantidad}
-            eliminarProducto={eliminarProducto}
+            eliminarProducto={handleEliminarProducto}
             vaciarCanasta={handleVaciarCanasta}
             modo={modoCanastaStr}
             modoAgrupacion={modoAgrupacion}
