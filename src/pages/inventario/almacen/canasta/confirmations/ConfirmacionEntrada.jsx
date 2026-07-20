@@ -68,10 +68,15 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
         fecha_gasto: getDateStr(),
         productos: canasta.map(p => {
           const esPorGrupo = modoAgrupacion === 'grupo' && p.grup && Number(p.grup) > 0;
+          const precioBase = getProductPrice(p, precioSeleccionado);
+          let precioUnitarioFinal = precioBase;
+          if (p.precioCustom !== undefined && p.precioCustom !== '') {
+             precioUnitarioFinal = esPorGrupo ? (Number(p.precioCustom) / Number(p.grup)) : Number(p.precioCustom);
+          }
           return {
             id: p.id,
             cantidad: esPorGrupo ? Number(p.cantidad) * Number(p.grup) : Number(p.cantidad),
-            precio: getProductPrice(p, precioSeleccionado)
+            precio: precioUnitarioFinal
           };
         })
       };

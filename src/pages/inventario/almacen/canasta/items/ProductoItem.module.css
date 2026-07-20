@@ -80,6 +80,19 @@
   font-weight: 700;
   font-size: 13px;
   color: var(--secondary-color);
+  width: 50px;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  text-align: right;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.priceValue::-webkit-inner-spin-button, 
+.priceValue::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
 }
 
 .quantitySelector {

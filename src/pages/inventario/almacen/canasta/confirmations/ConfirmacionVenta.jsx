@@ -101,10 +101,17 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
           const cantidadEnUnidades = esPorGrupo
             ? Number(p.cantidad) * Number(p.grup)
             : Number(p.cantidad);
+
+          const precioBase = getProductPrice(p, precioSeleccionado);
+          let precioUnitarioFinal = precioBase;
+          if (p.precioCustom !== undefined && p.precioCustom !== '') {
+             precioUnitarioFinal = esPorGrupo ? (Number(p.precioCustom) / Number(p.grup)) : Number(p.precioCustom);
+          }
+
           return {
             id: p.id,
             cantidad: cantidadEnUnidades,
-            precio: getProductPrice(p, precioSeleccionado)
+            precio: precioUnitarioFinal
           };
         })
       };

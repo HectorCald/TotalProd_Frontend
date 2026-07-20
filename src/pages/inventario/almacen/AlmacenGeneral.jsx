@@ -20,6 +20,135 @@ import ViewInfoMovimiento from '../../../pages/registros-pedidos/movimientos/mod
 import useSound from 'use-sound';
 import { cashSound } from '../../../assets/sounds/cashBase64';
 
+const MobileQtyControl = ({ row, canasta, modoCanastaStr, modoAgrupacion, actualizarCantidad, eliminarProducto, agregarProducto, showDanger }) => {
+  const inCanasta = canasta.find(p => p.id === row.id);
+  const qty = inCanasta ? inCanasta.cantidad : 0;
+  const rawStock = Number(row.stock || 0);
+  const esPorGrupo = modoAgrupacion === 'grupo' && row.grup && row.grup > 0;
+  const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(row.grup)) : rawStock;
+  const esVenta = modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION' || modoCanastaStr === 'ENTREGA_PEDIDO';
+  
+  const [localVal, setLocalVal] = useState(qty === 0 ? '0' : qty.toString());
+
+  useEffect(() => {
+    setLocalVal(qty === 0 ? '0' : qty.toString());
+  }, [qty]);
+
+  const handleChange = (e) => {
+    const valStr = e.target.value;
+    if (valStr.includes('-')) return;
+
+    setLocalVal(valStr);
+
+    if (valStr === '') return;
+
+    let val = parseInt(valStr, 10);
+    if (isNaN(val)) return;
+
+    if (esVenta && val > baseStockValue) {
+      val = baseStockValue > 0 ? baseStockValue : 1;
+      setLocalVal(val.toString());
+    }
+
+    if (qty === 0 && val > 0) {
+      if (modoCanastaStr === 'PEDIDO' && canasta.length > 0) {
+        const empresaIdCanasta = canasta[0].empresa_id;
+        if (row.empresa_id !== empresaIdCanasta) {
+          showDanger(null, 'No puedes pedir a diferentes empresas a la vez.');
+          setLocalVal('0');
+          return;
+        }
+      }
+      agregarProducto(row, modoCanastaStr);
+      setTimeout(() => actualizarCantidad(row.id, val), 0);
+    } else if (val === 0 && qty > 0) {
+      eliminarProducto(row.id);
+    } else if (qty > 0) {
+      actualizarCantidad(row.id, val);
+    }
+  };
+
+  const handleBlur = () => {
+    let val = parseInt(localVal, 10);
+    if (isNaN(val) || val < 1) {
+      setLocalVal('0');
+      if (qty > 0) eliminarProducto(row.id);
+    } else {
+      setLocalVal(val.toString());
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
+      <button 
+        onClick={(e) => {
+          e.stopPropagation();
+          if (qty > 1) actualizarCantidad(row.id, qty - 1);
+          else if (qty === 1) eliminarProducto(row.id);
+        }}
+        style={{
+          width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #e2e8f0',
+          backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'
+        }}
+      >
+        <i className='bx bx-minus'></i>
+      </button>
+      <input
+        type="number"
+        min="0"
+        value={localVal}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === '-' || e.key === 'e') {
+            e.preventDefault();
+          }
+        }}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        style={{
+          width: '46px',
+          height: '32px',
+          borderRadius: '6px',
+          border: '1px solid #e2e8f0',
+          textAlign: 'center',
+          fontSize: '14px',
+          fontWeight: '600',
+          color: '#1e293b',
+          backgroundColor: '#ffffff',
+          outline: 'none',
+          MozAppearance: 'textfield'
+        }}
+      />
+      <button 
+        onClick={(e) => {
+          e.stopPropagation();
+          if (esVenta && qty >= baseStockValue) {
+            showDanger(null, 'Stock insuficiente');
+            return;
+          }
+          if (qty > 0) actualizarCantidad(row.id, qty + 1);
+          else {
+            if (modoCanastaStr === 'PEDIDO' && canasta.length > 0) {
+              const empresaIdCanasta = canasta[0].empresa_id;
+              if (row.empresa_id !== empresaIdCanasta) {
+                showDanger(null, 'No puedes pedir a diferentes empresas a la vez.');
+                return;
+              }
+            }
+            agregarProducto(row, modoCanastaStr);
+          }
+        }}
+        style={{
+          width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #e2e8f0',
+          backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'
+        }}
+      >
+        <i className='bx bx-plus'></i>
+      </button>
+    </div>
+  );
+};
+
 const AlmacenGeneral = () => {
   const { isLargeScreen } = useLayout();
   const location = useLocation();
@@ -27,7 +156,7 @@ const AlmacenGeneral = () => {
   const path = location.pathname;
   const isCanastaMode = path.includes('/almacen/salidas') || path.includes('/almacen/entradas') || path.includes('/almacen/pedidos') || path.includes('/almacen/cotizar');
   const modoCanastaStr = path.includes('/almacen/salidas/pedido') ? 'ENTREGA_PEDIDO' : path.includes('/almacen/salidas/cotizacion') ? 'VENTA_COTIZACION' : path.includes('/almacen/salidas') ? 'VENTA' : path.includes('/almacen/entradas') ? 'ENTRADA' : path.includes('/almacen/pedidos') ? 'PEDIDO' : 'COTIZACIÓN';
-  const { canasta, agregarProducto, eliminarProducto, actualizarCantidad, vaciarCanasta, modoAgrupacion, setModoAgrupacion } = useCanasta();
+  const { canasta, agregarProducto, eliminarProducto, actualizarCantidad, actualizarPrecio, vaciarCanasta, modoAgrupacion, setModoAgrupacion } = useCanasta();
 
   const [isViewInfoMovimientoOpen, setIsViewInfoMovimientoOpen] = useState(false);
   const [ventaResultData, setVentaResultData] = useState(null);
@@ -426,58 +555,17 @@ const AlmacenGeneral = () => {
             }}
             mobileCustomControls={(row) => {
               if (!isCanastaMode) return null;
-              const inCanasta = canasta.find(p => p.id === row.id);
-              const qty = inCanasta ? inCanasta.cantidad : 0;
-              const rawStock = Number(row.stock || 0);
-              const esPorGrupo = modoAgrupacion === 'grupo' && row.grup && row.grup > 0;
-              const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(row.grup)) : rawStock;
-              const esVenta = modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION' || modoCanastaStr === 'ENTREGA_PEDIDO';
-              
               return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (qty > 1) actualizarCantidad(row.id, qty - 1);
-                      else if (qty === 1) eliminarProducto(row.id);
-                    }}
-                    style={{
-                      width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #e2e8f0',
-                      backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'
-                    }}
-                  >
-                    <i className='bx bx-minus'></i>
-                  </button>
-                  <span style={{ fontSize: '14px', fontWeight: '600', minWidth: '24px', textAlign: 'center', color: '#1e293b' }}>
-                    {qty}
-                  </span>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (esVenta && qty >= baseStockValue) {
-                        showDanger(null, 'Stock insuficiente');
-                        return;
-                      }
-                      if (qty > 0) actualizarCantidad(row.id, qty + 1);
-                      else {
-                        if (modoCanastaStr === 'PEDIDO' && canasta.length > 0) {
-                          const empresaIdCanasta = canasta[0].empresa_id;
-                          if (row.empresa_id !== empresaIdCanasta) {
-                            showDanger(null, 'No puedes pedir a diferentes empresas a la vez.');
-                            return;
-                          }
-                        }
-                        agregarProducto(row, modoCanastaStr);
-                      }
-                    }}
-                    style={{
-                      width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #e2e8f0',
-                      backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'
-                    }}
-                  >
-                    <i className='bx bx-plus'></i>
-                  </button>
-                </div>
+                <MobileQtyControl
+                  row={row}
+                  canasta={canasta}
+                  modoCanastaStr={modoCanastaStr}
+                  modoAgrupacion={modoAgrupacion}
+                  actualizarCantidad={actualizarCantidad}
+                  eliminarProducto={eliminarProducto}
+                  agregarProducto={agregarProducto}
+                  showDanger={showDanger}
+                />
               );
             }}
             searchKeys={['name', 'codigo_barras']}
@@ -525,6 +613,7 @@ const AlmacenGeneral = () => {
             actualizarCantidad={actualizarCantidad}
             eliminarProducto={handleEliminarProducto}
             vaciarCanasta={handleVaciarCanasta}
+            actualizarPrecio={actualizarPrecio}
             modo={modoCanastaStr}
             modoAgrupacion={modoAgrupacion}
             setModoAgrupacion={setModoAgrupacion}

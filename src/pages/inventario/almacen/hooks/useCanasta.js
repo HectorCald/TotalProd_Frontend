@@ -32,6 +32,10 @@ export const useCanasta = () => {
     setCanasta(prev => prev.map(p => p.id === id ? { ...p, cantidad } : p));
   }, []);
 
+  const actualizarPrecio = useCallback((id, precioCustom) => {
+    setCanasta(prev => prev.map(p => p.id === id ? { ...p, precioCustom } : p));
+  }, []);
+
   const vaciarCanasta = useCallback(() => {
     setCanasta([]);
   }, []);
@@ -43,6 +47,7 @@ export const useCanasta = () => {
     agregarProducto,
     eliminarProducto,
     actualizarCantidad,
+    actualizarPrecio,
     vaciarCanasta
   };
 };

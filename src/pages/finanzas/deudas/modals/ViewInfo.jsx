@@ -200,7 +200,7 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada, onElimin
     return (
         <>
             <ModalCentro
-                isOpen={isOpen && !isViewMovimientoOpen && !isAgregarOpen && !isEliminarOpen}
+                isOpen={isOpen && !isViewMovimientoOpen && !isEliminarOpen}
                 onClose={onClose}
                 title=""
                 confirmText="Editar"

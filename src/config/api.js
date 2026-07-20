@@ -2,7 +2,7 @@
 const API_CONFIG = {
     // Cambia aquí para cambiar entre local y producción
     ENVIRONMENT: 'production', // 'local' | 'production'
-    
+
     // URLs de los backends
     LOCAL: 'http://localhost:5000/api',
     PRODUCTION: 'https://total-prod-backend.vercel.app/api',

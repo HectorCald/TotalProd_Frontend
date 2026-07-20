@@ -145,6 +145,23 @@ const AgregarEditarCargo = ({ isOpen, onClose, cargoSeleccionado, onGuardar }) =
         onClose();
     };
 
+    const filteredModules = modules
+        .map(module => {
+            if (isSoloVentas) {
+                return {
+                    ...module,
+                    sub_modulos: module.sub_modulos?.filter(sub => !sub.name.toLowerCase().includes('materia_prima')) || []
+                };
+            }
+            return module;
+        })
+        .filter(module => 
+            module.sub_modulos && 
+            module.sub_modulos.length > 0 && 
+            (module.name.toLowerCase() !== 'damabrava' || codigoEmpresa === 'damabrava') && 
+            (!isSoloVentas || module.name.toLowerCase() !== 'materia')
+        );
+
     return (
         <ModalLateral
             isOpen={isOpen}
@@ -187,30 +204,28 @@ const AgregarEditarCargo = ({ isOpen, onClose, cargoSeleccionado, onGuardar }) =
                     transparent={true}
                     minHeight="150px"
                 />
-            ) : modules.filter(module => module.sub_modulos && module.sub_modulos.length > 0 && (module.name.toLowerCase() !== 'damabrava' || codigoEmpresa === 'damabrava') && (!isSoloVentas || module.name.toLowerCase() !== 'materia')).length > 0 ? (
+            ) : filteredModules.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {modules
-                        .filter(module => module.sub_modulos && module.sub_modulos.length > 0 && (module.name.toLowerCase() !== 'damabrava' || codigoEmpresa === 'damabrava') && (!isSoloVentas || module.name.toLowerCase() !== 'materia'))
-                        .map((module) => (
-                            <Accordion key={module.id} title={`${module.name.toUpperCase()} (${module.sub_modulos.length})`}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                    {module.sub_modulos.map(sub => (
-                                        <Checkbox
-                                            key={sub.id}
-                                            label={formatSubmoduleName(sub.name)}
-                                            checked={selectedModules.includes(sub.id)}
-                                            onChange={(isChecked) => {
-                                                if (isChecked) {
-                                                    setSelectedModules(prev => [...prev, sub.id]);
-                                                } else {
-                                                    setSelectedModules(prev => prev.filter(id => id !== sub.id));
-                                                }
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                            </Accordion>
-                        ))}
+                    {filteredModules.map((module) => (
+                        <Accordion key={module.id} title={`${module.name.toUpperCase()} (${module.sub_modulos.length})`}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                {module.sub_modulos.map(sub => (
+                                    <Checkbox
+                                        key={sub.id}
+                                        label={formatSubmoduleName(sub.name)}
+                                        checked={selectedModules.includes(sub.id)}
+                                        onChange={(isChecked) => {
+                                            if (isChecked) {
+                                                setSelectedModules(prev => [...prev, sub.id]);
+                                            } else {
+                                                setSelectedModules(prev => prev.filter(id => id !== sub.id));
+                                            }
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </Accordion>
+                    ))}
                 </div>
             ) : (
                 <NoData

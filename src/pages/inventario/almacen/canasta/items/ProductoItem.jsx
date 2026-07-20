@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import styles from './ProductoItem.module.css';
 
-const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, precioUnitario, modoAgrupacion, modo, isLargeScreen }) => {
+const ProductoItem = ({ producto, actualizarCantidad, actualizarPrecio, eliminarProducto, precioUnitario, modoAgrupacion, modo, isLargeScreen }) => {
   const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
   const rawStock = Number(producto.stock || 0);
   const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(producto.grup)) : rawStock;
@@ -43,7 +43,8 @@ const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, precioUn
   
   const precioBase = Number(precioUnitario || 0);
   const precioCrudo = esPorGrupo ? precioBase * Number(producto.grup) : precioBase;
-  const precio = (esVenta && esPorGrupo) ? Math.round(precioCrudo) : precioCrudo;
+  const precioDefecto = (esVenta && esPorGrupo) ? Math.round(precioCrudo) : precioCrudo;
+  const precio = producto.precioCustom !== undefined && producto.precioCustom !== '' ? Number(producto.precioCustom) : precioDefecto;
   const subtotal = precio * producto.cantidad;
   
   const handleDecrement = () => {
@@ -81,7 +82,27 @@ const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, precioUn
       <div className={styles.midRow}>
         <div>
           <span className={styles.priceLabel}>Precio (Bs.) </span>
-          <span className={styles.priceValue}>{Number.isInteger(precio) ? precio : precio.toFixed(2)}</span>
+          <input
+            type="number"
+            className={styles.priceValue}
+            value={producto.precioCustom !== undefined ? producto.precioCustom : ''}
+            placeholder={Number.isInteger(precioDefecto) ? precioDefecto : precioDefecto.toFixed(2)}
+            min="0"
+            onChange={(e) => {
+              if (actualizarPrecio) {
+                let val = e.target.value;
+                if (val !== '' && Number(val) < 0) {
+                  val = '0';
+                }
+                actualizarPrecio(producto.id, val);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === '-' || e.key === 'e') {
+                e.preventDefault();
+              }
+            }}
+          />
         </div>
         <div className={styles.quantitySelector}>
           <button className={styles.qtyBtn} onClick={handleDecrement} disabled={producto.cantidad <= 1}>

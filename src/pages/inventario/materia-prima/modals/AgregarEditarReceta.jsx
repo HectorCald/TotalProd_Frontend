@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BoxIcon } from 'boxicons-react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Input from '../../../../components/common/inputs/Input';
-import InputSelect from '../../../../components/common/inputs/InputSelect';
+import InputSelectBox from '../../../../components/common/inputs/InputSelectBox';
 import productsAcopioService from '../../../../services/productsAcopioService';
 import NoData from '../../../../components/common/widgets/NoData';
 
@@ -27,7 +27,7 @@ const AgregarEditarReceta = ({
         const loadProductosAcopio = async () => {
             setLoadingProductos(true);
             try {
-                const response = await productsAcopioService.getAll();
+                const response = await productsAcopioService.getAllForReceta();
                 if (response.success && response.data) {
                     const mappedOptions = response.data.map(producto => ({
                         value: String(producto.id),
@@ -245,7 +245,7 @@ const AgregarEditarReceta = ({
                                 }}
                             >
                                 <div style={{ flex: 3 }}>
-                                    <InputSelect
+                                    <InputSelectBox
                                         label={index === 0 ? "Materia Prima" : undefined}
                                         value={producto.producto_acopio_id}
                                         onChange={(value) => actualizarProducto(index, 'producto_acopio_id', value)}

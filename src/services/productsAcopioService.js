@@ -106,6 +106,16 @@ class productsAcopioService {
     });
   }
 
+  // Obtener todos los productos sin paginación para selector de receta
+  static async getAllForReceta() {
+    return productsAcopioService._request('/products-acopio/for-receta', {
+      method: 'GET'
+    }, {
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
+  }
+
   // Crear un producto
   static async create(productData) {
     return productsAcopioService._request('/products-acopio', {

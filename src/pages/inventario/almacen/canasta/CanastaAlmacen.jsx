@@ -23,6 +23,7 @@ const CanastaAlmacen = ({
   actualizarCantidad,
   eliminarProducto,
   vaciarCanasta,
+  actualizarPrecio,
   modo,
   modoAgrupacion,
   setModoAgrupacion,
@@ -170,7 +171,8 @@ const CanastaAlmacen = ({
     const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
     const precioBase = getProductPrice(producto, precioSeleccionado);
     const precioCrudo = esPorGrupo ? precioBase * Number(producto.grup) : precioBase;
-    const precio = (esVenta && esPorGrupo) ? Math.round(precioCrudo) : precioCrudo;
+    const precioDefecto = (esVenta && esPorGrupo) ? Math.round(precioCrudo) : precioCrudo;
+    const precio = producto.precioCustom !== undefined && producto.precioCustom !== '' ? Number(producto.precioCustom) : precioDefecto;
     return acc + (precio * producto.cantidad);
   }, 0);
 
@@ -269,6 +271,7 @@ const CanastaAlmacen = ({
               key={producto.id}
               producto={producto}
               actualizarCantidad={actualizarCantidad}
+              actualizarPrecio={actualizarPrecio}
               eliminarProducto={eliminarProducto}
               precioUnitario={getProductPrice(producto, precioSeleccionado)}
               modoAgrupacion={modoAgrupacion}

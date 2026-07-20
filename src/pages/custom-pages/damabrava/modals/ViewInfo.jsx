@@ -178,7 +178,7 @@ const ViewInfo = ({ isOpen, onClose, registro, isMiProduccion = false, onElimina
 
     if (registro.microondas) {
         tags.push({
-            text: `${registro.microondas} min micro.`,
+            text: `${registro.microondas} seg. micro.`,
             icon: 'time'
         });
     }
