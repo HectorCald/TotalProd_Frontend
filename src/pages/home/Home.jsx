@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLayout } from '../../context/LayoutContext';
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
+import { useModalStack } from '../../context/ModalStackContext';
 import { SideBarOptions } from '../../constants/SideBarOptions';
 import SideBar from '../../components/essentials/SideBar';
 import NavBar from '../../components/essentials/NavBar';
@@ -89,6 +90,12 @@ const Home = () => {
   const { formatPrice } = useFormatNumber();
   const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
   const { employee: employeeInfo, sucursalSeleccionada: employeeSucursal } = useEmployee();
+  const { clearStack } = useModalStack();
+
+  useEffect(() => {
+    clearStack();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   const usuario = userInfo || employeeInfo;
   const sucursalSeleccionada = userSucursal || employeeSucursal;

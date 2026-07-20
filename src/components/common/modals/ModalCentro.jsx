@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import styles from './ModalCentro.module.css';
 import Boton from '../botones/Boton';
 
+
 import { BoxIcon } from 'boxicons-react';
 
 const ModalCentro = ({ 

@@ -72,13 +72,20 @@ export const ModalStackProvider = ({ children }) => {
     };
   }, [modalStack]);
 
+  // Función para limpiar todo el stack de modales
+  const clearStack = () => {
+    setModalStack([]);
+    setModalCounter(0);
+  };
+
   const value = {
     registerModal,
     unregisterModal,
     closeLastModal,
     getOpenModalsCount,
     isLastModal,
-    modalStack
+    modalStack,
+    clearStack
   };
 
   return (

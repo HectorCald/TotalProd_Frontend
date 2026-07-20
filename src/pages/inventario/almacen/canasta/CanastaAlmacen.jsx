@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import styles from './CanastaAlmacen.module.css';
 import Boton from '../../../../components/common/botones/Boton';
 import ProductoItem from './items/ProductoItem';
@@ -14,6 +14,7 @@ import FetchData from '../../../../components/mixed/FetchData';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useLayout } from '../../../../context/LayoutContext';
+import { useModalStack } from '../../../../context/ModalStackContext';
 import modalStyles from '../../../../components/common/modals/ModalLateral.module.css';
 
 const CanastaAlmacen = ({
@@ -40,6 +41,21 @@ const CanastaAlmacen = ({
   const [modalEntradaOpen, setModalEntradaOpen] = useState(false);
   
   const [loadingCotizacion, setLoadingCotizacion] = useState(false);
+
+  const { registerModal, unregisterModal } = useModalStack();
+  const modalIdRef = useRef(null);
+
+  useEffect(() => {
+    const isMobileModalOpen = !isLargeScreen && isOpen;
+    if (isMobileModalOpen && !modalIdRef.current) {
+      const modalId = `canasta-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      modalIdRef.current = modalId;
+      registerModal(modalId, onClose);
+    } else if (!isMobileModalOpen && modalIdRef.current) {
+      unregisterModal(modalIdRef.current);
+      modalIdRef.current = null;
+    }
+  }, [isOpen, isLargeScreen, registerModal, unregisterModal, onClose]);
 
   const opcionesAgrupacion = [
     { value: 'unidad', label: 'Por Unidad' },
