@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
 import InputSelectBox from '../inputs/InputSelectBox';
 import InputSelectMultiple from '../inputs/InputSelectMultiple';
+import InputSelect from '../inputs/InputSelect';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import useSessionCache from '../../../hooks/useSessionCache';
 
-const SelectCategoriasAcopio = ({ value, onChange, error, label = "Categoría", required = false, fetchTrigger, multiple = false, disabled = false, ...rest }) => {
+const SelectCategoriasAcopio = ({ value, onChange, error, label = "Categoría", required = false, fetchTrigger, multiple = false, useSelect = false, disabled = false, ...rest }) => {
     const { value: categorias, setValue: setCategorias } = useSessionCache({
         key: 'categoriasAcopioListado',
         defaultValue: []
@@ -29,6 +30,21 @@ const SelectCategoriasAcopio = ({ value, onChange, error, label = "Categoría", 
     if (multiple) {
         return (
             <InputSelectMultiple
+                label={label}
+                value={value}
+                onChange={onChange}
+                options={options}
+                error={error}
+                required={required}
+                disabled={disabled}
+                {...rest}
+            />
+        );
+    }
+
+    if (useSelect) {
+        return (
+            <InputSelect
                 label={label}
                 value={value}
                 onChange={onChange}

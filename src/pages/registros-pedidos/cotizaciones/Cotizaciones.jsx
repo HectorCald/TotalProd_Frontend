@@ -1,17 +1,25 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive';
 import cotizacionesService from '../../../services/cotizacionesService';
 import EliminarCotizacion from './modals/EliminarCotizacion';
 import ViewInfoCotizacion from './modals/ViewInfoCotizacion';
-import ProductosCotizacion from './modals/ProductosCotizacion';
+import ProductosMovimiento from '../movimientos/modals/ProductosMovimiento';
 import { formatCurrency } from '../../../utils/numberUtils';
+import useFechaLiteral from '../../../hooks/useFechaLiteral';
+
+const LiteralDateCell = ({ dateStr }) => {
+  const cleanDateStr = dateStr ? dateStr.slice(0, 10) : '';
+  const literal = useFechaLiteral(cleanDateStr, true);
+  return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
+};
 
 const redondearADecima = (valor) => {
     if (!Number.isFinite(valor)) return 0;
@@ -24,11 +32,12 @@ const redondearADecima = (valor) => {
 const Cotizaciones = () => {
   const { isLargeScreen } = useLayout();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [cotizaciones, setCotizaciones] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
 
   // Paginación y filtros
   const [page, setPage] = useState(1);
@@ -36,9 +45,11 @@ const Cotizaciones = () => {
   const [search, setSearch] = useState('');
   const [estadoId, setEstadoId] = useState(null);
   const [sortOrder, setSortOrder] = useState('fecha_desc');
+  const [clienteId, setClienteId] = useState(null);
+  const [filtroFecha, setFiltroFecha] = useState(null);
 
   // Modals state
-  const [cotizacionEditando, setCotizacionEditando] = useState(null);
+  const [, setCotizacionEditando] = useState(null);
   const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
   const [cotizacionEliminar, setCotizacionEliminar] = useState(null);
   const [modalInfoOpen, setModalInfoOpen] = useState(false);
@@ -55,6 +66,12 @@ const Cotizaciones = () => {
 
     const estados = filters.estado || [];
     setEstadoId(estados.length > 0 ? estados[0] : null);
+
+    const clientVal = filters.cliente_id && filters.cliente_id.length > 0 ? filters.cliente_id.join(',') : null;
+    setClienteId(clientVal);
+
+    const range = filters.fecha || null;
+    setFiltroFecha(range);
   };
 
   const dynamicFilters = useMemo(() => [
@@ -77,18 +94,33 @@ const Cotizaciones = () => {
         { label: 'Completado', value: 'completado' },
         { label: 'Anulado', value: 'anulado' }
       ]
+    },
+    {
+      id: 'cliente_id',
+      title: 'Clientes'
+    },
+    {
+      id: 'fecha',
+      title: 'Fecha',
+      type: 'date'
     }
   ], []);
 
   useEffect(() => {
     setPage(1);
+    setSearch('');
+    setTablaFilters({});
+    setEstadoId(null);
+    setClienteId(null);
+    setFiltroFecha(null);
+    setSortOrder('fecha_desc');
   }, [location.pathname]);
 
   useEffect(() => {
     setCotizaciones([]);
     setIsLoading(true);
     setPage(1);
-  }, [debouncedSearch, estadoId, sortOrder]);
+  }, [debouncedSearch, estadoId, sortOrder, clienteId, filtroFecha]);
 
   const handleCotizacionesLoaded = useCallback((data) => {
     setCotizaciones(data);
@@ -137,13 +169,16 @@ const Cotizaciones = () => {
 
   const tableActions = [
     {
-      name: 'Editar', icon: 'edit', onClick: (cotizacion) => {
+      name: 'Editar', icon: 'edit',
+      show: (row) => row.estado === 'pendiente',
+      onClick: (cotizacion) => {
         setCotizacionEditando(cotizacion);
-        // Todavía no debe hacer nada
       }
     },
     {
-      name: 'Eliminar', icon: 'trash', onClick: (cotizacion) => {
+      name: 'Eliminar', icon: 'trash',
+      show: (row) => row.estado === 'pendiente',
+      onClick: (cotizacion) => {
         setCotizacionEliminar(cotizacion);
         setModalEliminarOpen(true);
       }
@@ -161,6 +196,9 @@ const Cotizaciones = () => {
       header: 'Detalle',
       accessor: 'detalle',
       width: '25%',
+      isMobileMain: true,
+      mobileIcon: () => 'file',
+      mobileIconType: () => 'default',
       render: (row) => {
           if (row.cliente?.name) {
               return row.cliente.name;
@@ -197,6 +235,32 @@ const Cotizaciones = () => {
         let totalFinalNum = Math.round(totalFinalRaw * 10) / 10;
 
         return formatCurrency(totalFinalNum);
+      },
+      isMobileSubtitle: true,
+      mobileRender: (row) => {
+        const subtotalCalculado = (row.productos || []).reduce((sum, producto) => {
+            const subtotal = parseFloat(producto.subtotal) || 0;
+            const grup = parseFloat(producto.producto?.grup) || 0;
+            const tieneGrup = grup > 0;
+            const subtotalRedondeado = tieneGrup ? redondearADecima(subtotal) : subtotal;
+            return sum + subtotalRedondeado;
+        }, 0);
+
+        let subtotalNum = Math.round(subtotalCalculado * 10) / 10;
+        let descValNum = parseFloat(row.descuento) || 0;
+        let aumValNum = parseFloat(row.aumento) || 0;
+        let esPorcentaje = row.porcentaje;
+        let descCalculadoNum = esPorcentaje ? subtotalNum * (descValNum / 100) : descValNum;
+        let aumCalculadoNum = esPorcentaje ? subtotalNum * (aumValNum / 100) : aumValNum;
+
+        let totalFinalRaw = subtotalNum - descCalculadoNum + aumCalculadoNum;
+        let totalFinalNum = Math.round(totalFinalRaw * 10) / 10;
+
+        return (
+          <>
+            Nº {row.numero_cotizacion || '--'} • {formatCurrency(totalFinalNum)} • <LiteralDateCell dateStr={row.fecha} />
+          </>
+        );
       }
     },
     {
@@ -214,21 +278,16 @@ const Cotizaciones = () => {
         let color = 'gray';
         if (estado === 'pendiente') color = 'var(--warning-color)';
         if (estado === 'aprobada') color = 'var(--success-color)';
-        if (estado === 'anulado') color = 'var(--error-color)';
-        if (estado === 'completado') color = 'var(--info-color)';
-
+        if (estado === 'rechazada') color = 'var(--error-color)';
         return (
-          <span style={{
-            color,
-            fontWeight: 600,
-            borderRadius: '20px',
-            padding: '2px 10px',
-            display: 'inline-block',
-            backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
-            fontSize: '13px',
-          }}>{estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
+          <span style={{ color: color, fontWeight: 600 }}>
+            {estado.charAt(0).toUpperCase() + estado.slice(1)}
+          </span>
         );
-      }
+      },
+      hasStatusDot: true,
+      statusType: (row) => row.estado === 'aprobada' ? 'success' : row.estado === 'rechazada' ? 'error' : 'warning',
+      isMobileStatus: true
     },
     {
       header: 'Método de pago',
@@ -244,7 +303,7 @@ const Cotizaciones = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea} onScroll={handleScroll}>
@@ -257,7 +316,7 @@ const Cotizaciones = () => {
             acciones={tableActions}
             buttonLabel="Nueva Cotización"
             onButtonClick={() => {
-              // Todavía no debe hacer nada
+              navigate('/almacen/cotizar');
             }}
             searchKeys={['numero_cotizacion']}
             sortKey="fecha"
@@ -279,7 +338,16 @@ const Cotizaciones = () => {
         service={cotizacionesService}
         serviceName="cotizacionesService"
         method="getAll"
-        methodParams={[estadoId, sortOrder, null, debouncedSearch, null]}
+        methodParams={[
+          estadoId, 
+          sortOrder, 
+          clienteId, 
+          debouncedSearch, 
+          filtroFecha ? {
+            inicio: filtroFecha.inicio ? new Date(filtroFecha.inicio).toISOString() : null,
+            fin: filtroFecha.fin ? new Date(filtroFecha.fin).toISOString() : null,
+          } : null
+        ]}
         isOpen={true}
         page={page}
         limit={30}
@@ -312,13 +380,18 @@ const Cotizaciones = () => {
           setCotizaciones(prev => prev.map(c => c.id === id ? { ...c, estado: nuevoEstado } : c));
           setCotizacionSeleccionada(prev => prev && prev.id === id ? { ...prev, estado: nuevoEstado } : prev);
         }}
+        onEliminar={(idEliminado) => {
+          setCotizaciones(prev => prev.filter(c => c.id !== idEliminado));
+          setModalInfoOpen(false);
+        }}
       />
 
-      <ProductosCotizacion
+      <ProductosMovimiento
         isOpen={modalProductosOpen}
         onClose={() => setModalProductosOpen(false)}
         cotizacion={cotizacionSeleccionada}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

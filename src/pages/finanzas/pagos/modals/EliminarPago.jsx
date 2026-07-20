@@ -11,7 +11,7 @@ const EliminarPago = ({ isOpen, onClose, pagoSeleccionado, onEliminar }) => {
 
     const handleConfirm = async () => {
         if (!pagoSeleccionado?.id) {
-            showDanger('Error', 'ID del pago no válido');
+            showDanger(null, 'ID del pago no válido');
             return;
         }
 
@@ -20,20 +20,17 @@ const EliminarPago = ({ isOpen, onClose, pagoSeleccionado, onEliminar }) => {
             const response = await gastosService.delete(pagoSeleccionado.id);
 
             if (response.success) {
-                if (onEliminar) {
-                    onEliminar(pagoSeleccionado.id);
-                }
-
+                if (onEliminar) onEliminar(pagoSeleccionado.id);
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || 'Pago eliminado exitosamente');
+                showSuccess(null, response.message || 'Pago eliminado exitosamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -50,20 +47,20 @@ const EliminarPago = ({ isOpen, onClose, pagoSeleccionado, onEliminar }) => {
             onClose={handleClose}
             title="Eliminar pago"
             mensaje={`¿Estás seguro de que deseas eliminar el pago por concepto de ${pagoSeleccionado?.concepto}?`}
-            detalle="Esta acción es irreversible y no podrás recuperar la información de este pago una vez eliminado."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         >
-            <div style={{ marginTop: '15px' }}>
-                <Mensaje 
-                    type="warning" 
-                    title="Advertencia" 
-                    message="Si este pago está vinculado a un movimiento de almacén, el movimiento en el sistema quedará sin pago asociado." 
-                />
-            </div>
+
+            <Mensaje
+                type="warning"
+                title="Advertencia"
+                message="Nota: Los pagos generadas automáticamente por compras, ingresos o movimientos de almacén no pueden eliminarse por esta vía; para ello debe anular el movimiento correspondiente."
+            />
+
         </ModalCentro>
     );
 };

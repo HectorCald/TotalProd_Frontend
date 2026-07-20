@@ -1,0 +1,1 @@
+export const LEGACY_PERCENTAGE_CUTOFF_DATE = '2026-07-20';

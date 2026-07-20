@@ -6,11 +6,14 @@ import Accordion from './Accordion';
 import Checkbox from '../inputs/Checkbox';
 import Boton from '../botones/Boton';
 import CalendarModal from './CalendarModal';
+import Skeleton from './Skeleton';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import clientService from '../../../services/clientService';
 import proveedorService from '../../../services/proveedorService';
 import categoryAcopioService from '../../../services/categoryAcopioService';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
+import { useLayout } from '../../../context/LayoutContext';
+import BotonIcon from '../botones/BotonIcon';
 
 const DateFilterField = ({ label, value, onClick, onClear }) => {
     const literal = useFechaLiteral(value);
@@ -56,6 +59,7 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedFilters, setSelectedFilters] = useState({});
     const [calendarOpen, setCalendarOpen] = useState(null); // { filterId, key: 'inicio' | 'fin' }
+    const { isLargeScreen } = useLayout();
 
     const [dynamicOptions, setDynamicOptions] = useState({});
     const [loadingDynamic, setLoadingDynamic] = useState({});
@@ -237,15 +241,28 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
 
     return (
         <div className={styles.filterContainer}>
-            <button className={styles.filterButton} onClick={handleToggle}>
-                <div className={styles.filterIcon}>
-                    <BoxIcon name="filter-alt" color="#4a5568" />
+            {isLargeScreen ? (
+                <button className={styles.filterButton} onClick={handleToggle}>
+                    <div className={styles.filterIcon}>
+                        <BoxIcon name="filter-alt" color="#4a5568" />
+                    </div>
+                    <span>Filtros</span>
+                    {totalSelected > 0 && (
+                        <div className={styles.badge}>{totalSelected}</div>
+                    )}
+                </button>
+            ) : (
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <BotonIcon 
+                        className="btn-cancel" 
+                        iconName="filter-alt" 
+                        onClick={handleToggle} 
+                    />
+                    {totalSelected > 0 && (
+                        <div className={styles.badge} style={{ position: 'absolute', top: '-5px', right: '-5px' }}>{totalSelected}</div>
+                    )}
                 </div>
-                <span>Filtros</span>
-                {totalSelected > 0 && (
-                    <div className={styles.badge}>{totalSelected}</div>
-                )}
-            </button>
+            )}
 
             {isOpen && createPortal(
                 <div className={styles.dropdownOverlay} onClick={handleToggle}>
@@ -258,9 +275,18 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
                         </div>
 
                         <div className={styles.content}>
-                            {filters.map(filter => (
+                            {filters.map(filter => {
+                                const isDynamic = filter.fetchOptions || ['cliente_id', 'proveedor_id', 'category_id'].includes(filter.id);
+                                const options = dynamicOptions[filter.id] || [];
+                                const isLoading = loadingDynamic[filter.id];
+                                
+                                if (isDynamic && !isLoading && options.length === 0) {
+                                    return null;
+                                }
+
+                                return (
                                 <Accordion key={filter.id} title={filter.title} defaultOpen={true}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px 0' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                         {filter.type === 'date' ? (
                                             <>
                                                 <DateFilterField 
@@ -276,11 +302,15 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
                                                     onClear={() => handleClearDate(filter.id, 'fin')}
                                                 />
                                             </>
-                                        ) : (filter.fetchOptions || ['cliente_id', 'proveedor_id', 'category_id'].includes(filter.id)) ? (
-                                            loadingDynamic[filter.id] && (!dynamicOptions[filter.id] || dynamicOptions[filter.id].length === 0) ? (
-                                                <div style={{ fontSize: '13px', color: 'var(--secondary-color)', paddingLeft: '4px' }}>Cargando...</div>
+                                        ) : isDynamic ? (
+                                            isLoading && options.length === 0 ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <Skeleton width="100%" height="24px" />
+                                                    <Skeleton width="100%" height="24px" />
+                                                    <Skeleton width="100%" height="24px" />
+                                                </div>
                                             ) : (
-                                                [...(dynamicOptions[filter.id] || [])]
+                                                [...options]
                                                     .sort((a, b) => (a.label || '').localeCompare(b.label || ''))
                                                     .map(option => (
                                                         <Checkbox 
@@ -305,7 +335,7 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
                                         )}
                                     </div>
                                 </Accordion>
-                            ))}
+                            )})}
                             {filters.length === 0 && (
                                 <p style={{ color: '#718096', fontSize: '14px', textAlign: 'center', margin: 0 }}>No hay filtros disponibles</p>
                             )}
@@ -314,13 +344,12 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
                         <div className={styles.footer} style={{ gap: '12px', display: 'flex' }}>
                             <Boton 
                                 label="Limpiar" 
-                                className="btn-default" 
-                                style={{ color: '#333', border: '1px solid transparent', backgroundColor: 'transparent' }}
+                                className="btn-cancel" 
                                 onClick={handleClear} 
                             />
                             <Boton 
                                 label="Aplicar" 
-                                className="btn-original" 
+                                className="btn-primary" 
                                 onClick={handleApply} 
                             />
                         </div>

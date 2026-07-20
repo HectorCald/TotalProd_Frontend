@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import useSessionCache from '../../../hooks/useSessionCache';
@@ -30,6 +31,7 @@ const Proveedores = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [proveedorSeleccionado, setProveedorSeleccionado] = useState(null);
+  const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
 
   const [search, setSearch] = useState('');
 
@@ -64,12 +66,6 @@ const Proveedores = () => {
   }, []);
 
   const tableActions = [
-    {
-      name: 'Detalles', icon: 'show', onClick: (proveedor) => {
-        setProveedorSeleccionado(proveedor);
-        setIsViewModalOpen(true);
-      }
-    },
     {
       name: 'Editar', icon: 'edit', onClick: (proveedor) => {
         setProveedorSeleccionado(proveedor);
@@ -112,7 +108,7 @@ const Proveedores = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea}>
@@ -147,6 +143,7 @@ const Proveedores = () => {
         onGuardar={(nuevoProveedor) => {
           if (proveedorSeleccionado) {
             setProveedores(prev => prev.map(p => p.id === proveedorSeleccionado.id ? { ...p, ...nuevoProveedor } : p));
+            setProveedorSeleccionado(prev => ({ ...prev, ...nuevoProveedor }));
           } else {
             setProveedores(prev => [...prev, { id: nuevoProveedor?.id || Date.now(), ...nuevoProveedor }]);
           }
@@ -155,10 +152,18 @@ const Proveedores = () => {
       />
       <EliminarProveedor
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        onClose={(wasDeleted) => {
+          setIsDeleteModalOpen(false);
+          if (returnToViewOnDeleteClose && wasDeleted !== true) {
+            setIsViewModalOpen(true);
+          }
+          setReturnToViewOnDeleteClose(false);
+        }}
         proveedorSeleccionado={proveedorSeleccionado}
         onEliminar={(idEliminado) => {
           setProveedores(prev => prev.filter(p => p.id !== idEliminado));
+          setReturnToViewOnDeleteClose(false);
+          setIsViewModalOpen(false);
         }}
       />
       <ViewInfo
@@ -168,6 +173,11 @@ const Proveedores = () => {
         onEdit={(proveedor) => {
           setProveedorSeleccionado(proveedor);
           setIsModalOpen(true);
+        }}
+        onDelete={(proveedor) => {
+          setReturnToViewOnDeleteClose(true);
+          setIsViewModalOpen(false);
+          setIsDeleteModalOpen(true);
         }}
       />
       <FetchData
@@ -179,6 +189,7 @@ const Proveedores = () => {
         onLoadingEnd={handleLoadingEnd}
         onError={handleError}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

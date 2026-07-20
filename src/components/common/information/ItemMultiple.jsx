@@ -1,9 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './ItemMultiple.module.css';
 import { BoxIcon } from 'boxicons-react';
 
-const ItemMultiple = ({ title, description, onEdit, onDelete, icon = "dollar" }) => {
-  const hasActions = onEdit || onDelete;
+const ItemMultiple = ({ title, description, onEdit, onDelete, onHeart, isHearted, icon = "dollar", logo }) => {
+  const hasActions = onEdit || onDelete || onHeart;
+  const [hearted, setHearted] = useState(isHearted || false);
+
+  useEffect(() => {
+    setHearted(isHearted);
+  }, [isHearted]);
+
+  const handleHeartClick = (e) => {
+    e.stopPropagation();
+    const newState = !hearted;
+    setHearted(newState);
+    if (onHeart) onHeart(newState);
+  };
 
   return (
     <div className={`${styles.card} ${!hasActions ? styles.noActions : ''}`}>
@@ -11,7 +23,11 @@ const ItemMultiple = ({ title, description, onEdit, onDelete, icon = "dollar" })
         {/* Lado frontal con información */}
         <div className={styles.front}>
           <div className={styles.iconContainer}>
-            <BoxIcon name={icon} className={styles.icon} />
+            {logo ? (
+              <img src={logo} alt={title} className={styles.logo} style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'contain' }} />
+            ) : (
+              <BoxIcon name={icon} className={styles.icon} />
+            )}
           </div>
           <div className={styles.textContainer}>
             <h3 className={styles.title}>{title}</h3>
@@ -22,17 +38,31 @@ const ItemMultiple = ({ title, description, onEdit, onDelete, icon = "dollar" })
         {/* Lado reverso con acciones (efecto hover de vuelta) */}
         {hasActions && (
           <div className={styles.back}>
-            {onEdit && (
-              <button className={`${styles.actionButton} ${styles.editButton}`} onClick={onEdit} aria-label="Editar">
-                <BoxIcon name="edit-alt" className={styles.actionIcon} />
-                <span className={styles.actionText}>Editar</span>
+            {onHeart ? (
+              <button 
+                className={`${styles.actionButton} ${styles.heartButton}`} 
+                onClick={handleHeartClick} 
+                aria-label="Vincular"
+                style={{ color: hearted ? '#e53935' : 'inherit' }}
+              >
+                <BoxIcon name="heart" type={hearted ? "solid" : "regular"} className={styles.actionIcon} />
+                <span className={styles.actionText}>{hearted ? 'Vinculado' : 'Vincular'}</span>
               </button>
-            )}
-            {onDelete && (
-              <button className={`${styles.actionButton} ${styles.deleteButton}`} onClick={onDelete} aria-label="Eliminar">
-                <BoxIcon name="trash" className={styles.actionIcon} />
-                <span className={styles.actionText}>Eliminar</span>
-              </button>
+            ) : (
+              <>
+                {onEdit && (
+                  <button className={`${styles.actionButton} ${styles.editButton}`} onClick={onEdit} aria-label="Editar">
+                    <BoxIcon name="edit-alt" className={styles.actionIcon} />
+                    <span className={styles.actionText}>Editar</span>
+                  </button>
+                )}
+                {onDelete && (
+                  <button className={`${styles.actionButton} ${styles.deleteButton}`} onClick={onDelete} aria-label="Eliminar">
+                    <BoxIcon name="trash" className={styles.actionIcon} />
+                    <span className={styles.actionText}>Eliminar</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}

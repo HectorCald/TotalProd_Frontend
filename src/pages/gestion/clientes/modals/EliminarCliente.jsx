@@ -10,7 +10,7 @@ const EliminarCliente = ({ isOpen, onClose, clienteSeleccionado, onEliminar }) =
 
     const handleConfirm = async () => {
         if (!clienteSeleccionado?.id) {
-            showDanger('Error', 'ID del cliente no válido');
+            showDanger(null, 'ID del cliente no válido');
             return;
         }
 
@@ -19,22 +19,17 @@ const EliminarCliente = ({ isOpen, onClose, clienteSeleccionado, onEliminar }) =
             const response = await clientService.delete(clienteSeleccionado.id);
 
             if (response.success) {
-
-
-                if (onEliminar) {
-                    onEliminar(clienteSeleccionado.id);
-                }
-
+                if (onEliminar) onEliminar(clienteSeleccionado.id);
                 setLoading(false);
-                onClose();
-                showSuccess('Operación exitosa', response.message);
+                onClose(true);
+                showSuccess(null, response.message);
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -53,10 +48,11 @@ const EliminarCliente = ({ isOpen, onClose, clienteSeleccionado, onEliminar }) =
             mensaje={`¿Estás seguro de que deseas eliminar a ${clienteSeleccionado?.name}?`}
             detalle="Esta acción es irreversible y no podrás recuperar la información de este cliente una vez eliminada."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

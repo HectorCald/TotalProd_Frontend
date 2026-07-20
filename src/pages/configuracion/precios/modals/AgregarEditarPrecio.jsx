@@ -57,19 +57,19 @@ const AgregarEditarPrecio = ({ isOpen, onClose, precioSeleccionado, onGuardar })
 
             if (response.success) {
                 if (onGuardar) {
-                    onGuardar(response.data || { ...precioSeleccionado, ...datosParaEnviar });
+                    onGuardar(response.data);
                 }
 
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || `Tipo de precio ${tipo === 'editar' ? 'actualizado' : 'creado'} correctamente`);
+                showSuccess(null, response.message || `Tipo de precio ${tipo === 'editar' ? 'actualizado' : 'creado'} correctamente`);
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || `Error al ${tipo} el tipo de precio`, 5000, false);
+                showDanger(null, response.message || `Error al ${tipo} el tipo de precio`, 5000, false);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor', 5000, false);
+            showDanger(null, 'Revisa tu conexión a internet', 5000, false);
         }
     };
 

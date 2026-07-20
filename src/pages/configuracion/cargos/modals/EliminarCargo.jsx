@@ -9,7 +9,7 @@ const EliminarCargo = ({ isOpen, onClose, cargoSeleccionado, onEliminar }) => {
 
     const handleConfirm = async () => {
         if (!cargoSeleccionado?.id) {
-            showDanger('Error', 'ID del cargo no válido');
+            showDanger(null, 'ID del cargo no válido');
             return;
         }
 
@@ -24,14 +24,14 @@ const EliminarCargo = ({ isOpen, onClose, cargoSeleccionado, onEliminar }) => {
 
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || 'Cargo eliminado correctamente');
+                showSuccess(null, response.message || 'Cargo eliminado correctamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || 'Error al eliminar el cargo');
+                showDanger(null, response.message || 'Error al eliminar el cargo');
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -50,10 +50,11 @@ const EliminarCargo = ({ isOpen, onClose, cargoSeleccionado, onEliminar }) => {
             mensaje={`¿Estás seguro de que deseas eliminar el cargo ${cargoSeleccionado?.name || cargoSeleccionado?.nombre}?`}
             detalle="Esta acción es irreversible y no podrás recuperar la información de este cargo una vez eliminada."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

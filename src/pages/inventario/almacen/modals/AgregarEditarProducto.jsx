@@ -69,6 +69,7 @@ const AgregarEditarProducto = ({
         stock_minimo: 0,
         codigo_barras: '',
         grup: '',
+        costo_produccion: '',
         category_ids: [],
         prices: {}
     });
@@ -144,6 +145,7 @@ const AgregarEditarProducto = ({
                     stock_minimo: productoSeleccionado.stock_minimo !== undefined && productoSeleccionado.stock_minimo !== null ? productoSeleccionado.stock_minimo : 0,
                     codigo_barras: productoSeleccionado.codigo_barras || '',
                     grup: productoSeleccionado.grup || '',
+                    costo_produccion: productoSeleccionado.costo_produccion !== undefined && productoSeleccionado.costo_produccion !== null ? productoSeleccionado.costo_produccion : '',
                     category_ids: categoryIds,
                     prices: prices
                 });
@@ -155,6 +157,7 @@ const AgregarEditarProducto = ({
                     stock_minimo: 0,
                     codigo_barras: '',
                     grup: '',
+                    costo_produccion: '',
                     category_ids: [],
                     prices: {}
                 });
@@ -239,6 +242,7 @@ const AgregarEditarProducto = ({
             codigo_barras: formData.codigo_barras || null,
             grup: parseOptionalNum(formData.grup, (v) => parseInt(v)),
             stock_minimo: parseOptionalNum(formData.stock_minimo) ?? 0,
+            costo_produccion: parseOptionalNum(formData.costo_produccion),
             category_ids: formData.category_ids || [],
             prices: formData.prices,
             receta: (!soloVentas && hasReceta) ? recetaGuardada : null
@@ -276,14 +280,14 @@ const AgregarEditarProducto = ({
 
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || `Producto ${esEdicion ? 'actualizado' : 'creado'} exitosamente`);
+                showSuccess(null, response.message);
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -378,7 +382,18 @@ const AgregarEditarProducto = ({
                 placeholder="Buscar categoría..."
             />
 
-            <h4 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '14px', color: 'var(--text-color)' }}>Precios</h4>
+                <Input
+                    tipo="number"
+                    label="Costo de compra"
+                    value={formData.costo_produccion}
+                    onChange={(e) => setFormData({ ...formData, costo_produccion: e.target.value })}
+                    step="0.01"
+                    min="0"
+                    readOnly={loading}
+                />
+         
+
+            <h4 style={{ marginBlock: '5px', fontSize: '12px', color: 'var(--black-color)' }}>PRECIOS</h4>
             {loadingPrecios ? (
                 <NoData
                     icon="loader-alt"
@@ -411,8 +426,8 @@ const AgregarEditarProducto = ({
             {/* Sección de Receta */}
             {!soloVentas && (
                 <>
-                    <h4 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '14px', color: 'var(--text-color)' }}>Receta</h4>
-                    <div style={{ marginBottom: '15px' }}>
+                    <h4 style={{ marginBlock: '5px', fontSize: '12px', color: 'var(--black-color)' }}>RECETA</h4>
+
                         <InputSwitch
                             label="¿Tiene receta?"
                             subtitle="Marca si este producto se produce a partir de materias primas de acopio"
@@ -424,26 +439,26 @@ const AgregarEditarProducto = ({
                             icon="receipt"
                             readOnly={loading}
                         />
-                    </div>
+                 
 
                     {hasReceta && (
                         <Boton
-                            className='btn-default'
+                            className='btn-cancel'
                             label={recetaGuardada ? 'Editar Receta' : 'Crear Receta'}
-                            style={{ width: '100%', marginBottom: '15px' }}
+                            style={{ width: '100%' }}
                             onClick={() => setIsRecetaOpen(true)}
                             readOnly={loading}
                         />
                     )}
 
                     {hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0) && (
-                        <div style={{ marginTop: '-5px', marginBottom: '15px' }}>
+                        
                             <Mensaje
                                 type={fieldErrors.receta ? "error" : "warning"}
                                 title={fieldErrors.receta ? "Receta vacía" : "Configurar Receta"}
                                 message="Debe configurar una receta con al menos un producto ingrediente."
                             />
-                        </div>
+                       
                     )}
                 </>
             )}

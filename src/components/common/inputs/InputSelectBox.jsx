@@ -20,6 +20,7 @@ const InputSelectBox = ({
   actionIcon,
   onActionClick,
   actionLoading,
+  actionStyle,
   ...rest
 }) => {
   const [open, setOpen] = useState(false);
@@ -203,11 +204,12 @@ const InputSelectBox = ({
             disabled={isLocked}
             loading={actionLoading}
             style={{
-              height: '41.6px',
-              width: '41.6px',
-              minWidth: '41.6px',
-              maxWidth: '41.6px',
+              height: '40px',
+              width: '40px',
+              minWidth: '40px',
+              maxWidth: '40px',
               borderRadius: '8px',
+              ...actionStyle,
             }}
           />
         )}

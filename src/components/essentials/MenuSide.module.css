@@ -1,0 +1,48 @@
+.menuSideContainer {
+  position: fixed;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 10px 5px;
+  width: 90%;
+  max-width: 450px;
+  z-index: 1000;
+  border: none;
+}
+
+.menuItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--secondary-color, #666);
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+  flex: 1;
+  text-align: center;
+}
+
+.menuItem:hover {
+  transform: translateY(-2px);
+}
+
+.menuItem.active {
+  color: var(--primary-color, #4f46e5);
+}
+
+.icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.title {
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+}

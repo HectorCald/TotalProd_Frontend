@@ -4,7 +4,7 @@ const ScreenContext = createContext();
 
 export const ScreenProvider = ({ children }) => {
   const [activeScreen, setActiveScreen] = useState('inicio');
-  const [activeRoute, setActiveRoute] = useState('/dashboard/default');
+  const [activeRoute, setActiveRoute] = useState('/home/default');
 
   const setActiveScreenState = useCallback((screen) => {
     setActiveScreen(screen);
@@ -16,7 +16,7 @@ export const ScreenProvider = ({ children }) => {
 
   const clearScreenState = useCallback(() => {
     setActiveScreen('inicio');
-    setActiveRoute('/dashboard/default');
+    setActiveRoute('/home/default');
   }, []);
 
   return (

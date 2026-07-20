@@ -7,10 +7,11 @@ import movimientosAcopioService from '../../../../services/movimientosAcopioServ
 const EliminarMovimiento = ({ isOpen, onClose, movimientoSeleccionado, onEliminar }) => {
     const { showSuccess, showDanger } = useToast();
     const [loading, setLoading] = useState(false);
+    const movimiento = movimientoSeleccionado;
 
     const handleConfirm = async () => {
-        if (!movimientoSeleccionado?.id) {
-            showDanger('Error', 'ID del movimiento no válido');
+        if (!movimiento?.id) {
+            showDanger(null, 'ID del movimiento no válido');
             return;
         }
 
@@ -23,19 +24,19 @@ const EliminarMovimiento = ({ isOpen, onClose, movimientoSeleccionado, onElimina
 
             if (response.success) {
                 if (onEliminar) {
-                    onEliminar(movimientoSeleccionado.id);
+                    onEliminar(movimiento.id);
                 }
 
                 setLoading(false);
-                onClose();
-                showSuccess('Operación exitosa', response.message || 'Movimiento eliminado exitosamente');
+                onClose(true);
+                showSuccess(null, response.message || 'Movimiento eliminado exitosamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || response.error || 'No se pudo eliminar el movimiento');
+                showDanger(null, response.message || response.error || 'No se pudo eliminar el movimiento');
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -59,10 +60,11 @@ const EliminarMovimiento = ({ isOpen, onClose, movimientoSeleccionado, onElimina
             mensaje={`¿Estás seguro de que deseas eliminar el movimiento de ${itemConcepto}?`}
             detalle="Esta acción es irreversible y no podrás recuperar la información de este movimiento una vez eliminado."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

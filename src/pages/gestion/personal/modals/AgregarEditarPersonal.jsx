@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ModalLateral from '../../../../components/common/modals/ModalLateral';
 import Input from '../../../../components/common/inputs/Input';
 import InputSelect from '../../../../components/common/inputs/InputSelect';
+import Checkbox from '../../../../components/common/inputs/Checkbox';
 import InputSwitch from '../../../../components/common/inputs/InputSwitch';
 import { useToast } from '../../../../context/ToastContext';
 import personalService from '../../../../services/personalService';
@@ -78,7 +79,7 @@ const AgregarEditarPersonal = ({ isOpen, onClose, personalSeleccionado, onGuarda
                 setFormData({
                     first_name: personalSeleccionado.first_name || '',
                     last_name: personalSeleccionado.last_name || '',
-                    email: personalSeleccionado.codigo || '',
+                    email: personalSeleccionado.email || '',
                     cargo_id: personalSeleccionado.cargo_id || '',
                     sucursal_id: personalSeleccionado.sucursal_id || '',
                     is_active: personalSeleccionado.is_active !== undefined ? personalSeleccionado.is_active : true,
@@ -149,7 +150,7 @@ const AgregarEditarPersonal = ({ isOpen, onClose, personalSeleccionado, onGuarda
         const datosParaEnviar = {
             first_name: formData.first_name.trim(),
             last_name: formData.last_name.trim(),
-            codigo: emailFinal,
+            email: emailFinal,
             cargo_id: formData.cargo_id,
             cargo: selectedCargo ? selectedCargo.name : '',
             sucursal_id: formData.sucursal_id || null,
@@ -172,17 +173,16 @@ const AgregarEditarPersonal = ({ isOpen, onClose, personalSeleccionado, onGuarda
                 if (onGuardar) {
                     onGuardar(response.data || { id: personalSeleccionado?.id, ...datosParaEnviar });
                 }
-
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', `Personal ${tipo === 'editar' ? 'actualizado' : 'creado'} correctamente`);
+                showSuccess(null, `Personal ${tipo === 'editar' ? 'actualizado' : 'creado'} correctamente`);
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -211,7 +211,6 @@ const AgregarEditarPersonal = ({ isOpen, onClose, personalSeleccionado, onGuarda
             loading={loading}
             disableClose={loading}
         >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <Input
                     tipo="text"
                     required={true}
@@ -292,57 +291,56 @@ const AgregarEditarPersonal = ({ isOpen, onClose, personalSeleccionado, onGuarda
                         subtitle={formData.is_active ? "Activo" : "Inactivo"}
                         checked={formData.is_active}
                         onChange={(val) => setFormData({ ...formData, is_active: val })}
-                        readOnly={loading}
+                        disabled={loading}
                     />
                 )}
-
+                <h4 style={{ marginBlock: '5px', fontSize: '12px', color: 'var(--black-color)' }}>PERMISOS ADICIONALES</h4>
                 <div style={{ marginTop: '10px' }}>
-                    <p style={{ fontWeight: '500', marginBottom: '15px' }}>Permisos Adicionales</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <InputSwitch
+                        <Checkbox
                             label="Crear"
                             checked={formData.permisos.crear}
                             onChange={(val) => handlePermisoChange('crear', val)}
-                            readOnly={loading}
+                            disabled={loading}
                         />
-                        <InputSwitch
+                        <Checkbox
                             label="Editar"
                             checked={formData.permisos.editar}
                             onChange={(val) => handlePermisoChange('editar', val)}
-                            readOnly={loading}
+                            disabled={loading}
                         />
-                        <InputSwitch
+                        <Checkbox
                             label="Eliminar"
                             checked={formData.permisos.eliminar}
                             onChange={(val) => handlePermisoChange('eliminar', val)}
-                            readOnly={loading}
+                            disabled={loading}
                         />
-                        <InputSwitch
+                        <Checkbox
                             label="Anular"
                             checked={formData.permisos.anular}
                             onChange={(val) => handlePermisoChange('anular', val)}
-                            readOnly={loading}
+                            disabled={loading}
                         />
-                        <InputSwitch
+                        <Checkbox
                             label="Reemplazar"
                             checked={formData.permisos.reemplazar}
                             onChange={(val) => handlePermisoChange('reemplazar', val)}
-                            readOnly={loading}
+                            disabled={loading}
                         />
-                        <InputSwitch
+                        <Checkbox
                             label="Información"
                             checked={formData.permisos.info}
                             onChange={(val) => handlePermisoChange('info', val)}
-                            readOnly={loading}
+                            disabled={loading}
                         />
-                        <InputSwitch
+                        <Checkbox
                             label="Sucursales"
                             checked={formData.permisos.sucursales}
                             onChange={(val) => handlePermisoChange('sucursales', val)}
-                            readOnly={loading}
+                            disabled={loading}
                         />
                     </div>
-                </div>
+               
             </div>
         </ModalLateral>
     );

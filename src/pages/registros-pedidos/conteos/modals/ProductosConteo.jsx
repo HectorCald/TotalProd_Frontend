@@ -4,6 +4,7 @@ import Tabla from '../../../../components/common/information/Tabla';
 import conteosService from '../../../../services/conteosService';
 import { useToast } from '../../../../context/ToastContext';
 import LoadingSpinner from '../../../../components/common/old/LoadingSpinner';
+import useVirtualPagination from '../../../../hooks/useVirtualPagination';
 
 const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
     const [detalles, setDetalles] = useState([]);
@@ -39,7 +40,7 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
         {
             header: 'Producto',
             render: (row) => isAlmacen ? (row.producto_almacen?.name || 'Sin nombre') : (row.producto_acopio?.name || 'Sin nombre'),
-            width: '40%'
+            width: isAlmacen ? '40%' : '30%'
         },
         {
             header: 'Sistema',
@@ -48,7 +49,7 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
                 const medidaCode = !isAlmacen ? (row.producto_acopio?.type_measure?.code || '') : '';
                 return isAlmacen ? `${sistema} ud` : `${sistema.toFixed(2)} ${medidaCode}`;
             },
-            width: '20%'
+            width: isAlmacen ? '20%' : '15%'
         },
         {
             header: 'Físico',
@@ -57,10 +58,10 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
                 const medidaCode = !isAlmacen ? (row.producto_acopio?.type_measure?.code || '') : '';
                 return isAlmacen ? `${fisico} ud` : `${fisico.toFixed(2)} ${medidaCode}`;
             },
-            width: '20%'
+            width: isAlmacen ? '20%' : '15%'
         },
         {
-            header: 'Diferencia',
+            header: isAlmacen ? 'Diferencia' : 'DIF.',
             render: (row) => {
                 const fisico = Number(row.fisico || 0);
                 const sistema = Number(row.sistema || 0);
@@ -72,14 +73,33 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
                 if (diff > 0) return <span style={{color: '#10b981'}}>+{diffFormatted}</span>; // green
                 return <span style={{color: '#ef4444'}}>-{diffFormatted}</span>; // red
             },
-            width: '20%'
-        }
+            width: isAlmacen ? '20%' : '15%'
+        },
+        ...(isAlmacen ? [] : [{
+            header: 'Observaciones',
+            render: (row) => row.justificacion || '--',
+            width: '40%'
+        }])
     ], [isAlmacen]);
 
-    const productosFlattened = (detalles || []).map(p => ({
-        ...p,
-        productoNombre: isAlmacen ? (p.producto_almacen?.name || '') : (p.producto_acopio?.name || '')
-    }));
+    const [search, setSearch] = useState('');
+
+    const productosFlattened = useMemo(() => {
+        return (detalles || []).map(p => ({
+            ...p,
+            productoNombre: isAlmacen ? (p.producto_almacen?.name || '') : (p.producto_acopio?.name || '')
+        }));
+    }, [detalles, isAlmacen]);
+
+    const filteredDetalles = useMemo(() => {
+        if (!search) return productosFlattened;
+        const s = search.toLowerCase();
+        return productosFlattened.filter(p => 
+            p.productoNombre && p.productoNombre.toLowerCase().includes(s)
+        );
+    }, [productosFlattened, search]);
+
+    const { visibleItems, hasMore, loadMore } = useVirtualPagination(filteredDetalles, 30);
 
     return (
         <ModalCentro
@@ -88,17 +108,22 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
             title={`Productos del Conteo ${conteoSeleccionado?.codigo || ''}`}
             width="800px"
             hideFooter={true}
+            contentStyle={{ paddingBlock: 0 }}
         >
-            <div style={{ padding: '0' }}>
+            <div style={{ padding: '10px 0' }}>
                 {isLoading ? (
                     <LoadingSpinner />
                 ) : productosFlattened.length > 0 ? (
                     <Tabla
-                        data={productosFlattened}
+                        data={visibleItems}
                         columns={columns}
+                        remote={true}
+                        searchValue={search}
+                        onSearchChange={setSearch}
                         searchKeys={['productoNombre']}
                         searchPlaceholder="Buscar por producto..."
                         containerStyle={{ minHeight: 'auto', padding: 0 }}
+                        onLoadMore={hasMore ? loadMore : undefined}
                     />
                 ) : (
                     <p style={{ textAlign: 'center', padding: '20px', color: '#666' }}>

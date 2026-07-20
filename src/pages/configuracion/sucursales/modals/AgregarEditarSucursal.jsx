@@ -30,7 +30,7 @@ const AgregarEditarSucursal = ({ isOpen, onClose, sucursalSeleccionada, onGuarda
             }
         } catch (error) {
             console.error('Error al cargar precios:', error);
-            showDanger('Error', 'Error al cargar los tipos de precios');
+            showDanger(null, 'Error al cargar los tipos de precios');
         } finally {
             setLoadingPrecios(false);
         }
@@ -70,6 +70,11 @@ const AgregarEditarSucursal = ({ isOpen, onClose, sucursalSeleccionada, onGuarda
             return;
         }
 
+        if (!preciosSeleccionados || preciosSeleccionados.length === 0) {
+            showWarning('Validación', 'Debe seleccionar al menos un tipo de precio');
+            return;
+        }
+
         setFieldErrors({ name: false });
         setLoading(true);
 
@@ -97,30 +102,27 @@ const AgregarEditarSucursal = ({ isOpen, onClose, sucursalSeleccionada, onGuarda
                         ...(response.data || sucursalSeleccionada),
                         ...sucursalData,
                         id: registroId,
-                        // Almacenar los objetos de precio para renderizar correctamente si es necesario
                         precios: precios.filter(p => preciosSeleccionados.includes(p.id)),
-                        // Mapear el id del almacen simulado según el estado de almacenSeparado
                         almacen_sucursal_id: almacenSeparado ? null : (response.data?.almacen_sucursal_id || sucursalSeleccionada?.almacen_sucursal_id || 1)
                     };
                     onGuardar(dataDeRetorno);
                 }
-
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || `Sucursal ${tipo === 'editar' ? 'actualizada' : 'creada'} correctamente`);
+                showSuccess(null, response.message || `Sucursal ${tipo === 'editar' ? 'actualizada' : 'creada'} correctamente`);
             } else if (response.code === 'MODULE_NOT_INCLUDED') {
                 setLoading(false);
-                showDanger('Error', `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}".`);
+                showDanger(null, `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}".`);
             } else if (response.code === 'NO_PLAN') {
                 setLoading(false);
-                showDanger('Error', 'Necesitas un plan activo para acceder a esta función.');
+                showDanger(null, 'Necesitas un plan activo para acceder a esta función.');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || `Error al ${tipo} la sucursal`);
+                showDanger(null, response.message || `Error al ${tipo} la sucursal`);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -143,7 +145,6 @@ const AgregarEditarSucursal = ({ isOpen, onClose, sucursalSeleccionada, onGuarda
             loading={loading}
             disableClose={loading}
         >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <Input
                     tipo="text"
                     required={true}
@@ -206,7 +207,7 @@ const AgregarEditarSucursal = ({ isOpen, onClose, sucursalSeleccionada, onGuarda
                         />
                     )}
                 </div>
-            </div>
+         
         </ModalLateral>
     );
 };

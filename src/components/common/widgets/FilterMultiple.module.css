@@ -11,7 +11,7 @@
     padding: 8px 16px;
     background-color: white;
     border: 1px solid var(--quaternary-color);
-    border-radius: 8px;
+    border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
     color: var(--dark-color, #1a202c);
@@ -83,9 +83,10 @@
 
 .title {
     margin: 0;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     color: var(--dark-color, #1a202c);
+    text-transform: uppercase;
 }
 
 .closeBtn {

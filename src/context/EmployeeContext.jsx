@@ -161,11 +161,20 @@ export const EmployeeProvider = ({ children }) => {
       const employeeData = await personalService.getById(employeeId);
       
       if (employeeData && employeeData.success) {
-        // Validar si el empleado está activo
         if (!employeeData.data.is_active) {
           const errorMessage = 'Su cuenta está inactiva. Contacte al administrador para reactivar su acceso.';
           setError(errorMessage);
           setLoading(false);
+          loadingEmployeeRef.current = false;
+
+          clearEmployee();
+          localStorage.removeItem('cacheVersion');
+          localStorage.removeItem('sidebarCollapsed');
+          localStorage.removeItem('sucursalIdSeleccionada');
+          localStorage.removeItem('token');
+          sessionStorage.clear();
+          window.dispatchEvent(new Event('local-logout'));
+
           return { success: false, error: errorMessage };
         }
         

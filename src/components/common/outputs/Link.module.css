@@ -1,0 +1,20 @@
+.link {
+    color: var(--primary-color);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.link:hover {
+    opacity: 0.8;
+}
+
+.readOnly {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}

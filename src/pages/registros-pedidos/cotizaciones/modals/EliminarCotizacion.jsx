@@ -9,7 +9,7 @@ const EliminarCotizacion = ({ isOpen, onClose, cotizacionSeleccionada, onElimina
 
     const handleConfirm = async () => {
         if (!cotizacionSeleccionada?.id) {
-            showDanger('Error', 'ID de la cotización no válido');
+            showDanger(null, 'ID de la cotización no válido');
             return;
         }
 
@@ -18,20 +18,17 @@ const EliminarCotizacion = ({ isOpen, onClose, cotizacionSeleccionada, onElimina
             const response = await cotizacionesService.eliminar(cotizacionSeleccionada.id);
 
             if (response.success) {
-                if (onEliminar) {
-                    onEliminar(cotizacionSeleccionada.id);
-                }
-
+                if (onEliminar) onEliminar(cotizacionSeleccionada.id);
                 setLoading(false);
-                onClose();
-                showSuccess('Operación exitosa', response.message || 'Cotización eliminada exitosamente');
+                onClose(true);
+                showSuccess(null, response.message || 'Cotización eliminada exitosamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -50,10 +47,11 @@ const EliminarCotizacion = ({ isOpen, onClose, cotizacionSeleccionada, onElimina
             mensaje={`¿Estás seguro de que deseas eliminar la cotización #${cotizacionSeleccionada?.numero_cotizacion || 'Sin número'}?`}
             detalle="Esta acción es irreversible y no podrás recuperar la información de esta cotización una vez eliminada."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

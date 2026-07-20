@@ -100,8 +100,12 @@ class deudasService {
     if (estado) params.append('estado', estado);
     if (cliente) params.append('cliente_id', cliente);
     if (filtroFecha) {
-      if (filtroFecha.inicio) params.append('fecha_inicio', filtroFecha.inicio);
-      if (filtroFecha.fin) params.append('fecha_fin', filtroFecha.fin);
+      if (filtroFecha.fechaStrInicio || filtroFecha.inicio) {
+        params.append('fecha_inicio', filtroFecha.fechaStrInicio || filtroFecha.inicio.split('T')[0]);
+      }
+      if (filtroFecha.fechaStrFin || filtroFecha.fin) {
+        params.append('fecha_fin', filtroFecha.fechaStrFin || filtroFecha.fin.split('T')[0]);
+      }
     }
 
     return deudasService._request(`/deudas?${params}`, { method: 'GET' }, {

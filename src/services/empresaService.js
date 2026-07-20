@@ -72,7 +72,58 @@ class EmpresaService {
       };
     }
   }
+
+  // Obtener empresas disponibles
+  static async getDisponibles(currentEmpresaId) {
+    try {
+      const token = localStorage.getItem('token');
+      let url = `${API_BASE_URL}/empresas/disponibles`;
+      if (currentEmpresaId) {
+        url += `?currentEmpresaId=${currentEmpresaId}`;
+      }
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en getDisponibles:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
+
+  // Verificar código de vinculación
+  static async verificarCodigo(empresaId, codigo) {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/empresas/${empresaId}/verificar-codigo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ codigo }),
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en verificarCodigo:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
 }
 
 export default EmpresaService;
-

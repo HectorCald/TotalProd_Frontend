@@ -106,9 +106,9 @@ const InfoCard = ({ title, subtitle, description, customBlock, tags = [], stats 
                 </div>
             )}
 
-            {description && (
-                <div className={styles.description}>
-                    {description}
+            {customBlock && (
+                <div className={styles.customBlock}>
+                    {customBlock}
                 </div>
             )}
             
@@ -155,9 +155,9 @@ const InfoCard = ({ title, subtitle, description, customBlock, tags = [], stats 
                 </div>
             )}
 
-            {customBlock && (
-                <div className={styles.customBlock}>
-                    {customBlock}
+            {description && description !== '--' && description.trim?.() !== '' && (
+                <div className={styles.description}>
+                    {description}
                 </div>
             )}
             

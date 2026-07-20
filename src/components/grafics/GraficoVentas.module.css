@@ -1,0 +1,31 @@
+.contenedorGrafico {
+  background-color: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.contenedorFiltro {
+  width: 120px;
+}
+
+.cuerpoGrafico {
+  width: 100%;
+}

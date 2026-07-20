@@ -9,7 +9,7 @@ const EliminarSucursal = ({ isOpen, onClose, sucursalSeleccionada, onEliminar })
 
     const handleConfirm = async () => {
         if (!sucursalSeleccionada?.id) {
-            showDanger('Error', 'ID de la sucursal no válido');
+            showDanger(null, 'ID de la sucursal no válido');
             return;
         }
 
@@ -18,20 +18,17 @@ const EliminarSucursal = ({ isOpen, onClose, sucursalSeleccionada, onEliminar })
             const response = await sucursalesService.delete(sucursalSeleccionada.id);
 
             if (response.success) {
-                if (onEliminar) {
-                    onEliminar(sucursalSeleccionada.id);
-                }
-
+                if (onEliminar) onEliminar(sucursalSeleccionada.id);
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || 'Sucursal eliminada correctamente');
+                showSuccess(null, response.message || 'Sucursal eliminada correctamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || 'Error al eliminar la sucursal');
+                showDanger(null, response.message || 'Error al eliminar la sucursal');
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -50,10 +47,11 @@ const EliminarSucursal = ({ isOpen, onClose, sucursalSeleccionada, onEliminar })
             mensaje={`¿Estás seguro de que deseas eliminar la sucursal ${sucursalSeleccionada?.name || sucursalSeleccionada?.nombre}?`}
             detalle="Esta acción es irreversible y no podrás recuperar la información de esta sucursal una vez eliminada."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

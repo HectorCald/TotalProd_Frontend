@@ -41,10 +41,11 @@ const CerrarSesion = ({ isOpen, onClose }) => {
             mensaje="¿Estás seguro de que deseas cerrar sesión?"
             detalle="Tendrás que volver a ingresar tus credenciales para acceder a la aplicación."
             confirmText="Cerrar sesión"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

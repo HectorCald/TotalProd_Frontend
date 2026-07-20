@@ -4,6 +4,7 @@ import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive';
@@ -11,9 +12,13 @@ import conteosService from '../../../services/conteosService';
 import EliminarConteo from './modals/EliminarConteo';
 import ReemplazarConteo from './modals/ReemplazarConteo';
 import ProductosConteo from './modals/ProductosConteo';
+import SelectTipoNuevo from './modals/SelectTipoNuevo';
+import useFechaLiteral from '../../../hooks/useFechaLiteral';
 
 const LiteralDateCell = ({ dateStr }) => {
-  return <span>{dateStr ? new Date(dateStr).toLocaleString() : ''}</span>;
+  const cleanDateStr = dateStr ? dateStr.slice(0, 10) : '';
+  const literal = useFechaLiteral(cleanDateStr, false);
+  return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
 const Conteos = () => {
@@ -21,30 +26,27 @@ const Conteos = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isAcopio = location.pathname.includes('/conteos/acopio');
-  const getTitulo = () => {
-    return isAcopio ? 'Conteos Materia Prima' : 'Conteos Almacén';
-  };
-
-  const tipoConteo = isAcopio ? 'acopio' : 'almacen';
+  const getTitulo = () => 'Conteos';
 
   const conteosServiceWrapper = useMemo(() => ({
     getAll: async (page, limit) => {
-        return await conteosService.getAll({ tipo: tipoConteo });
+        return await conteosService.getAll({ tipo: null });
     }
-  }), [tipoConteo]);
+  }), []);
 
   const [conteos, setConteos] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
 
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebounce(search, 500);
+  const [tableFilters, setTableFilters] = useState({});
 
   // Modals state
   const [modalProductosOpen, setModalProductosOpen] = useState(false);
   const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
   const [modalReemplazarOpen, setModalReemplazarOpen] = useState(false);
+  const [modalAgregarEditarOpen, setModalAgregarEditarOpen] = useState(false);
   const [conteoSeleccionado, setConteoSeleccionado] = useState(null);
 
   useEffect(() => {
@@ -54,7 +56,8 @@ const Conteos = () => {
   }, [location.pathname]);
 
   const handleDataLoaded = useCallback((data) => {
-    setConteos(data);
+    const sorted = [...data].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    setConteos(sorted);
     setError(null);
   }, []);
 
@@ -80,14 +83,6 @@ const Conteos = () => {
 
   const tableActions = [
     {
-      name: 'Ver Productos', 
-      icon: 'show', 
-      onClick: (conteo) => {
-        setConteoSeleccionado(conteo);
-        setModalProductosOpen(true);
-      }
-    },
-    {
       name: 'Reemplazar Stock', 
       icon: 'box', 
       onClick: (conteo) => {
@@ -106,13 +101,6 @@ const Conteos = () => {
   ];
 
   const columns = [
-    {
-      header: 'Código',
-      accessor: 'codigo',
-      style: { fontWeight: 600, color: '#333' },
-      width: '15%',
-      render: (row) => row.codigo || '--'
-    },
     {
       header: 'Tipo',
       accessor: 'tipo',
@@ -134,24 +122,43 @@ const Conteos = () => {
       render: (row) => `${row.detalles_count || 0} ítems`
     },
     {
-      header: 'Observaciones',
-      accessor: 'observaciones',
+      header: 'Responsable',
+      accessor: 'responsable',
       width: '35%',
-      render: (row) => row.observaciones || '--'
+      render: (row) => row.user?.name || row.personal?.name || '--'
+    }
+  ];
+
+  const tableFiltersConfig = [
+    {
+      id: 'tipo',
+      title: 'Tipo',
+      singleSelect: true,
+      options: [
+        { label: 'Almacén', value: 'almacen' },
+        { label: 'Materia Prima', value: 'acopio' }
+      ]
     }
   ];
 
   const filteredConteos = useMemo(() => {
     return conteos.filter(c => {
-        if (!debouncedSearch) return true;
-        const text = `${c.codigo || ''} ${c.observaciones || ''}`.toLowerCase();
-        return text.includes(debouncedSearch.toLowerCase());
+        if (debouncedSearch) {
+            const text = `${c.codigo || ''} ${c.observaciones || ''}`.toLowerCase();
+            if (!text.includes(debouncedSearch.toLowerCase())) return false;
+        }
+
+        if (tableFilters.tipo && tableFilters.tipo.length > 0) {
+            if (!tableFilters.tipo.includes(c.tipo)) return false;
+        }
+
+        return true;
     });
-  }, [conteos, debouncedSearch]);
+  }, [conteos, debouncedSearch, tableFilters]);
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea}>
@@ -163,20 +170,18 @@ const Conteos = () => {
             acciones={tableActions}
             buttonLabel="Nuevo Conteo"
             onButtonClick={() => {
-              if (isAcopio) {
-                navigate('/materia-prima/pesaje');
-              } else {
-                navigate('/almacen/conteo');
-              }
+              setModalAgregarEditarOpen(true);
             }}
-            searchKeys={['codigo', 'observaciones']}
-            sortKey={'fecha'}
+            searchKeys={['observaciones']}
+            filters={tableFiltersConfig}
             onRowClick={(conteo) => {
               setConteoSeleccionado(conteo);
               setModalProductosOpen(true);
             }}
             searchValue={search}
             onSearchChange={setSearch}
+            externalFilters={tableFilters}
+            onFiltersChange={setTableFilters}
             remote={false}
           />
         </div>
@@ -215,6 +220,17 @@ const Conteos = () => {
         conteoSeleccionado={conteoSeleccionado}
         onReemplazar={handleConteoReemplazado}
       />
+
+      <SelectTipoNuevo
+        isOpen={modalAgregarEditarOpen}
+        onClose={(nuevoConteo) => {
+            setModalAgregarEditarOpen(false);
+            if (nuevoConteo && typeof nuevoConteo === 'object') {
+                setConteos(prev => [nuevoConteo, ...prev].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)));
+            }
+        }}
+      />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

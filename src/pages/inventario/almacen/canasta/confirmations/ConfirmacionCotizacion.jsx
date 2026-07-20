@@ -3,7 +3,7 @@ import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import SelectCliente from '../../../../../components/common/fast/SelectCliente';
 import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodoPago';
 import Input from '../../../../../components/common/inputs/Input';
-import InputSwitch from '../../../../../components/common/inputs/InputSwitch';
+import Checkbox from '../../../../../components/common/inputs/Checkbox';
 import InputFecha from '../../../../../components/common/inputs/InputFecha';
 import cotizacionesService from '../../../../../services/cotizacionesService';
 import { useToast } from '../../../../../context/ToastContext';
@@ -13,7 +13,14 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
 
   const [cliente, setCliente] = useState(null);
   const [metodoPago, setMetodoPago] = useState(null);
-  const [fechaVencimiento, setFechaVencimiento] = useState('');
+
+  const getOneMonthLater = () => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const [fechaVencimiento, setFechaVencimiento] = useState(getOneMonthLater());
   const [descuento, setDescuento] = useState('');
   const [aumento, setAumento] = useState('');
   const [esPorcentaje, setEsPorcentaje] = useState(false);
@@ -60,26 +67,29 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
         descuento: descVal,
         aumento: aumVal,
         porcentaje: esPorcentaje,
-        productos: (canasta || []).map(p => ({
-          id: p.id,
-          cantidad: p.cantidad,
-          precio: getProductPrice(p, precioSeleccionado)
-        }))
+        productos: (canasta || []).map(p => {
+          const esPorGrupo = modoAgrupacion === 'grupo' && p.grup && Number(p.grup) > 0;
+          return {
+            id: p.id,
+            cantidad: esPorGrupo ? Number(p.cantidad) * Number(p.grup) : Number(p.cantidad),
+            precio: getProductPrice(p, precioSeleccionado)
+          };
+        })
       };
 
       const result = await cotizacionesService.createFast(payload);
 
       if (!result.success) {
-        showDanger('Error', result.message || 'Error al registrar la cotización');
+        showDanger(null, result.message || 'Error al registrar la cotización');
         return;
       }
 
-      showSuccess('Éxito', 'Cotización generada con éxito');
+      showSuccess(null, 'Cotización generada con éxito');
       if (vaciarCanasta) vaciarCanasta();
 
       setCliente(null);
       setMetodoPago(null);
-      setFechaVencimiento('');
+      setFechaVencimiento(getOneMonthLater());
       setDescuento('');
       setAumento('');
       setEsPorcentaje(false);
@@ -87,7 +97,7 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
 
       onClose();
     } catch (error) {
-      showDanger('Error', 'Error de conexión');
+      showDanger(null, 'Revisa tu conexión a internet');
     } finally {
       setIsSubmitting(false);
     }
@@ -107,11 +117,11 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
       title="Confirmar Cotización"
       confirmText="Generar Cotización"
       onConfirm={handleConfirm}
-      width="450px"
       loading={isSubmitting}
       disableClose={isSubmitting}
+      contentStyle={{ paddingBlock: 0 }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px', pointerEvents: isSubmitting ? 'none' : 'auto', opacity: isSubmitting ? 0.7 : 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: isSubmitting ? 'none' : 'auto', opacity: isSubmitting ? 0.7 : 1 }}>
         <SelectCliente 
           value={cliente}
           onChange={(val) => { setCliente(val); setErrors(prev => ({ ...prev, cliente: false })); }}
@@ -139,12 +149,6 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
           error={errors.fechaVencimiento}
         />
         
-        <InputSwitch 
-          label="Aplicar como porcentaje"
-          checked={esPorcentaje}
-          onChange={(checked) => setEsPorcentaje(checked)}
-        />
-
         <div style={{ display: 'flex', gap: '10px' }}>
           <div style={{ flex: 1 }}>
             <Input 
@@ -166,6 +170,13 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
           </div>
         </div>
 
+        <Checkbox 
+          id="aplicar_porcentaje"
+          label="Aplicar como porcentaje"
+          checked={esPorcentaje}
+          onChange={(checked) => setEsPorcentaje(checked)}
+        />
+
         <div style={{ 
           paddingTop: '15px', 
           borderTop: '1px dashed var(--quaternary-color)',
@@ -174,7 +185,7 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
           alignItems: 'center'
         }}>
           <span style={{ fontSize: '14px', color: 'var(--secondary-color)' }}>Total Final:</span>
-          <span style={{ fontSize: '17px', fontWeight: 'bold', color: 'var(--primary-color)' }}>
+          <span style={{ fontSize: '17px', fontWeight: 'bold', color: 'var(--secondary-color)' }}>
             Bs. {totalFinal.toFixed(2)}
           </span>
         </div>

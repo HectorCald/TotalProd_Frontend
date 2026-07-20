@@ -3,9 +3,8 @@ import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import SelectProveedores from '../../../../../components/common/fast/SelectProveedores';
 import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodoPago';
 import Input from '../../../../../components/common/inputs/Input';
-import InputSwitch from '../../../../../components/common/inputs/InputSwitch';
+import Checkbox from '../../../../../components/common/inputs/Checkbox';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
-import gastosService from '../../../../../services/gastosService';
 import { useToast } from '../../../../../context/ToastContext';
 
 const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion }) => {
@@ -63,40 +62,28 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
         restar_ingredientes: consumirReceta,
         precio_id: precioSeleccionado,
         agrupado: modoAgrupacion === 'grupo',
-        productos: canasta.map(p => ({
-          id: p.id,
-          cantidad: p.cantidad,
-          precio: getProductPrice(p, precioSeleccionado)
-        }))
+        // Campos para gasto automático en el backend
+        registrar_gasto: registrarGasto,
+        costo: registrarGasto ? (parseFloat(costo) || 0) : null,
+        fecha_gasto: getDateStr(),
+        productos: canasta.map(p => {
+          const esPorGrupo = modoAgrupacion === 'grupo' && p.grup && Number(p.grup) > 0;
+          return {
+            id: p.id,
+            cantidad: esPorGrupo ? Number(p.cantidad) * Number(p.grup) : Number(p.cantidad),
+            precio: getProductPrice(p, precioSeleccionado)
+          };
+        })
       };
 
       const result = await movimientosAlmacenService.createFast(payload);
 
       if (!result.success) {
-        showDanger('Error', result.message || 'Error al registrar la entrada');
+        showDanger(null, result.message || 'Error al registrar la entrada');
         return;
       }
 
-      // Registrar pago (gasto) si está activo
-      if (registrarGasto) {
-        const gastoData = {
-          fecha_gasto: getDateStr(),
-          valor: parseFloat(costo) || 0,
-          concepto: concepto?.trim() || 'Pago de Entrada de Productos',
-          metodo_pago: metodoPago || 'efectivo',
-          proveedor_id: proveedor || null,
-          movimiento_entrada_id: result.data.id
-        };
-
-        const gastoResult = await gastosService.create(gastoData);
-
-        if (!gastoResult?.success) {
-          showDanger('Advertencia', 'Entrada registrada pero no se pudo crear el pago: ' + (gastoResult?.message || 'Error desconocido'));
-          return;
-        }
-      }
-
-      showSuccess('Éxito', 'Entrada registrada con éxito');
+      showSuccess(null, 'Entrada registrada con éxito');
       if (vaciarCanasta) vaciarCanasta();
 
       // Limpiar campos
@@ -110,7 +97,7 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
 
       onClose();
     } catch (error) {
-      showDanger('Error', 'Error de conexión');
+      showDanger(null, 'Revisa tu conexión a internet');
     } finally {
       setIsSubmitting(false);
     }
@@ -130,11 +117,11 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
       title="Confirmar Entrada"
       confirmText="Realizar Entrada"
       onConfirm={handleConfirm}
-      width="450px"
       loading={isSubmitting}
       disableClose={isSubmitting}
+      contentStyle={{ paddingBlock: 0 }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px', pointerEvents: isSubmitting ? 'none' : 'auto', opacity: isSubmitting ? 0.7 : 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: isSubmitting ? 'none' : 'auto', opacity: isSubmitting ? 0.7 : 1 }}>
 
         <Input
           label="Concepto"
@@ -144,7 +131,8 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
           placeholder="Detalle de la entrada..."
         />
 
-        <InputSwitch
+        <Checkbox
+          id="registrar_pago"
           label="Registrar pago"
           checked={registrarGasto}
           onChange={(checked) => {
@@ -153,58 +141,54 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
               setErrors({});
             }
           }}
-        />
-
-        {showConsumirReceta && (
-          <InputSwitch
-            label="Consumir receta"
-            checked={consumirReceta}
-            onChange={setConsumirReceta}
+        >
+          <Input
+            label="Costo (Bs.)"
+            tipo="number"
+            value={costo}
+            onChange={(e) => { setCosto(e.target.value); setErrors(prev => ({ ...prev, costo: false })); }}
+            placeholder="0"
+            required={true}
+            error={errors.costo}
           />
-        )}
 
-        {registrarGasto && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '5px' }}>
-            <Input
-              label="Costo (Bs.)"
-              tipo="number"
-              value={costo}
-              onChange={(e) => { setCosto(e.target.value); setErrors(prev => ({ ...prev, costo: false })); }}
-              placeholder="0"
-              required={true}
-              error={errors.costo}
-            />
+          <SelectProveedores
+            value={proveedor}
+            onChange={(val) => { setProveedor(val); setErrors(prev => ({ ...prev, proveedor: false })); }}
+            fetchTrigger={isOpen}
+            openDirection="up"
+          />
 
-            <SelectProveedores
-              value={proveedor}
-              onChange={(val) => { setProveedor(val); setErrors(prev => ({ ...prev, proveedor: false })); }}
-              fetchTrigger={isOpen}
-              openDirection="up"
-            />
+          <SelectMetodoPago
+            value={metodoPago}
+            onChange={(val) => { setMetodoPago(val); setErrors(prev => ({ ...prev, metodoPago: false })); }}
+            required={true}
+            error={errors.metodoPago}
+            openDirection="up"
+          />
 
-            <SelectMetodoPago
-              value={metodoPago}
-              onChange={(val) => { setMetodoPago(val); setErrors(prev => ({ ...prev, metodoPago: false })); }}
-              required={true}
-              error={errors.metodoPago}
-              openDirection="up"
-            />
-          </div>
-        )}
-
-        {registrarGasto && (
           <div style={{
             paddingTop: '15px',
             borderTop: '1px dashed var(--quaternary-color)',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            marginTop: '5px'
           }}>
             <span style={{ fontSize: '14px', color: 'var(--secondary-color)' }}>Gasto a registrar:</span>
-            <span style={{ fontSize: '17px', fontWeight: 'bold', color: 'var(--primary-color)' }}>
+            <span style={{ fontSize: '17px', fontWeight: 'bold', color: 'var(--secondary-color)' }}>
               Bs. {Number(costo || 0).toFixed(2)}
             </span>
           </div>
+        </Checkbox>
+
+        {showConsumirReceta && (
+          <Checkbox
+            id="consumir_receta"
+            label="Consumir receta"
+            checked={consumirReceta}
+            onChange={setConsumirReceta}
+          />
         )}
       </div>
     </ModalCentro>

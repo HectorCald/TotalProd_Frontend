@@ -26,11 +26,81 @@ const SideBar = () => {
 
   const usuario = userInfo || employeeInfo;
   const sucursalSeleccionada = userSucursal || employeeSucursal;
+  const isEmployee = !!employeeInfo;
+
+  const getFilteredOptions = () => {
+    const codigoEmpresa = sucursalSeleccionada?.empresas?.codigo || userInfo?.empresa?.codigo || employeeInfo?.sucursal?.empresas?.codigo || '';
+    const tipoEmpresa = sucursalSeleccionada?.empresas?.tipo || userInfo?.empresa?.tipo || employeeInfo?.sucursal?.empresas?.tipo || 'ventas_produccion';
+    const isSoloVentas = tipoEmpresa === 'ventas';
+
+    let filteredSections = SideBarOptions.filter(section => {
+      if (section.empresaCodigo && section.empresaCodigo !== codigoEmpresa) {
+        return false;
+      }
+      return true;
+    });
+
+    filteredSections = filteredSections.map(section => {
+      const newItems = section.items.filter(item => {
+         if (isSoloVentas && item.id === 'materia-prima') return false;
+         return true;
+      }).map(item => {
+         if (isSoloVentas && (item.id === 'movimientos' || item.id === 'pedidos')) {
+             return { 
+                 ...item, 
+                 submenu: undefined, 
+                 route: `/${item.id}/almacen`,
+                 MenuSide: true 
+             };
+         }
+         return item;
+      });
+      return { ...section, items: newItems };
+    }).filter(s => s.items.length > 0);
+
+    if (!isEmployee || !usuario?.modules) return filteredSections;
+
+    return filteredSections.map(section => {
+      const filteredItems = section.items.map(item => {
+        // Ignorar home o items sin key de módulo
+        if (!item.key && item.id === 'home') return item;
+        if (!item.key) return item;
+
+        // Comprobar si tiene el módulo principal
+        const hasModule = usuario.modules.some(m => m.modulos?.clave === item.key);
+        if (!hasModule) return null;
+
+        let filteredSubmenu = item.submenu;
+        if (item.submenu) {
+          filteredSubmenu = item.submenu.filter(sub => {
+            if (!sub.key) return true;
+            return usuario.modules.some(m => 
+              m.modulos?.clave === item.key && m.name === sub.key
+            );
+          });
+          if (filteredSubmenu.length === 0) return null;
+        } else if (item.key_submenu) {
+          // Si requiere un submódulo en específico para ver esta opción (ej: Conteos requiere gestionar)
+          const hasSpecificSubModule = usuario.modules.some(m => 
+            m.modulos?.clave === item.key && m.name === item.key_submenu
+          );
+          if (!hasSpecificSubModule) return null;
+        }
+
+        return { ...item, submenu: filteredSubmenu };
+      }).filter(Boolean);
+
+      if (filteredItems.length === 0) return null;
+      return { ...section, items: filteredItems };
+    }).filter(Boolean);
+  };
+
+  const visibleOptions = getFilteredOptions();
 
   // Auto-expand submenus if current path matches any of their subitems
   useEffect(() => {
     const autoOpen = {};
-    SideBarOptions.forEach(section => {
+    visibleOptions.forEach(section => {
       section.items.forEach(item => {
         if (item.submenu) {
           const hasActiveSub = item.submenu.some(sub => sub.route === currentPath);
@@ -99,7 +169,7 @@ const SideBar = () => {
       ref={sidebarRef}
       onScroll={handleScroll}
     >
-      {SideBarOptions.map((section, idx) => (
+      {visibleOptions.map((section, idx) => (
         <div key={idx} className={styles.section}>
           {!sidebarCollapsed && <div className={styles.sectionTitle}>{typeof section.title === 'string' ? section.title.toUpperCase() : section.title}</div>}
           {section.items.map((item) => {

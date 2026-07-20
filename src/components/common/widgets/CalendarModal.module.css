@@ -18,7 +18,7 @@
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
-  border-radius: 20px;
+  border-radius: 10px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   transform: scale(0.95);
   animation: popIn 0.3s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -156,4 +156,28 @@
   to {
     opacity: 1;
   }
+}
+
+.monthGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  text-align: center;
+  padding: 10px 0;
+}
+
+.monthCell {
+  padding: 12px 0;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dark-color, #1a1a1a);
+  transition: all 0.2s;
+  user-select: none;
+  text-transform: capitalize;
+}
+
+.monthCell:hover {
+  background-color: var(--bg-hover-color, #f7f9fa);
 }

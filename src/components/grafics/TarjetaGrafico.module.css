@@ -1,0 +1,56 @@
+.contenedorTarjeta {
+  background-color: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.titulo {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #27272a;
+}
+
+.filaValor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.valor {
+  font-size: 20px;
+  font-weight: 700;
+  color: #09090b;
+}
+
+.indicadorPorcentaje {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 4px;
+}
+
+.positivo {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.negativo {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.textoComparacion {
+  margin: 0;
+  font-size: 14px;
+  color: #71717a;
+}

@@ -12,7 +12,10 @@ const InputFecha = ({
     error,
     onClearError,
     readOnly,
-    placeholder = "Seleccionar fecha"
+    placeholder = "Seleccionar fecha",
+    mode = "date",
+    abbreviate = false,
+    ...rest
 }) => {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -23,7 +26,7 @@ const InputFecha = ({
         }
     };
 
-    const displayValue = useFechaLiteral(value);
+    const displayValue = useFechaLiteral(value, abbreviate);
 
     return (
         <div className={inputStyles.root}>
@@ -72,6 +75,8 @@ const InputFecha = ({
                 onClose={() => setIsOpen(false)} 
                 selectedDate={value} 
                 onSelectDate={onChange} 
+                mode={mode}
+                {...rest}
             />
         </div>
     );

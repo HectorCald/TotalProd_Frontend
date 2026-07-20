@@ -10,7 +10,7 @@ const EliminarProveedor = ({ isOpen, onClose, proveedorSeleccionado, onEliminar 
 
     const handleConfirm = async () => {
         if (!proveedorSeleccionado?.id) {
-            showDanger('Error', 'ID del proveedor no válido');
+            showDanger(null, 'ID del proveedor no válido');
             return;
         }
 
@@ -19,20 +19,17 @@ const EliminarProveedor = ({ isOpen, onClose, proveedorSeleccionado, onEliminar 
             const response = await proveedorService.delete(proveedorSeleccionado.id);
 
             if (response.success) {
-                if (onEliminar) {
-                    onEliminar(proveedorSeleccionado.id);
-                }
-
+                if (onEliminar) onEliminar(proveedorSeleccionado.id);
                 setLoading(false);
-                onClose();
-                showSuccess('Operación exitosa', response.message);
+                onClose(true);
+                showSuccess(null, response.message);
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -51,10 +48,11 @@ const EliminarProveedor = ({ isOpen, onClose, proveedorSeleccionado, onEliminar 
             mensaje={`¿Estás seguro de que deseas eliminar a ${proveedorSeleccionado?.name}?`}
             detalle="Esta acción es irreversible y no podrás recuperar la información de este proveedor una vez eliminada."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

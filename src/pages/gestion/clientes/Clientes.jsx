@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import useSessionCache from '../../../hooks/useSessionCache';
@@ -30,6 +31,7 @@ const Clientes = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
   
   const [search, setSearch] = useState('');
 
@@ -64,12 +66,6 @@ const Clientes = () => {
   }, []);
 
   const tableActions = [
-    {
-      name: 'Detalles', icon: 'show', onClick: (cliente) => {
-        setClienteSeleccionado(cliente);
-        setIsViewModalOpen(true);
-      }
-    },
     {
       name: 'Editar', icon: 'edit', onClick: (cliente) => {
         setClienteSeleccionado(cliente);
@@ -112,7 +108,7 @@ const Clientes = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea}>
@@ -147,6 +143,7 @@ const Clientes = () => {
         onGuardar={(nuevoCliente) => {
           if (clienteSeleccionado) {
             setClientes(prev => prev.map(c => c.id === clienteSeleccionado.id ? { ...c, ...nuevoCliente } : c));
+            setClienteSeleccionado(prev => ({ ...prev, ...nuevoCliente }));
           } else {
             setClientes(prev => [...prev, { id: nuevoCliente?.id || Date.now(), ...nuevoCliente }]);
           }
@@ -155,10 +152,18 @@ const Clientes = () => {
       />
       <EliminarCliente
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        onClose={(wasDeleted) => {
+          setIsDeleteModalOpen(false);
+          if (returnToViewOnDeleteClose && wasDeleted !== true) {
+            setIsViewModalOpen(true);
+          }
+          setReturnToViewOnDeleteClose(false);
+        }}
         clienteSeleccionado={clienteSeleccionado}
         onEliminar={(idEliminado) => {
           setClientes(prev => prev.filter(c => c.id !== idEliminado));
+          setReturnToViewOnDeleteClose(false);
+          setIsViewModalOpen(false);
         }}
       />
       <ViewInfo
@@ -168,6 +173,11 @@ const Clientes = () => {
         onEdit={(cliente) => {
           setClienteSeleccionado(cliente);
           setIsModalOpen(true);
+        }}
+        onDelete={(cliente) => {
+          setReturnToViewOnDeleteClose(true);
+          setIsViewModalOpen(false);
+          setIsDeleteModalOpen(true);
         }}
       />
       <FetchData
@@ -179,6 +189,7 @@ const Clientes = () => {
         onLoadingEnd={handleLoadingEnd}
         onError={handleError}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

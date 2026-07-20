@@ -10,7 +10,7 @@ const EliminarPedido = ({ isOpen, setIsOpen, pedido, isAcopio, onDeleted }) => {
 
     const handleConfirm = async () => {
         if (!pedido?.id) {
-            showDanger('Error', 'ID del pedido no válido');
+            showDanger(null, 'ID del pedido no válido');
             return;
         }
 
@@ -27,14 +27,14 @@ const EliminarPedido = ({ isOpen, setIsOpen, pedido, isAcopio, onDeleted }) => {
 
                 setLoading(false);
                 setIsOpen(false);
-                showSuccess('Operación exitosa', response.message || 'Pedido eliminado exitosamente');
+                showSuccess(null, response.message || 'Pedido eliminado exitosamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || response.error || 'No se pudo eliminar el pedido');
+                showDanger(null, response.message || response.error || 'No se pudo eliminar el pedido');
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -57,10 +57,11 @@ const EliminarPedido = ({ isOpen, setIsOpen, pedido, isAcopio, onDeleted }) => {
             mensaje={`¿Estás seguro de que deseas eliminar el pedido ${itemConcepto}?`}
             detalle="Esta acción es irreversible y no podrás recuperar la información de este pedido una vez eliminado."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

@@ -1,0 +1,77 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+
+.container:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.title {
+    font-size: 11px;
+    font-weight: 750;
+    color: var(--black-color);
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-bottom: 1px solid var(--quinary-color);
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+    padding-right: 5px; /* for scrollbar */
+}
+.listItem {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.icon {
+    font-size: 16px !important;
+    color: var(--secondary-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+}
+
+.text {
+    font-size: 12px;
+    color: var(--secondary-color);
+    font-weight: 650;
+}
+
+.changesBox {
+    background-color: #f9fafb;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.changesTitle {
+    font-size: 11px;
+    font-weight: 750;
+    color: var(--black-color);
+    margin: 0 0 15px 0;
+    text-transform: uppercase;
+}
+
+.changesList {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 12px;
+    color: #4b5563;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}

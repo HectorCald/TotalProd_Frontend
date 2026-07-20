@@ -10,7 +10,7 @@ const EliminarCategoria = ({ isOpen, onClose, categoriaSeleccionada, onEliminar 
 
     const handleConfirm = async () => {
         if (!categoriaSeleccionada?.id) {
-            showDanger('Error', 'ID de la categoría no válido');
+            showDanger(null, 'ID de la categoría no válido');
             return;
         }
 
@@ -25,15 +25,15 @@ const EliminarCategoria = ({ isOpen, onClose, categoriaSeleccionada, onEliminar 
                 }
 
                 setLoading(false);
-                onClose();
-                showSuccess('Operación exitosa', response.message || 'Categoría eliminada correctamente');
+                onClose(true);
+                showSuccess(null, response.message || 'Categoría eliminada correctamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || 'Error al eliminar la categoría');
+                showDanger(null, response.message || 'Error al eliminar la categoría');
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -52,10 +52,11 @@ const EliminarCategoria = ({ isOpen, onClose, categoriaSeleccionada, onEliminar 
             mensaje={`¿Estás seguro de que deseas eliminar la categoría "${categoriaSeleccionada?.name || categoriaSeleccionada?.nombre}"?`}
             detalle={`Esta categoría es del tipo ${categoriaSeleccionada?.description}. Esta acción es irreversible.`}
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

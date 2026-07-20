@@ -7,7 +7,7 @@ import Input from '../../../common/inputs/Input';
 import InputSelect from '../../../common/inputs/InputSelect';
 import InputSearch from '../../../common/inputs/InputSearch';
 import Boton from '../../../common/botones/Boton';
-import Switch from '../../../common/old/Switch';
+import InputSwitch from '../../../common/inputs/InputSwitch';
 import FetchData from '../../../mixed/FetchData';
 import productsAlmacenService from '../../../../services/productsAlmacenService';
 import reglasProduccionDamabravaService from '../../../../services/reglasProduccionDamabravaService';
@@ -222,8 +222,8 @@ function ModalNuevaRegla({ isOpen, setIsOpen, tipoRegla, onReglaRegistrada }) {
                     {tipoRegla === 'general' && (
                         <>
                             <div className={styles.content}>
-                                <Switch
-                                    title="Es regla general"
+                                <InputSwitch
+                                    label="Es regla general"
                                     subtitle="Desactiva para especificar contenido"
                                     checked={esReglaGeneral}
                                     onChange={handleReglaGeneralSwitch}

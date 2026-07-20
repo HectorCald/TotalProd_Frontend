@@ -65,17 +65,58 @@ class pricesTypesService {
   }
 
   // Obtener todos los tipos de precios de una empresa
-  static async getAll(empresaIdParam = null) {
+  static async getAll(empresaIdParam = null, includeSocios = true) {
     let endpoint = '/prices-types';
+    const queryParams = [];
+    
     if (empresaIdParam) {
-      endpoint += `?empresa_id=${empresaIdParam}`;
-      return pricesTypesService._request(endpoint, { method: 'GET' }, {
-        requireEmpresaId: false
-      });
+      queryParams.push(`empresa_id=${empresaIdParam}`);
+    }
+    
+    // Verificar si es empleado para enviar sucursal_id
+    const token = localStorage.getItem('token');
+    if (token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+            const decoded = JSON.parse(jsonPayload);
+            if (decoded.type === 'employee') {
+                const sucursalId = localStorage.getItem('sucursalIdSeleccionada');
+                if (sucursalId) {
+                    queryParams.push(`sucursal_id=${sucursalId}`);
+                }
+            }
+        } catch (e) {
+            console.error('Error al decodificar token en pricesTypesService', e);
+        }
+    }
+
+    if (includeSocios) {
+      // Obtener socios de localStorage y enviarlas
+      try {
+        const SOCIOS_KEY = 'socios';
+        const stored = localStorage.getItem(SOCIOS_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const sociosIds = Array.isArray(parsed) ? parsed : [];
+          if (sociosIds.length > 0) {
+            sociosIds.forEach(id => {
+              if (id) queryParams.push(`empresas_asociadas=${id}`);
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Error al obtener socios:', e);
+      }
+    }
+
+    if (queryParams.length > 0) {
+        endpoint += `?${queryParams.join('&')}`;
     }
 
     return pricesTypesService._request(endpoint, { method: 'GET' }, {
-      requireEmpresaId: true
+      requireEmpresaId: !empresaIdParam
     });
   }
 

@@ -40,6 +40,7 @@ const SelectCliente = ({ value, onChange, error, label = "Cliente", required = f
                 disabled={disabled}
                 actionIcon="plus"
                 onActionClick={() => setIsAgregarOpen(true)}
+                actionStyle={{ marginBottom: '0px' }}
                 {...rest}
             />
             {isAgregarOpen && (

@@ -1,0 +1,104 @@
+.contenedorTarjeta {
+  background-color: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.titulo {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #18181b;
+  width: 100%;
+  text-align: left;
+}
+
+.contenedorCabeceraYGrafico {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.contenedorGraficoRelativo {
+  position: relative;
+  width: 100%;
+  height: 200px;
+}
+
+.centroTexto {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.valorCentro {
+  font-size: 26px;
+  font-weight: 700;
+  color: #18181b;
+  line-height: 1.1;
+}
+
+.labelCentro {
+  font-size: 13px;
+  color: #71717a;
+  margin-top: 4px;
+}
+
+.leyenda {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 8px;
+  margin-top: 10px;
+  padding: 0 10px;
+}
+
+.itemLeyenda {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.textoItem {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.subtituloCategorias {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #71717a;
+  margin: 0;
+  padding: 0;
+}
+
+.contenedorSeccionGrafica {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}

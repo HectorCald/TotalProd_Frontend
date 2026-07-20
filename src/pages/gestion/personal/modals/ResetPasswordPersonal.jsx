@@ -10,7 +10,7 @@ const ResetPasswordPersonal = ({ isOpen, onClose, personalSeleccionado }) => {
 
     const handleConfirm = async () => {
         if (!personalSeleccionado?.id) {
-            showDanger('Error', 'ID del personal no válido');
+            showDanger(null, 'ID del personal no válido');
             return;
         }
 
@@ -20,15 +20,15 @@ const ResetPasswordPersonal = ({ isOpen, onClose, personalSeleccionado }) => {
 
             if (response.success) {
                 setLoading(false);
-                onClose();
-                showSuccess('Operación exitosa', response.message || 'Contraseña reseteada correctamente. El empleado deberá establecer una nueva contraseña.');
+                onClose(true);
+                showSuccess(null, response.message || 'Contraseña reseteada correctamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -47,10 +47,11 @@ const ResetPasswordPersonal = ({ isOpen, onClose, personalSeleccionado }) => {
             mensaje={`¿Estás seguro de que deseas resetear la contraseña de ${personalSeleccionado?.first_name} ${personalSeleccionado?.last_name}?`}
             detalle="Se borrará la contraseña actual y el empleado podrá establecer una nueva ingresando con su código."
             confirmText="Resetear"
-            confirmColorClass="btn-orange"
+            confirmColorClass="btn-warning"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

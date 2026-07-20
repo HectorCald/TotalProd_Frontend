@@ -99,6 +99,21 @@ export const UserProvider = ({ children }) => {
         try {
             const userData = await UserService.getCurrentUser(userId);
             if (userData.success) {
+                if (userData.data.user && userData.data.user.is_active === false) {
+                    const errorMsg = 'Su cuenta está inactiva. Contacte al administrador para reactivar su acceso.';
+                    clearUser();
+                    localStorage.removeItem('cacheVersion');
+                    localStorage.removeItem('sidebarCollapsed');
+                    localStorage.removeItem('sucursalIdSeleccionada');
+                    localStorage.removeItem('token');
+                    sessionStorage.clear();
+                    window.dispatchEvent(new Event('local-logout'));
+
+                    setError(errorMsg);
+                    setLoading(false);
+                    return { success: false, error: errorMsg };
+                }
+
                 setUser(userData.data.user);
                 if (userData.data.user?.empresa) {
                     setEmpresa(userData.data.user.empresa);
@@ -121,6 +136,17 @@ export const UserProvider = ({ children }) => {
                 // Si hay error al obtener el usuario, establecer error
                 if (userData?.status === 400 || userData?.status === 500 || !userData?.success) {
                     console.log('❌ Error al obtener usuario:', errorMessage);
+                    const msgLow = errorMessage.toLowerCase();
+                    if (msgLow.includes('usuario no encontrado') || msgLow.includes('inactiva') || msgLow.includes('no autorizado') || msgLow.includes('token')) {
+                        clearUser();
+                        localStorage.removeItem('cacheVersion');
+                        localStorage.removeItem('sidebarCollapsed');
+                        localStorage.removeItem('sucursalIdSeleccionada');
+                        localStorage.removeItem('token');
+                        sessionStorage.clear();
+                        window.dispatchEvent(new Event('local-logout'));
+                    }
+
                     setError(errorMessage);
                     setLoading(false);
                     return { success: false, error: errorMessage };

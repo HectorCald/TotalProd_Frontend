@@ -67,6 +67,26 @@ class gastosService {
     }
   }
 
+  // Obtener gastos sin límite
+  static async getAllSinLimite(sucuIdParam = null, metodoPago = null, filtroFecha = null) {
+    const params = new URLSearchParams();
+    if (sucuIdParam) params.append('sucu_id', sucuIdParam);
+    if (metodoPago) params.append('metodo_pago', metodoPago);
+    if (filtroFecha) {
+      if (filtroFecha.fechaStrInicio || filtroFecha.inicio) {
+        params.append('fecha_inicio', filtroFecha.fechaStrInicio || filtroFecha.inicio.split('T')[0]);
+      }
+      if (filtroFecha.fechaStrFin || filtroFecha.fin) {
+        params.append('fecha_fin', filtroFecha.fechaStrFin || filtroFecha.fin.split('T')[0]);
+      }
+    }
+    
+    return gastosService._request(`/gastos/sin-limite?${params}`, { method: 'GET' }, {
+      requireSucuId: !sucuIdParam,
+      throwOnError: true
+    });
+  }
+
   // Obtener todos los gastos con paginación y filtros
   static async getAll(page = 1, limit = 30, search = '', metodoPago = null, proveedor = null, ordenamiento = 'fecha_desc', sucuIdParam = null, filtroFecha = null) {
     const params = new URLSearchParams({

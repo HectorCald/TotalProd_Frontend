@@ -153,4 +153,17 @@
   font-weight: 500;
 }
 
+.heartButton .actionIcon,
+.heartButton .actionText {
+  transition: color 0.2s;
+}
 
+.heartButton:hover {
+  background-color: rgba(255, 76, 76, 0.1) !important;
+}
+
+.heartButton:hover .actionIcon,
+.heartButton:hover .actionText {
+  color: var(--error-color) !important;
+  fill: var(--error-color) !important;
+}

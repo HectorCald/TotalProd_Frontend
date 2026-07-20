@@ -5,9 +5,16 @@ import InputSelect from '../../../../components/common/inputs/InputSelect';
 import { useToast } from '../../../../context/ToastContext';
 import categoryAlmacenService from '../../../../services/categoryAlmacenService';
 import categoryAcopioService from '../../../../services/categoryAcopioService';
+import { useUser } from '../../../../context/UserContext';
+import { useEmployee } from '../../../../context/EmployeeContext';
 
 const AgregarEditarCategoria = ({ isOpen, onClose, categoriaSeleccionada, onGuardar }) => {
     const { showSuccess, showDanger } = useToast();
+    const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
+    const { employee: employeeInfo, sucursalSeleccionada: employeeSucursal } = useEmployee();
+    const sucursalSeleccionada = userSucursal || employeeSucursal;
+    const tipoEmpresa = sucursalSeleccionada?.empresas?.tipo || userInfo?.empresa?.tipo || employeeInfo?.sucursal?.empresas?.tipo || 'ventas_produccion';
+    const isSoloVentas = tipoEmpresa === 'ventas';
     const [loading, setLoading] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({ name: false, tipo: false });
     const [formData, setFormData] = useState({
@@ -74,7 +81,7 @@ const AgregarEditarCategoria = ({ isOpen, onClose, categoriaSeleccionada, onGuar
                     ...base,
                     id: base.id ?? categoriaSeleccionada?.id ?? response.id,
                     name: base.name || formData.name.trim(),
-                    _tipo_modulo: formData.tipo, // siempre forzar el tipo del form
+                    _tipo_modulo: formData.tipo,
                 };
 
                 if (onGuardar) {
@@ -82,14 +89,14 @@ const AgregarEditarCategoria = ({ isOpen, onClose, categoriaSeleccionada, onGuar
                 }
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || `Categoría ${esEdicion ? 'actualizada' : 'creada'} correctamente`);
+                showSuccess(null, response.message || `Categoría ${esEdicion ? 'actualizada' : 'creada'} correctamente`);
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || `Error al ${esEdicion ? 'editar' : 'agregar'} la categoría`, 5000, false);
+                showDanger(null, response.message || `Error al ${esEdicion ? 'editar' : 'agregar'} la categoría`, 5000, false);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor', 5000, false);
+            showDanger(null, 'Revisa tu conexión a internet', 5000, false);
         }
     };
 
@@ -122,7 +129,7 @@ const AgregarEditarCategoria = ({ isOpen, onClose, categoriaSeleccionada, onGuar
                 onClearError={() => setFieldErrors((prev) => ({ ...prev, name: false }))}
             />
 
-            {!categoriaSeleccionada && (
+            {!categoriaSeleccionada && !isSoloVentas && (
                 <InputSelect
                     label="Tipo de Categoría"
                     required={true}

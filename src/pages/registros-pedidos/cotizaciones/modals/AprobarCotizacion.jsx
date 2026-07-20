@@ -9,7 +9,7 @@ const AprobarCotizacion = ({ isOpen, onClose, cotizacionSeleccionada, onAprobar 
 
     const handleConfirm = async () => {
         if (!cotizacionSeleccionada?.id) {
-            showDanger('Error', 'ID de la cotización no válido');
+            showDanger(null, 'ID de la cotización no válido');
             return;
         }
 
@@ -24,14 +24,14 @@ const AprobarCotizacion = ({ isOpen, onClose, cotizacionSeleccionada, onAprobar 
 
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || 'Cotización aprobada exitosamente');
+                showSuccess(null, response.message || 'Cotización aprobada exitosamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -54,6 +54,7 @@ const AprobarCotizacion = ({ isOpen, onClose, cotizacionSeleccionada, onAprobar 
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import cargosService from '../../../services/cargosService';
 import ItemMultiple from '../../../components/common/information/ItemMultiple';
@@ -53,7 +54,7 @@ const Cargos = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea}>
@@ -91,6 +92,7 @@ const Cargos = () => {
         }}
         iconName="plus"
         ariaLabel="Nuevo Cargo"
+        style={{ bottom: !isLargeScreen ? '80px' : undefined }}
       />
 
       {/* Modal para agregar o editar cargo */}
@@ -128,6 +130,7 @@ const Cargos = () => {
         onLoadingEnd={handleLoadingEnd}
         onError={handleError}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

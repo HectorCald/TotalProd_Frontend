@@ -11,7 +11,7 @@
   margin-top: 60px;
   overflow: auto;
   background-color: white;
-  padding: 0px;
+  padding: 0px 25px;
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
@@ -20,11 +20,12 @@
   display: none;
 }
 
-.title{
+.title {
   font-size: 14px;
   font-weight: 700;
   color: var(--secondary-color);
-  padding: 30px 0 10px 25px;
+  padding: 10px 0px;
+  padding-top: 10px;
   text-transform: uppercase;
 }
 
@@ -38,6 +39,13 @@
 @media (max-width: 1024px) {
   .itemsGrid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .contentArea {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 80px;
+    gap: 10px;
   }
 }
 

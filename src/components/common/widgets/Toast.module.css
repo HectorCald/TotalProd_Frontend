@@ -1,12 +1,11 @@
 /* Contenedor del toast */
 .toast {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 16px;
-    border-radius: 10px;
+    align-items: center;
+    gap: 5px;
+    padding: 8px;
+    border-radius: 5px;
     box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.08);
-    background-color: white;
     min-width: 320px;
     max-width: 400px;
     position: relative;
@@ -38,7 +37,7 @@
 }
 
 .icono {
-    font-size: 20px !important;
+    font-size: 17px !important;
 }
 
 /* Contenido del toast */
@@ -50,76 +49,10 @@
     min-width: 0;
 }
 
-/* Icono inline dentro del título (solo visible en móvil) */
-.iconoInline {
-    display: none;
-}
-
-/* En PC: ocultar iconoInline, mostrar iconoContainer normal */
-@media (min-width: 769px) {
-    .iconoInline {
-        display: none !important;
-    }
-    
-    .iconoContainer {
-        display: flex;
-    }
-}
-
-/* En móvil: icono al lado del título, ocultar iconoContainer */
+/* En móvil */
 @media (max-width: 768px) {
     .toast {
         gap: 8px;
-    }
-    
-    .iconoContainer {
-        display: none;
-    }
-    
-    .iconoInline {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        flex-shrink: 0;
-        width: 24px;
-        height: 24px;
-        min-width: 24px;
-        min-height: 24px;
-        border-radius: 50%;
-    }
-    
-    .iconoInline svg,
-    .iconoInline > * {
-        width: 16px !important;
-        height: 16px !important;
-        margin: 0 !important;
-    }
-    
-    .titulo {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    /* Aplicar estilos del icono según el tipo */
-    .success .iconoInline {
-        background-color: rgba(96, 223, 67, 0.15);
-        color: var(--success-color) !important;
-    }
-    
-    .info .iconoInline {
-        background-color: rgba(70, 140, 253, 0.15);
-        color: var(--info-color) !important;
-    }
-    
-    .danger .iconoInline {
-        background-color: rgba(255, 76, 76, 0.15);
-        color: var(--error-color) !important;
-    }
-    
-    .warning .iconoInline {
-        background-color: rgba(251, 135, 19, 0.15);
-        color: var(--warning-color) !important;
     }
 }
 
@@ -159,22 +92,10 @@
     }
 }
 
-.titulo {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--dark-color);
-    margin: 0;
-    line-height: 1.4;
-}
-
-.titulo > span {
-    display: inline;
-}
-
 .detalle {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
-    color: var(--secondary-color);
+    color: var(--dark-color);
     margin: 0;
     line-height: 1.5;
     word-wrap: break-word;
@@ -184,9 +105,6 @@
 
 /* Botón cerrar */
 .botonCerrar {
-    position: absolute;
-    top: 8px;
-    right: 8px;
     background: none;
     border: none;
     cursor: pointer;
@@ -207,44 +125,51 @@
 
 .iconoCerrar {
     font-size: 18px !important;
-    color: var(--dark-color) !important;
 }
 
 /* Colores del icono y fondo según el tipo */
 
 /* Tipo: Success */
-.success .iconoContainer {
-    background-color: rgba(96, 223, 67, 0.15);
+.toast.success {
+    background-color: #eef7ee;
 }
 
-.success .iconoContainer .icono {
+.toast.success .detalle,
+.success .iconoContainer .icono,
+.toast.success .iconoCerrar {
     color: var(--success-color) !important;
 }
 
 /* Tipo: Info */
-.info .iconoContainer {
-    background-color: rgba(70, 140, 253, 0.15);
+.toast.info {
+    background-color: #eef5fe;
 }
 
-.info .iconoContainer .icono {
+.toast.info .detalle,
+.info .iconoContainer .icono,
+.toast.info .iconoCerrar {
     color: var(--info-color) !important;
 }
 
 /* Tipo: Danger/Error */
-.danger .iconoContainer {
-    background-color: rgba(255, 76, 76, 0.15);
+.toast.danger {
+    background-color: #feecec;
 }
 
-.danger .iconoContainer .icono {
+.toast.danger .detalle,
+.danger .iconoContainer .icono,
+.toast.danger .iconoCerrar {
     color: var(--error-color) !important;
 }
 
 /* Tipo: Warning */
-.warning .iconoContainer {
-    background-color: rgba(251, 135, 19, 0.15);
+.toast.warning {
+    background-color: #fff6eb;
 }
 
-.warning .iconoContainer .icono {
+.toast.warning .detalle,
+.warning .iconoContainer .icono,
+.toast.warning .iconoCerrar {
     color: var(--warning-color) !important;
 }
 

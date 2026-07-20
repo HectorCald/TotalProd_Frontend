@@ -9,7 +9,7 @@ const EliminarPrecio = ({ isOpen, onClose, precioSeleccionado, onEliminar }) => 
 
     const handleConfirm = async () => {
         if (!precioSeleccionado?.id) {
-            showDanger('Error', 'ID del tipo de precio no válido');
+            showDanger(null, 'ID del tipo de precio no válido');
             return;
         }
 
@@ -18,20 +18,17 @@ const EliminarPrecio = ({ isOpen, onClose, precioSeleccionado, onEliminar }) => 
             const response = await pricesTypesService.delete(precioSeleccionado.id);
 
             if (response.success) {
-                if (onEliminar) {
-                    onEliminar(precioSeleccionado.id);
-                }
-
+                if (onEliminar) onEliminar(precioSeleccionado.id);
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || 'Tipo de precio eliminado correctamente');
+                showSuccess(null, response.message || 'Tipo de precio eliminado correctamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || 'Error al eliminar el tipo de precio');
+                showDanger(null, response.message || 'Error al eliminar el tipo de precio');
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -50,10 +47,11 @@ const EliminarPrecio = ({ isOpen, onClose, precioSeleccionado, onEliminar }) => 
             mensaje={`¿Estás seguro de que deseas eliminar el tipo de precio ${precioSeleccionado?.name || precioSeleccionado?.nombre}?`}
             detalle="Esta acción es irreversible y no podrás recuperar la información de este tipo de precio una vez eliminada."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

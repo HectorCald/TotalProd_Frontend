@@ -40,6 +40,7 @@ const SelectProveedores = ({ value, onChange, error, label = "Proveedor", requir
                 disabled={disabled}
                 actionIcon="plus"
                 onActionClick={() => setIsAgregarOpen(true)}
+                actionStyle={{ marginBottom: '0px' }}
                 {...rest}
             />
             {isAgregarOpen && (

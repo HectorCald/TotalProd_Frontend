@@ -3,6 +3,7 @@ import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Boton from '../../../../components/common/botones/Boton';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import InfoCard from '../../../../components/common/information/InfoCard';
+import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 import useFormatNumber from '../../../../hooks/useFormatNumber';
 import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 import { useToast } from '../../../../context/ToastContext';
@@ -12,10 +13,11 @@ import NoData from '../../../../components/common/widgets/NoData';
 import AgregarPagoParcial from './AgregarPagoParcial';
 import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
 import ViewInfoMovimiento from '../../../registros-pedidos/movimientos/modals/ViewInfo';
+import EliminarDeuda from './EliminarDeuda';
 
 const PagoRow = ({ pago, onDelete, isDeleting }) => {
     const { formatPrice } = useFormatNumber();
-    const literalDate = useFechaLiteral(pago.fecha?.split('T')[0], true);
+    const literalDate = useFechaLiteral(pago.fecha?.split('T')[0], false);
     return (
         <div
             style={{
@@ -72,7 +74,7 @@ const PagoRow = ({ pago, onDelete, isDeleting }) => {
     );
 };
 
-const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
+const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada, onEliminar }) => {
     const { formatPrice } = useFormatNumber();
     const { showSuccess, showDanger } = useToast();
     const [isAgregarOpen, setIsAgregarOpen] = useState(false);
@@ -80,6 +82,7 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
     const [loadingPagos, setLoadingPagos] = useState(false);
     const [deletingPagoId, setDeletingPagoId] = useState(null);
     const [isViewMovimientoOpen, setIsViewMovimientoOpen] = useState(false);
+    const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [selectedMovimiento, setSelectedMovimiento] = useState(null);
     const [loadingMovimiento, setLoadingMovimiento] = useState(false);
 
@@ -92,10 +95,10 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
                 setSelectedMovimiento(response.data);
                 setIsViewMovimientoOpen(true);
             } else {
-                showDanger('Error', response.message || 'Error al obtener el movimiento');
+                showDanger(null, response.message || 'Error al obtener el movimiento');
             }
         } catch (error) {
-            showDanger('Error', 'Error de conexión');
+            showDanger(null, 'Revisa tu conexión a internet');
         } finally {
             setLoadingMovimiento(false);
         }
@@ -110,11 +113,11 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
                 const sorted = (response.data || []).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
                 setPagos(sorted);
             } else {
-                showDanger('Error', response.message || 'Error al obtener pagos parciales');
+                showDanger(null, response.message || 'Error al obtener pagos parciales');
             }
         } catch (error) {
             console.error('Error al cargar pagos:', error);
-            showDanger('Error', 'Error al cargar pagos parciales');
+            showDanger(null, 'Error al cargar pagos parciales');
         } finally {
             setLoadingPagos(false);
         }
@@ -133,17 +136,17 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
         try {
             const response = await deudasService.deletePagoParcial(deuda.id, pagoId);
             if (response.success) {
-                showSuccess('Éxito', 'Pago parcial eliminado exitosamente');
                 setPagos(prev => prev.filter(p => p.id !== pagoId));
                 if (onDeudaActualizada && response.data) {
                     onDeudaActualizada(response.data);
                 }
+                showSuccess(null, 'Pago parcial eliminado exitosamente');
             } else {
-                showDanger('Error', response.message || 'Error al eliminar el pago');
+                showDanger(null, response.message || 'Error al eliminar el pago');
             }
         } catch (error) {
             console.error('Error al eliminar pago parcial:', error);
-            showDanger('Error', 'Error al eliminar el pago parcial');
+            showDanger(null, 'Error al eliminar el pago parcial');
         } finally {
             setDeletingPagoId(null);
         }
@@ -163,28 +166,16 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
 
     const fechaDeudaStr = deuda?.fecha_deuda || '';
     const fechaVencimientoStr = deuda?.fecha_vencimiento || '';
-    const fechaDeudaLiteral = useFechaLiteral(fechaDeudaStr, true) || (fechaDeudaStr ? new Date(fechaDeudaStr).toLocaleDateString() : '');
-    const fechaVencimientoLiteral = useFechaLiteral(fechaVencimientoStr, true) || (fechaVencimientoStr ? new Date(fechaVencimientoStr).toLocaleDateString() : '');
+    const fechaDeudaLiteral = useFechaLiteral(fechaDeudaStr, false) || (fechaDeudaStr ? new Date(fechaDeudaStr).toLocaleDateString() : '');
+    const fechaVencimientoLiteral = useFechaLiteral(fechaVencimientoStr, false) || (fechaVencimientoStr ? new Date(fechaVencimientoStr).toLocaleDateString() : '');
 
     if (!deuda) return null;
 
-    const getEstadoTag = (estado) => {
-        if (!estado) return null;
-        const e = estado.toLowerCase();
-        if (e === 'pagado' || e === 'pagada') {
-            return { text: 'Pagada', color: 'success', hasDot: true };
-        } else if (e === 'vencido' || e === 'vencida') {
-            return { text: 'Vencida', color: 'error', hasDot: true };
-        } else {
-            return { text: 'Pendiente', color: 'warning', hasDot: true };
-        }
-    };
-
     const tags = [
-        getEstadoTag(deuda.estado),
         deuda.cliente ? {
             text: deuda.cliente.name || 'Cliente',
-            icon: 'user'
+            icon: 'user',
+            label: 'Cliente'
         } : null,
     ].filter(Boolean);
 
@@ -200,11 +191,6 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
             icon: ''
         },
         {
-            label: 'Fecha Deuda',
-            value: fechaDeudaLiteral,
-            icon: 'calendar'
-        },
-        {
             label: 'Vencimiento',
             value: fechaVencimientoLiteral,
             icon: 'time'
@@ -214,7 +200,7 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
     return (
         <>
             <ModalCentro
-                isOpen={isOpen}
+                isOpen={isOpen && !isViewMovimientoOpen && !isAgregarOpen && !isEliminarOpen}
                 onClose={onClose}
                 title=""
                 confirmText="Editar"
@@ -223,20 +209,29 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
                     if (onEdit) onEdit(deuda);
                 }}
                 hideFooter={true}
-                width="450px"
             >
-                <div style={{ margin: '-10px -24px -24px -24px' }}>
                     <InfoCard
                         title={deuda.concepto || 'Sin concepto'}
-                        subtitle="Información de la Deuda"
+                        subtitle={fechaDeudaLiteral}
                         description={deuda.observaciones || ''}
+                        statusDot={(deuda.estado || '').toLowerCase().startsWith('pagad') ? 'success' : (deuda.estado || '').toLowerCase().startsWith('vencid') ? 'error' : 'warning'}
                         icon="credit-card"
                         customBlock={
-                            <div style={{ marginBottom: '15px' }}>
-                                <p style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--secondary-color)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                    Historial de Pagos
-                                </p>
-                                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                            <>
+                                {tags.length > 0 && (
+                                    <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
+                                )}
+                                {stats.length > 0 && (
+                                    <ColumnInfo 
+                                        title="Detalles"
+                                        items={stats.map(s => ({ clave: s.label, valor: s.value }))}
+                                    />
+                                )}
+                                <div style={{ marginBottom: '15px', }}>
+                                    <p style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--secondary-color)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        Historial de Pagos
+                                    </p>
+                                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                                     {loadingPagos ? (
                                         <NoData
                                             icon="loader-alt"
@@ -265,13 +260,12 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
                                     )}
                                 </div>
                             </div>
+                            </>
                         }
-                        tags={tags}
-                        stats={stats}
                         actionButton={
-                            <div style={{ display: 'flex', gap: '16px', width: '100%' }}>
+                            <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
                                 <Boton
-                                    label="Registrar nuevo pago"
+                                    label="Nuevo pago"
                                     iconName="plus"
                                     className="btn-primary"
                                     style={{ flex: 1 }}
@@ -285,20 +279,27 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
                                         onClick={handleVerMovimiento}
                                         loading={loadingMovimiento}
                                         disabled={loadingMovimiento}
+                                        tooltip="Movimiento de Salida"
                                     />
                                 )}
                                 <BotonIcon
                                     iconName="edit"
                                     className="btn-primary"
+                                    tooltip="Editar Deuda"
                                     onClick={() => {
-                                        onClose();
                                         if (onEdit) onEdit(deuda);
                                     }}
+                                />
+                                <BotonIcon
+                                    iconName="trash"
+                                    className="btn-error"
+                                    tooltipAlign="end"
+                                    tooltip="Eliminar Deuda"
+                                    onClick={() => setIsEliminarOpen(true)}
                                 />
                             </div>
                         }
                     />
-                </div>
             </ModalCentro>
 
             {isAgregarOpen && (
@@ -315,8 +316,27 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada }) => {
                     isOpen={isViewMovimientoOpen}
                     onClose={() => setIsViewMovimientoOpen(false)}
                     movimiento={selectedMovimiento}
+                    onAnular={() => {
+                        setIsViewMovimientoOpen(false);
+                        onClose();
+                        if (onEliminar) onEliminar(deuda.id);
+                    }}
                 />
             )}
+
+            <EliminarDeuda
+                isOpen={isEliminarOpen}
+                onClose={(wasDeleted) => {
+                    setIsEliminarOpen(false);
+                    if (wasDeleted) {
+                        onClose();
+                    }
+                }}
+                deudaSeleccionada={deuda}
+                onEliminar={(id) => {
+                    if (onEliminar) onEliminar(id);
+                }}
+            />
         </>
     );
 };

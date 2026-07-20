@@ -195,6 +195,14 @@ class productsAcopioService {
       method: 'GET'
     });
   }
+
+  // Obtener productos para conteo
+  static async productsConteo() {
+    return productsAcopioService._request('/products-acopio/conteo-data', { method: 'GET' }, {
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
+  }
 }
 
 export default productsAcopioService;

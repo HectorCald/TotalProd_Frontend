@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import layoutStyles from '../../../pages/home/View.module.css';
 import UploadFile from '../../../components/common/widgets/UploadFile';
 import InputSelect from '../../../components/common/inputs/InputSelect';
@@ -126,7 +127,7 @@ const Exportar = () => {
   /* ── Descarga de plantilla ── */
   const handleDownloadTemplate = () => {
     if (!tipoAlmacen) {
-      showDanger('Tipo no seleccionado', 'Debe seleccionar un tipo de almacén para descargar la plantilla.');
+      showDanger(null, 'Debe seleccionar un tipo de almacén para descargar la plantilla.');
       return;
     }
     downloadTemplate({ tipo: tipoAlmacen, columns });
@@ -194,7 +195,7 @@ const Exportar = () => {
       setImportRows(processedRows);
       setRowErrors({});
     } catch (err) {
-      showDanger('Error al leer el archivo', err.message || 'Archivo no válido');
+      showDanger(null, err.message || 'Archivo no válido');
     }
   };
 
@@ -207,7 +208,7 @@ const Exportar = () => {
   /* ── Validar y confirmar importación ── */
   const handleConfirmImport = async () => {
     if (importRows.length === 0) {
-      showDanger('No hay datos', 'Debe cargar un archivo con información para importar.');
+      showDanger(null, 'Debe cargar un archivo con información para importar.');
       return;
     }
 
@@ -227,7 +228,7 @@ const Exportar = () => {
 
     if (hasErrors) {
       setRowErrors(errors);
-      showDanger('Campos requeridos vacíos', 'Revisa las celdas marcadas en rojo antes de continuar.');
+      showDanger(null, 'Revisa las celdas marcadas en rojo antes de continuar.');
       return;
     }
 
@@ -259,13 +260,13 @@ const Exportar = () => {
       try {
         const res = await productsAlmacenService.bulkCreate(dataToSubmit);
         if (res.success) {
-          showSuccess('Importación exitosa', res.message);
+          showSuccess(null, res.message);
           setImportRows([]); // Limpiamos la tabla
         } else {
-          showDanger('Importación con errores', res.message);
+          showDanger(null, res.message);
         }
       } catch (err) {
-        showDanger('Error en importación', err.message);
+        showDanger(null, err.message);
       } finally {
         setIsImporting(false);
       }
@@ -286,13 +287,13 @@ const Exportar = () => {
       try {
         const res = await productsAcopioService.bulkCreate(dataToSubmit);
         if (res.success) {
-          showSuccess('Importación exitosa', res.message);
+          showSuccess(null, res.message);
           setImportRows([]);
         } else {
-          showDanger('Importación con errores', res.message);
+          showDanger(null, res.message);
         }
       } catch (err) {
-        showDanger('Error en importación', err.message);
+        showDanger(null, err.message);
       } finally {
         setIsImporting(false);
       }
@@ -306,7 +307,7 @@ const Exportar = () => {
 
   const handleExport = async () => {
     if (format !== 'excel') {
-      showDanger('No soportado', 'Por el momento solo se soporta exportación en formato EXCEL.');
+      showDanger(null, 'Por el momento solo se soporta exportación en formato EXCEL.');
       return;
     }
 
@@ -325,7 +326,7 @@ const Exportar = () => {
         }
 
         if (res && res.success === false) {
-          showDanger('Error al exportar', res.message || 'Error desconocido.');
+          showDanger(null, res.message || 'Error desconocido.');
         } else if (rawProducts.length > 0) {
           const exportRows = rawProducts.map(p => {
              const row = {
@@ -359,12 +360,12 @@ const Exportar = () => {
           });
 
           exportDataToExcel({ tipo: tipoAlmacen, columns, rowsData: exportRows });
-          showSuccess('Exportación completada', `Se exportaron ${exportRows.length} productos.`);
+          showSuccess(null, `Se exportaron ${exportRows.length} productos.`);
         } else {
-          showDanger('Error al exportar', 'No se pudieron obtener los productos.');
+          showDanger(null, 'No se pudieron obtener los productos.');
         }
       } catch (err) {
-         showDanger('Error al exportar', err.message);
+         showDanger(null, err.message);
       } finally {
          setIsExporting(false);
       }
@@ -383,7 +384,7 @@ const Exportar = () => {
         }
 
         if (res && res.success === false) {
-          showDanger('Error al exportar', res.message || 'Error desconocido.');
+          showDanger(null, res.message || 'Error desconocido.');
         } else if (rawProducts.length > 0) {
           const exportRows = rawProducts.map(p => ({
             id: p.id,
@@ -396,12 +397,12 @@ const Exportar = () => {
           }));
 
           exportDataToExcel({ tipo: tipoAlmacen, columns, rowsData: exportRows });
-          showSuccess('Exportación completada', `Se exportaron ${exportRows.length} insumos de Materia Prima.`);
+          showSuccess(null, `Se exportaron ${exportRows.length} insumos de Materia Prima.`);
         } else {
-          showDanger('Error al exportar', 'No se pudieron obtener los productos de MP.');
+          showDanger(null, 'No se pudieron obtener los productos de MP.');
         }
       } catch (err) {
-         showDanger('Error al exportar', err.message);
+         showDanger(null, err.message);
       } finally {
          setIsExporting(false);
       }
@@ -410,7 +411,7 @@ const Exportar = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={layoutStyles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={layoutStyles.contentArea}>
@@ -418,10 +419,10 @@ const Exportar = () => {
 
 
 
-          <LayoutPercentage percentages={[65, 35]} gap="20px">
+          <div style={{ display: 'flex', flexDirection: isLargeScreen ? 'row' : 'column', gap: '20px', width: '100%', flexShrink: 0 }}>
 
             {/* ── Columna izquierda: IMPORTAR ── */}
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden', height: '100%' }}>
+            <div style={{ flex: isLargeScreen ? '65' : 'none', backgroundColor: '#ffffff', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden', height: isLargeScreen ? '100%' : 'auto' }}>
               <UploadFile
                 onFileSelect={handleFileSelect}
                 acceptedTypes=".xlsx, .xls"
@@ -432,7 +433,7 @@ const Exportar = () => {
             </div>
 
             {/* ── Columna derecha: EXPORTAR ── */}
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ flex: isLargeScreen ? '35' : 'none', backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <InputSelect
                 label="Tipo de Almacén"
                 value={tipoAlmacen}
@@ -449,21 +450,21 @@ const Exportar = () => {
               />
 
               <Boton
-                className="btn-blue"
+                className="btn-primary"
                 label="Exportar"
                 iconName="export"
                 loading={isExporting}
                 onClick={handleExport}
               />
             </div>
-          </LayoutPercentage>
+          </div>
 
           {/* ── Fila inferior: Tabla (100%) ── */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginTop: '20px', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginTop: '20px', minWidth: 0, overflow: 'hidden', flexShrink: 0 }}>
             {/* Barra de acciones de la tabla */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: isLargeScreen ? 'row' : 'column', justifyContent: isLargeScreen ? 'space-between' : 'flex-start', alignItems: isLargeScreen ? 'center' : 'flex-start', marginBottom: '12px', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', margin: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                <h3 style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b', margin: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   Vista Previa y Mapeo
                 </h3>
                 {importRows.length > 0 && (
@@ -472,22 +473,22 @@ const Exportar = () => {
                   </span>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0, width: isLargeScreen ? 'auto' : '100%', justifyContent: isLargeScreen ? 'flex-end' : 'space-between' }}>
                 <Boton
-                  className="btn-default"
+                  className="btn-cancel"
                   label="Plantilla"
                   iconName="download"
                   onClick={handleDownloadTemplate}
                   style={{ padding: '6px 12px', fontSize: '12px', whiteSpace: 'nowrap', width: 'fit-content' }}
                 />
                 <BotonIcon
-                  className="btn-default"
+                  className="btn-cancel"
                   iconName="trash"
                   onClick={handleClear}
                   style={{ padding: '6px' }}
                 />
                 <Boton
-                  className="btn-blue"
+                  className="btn-primary"
                   label="Importar"
                   iconName="import"
                   onClick={handleConfirmImport}
@@ -511,6 +512,7 @@ const Exportar = () => {
 
         </div>
       </div>
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

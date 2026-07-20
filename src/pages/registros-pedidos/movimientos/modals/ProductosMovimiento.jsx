@@ -3,89 +3,192 @@ import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Tabla from '../../../../components/common/information/Tabla';
 import { formatCurrency } from '../../../../utils/numberUtils';
 
-const ProductosMovimiento = ({ isOpen, onClose, movimientoActual, movimiento }) => {
+/**
+ * Componente universal de productos para movimientos, pedidos y cotizaciones.
+ *
+ * Props:
+ *  - isOpen / onClose
+ *  - title (string, opcional)
+ *
+ * Modo movimiento:
+ *  - movimientoActual  (objeto principal, con .agrupado, .productos[].producto, .cantidad, .precio_unitario)
+ *  - movimiento        (fallback para anulados)
+ *
+ * Modo pedido:
+ *  - pedido            (objeto con .agrupado, .pedido_almacen_detalle[].producto_almacen, .cantidad, .precio)
+ *  - isAcopio          (boolean)
+ *
+ * Modo cotización:
+ *  - cotizacion        (objeto con .agrupado, .productos[].producto, .cantidad, .precio_unitario)
+ *  - cotizacionActual  (alias, también se acepta)
+ */
+const ProductosMovimiento = ({
+    isOpen,
+    onClose,
+    title,
+    // movimiento
+    movimientoActual,
+    movimiento,
+    // pedido
+    pedido,
+    isAcopio,
+    // cotizacion
+    cotizacion,
+    cotizacionActual,
+}) => {
 
-    // Usar productos originales si el movimiento está anulado y los productos actuales están vacíos
-    const productosParaMostrar = movimientoActual?.estado === 'anulado' &&
-        (!movimientoActual?.productos || movimientoActual.productos.length === 0 ||
-            movimientoActual.productos.some(p => !p.producto?.name || p.precio_unitario === 0))
-        ? movimiento?.productos || []
-        : movimientoActual?.productos || [];
-
-    const columns = useMemo(() => [
-        {
-            header: 'Producto',
-            render: (row) => row.producto?.name || 'Sin nombre',
-            width: '40%'
-        },
-        {
-            header: 'Cantidad',
-            render: (row) => {
-                const cantidad = parseFloat(row.cantidad) || 0;
-                const grup = parseFloat(row.producto?.grup) || 0;
-                const esAgrupado = movimientoActual?.agrupado && grup > 0;
-                
-                if (esAgrupado) {
-                    const grupos = Math.floor(cantidad / grup);
-                    const unidades = cantidad % grup;
-                    return unidades > 0 ? `${grupos} grup ${unidades} ud` : `${grupos} grup`;
-                } else {
-                    return `${cantidad} ud`;
-                }
-            },
-            width: '20%'
-        },
-        {
-            header: 'Precio Unitario',
-            render: (row) => {
-                const grup = parseFloat(row.producto?.grup) || 0;
-                const esAgrupado = movimientoActual?.agrupado && grup > 0;
-                const precioUnitario = parseFloat(row.precio_unitario) || 0;
-                
-                if (esAgrupado) {
-                    return formatCurrency(precioUnitario * grup);
-                } else {
-                    return formatCurrency(precioUnitario);
-                }
-            },
-            width: '20%'
-        },
-        {
-            header: 'Subtotal',
-            render: (row) => {
-                const cantidad = parseFloat(row.cantidad) || 0;
-                const precioUnitario = parseFloat(row.precio_unitario) || 0;
-                return formatCurrency(cantidad * precioUnitario);
-            },
-            width: '20%'
+    // ── Detectar modo y normalizar datos ──────────────────────────────────────
+    const { rows, agrupado, modalTitle } = useMemo(() => {
+        // MODO COTIZACIÓN
+        const cot = cotizacionActual || cotizacion;
+        if (cot) {
+            const productos = cot.productos || [];
+            const normalized = productos.map(p => ({
+                nombre: p.producto?.name || 'Sin nombre',
+                cantidad: parseFloat(p.cantidad) || 0,
+                precioUnitario: parseFloat(p.precio_unitario) || 0,
+                grup: parseFloat(p.producto?.grup) || 0,
+                subtotal: (parseFloat(p.cantidad) || 0) * (parseFloat(p.precio_unitario) || 0),
+            }));
+            return {
+                rows: normalized,
+                agrupado: !!cot.agrupado,
+                modalTitle: title || `Productos de la Cotización #${cot.numero_cotizacion || ''}`,
+            };
         }
-    ], [movimientoActual]);
 
-    const productosFlattened = (productosParaMostrar || []).map(p => ({
-        ...p,
-        productoNombre: p.producto?.name || 'Sin nombre'
-    }));
+        // MODO PEDIDO
+        if (pedido) {
+            if (isAcopio) {
+                const rows = pedido.producto_acopio
+                    ? [{
+                        nombre: pedido.producto_acopio.name || 'Sin nombre',
+                        cantidad: parseFloat(pedido.cantidad) || 0,
+                        precioUnitario: parseFloat(pedido.precio) || 0,
+                        grup: 0,
+                        subtotal: (parseFloat(pedido.cantidad) || 0) * (parseFloat(pedido.precio) || 0),
+                        tipoMedida: pedido.tipo_medida,
+                    }]
+                    : [];
+                return { rows, agrupado: false, modalTitle: title || 'Productos del Pedido' };
+            }
+
+            const detalles = pedido.pedido_almacen_detalle || [];
+            const normalized = detalles.map(p => ({
+                nombre: p.producto_almacen?.name || p.producto?.name || 'Sin nombre',
+                cantidad: parseFloat(p.cantidad) || 0,
+                precioUnitario: parseFloat(p.precio) || 0,
+                grup: parseFloat(p.producto_almacen?.grup) || 0,
+                subtotal: (parseFloat(p.cantidad) || 0) * (parseFloat(p.precio) || 0),
+            }));
+            return {
+                rows: normalized,
+                agrupado: !!pedido.agrupado,
+                modalTitle: title || 'Productos del Pedido',
+            };
+        }
+
+        // MODO MOVIMIENTO (default)
+        const mov = movimientoActual;
+        const productosParaMostrar =
+            mov?.estado === 'anulado' &&
+            (!mov?.productos || mov.productos.length === 0 ||
+                mov.productos.some(p => !p.producto?.name || p.precio_unitario === 0))
+                ? movimiento?.productos || []
+                : mov?.productos || [];
+
+        const normalized = productosParaMostrar.map(p => ({
+            nombre: p.producto?.name || 'Sin nombre',
+            cantidad: parseFloat(p.cantidad) || 0,
+            precioUnitario: parseFloat(p.precio_unitario) || 0,
+            grup: parseFloat(p.producto?.grup) || 0,
+            costoProduccion: parseFloat(p.producto?.costo_produccion) || 0,
+            subtotal: (parseFloat(p.cantidad) || 0) * (parseFloat(p.precio_unitario) || 0),
+        }));
+        return {
+            rows: normalized,
+            agrupado: !!mov?.agrupado,
+            modalTitle: title || 'Productos del Movimiento',
+        };
+    }, [movimientoActual, movimiento, pedido, isAcopio, cotizacion, cotizacionActual, title]);
+
+    // ── Columnas ──────────────────────────────────────────────────────────────
+    const columns = useMemo(() => {
+        const base = [
+            {
+                header: 'Producto',
+                render: (row) => row.nombre,
+                width: '40%',
+            },
+            {
+                header: 'Cantidad',
+                render: (row) => {
+                    // Si es acopio, mostrar con tipo de medida
+                    if (row.tipoMedida) return `${row.cantidad} ${row.tipoMedida}`;
+
+                    const esAgrupado = agrupado && row.grup > 0;
+                    if (esAgrupado) {
+                        const grupos = Math.floor(row.cantidad / row.grup);
+                        const resto = row.cantidad % row.grup;
+                        return resto > 0 ? `${grupos} grup ${resto} ud` : `${grupos} grup`;
+                    }
+                    return `${row.cantidad} ud`;
+                },
+                width: '15%',
+            },
+            {
+                header: 'Precio Unit.',
+                render: (row) => {
+                    const esAgrupado = agrupado && row.grup > 0;
+                    return formatCurrency(esAgrupado ? row.precioUnitario * row.grup : row.precioUnitario);
+                },
+                width: '15%',
+            },
+            {
+                header: 'Subtotal',
+                render: (row) => formatCurrency(row.subtotal),
+                width: '15%',
+            },
+        ];
+
+        const mov = movimientoActual || movimiento;
+        if (mov && mov.type === 'salida') {
+            base.push({
+                header: 'Ganancia',
+                render: (row) => {
+                    const esAgrupado = agrupado && row.grup > 0;
+                    const precioUnit = esAgrupado ? row.precioUnitario * row.grup : row.precioUnitario;
+                    const costoUnit = esAgrupado ? row.costoProduccion * row.grup : row.costoProduccion;
+                    const gananciaTotal = (precioUnit - costoUnit) * (esAgrupado ? row.cantidad / row.grup : row.cantidad);
+                    return formatCurrency(gananciaTotal);
+                },
+                width: '15%',
+            });
+        }
+        return base;
+    }, [agrupado, movimientoActual, movimiento]);
 
     return (
         <ModalCentro
             isOpen={isOpen}
             onClose={onClose}
-            title="Productos del Movimiento"
+            title={modalTitle}
             width="800px"
             hideFooter={true}
+            contentStyle={{ paddingBlock: 0 }}
         >
             <div style={{ padding: '10px 0' }}>
-                {productosFlattened.length > 0 ? (
+                {rows.length > 0 ? (
                     <Tabla
-                        data={productosFlattened}
+                        data={rows}
                         columns={columns}
-                        searchKeys={['productoNombre']}
+                        searchKeys={['nombre']}
                         searchPlaceholder="Buscar por producto..."
                         containerStyle={{ minHeight: 'auto', padding: 0 }}
                     />
                 ) : (
                     <p style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                        No hay productos para mostrar en este movimiento.
+                        No hay productos para mostrar.
                     </p>
                 )}
             </div>

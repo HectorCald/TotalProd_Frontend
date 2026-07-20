@@ -4,6 +4,7 @@ import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive';
@@ -12,8 +13,10 @@ import movimientosAlmacenService from '../../../services/movimientosAlmacenServi
 import useFormatNumber from '../../../hooks/useFormatNumber';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import ViewInfo from './modals/ViewInfo';
+import ViewInfoAcopio from './modals/ViewInfoAcopio';
 import EliminarMovimiento from './modals/EliminarMovimiento';
 import AnularMovimiento from './modals/AnularMovimiento';
+import { LEGACY_PERCENTAGE_CUTOFF_DATE } from '../../../constants/movimientosConstants';
 
 const LiteralDateCell = ({ dateStr }) => {
   const cleanDateStr = dateStr ? dateStr.slice(0, 10) : '';
@@ -38,7 +41,7 @@ const Movimientos = () => {
   const [movimientos, setMovimientos] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
 
   // Paginación y filtros
   const [page, setPage] = useState(1);
@@ -189,9 +192,12 @@ const Movimientos = () => {
   };
 
   const handleMovimientoAnulado = (updatedMovimiento) => {
-    setMovimientos(prev => 
-      prev.map(m => m.id === updatedMovimiento.id ? { ...m, ...updatedMovimiento, estado: 'anulado' } : m)
-    );
+    setMovimientos(prev => {
+      // Filtrar los movimientos que sean consumos de receta generados por este movimiento anulado
+      const filtrados = prev.filter(m => !(m.movimiento_entrada_id && m.movimiento_entrada_id === updatedMovimiento.id));
+      // Actualizar el estado del movimiento principal a 'anulado'
+      return filtrados.map(m => m.id === updatedMovimiento.id ? { ...m, ...updatedMovimiento, estado: 'anulado' } : m);
+    });
     setMovimientoSeleccionado(prev => prev && prev.id === updatedMovimiento.id ? { ...prev, ...updatedMovimiento, estado: 'anulado' } : prev);
   };
 
@@ -199,7 +205,7 @@ const Movimientos = () => {
     {
       name: 'Editar', 
       icon: 'edit', 
-      show: (row) => !row.estado || row.estado.toLowerCase() !== 'anulado',
+      show: (row) => (!row.estado || row.estado.toLowerCase() !== 'anulado') && !(isAcopio && row.movimiento_entrada_id),
       onClick: (movimiento) => {
         // Sin funcionamiento de momento
       }
@@ -207,7 +213,7 @@ const Movimientos = () => {
     {
       name: 'Eliminar', 
       icon: 'trash', 
-      show: (row) => row.estado && row.estado.toLowerCase() === 'anulado',
+      show: (row) => (row.estado && row.estado.toLowerCase() === 'anulado') && !(isAcopio && row.movimiento_entrada_id),
       onClick: (movimiento) => {
         setMovimientoSeleccionado(movimiento);
         setModalEliminarOpen(true);
@@ -216,7 +222,7 @@ const Movimientos = () => {
     {
       name: 'Anular', 
       icon: 'block', 
-      show: (row) => !row.estado || row.estado.toLowerCase() !== 'anulado',
+      show: (row) => (!row.estado || row.estado.toLowerCase() !== 'anulado') && !(isAcopio && row.movimiento_entrada_id),
       onClick: (movimiento) => {
         setMovimientoSeleccionado(movimiento);
         setModalAnularOpen(true);
@@ -245,12 +251,10 @@ const Movimientos = () => {
 
         if (clienteNombre) {
           return clienteNombre;
-        } else if (movimiento.productos && movimiento.productos.length > 0) {
-          return movimiento.productos.length === 1
-            ? movimiento.productos[0]?.producto?.name || 'Sin producto'
-            : `${movimiento.productos.length} productos`;
+        } else if (movimiento.productos && movimiento.productos.length === 1) {
+          return movimiento.productos[0]?.producto?.name || (movimiento.type === 'entrada' ? 'Entrada rapida' : 'Venta rapida');
         } else {
-          return 'Sin productos';
+          return movimiento.type === 'entrada' ? 'Entrada rapida' : 'Venta rapida';
         }
       }
     }
@@ -270,7 +274,10 @@ const Movimientos = () => {
       accessor: 'product',
       style: { fontWeight: 600, color: '#333' },
       width: '25%',
-      render: (row) => getProductName(row)
+      render: (row) => getProductName(row),
+      isMobileMain: true,
+      mobileIcon: (row) => row.type === 'entrada' ? 'plus' : (row.type === 'transferencia' ? 'transfer' : 'minus'),
+      mobileIconType: (row) => row.type === 'entrada' ? 'default' : (row.type === 'transferencia' ? 'info' : 'error')
     },
     {
       header: 'Tipo',
@@ -283,7 +290,13 @@ const Movimientos = () => {
       header: 'Cantidad',
       accessor: 'quantity',
       width: '15%',
-      render: (row) => `${row.quantity || '0'} ${row.product?.type_measure?.code || ''}`
+      render: (row) => `${formatPrice(Number(row.quantity || 0))} ${row.product?.type_measure?.code || ''}`,
+      isMobileSubtitle: true,
+      mobileRender: (row) => (
+        <>
+          {formatPrice(Number(row.quantity || 0))} {row.product?.type_measure?.code || ''} • <LiteralDateCell dateStr={row.date} />
+        </>
+      )
     },
     {
       header: 'Fecha',
@@ -292,17 +305,30 @@ const Movimientos = () => {
       render: (row) => <LiteralDateCell dateStr={row.date} />
     },
     {
-      header: 'Proveedor',
-      accessor: 'cliente_proveedor',
+      header: 'Observaciones',
+      accessor: 'observations',
       width: '18%',
-      render: (row) => getClientProviderName(row)
+      render: (row) => (
+        <div 
+          style={{ 
+            whiteSpace: 'nowrap', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis', 
+            maxWidth: '150px' 
+          }} 
+          title={row.observations}
+        >
+          {row.observations || '--'}
+        </div>
+      )
     },
     {
       header: 'Estado',
       accessor: 'estado_texto',
       hasStatusDot: true,
       statusType: (row) => row.estado === 'anulado' ? 'error' : 'info',
-      width: '12%'
+      width: '12%',
+      isMobileStatus: true
     }
   ] : [
     {
@@ -316,7 +342,10 @@ const Movimientos = () => {
       accessor: 'detalle',
       style: { fontWeight: 600, color: '#333' },
       width: '20%',
-      render: (row) => getProductName(row)
+      render: (row) => getProductName(row),
+      isMobileMain: true,
+      mobileIcon: (row) => row.type === 'entrada' ? 'plus' : (row.type === 'transferencia' ? 'transfer' : 'minus'),
+      mobileIconType: (row) => row.type === 'entrada' ? 'default' : (row.type === 'transferencia' ? 'info' : 'error')
     },
     {
       header: 'Tipo',
@@ -342,28 +371,52 @@ const Movimientos = () => {
       accessor: 'estado_texto',
       hasStatusDot: true,
       statusType: (row) => row.estado === 'anulado' ? 'error' : 'info',
-      width: '12%'
+      width: '12%',
+      isMobileStatus: true
     },
     {
       header: 'Total',
       accessor: 'total',
       width: '13%',
       render: (row) => {
-        let subtotal = (row.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
+        let subtotal = row.subtotal !== undefined ? row.subtotal : (row.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
         subtotal = Math.round(subtotal * 10) / 10;
         const descuento = parseFloat(row.descuento) || 0;
         const aumento = parseFloat(row.aumento) || 0;
         const esPorcentaje = row.porcentaje;
         
-        let totalFinal = subtotal;
-        if (esPorcentaje) {
-            totalFinal = totalFinal - (totalFinal * (descuento / 100)) + (totalFinal * (aumento / 100));
-        } else {
-            totalFinal = totalFinal - descuento + aumento;
-        }
+        const dateStr = row.fecha ? (row.fecha.split('T')[0] || row.fecha.substring(0, 10)) : '';
+        const isLegacyPercentage = esPorcentaje && dateStr && dateStr <= LEGACY_PERCENTAGE_CUTOFF_DATE;
+        
+        const descCalculado = esPorcentaje 
+            ? (isLegacyPercentage ? descuento : Math.round((subtotal * descuento / 100) * 10) / 10) 
+            : descuento;
+        const aumCalculado = esPorcentaje 
+            ? (isLegacyPercentage ? aumento : Math.round((subtotal * aumento / 100) * 10) / 10) 
+            : aumento;
+        let totalFinal = subtotal - descCalculado + aumCalculado;
         
         totalFinal = Math.round(totalFinal * 10) / 10;
         return `Bs. ${formatPrice(totalFinal)}`;
+      },
+      isMobileSubtitle: true,
+      mobileRender: (row) => {
+        let subtotal = row.subtotal !== undefined ? row.subtotal : (row.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
+        subtotal = Math.round(subtotal * 10) / 10;
+        const descuento = parseFloat(row.descuento) || 0;
+        const aumento = parseFloat(row.aumento) || 0;
+        const esPorcentaje = row.porcentaje;
+        const dateStr = row.fecha ? (row.fecha.split('T')[0] || row.fecha.substring(0, 10)) : '';
+        const isLegacyPercentage = esPorcentaje && dateStr && dateStr <= LEGACY_PERCENTAGE_CUTOFF_DATE;
+        const descCalculado = esPorcentaje ? (isLegacyPercentage ? descuento : Math.round((subtotal * descuento / 100) * 10) / 10) : descuento;
+        const aumCalculado = esPorcentaje ? (isLegacyPercentage ? aumento : Math.round((subtotal * aumento / 100) * 10) / 10) : aumento;
+        let totalFinal = subtotal - descCalculado + aumCalculado;
+        totalFinal = Math.round(totalFinal * 10) / 10;
+        return (
+          <>
+            Bs. {formatPrice(totalFinal)} • <LiteralDateCell dateStr={row.fecha || dateStr} />
+          </>
+        );
       }
     }
   ];
@@ -378,7 +431,7 @@ const Movimientos = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea} onScroll={handleScroll}>
@@ -439,13 +492,23 @@ const Movimientos = () => {
         onError={handleError}
       />
 
-      <ViewInfo
-        isOpen={modalInfoOpen}
-        onClose={() => setModalInfoOpen(false)}
-        movimiento={movimientoSeleccionado}
-        onEliminar={handleMovimientoEliminado}
-        onAnular={handleMovimientoAnulado}
-      />
+      {isAcopio ? (
+        <ViewInfoAcopio
+          isOpen={modalInfoOpen}
+          onClose={() => setModalInfoOpen(false)}
+          movimiento={movimientoSeleccionado}
+          onEliminar={handleMovimientoEliminado}
+          onAnular={handleMovimientoAnulado}
+        />
+      ) : (
+        <ViewInfo
+          isOpen={modalInfoOpen}
+          onClose={() => setModalInfoOpen(false)}
+          movimiento={movimientoSeleccionado}
+          onEliminar={handleMovimientoEliminado}
+          onAnular={handleMovimientoAnulado}
+        />
+      )}
 
       <EliminarMovimiento
         isOpen={modalEliminarOpen}
@@ -460,6 +523,7 @@ const Movimientos = () => {
         movimientoSeleccionado={movimientoSeleccionado}
         onAnular={handleMovimientoAnulado}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

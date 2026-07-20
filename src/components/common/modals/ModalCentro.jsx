@@ -15,12 +15,15 @@ const ModalCentro = ({
     onConfirm, 
     loading = false, 
     disableClose = false,
-    confirmColorClass = 'btn-original',
+    confirmColorClass = 'btn-primary',
     width,
     children,
     confirmDisabled = false,
     hideFooter = false,
-    visibleOverflow = false
+    visibleOverflow = false,
+    contentStyle = {},
+    receipt = false,
+    hideCancel = false
 }) => {
     useEffect(() => {
         if (isOpen) {
@@ -38,7 +41,7 @@ const ModalCentro = ({
     return createPortal(
         <div className={styles.overlay} onClick={disableClose ? undefined : onClose}>
             <div 
-                className={`${styles.modal} ${isOpen ? styles.open : ''}`} 
+                className={`${styles.modal} ${isOpen ? styles.open : ''} ${receipt ? styles.receiptModal : ''}`} 
                 onClick={(e) => e.stopPropagation()}
                 style={width ? { width: width, maxWidth: '90vw' } : {}}
             >
@@ -55,7 +58,7 @@ const ModalCentro = ({
                     </div>
                 )}
                 
-                <div className={styles.content} style={visibleOverflow ? { overflow: 'visible' } : {}}>
+                <div className={styles.content} style={{ ...(visibleOverflow ? { overflow: 'visible' } : {}), ...contentStyle }}>
                     {mensaje && <p className={styles.mensaje}>{mensaje}</p>}
                     {detalle && <p className={styles.detalle}>{detalle}</p>}
                     {children}
@@ -64,17 +67,17 @@ const ModalCentro = ({
                 {!hideFooter && (
                     <div className={styles.footer}>
                         <div className={styles.footerButtons}>
-                            <Boton 
-                                label="Cancelar" 
-                                className="btn-default" 
-                                style={{ color: '#333', border: '1px solid transparent', backgroundColor: 'transparent', width: 'fit-content', whiteSpace: 'nowrap', padding: '10px 20px' }}
-                                onClick={disableClose ? undefined : onClose} 
-                                disabled={disableClose}
-                            />
+                            {!hideCancel && (
+                                <Boton 
+                                    label="Cancelar" 
+                                    className="btn-cancel" 
+                                    onClick={disableClose ? undefined : onClose} 
+                                    disabled={disableClose}
+                                />
+                            )}
                             <Boton 
                                 label={confirmText} 
                                 className={confirmColorClass} 
-                                style={{ width: 'fit-content', whiteSpace: 'nowrap', padding: '10px 24px' }}
                                 onClick={onConfirm} 
                                 loading={loading}
                                 disabled={loading || confirmDisabled}

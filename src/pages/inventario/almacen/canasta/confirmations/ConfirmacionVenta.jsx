@@ -3,15 +3,13 @@ import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import SelectCliente from '../../../../../components/common/fast/SelectCliente';
 import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodoPago';
 import Input from '../../../../../components/common/inputs/Input';
-import InputSwitch from '../../../../../components/common/inputs/InputSwitch';
+import Checkbox from '../../../../../components/common/inputs/Checkbox';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
-import deudasService from '../../../../../services/deudasService';
-import useSessionCache from '../../../../../hooks/useSessionCache';
+import pedidosAlmacenService from '../../../../../services/pedidosAlmacenService';
 import { useToast } from '../../../../../context/ToastContext';
 
-const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion, cotizacionDefaults = null }) => {
+const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion, cotizacionDefaults = null, onSuccess }) => {
   const { showSuccess, showDanger } = useToast();
-  const { value: clientes } = useSessionCache({ key: 'clientesListado', defaultValue: [] });
 
   const [cliente, setCliente] = useState(null);
   const [metodoPago, setMetodoPago] = useState(null);
@@ -62,22 +60,26 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
     return priceObj ? Number(priceObj.valor) : 0;
   };
 
-  const getDateStr = (offsetMonths = 0) => {
-    const d = new Date();
-    if (offsetMonths) d.setMonth(d.getMonth() + offsetMonths);
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  };
 
   const handleConfirm = async () => {
     const newErrors = {};
     if (!metodoPago) newErrors.metodoPago = true;
     if (metodoPago === 'credito' && !cliente) newErrors.cliente = true;
 
+    if (metodoPago === 'credito') {
+      const adelantoNum = Number(adelanto) || 0;
+      if (adelantoNum > totalFinal) {
+        newErrors.adelanto = { message: 'El adelanto no puede ser mayor al total final.', type: 'error' };
+      } else if (adelantoNum > 0 && adelantoNum === totalFinal) {
+        newErrors.adelanto = { message: 'Si adelanta el total, por favor seleccione otro metodo de pago.', type: 'warning' };
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
+
     setErrors({});
     setIsSubmitting(true);
 
@@ -91,13 +93,20 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
         porcentaje: esPorcentaje,
         concepto: concepto || null,
         adelanto: metodoPago === 'credito' ? (Number(adelanto) || 0) : 0,
+        total_final: totalFinal,
         precio_id: precioSeleccionado,
         agrupado: modoAgrupacion === 'grupo',
-        productos: canasta.map(p => ({
-          id: p.id,
-          cantidad: p.cantidad,
-          precio: getProductPrice(p, precioSeleccionado)
-        }))
+        productos: canasta.map(p => {
+          const esPorGrupo = modoAgrupacion === 'grupo' && p.grup && Number(p.grup) > 0;
+          const cantidadEnUnidades = esPorGrupo
+            ? Number(p.cantidad) * Number(p.grup)
+            : Number(p.cantidad);
+          return {
+            id: p.id,
+            cantidad: cantidadEnUnidades,
+            precio: getProductPrice(p, precioSeleccionado)
+          };
+        })
       };
 
       console.log('Payload de venta frontend:', payload);
@@ -105,51 +114,24 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
 
       if (!result.success) {
         console.error('Error desde backend:', result);
-        showDanger('Error', result.message || 'Error al registrar la venta');
+        showDanger(null, result.message || 'Error al registrar la venta');
         return;
       }
 
-      // Si es crédito, crear deuda automáticamente
-      if (metodoPago === 'credito') {
-        const clienteObj = clientes.find(c => String(c.id) === String(cliente));
-        const clienteNombre = clienteObj?.name || 'Cliente';
-
-        const deudaPayload = {
-          fecha_deuda: getDateStr(0),
-          fecha_vencimiento: getDateStr(1),
-          monto_total: totalFinal,
-          saldo_pendiente: totalFinal,
-          concepto: `Venta a ${clienteNombre}`,
-          estado: 'pendiente',
-          cliente_id: cliente,
-          movimiento_salida_id: result.data?.id || null
-        };
-
-        const deudaResult = await deudasService.create(deudaPayload);
-
-        if (!deudaResult?.success) {
-          showDanger('Error', 'Venta registrada pero no se pudo crear la deuda: ' + (deudaResult?.message || 'Error desconocido'));
-          return;
-        }
-
-        // Si hay adelanto, registrar pago parcial
-        const adelantoNum = Number(adelanto) || 0;
-        if (adelantoNum > 0 && deudaResult.data?.id) {
-          const pagoResult = await deudasService.createPagoParcial(deudaResult.data.id, {
-            monto: adelantoNum,
-            fecha: getDateStr(0),
-            detalle: 'Adelanto al realizar la venta'
-          });
-
-          if (!pagoResult?.success) {
-            showDanger('Advertencia', 'Deuda creada pero no se pudo registrar el adelanto: ' + (pagoResult?.message || 'Error desconocido'));
-            return;
+      // Si es una entrega de pedido, actualizar el estado del pedido
+      if (window.location.pathname.includes('/almacen/salidas/pedido')) {
+        const rawPedido = sessionStorage.getItem('pedidoParaEntregar');
+        if (rawPedido) {
+          const pedidoData = JSON.parse(rawPedido);
+          if (pedidoData.pedido_id && result.data?.id) {
+            await pedidosAlmacenService.updateEstado(pedidoData.pedido_id, 'Entregado', result.data.id);
           }
         }
       }
 
-      showSuccess('Éxito', 'Venta registrada con éxito');
+      showSuccess(null, 'Venta registrada con éxito');
       if (vaciarCanasta) vaciarCanasta();
+      if (onSuccess) onSuccess(result.data);
 
       // Limpiar campos
       setCliente(null);
@@ -163,7 +145,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
 
       onClose();
     } catch (error) {
-      showDanger('Error', 'Error de conexión');
+      showDanger(null, 'Revisa tu conexión a internet');
     } finally {
       setIsSubmitting(false);
     }
@@ -183,51 +165,50 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
       title="Confirmar Venta"
       confirmText="Realizar Venta"
       onConfirm={handleConfirm}
-      width="450px"
       loading={isSubmitting}
       disableClose={isSubmitting}
+      contentStyle={{ paddingBlock: 0 }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px', pointerEvents: isSubmitting ? 'none' : 'auto', opacity: isSubmitting ? 0.7 : 1 }}>
-        <SelectCliente 
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', pointerEvents: isSubmitting ? 'none' : 'auto', opacity: isSubmitting ? 0.7 : 1 }}>
+        <SelectCliente
           value={cliente}
           onChange={(val) => { setCliente(val); setErrors(prev => ({ ...prev, cliente: false })); }}
           required={metodoPago === 'credito'}
           error={errors.cliente}
           fetchTrigger={isOpen}
         />
-        <SelectMetodoPago 
+        <SelectMetodoPago
           value={metodoPago}
-          onChange={(val) => { 
-            setMetodoPago(val); 
-            setErrors(prev => ({ 
-              ...prev, 
+          onChange={(val) => {
+            setMetodoPago(val);
+            setErrors(prev => ({
+              ...prev,
               metodoPago: false,
               ...(val !== 'credito' && { cliente: false })
-            })); 
+            }));
           }}
           required={true}
           error={errors.metodoPago}
         />
 
         {metodoPago === 'credito' && (
-          <Input 
+          <Input
             label="Adelanto (Bs.)"
             tipo="number"
             value={adelanto}
-            onChange={(e) => setAdelanto(e.target.value)}
+            onChange={(e) => {
+              setAdelanto(e.target.value);
+              setErrors((prev) => ({ ...prev, adelanto: null }));
+            }}
             placeholder="0"
+            error={errors.adelanto ? errors.adelanto.message : false}
+            errorType={errors.adelanto ? errors.adelanto.type : 'error'}
           />
         )}
-        
-        <InputSwitch 
-          label="Aplicar como porcentaje"
-          checked={esPorcentaje}
-          onChange={(checked) => setEsPorcentaje(checked)}
-        />
 
         <div style={{ display: 'flex', gap: '10px' }}>
           <div style={{ flex: 1 }}>
-            <Input 
+            <Input
               label={`Descuento ${esPorcentaje ? '(%)' : '(Bs.)'}`}
               tipo="number"
               value={descuento}
@@ -236,7 +217,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
             />
           </div>
           <div style={{ flex: 1 }}>
-            <Input 
+            <Input
               label={`Aumento ${esPorcentaje ? '(%)' : '(Bs.)'}`}
               tipo="number"
               value={aumento}
@@ -245,8 +226,13 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
             />
           </div>
         </div>
-
-        <Input 
+        <Checkbox
+          id="aplicar_porcentaje"
+          label="Aplicar como porcentaje"
+          checked={esPorcentaje}
+          onChange={(checked) => setEsPorcentaje(checked)}
+        />
+        <Input
           label="Concepto"
           tipo="text"
           value={concepto}
@@ -254,15 +240,15 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
           placeholder="Detalle de la venta..."
         />
 
-        <div style={{ 
-          paddingTop: '15px', 
+        <div style={{
+          paddingTop: '15px',
           borderTop: '1px dashed var(--quaternary-color)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <span style={{ fontSize: '14px', color: 'var(--secondary-color)' }}>Total Final:</span>
-          <span style={{ fontSize: '17px', fontWeight: 'bold', color: 'var(--primary-color)' }}>
+          <span style={{ fontSize: '17px', fontWeight: 'bold', color: 'var(--secondary-color)' }}>
             Bs. {totalFinal.toFixed(2)}
           </span>
         </div>

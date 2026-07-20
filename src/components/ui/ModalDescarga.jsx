@@ -499,7 +499,7 @@ function ModalDescarga({
                     if (worksheet[cellAddress]) {
                         // Color más oscuro para las líneas (gris oscuro)
                         const borderColor = { rgb: "888888" };
-                        
+
                         worksheet[cellAddress].s = {
                             font: { bold: true, color: { rgb: "FFFFFF" } },
                             fill: { fgColor: { rgb: "366092" } },
@@ -524,7 +524,7 @@ function ModalDescarga({
                             if (worksheet[cellAddress]) {
                                 // Color más oscuro para las líneas
                                 const borderColor = { rgb: "888888" };
-                                
+
                                 worksheet[cellAddress].s = {
                                     border: {
                                         top: { style: "thin", color: borderColor },
@@ -561,14 +561,14 @@ function ModalDescarga({
             if (isMobile && navigator.share) {
                 // Esperar un poco para que la descarga se complete
                 await new Promise(resolve => setTimeout(resolve, 300));
-                
+
                 try {
                     // Crear el archivo con el blob
-                    const file = new File([blob], fileName, { 
+                    const file = new File([blob], fileName, {
                         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         lastModified: Date.now()
                     });
-                    
+
                     // Verificar si puede compartir archivos
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         await navigator.share({
@@ -688,22 +688,22 @@ function ModalDescarga({
 
             const getWidthsPct = (headers) => {
                 if (!headers || headers.length === 0) return [];
-                
+
                 // Si hay columnWidths definido, usarlo
                 if (columnWidths && typeof columnWidths === 'object') {
                     // Mapear headers a keys de columnWidths
-                    const headerKeys = ['fecha', 'concepto', 'proveedor', 'metodoPago', 'subtotal', 
-                                       'producto', 'entradaGrup', 'entradaUd', 'salidaGrup', 'salidaUd',
-                                       'tipoMedida', 'entrada', 'salida', 'verificado', 'terminados', 
-                                       'materiaPrima', 'cConsumida'];
-                    
+                    const headerKeys = ['fecha', 'concepto', 'proveedor', 'metodoPago', 'subtotal',
+                        'producto', 'entradaGrup', 'entradaUd', 'salidaGrup', 'salidaUd',
+                        'tipoMedida', 'entrada', 'salida', 'verificado', 'terminados',
+                        'materiaPrima', 'cConsumida'];
+
                     const widths = headers.map((header, index) => {
                         const headerText = header.toString().toLowerCase();
                         const headerLower = headerText.replace(/[^a-z0-9]/g, '');
-                        
+
                         // Casos especiales MUY específicos primero (antes de la búsqueda genérica)
                         let matchedKey = null;
-                        
+
                         // Reportes de Almacén General
                         if (headerText === 'entrada (grup)' || headerText.includes('entrada') && headerText.includes('grup')) {
                             matchedKey = 'entradaGrup';
@@ -748,7 +748,7 @@ function ModalDescarga({
                         } else if (headerText === 'producto' || headerText.includes('producto')) {
                             matchedKey = 'producto';
                         }
-                        
+
                         // Si no hay match específico, buscar genéricamente
                         if (!matchedKey) {
                             for (const key of headerKeys) {
@@ -759,12 +759,12 @@ function ModalDescarga({
                                 }
                             }
                         }
-                        
+
                         // Si hay un match en columnWidths, usar ese valor
                         if (matchedKey && columnWidths[matchedKey]) {
                             return columnWidths[matchedKey];
                         }
-                        
+
                         // Si no hay match, usar lógica por defecto
                         const headerLength = header.toString().length;
                         if (index === 0) {
@@ -774,26 +774,26 @@ function ModalDescarga({
                         const percentage = Math.max((minWidth / 80) * 100, 8);
                         return `${percentage.toFixed(1)}%`;
                     });
-                    
+
                     return widths;
                 }
-                
+
                 // Calcular ancho mínimo basado en el título de cada columna (lógica original)
                 const widths = headers.map((header, index) => {
                     const headerLength = header.toString().length;
-                    
+
                     // La primera columna (Producto) debe tener más espacio para el contenido
                     if (index === 0) {
                         return '35%'; // Espacio fijo generoso para productos
                     }
-                    
+
                     // Ancho mínimo: longitud del título + padding (mínimo 8 caracteres)
                     const minWidth = Math.max(headerLength + 2, 8);
                     // Convertir a porcentaje aproximado (asumiendo página de ~80 caracteres)
                     const percentage = Math.max((minWidth / 80) * 100, 8); // Mínimo 8%
                     return `${percentage.toFixed(1)}%`;
                 });
-                
+
                 return widths;
             };
 
@@ -1051,46 +1051,46 @@ function ModalDescarga({
                                     return null;
                                 })()}
 
-                        {/* Totales al pie de la tabla principal (Total, Pagado, Saldo pendiente) */}
-                        {informacionSuperior && (informacionSuperior.Total || informacionSuperior.Pagado || informacionSuperior['Saldo pendiente']) && (
-                            <>
-                                {['Total', 'Pagado', 'Saldo pendiente'].map((labelKey) => (
-                                    informacionSuperior[labelKey] ? (
-                                        <View key={labelKey} style={[styles.contentPad, styles.row]}>
-                                            {(() => {
-                                                const currentWidths = Array.isArray(tablas) && tablas.length > 0
-                                                    ? getWidthsPct(tablas[tablas.length - 1].headers || [])
-                                                    : getWidthsPct(tablaHeaders);
-                                                return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
-                                                    <View key={i} style={{ width: w }} />
-                                                ));
-                                            })()}
-                                            <View style={{
-                                                width: (() => {
-                                                    const currentWidths = Array.isArray(tablas) && tablas.length > 0
-                                                        ? getWidthsPct(tablas[tablas.length - 1].headers || [])
-                                                        : getWidthsPct(tablaHeaders);
-                                                    return currentWidths[currentWidths.length - 2];
-                                                })(),
-                                                paddingRight: 6
-                                            }}>
-                                                <Text style={styles.totalLabel}>{`${labelKey}:`}</Text>
-                                            </View>
-                                            <View style={{
-                                                width: (() => {
-                                                    const currentWidths = Array.isArray(tablas) && tablas.length > 0
-                                                        ? getWidthsPct(tablas[tablas.length - 1].headers || [])
-                                                        : getWidthsPct(tablaHeaders);
-                                                    return currentWidths[currentWidths.length - 1];
-                                                })()
-                                            }}>
-                                                <Text style={styles.totalValue}>{String(informacionSuperior[labelKey])}</Text>
-                                            </View>
-                                        </View>
-                                    ) : null
-                                ))}
-                            </>
-                        )}
+                                {/* Totales al pie de la tabla principal (Total, Pagado, Saldo pendiente) */}
+                                {informacionSuperior && (informacionSuperior.Total || informacionSuperior.Pagado || informacionSuperior['Saldo pendiente']) && (
+                                    <>
+                                        {['Total', 'Pagado', 'Saldo pendiente'].map((labelKey) => (
+                                            informacionSuperior[labelKey] ? (
+                                                <View key={labelKey} style={[styles.contentPad, styles.row]}>
+                                                    {(() => {
+                                                        const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                            ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                            : getWidthsPct(tablaHeaders);
+                                                        return currentWidths.slice(0, currentWidths.length - 2).map((w, i) => (
+                                                            <View key={i} style={{ width: w }} />
+                                                        ));
+                                                    })()}
+                                                    <View style={{
+                                                        width: (() => {
+                                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                                ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                                : getWidthsPct(tablaHeaders);
+                                                            return currentWidths[currentWidths.length - 2];
+                                                        })(),
+                                                        paddingRight: 6
+                                                    }}>
+                                                        <Text style={styles.totalLabel}>{`${labelKey}:`}</Text>
+                                                    </View>
+                                                    <View style={{
+                                                        width: (() => {
+                                                            const currentWidths = Array.isArray(tablas) && tablas.length > 0
+                                                                ? getWidthsPct(tablas[tablas.length - 1].headers || [])
+                                                                : getWidthsPct(tablaHeaders);
+                                                            return currentWidths[currentWidths.length - 1];
+                                                        })()
+                                                    }}>
+                                                        <Text style={styles.totalValue}>{String(informacionSuperior[labelKey])}</Text>
+                                                    </View>
+                                                </View>
+                                            ) : null
+                                        ))}
+                                    </>
+                                )}
                             </>
                         )}
 
@@ -1123,12 +1123,12 @@ function ModalDescarga({
             try {
                 const pdfBlob = await pdfRenderer(doc).toBlob();
                 const fileName = `${nombreArchivoState.replace(/\s+/g, '_')}.pdf`;
-                
+
                 // Asegurar que el blob tenga el tipo MIME correcto
-                const blob = pdfBlob.type === 'application/pdf' 
-                    ? pdfBlob 
+                const blob = pdfBlob.type === 'application/pdf'
+                    ? pdfBlob
                     : new Blob([pdfBlob], { type: 'application/pdf' });
-                
+
                 // Descargar archivo
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
@@ -1139,14 +1139,14 @@ function ModalDescarga({
                 if (isMobile && navigator.share) {
                     // Esperar un poco para que la descarga se complete
                     await new Promise(resolve => setTimeout(resolve, 300));
-                    
+
                     try {
                         // Crear el archivo con el blob asegurando el tipo MIME correcto
-                        const file = new File([blob], fileName, { 
+                        const file = new File([blob], fileName, {
                             type: 'application/pdf',
                             lastModified: Date.now()
                         });
-                        
+
                         // Verificar si puede compartir archivos
                         if (navigator.canShare && navigator.canShare({ files: [file] })) {
                             await navigator.share({
@@ -1361,13 +1361,13 @@ function ModalDescarga({
             // Tablas
             const getWidthsPct = (headers) => {
                 if (!headers || headers.length === 0) return [];
-                
+
                 if (columnWidths && typeof columnWidths === 'object') {
-                    const headerKeys = ['fecha', 'concepto', 'proveedor', 'metodoPago', 'subtotal', 
-                                       'producto', 'entradaGrup', 'entradaUd', 'salidaGrup', 'salidaUd',
-                                       'tipoMedida', 'entrada', 'salida', 'verificado', 'terminados', 
-                                       'materiaPrima', 'cConsumida'];
-                    
+                    const headerKeys = ['fecha', 'concepto', 'proveedor', 'metodoPago', 'subtotal',
+                        'producto', 'entradaGrup', 'entradaUd', 'salidaGrup', 'salidaUd',
+                        'tipoMedida', 'entrada', 'salida', 'verificado', 'terminados',
+                        'materiaPrima', 'cConsumida'];
+
                     const widths = headers.map((header, index) => {
                         const headerLower = header.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
                         let matchedKey = null;
@@ -1378,7 +1378,7 @@ function ModalDescarga({
                                 break;
                             }
                         }
-                        
+
                         if (!matchedKey) {
                             const headerText = header.toString().toLowerCase();
                             if (headerText.includes('fecha') || headerText === 'fecha') matchedKey = 'fecha';
@@ -1387,11 +1387,11 @@ function ModalDescarga({
                             else if (headerText.includes('m. pago') || headerText.includes('metodo') || headerText.includes('pago')) matchedKey = 'metodoPago';
                             else if (headerText.includes('subtotal')) matchedKey = 'subtotal';
                         }
-                        
+
                         if (matchedKey && columnWidths[matchedKey]) {
                             return columnWidths[matchedKey];
                         }
-                        
+
                         const headerLength = header.toString().length;
                         if (index === 0) {
                             return '35%';
@@ -1400,10 +1400,10 @@ function ModalDescarga({
                         const percentage = Math.max((minWidth / 80) * 100, 8);
                         return `${percentage.toFixed(1)}%`;
                     });
-                    
+
                     return widths;
                 }
-                
+
                 const widths = headers.map((header, index) => {
                     const headerLength = header.toString().length;
                     if (index === 0) {
@@ -1413,7 +1413,7 @@ function ModalDescarga({
                     const percentage = Math.max((minWidth / 80) * 100, 8);
                     return `${percentage.toFixed(1)}%`;
                 });
-                
+
                 return widths;
             };
 
@@ -1440,11 +1440,11 @@ function ModalDescarga({
                         headerBox.style.height = '22px';
                         headerBox.style.display = 'flex';
                         headerBox.style.alignItems = 'center';
-                        
+
                         const headerRow = document.createElement('div');
                         headerRow.style.display = 'flex';
                         headerRow.style.width = '100%';
-                        
+
                         seccion.headers.forEach((h, idx) => {
                             const headerCell = document.createElement('div');
                             headerCell.textContent = String(h);
@@ -1453,7 +1453,7 @@ function ModalDescarga({
                             headerCell.style.width = widths[idx];
                             headerRow.appendChild(headerCell);
                         });
-                        
+
                         headerBox.appendChild(headerRow);
                         container.appendChild(headerBox);
                     }
@@ -1466,7 +1466,7 @@ function ModalDescarga({
                             rowDiv.style.borderBottom = '0.5px solid #888888';
                             rowDiv.style.paddingBottom = '2px';
                             rowDiv.style.paddingTop = '2px';
-                            
+
                             row.forEach((cell, cIdx) => {
                                 const cellDiv = document.createElement('div');
                                 cellDiv.textContent = cell != null ? String(cell) : '';
@@ -1478,7 +1478,7 @@ function ModalDescarga({
                                 }
                                 rowDiv.appendChild(cellDiv);
                             });
-                            
+
                             container.appendChild(rowDiv);
                         });
                     }
@@ -1496,11 +1496,11 @@ function ModalDescarga({
                 headerBox.style.height = '22px';
                 headerBox.style.display = 'flex';
                 headerBox.style.alignItems = 'center';
-                
+
                 const headerRow = document.createElement('div');
                 headerRow.style.display = 'flex';
                 headerRow.style.width = '100%';
-                
+
                 tablaHeaders.forEach((h, idx) => {
                     const headerCell = document.createElement('div');
                     headerCell.textContent = String(h);
@@ -1509,7 +1509,7 @@ function ModalDescarga({
                     headerCell.style.width = widths[idx];
                     headerRow.appendChild(headerCell);
                 });
-                
+
                 headerBox.appendChild(headerRow);
                 container.appendChild(headerBox);
             }
@@ -1522,7 +1522,7 @@ function ModalDescarga({
                     rowDiv.style.borderBottom = '0.5px solid #888888';
                     rowDiv.style.paddingBottom = '2px';
                     rowDiv.style.paddingTop = '2px';
-                    
+
                     row.forEach((cell, cIdx) => {
                         const cellDiv = document.createElement('div');
                         cellDiv.textContent = cell != null ? String(cell) : '';
@@ -1534,7 +1534,7 @@ function ModalDescarga({
                         }
                         rowDiv.appendChild(cellDiv);
                     });
-                    
+
                     container.appendChild(rowDiv);
                 });
             }
@@ -1566,13 +1566,13 @@ function ModalDescarga({
                     totalRow.style.borderBottom = '0.5px solid #888888';
                     totalRow.style.paddingBottom = '2px';
                     totalRow.style.paddingTop = '2px';
-                    
+
                     widths.slice(0, widths.length - 2).forEach(() => {
                         const empty = document.createElement('div');
                         empty.style.width = widths[0];
                         totalRow.appendChild(empty);
                     });
-                    
+
                     const label = document.createElement('div');
                     label.textContent = 'Subtotal:';
                     label.style.fontSize = '10px';
@@ -1581,7 +1581,7 @@ function ModalDescarga({
                     label.style.width = widths[widths.length - 2];
                     label.style.paddingRight = '6px';
                     totalRow.appendChild(label);
-                    
+
                     const value = document.createElement('div');
                     value.textContent = `Bs. ${subtotalProductos.toFixed(2)}`;
                     value.style.fontSize = '10px';
@@ -1596,13 +1596,13 @@ function ModalDescarga({
                         aumentoRow.style.borderBottom = '0.5px solid #888888';
                         aumentoRow.style.paddingBottom = '2px';
                         aumentoRow.style.paddingTop = '2px';
-                        
+
                         widths.slice(0, widths.length - 2).forEach(() => {
                             const empty = document.createElement('div');
                             empty.style.width = widths[0];
                             aumentoRow.appendChild(empty);
                         });
-                        
+
                         const label = document.createElement('div');
                         label.textContent = 'Aumento:';
                         label.style.fontSize = '10px';
@@ -1611,7 +1611,7 @@ function ModalDescarga({
                         label.style.width = widths[widths.length - 2];
                         label.style.paddingRight = '6px';
                         aumentoRow.appendChild(label);
-                        
+
                         const value = document.createElement('div');
                         value.textContent = String(informacionSuperior.Aumento);
                         value.style.fontSize = '10px';
@@ -1627,13 +1627,13 @@ function ModalDescarga({
                         descuentoRow.style.borderBottom = '0.5px solid #888888';
                         descuentoRow.style.paddingBottom = '2px';
                         descuentoRow.style.paddingTop = '2px';
-                        
+
                         widths.slice(0, widths.length - 2).forEach(() => {
                             const empty = document.createElement('div');
                             empty.style.width = widths[0];
                             descuentoRow.appendChild(empty);
                         });
-                        
+
                         const label = document.createElement('div');
                         label.textContent = 'Descuento:';
                         label.style.fontSize = '10px';
@@ -1642,7 +1642,7 @@ function ModalDescarga({
                         label.style.width = widths[widths.length - 2];
                         label.style.paddingRight = '6px';
                         descuentoRow.appendChild(label);
-                        
+
                         const value = document.createElement('div');
                         value.textContent = String(informacionSuperior.Descuento);
                         value.style.fontSize = '10px';
@@ -1662,13 +1662,13 @@ function ModalDescarga({
                             totalRow.style.borderBottom = '0.5px solid #888888';
                             totalRow.style.paddingBottom = '2px';
                             totalRow.style.paddingTop = '2px';
-                            
+
                             widths.slice(0, widths.length - 2).forEach(() => {
                                 const empty = document.createElement('div');
                                 empty.style.width = widths[0];
                                 totalRow.appendChild(empty);
                             });
-                            
+
                             const label = document.createElement('div');
                             label.textContent = `${labelKey}:`;
                             label.style.fontSize = '10px';
@@ -1677,7 +1677,7 @@ function ModalDescarga({
                             label.style.width = widths[widths.length - 2];
                             label.style.paddingRight = '6px';
                             totalRow.appendChild(label);
-                            
+
                             const value = document.createElement('div');
                             value.textContent = String(informacionSuperior[labelKey]);
                             value.style.fontSize = '10px';
@@ -1696,7 +1696,7 @@ function ModalDescarga({
                 firmasContainer.style.marginTop = '20px';
                 firmasContainer.style.display = 'flex';
                 firmasContainer.style.gap = '20px';
-                
+
                 const entregado = document.createElement('div');
                 entregado.style.width = '50%';
                 const entregadoLabel = document.createElement('div');
@@ -1709,7 +1709,7 @@ function ModalDescarga({
                 entregadoLine.style.height = '30px';
                 entregado.appendChild(entregadoLabel);
                 entregado.appendChild(entregadoLine);
-                
+
                 const recibido = document.createElement('div');
                 recibido.style.width = '50%';
                 const recibidoLabel = document.createElement('div');
@@ -1722,7 +1722,7 @@ function ModalDescarga({
                 recibidoLine.style.height = '30px';
                 recibido.appendChild(recibidoLabel);
                 recibido.appendChild(recibidoLine);
-                
+
                 firmasContainer.appendChild(entregado);
                 firmasContainer.appendChild(recibido);
                 container.appendChild(firmasContainer);
@@ -1745,7 +1745,7 @@ function ModalDescarga({
 
             // Forzar recálculo del layout
             container.style.height = 'auto';
-            
+
             // Obtener la altura real del contenido
             const contentHeight = container.scrollHeight;
 
@@ -1769,7 +1769,7 @@ function ModalDescarga({
             });
 
             const fileName = `${nombreArchivoState.replace(/\s+/g, '_')}.png`;
-            
+
             // Descargar archivo
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -1784,14 +1784,14 @@ function ModalDescarga({
             if (isMobile && navigator.share) {
                 // Esperar un poco para que la descarga se complete
                 await new Promise(resolve => setTimeout(resolve, 300));
-                
+
                 try {
                     // Crear el archivo con el blob
-                    const file = new File([blob], fileName, { 
+                    const file = new File([blob], fileName, {
                         type: 'image/png',
                         lastModified: Date.now()
                     });
-                    
+
                     // Verificar si puede compartir archivos
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         await navigator.share({
@@ -1849,7 +1849,7 @@ function ModalDescarga({
                     icon="text"
                 />
                 <p className={styles.subTitle}>OPCIONES ADICIONALES</p>
-                <div className={styles.contentModal} style={{ gap: '10px', padding: '10px 5px'}}>
+                <div className={styles.contentModal} style={{ gap: '10px', padding: '10px 5px' }}>
                     {clienteInfo && (
 
                         <Checkbox

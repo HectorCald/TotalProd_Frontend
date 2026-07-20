@@ -136,17 +136,16 @@ const AgregarEditarDeuda = ({ isOpen, onClose, deudaSeleccionada, onGuardar }) =
                     if (!savedData.id && response.id) savedData.id = response.id;
                     onGuardar(savedData);
                 }
-
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', deudaSeleccionada ? 'Deuda actualizada exitosamente' : 'Deuda creada exitosamente');
+                showSuccess(null, deudaSeleccionada ? 'Deuda actualizada exitosamente' : 'Deuda creada exitosamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 

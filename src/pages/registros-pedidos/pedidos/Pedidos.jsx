@@ -4,6 +4,7 @@ import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive';
@@ -12,8 +13,10 @@ import pedidosAlmacenService from '../../../services/pedidosAlmacenService';
 import useFormatNumber from '../../../hooks/useFormatNumber';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import ViewInfo from './modals/ViewInfo';
+import ViewInfoAcopio from './modals/ViewInfoAcopio';
 import EliminarPedido from './modals/EliminarPedido';
 import AnularEntrega from './modals/AnularEntrega';
+import ProductosMovimiento from '../movimientos/modals/ProductosMovimiento';
 
 const LiteralDateCell = ({ dateStr }) => {
   const cleanDateStr = dateStr ? dateStr.slice(0, 10) : '';
@@ -38,7 +41,7 @@ const Pedidos = () => {
   const [pedidos, setPedidos] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
 
   // Paginación y filtros
   const [page, setPage] = useState(1);
@@ -46,11 +49,13 @@ const Pedidos = () => {
   const [search, setSearch] = useState('');
   const [filtroEstado, setFiltroEstado] = useState(null);
   const [filtroFecha, setFiltroFecha] = useState(null);
+  const [filtroResponsable, setFiltroResponsable] = useState(null);
   
   // Modals state
   const [modalInfoOpen, setModalInfoOpen] = useState(false);
   const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
   const [modalAnularOpen, setModalAnularOpen] = useState(false);
+  const [modalProductosOpen, setModalProductosOpen] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
 
   const [debouncedSearch] = useDebounce(search, 500);
@@ -61,6 +66,9 @@ const Pedidos = () => {
 
     const estado = filters.estado && filters.estado.length > 0 ? filters.estado[0] : null;
     setFiltroEstado(estado);
+
+    const responsable_id = filters.responsable_id && filters.responsable_id.length > 0 ? filters.responsable_id[0] : null;
+    setFiltroResponsable(responsable_id);
 
     const range = filters.fecha || null;
     setFiltroFecha(range);
@@ -79,12 +87,24 @@ const Pedidos = () => {
         ]
       },
       {
+        id: 'responsable_id',
+        title: 'Solicitante',
+        singleSelect: true,
+        fetchOptions: async () => {
+          const res = await currentService.getSolicitantesUnicos();
+          if (res && res.success && res.data) {
+            return res.data.map(item => ({ label: item.name, value: String(item.id) }));
+          }
+          return [];
+        }
+      },
+      {
         id: 'fecha',
         title: 'Fecha',
         type: 'date'
       }
     ];
-  }, []);
+  }, [currentService]);
 
   // Resetear página cuando cambia la ruta
   useEffect(() => {
@@ -93,6 +113,7 @@ const Pedidos = () => {
     setTablaFilters({});
     setFiltroEstado(null);
     setFiltroFecha(null);
+    setFiltroResponsable(null);
   }, [location.pathname]);
 
   // Resetear página y limpiar cuando cambian los filtros o la búsqueda
@@ -100,7 +121,7 @@ const Pedidos = () => {
     setPedidos([]);
     setIsLoading(true);
     setPage(1);
-  }, [debouncedSearch, filtroEstado, filtroFecha, isAcopio]);
+  }, [debouncedSearch, filtroEstado, filtroFecha, filtroResponsable, isAcopio]);
 
   const handleDataLoaded = useCallback((data) => {
     setPedidos(data);
@@ -155,43 +176,48 @@ const Pedidos = () => {
     setPedidos(prev => 
       prev.map(p => p.id === updatedPedido.id ? { ...p, ...updatedPedido } : p)
     );
+    setPedidoSeleccionado(prev => prev && prev.id === updatedPedido.id ? { ...prev, ...updatedPedido } : prev);
   };
 
   const tableActions = [
     {
-      name: 'Ver Detalles', 
-      icon: 'show', 
+      name: 'Productos',
+      icon: 'box',
+      show: () => true,
       onClick: (pedido) => {
         setPedidoSeleccionado(pedido);
-        setModalInfoOpen(true);
+        setModalProductosOpen(true);
       }
     },
     {
       name: 'Editar', 
       icon: 'edit', 
-      show: (row) => row.estado !== 'Entregado' && row.estado !== 'Completado',
+      show: (row) => !row.destino && row.estado !== 'Entregado' && row.estado !== 'Completado',
       onClick: (pedido) => {
-        // Sin funcionamiento de momento, solicitado así
+        const editarData = {
+          id: pedido.id,
+          prices_types_id: pedido.precio_id || pedido.precio?.id,
+          modalidad: pedido.agrupado ? 'grupos' : 'unidades',
+          observaciones: pedido.observaciones === '--' ? '' : (pedido.observaciones || ''),
+          sucursal_destino_id: pedido.sucursal_destino_id || pedido.sucursal_destino?.id,
+          productos_lista: (pedido.pedido_almacen_detalle || []).map(p => ({
+            id: p.producto_almacen_id || p.producto_almacen?.id || p.id,
+            cantidad: parseFloat(p.cantidad) || 1
+          }))
+        };
+        sessionStorage.setItem('pedidoParaEditar', JSON.stringify(editarData));
+        navigate('/almacen/pedidos/editar');
       }
     },
     {
       name: 'Eliminar', 
       icon: 'trash', 
-      show: (row) => row.estado !== 'Completado' && row.estado !== 'Entregado',
+      show: (row) => !row.destino && row.estado !== 'Completado' && row.estado !== 'Entregado',
       onClick: (pedido) => {
         setPedidoSeleccionado(pedido);
         setModalEliminarOpen(true);
       }
     },
-    {
-      name: 'Anular Entrega', 
-      icon: 'block', 
-      show: (row) => row.estado === 'Entregado',
-      onClick: (pedido) => {
-        setPedidoSeleccionado(pedido);
-        setModalAnularOpen(true);
-      }
-    }
   ];
 
   const columns = isAcopio ? [
@@ -200,6 +226,9 @@ const Pedidos = () => {
       accessor: 'producto_nombre',
       style: { fontWeight: 600, color: '#333' },
       width: '25%',
+      isMobileMain: true,
+      mobileIcon: () => 'file',
+      mobileIconType: () => 'default'
     },
     {
       header: 'Solicitante',
@@ -209,7 +238,13 @@ const Pedidos = () => {
     {
       header: 'Cantidad',
       accessor: 'cantidad_texto',
-      width: '15%'
+      width: '15%',
+      isMobileSubtitle: true,
+      mobileRender: (row) => (
+        <>
+          {row.cantidad_texto} • <LiteralDateCell dateStr={row.fecha || row.created_at} />
+        </>
+      )
     },
     {
       header: 'Fecha',
@@ -222,11 +257,12 @@ const Pedidos = () => {
       accessor: 'estado_texto',
       hasStatusDot: true,
       statusType: (row) => row.estado === 'Completado' ? 'info' : row.estado === 'Entregado' ? 'warning' : 'error',
-      width: '20%'
+      width: '20%',
+      isMobileStatus: true
     }
   ] : [
     {
-      header: 'Nº Pedido',
+      header: 'Nº',
       accessor: 'numero_pedido',
       style: { fontWeight: 600, color: '#333' },
       width: '10%'
@@ -239,7 +275,10 @@ const Pedidos = () => {
     {
       header: 'Solicitante',
       accessor: 'solicitante_nombre',
-      width: '15%'
+      width: '15%',
+      isMobileMain: true,
+      mobileIcon: () => 'file',
+      mobileIconType: () => 'default'
     },
     {
       header: 'Fecha',
@@ -250,7 +289,13 @@ const Pedidos = () => {
     {
       header: 'Total',
       accessor: 'total_formateado',
-      width: '15%'
+      width: '15%',
+      isMobileSubtitle: true,
+      mobileRender: (row) => (
+        <>
+          Nº {row.numero_pedido || '--'} • Bs. {row.total_formateado} • <LiteralDateCell dateStr={row.fecha || row.created_at} />
+        </>
+      )
     },
     {
       header: 'Observaciones',
@@ -262,7 +307,8 @@ const Pedidos = () => {
       accessor: 'estado_texto',
       hasStatusDot: true,
       statusType: (row) => row.estado === 'Completado' ? 'info' : row.estado === 'Entregado' ? 'warning' : 'error',
-      width: '15%'
+      width: '15%',
+      isMobileStatus: true
     }
   ];
 
@@ -305,7 +351,7 @@ const Pedidos = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea} onScroll={handleScroll}>
@@ -352,7 +398,7 @@ const Pedidos = () => {
           debouncedSearch,
           filtroEstado,
           'fecha_desc',
-          null, // responsableId
+          filtroResponsable, // responsableId
           filtroFecha ? {
             inicio: filtroFecha.inicio ? new Date(filtroFecha.inicio).toISOString() : null,
             fin: filtroFecha.fin ? new Date(filtroFecha.fin).toISOString() : null,
@@ -362,7 +408,7 @@ const Pedidos = () => {
           filtroEstado,
           'fecha_desc',
           null, // sucuIdParam
-          null, // responsableId
+          filtroResponsable, // responsableId
           filtroFecha ? {
             inicio: filtroFecha.inicio ? new Date(filtroFecha.inicio).toISOString() : null,
             fin: filtroFecha.fin ? new Date(filtroFecha.fin).toISOString() : null,
@@ -380,14 +426,25 @@ const Pedidos = () => {
         onHasMorePagesChange={setHasMorePages}
       />
 
-      <ViewInfo 
-        isOpen={modalInfoOpen} 
-        setIsOpen={setModalInfoOpen} 
-        pedido={pedidoSeleccionado}
-        isAcopio={isAcopio}
-        onEliminar={() => setModalEliminarOpen(true)}
-        onAnular={() => setModalAnularOpen(true)}
-      />
+      {isAcopio ? (
+        <ViewInfoAcopio 
+          isOpen={modalInfoOpen} 
+          setIsOpen={setModalInfoOpen} 
+          pedido={pedidoSeleccionado}
+          onEliminar={(id) => handlePedidoEliminado(id)}
+          onAnular={() => setModalAnularOpen(true)}
+          onEdit={(updated) => handlePedidoActualizado(updated)}
+        />
+      ) : (
+        <ViewInfo 
+          isOpen={modalInfoOpen} 
+          setIsOpen={setModalInfoOpen} 
+          pedido={pedidoSeleccionado}
+          onEliminar={(id) => handlePedidoEliminado(id)}
+          onAnular={() => setModalAnularOpen(true)}
+          onIngresar={(updated) => handlePedidoActualizado(updated)}
+        />
+      )}
 
       <EliminarPedido 
         isOpen={modalEliminarOpen} 
@@ -409,6 +466,14 @@ const Pedidos = () => {
           handlePedidoActualizado(updated);
         }}
       />
+
+      <ProductosMovimiento
+        isOpen={modalProductosOpen}
+        onClose={() => setModalProductosOpen(false)}
+        pedido={pedidoSeleccionado}
+      />
+      
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

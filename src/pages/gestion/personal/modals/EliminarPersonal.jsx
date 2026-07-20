@@ -10,7 +10,7 @@ const EliminarPersonal = ({ isOpen, onClose, personalSeleccionado, onEliminar })
 
     const handleConfirm = async () => {
         if (!personalSeleccionado?.id) {
-            showDanger('Error', 'ID del personal no válido');
+            showDanger(null, 'ID del personal no válido');
             return;
         }
 
@@ -19,20 +19,17 @@ const EliminarPersonal = ({ isOpen, onClose, personalSeleccionado, onEliminar })
             const response = await personalService.delete(personalSeleccionado.id);
 
             if (response.success) {
-                if (onEliminar) {
-                    onEliminar(personalSeleccionado.id);
-                }
-
+                if (onEliminar) onEliminar(personalSeleccionado.id);
                 setLoading(false);
-                onClose();
-                showSuccess('Operación exitosa', response.message || 'Personal eliminado correctamente');
+                onClose(true);
+                showSuccess(null, response.message || 'Personal eliminado correctamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -51,10 +48,11 @@ const EliminarPersonal = ({ isOpen, onClose, personalSeleccionado, onEliminar })
             mensaje={`¿Estás seguro de que deseas eliminar a ${personalSeleccionado?.first_name} ${personalSeleccionado?.last_name}?`}
             detalle="Esta acción es irreversible y no podrás recuperar la información de este personal una vez eliminada."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 
 /**
  * Hook para paginación virtual (lazy loading)
- * Muestra elementos de 20 en 20 conforme el usuario hace scroll
+ * Muestra elementos de 20 en 20 (u otro valor asignado) conforme el usuario hace scroll
  */
 const useVirtualPagination = (items, itemsPerPage = 20) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,7 +28,33 @@ const useVirtualPagination = (items, itemsPerPage = 20) => {
     }
   }, [hasMore]);
 
-  // Función para detectar si el usuario llegó al final del scroll
+  // Soporte para IntersectionObserver
+  const loaderRef = useRef(null);
+
+  useEffect(() => {
+    const currentLoader = loaderRef.current;
+    if (!currentLoader || !hasMore) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        loadMore();
+      }
+    }, {
+      root: null, // usa el viewport del ancestro scrollable más cercano
+      rootMargin: '100px', // cargar un poco antes de llegar al final
+      threshold: 0.1
+    });
+
+    observer.observe(currentLoader);
+
+    return () => {
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
+    };
+  }, [loadMore, hasMore, visibleItems]);
+
+  // Función para detectar si el usuario llegó al final del scroll (por retrocompatibilidad)
   const handleScroll = useCallback((e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
     
@@ -42,6 +68,7 @@ const useVirtualPagination = (items, itemsPerPage = 20) => {
     hasMore,
     loadMore,
     handleScroll,
+    loaderRef,
     totalItems: items.length,
     visibleCount: visibleItems.length
   };

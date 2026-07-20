@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import sucursalesService from '../../../services/sucursalesService';
 import ItemMultiple from '../../../components/common/information/ItemMultiple';
@@ -53,7 +54,7 @@ const Sucursales = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea}>
@@ -69,7 +70,7 @@ const Sucursales = () => {
               return (
                 <ItemMultiple
                   key={sucursal.id || index}
-                  icon="building"
+                  icon="store"
                   title={sucursal.name || 'Sin nombre'}
                   description={sucursal.almacen_sucursal_id ? 'Comparte almacén' : 'Almacén propio'}
                   onEdit={isCasaMatriz ? null : () => {
@@ -95,6 +96,7 @@ const Sucursales = () => {
         }}
         iconName="plus"
         ariaLabel="Nueva Sucursal"
+        style={{ bottom: !isLargeScreen ? '80px' : undefined }}
       />
 
       {/* Modal para agregar o editar sucursal */}
@@ -126,6 +128,7 @@ const Sucursales = () => {
       <FetchData
         service={sucursalesService}
         method="getByEmpresaId"
+        methodParams={[null, false]}
         serviceName="sucursalesService"
         isOpen={true}
         onDataLoaded={handleSucursalesLoaded}
@@ -133,6 +136,7 @@ const Sucursales = () => {
         onLoadingEnd={handleLoadingEnd}
         onError={handleError}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

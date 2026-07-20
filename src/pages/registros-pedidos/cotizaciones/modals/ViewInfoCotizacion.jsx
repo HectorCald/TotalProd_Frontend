@@ -4,15 +4,17 @@ import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Boton from '../../../../components/common/botones/Boton';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import InfoCard from '../../../../components/common/information/InfoCard';
+import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 import useFormatNumber from '../../../../hooks/useFormatNumber';
 import useFechaLiteral from '../../../../hooks/useFechaLiteral';
-import ProductosCotizacion from './ProductosCotizacion';
+import ProductosMovimiento from '../../../registros-pedidos/movimientos/modals/ProductosMovimiento';
 import AprobarCotizacion from './AprobarCotizacion';
 import AnularAprobacion from './AnularAprobacion';
 import CompletarCotizacion from './CompletarCotizacion';
 import AnularCompletado from './AnularCompletado';
+import EliminarCotizacion from './EliminarCotizacion';
 
-const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) => {
+const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onEliminar }) => {
     const navigate = useNavigate();
     const { formatPrice } = useFormatNumber();
     const [isProductosOpen, setIsProductosOpen] = useState(false);
@@ -22,6 +24,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
     const [isAnularAprobacionOpen, setIsAnularAprobacionOpen] = useState(false);
     const [isCompletarOpen, setIsCompletarOpen] = useState(false);
     const [isAnularCompletadoOpen, setIsAnularCompletadoOpen] = useState(false);
+    const [isEliminarOpen, setIsEliminarOpen] = useState(false);
 
     const rawFechaStr = cotizacion?.fecha || cotizacion?.date || '';
     const fechaStr = rawFechaStr ? rawFechaStr.slice(0, 10) : '';
@@ -80,7 +83,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
     if (cotizacion.agrupado !== undefined && cotizacion.agrupado !== null) {
         stats.push({
             label: 'Modalidad',
-            value: cotizacion.agrupado ? 'Grps.' : 'Unds.',
+            value: cotizacion.agrupado ? 'Grupos' : 'Unidades',
             icon: cotizacion.agrupado ? 'layer' : 'box'
         });
     }
@@ -91,11 +94,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
         icon: 'package'
     });
 
-    stats.push({
-        label: 'Fecha',
-        value: fechaLiteral,
-        icon: 'calendar'
-    });
+
 
     let title = cotizacion.cliente?.name || 'Cotización';
     if (cotizacion.numero_cotizacion) {
@@ -124,6 +123,23 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
     let totalFinalRaw = subtotalNum - descCalculadoNum + aumCalculadoNum;
     let totalFinalNum = Math.round(totalFinalRaw * 10) / 10;
 
+    const financeItems = [];
+    financeItems.push({ clave: 'Subtotal', valor: `Bs. ${formatPrice(subtotalNum)}` });
+    if (descValNum > 0) {
+        financeItems.push({ 
+            clave: `Descuento ${esPorcentaje ? `(${formatPrice(descValNum)}%)` : '(Bs.)'}`, 
+            valor: `- Bs. ${formatPrice(descCalculadoNum)}`,
+            colorValor: 'var(--error-color)'
+        });
+    }
+    if (aumValNum > 0) {
+        financeItems.push({ 
+            clave: `Aumento ${esPorcentaje ? `(${formatPrice(aumValNum)}%)` : '(Bs.)'}`, 
+            valor: `+ Bs. ${formatPrice(aumCalculadoNum)}`,
+            colorValor: 'var(--success-color)'
+        });
+    }
+
     const getStatusColor = (estado) => {
         switch (estado) {
             case 'pendiente': return 'warning';
@@ -138,10 +154,15 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
         const ventaData = {
             prices_types_id: cotizacion.prices_types_id || cotizacion.precio?.id,
             modalidad: cotizacion.agrupado ? 'grupos' : 'unidades',
-            productos_lista: (cotizacion.productos || []).map(p => ({
-                id: p.producto?.id || p.producto_almacen_id || p.products_id || p.id,
-                cantidad: parseFloat(p.cantidad) || 1
-            })),
+            productos_lista: (cotizacion.productos || []).map(p => {
+                const grup = parseFloat(p.producto?.grup) || 0;
+                const cantidadUD = parseFloat(p.cantidad) || 1;
+                const esPorGrupo = cotizacion.agrupado && grup > 0;
+                return {
+                    id: p.producto?.id || p.producto_almacen_id || p.products_id || p.id,
+                    cantidad: esPorGrupo ? Math.floor(cantidadUD / grup) : cantidadUD
+                };
+            }),
             cliente_id: cotizacion.clients_id || cotizacion.cliente?.id,
             descuento: parseFloat(cotizacion.descuento) || 0,
             aumento: parseFloat(cotizacion.aumento) || 0,
@@ -156,7 +177,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
     return (
         <>
         <ModalCentro
-            isOpen={isOpen}
+            isOpen={isOpen && !isProductosOpen && !isAprobarOpen && !isAnularAprobacionOpen && !isCompletarOpen && !isAnularCompletadoOpen && !isEliminarOpen}
             onClose={onClose}
             title=""
             confirmText="Editar"
@@ -167,59 +188,30 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
             hideFooter={true}
             width="450px"
         >
-            <div style={{ margin: '-10px -24px -24px -24px' }}>
                 <InfoCard
                     title={title}
-                    subtitle="Información de la Cotización"
+                    subtitle={fechaLiteral}
                     description={cotizacion.observaciones || ''}
                     statusDot={getStatusColor(cotizacion.estado)}
-                    tags={tags}
-                    stats={stats}
                     icon="file"
                     customBlock={
-                        <div style={{
-                            backgroundColor: 'var(--main-bg)',
-                            padding: '16px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '8px',
-                            marginBottom: '16px'
-                        }}>
-                            {(descValNum > 0 || aumValNum > 0) && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--secondary-color)', fontSize: '14px' }}>
-                                    <span>Subtotal:</span>
-                                    <span>Bs. {formatPrice(subtotalNum)}</span>
-                                </div>
+                        <>
+                            {tags.length > 0 && (
+                                <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
                             )}
-                            
-                            {descValNum > 0 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--error-color)', fontSize: '14px' }}>
-                                    <span>Descuento {esPorcentaje ? `(${formatPrice(descValNum)}%)` : '(Bs.)'}:</span>
-                                    <span>- Bs. {formatPrice(descCalculadoNum)}</span>
-                                </div>
+                            {stats.length > 0 && (
+                                <ColumnInfo 
+                                    title="Detalles"
+                                    items={stats.map(s => ({ clave: s.label, valor: s.value }))}
+                                />
                             )}
-
-                            {aumValNum > 0 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--success-color)', fontSize: '14px' }}>
-                                    <span>Aumento {esPorcentaje ? `(${formatPrice(aumValNum)}%)` : '(Bs.)'}:</span>
-                                    <span>+ Bs. {formatPrice(aumCalculadoNum)}</span>
-                                </div>
-                            )}
-
-                            <div style={{ 
-                                paddingTop: '10px', 
-                                marginTop: '4px',
-                                borderTop: '1px dashed var(--quaternary-color)',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                            }}>
-                                <span style={{ fontSize: '15px', color: 'var(--text-color)', fontWeight: '500' }}>Total:</span>
-                                <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--secondary-color)' }}>
-                                    Bs. {formatPrice(totalFinalNum)}
-                                </span>
-                            </div>
-                        </div>
+                            <ColumnInfo 
+                                title="Finanzas"
+                                items={financeItems}
+                                finance={true}
+                                financeTotal={`Bs. ${formatPrice(totalFinalNum)}`}
+                            />
+                        </>
                     }
                     actionButton={
                         <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'flex-end' }}>
@@ -245,7 +237,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
                                 <>
                                     <BotonIcon
                                         iconName="undo"
-                                        className="btn-primary"
+                                        className="btn-warning"
                                         tooltip="Anular Aprobación"
                                         onClick={() => setIsAnularAprobacionOpen(true)}
                                     />
@@ -259,6 +251,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
                                         iconName="cart"
                                         className="btn-primary"
                                         tooltip="Realizar venta"
+                                        tooltipAlign='end'
                                         onClick={handleRealizarVenta}
                                     />
                                 </>
@@ -267,32 +260,40 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
                             {cotizacion.estado === 'completado' && (
                                 <BotonIcon
                                     iconName="undo"
-                                    className="btn-primary"
+                                    className="btn-warning"
                                     tooltip="Anular Completado"
                                     tooltipAlign="end"
                                     onClick={() => setIsAnularCompletadoOpen(true)}
                                 />
                             )}
 
-                            {cotizacion.estado !== 'anulado' && cotizacion.estado !== 'completado' && (
+                            {cotizacion.estado === 'pendiente' && (
                                 <BotonIcon
                                     iconName="edit"
                                     className="btn-primary"
                                     tooltip="Editar Cotización"
-                                    tooltipAlign="end"
                                     onClick={() => {
                                         onClose();
                                         if (onEdit) onEdit(cotizacion);
                                     }}
                                 />
                             )}
+
+                            {cotizacion.estado === 'pendiente' && (
+                                <BotonIcon
+                                    iconName="trash"
+                                    className="btn-error"
+                                    tooltip="Eliminar Cotización"
+                                    tooltipAlign="end"
+                                    onClick={() => setIsEliminarOpen(true)}
+                                />
+                            )}
                         </div>
                     }
                 />
-            </div>
         </ModalCentro>
 
-        <ProductosCotizacion
+        <ProductosMovimiento
             isOpen={isProductosOpen}
             onClose={() => setIsProductosOpen(false)}
             cotizacionActual={cotizacion}
@@ -333,6 +334,16 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate }) =
             cotizacionSeleccionada={cotizacion}
             onAnular={(id, nuevoEstado) => {
                 if (onUpdate) onUpdate(id, nuevoEstado);
+            }}
+        />
+
+        <EliminarCotizacion
+            isOpen={isEliminarOpen}
+            onClose={() => setIsEliminarOpen(false)}
+            cotizacionSeleccionada={cotizacion}
+            onEliminar={(id) => {
+                if (onEliminar) onEliminar(id);
+                onClose();
             }}
         />
         </>

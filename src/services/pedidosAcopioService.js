@@ -120,7 +120,7 @@ class pedidosAcopioService {
 
   static async updateEstado(pedidoId, nuevoEstado, movimientoEntradaId = null) {
     const body = { estado: nuevoEstado };
-    if (movimientoEntradaId) {
+    if (movimientoEntradaId !== undefined) {
       body.movimiento_entrada_id = movimientoEntradaId;
     }
     

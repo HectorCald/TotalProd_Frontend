@@ -134,11 +134,12 @@ const AnularEntrega = ({ isOpen, setIsOpen, pedido, isAcopio, onAnulado }) => {
                 </div>
             }
             confirmText="Sí, cancelar"
-            confirmColorClass="btn-orange"
+            confirmColorClass="btn-warning"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
             segundosDisabled={5}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

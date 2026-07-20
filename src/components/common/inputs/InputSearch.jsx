@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { BoxIcon } from 'boxicons-react';
-import Skeleton from '../Skeleton';
+import Skeleton from '../widgets/Skeleton';
 import styles from './Input.module.css';
 import selectStyles from './Input.module.css';
 

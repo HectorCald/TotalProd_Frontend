@@ -13,7 +13,7 @@ export const useCanasta = () => {
       const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
       const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(producto.grup)) : rawStock;
 
-      if ((modo === 'VENTA' || modo === 'VENTA_COTIZACION') && qty >= baseStockValue) {
+      if ((modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO') && qty >= baseStockValue) {
         return prev;
       }
 

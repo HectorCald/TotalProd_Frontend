@@ -4,8 +4,9 @@ import clientService from '../../../../services/clientService';
 import Boton from '../../../../components/common/botones/Boton';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import InfoCard from '../../../../components/common/information/InfoCard';
+import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 
-const ViewInfo = ({ isOpen, onClose, cliente, onEdit }) => {
+const ViewInfo = ({ isOpen, onClose, cliente, onEdit, onDelete }) => {
     const [ubicacion, setUbicacion] = useState(null);
     const [loadingUbicacion, setLoadingUbicacion] = useState(false);
 
@@ -42,37 +43,33 @@ const ViewInfo = ({ isOpen, onClose, cliente, onEdit }) => {
             title=""
             confirmText="Editar"
             onConfirm={() => {
-                onClose();
                 if (onEdit) onEdit(cliente);
             }}
             confirmDisabled={loadingUbicacion}
             hideFooter={true}
-            width="450px"
         >
-            <div style={{ margin: '-10px -24px -24px -24px' }}>
                 <InfoCard
                     title={cliente.name || 'Sin nombre'}
-                    subtitle="Información del Cliente"
-                    description={cliente.description}
-                    tags={[
-                        {
-                            text: 'Cliente',
-                            icon: 'user'
-                        },
-                        cliente.phone ? {
-                            text: cliente.phone,
-                            icon: 'phone'
-                        } : null
-                    ].filter(Boolean)}
-                    stats={[
-                        {
-                            label: 'Pedidos',
-                            value: cliente.total_orders || 0,
-                            icon: 'cart'
-                        }
-                    ]}
+                    subtitle={cliente.total_orders || 0 > 1 ? `${cliente.total_orders} Pedidos` : cliente.total_orders === 1 ? '1 Pedido' : 'Sin Pedidos'}
+                    customBlock={
+                        cliente.phone ? (
+                            <>
+                            <ColumnInfo 
+                                items={[
+                                    { icon: 'phone', text: cliente.phone }
+                                ]}
+                            />
+                            <ColumnInfo 
+                                items={[
+                                    { text: cliente.description }
+                                ]}
+                                title='Descripción'
+                            />
+                        </>
+                        ) : null
+                    }
                     actionButton={
-                        <div style={{ display: 'flex', gap: '16px', width: '100%' }}>
+                        <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
                             <Boton
                                 label="Ver en Google Maps"
                                 iconName="map"
@@ -90,15 +87,23 @@ const ViewInfo = ({ isOpen, onClose, cliente, onEdit }) => {
                             <BotonIcon
                                 iconName="edit"
                                 className="btn-primary"
+                                tooltip="Editar Cliente"
                                 onClick={() => {
-                                    onClose();
                                     if (onEdit) onEdit(cliente);
+                                }}
+                            />
+                            <BotonIcon
+                                iconName="trash"
+                                className="btn-error"
+                                tooltipAlign="end"
+                                tooltip="Eliminar Cliente"
+                                onClick={() => {
+                                    if (onDelete) onDelete(cliente);
                                 }}
                             />
                         </div>
                     }
                 />
-            </div>
         </ModalCentro>
     );
 };

@@ -7,6 +7,8 @@ import NoData from '../../../../components/common/widgets/NoData';
 import { useToast } from '../../../../context/ToastContext';
 import cargosService from '../../../../services/cargosService';
 import modulesService from '../../../../services/modulesService';
+import { useUser } from '../../../../context/UserContext';
+import { useEmployee } from '../../../../context/EmployeeContext';
 
 const formatSubmoduleName = (name) => {
     if (!name) return '';
@@ -18,6 +20,12 @@ const formatSubmoduleName = (name) => {
 
 const AgregarEditarCargo = ({ isOpen, onClose, cargoSeleccionado, onGuardar }) => {
     const { showSuccess, showDanger, showWarning } = useToast();
+    const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
+    const { employee: employeeInfo, sucursalSeleccionada: employeeSucursal } = useEmployee();
+    const sucursalSeleccionada = userSucursal || employeeSucursal;
+    const codigoEmpresa = sucursalSeleccionada?.empresas?.codigo || userInfo?.empresa?.codigo || employeeInfo?.sucursal?.empresas?.codigo || '';
+    const tipoEmpresa = sucursalSeleccionada?.empresas?.tipo || userInfo?.empresa?.tipo || employeeInfo?.sucursal?.empresas?.tipo || 'ventas_produccion';
+    const isSoloVentas = tipoEmpresa === 'ventas';
     const [loading, setLoading] = useState(false);
     const [loadingModules, setLoadingModules] = useState(false);
 
@@ -41,7 +49,7 @@ const AgregarEditarCargo = ({ isOpen, onClose, cargoSeleccionado, onGuardar }) =
             }
         } catch (error) {
             console.error('Error al cargar módulos:', error);
-            showDanger('Error', 'Error al cargar los módulos disponibles');
+            showDanger(null, 'Error al cargar los módulos disponibles');
         } finally {
             setLoadingModules(false);
         }
@@ -115,20 +123,20 @@ const AgregarEditarCargo = ({ isOpen, onClose, cargoSeleccionado, onGuardar }) =
 
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || `Cargo ${tipo === 'editar' ? 'actualizado' : 'creado'} correctamente`);
+                showSuccess(null, response.message || `Cargo ${tipo === 'editar' ? 'actualizado' : 'creado'} correctamente`);
             } else if (response.code === 'MODULE_NOT_INCLUDED') {
                 setLoading(false);
-                showDanger('Error', `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}".`);
+                showDanger(null, `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}".`);
             } else if (response.code === 'NO_PLAN') {
                 setLoading(false);
-                showDanger('Error', 'Necesitas un plan activo para acceder a esta función.');
+                showDanger(null, 'Necesitas un plan activo para acceder a esta función.');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || `Error al ${tipo} el cargo`);
+                showDanger(null, response.message || `Error al ${tipo} el cargo`);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -147,76 +155,74 @@ const AgregarEditarCargo = ({ isOpen, onClose, cargoSeleccionado, onGuardar }) =
             loading={loading}
             disableClose={loading}
         >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <Input
-                    tipo="text"
-                    required={true}
-                    label="Nombre del cargo"
-                    value={name}
-                    onChange={(e) => {
-                        setName(e.target.value);
-                        setFieldErrors((prev) => ({ ...prev, name: false }));
-                    }}
-                    readOnly={loading}
-                    error={fieldErrors.name}
-                    onClearError={() => setFieldErrors((prev) => ({ ...prev, name: false }))}
-                />
+            <Input
+                tipo="text"
+                required={true}
+                label="Nombre del cargo"
+                value={name}
+                onChange={(e) => {
+                    setName(e.target.value);
+                    setFieldErrors((prev) => ({ ...prev, name: false }));
+                }}
+                readOnly={loading}
+                error={fieldErrors.name}
+                onClearError={() => setFieldErrors((prev) => ({ ...prev, name: false }))}
+            />
 
-                <Input
-                    tipo="text"
-                    required={false}
-                    label="Descripción"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    readOnly={loading}
-                />
+            <Input
+                tipo="text"
+                required={false}
+                label="Descripción"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                readOnly={loading}
+            />
+            <h4 style={{ marginBlock: '5px', fontSize: '12px', color: 'var(--black-color)' }}>MÓDULOS</h4>
 
-                <div style={{ marginTop: '10px' }}>
-                    <p style={{ fontWeight: '500', marginBottom: '10px' }}>Asignación de Módulos</p>
-                    {loadingModules ? (
-                        <NoData
-                            icon="loader-alt"
-                            title="Cargando módulos..."
-                            detail="Obteniendo módulos disponibles para asignar"
-                            transparent={true}
-                            minHeight="150px"
-                        />
-                    ) : modules.filter(module => module.sub_modulos && module.sub_modulos.length > 0).length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {modules
-                                .filter(module => module.sub_modulos && module.sub_modulos.length > 0)
-                                .map((module) => (
-                                    <Accordion key={module.id} title={`${module.name.toUpperCase()} (${module.sub_modulos.length})`}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                            {module.sub_modulos.map(sub => (
-                                                <Checkbox
-                                                    key={sub.id}
-                                                    label={formatSubmoduleName(sub.name)}
-                                                    checked={selectedModules.includes(sub.id)}
-                                                    onChange={(isChecked) => {
-                                                        if (isChecked) {
-                                                            setSelectedModules(prev => [...prev, sub.id]);
-                                                        } else {
-                                                            setSelectedModules(prev => prev.filter(id => id !== sub.id));
-                                                        }
-                                                    }}
-                                                />
-                                            ))}
-                                        </div>
-                                    </Accordion>
-                                ))}
-                        </div>
-                    ) : (
-                        <NoData
-                            icon="grid-alt"
-                            title="Sin módulos"
-                            detail="No hay módulos con submódulos disponibles para asignar"
-                            transparent={false}
-                            minHeight="150px"
-                        />
-                    )}
+            {loadingModules ? (
+                <NoData
+                    icon="loader-alt"
+                    title="Cargando módulos..."
+                    detail="Obteniendo módulos disponibles para asignar"
+                    transparent={true}
+                    minHeight="150px"
+                />
+            ) : modules.filter(module => module.sub_modulos && module.sub_modulos.length > 0 && (module.name.toLowerCase() !== 'damabrava' || codigoEmpresa === 'damabrava') && (!isSoloVentas || module.name.toLowerCase() !== 'materia')).length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {modules
+                        .filter(module => module.sub_modulos && module.sub_modulos.length > 0 && (module.name.toLowerCase() !== 'damabrava' || codigoEmpresa === 'damabrava') && (!isSoloVentas || module.name.toLowerCase() !== 'materia'))
+                        .map((module) => (
+                            <Accordion key={module.id} title={`${module.name.toUpperCase()} (${module.sub_modulos.length})`}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    {module.sub_modulos.map(sub => (
+                                        <Checkbox
+                                            key={sub.id}
+                                            label={formatSubmoduleName(sub.name)}
+                                            checked={selectedModules.includes(sub.id)}
+                                            onChange={(isChecked) => {
+                                                if (isChecked) {
+                                                    setSelectedModules(prev => [...prev, sub.id]);
+                                                } else {
+                                                    setSelectedModules(prev => prev.filter(id => id !== sub.id));
+                                                }
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            </Accordion>
+                        ))}
                 </div>
-            </div>
+            ) : (
+                <NoData
+                    icon="grid-alt"
+                    title="Sin módulos"
+                    detail="No hay módulos con submódulos disponibles para asignar"
+                    transparent={false}
+                    minHeight="150px"
+                />
+            )}
+
+
         </ModalLateral>
     );
 };

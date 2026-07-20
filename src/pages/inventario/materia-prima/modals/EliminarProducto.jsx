@@ -10,7 +10,7 @@ const EliminarProducto = ({ isOpen, onClose, productoSeleccionado, onEliminar })
 
     const handleConfirm = async () => {
         if (!productoSeleccionado?.id) {
-            showDanger('Error', 'ID del producto no válido');
+            showDanger(null, 'ID del producto no válido');
             return;
         }
 
@@ -24,15 +24,15 @@ const EliminarProducto = ({ isOpen, onClose, productoSeleccionado, onEliminar })
                 }
 
                 setLoading(false);
-                onClose();
-                showSuccess('Operación exitosa', response.message || 'Producto eliminado exitosamente');
+                onClose(true);
+                showSuccess(null, response.message || 'Producto eliminado exitosamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -51,10 +51,11 @@ const EliminarProducto = ({ isOpen, onClose, productoSeleccionado, onEliminar })
             mensaje={`¿Estás seguro de que deseas eliminar a ${productoSeleccionado?.name}?`}
             detalle="Esta acción es irreversible y no podrás recuperar la información de este producto una vez eliminada."
             confirmText="Eliminar"
-            confirmColorClass="btn-red"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

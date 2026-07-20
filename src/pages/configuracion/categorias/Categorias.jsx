@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import categoryAcopioService from '../../../services/categoryAcopioService';
@@ -11,9 +12,16 @@ import LayoutGrid from '../../../components/layout/LayoutGrid';
 import BotonFlotante from '../../../components/common/botones/BotonFlotante';
 import AgregarEditarCategoria from './modals/AgregarEditarCategoria';
 import EliminarCategoria from './modals/EliminarCategoria';
+import { useUser } from '../../../context/UserContext';
+import { useEmployee } from '../../../context/EmployeeContext';
 
 const Categorias = () => {
   const { isLargeScreen } = useLayout();
+  const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
+  const { employee: employeeInfo, sucursalSeleccionada: employeeSucursal } = useEmployee();
+  const sucursalSeleccionada = userSucursal || employeeSucursal;
+  const tipoEmpresa = sucursalSeleccionada?.empresas?.tipo || userInfo?.empresa?.tipo || employeeInfo?.sucursal?.empresas?.tipo || 'ventas_produccion';
+  const isSoloVentas = tipoEmpresa === 'ventas';
 
   // Cache de sesión: persiste durante la sesión sin refetch al volver
   const {
@@ -55,7 +63,7 @@ const Categorias = () => {
         nuevasCategorias = [...nuevasCategorias, ...almacenCats];
       }
 
-      if (resAcopio?.success && resAcopio.data) {
+      if (!isSoloVentas && resAcopio?.success && resAcopio.data) {
         const acopioCats = resAcopio.data.map(cat => ({
           ...cat,
           _tipo_modulo: 'acopio',
@@ -80,11 +88,16 @@ const Categorias = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea}>
-          <h1 className={styles.title}>Almacén General</h1>
+          <h1 className={styles.title}>Categorías</h1>
+          {!isSoloVentas && (
+            <h3 className={styles.title} style={{ fontSize: '13px', color: '#555' }}>
+              Almacén General
+            </h3>
+          )}
           <LayoutGrid
             columns={3}
             isLoading={isLoading}
@@ -108,29 +121,35 @@ const Categorias = () => {
             ))}
           </LayoutGrid>
 
-          <h1 className={styles.title} style={{ marginTop: '24px' }}>Materia Prima</h1>
-          <LayoutGrid
-            columns={3}
-            isLoading={isLoading}
-            empty={categorias.filter(c => c._tipo_modulo === 'acopio').length === 0}
-            emptyMessage="No hay categorías de materia prima cargadas."
-          >
-            {categorias.filter(c => c._tipo_modulo === 'acopio').map((categoria, index) => (
-              <ItemMultiple
-                key={`${categoria._tipo_modulo}-${categoria.id || index}`}
-                title={categoria.name || categoria.nombre || 'Sin nombre'}
-                description={categoria.description}
-                onEdit={() => {
-                  setCategoriaSeleccionada(categoria);
-                  setIsModalOpen(true);
-                }}
-                onDelete={() => {
-                  setCategoriaSeleccionada(categoria);
-                  setIsDeleteModalOpen(true);
-                }}
-              />
-            ))}
-          </LayoutGrid>
+          {!isSoloVentas && (
+            <>
+              <h3 className={styles.title} style={{ marginTop: '24px', fontSize: '13px', color: '#555' }}>
+                Materia Prima
+              </h3>
+              <LayoutGrid
+                columns={3}
+                isLoading={isLoading}
+                empty={categorias.filter(c => c._tipo_modulo === 'acopio').length === 0}
+                emptyMessage="No hay categorías de materia prima cargadas."
+              >
+                {categorias.filter(c => c._tipo_modulo === 'acopio').map((categoria, index) => (
+                  <ItemMultiple
+                    key={`${categoria._tipo_modulo}-${categoria.id || index}`}
+                    title={categoria.name || categoria.nombre || 'Sin nombre'}
+                    description={categoria.description}
+                    onEdit={() => {
+                      setCategoriaSeleccionada(categoria);
+                      setIsModalOpen(true);
+                    }}
+                    onDelete={() => {
+                      setCategoriaSeleccionada(categoria);
+                      setIsDeleteModalOpen(true);
+                    }}
+                  />
+                ))}
+              </LayoutGrid>
+            </>
+          )}
         </div>
       </div>
 
@@ -141,6 +160,7 @@ const Categorias = () => {
         }}
         iconName="plus"
         ariaLabel="Nueva Categoría"
+        style={{ bottom: !isLargeScreen ? '80px' : undefined }}
       />
 
       <AgregarEditarCategoria
@@ -183,6 +203,7 @@ const Categorias = () => {
           setIsDeleteModalOpen(false);
         }}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

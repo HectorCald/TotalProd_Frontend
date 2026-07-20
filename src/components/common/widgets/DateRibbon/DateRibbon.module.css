@@ -1,0 +1,70 @@
+.dateRibbonContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 0px;
+}
+
+.dateRibbon {
+  display: flex;
+  overflow-x: auto;
+  gap: 5px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+  align-items: center;
+  cursor: grab;
+}
+
+.dateRibbon.dragging {
+  cursor: grabbing;
+}
+
+.dateRibbon::-webkit-scrollbar {
+  display: none;
+}
+
+.calendarButton {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #e0e0e0;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  color: #333;
+  transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.calendarButton:hover {
+  background: #f0f0f0;
+}
+
+.dateButton {
+  padding: 8px 16px;
+  border-radius: 5px;
+  border: 1px solid #e0e0e0;
+  background: white;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 500;
+  transition: all 0.2s;
+  color: #333;
+  flex-shrink: 0;
+}
+
+.dateButton:hover {
+  background: #f0f0f0;
+}
+
+.dateButton.active {
+  background: #000;
+  color: white;
+  border-color: #000;
+}

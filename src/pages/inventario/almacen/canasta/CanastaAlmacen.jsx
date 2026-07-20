@@ -12,6 +12,9 @@ import ConfirmacionPedido from './confirmations/ConfirmacionPedido';
 import ConfirmacionEntrada from './confirmations/ConfirmacionEntrada';
 import FetchData from '../../../../components/mixed/FetchData';
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { useLayout } from '../../../../context/LayoutContext';
+import modalStyles from '../../../../components/common/modals/ModalLateral.module.css';
 
 const CanastaAlmacen = ({
   canasta,
@@ -22,8 +25,13 @@ const CanastaAlmacen = ({
   modo,
   modoAgrupacion,
   setModoAgrupacion,
-  preloadedData = null
+  preloadedData = null,
+  onVentaSuccess,
+  onPrecioChange,
+  onClose,
+  isOpen = true
 }) => {
+  const { isLargeScreen } = useLayout();
   const [preciosTipos, setPreciosTipos] = useState([]);
   const [precioSeleccionado, setPrecioSeleccionado] = useState(null);
   const [modalVentaOpen, setModalVentaOpen] = useState(false);
@@ -42,6 +50,17 @@ const CanastaAlmacen = ({
   useEffect(() => {
     vaciarCanasta();
   }, [modo, vaciarCanasta]);
+
+  useEffect(() => {
+    if (!isLargeScreen && isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isLargeScreen, isOpen]);
 
   const productIdsToFetch = useMemo(() => {
     if (!preloadedData || !preloadedData.productos_lista) return [];
@@ -67,7 +86,8 @@ const CanastaAlmacen = ({
         const esPorGrupo = preloadedData.modalidad === 'grupos' && productoObj.grup && productoObj.grup > 0;
         const maxDisponible = esPorGrupo ? Math.floor(rawStock / Number(productoObj.grup)) : rawStock;
         
-        const cantidadFinal = Math.min(item.cantidad, maxDisponible);
+        const esLimitado = modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO';
+        const cantidadFinal = esLimitado ? Math.min(item.cantidad, maxDisponible) : item.cantidad;
 
         if (cantidadFinal > 0) {
           agregarProducto(productoObj, modo);
@@ -110,13 +130,20 @@ const CanastaAlmacen = ({
     fetchPreciosTipos();
   }, []);
 
+  // Notificar al padre cuando cambia el precio (para persistencia en localStorage)
+  useEffect(() => {
+    if (onPrecioChange) {
+      onPrecioChange(precioSeleccionado);
+    }
+  }, [precioSeleccionado, onPrecioChange]);
+
   const getProductPrice = (producto, priceTypeId) => {
     if (!priceTypeId || !producto.price_product) return 0;
     const priceObj = producto.price_product.find(p => p.prices_types?.id === priceTypeId || p.prices_types_id === priceTypeId);
     return priceObj ? Number(priceObj.valor) : 0;
   };
 
-  const esVenta = modo === 'VENTA' || modo === 'VENTA_COTIZACION';
+  const esVenta = modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO';
 
   const totalCanasta = canasta.reduce((acc, producto) => {
     const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
@@ -128,11 +155,13 @@ const CanastaAlmacen = ({
 
   const totalRedondeado = Math.round(totalCanasta * 10) / 10;
 
-  const displayModo = modo === 'VENTA_COTIZACION' ? 'VENTA' : modo;
+  const displayModo = (modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO') ? 'VENTA' : modo;
 
-  return (
-    <div className={styles.canastaContainer}>
-      {modo === 'VENTA_COTIZACION' && productIdsToFetch.length > 0 && (
+  if (!isOpen) return null;
+
+  const content = (
+    <div className={isLargeScreen ? styles.canastaContainer : modalStyles.drawer} onClick={(e) => !isLargeScreen && e.stopPropagation()}>
+      {preloadedData && productIdsToFetch.length > 0 && (
         <FetchData
           service={productsAlmacenService}
           serviceName="productsAlmacenService"
@@ -146,7 +175,17 @@ const CanastaAlmacen = ({
       )}
       
       <div className={styles.header}>
-        <h2>CANASTA {displayModo}</h2>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {!isLargeScreen && onClose && (
+            <button 
+              onClick={onClose} 
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0', marginRight: '10px' }}
+            >
+              <i className='bx bx-left-arrow-alt' style={{ fontSize: '24px', color: 'var(--text-color-light, #666)' }}></i>
+            </button>
+          )}
+          <h2>CANASTA {displayModo}</h2>
+        </div>
         <button 
           onClick={vaciarCanasta} 
           disabled={canasta.length === 0}
@@ -162,7 +201,7 @@ const CanastaAlmacen = ({
           <i className='bx bx-trash'></i>
         </button>
       </div>
-      <div style={{ padding: '15px 20px', display: 'flex', flexDirection: 'row', gap: '10px' }}>
+      <div style={{ padding: '15px 20px',paddingBottom:'5px', display: 'flex', flexDirection: 'row', gap: '10px' }}>
         <div style={{ flex: 1 }}>
           <InputSelect
             options={preciosTipos}
@@ -187,7 +226,7 @@ const CanastaAlmacen = ({
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', }}>
             <NoData
               icon="loader-alt"
-              title="Cargando Cotización"
+              title="Cargando Productos"
               detail="Obteniendo productos y validando stock..."
               transparent={true}
             />
@@ -222,12 +261,12 @@ const CanastaAlmacen = ({
             <span>Bs. {totalRedondeado.toFixed(2)}</span>
           </div>
           <Boton
-            className="btn-original"
+            className="btn-primary"
             label={`Verificar ${displayModo}`}
             onClick={() => {
-              if (modo === 'VENTA' || modo === 'VENTA_COTIZACION') setModalVentaOpen(true);
+              if (modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO') setModalVentaOpen(true);
               else if (modo === 'COTIZACIÓN' || modo === 'COTIZACION') setModalCotizacionOpen(true);
-              else if (modo === 'PEDIDO' || modo === 'NUEVO PEDIDO' || modo === 'NUEVO_PEDIDO') setModalPedidoOpen(true);
+              else if (modo === 'PEDIDO' || modo === 'NUEVO PEDIDO' || modo === 'NUEVO_PEDIDO' || modo === 'EDITAR_PEDIDO') setModalPedidoOpen(true);
               else if (modo === 'ENTRADA') setModalEntradaOpen(true);
             }}
           />
@@ -243,6 +282,7 @@ const CanastaAlmacen = ({
         vaciarCanasta={vaciarCanasta}
         modoAgrupacion={modoAgrupacion}
         cotizacionDefaults={preloadedData}
+        onSuccess={onVentaSuccess}
       />
       <ConfirmacionCotizacion 
         isOpen={modalCotizacionOpen}
@@ -257,6 +297,11 @@ const CanastaAlmacen = ({
         isOpen={modalPedidoOpen}
         onClose={() => setModalPedidoOpen(false)}
         totalBase={totalRedondeado}
+        canasta={canasta}
+        precioSeleccionado={precioSeleccionado}
+        modoAgrupacion={modoAgrupacion}
+        vaciarCanasta={vaciarCanasta}
+        pedidoDefaults={preloadedData}
       />
       <ConfirmacionEntrada 
         isOpen={modalEntradaOpen}
@@ -269,6 +314,17 @@ const CanastaAlmacen = ({
       />
     </div>
   );
+
+  if (!isLargeScreen) {
+    return createPortal(
+      <div className={modalStyles.overlay} onClick={onClose}>
+        {content}
+      </div>,
+      document.body
+    );
+  }
+
+  return content;
 };
 
 export default CanastaAlmacen;

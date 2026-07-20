@@ -1,0 +1,138 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--quaternary-color, #e2e8f0);
+  background-color: var(--white-color, #ffffff);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.container:active {
+  background-color: #f8fafc;
+}
+
+.iconWrapper {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon {
+  width: 24px !important;
+  height: 24px !important;
+  font-size: 24px !important;
+}
+
+/* Tipos de Icono */
+.icon_default {
+  background-color: var(--primary-color-light, rgba(49, 130, 206, 0.1));
+}
+.icon_default .icon {
+  color: var(--primary-color, #3182ce) !important;
+  fill: var(--primary-color, #3182ce) !important;
+}
+
+.icon_error {
+  background-color: rgba(229, 57, 53, 0.12);
+}
+.icon_error .icon {
+  color: var(--error-color, #e53935) !important;
+  fill: var(--error-color, #e53935) !important;
+}
+
+.icon_success {
+  background-color: rgba(96, 223, 67, 0.12);
+}
+.icon_success .icon {
+  color: var(--success-color, #60df43) !important;
+  fill: var(--success-color, #60df43) !important;
+}
+
+.icon_warning {
+  background-color: rgba(237, 137, 54, 0.12);
+}
+.icon_warning .icon {
+  color: var(--warning-color, #ed8936) !important;
+  fill: var(--warning-color, #ed8936) !important;
+}
+
+.icon_info {
+  background-color: rgba(70, 140, 253, 0.12);
+}
+.icon_info .icon {
+  color: var(--info-color, #468cfd) !important;
+  fill: var(--info-color, #468cfd) !important;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dark-color, #1a202c);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.default {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.success {
+  background-color: rgba(96, 223, 67, 0.12);
+  color: var(--success-color, #60df43);
+}
+
+.error {
+  background-color: rgba(229, 57, 53, 0.12);
+  color: var(--error-color, #e53935);
+}
+
+.warning {
+  background-color: rgba(237, 137, 54, 0.12);
+  color: var(--warning-color, #ed8936);
+}
+
+.info {
+  background-color: rgba(70, 140, 253, 0.12);
+  color: var(--info-color, #468cfd);
+}
+
+.subtitle {
+  font-size: 11px;
+  color: var(--tertiary-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

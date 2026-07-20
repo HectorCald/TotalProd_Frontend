@@ -4,7 +4,7 @@ import styles from './ModalLateral.module.css';
 import Boton from '../botones/Boton';
 import { BoxIcon } from 'boxicons-react';
 
-const ModalLateral = ({ isOpen, onClose, title, children, confirmText = 'Confirmar', onConfirm, loading = false, disableClose = false }) => {
+const ModalLateral = ({ isOpen, onClose, title, children, confirmText = 'Confirmar', onConfirm, loading = false, disableClose = false, hideFooter = false, confirmDisabled = false, confirmReadOnly = false }) => {
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
@@ -28,28 +28,30 @@ const ModalLateral = ({ isOpen, onClose, title, children, confirmText = 'Confirm
                     </div>
                 </div>
 
-                <div className={styles.content}>
+                <div className={styles.content} style={hideFooter ? { paddingBottom: '15px' } : {}}>
                     {children}
                 </div>
 
-                <div className={styles.footer}>
-                    <div className={styles.footerButtons}>
-                        <Boton
-                            label="Cancel"
-                            className="btn-default"
-                            style={{ color: '#333', border: '1px solid #ddd' }}
-                            onClick={disableClose ? undefined : onClose}
-                            disabled={disableClose}
-                        />
-                        <Boton
-                            label={confirmText}
-                            className="btn-original"
-                            onClick={onConfirm}
-                            loading={loading}
-                            disabled={loading}
-                        />
+                {!hideFooter && (
+                    <div className={styles.footer}>
+                        <div className={styles.footerButtons}>
+                            <Boton
+                                label="Cancelar"
+                                className="btn-cancel"
+                                onClick={disableClose ? undefined : onClose}
+                                disabled={disableClose}
+                            />
+                            <Boton
+                                label={confirmText}
+                                className="btn-primary"
+                                onClick={onConfirm}
+                                loading={loading}
+                                disabled={loading || confirmDisabled}
+                                readOnly={confirmReadOnly}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>,
         document.body

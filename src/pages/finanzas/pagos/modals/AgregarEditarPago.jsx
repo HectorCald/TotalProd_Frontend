@@ -103,17 +103,16 @@ const AgregarEditarPago = ({ isOpen, onClose, pagoSeleccionado, onGuardar }) => 
                     if (!savedData.id && response.id) savedData.id = response.id;
                     onGuardar(savedData);
                 }
-
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', pagoSeleccionado ? 'Pago actualizado exitosamente' : 'Pago creado exitosamente');
+                showSuccess(null, pagoSeleccionado ? 'Pago actualizado exitosamente' : 'Pago creado exitosamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 

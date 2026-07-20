@@ -211,6 +211,15 @@ class movimientosAlmacenService {
     });
   }
 
+  // Obtener relaciones de un movimiento
+  static async getRelations(id) {
+    return this._request(`/movimientos-almacen/${id}/relations`, { method: 'GET' }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
+  }
+
+
   // Anular un movimiento
   static async anular(movimientoId, desdePedido = false, esEdicion = false) {
     return this._request(`/movimientos-almacen/${movimientoId}/anular`, {
@@ -257,6 +266,20 @@ class movimientosAlmacenService {
     });
   }
 
+  // Obtener categorías más vendidas del mes
+  static async getCategoriasMasVendidas(sucuIdParam = null) {
+    const params = new URLSearchParams();
+    if (sucuIdParam) params.append('sucu_id', sucuIdParam);
+    
+    const query = params.toString() ? `?${params}` : '';
+    const requireSucuId = !sucuIdParam;
+
+    return this._request(`/movimientos-almacen/stats/categorias-mas-vendidas${query}`, { method: 'GET' }, {
+      requireSucuId,
+      returnErrorObject: true
+    });
+  }
+
   // Obtener todos los movimientos sin límite (para reportes y balance)
   static async getAllSinLimite(tipo = null, estado = null, ordenamiento = 'fecha_desc', sucuIdParam = null, filtroFecha = null) {
     const params = new URLSearchParams({
@@ -273,7 +296,7 @@ class movimientosAlmacenService {
 
     const requireSucuId = !sucuIdParam;
 
-    return this._request(`/movimientos-almacen?${params}`, { method: 'GET' }, {
+    return this._request(`/movimientos-almacen/sin-limite?${params}`, { method: 'GET' }, {
       requireSucuId,
       returnErrorObject: true
     });

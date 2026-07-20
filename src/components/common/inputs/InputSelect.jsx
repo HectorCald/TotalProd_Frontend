@@ -20,8 +20,6 @@ const InputSelect = ({
 }) => {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
-  const isLocked = disabled || readOnly;
-
   const getLabel = (opt) => {
     if (getOptionLabel) return getOptionLabel(opt);
     return typeof opt === 'object' && opt !== null && 'label' in opt ? opt.label : String(opt);
@@ -30,6 +28,24 @@ const InputSelect = ({
     if (getOptionValue) return getOptionValue(opt);
     return typeof opt === 'object' && opt !== null && 'value' in opt ? opt.value : opt;
   };
+
+  const isSingleOption = options.length === 1;
+  const isLocked = disabled || readOnly || isSingleOption;
+
+  useEffect(() => {
+    if (isSingleOption) {
+      const singleVal = getVal(options[0]);
+      if (String(value) !== String(singleVal)) {
+        // setTimeout para evitar warnings de react por actualización de estado durante renderizado de otros componentes
+        setTimeout(() => {
+          if (onChange) onChange(singleVal);
+        }, 0);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options, value]);
+
+
 
   const selectedOption = options.find((opt) => String(getVal(opt)) === String(value));
   const displayValue = selectedOption != null ? getLabel(selectedOption) : '';

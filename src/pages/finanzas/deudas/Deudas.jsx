@@ -4,6 +4,7 @@ import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive';
@@ -45,6 +46,7 @@ const Deudas = () => {
   const [deudaEliminar, setDeudaEliminar] = useState(null);
   const [modalInfoOpen, setModalInfoOpen] = useState(false);
   const [deudaSeleccionada, setDeudaSeleccionada] = useState(null);
+  const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
 
   const [debouncedSearch] = useDebounce(search, 500);
   const [tablaFilters, setTablaFilters] = useState({});
@@ -230,7 +232,7 @@ const Deudas = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea} onScroll={handleScroll}>
@@ -297,15 +299,26 @@ const Deudas = () => {
             }
             return [nuevaDeuda, ...prev];
           });
+          if (deudaSeleccionada && deudaSeleccionada.id === nuevaDeuda.id) {
+            setDeudaSeleccionada(prev => ({ ...prev, ...nuevaDeuda }));
+          }
         }}
       />
 
       <EliminarDeuda
         isOpen={modalEliminarOpen}
-        onClose={() => setModalEliminarOpen(false)}
+        onClose={(wasDeleted) => {
+          setModalEliminarOpen(false);
+          if (returnToViewOnDeleteClose && wasDeleted !== true) {
+            setModalInfoOpen(true);
+          }
+          setReturnToViewOnDeleteClose(false);
+        }}
         deudaSeleccionada={deudaEliminar}
         onEliminar={(idEliminado) => {
           setDeudas(prev => prev.filter(d => d.id !== idEliminado));
+          setReturnToViewOnDeleteClose(false);
+          setModalInfoOpen(false);
         }}
       />
 
@@ -317,11 +330,17 @@ const Deudas = () => {
           setDeudaEditando(deuda);
           setModalAgregarEditarOpen(true);
         }}
+        onEliminar={(idEliminado) => {
+          setDeudas(prev => prev.filter(d => d.id !== idEliminado));
+          setReturnToViewOnDeleteClose(false);
+          setModalInfoOpen(false);
+        }}
         onDeudaActualizada={(deudaActualizada) => {
           setDeudaSeleccionada(prev => ({ ...prev, ...deudaActualizada }));
           setDeudas(prev => prev.map(d => d.id === deudaActualizada.id ? { ...d, ...deudaActualizada } : d));
         }}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

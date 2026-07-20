@@ -4,6 +4,7 @@ import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive';
@@ -16,9 +17,12 @@ import ConfirmacionSalida from './canasta/confirmations/ConfirmacionSalida';
 import ConfirmacionEntrada from './canasta/confirmations/ConfirmacionEntrada';
 import { useCanasta } from './hooks/useCanasta';
 import { useToast } from '../../../context/ToastContext';
+import useFormatNumber from '../../../hooks/useFormatNumber';
+import BotonFlotante from '../../../components/common/botones/BotonFlotante';
 
 const MateriaPrima = () => {
   const { showDanger } = useToast();
+  const { formatPrice } = useFormatNumber();
   const { isLargeScreen } = useLayout();
   const location = useLocation();
 
@@ -26,7 +30,7 @@ const MateriaPrima = () => {
   const isCanastaMode = path.includes('/materia-prima/pedidos');
   const isHideActionsMode = path.includes('/materia-prima/entradas') || path.includes('/materia-prima/salidas') || isCanastaMode;
   const modoCanastaStr = 'NUEVO PEDIDO';
-  const { canasta, agregarProducto, eliminarProducto, actualizarCantidad, vaciarCanasta } = useCanasta();
+  const { canasta, agregarProducto, eliminarProducto, actualizarCantidad, actualizarMedida, vaciarCanasta } = useCanasta();
 
   // Determinar título basado en la ruta
   const getTitulo = () => {
@@ -43,7 +47,7 @@ const MateriaPrima = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
 
   // Paginación y filtros
   const [page, setPage] = useState(1);
@@ -61,13 +65,18 @@ const MateriaPrima = () => {
   const [modalSalidaOpen, setModalSalidaOpen] = useState(false);
   const [modalEntradaOpen, setModalEntradaOpen] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
+  const [isCanastaMobileOpen, setIsCanastaMobileOpen] = useState(false);
 
     const [debouncedSearch] = useDebounce(search, 500);
   const [tablaFilters, setTablaFilters] = useState({});
 
   const handleFiltersChange = (filters) => {
     setTablaFilters(filters);
-    const order = (filters.sort_order && filters.sort_order[0] === 'desc') ? 'name_desc' : 'name_asc';
+    let order = 'name_asc';
+    if (filters.sort_order && filters.sort_order.length > 0) {
+      order = filters.sort_order[0];
+    }
     setSortOrder(order);
 
     const catIdsStr = (filters.category_id && filters.category_id.length > 0) ? filters.category_id.join(',') : null;
@@ -80,8 +89,10 @@ const MateriaPrima = () => {
       title: 'Ordenamiento',
       singleSelect: true,
       options: [
-        { label: 'A - Z', value: 'asc' },
-        { label: 'Z - A', value: 'desc' }
+        { label: 'A - Z', value: 'name_asc' },
+        { label: 'Z - A', value: 'name_desc' },
+        { label: 'Mayor stock', value: 'stock_desc' },
+        { label: 'Menor stock', value: 'stock_asc' }
       ]
     },
     {
@@ -175,6 +186,7 @@ const MateriaPrima = () => {
       accessor: 'name',
       style: { fontWeight: 600, color: '#333' },
       width: '30%',
+      isMobileMain: true,
       render: (row) => {
         const inCanasta = canasta.some(p => p.id === row.id);
         return (
@@ -203,6 +215,23 @@ const MateriaPrima = () => {
       header: 'Cantidad',
       accessor: 'quantity',
       width: '15%',
+      isMobileStatus: true,
+      statusType: (row) => {
+        const qty = Number(row.quantity ?? 0);
+        const minimo = Number(row.stock_minimo ?? 0);
+        if (minimo > 0) {
+          if (qty <= minimo) return 'error';
+          if (qty <= minimo * 1.5) return 'warning';
+        } else {
+          if (qty <= 0) return 'error';
+          if (qty <= 5) return 'warning';
+        }
+        return 'info';
+      },
+      mobileRender: (row) => {
+        const qty = Number(row.quantity ?? 0);
+        return `${formatPrice(qty)} ${row.type_measure?.code || ''}`.trim();
+      },
       render: (row) => {
         const qty = Number(row.quantity ?? 0);
         const minimo = Number(row.stock_minimo ?? 0);
@@ -228,13 +257,11 @@ const MateriaPrima = () => {
           <span style={{
             color,
             fontWeight: 600,
-            borderRadius: '20px',
             padding: '2px 10px',
             display: 'inline-block',
-            backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
-            fontSize: '13px',
+            fontSize: '12px',
           }}>
-            {qty} {row.type_measure?.code || ''}
+            {formatPrice(qty)} {row.type_measure?.code || ''}
           </span>
         );
       }
@@ -243,13 +270,14 @@ const MateriaPrima = () => {
       header: 'Categoría',
       accessor: 'category_name',
       width: '20%',
+      isMobileSubtitle: true,
       render: (row) => row.category?.name || 'Sin categoría'
     }
   ];
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer} style={{ display: 'flex', flexDirection: 'row', width: '100%', overflow: 'hidden' }}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea} onScroll={handleScroll} style={{ flex: 1, transition: 'flex 0.3s' }}>
@@ -273,7 +301,8 @@ const MateriaPrima = () => {
                 agregarProducto(producto);
               } else if (path.includes('/materia-prima/salidas')) {
                 const qty = producto.quantity !== undefined && producto.quantity !== null ? producto.quantity : 0;
-                if (qty <= 0) {
+                const rawStock = 0; // Ajustar según lógica de stock real
+                if (modoCanastaStr === 'SALIDA' && qty <= rawStock) {
                   showDanger('Stock insuficiente', 'El producto no tiene stock suficiente para realizar una salida');
                   return;
                 }
@@ -297,8 +326,11 @@ const MateriaPrima = () => {
         </div>
         {isCanastaMode && (
           <CanastaMateriaPrima 
+            isOpen={isLargeScreen || isCanastaMobileOpen}
+            onClose={() => setIsCanastaMobileOpen(false)}
             canasta={canasta} 
             actualizarCantidad={actualizarCantidad} 
+            actualizarMedida={actualizarMedida}
             eliminarProducto={eliminarProducto} 
             vaciarCanasta={vaciarCanasta}
             modo={modoCanastaStr} 
@@ -332,15 +364,26 @@ const MateriaPrima = () => {
             }
             return [nuevoProducto, ...prev];
           });
+          if (productoSeleccionado && productoSeleccionado.id === nuevoProducto.id) {
+            setProductoSeleccionado(prev => ({ ...prev, ...nuevoProducto }));
+          }
         }}
       />
 
       <EliminarProducto
         isOpen={modalEliminarOpen}
-        onClose={() => setModalEliminarOpen(false)}
+        onClose={(wasDeleted) => {
+          setModalEliminarOpen(false);
+          if (returnToViewOnDeleteClose && wasDeleted !== true) {
+            setModalInfoOpen(true);
+          }
+          setReturnToViewOnDeleteClose(false);
+        }}
         productoSeleccionado={productoEliminar}
         onEliminar={(idEliminado) => {
           setProductos(prev => prev.filter(p => p.id !== idEliminado));
+          setReturnToViewOnDeleteClose(false);
+          setModalInfoOpen(false);
         }}
       />
 
@@ -351,6 +394,12 @@ const MateriaPrima = () => {
         onEdit={(producto) => {
           setProductoEditando(producto);
           setModalAgregarEditarOpen(true);
+        }}
+        onDelete={(producto) => {
+          setReturnToViewOnDeleteClose(true);
+          setModalInfoOpen(false);
+          setProductoEliminar(producto);
+          setModalEliminarOpen(true);
         }}
       />
 
@@ -365,6 +414,19 @@ const MateriaPrima = () => {
         onClose={() => setModalEntradaOpen(false)}
         producto={productoSeleccionado}
       />
+
+      {/* Botón flotante para la canasta en móvil */}
+      {!isLargeScreen && isCanastaMode && (
+        <BotonFlotante
+          iconName="cart"
+          onClick={() => setIsCanastaMobileOpen(true)}
+          ariaLabel="Ver Canasta"
+          style={{ bottom: '80px' }}
+          badgeCount={canasta.length}
+        />
+      )}
+
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

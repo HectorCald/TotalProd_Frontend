@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
 import InputSelectBox from '../inputs/InputSelectBox';
 import InputSelectMultiple from '../inputs/InputSelectMultiple';
+import InputSelect from '../inputs/InputSelect';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import useSessionCache from '../../../hooks/useSessionCache';
 
-const SelectCategoriasAlmacen = ({ value, onChange, error, label = "Categorías", required = false, fetchTrigger, multiple = true, disabled = false, ...rest }) => {
+const SelectCategoriasAlmacen = ({ value, onChange, error, label = "Categorías", required = false, fetchTrigger, multiple = true, useSelect = false, disabled = false, ...rest }) => {
     const { value: categorias, setValue: setCategorias } = useSessionCache({
         key: 'categoriasAlmacenListado',
         defaultValue: []
@@ -29,6 +30,21 @@ const SelectCategoriasAlmacen = ({ value, onChange, error, label = "Categorías"
     if (multiple) {
         return (
             <InputSelectMultiple
+                label={label}
+                value={value}
+                onChange={onChange}
+                options={options}
+                error={error}
+                required={required}
+                disabled={disabled}
+                {...rest}
+            />
+        );
+    }
+
+    if (useSelect) {
+        return (
+            <InputSelect
                 label={label}
                 value={value}
                 onChange={onChange}

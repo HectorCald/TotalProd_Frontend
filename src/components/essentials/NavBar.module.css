@@ -17,13 +17,13 @@
   display: flex;
   align-items: center;
   height: 100%;
+  gap: 10px;
 }
 
 .logoContainer {
   display: flex;
   align-items: center;
   height: 100%;
-  margin-right: 20px;
 }
 
 .toggleBtn {
@@ -46,13 +46,10 @@
 }
 
 .sucursalSelector {
-  margin-left: 15px;
   min-width: 200px;
 }
 
-.sucursalSkeleton {
-  margin-left: 15px;
-}
+
 
 .rightContainer {
   display: flex;
@@ -93,7 +90,7 @@
 .avatar {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 8px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -132,8 +129,8 @@
 .dropdownMenu {
   position: absolute;
   top: 100%;
-  right: 0;
-  margin-top: 5px;
+  right: -10px;
+  margin-top: 10px;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -177,4 +174,41 @@
   height: 1px;
   background-color: var(--quaternary-color, #e5e7eb);
   margin: 8px 0;
+}
+
+.dropdownHeaderMobile {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 16px;
+  gap: 2px;
+}
+
+.dropdownUserName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--secondary-color, #333);
+}
+
+.dropdownUserEmail {
+  font-size: 12px;
+  color: #666;
+}
+
+.goldBadgeSmall {
+  background: linear-gradient(90deg, #dfa91b 0%, #ffeb9b 50%, #dfa91b 100%);
+  background-size: 200% auto;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: shimmerGold 3s linear infinite;
+  box-shadow: 0 2px 8px rgba(223, 169, 27, 0.4);
+  flex-shrink: 0;
+}
+
+@keyframes shimmerGold {
+  0% { background-position: 0% center; }
+  100% { background-position: -200% center; }
 }

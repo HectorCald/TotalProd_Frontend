@@ -4,6 +4,7 @@ import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive';
@@ -46,6 +47,7 @@ const Pagos = () => {
   const [pagoEliminar, setPagoEliminar] = useState(null);
   const [modalInfoOpen, setModalInfoOpen] = useState(false);
   const [pagoSeleccionado, setPagoSeleccionado] = useState(null);
+  const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
 
   const [debouncedSearch] = useDebounce(search, 500);
   const [tablaFilters, setTablaFilters] = useState({});
@@ -207,7 +209,7 @@ const Pagos = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea} onScroll={handleScroll}>
@@ -279,10 +281,22 @@ const Pagos = () => {
 
       <EliminarPago
         isOpen={modalEliminarOpen}
-        onClose={() => setModalEliminarOpen(false)}
+        onClose={(wasDeleted) => {
+          setModalEliminarOpen(false);
+          if (returnToViewOnDeleteClose && wasDeleted !== true) {
+            setModalInfoOpen(true);
+          }
+          setReturnToViewOnDeleteClose(false);
+        }}
         pagoSeleccionado={pagoEliminar}
         onEliminar={(idEliminado) => {
-          setPagos(prev => prev.filter(p => p.id !== idEliminado));
+          if (Array.isArray(idEliminado)) {
+            setPagos(prev => prev.filter(p => !idEliminado.includes(p.id)));
+          } else {
+            setPagos(prev => prev.filter(p => p.id !== idEliminado));
+          }
+          setReturnToViewOnDeleteClose(false);
+          setModalInfoOpen(false);
         }}
       />
 
@@ -294,7 +308,17 @@ const Pagos = () => {
           setPagoEditando(pago);
           setModalAgregarEditarOpen(true);
         }}
+        onEliminar={(idEliminado) => {
+          if (Array.isArray(idEliminado)) {
+            setPagos(prev => prev.filter(p => !idEliminado.includes(p.id)));
+          } else {
+            setPagos(prev => prev.filter(p => p.id !== idEliminado));
+          }
+          setReturnToViewOnDeleteClose(false);
+          setModalInfoOpen(false);
+        }}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

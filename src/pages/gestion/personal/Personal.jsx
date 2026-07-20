@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import useSessionCache from '../../../hooks/useSessionCache';
@@ -30,6 +31,8 @@ const Personal = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
   const [personalSeleccionado, setPersonalSeleccionado] = useState(null);
+  const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
+  const [returnToViewOnResetClose, setReturnToViewOnResetClose] = useState(false);
 
   const handlePersonalLoaded = useCallback((data) => {
     setPersonal(data);
@@ -51,12 +54,6 @@ const Personal = () => {
   }, []);
 
   const tableActions = [
-    {
-      name: 'Detalles', icon: 'show', onClick: (personal) => {
-        setPersonalSeleccionado(personal);
-        setIsViewModalOpen(true);
-      }
-    },
     {
       name: 'Editar', icon: 'edit', onClick: (personal) => {
         setPersonalSeleccionado(personal);
@@ -83,12 +80,14 @@ const Personal = () => {
       accessor: 'nombre_completo',
       style: { fontWeight: 600, color: '#333' },
       hasIcon: true,
-      width: '25%'
+      width: '25%',
+      isMobileMain: true
     },
     {
       header: 'Cargo',
       accessor: 'cargo',
-      width: '15%'
+      width: '15%',
+      isMobileSubtitle: true
     },
     {
       header: 'Correo Electrónico',
@@ -100,7 +99,8 @@ const Personal = () => {
       accessor: 'estado_texto',
       hasStatusDot: true,
       statusType: (row) => row.is_active ? 'success' : 'error',
-      width: '10%'
+      width: '10%',
+      isMobileStatus: true
     },
     {
       header: 'Sucursal',
@@ -136,7 +136,7 @@ const Personal = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea}>
@@ -172,6 +172,7 @@ const Personal = () => {
         onGuardar={(nuevoPersonal) => {
           if (personalSeleccionado) {
             setPersonal(prev => prev.map(p => p.id === personalSeleccionado.id ? { ...p, ...nuevoPersonal } : p));
+            setPersonalSeleccionado(prev => ({ ...prev, ...nuevoPersonal }));
           } else {
             setPersonal(prev => [{ id: nuevoPersonal?.id || Date.now(), ...nuevoPersonal }, ...prev]);
           }
@@ -181,16 +182,30 @@ const Personal = () => {
 
       <EliminarPersonal
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        onClose={(wasDeleted) => {
+          setIsDeleteModalOpen(false);
+          if (returnToViewOnDeleteClose && wasDeleted !== true) {
+            setIsViewModalOpen(true);
+          }
+          setReturnToViewOnDeleteClose(false);
+        }}
         personalSeleccionado={personalSeleccionado}
         onEliminar={(idEliminado) => {
           setPersonal(prev => prev.filter(p => p.id !== idEliminado));
+          setReturnToViewOnDeleteClose(false);
+          setIsViewModalOpen(false);
         }}
       />
 
       <ResetPasswordPersonal
         isOpen={isResetPasswordModalOpen}
-        onClose={() => setIsResetPasswordModalOpen(false)}
+        onClose={() => {
+          setIsResetPasswordModalOpen(false);
+          if (returnToViewOnResetClose) {
+            setIsViewModalOpen(true);
+          }
+          setReturnToViewOnResetClose(false);
+        }}
         personalSeleccionado={personalSeleccionado}
       />
 
@@ -203,8 +218,14 @@ const Personal = () => {
           setIsModalOpen(true);
         }}
         onResetPassword={(personal) => {
-          setPersonalSeleccionado(personal);
+          setReturnToViewOnResetClose(true);
+          setIsViewModalOpen(false);
           setIsResetPasswordModalOpen(true);
+        }}
+        onDelete={(personal) => {
+          setReturnToViewOnDeleteClose(true);
+          setIsViewModalOpen(false);
+          setIsDeleteModalOpen(true);
         }}
       />
 
@@ -217,6 +238,7 @@ const Personal = () => {
         onLoadingEnd={handleLoadingEnd}
         onError={handleError}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

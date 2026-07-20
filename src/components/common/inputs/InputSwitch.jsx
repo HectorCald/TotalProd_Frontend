@@ -14,7 +14,7 @@ const InputSwitch = ({ label, subtitle, checked, onChange, disabled, id, icon, r
           </div>
         )}
         <div className={styles.textContainer}>
-          {label && <p className={styles.label}>{typeof label === 'string' ? label.toUpperCase() : label}</p>}
+          {label && <p className={styles.switchLabel}>{typeof label === 'string' ? label.toUpperCase() : label}</p>}
           {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
         </div>
         <div className={styles.switch}>

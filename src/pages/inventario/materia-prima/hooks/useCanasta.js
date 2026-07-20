@@ -10,7 +10,7 @@ export const useCanasta = () => {
       if (existe) {
         return prev.map(p => p.id === producto.id ? { ...p, cantidad: (p.cantidad || 1) + 1 } : p);
       }
-      return [...prev, { ...producto, cantidad: 1 }];
+      return [...prev, { ...producto, cantidad: 1, tipo_medida: 'Kilogramo' }];
     });
   }, []);
 
@@ -22,6 +22,10 @@ export const useCanasta = () => {
     setCanasta(prev => prev.map(p => p.id === id ? { ...p, cantidad } : p));
   }, []);
 
+  const actualizarMedida = useCallback((id, tipo_medida) => {
+    setCanasta(prev => prev.map(p => p.id === id ? { ...p, tipo_medida } : p));
+  }, []);
+
   const vaciarCanasta = useCallback(() => {
     setCanasta([]);
   }, []);
@@ -31,6 +35,7 @@ export const useCanasta = () => {
     agregarProducto,
     eliminarProducto,
     actualizarCantidad,
+    actualizarMedida,
     vaciarCanasta
   };
 };

@@ -43,7 +43,7 @@ class productsAlmacenService {
   }
 
   // Obtener todos los productos
-  static async getAll(page = 1, limit = 30, search = null, categoryId = null, sortOrder = null, ocultarStockCero = false) {
+  static async getAll(page = 1, limit = 30, search = null, categoryId = null, sortOrder = null, ocultarStockCero = false, includeSocios = true) {
     const params = new URLSearchParams({
       page: page,
       limit: limit,
@@ -54,23 +54,24 @@ class productsAlmacenService {
     if (categoryId) params.append('category_id', categoryId);
     if (sortOrder) params.append('sort_order', sortOrder);
 
-    // Obtener empresas favoritas de localStorage y enviarlas
-    try {
-      const FAVORITES_KEY = 'empresas_favoritas';
-      const stored = localStorage.getItem(FAVORITES_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const favorites = Array.isArray(parsed) ? parsed : [];
-        const empresasAsociadasIds = favorites.map(empresa => empresa.id).filter(id => id);
-        
-        if (empresasAsociadasIds.length > 0) {
-          empresasAsociadasIds.forEach(id => {
-            params.append('empresas_asociadas', id);
-          });
+    if (includeSocios) {
+      // Obtener socios de localStorage y enviarlas
+      try {
+        const SOCIOS_KEY = 'socios';
+        const stored = localStorage.getItem(SOCIOS_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const sociosIds = Array.isArray(parsed) ? parsed : [];
+          
+          if (sociosIds.length > 0) {
+            sociosIds.forEach(id => {
+              if (id) params.append('empresas_asociadas', id);
+            });
+          }
         }
+      } catch (e) {
+        console.warn("No se pudieron cargar socios", e);
       }
-    } catch (e) {
-      console.warn("No se pudieron cargar empresas favoritas", e);
     }
 
     return productsAlmacenService._request(`/products-almacen?${params}`, { method: 'GET' }, {
@@ -248,6 +249,15 @@ class productsAlmacenService {
     });
 
     return productsAlmacenService._request(`/products-almacen/by-ids-fast?${params}`, { method: 'GET' }, {
+      requireSucuId: true,
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
+  }
+
+  // Obtener productos para conteo
+  static async productsConteo() {
+    return productsAlmacenService._request('/products-almacen/conteo-data', { method: 'GET' }, {
       requireSucuId: true,
       requireEmpresaId: true,
       returnErrorObject: true

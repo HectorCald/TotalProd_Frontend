@@ -1,97 +1,42 @@
-const CACHE_NAME = 'totalprod-cache-v3.0.2';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192x192.png',
-  '/icon-512x512.png',
-  '/icon.png'
-];
+const CACHE_NAME = 'totalprod-cache-v3.1.4';
+const urlsToCache = ['/', '/index.html', '/manifest.json', '/icon-192x192.png', '/icon-512x512.png', '/icon.png'];
 
 self.addEventListener('install', event => {
-  console.log('🚀 Service Worker instalándose...');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('📦 Cache abierto, instalando...');
-        // Precargar recursos base para que el nuevo CACHE_NAME exista en install
-        return cache.addAll(urlsToCache).catch(err => {
-          console.warn('⚠️ Error precache addAll, continuando:', err);
-        });
-      })
-      .then(() => {
-        console.log('✅ Service Worker instalado correctamente');
-        return self.skipWaiting();
-      })
-      .catch(error => {
-        console.error('❌ Error instalando Service Worker:', error);
-      })
+      .then(cache => cache.addAll(urlsToCache).catch(() => {}))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('fetch', event => {
-  const request = event.request;
-  const url = new URL(request.url);
-  
-  // Solo interceptar requests del mismo origen
-  if (url.origin !== location.origin) {
-    return;
-  }
-  
-  // No interceptar requests de API o datos
-  if (url.pathname.startsWith('/api/') || url.pathname.includes('?')) {
-    return;
-  }
+  const url = new URL(event.request.url);
+  if (url.origin !== location.origin || url.pathname.startsWith('/api/') || url.pathname.includes('?')) return;
   
   event.respondWith(
-    caches.match(request)
-      .then(response => {
-        // Si está en caché, devolverlo
-        if (response) {
-          console.log('📦 Sirviendo desde caché:', url.pathname);
-          return response;
+    caches.match(event.request).then(response => {
+      if (response) return response;
+      return fetch(event.request).then(res => {
+        if (res && res.status === 200) {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
         }
-        
-        // Si no está en caché, buscar en red y guardar
-        return fetch(request)
-          .then(response => {
-            // Cachear respuestas exitosas
-            if (response && response.status === 200) {
-              const responseToCache = response.clone();
-              caches.open(CACHE_NAME)
-                .then(cache => {
-                  cache.put(request, responseToCache);
-                  console.log('💾 Guardando en caché:', url.pathname);
-                })
-                .catch(cacheError => {
-                  console.warn('⚠️ Error guardando en caché:', cacheError);
-                });
-            }
-            return response;
-          })
-          .catch(error => {
-            console.warn('❌ Error en fetch:', url.pathname, error);
-            return fetch(request); // Intentar fetch normal como fallback
-          });
-      })
+        return res;
+      }).catch(() => fetch(event.request));
+    })
   );
 });
 
 self.addEventListener('activate', event => {
-  console.log('🔄 Service Worker activándose...');
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Eliminando cache antiguo:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      console.log('✅ Service Worker activado correctamente');
-      return self.clients.claim();
-    })
+    caches.keys().then(names => Promise.all(
+      names.map(name => name !== CACHE_NAME ? caches.delete(name) : null)
+    )).then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', event => {
+  if (event.data?.type === 'GET_VERSION') {
+    event.source.postMessage({ type: 'SW_VERSION', version: CACHE_NAME });
+  }
 });

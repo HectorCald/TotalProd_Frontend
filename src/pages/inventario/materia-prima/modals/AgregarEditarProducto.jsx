@@ -184,22 +184,19 @@ const AgregarEditarProducto = ({
 
             if (response.success) {
                 if (onGuardar) {
-                    const savedData = response.data || productDataToSubmit;
-                    const tmElegida = typeMeasures.find(t => String(t.id) === String(formData.type_measure_id));
-                    savedData.type_measure = tmElegida;
-                    onGuardar(savedData);
+                    onGuardar(response.data);
                 }
 
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || `Producto ${esEdicion ? 'actualizado' : 'creado'} exitosamente`);
+                showSuccess(null, response.message || `Producto ${esEdicion ? 'actualizado' : 'creado'} exitosamente`);
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -300,8 +297,7 @@ const AgregarEditarProducto = ({
                     placeholder="Sin categoría"
                 />
 
-                <h4 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '14px', color: 'var(--text-color)' }}>Receta</h4>
-                <div style={{ marginBottom: '15px' }}>
+                <h4 style={{ marginBlock: '5px', fontSize: '12px', color: 'var(--black-color)' }}>RECETA</h4>
                     <InputSwitch
                         label="¿Tiene receta?"
                         subtitle="Marca si esta materia prima se produce a partir de otra materia prima"
@@ -313,7 +309,7 @@ const AgregarEditarProducto = ({
                         icon="receipt"
                         readOnly={loading}
                     />
-                </div>
+               
 
                 {hasReceta && (
                     <Boton
@@ -326,13 +322,13 @@ const AgregarEditarProducto = ({
                 )}
 
                 {hasReceta && (!recetaGuardada || !recetaGuardada.productos || recetaGuardada.productos.length === 0) && (
-                    <div style={{ marginTop: '10px' }}>
+                   
                         <Mensaje
                             type={fieldErrors.receta ? "error" : "warning"}
                             title={fieldErrors.receta ? "Receta vacía" : "Configurar Receta"}
                             message="Debe configurar una receta con al menos un producto ingrediente."
                         />
-                    </div>
+                  
                 )}
             </ModalLateral>
 

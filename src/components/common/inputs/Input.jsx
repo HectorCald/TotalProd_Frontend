@@ -25,6 +25,7 @@ const Input = ({
   placeholder,
   required,
   error,
+  errorType = 'error',
   onClearError,
   readOnly,
   isSearch = false,   // ← nuevo: muestra X para limpiar cuando hay valor
@@ -35,6 +36,7 @@ const Input = ({
   const isNumber = t === 'number';
   const isPassword = t === 'password';
   const isTextarea = t === 'textarea';
+  const isTel = t === 'tel';
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const internalRef = useRef(null);
@@ -45,6 +47,13 @@ const Input = ({
       const raw = e.target.value;
       const stripped = raw.replace(/\./g, '').replace(',', '.');
       if (stripped !== '' && !/^-?\d*\.?\d*$/.test(stripped)) return;
+      onChange?.({ ...e, target: { ...e.target, value: stripped } });
+      onClearError?.();
+      return;
+    }
+    if (isTel) {
+      const raw = e.target.value;
+      const stripped = raw.replace(/[^0-9+]/g, '');
       onChange?.({ ...e, target: { ...e.target, value: stripped } });
       onClearError?.();
       return;
@@ -65,6 +74,8 @@ const Input = ({
   const showClearBtn = isSearch && !isPassword && String(value ?? '').length > 0 && !readOnly;
   const hasRightIcon = showPasswordToggle || showClearBtn;
 
+  const errorClass = error ? (errorType === 'warning' ? styles.inputWarning : errorType === 'info' ? styles.inputInfo : errorType === 'success' ? styles.inputSuccess : styles.inputError) : '';
+
   return (
     <div className={styles.root}>
       {label && (
@@ -80,23 +91,23 @@ const Input = ({
             value={value ?? ''}
             onChange={readOnly ? undefined : handleInputChange}
             placeholder={placeholder}
-            className={`${styles.input} ${error ? styles.inputError : ''}`}
+            className={`${styles.input} ${errorClass}`}
             required={required}
             readOnly={readOnly}
             tabIndex={readOnly ? -1 : undefined}
             rows={3}
-            style={{ resize: 'none' }}
+            style={{ resize: 'none', height: '120px' }}
             {...rest}
           />
         ) : (
           <input
             ref={ref}
             type={inputType}
-            inputMode={isNumber ? 'decimal' : undefined}
+            inputMode={isNumber ? 'decimal' : (isTel ? 'tel' : undefined)}
             value={displayValue}
             onChange={readOnly ? undefined : handleInputChange}
             placeholder={placeholder}
-            className={`${styles.input} ${error ? styles.inputError : ''}`}
+            className={`${styles.input} ${errorClass}`}
             onWheel={isNumber ? (e) => e.target.blur() : undefined}
             onFocus={readOnly ? (e) => e.target.blur() : () => setIsFocused(true)}
             onBlur={isNumber ? () => setIsFocused(false) : undefined}
@@ -134,8 +145,8 @@ const Input = ({
         )}
       </div>
       {error && (
-        <div className={styles.errorTextMessage}>
-          <BoxIcon name="error" className={styles.errorTextIcon} />
+        <div className={errorType === 'warning' ? styles.warningTextMessage : errorType === 'info' ? styles.infoTextMessage : errorType === 'success' ? styles.successTextMessage : styles.errorTextMessage}>
+          <BoxIcon name={errorType === 'warning' ? 'error-circle' : errorType === 'info' ? 'info-circle' : errorType === 'success' ? 'check-circle' : 'error'} className={styles.errorTextIcon} />
           <span>{typeof error === 'string' ? error : 'El campo es obligatorio'}</span>
         </div>
       )}

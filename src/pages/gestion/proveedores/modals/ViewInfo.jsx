@@ -3,8 +3,9 @@ import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Boton from '../../../../components/common/botones/Boton';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import InfoCard from '../../../../components/common/information/InfoCard';
+import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 
-const ViewInfo = ({ isOpen, onClose, proveedor, onEdit }) => {
+const ViewInfo = ({ isOpen, onClose, proveedor, onEdit, onDelete }) => {
     const [ubicacion, setUbicacion] = useState(null);
 
     useEffect(() => {
@@ -24,36 +25,32 @@ const ViewInfo = ({ isOpen, onClose, proveedor, onEdit }) => {
             title=""
             confirmText="Editar"
             onConfirm={() => {
-                onClose();
                 if (onEdit) onEdit(proveedor);
             }}
             hideFooter={true}
-            width="450px"
         >
-            <div style={{ margin: '-10px -24px -24px -24px' }}>
                 <InfoCard
                     title={proveedor.name || 'Sin nombre'}
-                    subtitle="Información del Proveedor"
-                    description={proveedor.description}
-                    tags={[
-                        {
-                            text: 'Proveedor',
-                            icon: 'user'
-                        },
-                        proveedor.phone ? {
-                            text: proveedor.phone,
-                            icon: 'phone'
-                        } : null
-                    ].filter(Boolean)}
-                    stats={[
-                        {
-                            label: 'Pedidos',
-                            value: proveedor.total_orders || 0,
-                            icon: 'cart'
-                        }
-                    ]}
+                    subtitle={proveedor.total_orders || 0 > 1 ? `${proveedor.total_orders} Pedidos` : proveedor.total_orders === 1 ? '1 Pedido' : 'Sin Pedidos'}
+                    customBlock={
+                        proveedor.phone ? (
+                            <>
+                            <ColumnInfo 
+                                items={[
+                                    { icon: 'phone', text: proveedor.phone }
+                                ]}
+                            />
+                            <ColumnInfo 
+                                items={[
+                                    { text: proveedor.description }
+                                ]}
+                                title='Descripción'
+                            />
+                        </>
+                        ) : null
+                    }
                     actionButton={
-                        <div style={{ display: 'flex', gap: '16px', width: '100%' }}>
+                        <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
                             <Boton
                                 label="Ver en Google Maps"
                                 iconName="map"
@@ -70,15 +67,23 @@ const ViewInfo = ({ isOpen, onClose, proveedor, onEdit }) => {
                             <BotonIcon
                                 iconName="edit"
                                 className="btn-primary"
+                                tooltip="Editar Proveedor"
                                 onClick={() => {
-                                    onClose();
                                     if (onEdit) onEdit(proveedor);
+                                }}
+                            />
+                            <BotonIcon
+                                iconName="trash"
+                                className="btn-error"
+                                tooltipAlign="end"
+                                tooltip="Eliminar Proveedor"
+                                onClick={() => {
+                                    if (onDelete) onDelete(proveedor);
                                 }}
                             />
                         </div>
                     }
                 />
-            </div>
         </ModalCentro>
     );
 };

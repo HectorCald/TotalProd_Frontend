@@ -1,18 +1,18 @@
 import apiClient, { getEmpresaId } from '../config/apiClient';
 
-// Helper for favorites companies
+// Helper for asociados companies
 const getEmpresasAsociadasIds = () => {
   try {
-    const FAVORITES_KEY = 'empresas_favoritas';
-    const stored = localStorage.getItem(FAVORITES_KEY);
+    const SOCIOS_KEY = 'socios';
+    const stored = localStorage.getItem(SOCIOS_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      const favorites = Array.isArray(parsed) ? parsed : [];
-      return favorites.map(empresa => empresa.id).filter(id => id);
+      const sociosIds = Array.isArray(parsed) ? parsed : [];
+      return sociosIds.filter(id => id);
     }
     return [];
   } catch (error) {
-    console.error('Error al obtener empresas favoritas:', error);
+    console.error('Error al obtener socios:', error);
     return [];
   }
 };

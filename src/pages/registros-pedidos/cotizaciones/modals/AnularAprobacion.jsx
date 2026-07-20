@@ -9,7 +9,7 @@ const AnularAprobacion = ({ isOpen, onClose, cotizacionSeleccionada, onAnular })
 
     const handleConfirm = async () => {
         if (!cotizacionSeleccionada?.id) {
-            showDanger('Error', 'ID de la cotización no válido');
+            showDanger(null, 'ID de la cotización no válido');
             return;
         }
 
@@ -21,17 +21,16 @@ const AnularAprobacion = ({ isOpen, onClose, cotizacionSeleccionada, onAnular })
                 if (onAnular) {
                     onAnular(cotizacionSeleccionada.id, 'pendiente');
                 }
-
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || 'Aprobación anulada exitosamente');
+                showSuccess(null, response.message || 'Aprobación anulada exitosamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message);
+                showDanger(null, response.message);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -50,10 +49,11 @@ const AnularAprobacion = ({ isOpen, onClose, cotizacionSeleccionada, onAnular })
             mensaje={`¿Estás seguro de que deseas anular la aprobación de la cotización #${cotizacionSeleccionada?.numero_cotizacion || 'Sin número'}?`}
             detalle="Esta cotización volverá a estado pendiente."
             confirmText="Anular Aprobación"
-            confirmColorClass="btn-orange"
+            confirmColorClass="btn-warning"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

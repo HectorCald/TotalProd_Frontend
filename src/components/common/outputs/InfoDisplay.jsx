@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './InfoDisplay.module.css';
 
-const InfoDisplay = ({ label, value, subValue, subValueColor, icon }) => {
+const InfoDisplay = ({ label, value, subValue, subValueColor, icon, noSubValueBackground }) => {
   return (
     <div className={styles.container}>
       {icon && (
@@ -18,7 +18,12 @@ const InfoDisplay = ({ label, value, subValue, subValueColor, icon }) => {
       {subValue && (
         <span 
           className={styles.subValue} 
-          style={subValueColor ? { color: subValueColor, borderColor: `color-mix(in srgb, ${subValueColor} 20%, transparent)`, backgroundColor: `color-mix(in srgb, ${subValueColor} 10%, transparent)` } : {}}
+          style={subValueColor ? { 
+            color: subValueColor, 
+            borderColor: noSubValueBackground ? 'transparent' : `color-mix(in srgb, ${subValueColor} 20%, transparent)`, 
+            backgroundColor: noSubValueBackground ? 'transparent' : `color-mix(in srgb, ${subValueColor} 10%, transparent)`,
+            padding: noSubValueBackground ? '0px' : undefined
+          } : {}}
         >
           {subValue}
         </span>

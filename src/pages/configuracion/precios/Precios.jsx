@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
+import MenuSide from '../../../components/essentials/MenuSide';
 import styles from '../../../pages/home/View.module.css';
 import pricesTypesService from '../../../services/pricesTypesService';
 import ItemMultiple from '../../../components/common/information/ItemMultiple';
@@ -53,7 +54,7 @@ const Precios = () => {
 
   return (
     <>
-      {isLargeScreen && <NavBar />}
+      <NavBar />
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea}>
@@ -91,6 +92,7 @@ const Precios = () => {
         }}
         iconName="plus"
         ariaLabel="Nuevo Tipo de Precio"
+        style={{ bottom: !isLargeScreen ? '80px' : undefined }}
       />
 
       {/* Modal para agregar o editar precio */}
@@ -122,12 +124,14 @@ const Precios = () => {
       <FetchData
         service={pricesTypesService}
         serviceName="pricesTypesService"
+        methodParams={[null, false]}
         isOpen={true}
         onDataLoaded={handlePreciosLoaded}
         onLoadingStart={handleLoadingStart}
         onLoadingEnd={handleLoadingEnd}
         onError={handleError}
       />
+      {!isLargeScreen && <MenuSide />}
     </>
   );
 };

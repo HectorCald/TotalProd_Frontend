@@ -4,6 +4,7 @@ import { useToast } from '../../../../context/ToastContext';
 import conteosService from '../../../../services/conteosService';
 import useHistorialLogger from '../../../../components/ui/HistorialLogger';
 import { buildConteoDetallesParaHistorial } from '../../../../utils/logFormatters';
+import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 
 const ReemplazarConteo = ({ isOpen, onClose, conteoSeleccionado, onReemplazar }) => {
     const { showSuccess, showDanger } = useToast();
@@ -14,9 +15,12 @@ const ReemplazarConteo = ({ isOpen, onClose, conteoSeleccionado, onReemplazar })
         modulo: moduloConteo
     });
 
+    const fechaLimpia = conteoSeleccionado?.fecha ? conteoSeleccionado.fecha.substring(0, 10) : '';
+    const fechaLiteral = useFechaLiteral(fechaLimpia, false);
+
     const handleConfirm = async () => {
         if (!conteoSeleccionado?.id) {
-            showDanger('Error', 'ID del conteo no válido');
+            showDanger(null, 'ID del conteo no válido');
             return;
         }
 
@@ -47,14 +51,14 @@ const ReemplazarConteo = ({ isOpen, onClose, conteoSeleccionado, onReemplazar })
 
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message || 'Stock reemplazado exitosamente');
+                showSuccess(null, response.message || 'Stock reemplazado exitosamente');
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message || response.error || 'No se pudo reemplazar el stock');
+                showDanger(null, response.message || response.error || 'No se pudo reemplazar el stock');
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor');
+            showDanger(null, 'Revisa tu conexión a internet');
         }
     };
 
@@ -65,7 +69,7 @@ const ReemplazarConteo = ({ isOpen, onClose, conteoSeleccionado, onReemplazar })
 
     if (!conteoSeleccionado && isOpen) return null;
 
-    const itemConcepto = conteoSeleccionado?.codigo || `del ${new Date(conteoSeleccionado?.fecha).toLocaleDateString()}`;
+    const itemConcepto = conteoSeleccionado?.codigo || `del ${fechaLiteral}`;
 
     return (
         <ModalCentro
@@ -75,10 +79,11 @@ const ReemplazarConteo = ({ isOpen, onClose, conteoSeleccionado, onReemplazar })
             mensaje={`¿Estás seguro de continuar con el reemplazo de stock del conteo ${itemConcepto}?`}
             detalle="Al reemplazar stock este va a tomar las cantidades físicas de este conteo y las va a reemplazar en el stock principal de los productos."
             confirmText="Reemplazar"
-            confirmColorClass="btn-orange"
+            confirmColorClass="btn-warning"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
+            contentStyle={{ paddingBlock: 0 }}
         />
     );
 };

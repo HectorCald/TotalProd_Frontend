@@ -115,13 +115,13 @@ const personalService = {
         });
     },
 
-    // Validar código de empleado
-    async validateEmployeeCode(codigo) {
-        if (!codigo) {
-            return { success: false, message: 'Código es requerido' };
+    // Validar correo de empleado
+    async validateEmployeeEmail(email) {
+        if (!email) {
+            return { success: false, message: 'Correo es requerido' };
         }
-        const encodedCodigo = encodeURIComponent(codigo);
-        return this._request(`/personal/validate-employee/${encodedCodigo}`, {
+        const encodedEmail = encodeURIComponent(email);
+        return this._request(`/personal/validate-employee/${encodedEmail}`, {
             method: 'GET'
         }, {
             requireEmpresaId: false,
@@ -144,13 +144,13 @@ const personalService = {
     },
 
     // Login de empleado
-    async loginEmployee(codigo, password) {
-        if (!codigo || !password) {
-            return { success: false, message: 'Código y contraseña son requeridos' };
+    async loginEmployee(email, password) {
+        if (!email || !password) {
+            return { success: false, message: 'Correo y contraseña son requeridos' };
         }
         const data = await this._request('/personal/login-employee', {
             method: 'POST',
-            body: JSON.stringify({ codigo, password })
+            body: JSON.stringify({ email, password })
         }, {
             requireEmpresaId: false,
             returnErrorObject: true
@@ -189,83 +189,6 @@ const personalService = {
         });
     },
 
-    // Actualizar ubicación del empleado
-    async updateLocation(personalId, latitude, longitude) {
-        if (!personalId || !latitude || !longitude) {
-            return { success: false, message: 'ID del personal, latitud y longitud son requeridos' };
-        }
-        return this._request(`/personal/${personalId}/update-location`, {
-            method: 'POST',
-            body: JSON.stringify({ latitude, longitude })
-        }, {
-            requireEmpresaId: false,
-            returnErrorObject: true
-        });
-    },
-
-    // Obtener ubicación del empleado
-    async getLocation(personalId) {
-        if (!personalId) {
-            return { success: false, message: 'ID del personal es requerido' };
-        }
-        return this._request(`/personal/${personalId}/location`, {
-            method: 'GET'
-        }, {
-            requireEmpresaId: false,
-            returnErrorObject: true
-        });
-    },
-
-    // Obtener ubicación actual del navegador
-    async getCurrentLocation() {
-        return new Promise((resolve) => {
-            if (!navigator.geolocation) {
-                resolve({
-                    success: false,
-                    message: 'Geolocalización no soportada por este navegador'
-                });
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    resolve({
-                        success: true,
-                        data: {
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude
-                        }
-                    });
-                },
-                (error) => {
-                    let message = 'Error al obtener ubicación';
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            message = 'Permiso de ubicación denegado';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            message = 'Ubicación no disponible';
-                            break;
-                        case error.TIMEOUT:
-                            message = 'Tiempo de espera agotado';
-                            break;
-                        default:
-                            message = 'Error al obtener ubicación';
-                            break;
-                    }
-                    resolve({
-                        success: false,
-                        message: message
-                    });
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 60000
-                }
-            );
-        });
-    }
 };
 
 export default personalService;

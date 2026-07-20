@@ -1,3 +1,6 @@
+/* =========================================
+   Inputs Base (Input.jsx, InputFecha.jsx, InputCall.jsx)
+   ========================================= */
 .root {
   width: 100%;
   position: relative;
@@ -31,7 +34,8 @@
   color: var(--dark-color);
   background: none;
   border: 1px solid var(--quaternary-color);
-  border-radius: 8px;
+  border-radius: 5px;
+  height: 40px;
   outline: none;
   transition: border-color 0.15s ease;
   text-align: left;
@@ -43,6 +47,27 @@
 .inputError:hover,
 .inputError:focus {
   border-color: #e53935 !important;
+  box-shadow: none !important;
+}
+
+.inputWarning,
+.inputWarning:hover,
+.inputWarning:focus {
+  border-color: var(--warning-color, #ed8936) !important;
+  box-shadow: none !important;
+}
+
+.inputInfo,
+.inputInfo:hover,
+.inputInfo:focus {
+  border-color: var(--info-color, #468cfd) !important;
+  box-shadow: none !important;
+}
+
+.inputSuccess,
+.inputSuccess:hover,
+.inputSuccess:focus {
+  border-color: var(--success-color, #60df43) !important;
   box-shadow: none !important;
 }
 
@@ -128,13 +153,54 @@
   left: 0;
 }
 
+.warningTextMessage {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--warning-color, #ed8936);
+  font-size: 11px;
+  margin-top: 3px;
+  pointer-events: none;
+  line-height: 1;
+  left: 0;
+}
+
+.infoTextMessage {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--info-color, #468cfd);
+  font-size: 11px;
+  margin-top: 3px;
+  pointer-events: none;
+  line-height: 1;
+  left: 0;
+}
+
+.successTextMessage {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--success-color, #60df43);
+  font-size: 11px;
+  margin-top: 3px;
+  pointer-events: none;
+  line-height: 1;
+  left: 0;
+}
+
 .errorTextIcon {
   font-size: 12px !important;
   display: flex;
   align-items: center;
 }
 
-/* InputSelect & Search */
+/* =========================================
+   Selects y Search (InputSelect.jsx, InputSearch.jsx, InputSelectMultiple.jsx, InputSelectBox.jsx)
+   ========================================= */
 .inputOpen {
   border-color: var(--primary-color);
 }
@@ -246,7 +312,9 @@
   width: 100%;
 }
 
-/* InputSelectIcon */
+/* =========================================
+   InputSelectIcon.jsx
+   ========================================= */
 .iconSelectContainer {
   display: flex;
   flex-direction: column;
@@ -295,7 +363,9 @@
   fill: currentColor;
 }
 
-/* InputSwitch */
+/* =========================================
+   InputSwitch.jsx
+   ========================================= */
 .switchRoot {
   width: 100%;
   position: relative;
@@ -351,8 +421,15 @@
 .textContainer {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   flex-grow: 1;
+  justify-content: center;
+}
+
+.switchLabel {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--secondary-color);
+  margin: 0 0 2px 0;
 }
 
 .subtitle {
@@ -412,12 +489,15 @@
   box-shadow: 0 0 0 2px var(--primary-color-light, rgba(49, 130, 206, 0.3));
 }
 
-/* Radiobox */
+/* =========================================
+   Radiobox.jsx
+   ========================================= */
 .title {
   display: block;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--secondary-color, #2d3748);
+  margin-bottom: 6px;
 }
 
 .grid {
@@ -462,7 +542,7 @@
 .checkIndicator {
   width: 18px;
   height: 18px;
-  border: 2px solid var(--quaternary-color, #e2e8f0);
+  border: 2px solid var(--tertiary-color);
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -493,13 +573,16 @@
   transform: scale(1);
 }
 
-/* Checkbox */
+/* =========================================
+   Checkbox.jsx
+   ========================================= */
 .checkboxWrapper {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
   user-select: none;
+  width: fit-content;
 }
 
 .checkboxWrapper.disabled {
@@ -518,7 +601,7 @@
 .customCheckbox {
   width: 18px;
   height: 18px;
-  border: 2px solid var(--tertiary-color, #e2e8f0);
+  border: 2px solid var(--quaternary-color);
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -535,4 +618,43 @@
 .checkboxInput:checked+.customCheckbox .checkIcon {
   opacity: 1;
   transform: scale(1);
+}
+
+.checkboxContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.checkboxChildren {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--primary-color);
+  margin-top: 5px;
+  margin-bottom: 5px;
+  animation: slideDownCheckbox 0.3s ease-out forwards;
+  transform-origin: top;
+}
+
+@keyframes slideDownCheckbox {
+  0% {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: translateY(-10px);
+  }
+  99% {
+    max-height: 800px;
+    opacity: 1;
+    overflow: hidden;
+    transform: translateY(0);
+  }
+  100% {
+    max-height: none;
+    opacity: 1;
+    overflow: visible;
+    transform: translateY(0);
+  }
 }

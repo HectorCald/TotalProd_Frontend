@@ -25,16 +25,16 @@ class sucursalesService {
 
     static getEmpresasAsociadasIds() {
         try {
-            const FAVORITES_KEY = 'empresas_favoritas';
-            const stored = localStorage.getItem(FAVORITES_KEY);
+            const SOCIOS_KEY = 'socios';
+            const stored = localStorage.getItem(SOCIOS_KEY);
             if (stored) {
                 const parsed = JSON.parse(stored);
-                const favorites = Array.isArray(parsed) ? parsed : [];
-                return favorites.map(empresa => empresa.id).filter(id => id);
+                const sociosIds = Array.isArray(parsed) ? parsed : [];
+                return sociosIds.filter(id => id);
             }
             return [];
         } catch (error) {
-            console.error('Error al obtener empresas favoritas:', error);
+            console.error('Error al obtener socios:', error);
             return [];
         }
     }
@@ -97,19 +97,21 @@ class sucursalesService {
     }
 
     // Mantener nombre getByEmpresaId por compatibilidad
-    static async getByEmpresaId(empresaIdParam = null) {
-        return this.getAll(empresaIdParam);
+    static async getByEmpresaId(empresaIdParam = null, includeSocios = true) {
+        return this.getAll(empresaIdParam, includeSocios);
     }
 
-    static async getAll(empresaIdParam = null) {
+    static async getAll(empresaIdParam = null, includeSocios = true) {
         let endpoint = '/sucursales';
-        const empresasAsociadasIds = this.getEmpresasAsociadasIds();
-
         const params = new URLSearchParams();
-        if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
-            empresasAsociadasIds.forEach(id => {
-                params.append('empresas_asociadas', id);
-            });
+
+        if (includeSocios) {
+            const empresasAsociadasIds = this.getEmpresasAsociadasIds();
+            if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
+                empresasAsociadasIds.forEach(id => {
+                    params.append('empresas_asociadas', id);
+                });
+            }
         }
 
         if (empresaIdParam) {

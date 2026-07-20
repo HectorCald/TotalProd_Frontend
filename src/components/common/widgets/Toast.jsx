@@ -7,10 +7,10 @@ function Toast({ id, tipo = 'info', titulo, detalle, duracion = 5000, onClose })
     const [isRemoving, setIsRemoving] = useState(false);
 
     const iconosPorTipo = {
-        success: 'check',
+        success: 'check-circle',
         info: 'info-circle',
-        danger: 'x',
-        warning: 'error-circle'
+        danger: 'x-circle',
+        warning: 'error'
     };
 
     const tiposValidos = ['success', 'info', 'danger', 'warning'];
@@ -50,13 +50,7 @@ function Toast({ id, tipo = 'info', titulo, detalle, duracion = 5000, onClose })
                 <BoxIcon name={icono} className={styles.icono} />
             </div>
             <div className={styles.contenido}>
-                {titulo && (
-                    <h4 className={styles.titulo}>
-                        <BoxIcon name={icono} className={styles.iconoInline} />
-                        <span>{titulo}</span>
-                    </h4>
-                )}
-                {detalle && <p className={styles.detalle}>{detalle}</p>}
+                <p className={styles.detalle}>{detalle || titulo}</p>
             </div>
             <button
                 type="button"

@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import styles from './ProductoItem.module.css';
 import InputSelect from '../../../../../components/common/inputs/InputSelect';
 
-const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto }) => {
+const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, medida, onMedidaChange }) => {
   const inputRef = useRef(null);
   const opcionesMedida = [
     { value: 'Kilogramo', label: 'Kilogramo' },
@@ -12,7 +12,6 @@ const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto }) => {
     { value: 'Arroba', label: 'Arroba' },
     { value: 'Caja', label: 'Caja' }
   ];
-  const [medidaSeleccionada, setMedidaSeleccionada] = useState(opcionesMedida[0].value);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -56,8 +55,8 @@ const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto }) => {
         <div style={{ width: '140px' }}>
           <InputSelect
             options={opcionesMedida}
-            value={medidaSeleccionada}
-            onChange={(val) => setMedidaSeleccionada(val)}
+            value={medida}
+            onChange={(val) => onMedidaChange(val)}
             placeholder="Medida..."
             clearable={false}
           />

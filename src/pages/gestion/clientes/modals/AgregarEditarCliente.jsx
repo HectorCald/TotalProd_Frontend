@@ -72,17 +72,16 @@ const AgregarEditarCliente = ({ isOpen, onClose, clienteSeleccionado, onGuardar 
                 if (onGuardar) {
                     onGuardar(response.data || datosParaEnviar);
                 }
-
                 setLoading(false);
                 onClose();
-                showSuccess('Operación exitosa', response.message);
+                showSuccess(null, response.message);
             } else {
                 setLoading(false);
-                showDanger('Operación fallida', response.message, 5000, false);
+                showDanger(null, response.message, 5000, false);
             }
         } catch (error) {
             setLoading(false);
-            showDanger('Error de conexión', error.message || 'Error de conexión con el servidor', 5000, false);
+            showDanger(null, 'Revisa tu conexión a internet', 5000, false);
         }
     };
 
@@ -115,7 +114,7 @@ const AgregarEditarCliente = ({ isOpen, onClose, clienteSeleccionado, onGuardar 
                 onClearError={() => setFieldErrors((prev) => ({ ...prev, name: false }))}
             />
             <Input
-                tipo="number"
+                tipo="tel"
                 label="Celular"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}

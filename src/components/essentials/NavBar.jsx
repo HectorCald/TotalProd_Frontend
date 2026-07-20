@@ -7,16 +7,18 @@ import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import Skeleton from '../common/widgets/Skeleton';
 import CerrarSesion from './modals/CerrarSesion';
+import ModalConfiguracion from './modals/ModalConfiguracion';
 import InputSelect from '../common/inputs/InputSelect';
 import sucursalesService from '../../services/sucursalesService';
 
 const NavBar = () => {
   const navigate = useNavigate();
-  const { toggleSidebar, sidebarCollapsed } = useLayout();
+  const { toggleSidebar, sidebarCollapsed, isLargeScreen } = useLayout();
   const { user: userInfo, loading: userLoading, sucursalSeleccionada: userSucursal, seleccionarSucursal: seleccionarUserSucursal } = useUser();
   const { employee: employeeInfo, loading: employeeLoading, sucursalSeleccionada: employeeSucursal, seleccionarSucursal: seleccionarEmployeeSucursal } = useEmployee();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCerrarSesionOpen, setIsCerrarSesionOpen] = useState(false);
+  const [isConfiguracionOpen, setIsConfiguracionOpen] = useState(false);
   const [sucursales, setSucursales] = useState([]);
   const [loadingSucursales, setLoadingSucursales] = useState(false);
   const [hasFetchedSucursales, setHasFetchedSucursales] = useState(false);
@@ -48,6 +50,10 @@ const NavBar = () => {
   const seleccionarSucursal = isEmployeeSession ? seleccionarEmployeeSucursal : seleccionarUserSucursal;
   const empresaId = sucursalSeleccionada?.empresas?.id || userInfo?.empresa_id || employeeInfo?.sucursal?.empresas?.id;
   const isEverythingLoading = !usuario || !sucursalSeleccionada;
+  const empresaPlan = isEmployeeSession
+    ? employeeInfo?.sucursal?.empresas?.plan
+    : userInfo?.empresa?.plan;
+  const showCrown = empresaPlan?.name && empresaPlan.name !== 'Free';
 
   const sucursalesOptions = useMemo(() => {
     if (!empresaId) return [];
@@ -92,7 +98,8 @@ const NavBar = () => {
     const fetchFailsafe = async () => {
       setLoadingSucursales(true);
       try {
-        const response = await sucursalesService.getByEmpresaId(empresaId);
+        const loadSocios = empresaId === '259a05d2-2417-47b0-8bbd-50cd5723aae1';
+        const response = await sucursalesService.getByEmpresaId(empresaId, loadSocios);
         if (response.success && response.data) {
           sessionStorage.setItem('ListadoSucursales', JSON.stringify(response.data));
           const mapOpciones = response.data.map(s => ({
@@ -118,7 +125,7 @@ const NavBar = () => {
     if (opt) {
       sessionStorage.clear();
       seleccionarSucursal(opt.original);
-      navigate('/dashboard');
+      navigate('/home');
     }
   };
 
@@ -153,15 +160,25 @@ const NavBar = () => {
     <nav className={styles.navbar}>
       <div className={styles.leftContainer}>
         <div className={styles.logoContainer}>
-          <LogoAnimation height="24px" />
+          {isEverythingLoading ? (
+            <Skeleton width={isLargeScreen ? "80px" : "30px"} height="24px" borderRadius="4px" />
+          ) : (
+            <LogoAnimation height="24px" hideIcon={true} short={!isLargeScreen} />
+          )}
         </div>
-        <button className={styles.toggleBtn} onClick={toggleSidebar}>
-          <i className={`bx ${sidebarCollapsed ? 'bx-menu' : 'bx-menu-alt-left'}`}></i>
-        </button>
+        {isLargeScreen && (
+          isEverythingLoading ? (
+            <Skeleton width="34px" height="34px" borderRadius="5px" />
+          ) : (
+            <button className={styles.toggleBtn} onClick={toggleSidebar}>
+              <i className={`bx ${sidebarCollapsed ? 'bx-menu' : 'bx-menu-alt-left'}`}></i>
+            </button>
+          )
+        )}
 
         {isEverythingLoading ? (
           <div className={styles.sucursalSkeleton}>
-            <Skeleton width="150px" height="35px" borderRadius="8px" />
+            <Skeleton width={isLargeScreen ? "150px" : "100px"} height="35px" borderRadius="8px" />
           </div>
         ) : (
           <div className={styles.sucursalSelector}>
@@ -171,6 +188,7 @@ const NavBar = () => {
               options={sucursalesOptions}
               placeholder={loadingSucursales ? "Cargando..." : "Seleccionar sucursal"}
               disabled={sucursalesOptions.length <= 1 || loadingSucursales}
+              clearable={false}
             />
           </div>
         )}
@@ -179,11 +197,13 @@ const NavBar = () => {
       <div className={styles.rightContainer}>
         {isEverythingLoading || !usuario ? (
           <div className={styles.skeletonContainer}>
-            <Skeleton width="40px" height="40px" borderRadius="50%" />
-            <div className={styles.skeletonText}>
-              <Skeleton width="100px" height="15px" />
-              <Skeleton width="150px" height="12px" />
-            </div>
+            <Skeleton width="40px" height="40px" borderRadius="8px" />
+            {isLargeScreen && (
+              <div className={styles.skeletonText}>
+                <Skeleton width="100px" height="15px" />
+                <Skeleton width="150px" height="12px" />
+              </div>
+            )}
           </div>
         ) : (
           <div className={styles.userProfile} ref={dropdownRef}>
@@ -196,27 +216,50 @@ const NavBar = () => {
                   <img src={displayImage} alt="User Avatar" />
                 ) : (
                   <div className={styles.avatarFallback}>
-                    {getDisplayName().charAt(0).toUpperCase()}
+                    <i className='bx bxs-building' style={{ fontSize: '24px' }}></i>
                   </div>
                 )}
               </div>
-              <div className={styles.userDetails}>
-                <span className={styles.userName}>
-                  {getDisplayName()}
-                </span>
-                <span className={styles.userEmail}>{getDisplayEmail()}</span>
-              </div>
+              {isLargeScreen && (
+                <div className={styles.userDetails}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className={styles.userName}>
+                      {getDisplayName()}
+                    </span>
+                    {showCrown && (
+                      <div className={styles.goldBadgeSmall} title={empresaPlan.name}>
+                        <i className='bx bx-crown' style={{ color: '#fff', fontSize: '12px' }}></i>
+                      </div>
+                    )}
+                  </div>
+                  <span className={styles.userEmail}>{getDisplayEmail()}</span>
+                </div>
+              )}
             </div>
-
+ 
             {isDropdownOpen && (
               <div className={styles.dropdownMenu}>
-                <button className={styles.dropdownItem}>
-                  <i className='bx bx-user'></i> Perfil
-                </button>
-                <button className={styles.dropdownItem}>
+                {!isLargeScreen && (
+                  <>
+                    <div className={styles.dropdownHeaderMobile}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className={styles.dropdownUserName}>{getDisplayName()}</span>
+                        {showCrown && (
+                          <div className={styles.goldBadgeSmall} title={empresaPlan.name}>
+                            <i className='bx bx-crown' style={{ color: '#fff', fontSize: '12px' }}></i>
+                          </div>
+                        )}
+                      </div>
+                      <span className={styles.dropdownUserEmail}>{getDisplayEmail()}</span>
+                    </div>
+                  </>
+                )}
+                <button className={styles.dropdownItem} onClick={() => {
+                  setIsConfiguracionOpen(true);
+                  setIsDropdownOpen(false);
+                }}>
                   <i className='bx bx-cog'></i> Configuración
                 </button>
-                <div className={styles.dropdownDivider}></div>
                 <button className={styles.dropdownItem} onClick={() => {
                   setIsCerrarSesionOpen(true);
                   setIsDropdownOpen(false);
@@ -232,6 +275,12 @@ const NavBar = () => {
         <CerrarSesion
           isOpen={isCerrarSesionOpen}
           onClose={() => setIsCerrarSesionOpen(false)}
+        />
+      )}
+      {isConfiguracionOpen && (
+        <ModalConfiguracion
+          isOpen={isConfiguracionOpen}
+          onClose={() => setIsConfiguracionOpen(false)}
         />
       )}
     </nav>

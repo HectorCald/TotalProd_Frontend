@@ -156,6 +156,17 @@ class UserService {
       actionName: 'resetPassword'
     });
   }
+
+  // Actualizar configuracion
+  static async updateConfig(data) {
+    return this._request('/users/config', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }, {
+      requireAuth: true,
+      actionName: 'updateConfig'
+    });
+  }
 }
 
 export default UserService;

@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './Tabla.module.css';
 import Boton from '../botones/Boton';
 import Input from '../inputs/Input';
 import Skeleton from '../widgets/Skeleton';
 import { BoxIcon } from 'boxicons-react';
 import FilterMultiple from '../widgets/FilterMultiple';
+import { useLayout } from '../../../context/LayoutContext';
+import BotonIcon from '../botones/BotonIcon';
+import ItemMobile from './ItemMobile';
 
 const colorsMap = {
     A: '#FF5A5F', // Red/Coral
@@ -61,8 +64,10 @@ const Tabla = ({
     externalFilters,
     onFiltersChange,
     filters,
-    containerStyle
+    containerStyle,
+    mobileCustomControls
 }) => {
+    const { isLargeScreen } = useLayout();
     const [localSearch, setLocalSearch] = useState('');
     const [localFilters, setLocalFilters] = useState({});
 
@@ -137,6 +142,34 @@ const Tabla = ({
         }
     };
 
+    const loaderRef = useRef(null);
+    const loaderMobileRef = useRef(null);
+
+    useEffect(() => {
+        if (!onLoadMore || isLoading || isLoadingMore) return;
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                onLoadMore();
+            }
+        }, {
+            root: null,
+            rootMargin: '150px',
+            threshold: 0.1
+        });
+
+        const currentLoader = isLargeScreen ? loaderRef.current : loaderMobileRef.current;
+        if (currentLoader) {
+            observer.observe(currentLoader);
+        }
+
+        return () => {
+            if (currentLoader) {
+                observer.unobserve(currentLoader);
+            }
+        };
+    }, [onLoadMore, isLoading, isLoadingMore, isLargeScreen, data]);
+
     return (
         <div className={styles.container} style={containerStyle}>
             <div className={styles.header}>
@@ -159,18 +192,27 @@ const Tabla = ({
                 </div>
                 {onButtonClick && (
                     <div>
-                        <Boton
-                            className="btn-original"
-                            label={buttonLabel}
-                            iconName={buttonIcon}
-                            onClick={onButtonClick}
-                        />
+                        {isLargeScreen ? (
+                            <Boton
+                                className="btn-primary"
+                                label={buttonLabel}
+                                iconName={buttonIcon}
+                                onClick={onButtonClick}
+                            />
+                        ) : (
+                            <BotonIcon
+                                className="btn-primary"
+                                iconName={buttonIcon}
+                                onClick={onButtonClick}
+                            />
+                        )}
                     </div>
                 )}
             </div>
 
-            <div className={styles.tableWrapper} onScroll={handleScroll}>
-                <table className={styles.table}>
+            {isLargeScreen ? (
+                <div className={styles.tableWrapper} onScroll={handleScroll}>
+                    <table className={styles.table}>
                     <thead>
                         <tr>
                             {columns.map((col, index) => (
@@ -383,9 +425,72 @@ const Tabla = ({
                                 )}
                             </tr>
                         )}
+                        {onLoadMore && !isLoading && !isLoadingMore && (
+                            <tr ref={loaderRef} style={{ height: '1px' }}>
+                                <td colSpan={columns.length + (acciones && acciones.length > 0 ? 1 : 0)} style={{ padding: 0 }} />
+                            </tr>
+                        )}
                     </tbody>
                 </table>
-            </div>
+                </div>
+            ) : (
+                <div className={styles.mobileListWrapper} onScroll={handleScroll}>
+                    {isLoading ? (
+                        Array.from({ length: 6 }).map((_, index) => (
+                            <div key={index} style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                <Skeleton width="100%" height="60px" borderRadius="8px" />
+                            </div>
+                        ))
+                    ) : sortedData.length > 0 ? (
+                        sortedData.map((row, idx) => {
+                            const rowKey = row.id || `row-${idx}`;
+                            const mainCol = columns.find(c => c.isMobileMain) || columns.find(c => c.hasIcon) || columns[0];
+                            const statusCol = columns.find(c => c.isMobileStatus) || columns.find(c => c.hasStatusDot || c.hasStatus || c.isBadge);
+                            const subtitleCol = columns.find(c => c.isMobileSubtitle) || columns.find(c => c !== mainCol && c !== statusCol);
+
+                            const title = mainCol?.mobileRender ? mainCol.mobileRender(row) : (mainCol?.render ? mainCol.render(row) : (row[mainCol?.accessor] || '--'));
+                            const status = statusCol ? (statusCol.mobileRender ? statusCol.mobileRender(row) : (statusCol.render ? statusCol.render(row) : row[statusCol.accessor])) : '';
+                            const statusType = statusCol && statusCol.statusType ? statusCol.statusType(row) : 'default';
+                            const subtitle = subtitleCol ? (subtitleCol.mobileRender ? subtitleCol.mobileRender(row) : (subtitleCol.render ? subtitleCol.render(row) : row[subtitleCol.accessor])) : '';
+                            
+                            // Si la columna principal tiene render, probablemente devuelve JSX. ItemMobile espera string en title, 
+                            // pero React puede renderizar JSX en el title.
+                            const icon = mainCol?.mobileIcon ? mainCol.mobileIcon(row) : (mainCol?.iconName || 'box');
+                            const iconType = mainCol?.mobileIconType ? mainCol.mobileIconType(row) : 'default';
+
+                            return (
+                                <ItemMobile
+                                    key={rowKey}
+                                    icon={icon}
+                                    iconType={iconType}
+                                    title={title}
+                                    subtitle={subtitle}
+                                    status={status}
+                                    statusType={statusType}
+                                    customControls={mobileCustomControls ? mobileCustomControls(row) : null}
+                                    onClick={() => onRowClick && onRowClick(row)}
+                                    actions={acciones ? acciones.map(a => ({
+                                        ...a,
+                                        onClick: () => a.onClick(row)
+                                    })) : []}
+                                />
+                            );
+                        })
+                    ) : (
+                        <div style={{ padding: '24px', textAlign: 'center', color: '#718096', fontSize: '13px' }}>
+                            No hay datos
+                        </div>
+                    )}
+                    {isLoadingMore && (
+                        <div style={{ padding: '12px 0' }}>
+                            <Skeleton width="100%" height="60px" borderRadius="8px" />
+                        </div>
+                    )}
+                    {onLoadMore && !isLoading && !isLoadingMore && (
+                        <div ref={loaderMobileRef} style={{ height: '1px' }} />
+                    )}
+                </div>
+            )}
         </div>
     );
 };
