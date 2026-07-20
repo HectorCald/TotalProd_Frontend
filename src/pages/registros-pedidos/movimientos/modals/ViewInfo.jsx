@@ -436,9 +436,11 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
         const esAgrupado = movimiento?.agrupado && grup > 0;
         
         let cantidadStr = `${cant}`;
+        let precioDescarga = Number(prec);
         if (esAgrupado) {
             const cantEnGrupos = cant / grup;
             cantidadStr = Number.isInteger(cantEnGrupos) ? cantEnGrupos.toString() : cantEnGrupos.toFixed(2);
+            precioDescarga = precioDescarga * grup;
         } else {
             cantidadStr = `${cant} ${code}`.trim();
         }
@@ -446,7 +448,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
         return [
             name,
             cantidadStr,
-            `Bs. ${formatPrice(prec)}`,
+            `Bs. ${formatPrice(precioDescarga)}`,
             `Bs. ${formatPrice(subt)}`
         ];
     });
