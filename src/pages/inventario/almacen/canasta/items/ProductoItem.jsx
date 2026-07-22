@@ -1,12 +1,29 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styles from './ProductoItem.module.css';
+import useFormatNumber from '../../../../../hooks/useFormatNumber';
+
+// Mismo formateo que Input.jsx: miles con ".", decimal con "," pero sin forzar decimales
+const formatDisplayValue = (raw) => {
+  if (raw === '' || raw === null || raw === undefined) return '';
+  const str = String(raw);
+  const trailingComma = str.endsWith(',') || str.endsWith('.');
+  const parts = str.replace(',', '.').split('.');
+  const intPart = parts[0];
+  const decPart = parts.length > 1 ? parts[1] : null;
+  const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  if (trailingComma) return `${intFormatted},`;
+  if (decPart !== null) return `${intFormatted},${decPart}`;
+  return intFormatted;
+};
 
 const ProductoItem = ({ producto, actualizarCantidad, actualizarPrecio, eliminarProducto, precioUnitario, modoAgrupacion, modo, isLargeScreen }) => {
+  const { formatPrice } = useFormatNumber();
   const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
   const rawStock = Number(producto.stock || 0);
   const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(producto.grup)) : rawStock;
   const esVenta = modo === 'VENTA' || modo === 'VENTA_COTIZACION';
   const inputRef = useRef(null);
+  const [priceFocused, setPriceFocused] = useState(false);
 
   useEffect(() => {
     if (isLargeScreen && inputRef.current) {
@@ -58,6 +75,13 @@ const ProductoItem = ({ producto, actualizarCantidad, actualizarPrecio, eliminar
     actualizarCantidad(producto.id, producto.cantidad + 1);
   };
 
+  const getPriceDisplayValue = () => {
+    const raw = producto.precioCustom;
+    if (raw === undefined || raw === '') return '';
+    if (priceFocused) return formatDisplayValue(raw);
+    return formatPrice(raw);
+  };
+
   return (
     <div className={styles.card}>
       <div className={styles.topRow}>
@@ -83,18 +107,31 @@ const ProductoItem = ({ producto, actualizarCantidad, actualizarPrecio, eliminar
         <div>
           <span className={styles.priceLabel}>Precio (Bs.) </span>
           <input
-            type="number"
+            type="text"
+            inputMode="decimal"
             className={styles.priceValue}
-            value={producto.precioCustom !== undefined ? producto.precioCustom : ''}
-            placeholder={Number.isInteger(precioDefecto) ? precioDefecto : precioDefecto.toFixed(2)}
-            min="0"
+            value={getPriceDisplayValue()}
+            placeholder={formatPrice(precioDefecto)}
+            onFocus={() => setPriceFocused(true)}
+            onBlur={() => {
+              setPriceFocused(false);
+              if (actualizarPrecio && producto.precioCustom !== undefined && producto.precioCustom !== '') {
+                const num = parseFloat(producto.precioCustom);
+                if (!isNaN(num)) {
+                  actualizarPrecio(producto.id, num.toFixed(2));
+                }
+              }
+            }}
             onChange={(e) => {
               if (actualizarPrecio) {
-                let val = e.target.value;
-                if (val !== '' && Number(val) < 0) {
-                  val = '0';
+                const raw = e.target.value;
+                const stripped = raw.replace(/\./g, '').replace(',', '.');
+                if (stripped !== '' && !/^\d*\.?\d*$/.test(stripped)) return;
+                if (stripped !== '' && Number(stripped) < 0) {
+                  actualizarPrecio(producto.id, '0');
+                  return;
                 }
-                actualizarPrecio(producto.id, val);
+                actualizarPrecio(producto.id, stripped);
               }
             }}
             onKeyDown={(e) => {
@@ -141,7 +178,7 @@ const ProductoItem = ({ producto, actualizarCantidad, actualizarPrecio, eliminar
       <div className={styles.bottomRow}>
         <span className={styles.subtotalLabel}>Subtotal:</span>
         <span className={styles.subtotalValue}>
-          Bs. {Number.isInteger(subtotal) ? subtotal : subtotal.toFixed(2)}
+          Bs. {formatPrice(subtotal)}
         </span>
       </div>
     </div>

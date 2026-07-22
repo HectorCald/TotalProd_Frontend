@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useFormatNumber from '../../../../../hooks/useFormatNumber';
 import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import SelectProveedores from '../../../../../components/common/fast/SelectProveedores';
 import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodoPago';
@@ -9,6 +10,7 @@ import { useToast } from '../../../../../context/ToastContext';
 
 const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion }) => {
   const { showSuccess, showDanger } = useToast();
+  const { formatPrice } = useFormatNumber();
   const [registrarGasto, setRegistrarGasto] = useState(false);
   const [consumirReceta, setConsumirReceta] = useState(false);
   const [concepto, setConcepto] = useState('');
@@ -182,7 +184,7 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
           }}>
             <span style={{ fontSize: '14px', color: 'var(--secondary-color)' }}>Gasto a registrar:</span>
             <span style={{ fontSize: '17px', fontWeight: 'bold', color: 'var(--secondary-color)' }}>
-              Bs. {Number(costo || 0).toFixed(2)}
+              Bs. {formatPrice(costo || 0)}
             </span>
           </div>
         </Checkbox>

@@ -93,6 +93,9 @@
 }
 
 @media (max-width: 768px) {
+    .drawer {
+        width: 100%;
+    }
     .footerButtons {
         width: 100%;
     }

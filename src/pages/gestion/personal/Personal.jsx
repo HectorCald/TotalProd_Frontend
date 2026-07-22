@@ -115,8 +115,8 @@ const Personal = () => {
       nombre_completo: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
       estado_texto: p.is_active ? 'Activo' : 'Inactivo',
       sucursal_nombre: p.sucursal?.name || 'Sin sucursal',
-      cargo: p.cargo || '--',
-      codigo: p.codigo || '--'
+      cargo: p.cargo || p.cargos?.name || '--',
+      codigo: p.email || p.codigo || '--'
     }));
   }, [personal]);
 

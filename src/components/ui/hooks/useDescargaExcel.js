@@ -71,14 +71,16 @@ export const useDescargaExcel = ({
                         } else if (index === 2) { // Columna de precio unitario (tercera columna)
                             const cleaned = raw
                                 .replace(/Bs\.\s*/i, '')
-                                .replace(',', '.')
+                                .replace(/\.(\d{3})/g, '$1') // Eliminar puntos de miles (ej. 1.080 -> 1080)
+                                .replace(',', '.') // Convertir coma decimal a punto
                                 .trim();
                             const numeric = parseFloat(cleaned);
                             return Number.isNaN(numeric) ? cleaned : numeric;
                         } else if (index === 3) { // Columna de subtotal (cuarta columna)
                             const cleaned = raw
                                 .replace(/Bs\.\s*/i, '')
-                                .replace(',', '.')
+                                .replace(/\.(\d{3})/g, '$1') // Eliminar puntos de miles (ej. 1.080 -> 1080)
+                                .replace(',', '.') // Convertir coma decimal a punto
                                 .trim();
                             const numeric = parseFloat(cleaned);
                             return Number.isNaN(numeric) ? cleaned : numeric;
@@ -103,8 +105,12 @@ export const useDescargaExcel = ({
                     const subtotalProductos = tablaValores.reduce((sum, row) => {
                         // Obtener el valor de la última columna (subtotal)
                         const subtotalStr = row[row.length - 1]?.toString() || '0';
-                        // Extraer solo el número, removiendo "Bs." y otros caracteres
-                        const cleanStr = subtotalStr.replace(/Bs\.\s*/, '').trim();
+                        // Extraer solo el número, removiendo "Bs.", puntos de miles y convirtiendo coma decimal
+                        const cleanStr = subtotalStr
+                            .replace(/Bs\.\s*/, '')
+                            .replace(/\.(\d{3})/g, '$1') // Eliminar puntos de miles
+                            .replace(',', '.') // Coma decimal → punto
+                            .trim();
                         const subtotalNum = parseFloat(cleanStr) || 0;
                         return sum + subtotalNum;
                     }, 0);

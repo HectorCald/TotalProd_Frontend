@@ -78,9 +78,9 @@
 
 .priceValue {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--secondary-color);
-  width: 50px;
+  width: 60px;
   padding: 2px 4px;
   border: none;
   background: transparent;

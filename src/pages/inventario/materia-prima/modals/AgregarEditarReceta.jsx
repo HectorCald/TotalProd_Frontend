@@ -5,6 +5,7 @@ import Input from '../../../../components/common/inputs/Input';
 import InputSelectBox from '../../../../components/common/inputs/InputSelectBox';
 import productsAcopioService from '../../../../services/productsAcopioService';
 import NoData from '../../../../components/common/widgets/NoData';
+import { useLayout } from '../../../../context/LayoutContext';
 
 const AgregarEditarReceta = ({
     isOpen,
@@ -14,6 +15,8 @@ const AgregarEditarReceta = ({
     onRecetaCreated,
     onRecetaUpdated
 }) => {
+    const { isLargeScreen } = useLayout();
+
     const [dataReceta, setDataReceta] = useState({
         productos: [{ producto_acopio_id: '', cantidad: '' }]
     });
@@ -235,8 +238,9 @@ const AgregarEditarReceta = ({
                                 key={index}
                                 style={{
                                     display: 'flex',
+                                    flexDirection: isLargeScreen ? 'row' : 'column',
                                     gap: '12px',
-                                    alignItems: 'flex-start',
+                                    alignItems: isLargeScreen ? 'flex-start' : 'stretch',
                                     marginBottom: '15px',
                                     padding: '12px',
                                     borderRadius: '8px',
@@ -244,9 +248,9 @@ const AgregarEditarReceta = ({
                                     border: '1px solid var(--quaternary-color)'
                                 }}
                             >
-                                <div style={{ flex: 3 }}>
+                                <div style={{ flex: isLargeScreen ? 3 : 'none', width: isLargeScreen ? 'auto' : '100%' }}>
                                     <InputSelectBox
-                                        label={index === 0 ? "Materia Prima" : undefined}
+                                        label={!isLargeScreen || index === 0 ? "Materia Prima" : undefined}
                                         value={producto.producto_acopio_id}
                                         onChange={(value) => actualizarProducto(index, 'producto_acopio_id', value)}
                                         options={getOpcionesDisponibles(index)}
@@ -254,7 +258,7 @@ const AgregarEditarReceta = ({
                                         disabled={loading}
                                     />
                                 </div>
-                                <div style={{ flex: 2 }}>
+                                <div style={{ flex: isLargeScreen ? 2 : 'none', width: isLargeScreen ? 'auto' : '100%' }}>
                                     {(() => {
                                         const selected = productosAcopio.find(p => String(p.value) === String(producto.producto_acopio_id));
                                         const isUnidad = selected?.type_measure?.code?.toLowerCase() === 'ud' || 
@@ -262,7 +266,7 @@ const AgregarEditarReceta = ({
                                         return (
                                             <Input
                                                 tipo="number"
-                                                label={index === 0 ? "Cantidad" : undefined}
+                                                label={!isLargeScreen || index === 0 ? "Cantidad" : undefined}
                                                 value={producto.cantidad}
                                                 placeholder={isUnidad ? "0" : "0.00"}
                                                 onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
@@ -278,8 +282,14 @@ const AgregarEditarReceta = ({
                                         </span>
                                     )}
                                 </div>
-                                <div style={{ display: 'flex', alignSelf: 'stretch', alignItems: 'center', marginTop: index === 0 ? '22px' : '0' }}>
-                                    {index > 0 && (
+                                {index > 0 && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: isLargeScreen ? 'flex-start' : 'flex-end',
+                                        marginTop: isLargeScreen ? (index === 0 ? '22px' : '0') : '0',
+                                        width: isLargeScreen ? 'auto' : '100%'
+                                    }}>
                                         <button
                                             type="button"
                                             onClick={() => eliminarProducto(index)}
@@ -301,8 +311,8 @@ const AgregarEditarReceta = ({
                                         >
                                             <BoxIcon name="trash" size="sm" />
                                         </button>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         ))}
 

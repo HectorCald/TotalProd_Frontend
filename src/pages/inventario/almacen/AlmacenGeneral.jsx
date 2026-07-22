@@ -246,7 +246,7 @@ const AlmacenGeneral = () => {
     const data = {
       prices_types_id: precioCanasta,
       modalidad: modoAgrupacion === 'grupo' ? 'grupos' : 'unidades',
-      productos_lista: canasta.map(p => ({ id: p.id, cantidad: p.cantidad }))
+      productos_lista: canasta.map(p => ({ id: p.id, cantidad: p.cantidad, ...(p.precioCustom !== undefined && p.precioCustom !== '' ? { precioCustom: p.precioCustom } : {}) }))
     };
     localStorage.setItem(canastaStorageKey, JSON.stringify(data));
   }, [canasta, modoAgrupacion, precioCanasta, canastaStorageKey]);
@@ -628,7 +628,7 @@ const AlmacenGeneral = () => {
         service={productsAlmacenService}
         serviceName="productsAlmacenService"
         method="getAll"
-        methodParams={[debouncedSearch, categoriaId, sortOrder, false, !(path.includes('/almacen/gestionar') || path.includes('/almacen/entradas'))]} // [search, categoryId, sortOrder, ocultarStockCero, includeSocios]
+        methodParams={[debouncedSearch, categoriaId, sortOrder, false, !path.includes('/almacen/entradas')]} // [search, categoryId, sortOrder, ocultarStockCero, includeSocios]
         isOpen={true}
         page={page}
         limit={30}
@@ -689,6 +689,7 @@ const AlmacenGeneral = () => {
         isOpen={modalInfoOpen}
         onClose={() => setModalInfoOpen(false)}
         producto={productoSeleccionado}
+        readOnly={productoSeleccionado && String(productoSeleccionado.empresa_id) !== String(localStorage.getItem('empresa_id'))}
         onEdit={(producto) => {
           setProductoEditando(producto);
           setModalAgregarEditarOpen(true);

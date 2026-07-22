@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 
 export const useCanasta = () => {
   const [canasta, setCanasta] = useState([]);
-  const [modoAgrupacion, setModoAgrupacion] = useState('unidad');
+  const [modoAgrupacion, setModoAgrupacion] = useState(() => localStorage.getItem('ventaAgrupadaDefault') === 'true' ? 'grupo' : 'unidad');
 
   const agregarProducto = useCallback((producto, modo = 'VENTA') => {
     setCanasta(prev => {

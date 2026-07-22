@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useFormatNumber from '../../../../../hooks/useFormatNumber';
 import { useNavigate } from 'react-router-dom';
 import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import SelectSucursal from '../../../../../components/common/fast/SelectSucursal';
@@ -9,6 +10,7 @@ import { useToast } from '../../../../../context/ToastContext';
 
 const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, modoAgrupacion, vaciarCanasta, pedidoDefaults }) => {
   const { showDanger, showSuccess } = useToast();
+  const { formatPrice } = useFormatNumber();
   const navigate = useNavigate();
   const [sucursal, setSucursal] = useState(null);
   const [observaciones, setObservaciones] = useState('');
@@ -145,7 +147,7 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
         }}>
           <span style={{ fontSize: '14px', color: 'var(--secondary-color)' }}>Total Final:</span>
           <span style={{ fontSize: '17px', fontWeight: 'bold', color: 'var(--secondary-color)' }}>
-            Bs. {Number(totalBase).toFixed(2)}
+            Bs. {formatPrice(totalBase)}
           </span>
         </div>
       </div>

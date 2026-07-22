@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { useLayout } from '../../../../context/LayoutContext';
 import { useModalStack } from '../../../../context/ModalStackContext';
 import modalStyles from '../../../../components/common/modals/ModalLateral.module.css';
+import useFormatNumber from '../../../../hooks/useFormatNumber';
 
 const CanastaAlmacen = ({
   canasta,
@@ -34,6 +35,7 @@ const CanastaAlmacen = ({
   isOpen = true
 }) => {
   const { isLargeScreen } = useLayout();
+  const { formatPrice } = useFormatNumber();
   const [preciosTipos, setPreciosTipos] = useState([]);
   const [precioSeleccionado, setPrecioSeleccionado] = useState(null);
   const [modalVentaOpen, setModalVentaOpen] = useState(false);
@@ -114,10 +116,13 @@ const CanastaAlmacen = ({
         if (cantidadFinal > 0) {
           agregarProducto(productoObj, modo);
           actualizarCantidad(productoObj.id, cantidadFinal);
+          if (item.precioCustom !== undefined && item.precioCustom !== '') {
+            actualizarPrecio(productoObj.id, item.precioCustom);
+          }
         }
       }
     });
-  }, [preloadedData, setModoAgrupacion, vaciarCanasta, agregarProducto, actualizarCantidad, modo]);
+  }, [preloadedData, setModoAgrupacion, vaciarCanasta, agregarProducto, actualizarCantidad, actualizarPrecio, modo]);
 
   useEffect(() => {
     const fetchPreciosTipos = async () => {
@@ -131,14 +136,28 @@ const CanastaAlmacen = ({
           }));
           setPreciosTipos(tiposFiltrados);
 
-          let priceToSet = tiposFiltrados.length > 0 ? tiposFiltrados[0].value : null;
-          
+          let priceToSet = null;
+
           if (preloadedData && preloadedData.prices_types_id) {
             // Verificar que el precio pre-cargado exista en la lista
-            const priceExists = tiposFiltrados.some(t => t.value === preloadedData.prices_types_id);
+            const priceExists = tiposFiltrados.some(t => String(t.value) === String(preloadedData.prices_types_id));
             if (priceExists) {
               priceToSet = preloadedData.prices_types_id;
             }
+          }
+
+          if (!priceToSet) {
+            const savedPriceId = localStorage.getItem('precioTipoSeleccionado');
+            if (savedPriceId) {
+              const priceExists = tiposFiltrados.some(t => String(t.value) === String(savedPriceId));
+              if (priceExists) {
+                priceToSet = savedPriceId;
+              }
+            }
+          }
+
+          if (!priceToSet && tiposFiltrados.length > 0) {
+            priceToSet = tiposFiltrados[0].value;
           }
 
           if (priceToSet) {
@@ -154,6 +173,9 @@ const CanastaAlmacen = ({
 
   // Notificar al padre cuando cambia el precio (para persistencia en localStorage)
   useEffect(() => {
+    if (precioSeleccionado) {
+      localStorage.setItem('precioTipoSeleccionado', precioSeleccionado);
+    }
     if (onPrecioChange) {
       onPrecioChange(precioSeleccionado);
     }
@@ -285,7 +307,7 @@ const CanastaAlmacen = ({
         <div className={styles.footer}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontWeight: 'bold', fontSize: '16px', color: 'var(--secondary-color)' }}>
             <span>Total:</span>
-            <span>Bs. {totalRedondeado.toFixed(2)}</span>
+            <span>Bs. {formatPrice(totalRedondeado)}</span>
           </div>
           <Boton
             className="btn-primary"

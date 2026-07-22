@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useFormatNumber from '../../../../../hooks/useFormatNumber';
 import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import SelectCliente from '../../../../../components/common/fast/SelectCliente';
 import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodoPago';
@@ -10,6 +11,7 @@ import { useToast } from '../../../../../context/ToastContext';
 
 const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion }) => {
   const { showSuccess, showDanger } = useToast();
+  const { formatPrice } = useFormatNumber();
 
   const [cliente, setCliente] = useState(null);
   const [metodoPago, setMetodoPago] = useState(null);
@@ -191,7 +193,7 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
         }}>
           <span style={{ fontSize: '14px', color: 'var(--secondary-color)' }}>Total Final:</span>
           <span style={{ fontSize: '17px', fontWeight: 'bold', color: 'var(--secondary-color)' }}>
-            Bs. {totalFinal.toFixed(2)}
+            Bs. {formatPrice(totalFinal)}
           </span>
         </div>
       </div>

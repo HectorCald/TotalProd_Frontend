@@ -369,12 +369,13 @@ const AgregarEditarConteo = ({ isOpen, onClose, isAcopio }) => {
                             let placeholderText;
 
                             if (isAcopio) {
+                                const stockFormatted = Number(Number(prod.stock || 0).toFixed(2));
                                 titleHtml = (
                                     <span>
-                                        {prod.name} <span style={{ color: 'var(--primary-color)' }}>({prod.stock} {prod.medida})</span>
+                                        {prod.name} <span style={{ color: 'var(--primary-color)' }}>({stockFormatted} {prod.medida})</span>
                                     </span>
                                 );
-                                placeholderText = `${prod.stock} ${prod.medida}`;
+                                placeholderText = `${stockFormatted} ${prod.medida}`;
                             } else {
                                 const stockFormatted = formatStock(prod.stock, prod.grup, modoAgrupacion);
                                 titleHtml = (
