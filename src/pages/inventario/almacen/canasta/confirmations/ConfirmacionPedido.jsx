@@ -24,7 +24,7 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
     }
   }, [isOpen, pedidoDefaults]);
 
-  const isEditing = !!pedidoDefaults;
+  const isEditing = !!(pedidoDefaults && pedidoDefaults.id);
 
   const handleConfirm = async () => {
     const newErrors = {};
