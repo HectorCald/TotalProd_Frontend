@@ -130,22 +130,33 @@ const Home = () => {
         if (item.id === 'home') return;
         if (isSoloVentas && item.id === 'materia-prima') return;
         
-        if (isEmployee && usuario?.modules && item.key) {
-           const hasModule = usuario.modules.some(m => m.modulos?.clave === item.key);
+        let newItem = { ...item };
+        
+        if (isEmployee && usuario?.modules && newItem.key) {
+           const hasModule = usuario.modules.some(m => m.modulos?.clave === newItem.key);
            if (!hasModule) return;
            
-           if (item.key_submenu) {
+           if (newItem.submenu) {
+             const filteredSubmenu = newItem.submenu.filter(sub => {
+               if (!sub.key) return true;
+               return usuario.modules.some(m => 
+                 m.modulos?.clave === newItem.key && m.name === sub.key
+               );
+             });
+             if (filteredSubmenu.length === 0) return;
+             newItem.submenu = filteredSubmenu;
+           } else if (newItem.key_submenu) {
              const hasSpecificSubModule = usuario.modules.some(m => 
-               m.modulos?.clave === item.key && m.name === item.key_submenu
+               m.modulos?.clave === newItem.key && m.name === newItem.key_submenu
              );
              if (!hasSpecificSubModule) return;
            }
         }
         
         if (item.submenu) {
-          itemsWithSubmenu.push(item);
+          itemsWithSubmenu.push(newItem);
         } else {
-          itemsWithoutSubmenu.push(item);
+          itemsWithoutSubmenu.push(newItem);
         }
       });
     });
@@ -589,6 +600,10 @@ const Home = () => {
                   icon={item.icon} 
                   title={item.title} 
                   onClick={() => {
+                    if (item.submenu && item.submenu.length === 1 && item.submenu[0].route) {
+                        navigate(item.submenu[0].route);
+                        return;
+                    }
                     if (item.id === 'almacen') setModalOpcionesAlmacenOpen(true);
                     else if (item.id === 'materia-prima') setModalOpcionesMateriaPrimaOpen(true);
                     else if (item.id === 'movimientos') {
@@ -617,6 +632,10 @@ const Home = () => {
                     title={item.title} 
                     onClick={() => {
                       if (item.submenu) {
+                        if (item.submenu.length === 1 && item.submenu[0].route) {
+                            navigate(item.submenu[0].route);
+                            return;
+                        }
                         if (item.id === 'almacen') setModalOpcionesAlmacenOpen(true);
                         else if (item.id === 'materia-prima') setModalOpcionesMateriaPrimaOpen(true);
                         else if (item.id === 'movimientos') {
