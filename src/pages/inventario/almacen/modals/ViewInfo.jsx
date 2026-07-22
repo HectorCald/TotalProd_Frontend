@@ -7,12 +7,19 @@ import { isSoloVentas } from '../../../../utils/empresaHelper';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 
-const ViewInfo = ({ isOpen, onClose, producto, onEdit, onDelete }) => {
+const ViewInfo = ({ isOpen, onClose, producto, onEdit, onDelete, readOnly }) => {
     const { formatPrice } = useFormatNumber();
     const { user } = useUser();
     const soloVentas = isSoloVentas(user);
 
     if (!producto) return null;
+
+    const currentEmpresaId = user?.empresa_id || localStorage.getItem('empresa_id');
+    const isProductReadOnly = Boolean(readOnly || (
+        producto.empresa_id && 
+        currentEmpresaId && 
+        String(producto.empresa_id) !== String(currentEmpresaId)
+    ));
 
     const categoryText = (producto.category_names && producto.category_names.length > 0)
         ? producto.category_names.join(', ')
@@ -133,7 +140,7 @@ const ViewInfo = ({ isOpen, onClose, producto, onEdit, onDelete }) => {
                             )}
                         </>
                     }
-                    actionButton={
+                    actionButton={!isProductReadOnly ? (
                         <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
                             <Boton
                                 label="Editar Producto"
@@ -154,7 +161,7 @@ const ViewInfo = ({ isOpen, onClose, producto, onEdit, onDelete }) => {
                                 }}
                             />
                         </div>
-                    }
+                    ) : null}
                 />
         </ModalCentro>
     );
