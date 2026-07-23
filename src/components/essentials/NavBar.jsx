@@ -69,15 +69,22 @@ const NavBar = () => {
       return [];
     }
 
+    const isDamabrava = empresaId === '259a05d2-2417-47b0-8bbd-50cd5723aae1';
+
     const cached = sessionStorage.getItem('ListadoSucursales');
     if (cached) {
       try {
         const opciones = JSON.parse(cached);
-        return opciones.map(s => ({
-          value: s.id,
-          label: s.name,
-          original: s
-        }));
+        return opciones
+          .filter(s => {
+            if (isDamabrava) return true;
+            return !(s.name && s.name.startsWith('Casa Matriz (') && s.name.endsWith(')'));
+          })
+          .map(s => ({
+            value: s.id,
+            label: s.name,
+            original: s
+          }));
       } catch (e) {
         console.error("Error parsing sucursales cache", e);
       }
@@ -98,11 +105,15 @@ const NavBar = () => {
     const fetchFailsafe = async () => {
       setLoadingSucursales(true);
       try {
-        const loadSocios = empresaId === '259a05d2-2417-47b0-8bbd-50cd5723aae1';
-        const response = await sucursalesService.getByEmpresaId(empresaId, loadSocios);
+        const isDamabrava = empresaId === '259a05d2-2417-47b0-8bbd-50cd5723aae1';
+        const response = await sucursalesService.getByEmpresaId(empresaId, isDamabrava);
         if (response.success && response.data) {
-          sessionStorage.setItem('ListadoSucursales', JSON.stringify(response.data));
-          const mapOpciones = response.data.map(s => ({
+          const filtradas = response.data.filter(s => {
+            if (isDamabrava) return true;
+            return !(s.name && s.name.startsWith('Casa Matriz (') && s.name.endsWith(')'));
+          });
+          sessionStorage.setItem('ListadoSucursales', JSON.stringify(filtradas));
+          const mapOpciones = filtradas.map(s => ({
             value: s.id,
             label: s.name,
             original: s

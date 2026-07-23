@@ -3,16 +3,17 @@ import InputSelect from '../inputs/InputSelect';
 import sucursalesService from '../../../services/sucursalesService';
 import useSessionCache from '../../../hooks/useSessionCache';
 
-const SelectSucursal = ({ value, onChange, error, label = "Sucursal", required = false, fetchTrigger, onLoaded, ...rest }) => {
+const SelectSucursal = ({ value, onChange, error, label = "Sucursal", required = false, fetchTrigger, onLoaded, includeSocios = true, ...rest }) => {
+    const cacheKey = includeSocios ? 'sucursalesListadoConSocios' : 'sucursalesListadoSinSocios';
     const { value: sucursales, setValue: setSucursales } = useSessionCache({
-        key: 'sucursalesListado',
+        key: cacheKey,
         defaultValue: []
     });
 
     useEffect(() => {
         const fetchSucursales = async () => {
             try {
-                const response = await sucursalesService.getByEmpresaId();
+                const response = await sucursalesService.getByEmpresaId(null, includeSocios);
                 if (response.success && response.data) {
                     setSucursales(response.data);
                     if (onLoaded) onLoaded(response.data);
@@ -22,7 +23,7 @@ const SelectSucursal = ({ value, onChange, error, label = "Sucursal", required =
             }
         };
         fetchSucursales();
-    }, [setSucursales, fetchTrigger]);
+    }, [setSucursales, fetchTrigger, includeSocios]);
 
     const options = sucursales.map(s => ({ value: String(s.id), label: s.name }));
 

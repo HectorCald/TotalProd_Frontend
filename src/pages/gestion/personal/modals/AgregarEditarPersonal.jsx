@@ -278,6 +278,7 @@ const AgregarEditarPersonal = ({ isOpen, onClose, personalSeleccionado, onGuarda
                     value={formData.sucursal_id}
                     onChange={(val) => setFormData({ ...formData, sucursal_id: val })}
                     disabled={loading || loadingData}
+                    includeSocios={false}
                     onLoaded={(sucursalesList) => {
                        if (!personalSeleccionado && sucursalesList.length > 0 && !formData.sucursal_id) {
                            setFormData(prev => ({ ...prev, sucursal_id: String(sucursalesList[0].id) }));

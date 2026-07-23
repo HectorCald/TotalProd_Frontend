@@ -21,7 +21,7 @@ const Sucursales = () => {
     value: sucursales,
     setValue: setSucursales,
   } = useSessionCache({
-    key: 'sucursalesListado',
+    key: 'sucursalesListadoConfig',
     defaultValue: [],
   });
 

@@ -339,35 +339,32 @@ function AppContent({ token, tokenType }) {
       if (sucursalesPrecargadas && sucursalesPrecargadas.length > 0) {
         sucursalesData = sucursalesPrecargadas;
       } else {
-        const response = await sucursalesService.getByEmpresaId(empresaId);
+        const isDamabrava = empresaId === '259a05d2-2417-47b0-8bbd-50cd5723aae1';
+        const response = await sucursalesService.getByEmpresaId(empresaId, isDamabrava);
         if (response.success && response.data) {
           sucursalesData = response.data;
         }
       }
 
       if (sucursalesData.length > 0) {
-        // Almacenar en session cache para uso instantáneo global sin re-fetch
-        sessionStorage.setItem('ListadoSucursales', JSON.stringify(sucursalesData));
-
-        // Obtener nombre de empresa para determinar si es Damabrava
+        // Obtener datos de empresa
         const empresaData = empresaObj || sucursalesData[0]?.empresas || null;
         if (empresaData && setEmpresa) {
           setEmpresa(empresaData);
         }
 
         const codigoEmpresa = empresaData?.codigo || '';
-        const esDamabrava = codigoEmpresa === 'damabrava';
+        const esDamabrava = empresaId === '259a05d2-2417-47b0-8bbd-50cd5723aae1' || codigoEmpresa === 'damabrava';
 
-        // Filtrar sucursales según las reglas (igual que en SeleccionarSucursal)
+        // Filtrar sucursales según si es Damabrava o no
         const sucursalesFiltradas = sucursalesData.filter(sucursal => {
           const esCasaMatrizAsociada = sucursal.name && sucursal.name.startsWith('Casa Matriz (') && sucursal.name.endsWith(')');
-
-          if (esDamabrava) {
-            return true;
-          }
-
+          if (esDamabrava) return true;
           return !esCasaMatrizAsociada;
         });
+
+        // Almacenar en session cache para uso instantáneo global sin re-fetch
+        sessionStorage.setItem('ListadoSucursales', JSON.stringify(sucursalesFiltradas));
 
         // Auto-seleccionar la sucursal previamente guardada o la primera disponible
         if (sucursalesFiltradas.length > 0) {

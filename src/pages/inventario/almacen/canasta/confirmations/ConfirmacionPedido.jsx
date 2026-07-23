@@ -129,6 +129,7 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
           onChange={(val) => { setSucursal(val); setErrors(prev => ({ ...prev, sucursal: false })); }}
           required={true}
           error={errors.sucursal}
+          includeSocios={true}
         />
         <Input 
           label="Observaciones del pedido"
