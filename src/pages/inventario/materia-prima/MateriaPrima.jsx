@@ -29,8 +29,19 @@ const MateriaPrima = () => {
   const path = location.pathname;
   const isCanastaMode = path.includes('/materia-prima/pedidos');
   const isHideActionsMode = path.includes('/materia-prima/entradas') || path.includes('/materia-prima/salidas') || isCanastaMode;
-  const modoCanastaStr = 'NUEVO PEDIDO';
-  const { canasta, agregarProducto, eliminarProducto, actualizarCantidad, actualizarMedida, vaciarCanasta } = useCanasta();
+  const modoCanastaStr = path.includes('/materia-prima/pedidos/copia') ? 'COPIA_PEDIDO' : 'NUEVO PEDIDO';
+  const { canasta, setCanasta, agregarProducto, eliminarProducto, actualizarCantidad, actualizarMedida, vaciarCanasta } = useCanasta();
+
+  // Load copied data
+  useEffect(() => {
+    if (path.includes('/materia-prima/pedidos/copia')) {
+      const rawData = sessionStorage.getItem('pedidoAcopioParaCopiar');
+      if (rawData) {
+        setCanasta(JSON.parse(rawData));
+        sessionStorage.removeItem('pedidoAcopioParaCopiar'); // clean up after loading
+      }
+    }
+  }, [path, setCanasta]);
 
   // Determinar título basado en la ruta
   const getTitulo = () => {

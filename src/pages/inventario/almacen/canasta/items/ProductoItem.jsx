@@ -21,7 +21,7 @@ const ProductoItem = ({ producto, actualizarCantidad, actualizarPrecio, eliminar
   const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
   const rawStock = Number(producto.stock || 0);
   const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(producto.grup)) : rawStock;
-  const esVenta = modo === 'VENTA' || modo === 'VENTA_COTIZACION';
+  const esVenta = modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO' || modo === 'COPIA_VENTA';
   const inputRef = useRef(null);
   const [priceFocused, setPriceFocused] = useState(false);
 

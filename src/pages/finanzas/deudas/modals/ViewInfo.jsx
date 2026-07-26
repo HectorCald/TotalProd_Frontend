@@ -17,7 +17,7 @@ import EliminarDeuda from './EliminarDeuda';
 
 const PagoRow = ({ pago, onDelete, isDeleting }) => {
     const { formatPrice } = useFormatNumber();
-    const literalDate = useFechaLiteral(pago.fecha?.split('T')[0], false);
+    const literalDate = useFechaLiteral(pago.fecha, false);
     return (
         <div
             style={{

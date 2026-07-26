@@ -51,7 +51,6 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
 
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
-  const [isVentaAgrupada, setIsVentaAgrupada] = useState(() => localStorage.getItem('ventaAgrupadaDefault') === 'true');
   const [loading, setLoading] = useState(false);
 
   // Estados para el usuario propietario
@@ -231,18 +230,6 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
             }}
             icon="bell"
           />
-          <h3 style={{ marginBlock: '5px', fontSize: '12px', color: 'var(--black-color)' }}>OTRAS CONFIGURACIONES</h3>
-          <InputSwitch
-            id="venta-agrupado-switch-employee"
-            label="Modalidad de Venta"
-            subtitle={isVentaAgrupada ? 'Agrupado' : 'Unidades'}
-            checked={isVentaAgrupada}
-            onChange={(val) => {
-              setIsVentaAgrupada(val);
-              localStorage.setItem('ventaAgrupadaDefault', val ? 'true' : 'false');
-            }}
-            icon="box"
-          />
           <Link 
             text="Términos y Condiciones" 
             iconEnd="right-arrow-alt" 
@@ -341,18 +328,6 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
               }
             }}
             icon="bell"
-          />
-          <h3 style={{ marginBlock: '5px', fontSize: '12px', color: 'var(--black-color)' }}>OTRAS CONFIGURACIONES</h3>
-          <InputSwitch
-            id="venta-agrupado-switch-user"
-            label="Modalidad de Venta"
-            subtitle={isVentaAgrupada ? 'Agrupado' : 'Unidades'}
-            checked={isVentaAgrupada}
-            onChange={(val) => {
-              setIsVentaAgrupada(val);
-              localStorage.setItem('ventaAgrupadaDefault', val ? 'true' : 'false');
-            }}
-            icon="box"
           />
           <Boton 
             label="Eliminar Cuenta"

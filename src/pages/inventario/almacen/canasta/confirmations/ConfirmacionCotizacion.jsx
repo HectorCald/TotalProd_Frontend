@@ -9,7 +9,7 @@ import InputFecha from '../../../../../components/common/inputs/InputFecha';
 import cotizacionesService from '../../../../../services/cotizacionesService';
 import { useToast } from '../../../../../context/ToastContext';
 
-const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion }) => {
+const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion, cotizacionDefaults }) => {
   const { showSuccess, showDanger } = useToast();
   const { formatPrice } = useFormatNumber();
 
@@ -22,12 +22,35 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
     return d.toISOString().split('T')[0];
   };
 
+  const getTodayStr = () => {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+
+  const [fechaRegistro, setFechaRegistro] = useState(getTodayStr());
   const [fechaVencimiento, setFechaVencimiento] = useState(getOneMonthLater());
   const [descuento, setDescuento] = useState('');
   const [aumento, setAumento] = useState('');
   const [esPorcentaje, setEsPorcentaje] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      if (cotizacionDefaults) {
+        setCliente(cotizacionDefaults.cliente_id ? String(cotizacionDefaults.cliente_id) : null);
+        setMetodoPago(cotizacionDefaults.metodo_pago || null);
+        setDescuento(cotizacionDefaults.descuento || '');
+        setAumento(cotizacionDefaults.aumento || '');
+        setEsPorcentaje(!!cotizacionDefaults.porcentaje);
+        if (cotizacionDefaults.fecha) {
+          setFechaRegistro(cotizacionDefaults.fecha.substring(0, 10));
+        }
+      } else {
+        setFechaRegistro(getTodayStr());
+      }
+    }
+  }, [isOpen, cotizacionDefaults]);
 
   const descVal = Number(descuento) || 0;
   const aumVal = Number(aumento) || 0;
@@ -47,6 +70,7 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
 
   const handleConfirm = async () => {
     const newErrors = {};
+    if (!fechaRegistro) newErrors.fechaRegistro = true;
     if (!metodoPago) newErrors.metodoPago = true;
     if (!cliente) newErrors.cliente = true;
     if (!fechaVencimiento) newErrors.fechaVencimiento = true;
@@ -65,6 +89,7 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
         cliente_id: cliente || null,
         precio_id: precioSeleccionado,
         agrupado: modoAgrupacion === 'grupo',
+        fecha: fechaRegistro,
         fecha_vencimiento: fechaVencimiento || null,
         descuento: descVal,
         aumento: aumVal,
@@ -72,10 +97,13 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
         productos: (canasta || []).map(p => {
           const esPorGrupo = modoAgrupacion === 'grupo' && p.grup && Number(p.grup) > 0;
           const precioBase = getProductPrice(p, precioSeleccionado);
-          let precioUnitarioFinal = precioBase;
-          if (p.precioCustom !== undefined && p.precioCustom !== '') {
-             precioUnitarioFinal = esPorGrupo ? (Number(p.precioCustom) / Number(p.grup)) : Number(p.precioCustom);
-          }
+          
+          const precioGrupo = esPorGrupo ? precioBase * Number(p.grup) : precioBase;
+          const precioMostrado = precioGrupo; // Ya no redondeamos aquí para que guarde el unitario intacto
+          const precioCanasta = (p.precioCustom !== undefined && p.precioCustom !== '') ? Number(p.precioCustom) : precioMostrado;
+          
+          const precioUnitarioFinal = esPorGrupo ? (precioCanasta / Number(p.grup)) : precioCanasta;
+
           return {
             id: p.id,
             cantidad: esPorGrupo ? Number(p.cantidad) * Number(p.grup) : Number(p.cantidad),
@@ -96,6 +124,7 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
 
       setCliente(null);
       setMetodoPago(null);
+      setFechaRegistro(getTodayStr());
       setFechaVencimiento(getOneMonthLater());
       setDescuento('');
       setAumento('');
@@ -129,6 +158,17 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
       contentStyle={{ paddingBlock: 0 }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: isSubmitting ? 'none' : 'auto', opacity: isSubmitting ? 0.7 : 1 }}>
+        <InputFecha
+          label="Fecha de registro"
+          value={fechaRegistro}
+          onChange={(val) => {
+            setFechaRegistro(val);
+            setErrors(prev => ({ ...prev, fechaRegistro: false }));
+          }}
+          required={true}
+          error={errors.fechaRegistro}
+          onClearError={() => setErrors(prev => ({ ...prev, fechaRegistro: false }))}
+        />
         <SelectCliente 
           value={cliente}
           onChange={(val) => { setCliente(val); setErrors(prev => ({ ...prev, cliente: false })); }}

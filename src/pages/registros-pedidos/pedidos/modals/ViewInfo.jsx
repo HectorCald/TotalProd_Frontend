@@ -5,6 +5,7 @@ import Boton from '../../../../components/common/botones/Boton';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import InfoCard from '../../../../components/common/information/InfoCard';
 import useFormatNumber from '../../../../hooks/useFormatNumber';
+import useFormatNumberPrice from '../../../../hooks/useFormatNumberPrice';
 import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 import ProductosMovimiento from '../../../registros-pedidos/movimientos/modals/ProductosMovimiento';
 import { useToast } from '../../../../context/ToastContext';
@@ -15,9 +16,12 @@ import AnularIngreso from './AnularIngreso';
 import AnularEntrega from './AnularEntrega';
 import EliminarPedido from './EliminarPedido';
 import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
+import DescargarDatos from '../../../../components/ui/DescargarDatos';
+import Link from '../../../../components/common/outputs/Link';
 
 const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAnular, onIngresar }) => {
     const [isProductosOpen, setIsProductosOpen] = useState(false);
+    const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isViewMovimientoOpen, setIsViewMovimientoOpen] = useState(false);
     const [selectedMovimiento, setSelectedMovimiento] = useState(null);
     const [loadingMovimiento, setLoadingMovimiento] = useState(false);
@@ -29,6 +33,7 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
     const [isAnularEntregaOpen, setIsAnularEntregaOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const { formatPrice } = useFormatNumber();
+    const { calculateSubtotal, calculateSpecialPrice } = useFormatNumberPrice();
     const { showDanger } = useToast();
     const navigate = useNavigate();
 
@@ -76,8 +81,7 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
     };
 
     const rawFechaStr = pedido?.fecha || pedido?.created_at || '';
-    const fechaStr = rawFechaStr ? rawFechaStr.slice(0, 10) : '';
-    const fechaLiteral = useFechaLiteral(fechaStr, false) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
+    const fechaLiteral = useFechaLiteral(rawFechaStr, false) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
 
     if (!pedido) return null;
 
@@ -114,12 +118,19 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
         let total = (ped.pedido_almacen_detalle || []).reduce((sum, detalle) => {
             const precio = parseFloat(detalle.precio) || 0;
             const cantidad = parseFloat(detalle.cantidad) || 0;
-            return sum + (precio * cantidad);
+            const subtotal = calculateSubtotal(cantidad, precio, detalle.producto_almacen?.grup, ped.agrupado, true);
+            return sum + subtotal;
         }, 0);
         
         total = Math.round(total * 10) / 10;
-        return formatPrice(total);
+        return total;
     };
+
+    const totalNum = obtenerTotalFormateado(pedido);
+
+    const financeItems = [
+        { clave: 'Subtotal', valor: `Bs. ${formatPrice(totalNum)}` }
+    ];
 
     const stats = [];
 
@@ -159,10 +170,63 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
     if (pedido.estado === 'Completado') statusDotColor = 'info';
     else if (pedido.estado === 'Entregado') statusDotColor = 'warning';
 
+    const informacionSuperiorDescarga = {};
+    if (fechaLiteral) informacionSuperiorDescarga['Fecha'] = fechaLiteral;
+    if (pedido.codigo) informacionSuperiorDescarga['Código'] = pedido.codigo;
+    if (pedido.numero_pedido) informacionSuperiorDescarga['Nº Pedido'] = pedido.numero_pedido;
+    if (solicitanteNombre) informacionSuperiorDescarga['Solicitante'] = solicitanteNombre;
+    if (pedido.sucursales?.name || pedido.sucursal?.name) informacionSuperiorDescarga['S. Solicitante'] = pedido.sucursales?.name || pedido.sucursal?.name;
+    if (pedido.sucursal_destino?.name) informacionSuperiorDescarga['S. Destino'] = pedido.sucursal_destino.name;
+    if (pedido.agrupado !== undefined && pedido.agrupado !== null) {
+        informacionSuperiorDescarga['Modalidad'] = pedido.agrupado ? 'Grupos' : 'Unidades';
+    }
+    if (pedido.precio?.name) informacionSuperiorDescarga['Tipo de Precio'] = pedido.precio.name;
+    if (pedido.observaciones) informacionSuperiorDescarga['Observaciones'] = pedido.observaciones;
+    
+    informacionSuperiorDescarga['Total'] = `Bs. ${formatPrice(totalNum)}`;
+
+    const tablaHeadersDescarga = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+    const tablaValoresDescarga = (pedido.pedido_almacen_detalle || []).map(p => {
+        const cant = Number(p.cantidad ?? 0);
+        const prec = Number(p.precio ?? 0);
+        const name = p.producto_almacen?.name || 'Desconocido';
+        const code = p.producto_almacen?.type_measure?.code || '';
+        
+        const grup = Number(p.producto_almacen?.grup ?? 0);
+        const esAgrupado = pedido?.agrupado && grup > 0;
+        
+        let cantidadStr = `${cant}`;
+        
+        let precioDescarga = prec;
+        if (typeof calculateSpecialPrice === 'function') {
+           precioDescarga = calculateSpecialPrice(prec, grup, esAgrupado, true);
+        } else if (esAgrupado) {
+           precioDescarga = prec * grup;
+        }
+
+        const subt = calculateSubtotal(cant, prec, grup, pedido?.agrupado, true);
+
+        if (esAgrupado) {
+            const cantEnGrupos = cant / grup;
+            cantidadStr = Number.isInteger(cantEnGrupos) ? cantEnGrupos.toString() : cantEnGrupos.toFixed(2);
+        } else {
+            cantidadStr = `${cant} ${code}`.trim();
+        }
+        
+        return [
+            name,
+            cantidadStr,
+            `Bs. ${formatPrice(precioDescarga)}`,
+            `Bs. ${formatPrice(subt)}`
+        ];
+    });
+
+    const handleDescargar = () => setIsDescargaOpen(true);
+
     return (
         <>
         <ModalCentro
-            isOpen={isOpen && !isProductosOpen && !isViewMovimientoOpen && !isIngresarOpen && !isAnularIngresoOpen && !isAnularEntregaOpen && !isEliminarOpen}
+            isOpen={isOpen && !isProductosOpen && !isViewMovimientoOpen && !isIngresarOpen && !isAnularIngresoOpen && !isAnularEntregaOpen && !isEliminarOpen && !isDescargaOpen}
             onClose={() => {
                 if (setIsOpen) setIsOpen(false);
                 if (onClose) onClose();
@@ -179,6 +243,13 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
                     icon={'file'}
                     customBlock={
                         <>
+                            <div style={{ marginBottom: '15px' }}>
+                                <Link 
+                                    text="Descargar Pedido" 
+                                    iconEnd="right-arrow-alt" 
+                                    onClick={handleDescargar} 
+                                />
+                            </div>
                             {tags.length > 0 && (
                                 <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
                             )}
@@ -190,9 +261,9 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
                             )}
                             <ColumnInfo 
                                 title="Finanzas"
-                                items={[]}
+                                items={financeItems}
                                 finance={true}
-                                financeTotal={`Bs. ${obtenerTotalFormateado(pedido)}`}
+                                financeTotal={`Bs. ${formatPrice(totalNum)}`}
                             />
                         </>
                     }
@@ -292,6 +363,7 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
                                 />
                             )}
 
+
                             {!pedido.destino && pedido.estado === 'Pendiente' && (
                                 <BotonIcon
                                     iconName="edit"
@@ -303,11 +375,17 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
                                             prices_types_id: pedido.precio_id || pedido.precio?.id,
                                             modalidad: pedido.agrupado ? 'grupos' : 'unidades',
                                             observaciones: pedido.observaciones === '--' ? '' : (pedido.observaciones || ''),
+                                            fecha: pedido.fecha || pedido.date || pedido.created_at || new Date().toISOString(),
                                             sucursal_destino_id: pedido.sucursal_destino_id || pedido.sucursal_destino?.id,
-                                            productos_lista: (pedido.pedido_almacen_detalle || []).map(p => ({
-                                                id: p.producto_almacen_id || p.producto_almacen?.id || p.id,
-                                                cantidad: parseFloat(p.cantidad) || 1
-                                            }))
+                                            productos_lista: (pedido.pedido_almacen_detalle || []).map(p => {
+                                                const grup = parseFloat(p.producto_almacen?.grup) || 0;
+                                                const cantidadUD = parseFloat(p.cantidad) || 1;
+                                                const esPorGrupo = pedido.agrupado && grup > 0;
+                                                return {
+                                                    id: p.producto_almacen_id || p.producto_almacen?.id || p.id,
+                                                    cantidad: esPorGrupo ? Math.floor(cantidadUD / grup) : cantidadUD
+                                                };
+                                            })
                                         };
                                         sessionStorage.setItem('pedidoParaEditar', JSON.stringify(editarData));
                                         if (setIsOpen) setIsOpen(false);
@@ -387,6 +465,22 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
                 if (setIsOpen) setIsOpen(false);
                 if (onClose) onClose();
                 if (onEliminar) onEliminar(id);
+            }}
+        />
+
+        <DescargarDatos
+            isOpen={isDescargaOpen}
+            setIsOpen={setIsDescargaOpen}
+            titulo="Descargar Pedido"
+            subtitulo="SELECCIONA EL FORMATO QUE PREFIERAS PARA DESCARGAR."
+            informacionSuperior={informacionSuperiorDescarga}
+            tablaHeaders={tablaHeadersDescarga}
+            tablaValores={tablaValoresDescarga}
+            nombreArchivo={`PEDIDO_${pedido.codigo || pedido.id || ''}`}
+            tituloDocumento="PEDIDO"
+            clienteInfo={{
+                nombre: solicitanteNombre || '',
+                numeroOrden: pedido.numero_pedido || ''
             }}
         />
         </>

@@ -5,6 +5,7 @@ import SelectCliente from '../../../../../components/common/fast/SelectCliente';
 import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodoPago';
 import Input from '../../../../../components/common/inputs/Input';
 import Checkbox from '../../../../../components/common/inputs/Checkbox';
+import InputFecha from '../../../../../components/common/inputs/InputFecha';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
 import pedidosAlmacenService from '../../../../../services/pedidosAlmacenService';
 import { useToast } from '../../../../../context/ToastContext';
@@ -20,6 +21,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
   const [concepto, setConcepto] = useState('');
   const [adelanto, setAdelanto] = useState('');
   const [esPorcentaje, setEsPorcentaje] = useState(false);
+  const [fechaRegistro, setFechaRegistro] = useState('');
   const [errors, setErrors] = useState({});
 
   React.useEffect(() => {
@@ -30,6 +32,13 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
         setDescuento(cotizacionDefaults.descuento ? String(cotizacionDefaults.descuento) : '');
         setAumento(cotizacionDefaults.aumento ? String(cotizacionDefaults.aumento) : '');
         setEsPorcentaje(!!cotizacionDefaults.porcentaje);
+
+        if (cotizacionDefaults.fecha) {
+          setFechaRegistro(cotizacionDefaults.fecha.substring(0, 10));
+        } else {
+          const d = new Date();
+          setFechaRegistro(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+        }
       } else {
         setCliente(null);
         setMetodoPago(null);
@@ -41,6 +50,10 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
       setAdelanto('');
       setErrors({});
       setIsSubmitting(false);
+
+      const d = new Date();
+      const defaultFecha = cotizacionDefaults?.fecha ? cotizacionDefaults.fecha.split('T')[0] : '';
+      setFechaRegistro(defaultFecha || (d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')));
     }
   }, [isOpen, cotizacionDefaults]);
 
@@ -65,6 +78,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
 
   const handleConfirm = async () => {
     const newErrors = {};
+    if (!fechaRegistro) newErrors.fechaRegistro = true;
     if (!metodoPago) newErrors.metodoPago = true;
     if (metodoPago === 'credito' && !cliente) newErrors.cliente = true;
 
@@ -98,6 +112,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
         total_final: totalFinal,
         precio_id: precioSeleccionado,
         agrupado: modoAgrupacion === 'grupo',
+        fecha: fechaRegistro,
         productos: canasta.map(p => {
           const esPorGrupo = modoAgrupacion === 'grupo' && p.grup && Number(p.grup) > 0;
           const cantidadEnUnidades = esPorGrupo
@@ -105,10 +120,12 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
             : Number(p.cantidad);
 
           const precioBase = getProductPrice(p, precioSeleccionado);
-          let precioUnitarioFinal = precioBase;
-          if (p.precioCustom !== undefined && p.precioCustom !== '') {
-             precioUnitarioFinal = esPorGrupo ? (Number(p.precioCustom) / Number(p.grup)) : Number(p.precioCustom);
-          }
+          
+          const precioGrupo = esPorGrupo ? precioBase * Number(p.grup) : precioBase;
+          const precioMostrado = precioGrupo; // Ya no redondeamos aquí para que guarde el unitario intacto
+          const precioCanasta = (p.precioCustom !== undefined && p.precioCustom !== '') ? Number(p.precioCustom) : precioMostrado;
+          
+          const precioUnitarioFinal = esPorGrupo ? (precioCanasta / Number(p.grup)) : precioCanasta;
 
           return {
             id: p.id,
@@ -179,6 +196,17 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
       contentStyle={{ paddingBlock: 0 }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', pointerEvents: isSubmitting ? 'none' : 'auto', opacity: isSubmitting ? 0.7 : 1 }}>
+        <InputFecha
+          label="Fecha de registro"
+          value={fechaRegistro}
+          onChange={(val) => {
+            setFechaRegistro(val);
+            setErrors(prev => ({ ...prev, fechaRegistro: false }));
+          }}
+          required={true}
+          error={errors.fechaRegistro}
+          onClearError={() => setErrors(prev => ({ ...prev, fechaRegistro: false }))}
+        />
         <SelectCliente
           value={cliente}
           onChange={(val) => { setCliente(val); setErrors(prev => ({ ...prev, cliente: false })); }}

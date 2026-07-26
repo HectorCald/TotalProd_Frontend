@@ -19,8 +19,7 @@ import AnularMovimiento from './modals/AnularMovimiento';
 import { LEGACY_PERCENTAGE_CUTOFF_DATE } from '../../../constants/movimientosConstants';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const cleanDateStr = dateStr ? dateStr.slice(0, 10) : '';
-  const literal = useFechaLiteral(cleanDateStr, true);
+  const literal = useFechaLiteral(dateStr, true);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
@@ -203,11 +202,45 @@ const Movimientos = () => {
 
   const tableActions = [
     {
-      name: 'Editar', 
-      icon: 'edit', 
-      show: (row) => (!row.estado || row.estado.toLowerCase() !== 'anulado') && !(isAcopio && row.movimiento_entrada_id),
-      onClick: (movimiento) => {
-        // Sin funcionamiento de momento
+      name: 'Copiar', 
+      icon: 'copy', 
+      show: (row) => !isAcopio && row.type !== 'entrada',
+      onClick: async (movimiento) => {
+        let fullMovimiento = movimiento;
+        if (!movimiento.productos) {
+            try {
+                const res = await movimientosAlmacenService.getRelations(movimiento.id, movimiento.sucu_id);
+                if (res && res.success) {
+                    fullMovimiento = { ...movimiento, ...res.data };
+                }
+            } catch (error) {
+                console.error("Error fetching details", error);
+            }
+        }
+        
+        const ventaData = {
+            prices_types_id: fullMovimiento.prices_types_id || fullMovimiento.precio?.id,
+            modalidad: fullMovimiento.agrupado ? 'grupos' : 'unidades',
+            productos_lista: (fullMovimiento.productos || []).map(p => {
+                const grup = parseFloat(p.producto?.grup || p.grup) || 0;
+                const cantidadUD = parseFloat(p.cantidad || p.pivot?.cantidad) || 1;
+                const esPorGrupo = fullMovimiento.agrupado && grup > 0;
+                return {
+                    id: p.producto?.id || p.producto_almacen_id || p.products_id || p.id,
+                    cantidad: esPorGrupo ? Math.floor(cantidadUD / grup) : cantidadUD
+                };
+            }),
+            cliente_id: fullMovimiento.clients_id || fullMovimiento.cliente?.id || fullMovimiento.suppliers_id || fullMovimiento.proveedor?.id,
+            descuento: parseFloat(fullMovimiento.descuento) || 0,
+            aumento: parseFloat(fullMovimiento.aumento) || 0,
+            porcentaje: !!fullMovimiento.porcentaje,
+            metodo_pago: fullMovimiento.metodo_pago,
+            fecha: fullMovimiento.fecha || fullMovimiento.date || fullMovimiento.created_at || new Date().toISOString()
+        };
+        localStorage.removeItem('ventaEnProgreso');
+        localStorage.removeItem('entradaEnProgreso');
+        sessionStorage.setItem('movimientoParaCopiar', JSON.stringify(ventaData));
+        navigate('/almacen/salidas/copia');
       }
     },
     {

@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import ModalCentro from '../../../../components/common/modals/ModalCentro';
-import BotonIcon from '../../../../components/common/botones/BotonIcon';
-import InfoCard from '../../../../components/common/information/InfoCard';
-import useFechaLiteral from '../../../../hooks/useFechaLiteral';
-import AnularEntregaAcopio from './materia-prima/AnularEntrega';
-import EliminarPedido from './EliminarPedido';
-import EntregarPedidoAcopio from './materia-prima/EntregarPedidoAcopio';
-import gastosService from '../../../../services/gastosService';
-import { useToast } from '../../../../context/ToastContext';
-import ViewInfoPago from '../../../finanzas/pagos/modals/ViewInfo';
-import ConfirmacionEntrada from '../../../inventario/materia-prima/canasta/confirmations/ConfirmacionEntrada';
-import ViewInfoMovimientoAcopio from '../../movimientos/modals/ViewInfoAcopio';
-import pedidosAcopioService from '../../../../services/pedidosAcopioService';
-import movimientosAcopioService from '../../../../services/movimientosAcopioService';
-import AnularIngreso from './materia-prima/AnularIngreso';
-import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
+import ModalCentro from '../../../components/common/modals/ModalCentro';
+import BotonIcon from '../../../components/common/botones/BotonIcon';
+import InfoCard from '../../../components/common/information/InfoCard';
+import useFechaLiteral from '../../../hooks/useFechaLiteral';
+import AnularEntregaAcopio from './modals/materia-prima/AnularEntrega';
+import EliminarPedido from './modals/EliminarPedido';
+import EntregarPedidoAcopio from './modals/materia-prima/EntregarPedidoAcopio';
+import gastosService from '../../../services/gastosService';
+import { useToast } from '../../../context/ToastContext';
+import ViewInfoPago from '../../finanzas/pagos/modals/ViewInfo';
+import ConfirmacionEntrada from '../../inventario/materia-prima/canasta/confirmations/ConfirmacionEntrada';
+import ViewInfoMovimientoAcopio from '../movimientos/modals/ViewInfoAcopio';
+import pedidosAcopioService from '../../../services/pedidosAcopioService';
+import movimientosAcopioService from '../../../services/movimientosAcopioService';
+import AnularIngreso from './modals/materia-prima/AnularIngreso';
+import ColumnInfo from '../../../components/common/outputs/ColumnInfo';
 
 const ViewInfoAcopio = ({ isOpen, setIsOpen, onClose, pedido, onEliminar, onAnular, onEdit }) => {
     const { showDanger, showSuccess } = useToast();

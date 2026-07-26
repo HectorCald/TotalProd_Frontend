@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Tabla from '../../../../components/common/information/Tabla';
 import { formatCurrency } from '../../../../utils/numberUtils';
+import useFormatNumberPrice from '../../../../hooks/useFormatNumberPrice';
 
 /**
  * Componente universal de productos para movimientos, pedidos y cotizaciones.
@@ -36,6 +37,7 @@ const ProductosMovimiento = ({
     cotizacion,
     cotizacionActual,
 }) => {
+    const { calculateSubtotal, calculateSpecialPrice } = useFormatNumberPrice();
 
     // ── Detectar modo y normalizar datos ──────────────────────────────────────
     const { rows, agrupado, modalTitle } = useMemo(() => {
@@ -48,7 +50,8 @@ const ProductosMovimiento = ({
                 cantidad: parseFloat(p.cantidad) || 0,
                 precioUnitario: parseFloat(p.precio_unitario) || 0,
                 grup: parseFloat(p.producto?.grup) || 0,
-                subtotal: (parseFloat(p.cantidad) || 0) * (parseFloat(p.precio_unitario) || 0),
+                esVenta: true,
+                subtotal: calculateSubtotal(p.cantidad, p.precio_unitario, p.producto?.grup, !!cot.agrupado, true),
             }));
             return {
                 rows: normalized,
@@ -66,7 +69,7 @@ const ProductosMovimiento = ({
                         cantidad: parseFloat(pedido.cantidad) || 0,
                         precioUnitario: parseFloat(pedido.precio) || 0,
                         grup: 0,
-                        subtotal: (parseFloat(pedido.cantidad) || 0) * (parseFloat(pedido.precio) || 0),
+                        subtotal: calculateSubtotal(pedido.cantidad, pedido.precio, 0, false, true),
                         tipoMedida: pedido.tipo_medida,
                     }]
                     : [];
@@ -79,7 +82,8 @@ const ProductosMovimiento = ({
                 cantidad: parseFloat(p.cantidad) || 0,
                 precioUnitario: parseFloat(p.precio) || 0,
                 grup: parseFloat(p.producto_almacen?.grup) || 0,
-                subtotal: (parseFloat(p.cantidad) || 0) * (parseFloat(p.precio) || 0),
+                esVenta: true,
+                subtotal: calculateSubtotal(p.cantidad, p.precio, p.producto_almacen?.grup, !!pedido.agrupado, true),
             }));
             return {
                 rows: normalized,
@@ -97,20 +101,24 @@ const ProductosMovimiento = ({
                 ? movimiento?.productos || []
                 : mov?.productos || [];
 
-        const normalized = productosParaMostrar.map(p => ({
-            nombre: p.producto?.name || 'Sin nombre',
-            cantidad: parseFloat(p.cantidad) || 0,
-            precioUnitario: parseFloat(p.precio_unitario) || 0,
-            grup: parseFloat(p.producto?.grup) || 0,
-            costoProduccion: parseFloat(p.producto?.costo_produccion) || 0,
-            subtotal: (parseFloat(p.cantidad) || 0) * (parseFloat(p.precio_unitario) || 0),
-        }));
+        const normalized = productosParaMostrar.map(p => {
+            const esVenta = mov?.type === 'salida' || mov?.tipo === 'salida';
+            return {
+                nombre: p.producto?.name || 'Sin nombre',
+                cantidad: parseFloat(p.cantidad) || 0,
+                precioUnitario: parseFloat(p.precio_unitario) || 0,
+                grup: parseFloat(p.producto?.grup) || 0,
+                costoProduccion: parseFloat(p.producto?.costo_produccion) || 0,
+                esVenta: esVenta,
+                subtotal: calculateSubtotal(p.cantidad, p.precio_unitario, p.producto?.grup, !!mov?.agrupado, esVenta)
+            };
+        });
         return {
             rows: normalized,
             agrupado: !!mov?.agrupado,
             modalTitle: title || 'Productos del Movimiento',
         };
-    }, [movimientoActual, movimiento, pedido, isAcopio, cotizacion, cotizacionActual, title]);
+    }, [movimientoActual, movimiento, pedido, isAcopio, cotizacion, cotizacionActual, title, calculateSubtotal]);
 
     // ── Columnas ──────────────────────────────────────────────────────────────
     const columns = useMemo(() => {
@@ -140,7 +148,8 @@ const ProductosMovimiento = ({
                 header: 'Precio Unit.',
                 render: (row) => {
                     const esAgrupado = agrupado && row.grup > 0;
-                    return formatCurrency(esAgrupado ? row.precioUnitario * row.grup : row.precioUnitario);
+                    const precioMostrado = calculateSpecialPrice(row.precioUnitario, row.grup, esAgrupado, row.esVenta);
+                    return formatCurrency(precioMostrado);
                 },
                 width: '15%',
             },
@@ -157,7 +166,7 @@ const ProductosMovimiento = ({
                 header: 'Ganancia',
                 render: (row) => {
                     const esAgrupado = agrupado && row.grup > 0;
-                    const precioUnit = esAgrupado ? row.precioUnitario * row.grup : row.precioUnitario;
+                    const precioUnit = calculateSpecialPrice(row.precioUnitario, row.grup, esAgrupado, row.esVenta);
                     const costoUnit = esAgrupado ? row.costoProduccion * row.grup : row.costoProduccion;
                     const gananciaTotal = (precioUnit - costoUnit) * (esAgrupado ? row.cantidad / row.grup : row.cantidad);
                     return formatCurrency(gananciaTotal);
@@ -166,7 +175,7 @@ const ProductosMovimiento = ({
             });
         }
         return base;
-    }, [agrupado, movimientoActual, movimiento]);
+    }, [agrupado, movimientoActual, movimiento, calculateSpecialPrice]);
 
     return (
         <ModalCentro

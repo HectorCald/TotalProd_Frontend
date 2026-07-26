@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Boton from '../../../../components/common/botones/Boton';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
@@ -18,6 +19,7 @@ import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 import Mensaje from '../../../../components/common/outputs/Mensaje';
 
 const ViewInfoAcopio = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnular }) => {
+    const navigate = useNavigate();
     const { formatPrice } = useFormatNumber();
     const { showDanger } = useToast();
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
@@ -90,7 +92,7 @@ const ViewInfoAcopio = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnu
     };
 
     const rawFechaStr = movimiento?.fecha || movimiento?.date || '';
-    const fechaStr = rawFechaStr ? rawFechaStr.slice(0, 10) : '';
+    const fechaStr = rawFechaStr;
     const fechaLiteral = useFechaLiteral(fechaStr, false) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
 
     if (!movimiento) return null;
@@ -306,6 +308,8 @@ const ViewInfoAcopio = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnu
                                     onClick={handleVerPedido}
                                 />
                             )}
+
+
                             {movimiento.estado !== 'anulado' && !movimiento.movimiento_entrada_id && (
                                 <BotonIcon
                                     iconName="edit"

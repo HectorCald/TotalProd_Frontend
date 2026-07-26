@@ -17,6 +17,7 @@ import { useLayout } from '../../../../context/LayoutContext';
 import { useModalStack } from '../../../../context/ModalStackContext';
 import modalStyles from '../../../../components/common/modals/ModalLateral.module.css';
 import useFormatNumber from '../../../../hooks/useFormatNumber';
+import useFormatNumberPrice from '../../../../hooks/useFormatNumberPrice';
 
 const CanastaAlmacen = ({
   canasta,
@@ -87,16 +88,16 @@ const CanastaAlmacen = ({
   }, [preloadedData]);
 
   // Guard: solo ejecutar la carga inicial UNA vez, evitar re-cargas al cerrar/abrir el drawer
-  const preloadDoneRef = useRef(false);
+  const [preloadComplete, setPreloadComplete] = useState(false);
 
   const handleProductsLoaded = useCallback((productsFetched) => {
     if (!preloadedData || !productsFetched) return;
-    if (preloadDoneRef.current) return; // ya se cargó, ignorar re-ejecuciones
-    preloadDoneRef.current = true;
+    if (preloadComplete) return; // ya se cargó, ignorar re-ejecuciones
+    setPreloadComplete(true);
     
     if (preloadedData.modalidad === 'grupos') {
       setModoAgrupacion('grupo');
-    } else {
+    } else if (preloadedData.modalidad === 'unidades') {
       setModoAgrupacion('unidad');
     }
 
@@ -110,7 +111,7 @@ const CanastaAlmacen = ({
         const esPorGrupo = preloadedData.modalidad === 'grupos' && productoObj.grup && productoObj.grup > 0;
         const maxDisponible = esPorGrupo ? Math.floor(rawStock / Number(productoObj.grup)) : rawStock;
         
-        const esLimitado = modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO';
+        const esLimitado = modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO' || modo === 'COPIA_VENTA';
         const cantidadFinal = esLimitado ? Math.min(item.cantidad, maxDisponible) : item.cantidad;
 
         if (cantidadFinal > 0) {
@@ -122,7 +123,7 @@ const CanastaAlmacen = ({
         }
       }
     });
-  }, [preloadedData, setModoAgrupacion, vaciarCanasta, agregarProducto, actualizarCantidad, actualizarPrecio, modo]);
+  }, [preloadedData, preloadComplete, setModoAgrupacion, vaciarCanasta, agregarProducto, actualizarCantidad, actualizarPrecio, modo]);
 
   useEffect(() => {
     const fetchPreciosTipos = async () => {
@@ -147,12 +148,9 @@ const CanastaAlmacen = ({
           }
 
           if (!priceToSet) {
-            const savedPriceId = localStorage.getItem('precioTipoSeleccionado');
-            if (savedPriceId) {
-              const priceExists = tiposFiltrados.some(t => String(t.value) === String(savedPriceId));
-              if (priceExists) {
-                priceToSet = savedPriceId;
-              }
+            const savedPriceId = localStorage.getItem('canasta_precio_seleccionado');
+            if (savedPriceId && tiposFiltrados.some(t => String(t.value) === String(savedPriceId))) {
+               priceToSet = savedPriceId;
             }
           }
 
@@ -162,6 +160,7 @@ const CanastaAlmacen = ({
 
           if (priceToSet) {
             setPrecioSeleccionado(priceToSet);
+            localStorage.setItem('canasta_precio_seleccionado', priceToSet);
           }
         }
       } catch (error) {
@@ -171,11 +170,8 @@ const CanastaAlmacen = ({
     fetchPreciosTipos();
   }, []);
 
-  // Notificar al padre cuando cambia el precio (para persistencia en localStorage)
+  // Notificar al padre cuando cambia el precio
   useEffect(() => {
-    if (precioSeleccionado) {
-      localStorage.setItem('precioTipoSeleccionado', precioSeleccionado);
-    }
     if (onPrecioChange) {
       onPrecioChange(precioSeleccionado);
     }
@@ -187,22 +183,14 @@ const CanastaAlmacen = ({
     return priceObj ? Number(priceObj.valor) : 0;
   };
 
-  const esVenta = modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO';
+  const esVenta = modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO' || modo === 'COPIA_VENTA';
 
-  const totalCanasta = canasta.reduce((acc, producto) => {
-    const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
-    const precioBase = getProductPrice(producto, precioSeleccionado);
-    const precioCrudo = esPorGrupo ? precioBase * Number(producto.grup) : precioBase;
-    const precioDefecto = (esVenta && esPorGrupo) ? Math.round(precioCrudo) : precioCrudo;
-    const precio = producto.precioCustom !== undefined && producto.precioCustom !== '' ? Number(producto.precioCustom) : precioDefecto;
-    return acc + (precio * producto.cantidad);
-  }, 0);
+  const { calculateTotalCanasta } = useFormatNumberPrice();
+  const totalRedondeado = calculateTotalCanasta(canasta, modoAgrupacion, esVenta, precioSeleccionado, getProductPrice);
 
-  const totalRedondeado = Math.round(totalCanasta * 10) / 10;
+  const displayModo = (modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO' || modo === 'COPIA_VENTA') ? 'VENTA' : (modo === 'COPIA_COTIZACION' ? 'COTIZACIÓN' : modo);
 
-  const displayModo = (modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO') ? 'VENTA' : modo;
-
-  const preloader = preloadedData && productIdsToFetch.length > 0 ? (
+  const preloader = preloadedData && productIdsToFetch.length > 0 && !preloadComplete ? (
     <FetchData
       service={productsAlmacenService}
       serviceName="productsAlmacenService"
@@ -253,7 +241,15 @@ const CanastaAlmacen = ({
           <InputSelect
             options={preciosTipos}
             value={precioSeleccionado}
-            onChange={(val) => setPrecioSeleccionado(val)}
+            onChange={(val) => {
+              setPrecioSeleccionado(val);
+              localStorage.setItem('canasta_precio_seleccionado', val);
+              canasta.forEach(p => {
+                if (p.precioCustom !== undefined && p.precioCustom !== '') {
+                  actualizarPrecio(p.id, '');
+                }
+              });
+            }}
             placeholder="Precio..."
             clearable={false}
           />
@@ -313,8 +309,8 @@ const CanastaAlmacen = ({
             className="btn-primary"
             label={`Verificar ${displayModo}`}
             onClick={() => {
-              if (modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO') setModalVentaOpen(true);
-              else if (modo === 'COTIZACIÓN' || modo === 'COTIZACION') setModalCotizacionOpen(true);
+              if (modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO' || modo === 'COPIA_VENTA') setModalVentaOpen(true);
+              else if (modo === 'COTIZACIÓN' || modo === 'COTIZACION' || modo === 'COPIA_COTIZACION') setModalCotizacionOpen(true);
               else if (modo === 'PEDIDO' || modo === 'NUEVO PEDIDO' || modo === 'NUEVO_PEDIDO' || modo === 'EDITAR_PEDIDO') setModalPedidoOpen(true);
               else if (modo === 'ENTRADA') setModalEntradaOpen(true);
             }}
@@ -341,6 +337,7 @@ const CanastaAlmacen = ({
         precioSeleccionado={precioSeleccionado}
         vaciarCanasta={vaciarCanasta}
         modoAgrupacion={modoAgrupacion}
+        cotizacionDefaults={preloadedData}
       />
       <ConfirmacionPedido 
         isOpen={modalPedidoOpen}

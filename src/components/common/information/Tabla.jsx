@@ -109,16 +109,27 @@ const Tabla = ({
     // Filter rows based on search input and searchKeys
     const filteredData = remote ? data : data.filter(row => {
         if (!search) return true;
-        const searchLower = search.toLowerCase();
+        
+        const normalize = (str) => {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "") // Remove accents
+                .replace(/[-*]/g, "") // Remove dashes and asterisks
+                .toLowerCase();
+        };
+        
+        const searchNorm = normalize(search);
+
         if (searchKeys.length > 0) {
             return searchKeys.some(key => {
                 const val = row[key];
-                return val && String(val).toLowerCase().includes(searchLower);
+                return val && normalize(val).includes(searchNorm);
             });
         }
         // Fallback: search in all keys
         return Object.values(row).some(val =>
-            val && String(val).toLowerCase().includes(searchLower)
+            val && normalize(val).includes(searchNorm)
         );
     });
 

@@ -559,6 +559,10 @@ function AppContent({ token, tokenType }) {
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
         />
         <Route
+          path="/almacen/salidas/copia"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
+        />
+        <Route
           path="/almacen/salidas/pedido"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
         />
@@ -570,6 +574,7 @@ function AppContent({ token, tokenType }) {
           path="/almacen/pedidos"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
         />
+
         <Route
           path="/almacen/pedidos/editar"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
@@ -580,6 +585,10 @@ function AppContent({ token, tokenType }) {
         />
         <Route
           path="/almacen/cotizar"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
+        />
+        <Route
+          path="/almacen/cotizar/copia"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <AlmacenGeneral />}
         />
 
@@ -600,6 +609,7 @@ function AppContent({ token, tokenType }) {
           path="/materia-prima/pedidos"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <MateriaPrima />}
         />
+
         <Route
           path="/materia-prima/gestionar"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <MateriaPrima />}

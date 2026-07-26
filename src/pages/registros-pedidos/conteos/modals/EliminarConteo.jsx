@@ -15,8 +15,7 @@ const EliminarConteo = ({ isOpen, onClose, conteoSeleccionado, onEliminar }) => 
         modulo: moduloConteo
     });
 
-    const fechaLimpia = conteoSeleccionado?.fecha ? conteoSeleccionado.fecha.substring(0, 10) : '';
-    const fechaLiteral = useFechaLiteral(fechaLimpia, false);
+    const fechaLiteral = useFechaLiteral(conteoSeleccionado?.fecha, false);
 
     const handleConfirm = async () => {
         if (!conteoSeleccionado?.id) {

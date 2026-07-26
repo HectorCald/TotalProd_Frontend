@@ -14,8 +14,7 @@ import ViewInfo from './modals/ViewInfo';
 import Formulario from './modals/Formulario';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const cleanDateStr = dateStr ? dateStr.slice(0, 10) : '';
-  const literal = useFechaLiteral(cleanDateStr, true);
+  const literal = useFechaLiteral(dateStr, true);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 

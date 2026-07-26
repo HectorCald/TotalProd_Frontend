@@ -19,8 +19,7 @@ import AnularEntrega from './modals/AnularEntrega';
 import ProductosMovimiento from '../movimientos/modals/ProductosMovimiento';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const cleanDateStr = dateStr ? dateStr.slice(0, 10) : '';
-  const literal = useFechaLiteral(cleanDateStr, true);
+  const literal = useFechaLiteral(dateStr, true);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
@@ -192,18 +191,24 @@ const Pedidos = () => {
     {
       name: 'Editar', 
       icon: 'edit', 
-      show: (row) => !row.destino && row.estado !== 'Entregado' && row.estado !== 'Completado',
+      show: (row) => !row.destino && row.estado === 'Pendiente',
       onClick: (pedido) => {
         const editarData = {
-          id: pedido.id,
-          prices_types_id: pedido.precio_id || pedido.precio?.id,
-          modalidad: pedido.agrupado ? 'grupos' : 'unidades',
-          observaciones: pedido.observaciones === '--' ? '' : (pedido.observaciones || ''),
-          sucursal_destino_id: pedido.sucursal_destino_id || pedido.sucursal_destino?.id,
-          productos_lista: (pedido.pedido_almacen_detalle || []).map(p => ({
-            id: p.producto_almacen_id || p.producto_almacen?.id || p.id,
-            cantidad: parseFloat(p.cantidad) || 1
-          }))
+            id: pedido.id,
+            prices_types_id: pedido.precio_id || pedido.precio?.id,
+            modalidad: pedido.agrupado ? 'grupos' : 'unidades',
+            observaciones: pedido.observaciones === '--' ? '' : (pedido.observaciones || ''),
+            fecha: pedido.fecha || pedido.date || pedido.created_at || new Date().toISOString(),
+            sucursal_destino_id: pedido.sucursal_destino_id || pedido.sucursal_destino?.id,
+            productos_lista: (pedido.pedido_almacen_detalle || []).map(p => {
+                const grup = parseFloat(p.producto_almacen?.grup) || 0;
+                const cantidadUD = parseFloat(p.cantidad) || 1;
+                const esPorGrupo = pedido.agrupado && grup > 0;
+                return {
+                    id: p.producto_almacen_id || p.producto_almacen?.id || p.id,
+                    cantidad: esPorGrupo ? Math.floor(cantidadUD / grup) : cantidadUD
+                };
+            })
         };
         sessionStorage.setItem('pedidoParaEditar', JSON.stringify(editarData));
         navigate('/almacen/pedidos/editar');

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Boton from '../../../../components/common/botones/Boton';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import InfoCard from '../../../../components/common/information/InfoCard';
 import useFormatNumber from '../../../../hooks/useFormatNumber';
+import useFormatNumberPrice from '../../../../hooks/useFormatNumberPrice';
 import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 import EliminarMovimiento from './EliminarMovimiento';
 import AnularMovimiento from './AnularMovimiento';
@@ -25,7 +27,9 @@ import { LEGACY_PERCENTAGE_CUTOFF_DATE } from '../../../../constants/movimientos
 
 const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onEliminar, onAnular }) => {
     const { formatPrice } = useFormatNumber();
+    const { calculateSubtotal, calculateSpecialPrice } = useFormatNumberPrice();
     const { showDanger } = useToast();
+    const navigate = useNavigate();
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
@@ -188,9 +192,35 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
         if (onAnular) onAnular(updatedMovimiento);
     };
 
-    const rawFechaStr = movimiento?.fecha || movimiento?.date || '';
-    const fechaStr = rawFechaStr ? rawFechaStr.slice(0, 10) : '';
-    const fechaLiteral = useFechaLiteral(fechaStr, false) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
+    const handleCopiarMovimiento = () => {
+        const ventaData = {
+            prices_types_id: movimiento.prices_types_id || movimiento.precio?.id,
+            modalidad: movimiento.agrupado ? 'grupos' : 'unidades',
+            productos_lista: (movimiento.productos || []).map(p => {
+                const grup = parseFloat(p.producto?.grup || p.grup) || 0;
+                const cantidadUD = parseFloat(p.cantidad || p.pivot?.cantidad) || 1;
+                const esPorGrupo = movimiento.agrupado && grup > 0;
+                return {
+                    id: p.producto?.id || p.producto_almacen_id || p.products_id || p.id,
+                    cantidad: esPorGrupo ? Math.floor(cantidadUD / grup) : cantidadUD
+                };
+            }),
+            cliente_id: movimiento.clients_id || movimiento.cliente?.id || movimiento.suppliers_id || movimiento.proveedor?.id,
+            descuento: parseFloat(movimiento.descuento) || 0,
+            aumento: parseFloat(movimiento.aumento) || 0,
+            porcentaje: !!movimiento.porcentaje,
+            metodo_pago: movimiento.metodo_pago,
+            fecha: movimiento.fecha || movimiento.date || movimiento.created_at || new Date().toISOString()
+        };
+        localStorage.removeItem('ventaEnProgreso');
+        localStorage.removeItem('entradaEnProgreso');
+        sessionStorage.setItem('movimientoParaCopiar', JSON.stringify(ventaData));
+        onClose();
+        navigate('/almacen/salidas/copia');
+    };
+
+    const rawFechaStr = movimiento?.fecha || movimiento?.date || movimiento?.created_at || '';
+    const fechaLiteral = useFechaLiteral(rawFechaStr, false) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
 
     if (!movimiento) return null;
 
@@ -344,7 +374,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
     if (!isAcopio) {
         subtotalNum = movimiento.subtotal !== undefined 
             ? parseFloat(movimiento.subtotal) 
-            : (movimiento.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
+            : (movimiento.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || calculateSubtotal(p.cantidad || p.pivot?.cantidad, p.precio_unitario || p.pivot?.precio_unitario || p.precio || p.pivot?.precio, p.producto?.grup, movimiento?.agrupado, movimiento?.type === 'salida' || movimiento?.tipo === 'salida')), 0);
         descValNum = parseFloat(movimiento.descuento) || 0;
         aumValNum = parseFloat(movimiento.aumento) || 0;
         esPorcentaje = movimiento.porcentaje;
@@ -428,19 +458,20 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
     const tablaValoresDescarga = (movimiento?.productos || []).map(p => {
         const cant = Number(p.pivot?.cantidad ?? p.cantidad ?? 0);
         const prec = p.pivot?.precio_unitario ?? p.precio_unitario ?? p.pivot?.precio ?? p.precio ?? 0;
-        const subt = p.pivot?.subtotal ?? p.subtotal ?? (Number(cant) * Number(prec));
         const name = p.name || p.producto?.name || 'Desconocido';
         const code = p.type_measure?.code || p.producto?.type_measure?.code || '';
         
         const grup = Number(p.producto?.grup ?? p.grup ?? 0);
         const esAgrupado = movimiento?.agrupado && grup > 0;
+        const esVenta = movimiento?.type === 'salida' || movimiento?.tipo === 'salida';
         
         let cantidadStr = `${cant}`;
-        let precioDescarga = Number(prec);
+        let precioDescarga = calculateSpecialPrice(prec, grup, esAgrupado, esVenta);
+        const subt = calculateSubtotal(cant, prec, grup, movimiento?.agrupado, esVenta);
+
         if (esAgrupado) {
             const cantEnGrupos = cant / grup;
             cantidadStr = Number.isInteger(cantEnGrupos) ? cantEnGrupos.toString() : cantEnGrupos.toFixed(2);
-            precioDescarga = precioDescarga * grup;
         } else {
             cantidadStr = `${cant} ${code}`.trim();
         }
@@ -571,6 +602,15 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                                         />
                                     )} */}
 
+                                    {movimiento.type !== 'entrada' && (
+                                        <BotonIcon
+                                            iconName="copy"
+                                            className="btn-primary"
+                                            tooltip="Copiar Movimiento"
+                                            tooltipAlign="end"
+                                            onClick={handleCopiarMovimiento}
+                                        />
+                                    )}
                                     {movimiento.estado !== 'anulado' && (
                                         <BotonIcon
                                             iconName="block"
@@ -666,7 +706,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
             nombreArchivo="NT"
             tituloDocumento="NOTA DE ENTREGA"
             esMovimiento={true}
-            fechaMovimiento={fechaStr}
+            fechaMovimiento={rawFechaStr}
             clienteInfo={{
                 nombre: clienteProveedorNombre || '',
                 numeroOrden: movimiento?.numero_orden || ''

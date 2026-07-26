@@ -26,7 +26,7 @@ const MobileQtyControl = ({ row, canasta, modoCanastaStr, modoAgrupacion, actual
   const rawStock = Number(row.stock || 0);
   const esPorGrupo = modoAgrupacion === 'grupo' && row.grup && row.grup > 0;
   const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(row.grup)) : rawStock;
-  const esVenta = modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION' || modoCanastaStr === 'ENTREGA_PEDIDO';
+  const esVenta = modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION' || modoCanastaStr === 'ENTREGA_PEDIDO' || modoCanastaStr === 'COPIA_VENTA';
   
   const [localVal, setLocalVal] = useState(qty === 0 ? '0' : qty.toString());
 
@@ -155,7 +155,8 @@ const AlmacenGeneral = () => {
 
   const path = location.pathname;
   const isCanastaMode = path.includes('/almacen/salidas') || path.includes('/almacen/entradas') || path.includes('/almacen/pedidos') || path.includes('/almacen/cotizar');
-  const modoCanastaStr = path.includes('/almacen/salidas/pedido') ? 'ENTREGA_PEDIDO' : path.includes('/almacen/salidas/cotizacion') ? 'VENTA_COTIZACION' : path.includes('/almacen/salidas') ? 'VENTA' : path.includes('/almacen/entradas') ? 'ENTRADA' : path.includes('/almacen/pedidos') ? 'PEDIDO' : 'COTIZACIÓN';
+  const modoCanastaStr = path.includes('/almacen/salidas/copia') ? 'COPIA_VENTA' : path.includes('/almacen/cotizar/copia') ? 'COPIA_COTIZACION' : path.includes('/almacen/salidas/pedido') ? 'ENTREGA_PEDIDO' : path.includes('/almacen/salidas/cotizacion') ? 'VENTA_COTIZACION' : path.includes('/almacen/salidas') ? 'VENTA' : path.includes('/almacen/entradas') ? 'ENTRADA' : path.includes('/almacen/pedidos') ? 'PEDIDO' : 'COTIZACIÓN';
+  const esVentaCanasta = modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION' || modoCanastaStr === 'ENTREGA_PEDIDO' || modoCanastaStr === 'COPIA_VENTA';
   const { canasta, agregarProducto, eliminarProducto, actualizarCantidad, actualizarPrecio, vaciarCanasta, modoAgrupacion, setModoAgrupacion } = useCanasta();
 
   const [isViewInfoMovimientoOpen, setIsViewInfoMovimientoOpen] = useState(false);
@@ -209,6 +210,15 @@ const AlmacenGeneral = () => {
 
   // Leer variables de sesión/storage para precargar datos y manejar redirecciones de seguridad
   const preloadedData = useMemo(() => {
+    if (modoCanastaStr === 'COPIA_VENTA') {
+      const rawData = sessionStorage.getItem('movimientoParaCopiar');
+      return rawData ? JSON.parse(rawData) : null;
+    }
+
+    if (modoCanastaStr === 'COPIA_COTIZACION') {
+      const rawData = sessionStorage.getItem('cotizacionParaCopiar');
+      return rawData ? JSON.parse(rawData) : null;
+    }
     if (modoCanastaStr === 'VENTA_COTIZACION') {
       const rawData = sessionStorage.getItem('cotizacionParaVenta');
       return rawData ? JSON.parse(rawData) : null;
@@ -244,12 +254,10 @@ const AlmacenGeneral = () => {
       return;
     }
     const data = {
-      prices_types_id: precioCanasta,
-      modalidad: modoAgrupacion === 'grupo' ? 'grupos' : 'unidades',
       productos_lista: canasta.map(p => ({ id: p.id, cantidad: p.cantidad, ...(p.precioCustom !== undefined && p.precioCustom !== '' ? { precioCustom: p.precioCustom } : {}) }))
     };
     localStorage.setItem(canastaStorageKey, JSON.stringify(data));
-  }, [canasta, modoAgrupacion, precioCanasta, canastaStorageKey]);
+  }, [canasta, canastaStorageKey]);
 
   useEffect(() => {
     if ((modoCanastaStr === 'VENTA_COTIZACION' || modoCanastaStr === 'ENTREGA_PEDIDO') && !preloadedData) {
@@ -541,7 +549,7 @@ const AlmacenGeneral = () => {
               const inCanasta = canasta.find(c => c.id === p.id);
               const qty = inCanasta ? inCanasta.cantidad : 0;
               const qtyUnits = (modoAgrupacion === 'grupo' && p.grup && p.grup > 0) ? (qty * p.grup) : qty;
-              const displayStock = (modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION' || modoCanastaStr === 'ENTREGA_PEDIDO') ? Number(p.stock || 0) - qtyUnits : Number(p.stock || 0);
+              const displayStock = esVentaCanasta ? Number(p.stock || 0) - qtyUnits : Number(p.stock || 0);
               return { ...p, displayStock };
             })}
             columns={columns}
@@ -587,7 +595,7 @@ const AlmacenGeneral = () => {
                 const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
                 const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(producto.grup)) : rawStock;
 
-                if ((modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION' || modoCanastaStr === 'ENTREGA_PEDIDO') && qty >= baseStockValue) {
+                if (esVentaCanasta && qty >= baseStockValue) {
                   showDanger(null, 'Stock insuficiente');
                   return;
                 }

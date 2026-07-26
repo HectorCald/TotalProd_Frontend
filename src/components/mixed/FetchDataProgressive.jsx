@@ -29,13 +29,17 @@ function FetchDataProgressive({
     });
     const cacheKey = `${serviceName || service.constructor.name}-${method}-${JSON.stringify(baseParams)}-page${page}`;
 
+    const executingFetchKeyRef = useRef(null);
+
     const fetchData = useCallback(async () => {
-        // Prevenir múltiples peticiones simultáneas
-        if (isFetchingRef.current) {
+        const currentCacheKey = cacheKey;
+        // Prevenir múltiples peticiones simultáneas para la misma clave
+        if (isFetchingRef.current && executingFetchKeyRef.current === currentCacheKey) {
             console.log('⏸️ Petición ya en curso, ignorando...');
             return;
         }
 
+        executingFetchKeyRef.current = currentCacheKey;
         isFetchingRef.current = true;
 
         if (onLoadingStart) onLoadingStart();
@@ -46,6 +50,12 @@ function FetchDataProgressive({
             const params = [page, limit, ...methodParams];
 
             const response = await service[method](...params);
+
+            // Ignorar respuestas de peticiones obsoletas
+            if (executingFetchKeyRef.current !== currentCacheKey) {
+                console.log('⏳ Petición obsoleta ignorada.');
+                return;
+            }
 
             if (response.success) {
                 const data = response.data || [];
@@ -95,10 +105,12 @@ function FetchDataProgressive({
                 onHasMorePagesChange(false);
             }
         } finally {
-            isFetchingRef.current = false;
-            if (onLoadingEnd) onLoadingEnd();
+            if (executingFetchKeyRef.current === currentCacheKey) {
+                isFetchingRef.current = false;
+                if (onLoadingEnd) onLoadingEnd();
+            }
         }
-    }, [method, methodParams, onDataLoaded, onError, onLoadingEnd, onLoadingStart, service, serviceName, page, limit, onHasMorePagesChange, onDataAccumulated]);
+    }, [method, methodParams, onDataLoaded, onError, onLoadingEnd, onLoadingStart, service, serviceName, page, limit, onHasMorePagesChange, onDataAccumulated, cacheKey]);
 
     useEffect(() => {
         if (isOpen) {

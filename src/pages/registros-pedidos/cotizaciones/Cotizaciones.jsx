@@ -14,10 +14,11 @@ import ViewInfoCotizacion from './modals/ViewInfoCotizacion';
 import ProductosMovimiento from '../movimientos/modals/ProductosMovimiento';
 import { formatCurrency } from '../../../utils/numberUtils';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
+import useFormatNumber from '../../../hooks/useFormatNumber';
+import useFormatNumberPrice from '../../../hooks/useFormatNumberPrice';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const cleanDateStr = dateStr ? dateStr.slice(0, 10) : '';
-  const literal = useFechaLiteral(cleanDateStr, true);
+  const literal = useFechaLiteral(dateStr, true);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
@@ -38,6 +39,9 @@ const Cotizaciones = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [, setError] = useState(null);
+
+  const { formatPrice } = useFormatNumber();
+  const { calculateSubtotal } = useFormatNumberPrice();
 
   // Paginación y filtros
   const [page, setPage] = useState(1);
@@ -169,10 +173,31 @@ const Cotizaciones = () => {
 
   const tableActions = [
     {
-      name: 'Editar', icon: 'edit',
-      show: (row) => row.estado === 'pendiente',
+      name: 'Copiar', icon: 'copy',
+      show: (row) => true,
       onClick: (cotizacion) => {
-        setCotizacionEditando(cotizacion);
+        const ventaData = {
+            prices_types_id: cotizacion.prices_types_id || cotizacion.precio?.id,
+            modalidad: cotizacion.agrupado ? 'grupos' : 'unidades',
+            productos_lista: (cotizacion.productos || []).map(p => {
+                const grup = parseFloat(p.producto?.grup) || 0;
+                const cantidadUD = parseFloat(p.cantidad) || 1;
+                const esPorGrupo = cotizacion.agrupado && grup > 0;
+                return {
+                    id: p.producto?.id || p.producto_almacen_id || p.products_id || p.id,
+                    cantidad: esPorGrupo ? Math.floor(cantidadUD / grup) : cantidadUD
+                };
+            }),
+            cliente_id: cotizacion.clients_id || cotizacion.cliente?.id,
+            descuento: parseFloat(cotizacion.descuento) || 0,
+            aumento: parseFloat(cotizacion.aumento) || 0,
+            porcentaje: !!cotizacion.porcentaje,
+            metodo_pago: cotizacion.metodo_pago,
+            fecha: cotizacion.fecha || cotizacion.created_at || new Date().toISOString()
+        };
+        localStorage.removeItem('cotizacionEnProgreso');
+        sessionStorage.setItem('cotizacionParaCopiar', JSON.stringify(ventaData));
+        navigate('/almacen/cotizar/copia');
       }
     },
     {
@@ -215,14 +240,8 @@ const Cotizaciones = () => {
       accessor: 'total',
       width: '15%',
       render: (row) => {
-        const subtotalCalculado = (row.productos || []).reduce((sum, producto) => {
-            const subtotal = parseFloat(producto.subtotal) || 0;
-            const grup = parseFloat(producto.producto?.grup) || 0;
-            const tieneGrup = grup > 0;
-            const subtotalRedondeado = tieneGrup ? redondearADecima(subtotal) : subtotal;
-            return sum + subtotalRedondeado;
-        }, 0);
-
+        let subtotalCalculado = (row.productos || []).reduce((sum, p) => sum + calculateSubtotal(p.cantidad, p.precio_unitario || p.precio, p.producto?.grup, row?.agrupado, true), 0);
+        
         let subtotalNum = Math.round(subtotalCalculado * 10) / 10;
         let descValNum = parseFloat(row.descuento) || 0;
         let aumValNum = parseFloat(row.aumento) || 0;
@@ -234,17 +253,11 @@ const Cotizaciones = () => {
         let totalFinalRaw = subtotalNum - descCalculadoNum + aumCalculadoNum;
         let totalFinalNum = Math.round(totalFinalRaw * 10) / 10;
 
-        return formatCurrency(totalFinalNum);
+        return formatPrice(totalFinalNum);
       },
       isMobileSubtitle: true,
       mobileRender: (row) => {
-        const subtotalCalculado = (row.productos || []).reduce((sum, producto) => {
-            const subtotal = parseFloat(producto.subtotal) || 0;
-            const grup = parseFloat(producto.producto?.grup) || 0;
-            const tieneGrup = grup > 0;
-            const subtotalRedondeado = tieneGrup ? redondearADecima(subtotal) : subtotal;
-            return sum + subtotalRedondeado;
-        }, 0);
+        let subtotalCalculado = (row.productos || []).reduce((sum, p) => sum + calculateSubtotal(p.cantidad, p.precio_unitario || p.precio, p.producto?.grup, row?.agrupado, true), 0);
 
         let subtotalNum = Math.round(subtotalCalculado * 10) / 10;
         let descValNum = parseFloat(row.descuento) || 0;
@@ -258,7 +271,7 @@ const Cotizaciones = () => {
 
         return (
           <>
-            Nº {row.numero_cotizacion || '--'} • {formatCurrency(totalFinalNum)} • <LiteralDateCell dateStr={row.fecha} />
+            Nº {row.numero_cotizacion || '--'} • {formatPrice(totalFinalNum)} • <LiteralDateCell dateStr={row.fecha} />
           </>
         );
       }

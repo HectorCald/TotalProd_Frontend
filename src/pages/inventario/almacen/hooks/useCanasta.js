@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 
 export const useCanasta = () => {
   const [canasta, setCanasta] = useState([]);
-  const [modoAgrupacion, setModoAgrupacion] = useState(() => localStorage.getItem('ventaAgrupadaDefault') === 'true' ? 'grupo' : 'unidad');
+  const [modoAgrupacion, setModoAgrupacion] = useState('grupo');
 
   const agregarProducto = useCallback((producto, modo = 'VENTA') => {
     setCanasta(prev => {
@@ -13,7 +13,7 @@ export const useCanasta = () => {
       const esPorGrupo = modoAgrupacion === 'grupo' && producto.grup && producto.grup > 0;
       const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(producto.grup)) : rawStock;
 
-      if ((modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO') && qty >= baseStockValue) {
+      if ((modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO' || modo === 'COPIA_VENTA') && qty >= baseStockValue) {
         return prev;
       }
 

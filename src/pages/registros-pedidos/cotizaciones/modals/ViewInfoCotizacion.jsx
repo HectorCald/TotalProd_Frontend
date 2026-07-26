@@ -6,6 +6,7 @@ import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import InfoCard from '../../../../components/common/information/InfoCard';
 import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 import useFormatNumber from '../../../../hooks/useFormatNumber';
+import useFormatNumberPrice from '../../../../hooks/useFormatNumberPrice';
 import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 import ProductosMovimiento from '../../../registros-pedidos/movimientos/modals/ProductosMovimiento';
 import AprobarCotizacion from './AprobarCotizacion';
@@ -13,11 +14,15 @@ import AnularAprobacion from './AnularAprobacion';
 import CompletarCotizacion from './CompletarCotizacion';
 import AnularCompletado from './AnularCompletado';
 import EliminarCotizacion from './EliminarCotizacion';
+import DescargarDatos from '../../../../components/ui/DescargarDatos';
+import Link from '../../../../components/common/outputs/Link';
 
 const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onEliminar }) => {
     const navigate = useNavigate();
     const { formatPrice } = useFormatNumber();
+    const { calculateSubtotal, calculateSpecialPrice } = useFormatNumberPrice();
     const [isProductosOpen, setIsProductosOpen] = useState(false);
+    const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     
     // Estados para modales de workflow
     const [isAprobarOpen, setIsAprobarOpen] = useState(false);
@@ -26,9 +31,8 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
     const [isAnularCompletadoOpen, setIsAnularCompletadoOpen] = useState(false);
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
 
-    const rawFechaStr = cotizacion?.fecha || cotizacion?.date || '';
-    const fechaStr = rawFechaStr ? rawFechaStr.slice(0, 10) : '';
-    const fechaLiteral = useFechaLiteral(fechaStr, true) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
+    const rawFechaStr = cotizacion?.fecha || cotizacion?.date || cotizacion?.created_at || '';
+    const fechaLiteral = useFechaLiteral(rawFechaStr, true) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
 
     if (!cotizacion) return null;
 
@@ -102,7 +106,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
     }
 
     // Cálculos para el bloque personalizado
-    let subtotalNum = (cotizacion.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
+    let subtotalNum = (cotizacion.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || calculateSubtotal(p.cantidad, p.precio_unitario || p.precio, p.producto?.grup, cotizacion?.agrupado, true)), 0);
     subtotalNum = Math.round(subtotalNum * 10) / 10;
     
     let descValNum = parseFloat(cotizacion.descuento) || 0;
@@ -140,6 +144,60 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
         });
     }
 
+    const informacionSuperiorDescarga = {};
+    if (fechaLiteral) informacionSuperiorDescarga['Fecha'] = fechaLiteral;
+    if (cotizacion.cliente?.name) informacionSuperiorDescarga['Cliente'] = cotizacion.cliente.name;
+    if (responsableNombre) informacionSuperiorDescarga['Responsable'] = responsableNombre;
+    if (cotizacion.metodo_pago) informacionSuperiorDescarga['Método de pago'] = cotizacion.metodo_pago.charAt(0).toUpperCase() + cotizacion.metodo_pago.slice(1);
+    if (cotizacion.codigo) informacionSuperiorDescarga['Código'] = cotizacion.codigo;
+    if (cotizacion.numero_cotizacion) informacionSuperiorDescarga['Nº Cotización'] = cotizacion.numero_cotizacion;
+    if (cotizacion.agrupado !== undefined && cotizacion.agrupado !== null) {
+        informacionSuperiorDescarga['Modalidad'] = cotizacion.agrupado ? 'Grupos' : 'Unidades';
+    }
+    if (cotizacion.precio?.name) informacionSuperiorDescarga['Tipo de Precio'] = cotizacion.precio.name;
+    if (cotizacion.observaciones) informacionSuperiorDescarga['Observaciones'] = cotizacion.observaciones;
+    if (descValNum > 0) informacionSuperiorDescarga['Descuento'] = `Bs. ${formatPrice(descCalculadoNum)}`;
+    if (aumValNum > 0) informacionSuperiorDescarga['Aumento'] = `Bs. ${formatPrice(aumCalculadoNum)}`;
+    informacionSuperiorDescarga['Total'] = `Bs. ${formatPrice(totalFinalNum)}`;
+
+    const tablaHeadersDescarga = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];
+    const tablaValoresDescarga = (cotizacion?.productos || []).map(p => {
+        const cant = Number(p.cantidad ?? 0);
+        const prec = Number(p.precio_unitario ?? p.precio ?? 0);
+        const name = p.name || p.producto?.name || 'Desconocido';
+        const code = p.type_measure?.code || p.producto?.type_measure?.code || '';
+        
+        const grup = Number(p.producto?.grup ?? 0);
+        const esAgrupado = cotizacion?.agrupado && grup > 0;
+        
+        let cantidadStr = `${cant}`;
+        
+        let precioDescarga = prec;
+        if (typeof calculateSpecialPrice === 'function') {
+           precioDescarga = calculateSpecialPrice(prec, grup, esAgrupado, true);
+        } else if (esAgrupado) {
+           precioDescarga = prec * grup;
+        }
+
+        const subt = parseFloat(p.subtotal) || calculateSubtotal(cant, prec, grup, cotizacion?.agrupado, true);
+
+        if (esAgrupado) {
+            const cantEnGrupos = cant / grup;
+            cantidadStr = Number.isInteger(cantEnGrupos) ? cantEnGrupos.toString() : cantEnGrupos.toFixed(2);
+        } else {
+            cantidadStr = `${cant} ${code}`.trim();
+        }
+        
+        return [
+            name,
+            cantidadStr,
+            `Bs. ${formatPrice(precioDescarga)}`,
+            `Bs. ${formatPrice(subt)}`
+        ];
+    });
+
+    const handleDescargar = () => setIsDescargaOpen(true);
+
     const getStatusColor = (estado) => {
         switch (estado) {
             case 'pendiente': return 'warning';
@@ -175,10 +233,36 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
         navigate('/almacen/salidas/cotizacion');
     };
 
+    const handleCopiarCotizacion = () => {
+        const ventaData = {
+            prices_types_id: cotizacion.prices_types_id || cotizacion.precio?.id,
+            modalidad: cotizacion.agrupado ? 'grupos' : 'unidades',
+            productos_lista: (cotizacion.productos || []).map(p => {
+                const grup = parseFloat(p.producto?.grup) || 0;
+                const cantidadUD = parseFloat(p.cantidad) || 1;
+                const esPorGrupo = cotizacion.agrupado && grup > 0;
+                return {
+                    id: p.producto?.id || p.producto_almacen_id || p.products_id || p.id,
+                    cantidad: esPorGrupo ? Math.floor(cantidadUD / grup) : cantidadUD
+                };
+            }),
+            cliente_id: cotizacion.clients_id || cotizacion.cliente?.id,
+            descuento: parseFloat(cotizacion.descuento) || 0,
+            aumento: parseFloat(cotizacion.aumento) || 0,
+            porcentaje: !!cotizacion.porcentaje,
+            metodo_pago: cotizacion.metodo_pago,
+            fecha: cotizacion.fecha || cotizacion.created_at || new Date().toISOString()
+        };
+        localStorage.removeItem('cotizacionEnProgreso');
+        sessionStorage.setItem('cotizacionParaCopiar', JSON.stringify(ventaData));
+        onClose();
+        navigate('/almacen/cotizar/copia');
+    };
+
     return (
         <>
         <ModalCentro
-            isOpen={isOpen && !isProductosOpen && !isAprobarOpen && !isAnularAprobacionOpen && !isCompletarOpen && !isAnularCompletadoOpen && !isEliminarOpen}
+            isOpen={isOpen && !isProductosOpen && !isAprobarOpen && !isAnularAprobacionOpen && !isCompletarOpen && !isAnularCompletadoOpen && !isEliminarOpen && !isDescargaOpen}
             onClose={onClose}
             title=""
             confirmText="Editar"
@@ -197,6 +281,13 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
                     icon="file"
                     customBlock={
                         <>
+                            <div style={{ marginBottom: '15px' }}>
+                                <Link 
+                                    text="Descargar Cotización" 
+                                    iconEnd="right-arrow-alt" 
+                                    onClick={handleDescargar} 
+                                />
+                            </div>
                             {tags.length > 0 && (
                                 <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
                             )}
@@ -268,17 +359,13 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
                                 />
                             )}
 
-                            {cotizacion.estado === 'pendiente' && (
-                                <BotonIcon
-                                    iconName="edit"
-                                    className="btn-primary"
-                                    tooltip="Editar Cotización"
-                                    onClick={() => {
-                                        onClose();
-                                        if (onEdit) onEdit(cotizacion);
-                                    }}
-                                />
-                            )}
+                            <BotonIcon
+                                iconName="copy"
+                                className="btn-primary"
+                                tooltip="Copiar Cotización"
+                                tooltipAlign="end"
+                                onClick={handleCopiarCotizacion}
+                            />
 
                             {cotizacion.estado === 'pendiente' && (
                                 <BotonIcon
@@ -345,6 +432,22 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
             onEliminar={(id) => {
                 if (onEliminar) onEliminar(id);
                 onClose();
+            }}
+        />
+
+        <DescargarDatos
+            isOpen={isDescargaOpen}
+            setIsOpen={setIsDescargaOpen}
+            titulo="Descargar Cotización"
+            subtitulo="SELECCIONA EL FORMATO QUE PREFIERAS PARA DESCARGAR."
+            informacionSuperior={informacionSuperiorDescarga}
+            tablaHeaders={tablaHeadersDescarga}
+            tablaValores={tablaValoresDescarga}
+            nombreArchivo={`COTIZACION_${cotizacion.codigo || cotizacion.id || ''}`}
+            tituloDocumento="COTIZACIÓN"
+            clienteInfo={{
+                nombre: cotizacion.cliente?.name || '',
+                numeroOrden: cotizacion.numero_cotizacion || ''
             }}
         />
         </>

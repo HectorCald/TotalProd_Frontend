@@ -227,7 +227,7 @@ class pedidosAlmacenService {
   }
 
   // Crear pedido de golpe (fast)
-  static async createFast({ sucursal_destino_id, observaciones, precio_id, agrupado, productos }) {
+  static async createFast({ sucursal_destino_id, observaciones, precio_id, agrupado, fecha, date, productos }) {
     return pedidosAlmacenService._request('/pedidos-almacen/fast', {
       method: 'POST',
       body: JSON.stringify({
@@ -235,6 +235,7 @@ class pedidosAlmacenService {
         observaciones: observaciones || null,
         precio_id,
         agrupado: !!agrupado,
+        fecha: fecha || date,
         productos
       })
     }, {
@@ -243,7 +244,7 @@ class pedidosAlmacenService {
   }
 
   // Actualizar pedido de golpe (fast)
-  static async updateFast(pedidoId, { observaciones, precio_id, sucursal_destino_id, agrupado, productos }) {
+  static async updateFast(pedidoId, { observaciones, precio_id, sucursal_destino_id, agrupado, fecha, date, productos }) {
     return pedidosAlmacenService._request(`/pedidos-almacen/${pedidoId}/update-fast`, {
       method: 'PUT',
       body: JSON.stringify({
@@ -251,10 +252,12 @@ class pedidosAlmacenService {
         precio_id,
         sucursal_destino_id,
         agrupado: !!agrupado,
+        fecha: fecha || date,
         productos
       })
     }, {
-      requireSucuId: true
+      requireSucuId: true,
+      requireEmpresaId: true
     });
   }
 

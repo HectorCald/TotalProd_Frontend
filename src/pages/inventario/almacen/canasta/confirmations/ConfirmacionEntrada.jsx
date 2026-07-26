@@ -5,6 +5,7 @@ import SelectProveedores from '../../../../../components/common/fast/SelectProve
 import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodoPago';
 import Input from '../../../../../components/common/inputs/Input';
 import Checkbox from '../../../../../components/common/inputs/Checkbox';
+import InputFecha from '../../../../../components/common/inputs/InputFecha';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
 import { useToast } from '../../../../../context/ToastContext';
 
@@ -17,11 +18,14 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
   const [costo, setCosto] = useState('');
   const [proveedor, setProveedor] = useState(null);
   const [metodoPago, setMetodoPago] = useState(null);
+  const [fechaRegistro, setFechaRegistro] = useState('');
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (isOpen) {
       setCosto(totalBase ? String(totalBase) : '');
+      const d = new Date();
+      setFechaRegistro(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
     }
   }, [isOpen, totalBase]);
 
@@ -42,6 +46,7 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
 
   const handleConfirm = async () => {
     const newErrors = {};
+    if (!fechaRegistro) newErrors.fechaRegistro = true;
     if (registrarGasto) {
       if (!costo) newErrors.costo = true;
       if (!metodoPago) newErrors.metodoPago = true;
@@ -64,6 +69,7 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
         restar_ingredientes: consumirReceta,
         precio_id: precioSeleccionado,
         agrupado: modoAgrupacion === 'grupo',
+        fecha: fechaRegistro,
         // Campos para gasto automático en el backend
         registrar_gasto: registrarGasto,
         costo: registrarGasto ? (parseFloat(costo) || 0) : null,
@@ -71,10 +77,14 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
         productos: canasta.map(p => {
           const esPorGrupo = modoAgrupacion === 'grupo' && p.grup && Number(p.grup) > 0;
           const precioBase = getProductPrice(p, precioSeleccionado);
-          let precioUnitarioFinal = precioBase;
-          if (p.precioCustom !== undefined && p.precioCustom !== '') {
-             precioUnitarioFinal = esPorGrupo ? (Number(p.precioCustom) / Number(p.grup)) : Number(p.precioCustom);
-          }
+          
+          // La entrada tampoco redondea por defecto en ProductoItem (esVenta = false)
+          const precioGrupo = esPorGrupo ? precioBase * Number(p.grup) : precioBase;
+          const precioMostrado = precioGrupo; 
+          const precioCanasta = (p.precioCustom !== undefined && p.precioCustom !== '') ? Number(p.precioCustom) : precioMostrado;
+          
+          const precioUnitarioFinal = esPorGrupo ? (precioCanasta / Number(p.grup)) : precioCanasta;
+
           return {
             id: p.id,
             cantidad: esPorGrupo ? Number(p.cantidad) * Number(p.grup) : Number(p.cantidad),
@@ -129,6 +139,18 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
       contentStyle={{ paddingBlock: 0 }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: isSubmitting ? 'none' : 'auto', opacity: isSubmitting ? 0.7 : 1 }}>
+
+        <InputFecha
+          label="Fecha de registro"
+          value={fechaRegistro}
+          onChange={(val) => {
+            setFechaRegistro(val);
+            setErrors(prev => ({ ...prev, fechaRegistro: false }));
+          }}
+          required={true}
+          error={errors.fechaRegistro}
+          onClearError={() => setErrors(prev => ({ ...prev, fechaRegistro: false }))}
+        />
 
         <Input
           label="Concepto"

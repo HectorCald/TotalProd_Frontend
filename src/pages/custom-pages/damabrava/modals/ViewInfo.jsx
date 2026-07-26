@@ -19,7 +19,7 @@ import reglasProduccionDamabravaService from '../../../../services/reglasProducc
 import { seleccionarReglaParaProducto, calcularPagoProcesos } from '../../../../utils/reglasPagoHelper';
 
 const IngresoRow = ({ ingreso, onClick }) => {
-    const literalDate = useFechaLiteral(ingreso.fecha?.split('T')[0], true);
+    const literalDate = useFechaLiteral(ingreso.fecha, true);
     
     const cantidad = ingreso.productos?.reduce((sum, p) => sum + Number(p.cantidad || 0), 0) || 0;
 

@@ -32,6 +32,7 @@ export const useCanasta = () => {
 
   return {
     canasta,
+    setCanasta,
     agregarProducto,
     eliminarProducto,
     actualizarCantidad,

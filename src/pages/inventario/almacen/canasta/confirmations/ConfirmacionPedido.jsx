@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import SelectSucursal from '../../../../../components/common/fast/SelectSucursal';
 import Input from '../../../../../components/common/inputs/Input';
+import InputFecha from '../../../../../components/common/inputs/InputFecha';
 import pedidosAlmacenService from '../../../../../services/pedidosAlmacenService';
 import { getSucuId } from '../../../../../config/apiClient';
 import { useToast } from '../../../../../context/ToastContext';
@@ -14,13 +15,30 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
   const navigate = useNavigate();
   const [sucursal, setSucursal] = useState(null);
   const [observaciones, setObservaciones] = useState('');
+  const [fechaRegistro, setFechaRegistro] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
-    if (isOpen && pedidoDefaults) {
-      setObservaciones(pedidoDefaults.observaciones || '');
-      setSucursal(pedidoDefaults.sucursal_destino_id ? String(pedidoDefaults.sucursal_destino_id) : null);
+    if (isOpen) {
+      if (pedidoDefaults) {
+        setObservaciones(pedidoDefaults.observaciones || '');
+        setSucursal(pedidoDefaults.sucursal_destino_id ? String(pedidoDefaults.sucursal_destino_id) : null);
+      }
+      
+      if (pedidoDefaults?.fecha) {
+        let fStr = pedidoDefaults.fecha;
+        if (fStr.includes('T') || fStr.includes('Z')) {
+          const d = new Date(fStr);
+          fStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        } else {
+          fStr = fStr.substring(0, 10);
+        }
+        setFechaRegistro(fStr);
+      } else {
+        const d = new Date();
+        setFechaRegistro(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+      }
     }
   }, [isOpen, pedidoDefaults]);
 
@@ -28,6 +46,7 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
 
   const handleConfirm = async () => {
     const newErrors = {};
+    if (!fechaRegistro) newErrors.fechaRegistro = true;
     if (!sucursal) newErrors.sucursal = true;
 
     if (Object.keys(newErrors).length > 0) {
@@ -57,10 +76,14 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
       const productos = (canasta || []).map(p => {
         const esPorGrupo = modoAgrupacion === 'grupo' && p.grup && Number(p.grup) > 0;
         const precioBase = getProductPrice(p, precioSeleccionado);
-        let precioUnitarioFinal = precioBase;
-        if (p.precioCustom !== undefined && p.precioCustom !== '') {
-           precioUnitarioFinal = esPorGrupo ? (Number(p.precioCustom) / Number(p.grup)) : Number(p.precioCustom);
-        }
+        
+        // El pedido no redondea por defecto en ProductoItem (esVenta = false), pero aplicaremos la lógica cruda
+        const precioGrupo = esPorGrupo ? precioBase * Number(p.grup) : precioBase;
+        const precioMostrado = precioGrupo; // En pedidos no redondeamos
+        const precioCanasta = (p.precioCustom !== undefined && p.precioCustom !== '') ? Number(p.precioCustom) : precioMostrado;
+        
+        const precioUnitarioFinal = esPorGrupo ? (precioCanasta / Number(p.grup)) : precioCanasta;
+
         return {
           id: p.id,
           cantidad: esPorGrupo ? Number(p.cantidad) * Number(p.grup) : Number(p.cantidad),
@@ -75,6 +98,7 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
           observaciones: observaciones.trim() || null,
           precio_id: precioSeleccionado,
           agrupado,
+          fecha: fechaRegistro,
           productos
         });
       } else {
@@ -83,6 +107,7 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
           observaciones: observaciones.trim() || null,
           precio_id: precioSeleccionado,
           agrupado,
+          fecha: fechaRegistro,
           productos
         });
       }
@@ -124,6 +149,17 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
       contentStyle={{ paddingBlock: 0 }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', pointerEvents: loading ? 'none' : 'auto', opacity: loading ? 0.7 : 1 }}>
+        <InputFecha
+          label="Fecha de registro"
+          value={fechaRegistro}
+          onChange={(val) => {
+            setFechaRegistro(val);
+            setErrors(prev => ({ ...prev, fechaRegistro: false }));
+          }}
+          required={true}
+          error={errors.fechaRegistro}
+          onClearError={() => setErrors(prev => ({ ...prev, fechaRegistro: false }))}
+        />
         <SelectSucursal 
           value={sucursal}
           onChange={(val) => { setSucursal(val); setErrors(prev => ({ ...prev, sucursal: false })); }}
