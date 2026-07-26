@@ -308,7 +308,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
                         <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'flex-end' }}>
                             <Boton
                                 label="Productos"
-                                iconName="box"
+                                iconName={cotizacion.estado === 'aprobada' ? "" : "box"}
                                 className="btn-primary"
                                 style={{ flex: 1 }}
                                 onClick={() => setIsProductosOpen(true)}

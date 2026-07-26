@@ -488,6 +488,9 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
         setIsDescargaOpen(true);
     };
 
+    const hasDeuda = movimiento?.deudas && (Array.isArray(movimiento.deudas) ? movimiento.deudas.length > 0 : Object.keys(movimiento.deudas).length > 0);
+    const hasPedido = (movimiento?.pedidos_entrada && (Array.isArray(movimiento.pedidos_entrada) ? movimiento.pedidos_entrada.length > 0 : Object.keys(movimiento.pedidos_entrada).length > 0)) || (movimiento?.pedidos_salida && (Array.isArray(movimiento.pedidos_salida) ? movimiento.pedidos_salida.length > 0 : Object.keys(movimiento.pedidos_salida).length > 0));
+
     return (
         <>
         <ModalCentro
@@ -548,7 +551,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                                     {!isAcopio && (
                                         <Boton
                                             label="Productos"
-                                            iconName="box"
+                                            iconName={(hasDeuda && hasPedido) ? "" : "box"}
                                             className="btn-primary"
                                             style={{ flex: 1 }}
                                             onClick={() => setIsProductosOpen(true)}
