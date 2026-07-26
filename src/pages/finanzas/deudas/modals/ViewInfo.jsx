@@ -17,7 +17,9 @@ import EliminarDeuda from './EliminarDeuda';
 
 const PagoRow = ({ pago, onDelete, isDeleting }) => {
     const { formatPrice } = useFormatNumber();
-    const literalDate = useFechaLiteral(pago.fecha, false);
+    // Pre-recortar a YYYY-MM-DD ya que pago.fecha es una fecha conceptual (no timestamp de evento)
+    const fechaStr = typeof pago.fecha === 'string' && pago.fecha.length > 10 ? pago.fecha.substring(0, 10) : pago.fecha;
+    const literalDate = useFechaLiteral(fechaStr, false);
     return (
         <div
             style={{
@@ -164,10 +166,11 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada, onElimin
         }
     };
 
-    const fechaDeudaStr = deuda?.fecha_deuda || '';
-    const fechaVencimientoStr = deuda?.fecha_vencimiento || '';
-    const fechaDeudaLiteral = useFechaLiteral(fechaDeudaStr, false) || (fechaDeudaStr ? new Date(fechaDeudaStr).toLocaleDateString() : '');
-    const fechaVencimientoLiteral = useFechaLiteral(fechaVencimientoStr, false) || (fechaVencimientoStr ? new Date(fechaVencimientoStr).toLocaleDateString() : '');
+    // Pre-recortar a YYYY-MM-DD ya que son fechas conceptuales (no timestamps de evento)
+    const fechaDeudaStr = typeof deuda?.fecha_deuda === 'string' && deuda.fecha_deuda.length > 10 ? deuda.fecha_deuda.substring(0, 10) : (deuda?.fecha_deuda || '');
+    const fechaVencimientoStr = typeof deuda?.fecha_vencimiento === 'string' && deuda.fecha_vencimiento.length > 10 ? deuda.fecha_vencimiento.substring(0, 10) : (deuda?.fecha_vencimiento || '');
+    const fechaDeudaLiteral = useFechaLiteral(fechaDeudaStr, false) || fechaDeudaStr;
+    const fechaVencimientoLiteral = useFechaLiteral(fechaVencimientoStr, false) || fechaVencimientoStr;
 
     if (!deuda) return null;
 

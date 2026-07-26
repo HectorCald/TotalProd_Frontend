@@ -18,7 +18,7 @@ import useFormatNumber from '../../../hooks/useFormatNumber';
 import useFormatNumberPrice from '../../../hooks/useFormatNumberPrice';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, true);
+  const literal = useFechaLiteral(dateStr, true, true);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 

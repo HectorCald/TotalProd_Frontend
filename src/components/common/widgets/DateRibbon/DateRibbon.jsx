@@ -6,11 +6,15 @@ const generateOptions = (tipo) => {
     const options = [];
     const today = new Date();
     
+    const toLocalString = (d) => {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    };
+    
     if (tipo === 'diario') {
         const startDate = new Date(today.getFullYear(), 0, 1);
         for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
             const dateStr = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-            options.push({ value: d.toISOString(), label: dateStr });
+            options.push({ value: toLocalString(d), label: dateStr });
         }
     } else if (tipo === 'semanal') {
         let d = new Date(today.getFullYear(), 0, 1);
@@ -22,7 +26,7 @@ const generateOptions = (tipo) => {
             
             const startStr = `${curr.getDate()} ${curr.toLocaleDateString('es-ES', { month: 'short' })}`;
             const endStr = `${endOfWeek.getDate()} ${endOfWeek.toLocaleDateString('es-ES', { month: 'short' })}`;
-            options.push({ value: curr.toISOString(), label: `${startStr} - ${endStr}` });
+            options.push({ value: toLocalString(curr), label: `${startStr} - ${endStr}` });
         }
     } else if (tipo === 'mensual') {
         const startYear = today.getFullYear() - 1;
@@ -31,7 +35,7 @@ const generateOptions = (tipo) => {
             for (let m = 0; m <= endMonth; m++) {
                 const dateObj = new Date(y, m, 1);
                 const monthStr = dateObj.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-                options.push({ value: dateObj.toISOString(), label: monthStr.charAt(0).toUpperCase() + monthStr.slice(1) });
+                options.push({ value: toLocalString(dateObj), label: monthStr.charAt(0).toUpperCase() + monthStr.slice(1) });
             }
         }
     } else if (tipo === 'anual') {

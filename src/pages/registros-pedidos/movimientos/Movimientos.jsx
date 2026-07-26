@@ -19,8 +19,8 @@ import AnularMovimiento from './modals/AnularMovimiento';
 import { LEGACY_PERCENTAGE_CUTOFF_DATE } from '../../../constants/movimientosConstants';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, true);
-  return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
+  const literal = useFechaLiteral(dateStr, true, true);
+  return <span>{literal || dateStr}</span>;
 };
 
 const Movimientos = () => {

@@ -41,11 +41,11 @@ const ViewInfoAcopio = ({ isOpen, setIsOpen, onClose, pedido, onEliminar, onAnul
 
     const rawFechaStr = pedido?.fecha || pedido?.created_at || '';
     const fechaStr = rawFechaStr;
-    const fechaLiteral = useFechaLiteral(fechaStr, false) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
+    const fechaLiteral = useFechaLiteral(fechaStr, false, true) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
 
     const rawFechaEntregaStr = pedido?.fecha_entregado || '';
     const fechaEntregaStr = rawFechaEntregaStr;
-    const fechaEntregaLiteral = useFechaLiteral(fechaEntregaStr, false) || (rawFechaEntregaStr ? new Date(rawFechaEntregaStr).toLocaleDateString() : '');
+    const fechaEntregaLiteral = useFechaLiteral(fechaEntregaStr, false, true) || (rawFechaEntregaStr ? new Date(rawFechaEntregaStr).toLocaleDateString() : '');
 
     if (!pedido) return null;
 

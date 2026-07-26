@@ -220,7 +220,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
     };
 
     const rawFechaStr = movimiento?.fecha || movimiento?.date || movimiento?.created_at || '';
-    const fechaLiteral = useFechaLiteral(rawFechaStr, false) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
+    const fechaLiteral = useFechaLiteral(rawFechaStr, false, true) || rawFechaStr;
 
     if (!movimiento) return null;
 

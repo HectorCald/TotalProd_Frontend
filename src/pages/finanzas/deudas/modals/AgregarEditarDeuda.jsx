@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ModalLateral from '../../../../components/common/modals/ModalLateral';
 import Input from '../../../../components/common/inputs/Input';
+import Checkbox from '../../../../components/common/inputs/Checkbox';
+import { getFullTimestamp } from '../../../../utils/dateUtils';
 import InputFecha from '../../../../components/common/inputs/InputFecha';
 import SelectCliente from '../../../../components/common/fast/SelectCliente';
 import { useToast } from '../../../../context/ToastContext';
@@ -105,7 +107,7 @@ const AgregarEditarDeuda = ({ isOpen, onClose, deudaSeleccionada, onGuardar }) =
                     fecha_vencimiento: formData.fecha_vencimiento,
                     concepto: formData.concepto.trim()
                 } : {
-                    fecha_deuda: formData.fecha_deuda,
+                    fecha_deuda: getFullTimestamp(formData.fecha_deuda),
                     fecha_vencimiento: formData.fecha_vencimiento,
                     monto_total: parseFloat(formData.monto_total),
                     saldo_pendiente: formData.saldo_pendiente !== '' ? parseFloat(formData.saldo_pendiente) : parseFloat(formData.monto_total),
@@ -114,7 +116,7 @@ const AgregarEditarDeuda = ({ isOpen, onClose, deudaSeleccionada, onGuardar }) =
                     cliente_id: formData.cliente_id || null
                 }
             ) : {
-                fecha_deuda: formData.fecha_deuda,
+                fecha_deuda: getFullTimestamp(formData.fecha_deuda),
                 fecha_vencimiento: formData.fecha_vencimiento,
                 monto_total: parseFloat(formData.monto_total),
                 saldo_pendiente: formData.saldo_pendiente ? parseFloat(formData.saldo_pendiente) : parseFloat(formData.monto_total),

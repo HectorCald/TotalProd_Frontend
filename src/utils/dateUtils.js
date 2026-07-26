@@ -1,111 +1,53 @@
-const DEFAULT_FALLBACK = '--';
+/**
+ * Obtiene el timestamp completo (fecha y hora exacta local) a partir de una fecha seleccionada.
+ * - Si la fecha es hoy, retorna el timestamp exacto actual.
+ * - Si es otra fecha manual (ej: 2024-10-15), le agrega la hora exacta actual para evitar 
+ *   que se envíe a medianoche (UTC).
+ * - Si ya es un ISO string, lo retorna tal cual.
+ */
+export const getFullTimestamp = (dateString) => {
+    if (!dateString) return new Date().toISOString();
+  
+    const hoy = new Date();
+    const strHoy = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+    
+    if (dateString === strHoy) {
+      // Si seleccionó la fecha de hoy, enviamos el momento exacto
+      return hoy.toISOString();
+    } else if (typeof dateString === 'string' && dateString.length === 10) {
+      // Si seleccionó manualmente un día pasado o futuro, le inyectamos la hora actual local
+      const horaActual = String(hoy.getHours()).padStart(2, '0') + ':' + String(hoy.getMinutes()).padStart(2, '0') + ':' + String(hoy.getSeconds()).padStart(2, '0');
+      const dLocal = new Date(`${dateString}T${horaActual}`);
+      return dLocal.toISOString();
+    }
+    
+    // Si ya es un formato ISO u otro diferente, lo retornamos tal cual
+    return dateString;
+  };
 
-const parseDateValue = (value) => {
-  if (!value) return null;
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value;
-  }
-  if (typeof value === 'string') {
-    const s = value.trim();
-    // Solo fecha sin hora (exactamente YYYY-MM-DD): usar día como fecha local a medianoche
-    const dateOnlyMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (dateOnlyMatch) {
-      const [, year, month, day] = dateOnlyMatch;
-      const date = new Date(Number(year), Number(month) - 1, Number(day));
-      return Number.isNaN(date.getTime()) ? null : date;
+export const parseDateWithoutOffset = (dateString) => {
+    if (!dateString) return null;
+    const parts = dateString.split('T')[0].split('-');
+    if (parts.length === 3) {
+        return new Date(parts[0], parts[1] - 1, parts[2]);
     }
-    // Fecha con hora (ej. 2026-02-13 16:18:55.9+00 o ISO): normalizar a ISO para respetar hora y zona
-    if (/^\d{4}-\d{2}-\d{2}[\sT]/.test(s)) {
-      const iso = s
-        .replace(/^(\d{4}-\d{2}-\d{2})\s+/, '$1T')
-        .replace(/([+-])(\d{2})$/, '$1$2:00');
-      const date = new Date(iso);
-      return Number.isNaN(date.getTime()) ? null : date;
-    }
-  }
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+    return new Date(dateString);
 };
 
-const buildDateFormatter = (abreviarMes = false) =>
-  new Intl.DateTimeFormat('es-ES', {
-    day: 'numeric',
-    month: abreviarMes ? 'short' : 'long',
-    year: 'numeric'
-  });
-
-const buildTimeFormatter = () =>
-  new Intl.DateTimeFormat('es-ES', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-
-let dateFormatter;
-let dateFormatterAbreviado;
-let timeFormatter;
-
-const getDateFormatter = (abreviarMes = false) => {
-  if (abreviarMes) {
-    if (!dateFormatterAbreviado) {
-      dateFormatterAbreviado = buildDateFormatter(true);
+export const formatFechaLiteral = (dateString, includeTime = false) => {
+    if (!dateString) return '--';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '--';
+    
+    const opciones = { day: 'numeric', month: 'short', year: 'numeric' };
+    if (includeTime) {
+        opciones.hour = 'numeric';
+        opciones.minute = '2-digit';
+        opciones.hour12 = true;
     }
-    return dateFormatterAbreviado;
-  } else {
-    if (!dateFormatter) {
-      dateFormatter = buildDateFormatter(false);
-    }
-    return dateFormatter;
-  }
+    return date.toLocaleDateString('es-ES', opciones);
 };
 
-const getTimeFormatter = () => {
-  if (!timeFormatter) {
-    timeFormatter = buildTimeFormatter();
-  }
-  return timeFormatter;
+export const formatFechaHoraLiteral = (dateString) => {
+    return formatFechaLiteral(dateString, true);
 };
-
-export const formatFechaLiteral = (value, abreviarMes = false) => {
-  const date = parseDateValue(value);
-  if (!date) return DEFAULT_FALLBACK;
-  try {
-    return getDateFormatter(abreviarMes).format(date);
-  } catch (error) {
-    return DEFAULT_FALLBACK;
-  }
-};
-
-export const formatHoraSinSegundos = (value) => {
-  const date = parseDateValue(value);
-  if (!date) return DEFAULT_FALLBACK;
-  try {
-    return getTimeFormatter().format(date);
-  } catch (error) {
-    return DEFAULT_FALLBACK;
-  }
-};
-
-export const formatFechaHoraLiteral = (value) => {
-  const date = parseDateValue(value);
-  if (!date) return DEFAULT_FALLBACK;
-  try {
-    const fecha = getDateFormatter().format(date);
-    const hora = getTimeFormatter().format(date);
-    if (!fecha && !hora) {
-      return DEFAULT_FALLBACK;
-    }
-    if (!fecha) {
-      return hora;
-    }
-    if (!hora) {
-      return fecha;
-    }
-    return `${fecha} ${hora}`;
-  } catch (error) {
-    return DEFAULT_FALLBACK;
-  }
-};
-
-export const parseDateWithoutOffset = parseDateValue;
-

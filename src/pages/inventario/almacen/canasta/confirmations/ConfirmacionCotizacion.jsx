@@ -6,6 +6,7 @@ import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodo
 import Input from '../../../../../components/common/inputs/Input';
 import Checkbox from '../../../../../components/common/inputs/Checkbox';
 import InputFecha from '../../../../../components/common/inputs/InputFecha';
+import { getFullTimestamp } from '../../../../../utils/dateUtils';
 import cotizacionesService from '../../../../../services/cotizacionesService';
 import { useToast } from '../../../../../context/ToastContext';
 
@@ -89,7 +90,7 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
         cliente_id: cliente || null,
         precio_id: precioSeleccionado,
         agrupado: modoAgrupacion === 'grupo',
-        fecha: fechaRegistro,
+        fecha: getFullTimestamp(fechaRegistro),
         fecha_vencimiento: fechaVencimiento || null,
         descuento: descVal,
         aumento: aumVal,

@@ -53,7 +53,7 @@ const MobileQtyControl = ({ row, canasta, modoCanastaStr, modoAgrupacion, actual
     if (qty === 0 && val > 0) {
       if (modoCanastaStr === 'PEDIDO' && canasta.length > 0) {
         const empresaIdCanasta = canasta[0].empresa_id;
-        if (row.empresa_id !== empresaIdCanasta) {
+        if (empresaIdCanasta && String(row.empresa_id) !== String(empresaIdCanasta)) {
           showDanger(null, 'No puedes pedir a diferentes empresas a la vez.');
           setLocalVal('0');
           return;
@@ -130,7 +130,7 @@ const MobileQtyControl = ({ row, canasta, modoCanastaStr, modoAgrupacion, actual
           else {
             if (modoCanastaStr === 'PEDIDO' && canasta.length > 0) {
               const empresaIdCanasta = canasta[0].empresa_id;
-              if (row.empresa_id !== empresaIdCanasta) {
+              if (empresaIdCanasta && String(row.empresa_id) !== String(empresaIdCanasta)) {
                 showDanger(null, 'No puedes pedir a diferentes empresas a la vez.');
                 return;
               }
@@ -583,7 +583,7 @@ const AlmacenGeneral = () => {
               if (isCanastaMode) {
                 if (modoCanastaStr === 'PEDIDO' && canasta.length > 0) {
                   const empresaIdCanasta = canasta[0].empresa_id;
-                  if (producto.empresa_id !== empresaIdCanasta) {
+                  if (empresaIdCanasta && String(producto.empresa_id) !== String(empresaIdCanasta)) {
                     showDanger(null, 'No puedes pedir a diferentes empresas a la vez.');
                     return;
                   }

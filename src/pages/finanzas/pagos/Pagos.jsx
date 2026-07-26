@@ -16,8 +16,9 @@ import EliminarPago from './modals/EliminarPago';
 import ViewInfo from './modals/ViewInfo';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, true);
-  return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
+  const safeDateStr = dateStr && typeof dateStr === 'string' ? dateStr.substring(0, 10) : dateStr;
+  const literal = useFechaLiteral(safeDateStr, true);
+  return <span>{literal || (safeDateStr ? new Date(safeDateStr + 'T00:00:00').toLocaleDateString() : '')}</span>;
 };
 
 const Pagos = () => {

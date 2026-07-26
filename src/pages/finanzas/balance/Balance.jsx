@@ -14,6 +14,7 @@ import deudasService from '../../../services/deudasService';
 import gastosService from '../../../services/gastosService';
 import Skeleton from '../../../components/common/widgets/Skeleton';
 import useFormatNumber from '../../../hooks/useFormatNumber';
+import { parseDateWithoutOffset } from '../../../utils/dateUtils';
 
 const metodosPago = [
     { value: 'qr', label: 'QR' },
@@ -27,7 +28,7 @@ const metodosPago = [
 const calcFiltroFecha = (selectedDate, tipoBalance) => {
     if (!selectedDate) return null;
     
-    const d = new Date(selectedDate);
+    const d = parseDateWithoutOffset(selectedDate);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -57,8 +58,8 @@ const calcFiltroFecha = (selectedDate, tipoBalance) => {
             fechaStrFin: `${y}-12-31`
         };
     } else if (tipoBalance === 'semanal') {
-        const inicioDate = new Date(selectedDate);
-        const finDate = new Date(inicioDate);
+        const inicioDate = parseDateWithoutOffset(selectedDate);
+        const finDate = parseDateWithoutOffset(selectedDate);
         finDate.setDate(finDate.getDate() + 6);
         
         const y2 = finDate.getFullYear();
@@ -82,7 +83,7 @@ const Balance = () => {
   const [tipoBalance, setTipoBalance] = useState('diario');
   const [selectedDate, setSelectedDate] = useState(() => {
       const today = new Date();
-      return new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+      return today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   });
   const [movimientos, setMovimientos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -188,7 +189,7 @@ const Balance = () => {
 
           setLoadingDeudas(true);
           try {
-              const res = await deudasService.getAll(1, 99999, '', null, null, 'fecha_desc', null, filtroFecha);
+              const res = await deudasService.getAll(1, 99999, '', null, null, 'fecha_desc', null, null);
               if (res && res.success && res.data) {
                   const idsMovimientosCredito = movimientosCredito.map(m => m.id);
                   const deudasAsociadas = res.data.filter(d => idsMovimientosCredito.includes(d.movimiento_salida_id));

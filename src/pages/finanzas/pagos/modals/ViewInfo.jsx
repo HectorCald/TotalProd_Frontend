@@ -50,8 +50,8 @@ const ViewInfo = ({ isOpen, onClose, pago, onEdit, onEliminar }) => {
         }
     };
 
-    const fechaPagoStr = pago?.fecha_gasto || '';
-    const fechaPagoLiteral = useFechaLiteral(fechaPagoStr, false) || (fechaPagoStr ? new Date(fechaPagoStr).toLocaleDateString() : '');
+    const fechaPagoStr = pago?.fecha_gasto ? (typeof pago.fecha_gasto === 'string' ? pago.fecha_gasto.substring(0, 10) : pago.fecha_gasto) : '';
+    const fechaPagoLiteral = useFechaLiteral(fechaPagoStr, false) || fechaPagoStr;
 
     if (!pago) return null;
 

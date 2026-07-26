@@ -32,7 +32,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
 
     const rawFechaStr = cotizacion?.fecha || cotizacion?.date || cotizacion?.created_at || '';
-    const fechaLiteral = useFechaLiteral(rawFechaStr, true) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
+    const fechaLiteral = useFechaLiteral(rawFechaStr, false, true) || rawFechaStr;
 
     if (!cotizacion) return null;
 
@@ -271,7 +271,6 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
                 if (onEdit) onEdit(cotizacion);
             }}
             hideFooter={true}
-            width="450px"
         >
                 <InfoCard
                     title={title}

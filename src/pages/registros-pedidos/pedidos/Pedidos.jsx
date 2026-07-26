@@ -19,7 +19,7 @@ import AnularEntrega from './modals/AnularEntrega';
 import ProductosMovimiento from '../movimientos/modals/ProductosMovimiento';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, true);
+  const literal = useFechaLiteral(dateStr, true, true);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 

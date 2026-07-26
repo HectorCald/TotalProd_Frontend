@@ -5,6 +5,7 @@ import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import SelectSucursal from '../../../../../components/common/fast/SelectSucursal';
 import Input from '../../../../../components/common/inputs/Input';
 import InputFecha from '../../../../../components/common/inputs/InputFecha';
+import { getFullTimestamp } from '../../../../../utils/dateUtils';
 import pedidosAlmacenService from '../../../../../services/pedidosAlmacenService';
 import { getSucuId } from '../../../../../config/apiClient';
 import { useToast } from '../../../../../context/ToastContext';
@@ -98,7 +99,7 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
           observaciones: observaciones.trim() || null,
           precio_id: precioSeleccionado,
           agrupado,
-          fecha: fechaRegistro,
+          fecha: getFullTimestamp(fechaRegistro),
           productos
         });
       } else {
@@ -107,7 +108,7 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
           observaciones: observaciones.trim() || null,
           precio_id: precioSeleccionado,
           agrupado,
-          fecha: fechaRegistro,
+          fecha: getFullTimestamp(fechaRegistro),
           productos
         });
       }

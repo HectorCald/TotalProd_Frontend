@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 
-const useFechaLiteral = (dateStr, abbreviate = false) => {
+const useFechaLiteral = (dateStr, abbreviate = false, includeTime = false) => {
   return useMemo(() => {
     if (!dateStr) return '';
     
     let normalizedDateStr = dateStr;
+    let timePart = '';
+
     if (typeof dateStr === 'string' && dateStr.length > 10) {
       const d = new Date(dateStr);
       if (!isNaN(d.getTime())) {
@@ -12,6 +14,15 @@ const useFechaLiteral = (dateStr, abbreviate = false) => {
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const dd = String(d.getDate()).padStart(2, '0');
         normalizedDateStr = `${yyyy}-${mm}-${dd}`;
+        
+        if (includeTime) {
+          let hours = d.getHours();
+          const minutes = String(d.getMinutes()).padStart(2, '0');
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          hours = hours % 12;
+          hours = hours ? hours : 12; // the hour '0' should be '12'
+          timePart = `, ${hours}:${minutes} ${ampm}`;
+        }
       } else {
         normalizedDateStr = dateStr.slice(0, 10);
       }
@@ -39,7 +50,7 @@ const useFechaLiteral = (dateStr, abbreviate = false) => {
         'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
       ];
       
-      return `${d} de ${meses[m]} de ${y}`;
+      return `${d} de ${meses[m]} de ${y}${timePart}`;
     }
 
     if (/^\d{4}-\d{2}$/.test(normalizedDateStr)) {

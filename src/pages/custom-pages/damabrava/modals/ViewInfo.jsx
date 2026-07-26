@@ -19,7 +19,7 @@ import reglasProduccionDamabravaService from '../../../../services/reglasProducc
 import { seleccionarReglaParaProducto, calcularPagoProcesos } from '../../../../utils/reglasPagoHelper';
 
 const IngresoRow = ({ ingreso, onClick }) => {
-    const literalDate = useFechaLiteral(ingreso.fecha, true);
+    const literalDate = useFechaLiteral(ingreso.fecha, true, true);
     
     const cantidad = ingreso.productos?.reduce((sum, p) => sum + Number(p.cantidad || 0), 0) || 0;
 
@@ -79,7 +79,7 @@ const ViewInfo = ({ isOpen, onClose, registro, isMiProduccion = false, onElimina
 
     const rawFechaStr = registro?.fecha || '';
     const fechaStr = rawFechaStr ? rawFechaStr.slice(0, 10) : '';
-    const hookFechaLiteral = useFechaLiteral(fechaStr, false);
+    const hookFechaLiteral = useFechaLiteral(fechaStr, false, true);
 
     const loadIngresos = async () => {
         if (!registro?.id || registro?.estado === 'pendiente') return;

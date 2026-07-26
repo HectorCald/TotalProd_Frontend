@@ -93,7 +93,7 @@ const ViewInfoAcopio = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnu
 
     const rawFechaStr = movimiento?.fecha || movimiento?.date || '';
     const fechaStr = rawFechaStr;
-    const fechaLiteral = useFechaLiteral(fechaStr, false) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
+    const fechaLiteral = useFechaLiteral(fechaStr, false, true) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
 
     if (!movimiento) return null;
 

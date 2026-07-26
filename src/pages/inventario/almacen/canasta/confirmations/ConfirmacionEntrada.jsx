@@ -6,6 +6,7 @@ import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodo
 import Input from '../../../../../components/common/inputs/Input';
 import Checkbox from '../../../../../components/common/inputs/Checkbox';
 import InputFecha from '../../../../../components/common/inputs/InputFecha';
+import { getFullTimestamp } from '../../../../../utils/dateUtils';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
 import { useToast } from '../../../../../context/ToastContext';
 
@@ -69,7 +70,7 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
         restar_ingredientes: consumirReceta,
         precio_id: precioSeleccionado,
         agrupado: modoAgrupacion === 'grupo',
-        fecha: fechaRegistro,
+        fecha: getFullTimestamp(fechaRegistro),
         // Campos para gasto automático en el backend
         registrar_gasto: registrarGasto,
         costo: registrarGasto ? (parseFloat(costo) || 0) : null,

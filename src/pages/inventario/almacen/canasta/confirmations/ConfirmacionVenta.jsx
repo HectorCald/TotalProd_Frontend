@@ -6,6 +6,7 @@ import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodo
 import Input from '../../../../../components/common/inputs/Input';
 import Checkbox from '../../../../../components/common/inputs/Checkbox';
 import InputFecha from '../../../../../components/common/inputs/InputFecha';
+import { getFullTimestamp } from '../../../../../utils/dateUtils';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
 import pedidosAlmacenService from '../../../../../services/pedidosAlmacenService';
 import { useToast } from '../../../../../context/ToastContext';
@@ -112,7 +113,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
         total_final: totalFinal,
         precio_id: precioSeleccionado,
         agrupado: modoAgrupacion === 'grupo',
-        fecha: fechaRegistro,
+        fecha: getFullTimestamp(fechaRegistro),
         productos: canasta.map(p => {
           const esPorGrupo = modoAgrupacion === 'grupo' && p.grup && Number(p.grup) > 0;
           const cantidadEnUnidades = esPorGrupo

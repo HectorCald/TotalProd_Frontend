@@ -81,7 +81,7 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
     };
 
     const rawFechaStr = pedido?.fecha || pedido?.created_at || '';
-    const fechaLiteral = useFechaLiteral(rawFechaStr, false) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
+    const fechaLiteral = useFechaLiteral(rawFechaStr, false, true) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
 
     if (!pedido) return null;
 
@@ -111,8 +111,6 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
             icon: 'user'
         });
     }
-
-
 
     const obtenerTotalFormateado = (ped) => {
         let total = (ped.pedido_almacen_detalle || []).reduce((sum, detalle) => {

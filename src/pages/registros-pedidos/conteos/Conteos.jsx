@@ -16,7 +16,7 @@ import SelectTipoNuevo from './modals/SelectTipoNuevo';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, false);
+  const literal = useFechaLiteral(dateStr, false, true);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
