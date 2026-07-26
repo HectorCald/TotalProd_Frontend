@@ -15,12 +15,21 @@ const CerrarSesion = ({ isOpen, onClose }) => {
         clearUser();
         clearEmployee();
 
-        // Asegurarnos de eliminar explícitamente el token del local
-        localStorage.removeItem('cacheVersion');
-        localStorage.removeItem('sidebarCollapsed');
-        localStorage.removeItem('sucursalIdSeleccionada');
-        localStorage.removeItem('token');
+        // Guardar valores que queremos mantener
+        const rememberSession = localStorage.getItem('rememberSession');
+        const savedEmail = localStorage.getItem('savedEmail');
+
+        // Limpiar todo el storage
+        localStorage.clear();
         sessionStorage.clear();
+
+        // Restaurar los valores si existían
+        if (rememberSession !== null) {
+            localStorage.setItem('rememberSession', rememberSession);
+        }
+        if (savedEmail !== null) {
+            localStorage.setItem('savedEmail', savedEmail);
+        }
 
         // Dispatch event to notify App.jsx of token change immediately
         window.dispatchEvent(new Event('local-logout'));
