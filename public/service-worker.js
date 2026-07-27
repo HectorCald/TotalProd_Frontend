@@ -1,4 +1,4 @@
-const CACHE_NAME = 'totalprod-cache-v3.3.4';
+const CACHE_NAME = 'totalprod-cache-v3.3.5';
 const urlsToCache = ['/', '/index.html', '/manifest.json', '/icon-192x192.png', '/icon-512x512.png', '/icon.png'];
 
 self.addEventListener('install', event => {

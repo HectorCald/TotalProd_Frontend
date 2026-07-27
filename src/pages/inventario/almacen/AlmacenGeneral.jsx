@@ -446,7 +446,7 @@ const AlmacenGeneral = () => {
       isMobileStatus: true,
       statusType: (row) => {
         const stock = Number(row.displayStock ?? row.stock ?? 0);
-        const minimo = Number(row.stock_minimo ?? 0);
+        const minimo = Number(row.stock_minimo_ajustado ?? row.stock_minimo ?? 0);
         if (minimo > 0) {
           if (stock <= minimo) return 'error';
           if (stock <= minimo * 1.5) return 'warning';
@@ -458,11 +458,11 @@ const AlmacenGeneral = () => {
       },
       mobileRender: (row) => {
         const stock = Number(row.displayStock ?? row.stock ?? 0);
-        return `${stock} ${row.type_measure?.code || ''}`.trim();
+        return `${stock}`;
       },
       render: (row) => {
         const stock = Number(row.displayStock ?? row.stock ?? 0);
-        const minimo = Number(row.stock_minimo ?? 0);
+        const minimo = Number(row.stock_minimo_ajustado ?? row.stock_minimo ?? 0);
         let color = 'var(--info-color)';
         if (minimo > 0) {
           if (stock <= minimo) color = 'var(--error-color)';
@@ -479,21 +479,21 @@ const AlmacenGeneral = () => {
             display: 'inline-block',
             fontSize: '12px',
           }}>
-            {stock} {row.type_measure?.code || ''}
+            {stock}
           </span>
         );
       }
     },
-    {
+    ...(!isCanastaMode ? [{
       header: 'Grupo',
       accessor: 'grupo',
       width: '10%',
       render: (row) => {
-        const stock = Number(row.displayStock ?? row.stock ?? 0);
+        const units = Number(row.remainingUnits ?? row.stock ?? 0);
         const grup = Number(row.grup ?? 0);
-        return grup > 0 ? Math.floor(stock / grup) : '--';
+        return grup > 0 ? Math.floor(units / grup) : '--';
       }
-    },
+    }] : []),
     {
       header: 'Minimo',
       accessor: 'stock_minimo',
@@ -548,9 +548,14 @@ const AlmacenGeneral = () => {
             data={productos.map(p => {
               const inCanasta = canasta.find(c => c.id === p.id);
               const qty = inCanasta ? inCanasta.cantidad : 0;
-              const qtyUnits = (modoAgrupacion === 'grupo' && p.grup && p.grup > 0) ? (qty * p.grup) : qty;
-              const displayStock = esVentaCanasta ? Number(p.stock || 0) - qtyUnits : Number(p.stock || 0);
-              return { ...p, displayStock };
+              const rawStock = Number(p.stock || 0);
+              const isGroupMode = isCanastaMode && modoAgrupacion === 'grupo' && p.grup && p.grup > 0;
+              const qtyInUnits = isGroupMode ? qty * p.grup : qty;
+              const remainingUnits = esVentaCanasta ? rawStock - qtyInUnits : rawStock;
+              const displayStock = isGroupMode ? Math.floor(remainingUnits / p.grup) : remainingUnits;
+              const originalMinimo = Number(p.stock_minimo || 0);
+              const stock_minimo_ajustado = isGroupMode ? Math.floor(originalMinimo / p.grup) : originalMinimo;
+              return { ...p, displayStock, remainingUnits, stock_minimo_ajustado };
             })}
             columns={columns}
             isLoading={isLoading}

@@ -20,7 +20,7 @@ const AnularVerificacion = ({ isOpen, onClose, registro, onAnular }) => {
 
             if (response.success) {
                 showSuccess('Verificación anulada', 'Verificación anulada correctamente');
-                if (onAnular) onAnular(response.data);
+                if (onAnular) onAnular({ ...registro, ...response.data });
                 onClose(true);
             } else {
                 showWarning('Advertencia', response.message || 'Error al anular la verificación');

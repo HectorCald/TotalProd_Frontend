@@ -83,7 +83,7 @@ const IngresarProduccion = ({ isOpen, onClose, registro, onIngresar }) => {
                     );
 
                     if (onIngresar) {
-                        onIngresar(updateResponse.data);
+                        onIngresar({ ...registro, ...updateResponse.data });
                     }
                     onClose(true);
                 } else {

@@ -43,7 +43,7 @@ const VerificarRegistro = ({ isOpen, onClose, registro, onVerificar }) => {
             if (response.success) {
                 showSuccess('Verificación exitosa', 'Registro verificado correctamente');
                 if (onVerificar) {
-                    onVerificar(response.data);
+                    onVerificar({ ...registro, ...response.data });
                 }
                 onClose(true);
             } else {
