@@ -40,14 +40,15 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
           const d = new Date();
           setFechaRegistro(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
         }
+        setConcepto(cotizacionDefaults.concepto || '');
       } else {
         setCliente(null);
         setMetodoPago(null);
         setDescuento('');
         setAumento('');
         setEsPorcentaje(false);
+        setConcepto('');
       }
-      setConcepto('');
       setAdelanto('');
       setErrors({});
       setIsSubmitting(false);

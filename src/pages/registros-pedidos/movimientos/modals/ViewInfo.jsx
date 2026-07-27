@@ -210,6 +210,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
             aumento: parseFloat(movimiento.aumento) || 0,
             porcentaje: !!movimiento.porcentaje,
             metodo_pago: movimiento.metodo_pago,
+            concepto: movimiento.concepto,
             fecha: movimiento.fecha || movimiento.date || movimiento.created_at || new Date().toISOString()
         };
         localStorage.removeItem('ventaEnProgreso');
