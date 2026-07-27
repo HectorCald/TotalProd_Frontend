@@ -129,6 +129,11 @@
   color: var(--info-color, #468cfd);
 }
 
+.secondary {
+  background-color: color-mix(in srgb, var(--tertiary-color) 20%, transparent);
+  color: var(--secondary-color);
+}
+
 .subtitle {
   font-size: 11px;
   color: var(--tertiary-color);

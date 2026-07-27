@@ -9,9 +9,11 @@ const ItemMobile = ({
   subtitle = '',
   status = '',
   statusType = 'default',
+  status2 = '',
+  status2Type = 'default',
   customControls = null,
   onClick,
-  actions = [], // Optional actions array, maybe for future use
+  actions = [],
 }) => {
   return (
     <div className={styles.container} onClick={onClick}>
@@ -21,11 +23,18 @@ const ItemMobile = ({
       <div className={styles.content}>
         <h4 className={styles.title}>{title}</h4>
         <div className={styles.footer}>
-          {status && (
-            <span className={`${styles.badge} ${styles[statusType] || styles.default}`}>
-              {status}
-            </span>
-          )}
+          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            {status && (
+              <span className={`${styles.badge} ${styles[statusType] || styles.default}`}>
+                {status}
+              </span>
+            )}
+            {status2 && (
+              <span className={`${styles.badge} ${styles[status2Type] || styles.default}`}>
+                {status2}
+              </span>
+            )}
+          </div>
           {customControls ? (
             customControls
           ) : (

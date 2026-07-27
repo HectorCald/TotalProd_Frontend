@@ -226,7 +226,7 @@ const Tabla = ({
                     <table className={styles.table}>
                     <thead>
                         <tr>
-                            {columns.map((col, index) => (
+                            {columns.filter(c => !c.hiddenOnDesktop).map((col, index) => (
                                 <th key={index} className={styles.th} style={{ width: col.width }}>
                                     {typeof col.header === 'string' ? col.header.toUpperCase() : col.header}
                                 </th>
@@ -238,7 +238,7 @@ const Tabla = ({
                         {isLoading ? (
                             Array.from({ length: 6 }).map((_, index) => (
                                 <tr key={index} className={styles.tr}>
-                                    {columns.map((col, colIdx) => (
+                                    {columns.filter(c => !c.hiddenOnDesktop).map((col, colIdx) => (
                                         <td key={colIdx} className={styles.td}>
                                             <Skeleton width={col.skeletonWidth || "70%"} height="16px" />
                                         </td>
@@ -260,7 +260,7 @@ const Tabla = ({
                                         onClick={() => onRowClick && onRowClick(row)}
                                         style={onRowClick ? { cursor: 'pointer' } : {}}
                                     >
-                                        {columns.map((col, colIdx) => {
+                                        {columns.filter(c => !c.hiddenOnDesktop).map((col, colIdx) => {
                                             const cellValue = row[col.accessor];
                                             let cellContent = col.render ? col.render(row) : (cellValue ?? '--');
 
@@ -417,14 +417,14 @@ const Tabla = ({
                             })
                         ) : (
                             <tr>
-                                <td colSpan={columns.length + (acciones && acciones.length > 0 ? 1 : 0)} className={styles.td} style={{ textAlign: 'center' }}>
+                                <td colSpan={columns.filter(c => !c.hiddenOnDesktop).length + (acciones && acciones.length > 0 ? 1 : 0)} className={styles.td} style={{ textAlign: 'center' }}>
                                     No hay datos
                                 </td>
                             </tr>
                         )}
                         {isLoadingMore && (
                             <tr className={styles.tr}>
-                                {columns.map((col, colIdx) => (
+                                {columns.filter(c => !c.hiddenOnDesktop).map((col, colIdx) => (
                                     <td key={colIdx} className={styles.td}>
                                         <Skeleton width={col.skeletonWidth || "70%"} height="16px" />
                                     </td>
@@ -438,7 +438,7 @@ const Tabla = ({
                         )}
                         {onLoadMore && !isLoading && !isLoadingMore && (
                             <tr ref={loaderRef} style={{ height: '1px' }}>
-                                <td colSpan={columns.length + (acciones && acciones.length > 0 ? 1 : 0)} style={{ padding: 0 }} />
+                                <td colSpan={columns.filter(c => !c.hiddenOnDesktop).length + (acciones && acciones.length > 0 ? 1 : 0)} style={{ padding: 0 }} />
                             </tr>
                         )}
                     </tbody>
@@ -457,11 +457,16 @@ const Tabla = ({
                             const rowKey = row.id || `row-${idx}`;
                             const mainCol = columns.find(c => c.isMobileMain) || columns.find(c => c.hasIcon) || columns[0];
                             const statusCol = columns.find(c => c.isMobileStatus) || columns.find(c => c.hasStatusDot || c.hasStatus || c.isBadge);
-                            const subtitleCol = columns.find(c => c.isMobileSubtitle) || columns.find(c => c !== mainCol && c !== statusCol);
+                            const status2Col = columns.find(c => c.isMobileStatus2);
+                            const subtitleCol = columns.find(c => c.isMobileSubtitle) || columns.find(c => c !== mainCol && c !== statusCol && c !== status2Col);
 
                             const title = mainCol?.mobileRender ? mainCol.mobileRender(row) : (mainCol?.render ? mainCol.render(row) : (row[mainCol?.accessor] || '--'));
                             const status = statusCol ? (statusCol.mobileRender ? statusCol.mobileRender(row) : (statusCol.render ? statusCol.render(row) : row[statusCol.accessor])) : '';
                             const statusType = statusCol && statusCol.statusType ? statusCol.statusType(row) : 'default';
+                            
+                            const status2 = status2Col ? (status2Col.mobileRender ? status2Col.mobileRender(row) : (status2Col.render ? status2Col.render(row) : row[status2Col.accessor])) : '';
+                            const status2Type = status2Col && status2Col.statusType ? status2Col.statusType(row) : 'default';
+
                             const subtitle = subtitleCol ? (subtitleCol.mobileRender ? subtitleCol.mobileRender(row) : (subtitleCol.render ? subtitleCol.render(row) : row[subtitleCol.accessor])) : '';
                             
                             // Si la columna principal tiene render, probablemente devuelve JSX. ItemMobile espera string en title, 
@@ -478,6 +483,8 @@ const Tabla = ({
                                     subtitle={subtitle}
                                     status={status}
                                     statusType={statusType}
+                                    status2={status2}
+                                    status2Type={status2Type}
                                     customControls={mobileCustomControls ? mobileCustomControls(row) : null}
                                     onClick={() => onRowClick && onRowClick(row)}
                                     actions={acciones ? acciones.map(a => ({

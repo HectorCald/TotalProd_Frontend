@@ -494,6 +494,20 @@ const AlmacenGeneral = () => {
         return grup > 0 ? Math.floor(units / grup) : '--';
       }
     }] : []),
+    ...(isCanastaMode ? [{
+      header: 'Precio',
+      accessor: 'precio',
+      hiddenOnDesktop: true,
+      isMobileStatus2: true,
+      statusType: () => 'secondary',
+      mobileRender: (row) => {
+        const pId = localStorage.getItem('canasta_precio_seleccionado') || precioCanasta;
+        if (!pId || !row.price_product) return 'Bs. 0.00';
+        const priceObj = row.price_product.find(p => String(p.prices_types?.id) === String(pId) || String(p.prices_types_id) === String(pId));
+        const val = priceObj ? Number(priceObj.valor) : 0;
+        return `Bs. ${val.toFixed(2)}`;
+      }
+    }] : []),
     {
       header: 'Minimo',
       accessor: 'stock_minimo',
