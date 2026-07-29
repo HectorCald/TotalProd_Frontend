@@ -195,12 +195,7 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
         
         let cantidadStr = `${cant}`;
         
-        let precioDescarga = prec;
-        if (typeof calculateSpecialPrice === 'function') {
-           precioDescarga = calculateSpecialPrice(prec, grup, esAgrupado, true);
-        } else if (esAgrupado) {
-           precioDescarga = prec * grup;
-        }
+        let precioDescarga = calculateSpecialPrice(prec, grup, esAgrupado, true);
 
         const subt = calculateSubtotal(cant, prec, grup, pedido?.agrupado, true);
 

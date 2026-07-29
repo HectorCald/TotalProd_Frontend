@@ -106,7 +106,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
     }
 
     // Cálculos para el bloque personalizado
-    let subtotalNum = (cotizacion.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || calculateSubtotal(p.cantidad, p.precio_unitario || p.precio, p.producto?.grup, cotizacion?.agrupado, true)), 0);
+    let subtotalNum = (cotizacion.productos || []).reduce((sum, p) => sum + calculateSubtotal(p.cantidad, p.precio_unitario || p.precio, p.producto?.grup, cotizacion?.agrupado, true), 0);
     subtotalNum = Math.round(subtotalNum * 10) / 10;
     
     let descValNum = parseFloat(cotizacion.descuento) || 0;
@@ -172,14 +172,9 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
         
         let cantidadStr = `${cant}`;
         
-        let precioDescarga = prec;
-        if (typeof calculateSpecialPrice === 'function') {
-           precioDescarga = calculateSpecialPrice(prec, grup, esAgrupado, true);
-        } else if (esAgrupado) {
-           precioDescarga = prec * grup;
-        }
+        let precioDescarga = calculateSpecialPrice(prec, grup, esAgrupado, true);
 
-        const subt = parseFloat(p.subtotal) || calculateSubtotal(cant, prec, grup, cotizacion?.agrupado, true);
+        const subt = calculateSubtotal(cant, prec, grup, cotizacion?.agrupado, true);
 
         if (esAgrupado) {
             const cantEnGrupos = cant / grup;

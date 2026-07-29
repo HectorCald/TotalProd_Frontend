@@ -373,9 +373,11 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
     let isLegacyPercentage = false;
 
     if (!isAcopio) {
-        subtotalNum = movimiento.subtotal !== undefined 
-            ? parseFloat(movimiento.subtotal) 
-            : (movimiento.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || calculateSubtotal(p.cantidad || p.pivot?.cantidad, p.precio_unitario || p.pivot?.precio_unitario || p.precio || p.pivot?.precio, p.producto?.grup, movimiento?.agrupado, movimiento?.type === 'salida' || movimiento?.tipo === 'salida')), 0);
+        subtotalNum = (movimiento.productos || []).reduce((sum, p) => {
+            const cant = p.cantidad || p.pivot?.cantidad;
+            const prec = p.precio_unitario || p.pivot?.precio_unitario || p.precio || p.pivot?.precio;
+            return sum + calculateSubtotal(cant, prec, p.producto?.grup, movimiento?.agrupado, movimiento?.type === 'salida' || movimiento?.tipo === 'salida');
+        }, 0);
         descValNum = parseFloat(movimiento.descuento) || 0;
         aumValNum = parseFloat(movimiento.aumento) || 0;
         esPorcentaje = movimiento.porcentaje;

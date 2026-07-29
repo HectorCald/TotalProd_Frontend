@@ -169,7 +169,8 @@ const ProductosMovimiento = ({
                     const precioUnit = calculateSpecialPrice(row.precioUnitario, row.grup, esAgrupado, row.esVenta);
                     const costoUnit = esAgrupado ? row.costoProduccion * row.grup : row.costoProduccion;
                     const gananciaTotal = (precioUnit - costoUnit) * (esAgrupado ? row.cantidad / row.grup : row.cantidad);
-                    return formatCurrency(gananciaTotal);
+                    const gananciaRedondeada = Math.round((gananciaTotal + Number.EPSILON) * 10) / 10;
+                    return formatCurrency(gananciaRedondeada);
                 },
                 width: '15%',
             });
