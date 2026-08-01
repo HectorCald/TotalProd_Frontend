@@ -16,9 +16,11 @@
   position: relative;
 }
 
-.menuItem:hover {
-  transform: translateY(-2px);
-  color: var(--primary-color, #4f46e5);
+@media (min-width: 769px) {
+  .menuItem:hover {
+    transform: translateY(-2px);
+    color: var(--primary-color, #4f46e5);
+  }
 }
 
 .icon {

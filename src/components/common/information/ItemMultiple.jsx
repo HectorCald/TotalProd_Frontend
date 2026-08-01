@@ -5,10 +5,17 @@ import { BoxIcon } from 'boxicons-react';
 const ItemMultiple = ({ title, description, onEdit, onDelete, onHeart, isHearted, icon = "dollar", logo }) => {
   const hasActions = onEdit || onDelete || onHeart;
   const [hearted, setHearted] = useState(isHearted || false);
+  const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
     setHearted(isHearted);
   }, [isHearted]);
+
+  const handleCardClick = () => {
+    if (hasActions && window.innerWidth <= 768) {
+      setIsFlipped(prev => !prev);
+    }
+  };
 
   const handleHeartClick = (e) => {
     e.stopPropagation();
@@ -17,9 +24,21 @@ const ItemMultiple = ({ title, description, onEdit, onDelete, onHeart, isHearted
     if (onHeart) onHeart(newState);
   };
 
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+    setIsFlipped(false);
+    if (onEdit) onEdit(e);
+  };
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    setIsFlipped(false);
+    if (onDelete) onDelete(e);
+  };
+
   return (
-    <div className={`${styles.card} ${!hasActions ? styles.noActions : ''}`}>
-      <div className={styles.inner}>
+    <div className={`${styles.card} ${!hasActions ? styles.noActions : ''}`} onClick={handleCardClick}>
+      <div className={`${styles.inner} ${isFlipped ? styles.flipped : ''}`}>
         {/* Lado frontal con información */}
         <div className={styles.front}>
           <div className={styles.iconContainer}>
@@ -35,7 +54,7 @@ const ItemMultiple = ({ title, description, onEdit, onDelete, onHeart, isHearted
           </div>
         </div>
         
-        {/* Lado reverso con acciones (efecto hover de vuelta) */}
+        {/* Lado reverso con acciones */}
         {hasActions && (
           <div className={styles.back}>
             {onHeart ? (
@@ -51,13 +70,13 @@ const ItemMultiple = ({ title, description, onEdit, onDelete, onHeart, isHearted
             ) : (
               <>
                 {onEdit && (
-                  <button className={`${styles.actionButton} ${styles.editButton}`} onClick={onEdit} aria-label="Editar">
+                  <button className={`${styles.actionButton} ${styles.editButton}`} onClick={handleEditClick} aria-label="Editar">
                     <BoxIcon name="edit-alt" className={styles.actionIcon} />
                     <span className={styles.actionText}>Editar</span>
                   </button>
                 )}
                 {onDelete && (
-                  <button className={`${styles.actionButton} ${styles.deleteButton}`} onClick={onDelete} aria-label="Eliminar">
+                  <button className={`${styles.actionButton} ${styles.deleteButton}`} onClick={handleDeleteClick} aria-label="Eliminar">
                     <BoxIcon name="trash" className={styles.actionIcon} />
                     <span className={styles.actionText}>Eliminar</span>
                   </button>
