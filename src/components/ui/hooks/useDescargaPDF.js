@@ -1,4 +1,5 @@
 import { pdf as pdfRenderer, Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
+import useFormatNumber from '../../../hooks/useFormatNumber';
 
 export const useDescargaPDF = ({
     nombreArchivoState,
@@ -16,6 +17,8 @@ export const useDescargaPDF = ({
     setIsSubmitting,
     setIsOpen
 }) => {
+    const { formatPrice } = useFormatNumber();
+
     const handleDescargaPDF = async () => {
         try {
             const styles = StyleSheet.create({
@@ -275,14 +278,18 @@ export const useDescargaPDF = ({
                                     if (tieneAumento || tieneDescuento) {
                                         const subtotalProductos = finalValores.reduce((sum, row) => {
                                             const subtotalStr = row[row.length - 1]?.toString() || '0';
-                                            const cleanStr = subtotalStr.replace(/Bs\.\s*/, '').trim();
+                                            const cleanStr = subtotalStr
+                                                .replace(/Bs\.\s*/g, '')
+                                                .replace(/\./g, '')
+                                                .replace(',', '.')
+                                                .trim();
                                             const subtotalNum = parseFloat(cleanStr) || 0;
                                             return sum + subtotalNum;
                                         }, 0);
 
                                         return (
                                             <>
-                                                <RenderTotalRow label="Subtotal:" value={`Bs. ${subtotalProductos.toFixed(2)}`} />
+                                                <RenderTotalRow label="Subtotal:" value={`Bs. ${formatPrice(subtotalProductos)}`} />
                                                 {tieneAumento && (
                                                     <RenderTotalRow label="Aumento:" value={informacionSuperior.Aumento} />
                                                 )}

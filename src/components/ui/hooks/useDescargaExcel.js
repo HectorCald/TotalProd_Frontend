@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import useFormatNumber from '../../../hooks/useFormatNumber';
 
 export const useDescargaExcel = ({
     nombreArchivoState,
@@ -16,6 +17,8 @@ export const useDescargaExcel = ({
     setIsSubmitting,
     setIsOpen
 }) => {
+    const { formatPrice } = useFormatNumber();
+
     const handleDescargaExcel = async () => {
         try {
             // Crear un nuevo workbook con XLSX (más confiable)
@@ -107,17 +110,17 @@ export const useDescargaExcel = ({
                         const subtotalStr = row[row.length - 1]?.toString() || '0';
                         // Extraer solo el número, removiendo "Bs.", puntos de miles y convirtiendo coma decimal
                         const cleanStr = subtotalStr
-                            .replace(/Bs\.\s*/, '')
-                            .replace(/\.(\d{3})/g, '$1') // Eliminar puntos de miles
+                            .replace(/Bs\.\s*/g, '')
+                            .replace(/\./g, '') // Eliminar puntos de miles
                             .replace(',', '.') // Coma decimal → punto
                             .trim();
                         const subtotalNum = parseFloat(cleanStr) || 0;
                         return sum + subtotalNum;
                     }, 0);
-                    const subtotalConComa = `Bs. ${subtotalProductos.toFixed(2).replace(/\./g, ',')}`;
+                    const subtotalConComa = `Bs. ${formatPrice(subtotalProductos)}`;
                     // Crear array con el número correcto de columnas, poniendo el total en la última columna
                     const totalRow = new Array(tablaHeaders.length).fill('');
-                    totalRow[totalRow.length - 2] = 'Total:';
+                    totalRow[totalRow.length - 2] = 'Subtotal:';
                     totalRow[totalRow.length - 1] = subtotalConComa;
                     allData.push(totalRow);
 

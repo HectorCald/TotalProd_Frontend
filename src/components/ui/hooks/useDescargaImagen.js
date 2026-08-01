@@ -1,4 +1,5 @@
 import html2canvas from 'html2canvas';
+import useFormatNumber from '../../../hooks/useFormatNumber';
 
 export const useDescargaImagen = ({
     nombreArchivoState,
@@ -16,6 +17,8 @@ export const useDescargaImagen = ({
     setIsSubmitting,
     setIsOpen
 }) => {
+    const { formatPrice } = useFormatNumber();
+
     const handleDescargaImagen = async () => {
         try {
             // Importar html2canvas dinámicamente
@@ -333,12 +336,16 @@ export const useDescargaImagen = ({
                 if (tieneAumento || tieneDescuento) {
                     const subtotalProductos = finalValores.reduce((sum, row) => {
                         const subtotalStr = row[row.length - 1]?.toString() || '0';
-                        const cleanStr = subtotalStr.replace(/Bs\.\s*/, '').trim();
+                        const cleanStr = subtotalStr
+                            .replace(/Bs\.\s*/g, '')
+                            .replace(/\./g, '')
+                            .replace(',', '.')
+                            .trim();
                         const subtotalNum = parseFloat(cleanStr) || 0;
                         return sum + subtotalNum;
                     }, 0);
 
-                    addTotalRow('Subtotal:', `Bs. ${subtotalProductos.toFixed(2)}`);
+                    addTotalRow('Subtotal:', `Bs. ${formatPrice(subtotalProductos)}`);
 
                     if (tieneAumento) {
                         addTotalRow('Aumento:', informacionSuperior.Aumento);

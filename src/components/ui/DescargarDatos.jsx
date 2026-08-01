@@ -12,13 +12,14 @@ import { useEmployee } from '../../context/EmployeeContext';
 import { useLayout } from '../../context/LayoutContext';
 import EmpresaImagenService from '../../services/empresaImagenService';
 import useFormatNumber from '../../hooks/useFormatNumber';
+import useFormatNumberPrice from '../../hooks/useFormatNumberPrice';
 import { LEGACY_PERCENTAGE_CUTOFF_DATE } from '../../constants/movimientosConstants';
 
 function DescargarDatos({
     isOpen,
     setIsOpen,
     titulo = "Descargar",
-    subtitulo = "SELECCIONA EL FORMATO QUE PREFERIAS PARA DESCARGAR.",
+    subtitulo = "SELECCIONA EL FORMATO QUE PREFIERAS PARA DESCARGAR.",
     informacionSuperior = {},
     tablaHeaders = [],
     tablaValores = [],
@@ -35,6 +36,7 @@ function DescargarDatos({
     columnWidths = null // { [key: string]: string } - Anchos personalizados para columnas
 }) {
     const { formatPrice } = useFormatNumber();
+    const { calculateSubtotal, calculateSpecialPrice } = useFormatNumberPrice();
     
     const [localInfoSuperior, setLocalInfoSuperior] = useState(informacionSuperior);
     const [localTablaHeaders, setLocalTablaHeaders] = useState(tablaHeaders);
@@ -62,9 +64,13 @@ function DescargarDatos({
                     
                     const fechaLiteral = mov.fecha ? new Date(mov.fecha).toLocaleDateString() : '';
                     
-                    let subtotalNum = mov.subtotal !== undefined 
-                        ? parseFloat(mov.subtotal) 
-                        : (mov.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
+                    let subtotalNum = (mov.productos || []).reduce((sum, p) => {
+                        const cant = Number(p.pivot?.cantidad ?? p.cantidad ?? 0);
+                        const prec = p.pivot?.precio_unitario ?? p.precio_unitario ?? p.pivot?.precio ?? p.precio ?? 0;
+                        const grup = Number(p.producto?.grup ?? p.grup ?? 0);
+                        const esVenta = mov.type === 'salida' || mov.tipo === 'salida';
+                        return sum + calculateSubtotal(cant, prec, grup, mov.agrupado, esVenta);
+                    }, 0);
                     subtotalNum = Math.round(subtotalNum * 10) / 10;
                     const descValNum = parseFloat(mov.descuento) || 0;
                     const aumValNum = parseFloat(mov.aumento) || 0;
@@ -74,10 +80,10 @@ function DescargarDatos({
                     const isLegacyPercentage = esPorcentaje && dateStr && dateStr <= LEGACY_PERCENTAGE_CUTOFF_DATE;
                     
                     const descCalculadoNum = esPorcentaje 
-                        ? (isLegacyPercentage ? descValNum : Math.round((subtotalNum * descValNum / 100) * 10) / 10) 
+                        ? (isLegacyPercentage ? descValNum : (subtotalNum * descValNum / 100)) 
                         : descValNum;
                     const aumCalculadoNum = esPorcentaje 
-                        ? (isLegacyPercentage ? aumValNum : Math.round((subtotalNum * aumValNum / 100) * 10) / 10) 
+                        ? (isLegacyPercentage ? aumValNum : (subtotalNum * aumValNum / 100)) 
                         : aumValNum;
                     let totalFinalRaw = subtotalNum - descCalculadoNum + aumCalculadoNum;
                     const totalFinalNum = Math.round(totalFinalRaw * 10) / 10;
@@ -108,28 +114,28 @@ function DescargarDatos({
                     const valores = (mov.productos || []).map(p => {
                         const cant = Number(p.pivot?.cantidad ?? p.cantidad ?? 0);
                         const prec = p.pivot?.precio_unitario ?? p.precio_unitario ?? p.pivot?.precio ?? p.precio ?? 0;
-                        const subt = p.pivot?.subtotal ?? p.subtotal ?? (Number(cant) * Number(prec));
                         const name = p.name || p.producto?.name || 'Desconocido';
                         const code = p.type_measure?.code || p.producto?.type_measure?.code || '';
                         
                         const grup = Number(p.producto?.grup ?? p.grup ?? 0);
                         const esAgrupado = mov.agrupado && grup > 0;
+                        const esVenta = mov.type === 'salida' || mov.tipo === 'salida';
                         
                         let cantidadStr = `${cant}`;
+                        let precioDescarga = calculateSpecialPrice(prec, grup, esAgrupado, esVenta);
+                        const subt = calculateSubtotal(cant, prec, grup, mov.agrupado, esVenta);
+                        
                         if (esAgrupado) {
                             const cantEnGrupos = cant / grup;
                             cantidadStr = Number.isInteger(cantEnGrupos) ? cantEnGrupos.toString() : cantEnGrupos.toFixed(2);
                         } else {
-                            cantidadStr = `${cant}`; // Sin unidad si prefieres, o con code: `${cant} ${code}`. Si quiere 'solo numero claro' para todos:
-                            // El usuario dijo "en grupos ya no en unidades solo numero claro", pero no prohibió las unidades cuando no son grupos.
-                            // Mantendré el comportamiento original para unidades.
-                            // Update: el usuario dijo "la cantidad en grupos ya no en unidades solo numero claro". Así que cuando es grupo, es solo número.
+                            cantidadStr = `${cant} ${code}`.trim();
                         }
                         
                         return [
                             name,
                             cantidadStr,
-                            `Bs. ${formatPrice(prec)}`,
+                            `Bs. ${formatPrice(precioDescarga)}`,
                             `Bs. ${formatPrice(subt)}`
                         ];
                     });

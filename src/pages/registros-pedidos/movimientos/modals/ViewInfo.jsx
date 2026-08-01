@@ -378,6 +378,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
             const prec = p.precio_unitario || p.pivot?.precio_unitario || p.precio || p.pivot?.precio;
             return sum + calculateSubtotal(cant, prec, p.producto?.grup, movimiento?.agrupado, movimiento?.type === 'salida' || movimiento?.tipo === 'salida');
         }, 0);
+        subtotalNum = Math.round(subtotalNum * 10) / 10;
         descValNum = parseFloat(movimiento.descuento) || 0;
         aumValNum = parseFloat(movimiento.aumento) || 0;
         esPorcentaje = movimiento.porcentaje;
