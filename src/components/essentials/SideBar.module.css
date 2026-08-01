@@ -236,3 +236,33 @@
   margin-left: 6px;
   flex-shrink: 0;
 }
+
+.buildingBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--warning-color, #FB8713);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 6px 4px 8px;
+  border-radius: 0 2px 2px 0;
+  line-height: 1;
+  flex-shrink: 0;
+  clip-path: polygon(6px 0, 100% 0, 100% 100%, 6px 100%, 0 50%);
+}
+
+.buildingBadgeTooltip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--warning-color, #FB8713);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+  margin-left: 6px;
+  flex-shrink: 0;
+}

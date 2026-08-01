@@ -48,3 +48,21 @@
   box-shadow: 0 2px 4px rgba(229, 57, 53, 0.2);
   z-index: 2;
 }
+
+.buildingBadge {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  background-color: var(--warning-color, #FB8713);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 0 10px 0 6px;
+  line-height: 1;
+  box-shadow: 0 2px 4px rgba(251, 135, 19, 0.2);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

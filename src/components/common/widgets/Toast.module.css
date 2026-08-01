@@ -176,7 +176,7 @@
 /* Contenedor global de toasts */
 .toastContainer {
     position: fixed;
-    top: 20px;
+    top: 80px;
     right: 20px;
     z-index: 999999;
     display: flex;
@@ -192,7 +192,7 @@
 /* Responsive para móviles */
 @media (max-width: 768px) {
     .toastContainer {
-        top: 20px;
+        top: 70px;
         right: auto;
         left: 50%;
         transform: translateX(-50%);

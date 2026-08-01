@@ -6,11 +6,13 @@ import { useLayout } from '../../context/LayoutContext';
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import Skeleton from '../common/widgets/Skeleton';
+import { useToast } from '../../context/ToastContext';
 
 const SideBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
+  const { showWarning } = useToast();
   const {
     sidebarCollapsed,
     openSubmenus,
@@ -51,18 +53,18 @@ const SideBar = () => {
 
     filteredSections = filteredSections.map(section => {
       const newItems = section.items.filter(item => {
-         if (isSoloVentas && item.id === 'materia-prima') return false;
-         return true;
+        if (isSoloVentas && item.id === 'materia-prima') return false;
+        return true;
       }).map(item => {
-         if (isSoloVentas && (item.id === 'movimientos' || item.id === 'pedidos')) {
-             return { 
-                 ...item, 
-                 submenu: undefined, 
-                 route: `/${item.id}/almacen`,
-                 MenuSide: true 
-             };
-         }
-         return item;
+        if (isSoloVentas && (item.id === 'movimientos' || item.id === 'pedidos')) {
+          return {
+            ...item,
+            submenu: undefined,
+            route: `/${item.id}/almacen`,
+            MenuSide: true
+          };
+        }
+        return item;
       });
       return { ...section, items: newItems };
     }).filter(s => s.items.length > 0);
@@ -81,13 +83,13 @@ const SideBar = () => {
         if (item.submenu) {
           filteredSubmenu = item.submenu.filter(sub => {
             if (!sub.key) return true;
-            return usuario.modules.some(m => 
+            return usuario.modules.some(m =>
               m.modulos?.clave === item.key && m.name === sub.key
             );
           });
           if (filteredSubmenu.length === 0) return null;
         } else if (item.key_submenu) {
-          const hasSpecificSubModule = usuario.modules.some(m => 
+          const hasSpecificSubModule = usuario.modules.some(m =>
             m.modulos?.clave === item.key && m.name === item.key_submenu
           );
           if (!hasSpecificSubModule) return null;
@@ -99,7 +101,7 @@ const SideBar = () => {
       if (filteredItems.length === 0) return null;
       return { ...section, items: filteredItems };
     }).filter(Boolean);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuarioId, sucursalId, isEmployee, modulesLength]);
 
 
@@ -195,6 +197,10 @@ const SideBar = () => {
                 <div
                   className={`${styles.item} ${isItemActive ? styles.active : ''}`}
                   onClick={() => {
+                    if (item.isBuilding) {
+                      showWarning('En construcción', 'Este módulo aún está en construcción');
+                      return;
+                    }
                     if (item.submenu) {
                       toggleSubmenu(item.id);
                     } else if (item.route) {
@@ -208,6 +214,7 @@ const SideBar = () => {
                       <span className={styles.itemTitleWrap}>
                         {typeof item.title === 'string' ? item.title.toUpperCase() : item.title}
                         {item.isNew && <span className={styles.newBadge}>NEW</span>}
+                        {item.isBuilding && <span className={styles.buildingBadge}><i className='bx bx-wrench'></i></span>}
                       </span>
                     )}
                   </div>
@@ -227,6 +234,10 @@ const SideBar = () => {
                         key={sub.id}
                         className={`${styles.subitem} ${sub.route === currentPath ? styles.active : ''}`}
                         onClick={() => {
+                          if (sub.isBuilding) {
+                            showWarning('En construcción', 'Este módulo aún está en construcción');
+                            return;
+                          }
                           if (sub.route) navigate(sub.route);
                         }}
                       >
@@ -244,6 +255,10 @@ const SideBar = () => {
                         key={sub.id}
                         className={`${styles.subitem} ${sub.route === currentPath ? styles.active : ''}`}
                         onClick={() => {
+                          if (sub.isBuilding) {
+                            showWarning('En construcción', 'Este módulo aún está en construcción');
+                            return;
+                          }
                           if (sub.route) navigate(sub.route);
                         }}
                       >
@@ -258,6 +273,7 @@ const SideBar = () => {
                   <div className={styles.tooltip} style={{ top: hoverPos + 10 }}>
                     {typeof item.title === 'string' ? item.title.toUpperCase() : item.title}
                     {item.isNew && <span className={styles.newBadgeTooltip}>NEW</span>}
+                    {item.isBuilding && <span className={styles.buildingBadgeTooltip}><i className='bx bx-wrench'></i></span>}
                   </div>
                 )}
               </div>

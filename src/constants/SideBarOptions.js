@@ -63,18 +63,19 @@ export const SideBarOptions = [
     items: [
       { id: "pagos", title: "Pagos", icon: "wallet", route: "/pagos", key: "pagos", key_submenu: "gestionar" },
       { id: "deudas", title: "Deudas", icon: "receipt", route: "/deudas", key: "deudas", key_submenu: "gestionar", MenuSide: true },
-      { id: "balance", title: "Balance", icon: "bar-chart-alt", route: "/balance", key: "balance", key_submenu: "ver_balance", isNew: true, MenuSide: true }
+      { id: "balance", title: "Balance", icon: "bar-chart-alt", route: "/balance", key: "balance", key_submenu: "ver_balance", MenuSide: true }
     ]
   },
   {
     title: "CONFIGURACIÓN",
     items: [
       { id: "precios", title: "Precios", icon: "dollar", route: "/precios", key: "precios", key_submenu: "gestionar" },
-         { id: "sucursales", title: "Sucursales", icon: "building", route: "/sucursales", key: "sucursales", key_submenu: "gestionar" },
-      { id: "cargos", title: "Cargos", icon: "briefcase", route: "/cargos", isNew: true, key: "cargos", key_submenu: "gestionar" },
-      { id: "categorias", title: "Categorías", icon: "category", route: "/categorias", isNew: true, key: "categorias", key_submenu: "gestionar" },
-      { id: "socios", title: "Socios", icon: "group", route: "/socios", isNew: true, key: "socios", key_submenu: "gestionar" },
-      { id: "exportar", title: "Exportar", icon: "export", route: "/exportar", isNew: true, key: "exportar_importar"}
+      { id: "sucursales", title: "Sucursales", icon: "building", route: "/sucursales", key: "sucursales", key_submenu: "gestionar" },
+      { id: "cargos", title: "Cargos", icon: "briefcase", route: "/cargos", key: "cargos", key_submenu: "gestionar" },
+      { id: "categorias", title: "Categorías", icon: "category", route: "/categorias", key: "categorias", key_submenu: "gestionar" },
+      { id: "socios", title: "Socios", icon: "group", route: "/socios", key: "socios", key_submenu: "gestionar" },
+      { id: "exportar", title: "Exportar", icon: "export", route: "/exportar",isNew: false, key: "exportar_importar", key_submenu: "importar_exportar" },
+      { id: "reportes", title: "Reportes", icon: "receipt", route: "/reportes", isBuilding: true, key: "reportes", key_submenu: "generar_reportes" }
     ]
   },
   {

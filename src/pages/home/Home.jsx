@@ -4,6 +4,7 @@ import { useLayout } from '../../context/LayoutContext';
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import { useModalStack } from '../../context/ModalStackContext';
+import { useToast } from '../../context/ToastContext';
 import { SideBarOptions } from '../../constants/SideBarOptions';
 import SideBar from '../../components/essentials/SideBar';
 import NavBar from '../../components/essentials/NavBar';
@@ -91,12 +92,13 @@ const Home = () => {
   const { user: userInfo, sucursalSeleccionada: userSucursal } = useUser();
   const { employee: employeeInfo, sucursalSeleccionada: employeeSucursal } = useEmployee();
   const { clearStack } = useModalStack();
+  const { showWarning } = useToast();
 
   useEffect(() => {
     clearStack();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  
+
   const usuario = userInfo || employeeInfo;
   const sucursalSeleccionada = userSucursal || employeeSucursal;
   const isEmployee = !!employeeInfo;
@@ -112,7 +114,7 @@ const Home = () => {
   const getCarouselItems = () => {
     const codigoEmpresaRaw = sucursalSeleccionada?.empresas?.codigo || userInfo?.empresa?.codigo || employeeInfo?.sucursal?.empresas?.codigo || '';
     const codigoEmpresa = codigoEmpresaRaw.toLowerCase();
-    
+
     const filteredSections = SideBarOptions.filter(section => {
       // Para empleados, omitir filtro por empresa — los módulos asignados lo controlan.
       // Solo ocultar para usuarios (owner) cuya empresa no coincida.
@@ -129,30 +131,30 @@ const Home = () => {
       section.items.forEach(item => {
         if (item.id === 'home') return;
         if (isSoloVentas && item.id === 'materia-prima') return;
-        
+
         let newItem = { ...item };
-        
+
         if (isEmployee && usuario?.modules && newItem.key) {
-           const hasModule = usuario.modules.some(m => m.modulos?.clave === newItem.key);
-           if (!hasModule) return;
-           
-           if (newItem.submenu) {
-             const filteredSubmenu = newItem.submenu.filter(sub => {
-               if (!sub.key) return true;
-               return usuario.modules.some(m => 
-                 m.modulos?.clave === newItem.key && m.name === sub.key
-               );
-             });
-             if (filteredSubmenu.length === 0) return;
-             newItem.submenu = filteredSubmenu;
-           } else if (newItem.key_submenu) {
-             const hasSpecificSubModule = usuario.modules.some(m => 
-               m.modulos?.clave === newItem.key && m.name === newItem.key_submenu
-             );
-             if (!hasSpecificSubModule) return;
-           }
+          const hasModule = usuario.modules.some(m => m.modulos?.clave === newItem.key);
+          if (!hasModule) return;
+
+          if (newItem.submenu) {
+            const filteredSubmenu = newItem.submenu.filter(sub => {
+              if (!sub.key) return true;
+              return usuario.modules.some(m =>
+                m.modulos?.clave === newItem.key && m.name === sub.key
+              );
+            });
+            if (filteredSubmenu.length === 0) return;
+            newItem.submenu = filteredSubmenu;
+          } else if (newItem.key_submenu) {
+            const hasSpecificSubModule = usuario.modules.some(m =>
+              m.modulos?.clave === newItem.key && m.name === newItem.key_submenu
+            );
+            if (!hasSpecificSubModule) return;
+          }
         }
-        
+
         if (item.submenu) {
           itemsWithSubmenu.push(newItem);
         } else {
@@ -196,19 +198,19 @@ const Home = () => {
       try {
         const currentYear = new Date().getFullYear();
         const currentMonthIndex = new Date().getMonth();
-        
+
         const fechaFiltroAnual = {
           inicio: `${currentYear}-01-01`,
           fin: `${currentYear}-12-31`
         };
 
         const [movsRes, pedidosRes] = await Promise.all([
-          movimientosAlmacenService.getAllSinLimite('salida', null, 'fecha_desc', sucursalSeleccionada.id, fechaFiltroAnual),
+          movimientosAlmacenService.getAllSinLimite('salida', 'finalizado', 'fecha_desc', sucursalSeleccionada.id, fechaFiltroAnual),
           pedidosAlmacenService.getAll(1, 99999, null, null, 'fecha_desc', sucursalSeleccionada.id, null, fechaFiltroAnual)
         ]);
 
         const mesesNombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        
+
         const datos = mesesNombres.map((mes, index) => {
           if (index <= currentMonthIndex) {
             return { fecha: mes, Ventas: 0, Pedidos: 0 };
@@ -219,7 +221,8 @@ const Home = () => {
 
         if (movsRes?.success && Array.isArray(movsRes.data)) {
           movsRes.data.forEach(mov => {
-            const dateStr = mov.fecha || '';
+            if (mov.estado === 'anulado' || mov.estado === 'cancelado') return;
+            const dateStr = mov.fecha || mov.created_at || '';
             const yyyy = parseInt(dateStr.slice(0, 4));
             const mm = parseInt(dateStr.slice(5, 7)) - 1;
             if (yyyy === currentYear && mm <= currentMonthIndex && mm >= 0 && mm < 12) {
@@ -231,13 +234,14 @@ const Home = () => {
               } else {
                 movTotal = movTotal - descuento + aumento;
               }
-              datos[mm].Ventas += movTotal;
+              datos[mm].Ventas += Math.max(0, movTotal);
             }
           });
         }
 
         if (pedidosRes?.success && Array.isArray(pedidosRes.data)) {
           pedidosRes.data.forEach(ped => {
+            if (ped.estado === 'anulado' || ped.estado === 'cancelado') return;
             const dateStr = ped.fecha || ped.created_at || '';
             const yyyy = parseInt(dateStr.slice(0, 4));
             const mm = parseInt(dateStr.slice(5, 7)) - 1;
@@ -510,27 +514,27 @@ const Home = () => {
               <>
                 <h1 className={styles.title}>Inicio</h1>
                 <div className={gridStyles.layoutGrid}>
-                  <TarjetaGrafico 
+                  <TarjetaGrafico
                     titulo={`Ingresos (${mesActual})`}
-                    valor={`Bs. ${formatPrice(resumenDashboard.ingresos)}`} 
-                    porcentaje={resumenDashboard.ingresosPorcentaje} 
-                    comparacion="vs. mes anterior" 
+                    valor={`Bs. ${formatPrice(resumenDashboard.ingresos)}`}
+                    porcentaje={resumenDashboard.ingresosPorcentaje}
+                    comparacion="vs. mes anterior"
                     cargando={loadingDashboard}
                     color="var(--success-color)"
                   />
-                  <TarjetaGrafico 
+                  <TarjetaGrafico
                     titulo={`Pedidos (${mesActual})`}
-                    valor={resumenDashboard.pedidos} 
-                    porcentaje={resumenDashboard.pedidosPorcentaje} 
-                    comparacion="vs. mes anterior" 
+                    valor={resumenDashboard.pedidos}
+                    porcentaje={resumenDashboard.pedidosPorcentaje}
+                    comparacion="vs. mes anterior"
                     cargando={loadingDashboard}
                     color="var(--warning-color)"
                   />
-                  <TarjetaGrafico 
+                  <TarjetaGrafico
                     titulo={`Egresos (${mesActual})`}
-                    valor={`Bs. ${formatPrice(resumenDashboard.compras)}`} 
-                    porcentaje={resumenDashboard.comprasPorcentaje} 
-                    comparacion="vs. mes anterior" 
+                    valor={`Bs. ${formatPrice(resumenDashboard.compras)}`}
+                    porcentaje={resumenDashboard.comprasPorcentaje}
+                    comparacion="vs. mes anterior"
                     cargando={loadingDashboard}
                     color="var(--error-color)"
                   />
@@ -549,92 +553,108 @@ const Home = () => {
               <>
                 <h1 className={styles.title}>Ventas de Hoy</h1>
 
-            <div style={{ 
-              background: 'white', 
-              borderRadius: '12px', 
-              padding: '20px', 
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
-              border: '1px solid #eee', 
-            }}>
+                <div style={{
+                  background: 'white',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  border: '1px solid #eee',
+                }}>
 
-              <ItemRow label="Ingresos Totales" value={`Bs. ${formatPrice(ingresosTotales)}`} loadingState={loading} color="#28a745" />
-              <ItemRow label="Egresos Totales" value={`Bs. ${formatPrice(egresosTotales)}`} loadingState={loadingGastos} color="#dc3545" />
-              <ItemRow label="Total General" value={`Bs. ${formatPrice(totalGeneral)}`} loadingState={loading || loadingGastos || loadingDeudas} color="var(--info-color)" />
-              
-              <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center' }}>
-                <Link 
-                  text="Ver Balance" 
-                  iconEnd="right-arrow-alt" 
-                  onClick={() => navigate('/balance')} 
-                />
-              </div>
-              
-              <Boton
-                className="btn-primary"
-                label="Registrar Venta"
-                iconName="cart"
-                onClick={() => navigate('/almacen/salidas')}
-                style={{ width: '100%', marginTop: '15px' }}
-              />
-            </div>
-            <h1 className={styles.title}>Descubre más</h1>
-            <Carousel 
-              items={carouselItems} 
-              itemsPerPage={4}
-              renderItem={(item) => (
-                <BotonCuadrante 
-                  key={item.id} 
-                  icon={item.icon} 
-                  title={item.title} 
-                  onClick={() => navigate(item.route)} 
-                  isNew={item.isNew}
-                />
-              )}
-            />
+                  <ItemRow label="Ingresos Totales" value={`Bs. ${formatPrice(ingresosTotales)}`} loadingState={loading} color="#28a745" />
+                  <ItemRow label="Egresos Totales" value={`Bs. ${formatPrice(egresosTotales)}`} loadingState={loadingGastos} color="#dc3545" />
+                  <ItemRow label="Total General" value={`Bs. ${formatPrice(totalGeneral)}`} loadingState={loading || loadingGastos || loadingDeudas} color="var(--info-color)" />
 
-            <h1 className={styles.title}>Gestión</h1>
-            <div style={{ display: 'grid', gridTemplateColumns: itemsWithSubmenu.length === 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
-              {itemsWithSubmenu.map(item => (
-                <BotonCuadrante 
-                  key={item.id} 
-                  icon={item.icon} 
-                  title={item.title} 
-                  onClick={() => {
-                    if (item.submenu && item.submenu.length === 1 && item.submenu[0].route) {
-                        navigate(item.submenu[0].route);
-                        return;
-                    }
-                    if (item.id === 'almacen') setModalOpcionesAlmacenOpen(true);
-                    else if (item.id === 'materia-prima') setModalOpcionesMateriaPrimaOpen(true);
-                    else if (item.id === 'movimientos') {
-                      if (isSoloVentas) navigate('/movimientos/almacen');
-                      else setModalOpcionesMovimientosOpen(true);
-                    }
-                    else if (item.id === 'pedidos') {
-                      if (isSoloVentas) navigate('/pedidos/almacen');
-                      else setModalOpcionesPedidosOpen(true);
-                    }
-                  }} 
-                  isNew={item.isNew}
+                  <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center' }}>
+                    <Link
+                      text="Ver Balance"
+                      iconEnd="right-arrow-alt"
+                      onClick={() => navigate('/balance')}
+                    />
+                  </div>
+
+                  <Boton
+                    className="btn-primary"
+                    label="Registrar Venta"
+                    iconName="cart"
+                    onClick={() => navigate('/almacen/salidas')}
+                    style={{ width: '100%', marginTop: '15px' }}
+                  />
+                </div>
+                <h1 className={styles.title}>Descubre más</h1>
+                <Carousel
+                  items={carouselItems}
+                  itemsPerPage={4}
+                  renderItem={(item) => (
+                    <BotonCuadrante
+                      key={item.id}
+                      icon={item.icon}
+                      title={item.title}
+                      onClick={() => {
+                        if (item.isBuilding) {
+                          showWarning('En construcción', 'Este módulo aún está en construcción');
+                          return;
+                        }
+                        navigate(item.route);
+                      }}
+                      isNew={item.isNew}
+                      isBuilding={item.isBuilding}
+                    />
+                  )}
                 />
-              ))}
-            </div>
-            </>
-          )
-        ) : (
+
+                <h1 className={styles.title}>Gestión</h1>
+                <div style={{ display: 'grid', gridTemplateColumns: itemsWithSubmenu.length === 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
+                  {itemsWithSubmenu.map(item => (
+                    <BotonCuadrante
+                      key={item.id}
+                      icon={item.icon}
+                      title={item.title}
+                      onClick={() => {
+                        if (item.isBuilding) {
+                          showWarning('En construcción', 'Este módulo aún está en construcción');
+                          return;
+                        }
+                        if (item.submenu && item.submenu.length === 1 && item.submenu[0].route) {
+                          navigate(item.submenu[0].route);
+                          return;
+                        }
+                        if (item.id === 'almacen') setModalOpcionesAlmacenOpen(true);
+                        else if (item.id === 'materia-prima') setModalOpcionesMateriaPrimaOpen(true);
+                        else if (item.id === 'movimientos') {
+                          if (isSoloVentas) navigate('/movimientos/almacen');
+                          else setModalOpcionesMovimientosOpen(true);
+                        }
+                        else if (item.id === 'pedidos') {
+                          if (isSoloVentas) navigate('/pedidos/almacen');
+                          else setModalOpcionesPedidosOpen(true);
+                        }
+                      }}
+                      isNew={item.isNew}
+                      isBuilding={item.isBuilding}
+                    />
+                  ))}
+                </div>
+              </>
+            )
+          ) : (
             <>
               <h1 className={styles.title}>Módulos Asignados</h1>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
                 {[...itemsWithSubmenu, ...carouselItems].map(item => (
-                  <BotonCuadrante 
-                    key={item.id} 
-                    icon={item.icon} 
-                    title={item.title} 
+                  <BotonCuadrante
+                    key={item.id}
+                    icon={item.icon}
+                    title={item.title}
                     onClick={() => {
+                      if (item.isBuilding) {
+                        showWarning('En construcción', 'Este módulo aún está en construcción');
+                        return;
+                      }
                       if (item.submenu) {
                         if (item.submenu.length === 1 && item.submenu[0].route) {
-                            navigate(item.submenu[0].route);
-                            return;
+                          navigate(item.submenu[0].route);
+                          return;
                         }
                         if (item.id === 'almacen') setModalOpcionesAlmacenOpen(true);
                         else if (item.id === 'materia-prima') setModalOpcionesMateriaPrimaOpen(true);
@@ -649,16 +669,17 @@ const Home = () => {
                       } else {
                         navigate(item.route);
                       }
-                    }} 
+                    }}
                     isNew={item.isNew}
+                    isBuilding={item.isBuilding}
                   />
                 ))}
               </div>
             </>
           )}
-          </div>
         </div>
-    
+      </div>
+
 
 
       <FetchData

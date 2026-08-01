@@ -37,13 +37,18 @@ const GraficoVentas = ({ data = [], cargando = false }) => {
               />
               <YAxis 
                 yAxisId="left"
+                domain={[0, 'auto']}
+                allowDecimals={false}
                 axisLine={false} 
                 tickLine={false} 
                 tick={{ fill: '#94a3b8', fontSize: 12 }} 
+                tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
               />
               <YAxis 
                 yAxisId="right"
                 orientation="right"
+                domain={[0, 'auto']}
+                allowDecimals={false}
                 axisLine={false} 
                 tickLine={false} 
                 tick={{ fill: '#94a3b8', fontSize: 12 }} 

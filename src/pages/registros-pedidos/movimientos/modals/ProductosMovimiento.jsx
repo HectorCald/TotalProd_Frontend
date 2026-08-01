@@ -127,6 +127,7 @@ const ProductosMovimiento = ({
                 header: 'Producto',
                 render: (row) => row.nombre,
                 width: '40%',
+                isMobileMain: true,
             },
             {
                 header: 'Cantidad',
@@ -143,6 +144,7 @@ const ProductosMovimiento = ({
                     return `${row.cantidad} ud`;
                 },
                 width: '15%',
+                isMobileSubtitle: true,
             },
             {
                 header: 'Precio Unit.',
@@ -152,11 +154,14 @@ const ProductosMovimiento = ({
                     return formatCurrency(precioMostrado);
                 },
                 width: '15%',
+                isMobileStatus: true,
             },
             {
                 header: 'Subtotal',
                 render: (row) => formatCurrency(row.subtotal),
+                mobileRender: (row) => `SUB: ${formatCurrency(row.subtotal)}`,
                 width: '15%',
+                isMobileStatus2: true,
             },
         ];
 

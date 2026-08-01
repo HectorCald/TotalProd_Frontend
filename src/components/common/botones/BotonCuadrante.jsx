@@ -1,7 +1,7 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import styles from './BotonCuadrante.module.css';
 
-const BotonCuadrante = ({ icon, title, onClick, isNew }) => {
+const BotonCuadrante = ({ icon, title, onClick, isNew, isBuilding }) => {
   const textRef = useRef(null);
   const containerRef = useRef(null);
   const [scale, setScale] = useState(1);
@@ -37,6 +37,7 @@ const BotonCuadrante = ({ icon, title, onClick, isNew }) => {
   return (
     <div className={styles.menuItem} onClick={onClick} ref={containerRef}>
       {isNew && <span className={styles.newBadge}>NEW</span>}
+      {isBuilding && <span className={styles.buildingBadge}><i className='bx bx-wrench'></i></span>}
       <i className={`bx bx-${icon} ${styles.icon}`}></i>
       <div style={{ width: '100%', overflow: 'hidden', display: 'flex', justifyContent: 'center' }}>
         <span 
