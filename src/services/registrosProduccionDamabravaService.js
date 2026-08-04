@@ -94,10 +94,10 @@ class registrosProduccionDamabravaService {
     if (rangoFechas) {
       const { inicio, fin } = rangoFechas;
       if (inicio) {
-        params.append('fecha_inicio', new Date(inicio).toISOString());
+        params.append('fecha_inicio', inicio);
       }
       if (fin) {
-        params.append('fecha_fin', new Date(fin).toISOString());
+        params.append('fecha_fin', fin);
       }
     }
 
@@ -137,10 +137,10 @@ class registrosProduccionDamabravaService {
     if (rangoFechas) {
       const { inicio, fin } = rangoFechas;
       if (inicio) {
-        params.append('fecha_inicio', new Date(inicio).toISOString());
+        params.append('fecha_inicio', inicio);
       }
       if (fin) {
-        params.append('fecha_fin', new Date(fin).toISOString());
+        params.append('fecha_fin', fin);
       }
     }
 

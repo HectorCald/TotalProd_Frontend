@@ -278,18 +278,7 @@ const Verificacion = () => {
           'fecha_desc',
           debouncedSearch,
           filtroResponsable,
-          filtroFecha?.inicio || filtroFecha?.fin
-            ? (() => {
-                const inicioDate = filtroFecha.inicio ? new Date(filtroFecha.inicio) : null;
-                const finDate = filtroFecha.fin ? new Date(filtroFecha.fin) : null;
-                if (inicioDate) inicioDate.setHours(0, 0, 0, 0);
-                if (finDate) finDate.setHours(23, 59, 59, 999);
-                return {
-                    inicio: inicioDate ? inicioDate.toISOString() : null,
-                    fin: finDate ? finDate.toISOString() : null,
-                };
-            })()
-            : null
+          filtroFecha
         ]}
         isOpen={true}
         page={page}
