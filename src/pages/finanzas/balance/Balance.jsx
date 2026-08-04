@@ -6,15 +6,22 @@ import MenuSide from '../../../components/essentials/MenuSide';
 import viewStyles from '../../../pages/home/View.module.css';
 import ColumnInfo from '../../../components/common/outputs/ColumnInfo';
 import DateRibbon from '../../../components/common/widgets/DateRibbon/DateRibbon';
-import LayoutPercentage from '../../../components/layout/LayoutPercentage';
 import LayoutGrid from '../../../components/layout/LayoutGrid';
 import FetchData from '../../../components/mixed/FetchData';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import deudasService from '../../../services/deudasService';
 import gastosService from '../../../services/gastosService';
 import Skeleton from '../../../components/common/widgets/Skeleton';
-import useFormatNumber from '../../../hooks/useFormatNumber';
 import { parseDateWithoutOffset } from '../../../utils/dateUtils';
+
+// Formato de precio sin redondeo: muestra el valor exacto con 2 decimales
+const formatPrecio = (val) => {
+    const num = parseFloat(val ?? 0);
+    if (isNaN(num)) return '0,00';
+    const [intPart, decPart] = num.toFixed(2).split('.');
+    const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return `${intFormatted},${decPart}`;
+};
 
 const metodosPago = [
     { value: 'qr', label: 'QR' },
@@ -27,6 +34,20 @@ const metodosPago = [
 // Dado un valor de fecha de la cinta y el tipo, calcula inicio y fin del periodo
 const calcFiltroFecha = (selectedDate, tipoBalance) => {
     if (!selectedDate) return null;
+    
+    // Fecha personalizada: el valor viene como 'inicio__fin'
+    if (tipoBalance === 'personalizada') {
+        if (selectedDate.includes('__')) {
+            const [inicio, fin] = selectedDate.split('__');
+            return {
+                inicio,
+                fin,
+                fechaStrInicio: inicio,
+                fechaStrFin: fin
+            };
+        }
+        return null;
+    }
     
     const d = parseDateWithoutOffset(selectedDate);
     const y = d.getFullYear();
@@ -79,7 +100,6 @@ const calcFiltroFecha = (selectedDate, tipoBalance) => {
 
 const Balance = () => {
   const { isLargeScreen } = useLayout();
-  const { formatPrice } = useFormatNumber();
   const [tipoBalance, setTipoBalance] = useState('diario');
   const [selectedDate, setSelectedDate] = useState(() => {
       const today = new Date();
@@ -258,7 +278,7 @@ const Balance = () => {
                     ) : (
                         <>
                             <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Ingresos Totales</span>
-                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: '#28a745' }}>Bs. {formatPrice(ingresosTotales)}</span>
+                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: '#28a745' }}>Bs. {formatPrecio(ingresosTotales)}</span>
                         </>
                     )}
                 </div>
@@ -271,7 +291,7 @@ const Balance = () => {
                     ) : (
                         <>
                             <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Egresos Totales</span>
-                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: '#dc3545' }}>Bs. {formatPrice(egresosTotales)}</span>
+                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: '#dc3545' }}>Bs. {formatPrecio(egresosTotales)}</span>
                         </>
                     )}
                 </div>
@@ -284,7 +304,7 @@ const Balance = () => {
                     ) : (
                         <>
                             <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Deudas Saldos (Ingresos)</span>
-                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: 'var(--warning-color)' }}>Bs. {formatPrice(deudasSaldoTotal)}</span>
+                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: 'var(--warning-color)' }}>Bs. {formatPrecio(deudasSaldoTotal)}</span>
                         </>
                     )}
                 </div>
@@ -297,7 +317,7 @@ const Balance = () => {
                     ) : (
                         <>
                             <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Total General</span>
-                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: 'var(--info-color)' }}>Bs. {formatPrice(totalGeneral)}</span>
+                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: 'var(--info-color)' }}>Bs. {formatPrecio(totalGeneral)}</span>
                         </>
                     )}
                 </div>
@@ -310,7 +330,7 @@ const Balance = () => {
                     ) : (
                         <>
                             <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Total Ganancias</span>
-                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: 'var(--primary-color)' }}>Bs. {formatPrice(totalGanancias)}</span>
+                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: 'var(--primary-color)' }}>Bs. {formatPrecio(totalGanancias)}</span>
                         </>
                     )}
                 </div>
@@ -339,11 +359,11 @@ const Balance = () => {
                                 key={method.value}
                                 title={method.label}
                                 finance={true}
-                                financeTotal={`Bs. ${formatPrice(balanceM)}`}
+                                financeTotal={`Bs. ${formatPrecio(balanceM)}`}
                                 items={[
-                                    { clave: 'Ventas', valor: `Bs. ${formatPrice(ventasM)}`, colorValor: '#28a745' },
-                                    { clave: 'Gastos', valor: `Bs. ${formatPrice(gastosM)}`, colorValor: '#dc3545' },
-                                    { clave: 'Balance Total', valor: `Bs. ${formatPrice(balanceM)}`, colorValor: '#007bff' }
+                                    { clave: 'Ventas', valor: `Bs. ${formatPrecio(ventasM)}`, colorValor: '#28a745' },
+                                    { clave: 'Gastos', valor: `Bs. ${formatPrecio(gastosM)}`, colorValor: '#dc3545' },
+                                    { clave: 'Balance Total', valor: `Bs. ${formatPrecio(balanceM)}`, colorValor: '#007bff' }
                                 ]}
                             />
                         );

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import ModalLateral from '../../common/modals/ModalLateral';
 import Input from '../../common/inputs/Input';
-import InputSwitch from '../../common/inputs/InputSwitch';
+
 import UserService from '../../../services/userService';
 import Checkbox from '../../common/inputs/Checkbox';
 import Link from '../../common/outputs/Link';
@@ -49,8 +49,7 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
   const currentLogo = previewLogo || (logoRemoved ? null : displayImage);
   const currentVersion = window.__current_sw_version || localStorage.getItem('sw_version') || UPDATE_INFO.version;
 
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-  const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
   // Estados para el usuario propietario
@@ -198,38 +197,6 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
           </div>
         </Accordion>
         <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <InputSwitch
-            id="theme-switch-employee"
-            label="Tema Oscuro"
-            subtitle="Cambiar entre tema claro y oscuro"
-            checked={isDarkTheme}
-            onChange={(val) => {
-              setIsDarkTheme(val);
-              if (val) {
-                setTimeout(() => {
-                  setIsDarkTheme(false);
-                  showDanger(null, 'El tema oscuro no está disponible por el momento');
-                }, 400);
-              }
-            }}
-            icon="moon"
-          />
-          <InputSwitch
-            id="notifications-switch-employee"
-            label="Notificaciones"
-            subtitle="Recibir alertas y notificaciones"
-            checked={isNotificationsEnabled}
-            onChange={(val) => {
-              setIsNotificationsEnabled(val);
-              if (val) {
-                setTimeout(() => {
-                  setIsNotificationsEnabled(false);
-                  showDanger(null, 'Las notificaciones no están disponibles por el momento');
-                }, 400);
-              }
-            }}
-            icon="bell"
-          />
           <Link 
             text="Términos y Condiciones" 
             iconEnd="right-arrow-alt" 
@@ -297,38 +264,6 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
           </div>
         </Accordion>
         <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <InputSwitch
-            id="theme-switch-user"
-            label="Tema Oscuro"
-            subtitle="Cambiar entre tema claro y oscuro"
-            checked={isDarkTheme}
-            onChange={(val) => {
-              setIsDarkTheme(val);
-              if (val) {
-                setTimeout(() => {
-                  setIsDarkTheme(false);
-                  showDanger(null, 'El tema oscuro no está disponible por el momento');
-                }, 400);
-              }
-            }}
-            icon="moon"
-          />
-          <InputSwitch
-            id="notifications-switch-user"
-            label="Notificaciones"
-            subtitle="Recibir alertas y notificaciones"
-            checked={isNotificationsEnabled}
-            onChange={(val) => {
-              setIsNotificationsEnabled(val);
-              if (val) {
-                setTimeout(() => {
-                  setIsNotificationsEnabled(false);
-                  showDanger(null, 'Las notificaciones no están disponibles por el momento');
-                }, 400);
-              }
-            }}
-            icon="bell"
-          />
           <Boton 
             label="Eliminar Cuenta"
             className="btn-cancel"

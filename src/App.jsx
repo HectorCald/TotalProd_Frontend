@@ -110,8 +110,6 @@ function App() {
     // Limpiar la caché de sesión cada vez que se recarga la página
     sessionStorage.clear();
 
-    // Establecer tema claro fijo (modo oscuro deshabilitado)
-    document.documentElement.setAttribute('data-theme', 'light');
   }, []);
 
   // Escuchar cambios en el token de localStorage para redirigir/actualizar sesión

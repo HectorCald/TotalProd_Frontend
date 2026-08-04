@@ -22,9 +22,9 @@ const API_CONFIG = {
     setEnvironment(env) {
         if (['local', 'production'].includes(env)) {
             this.ENVIRONMENT = env;
-            console.log(`🌍 API Environment cambiado a: ${env}`);
+            console.log(`API Environment cambiado a: ${env}`);
         } else {
-            console.error('❌ Entorno no válido. Use "local" o "production"');
+            console.error('Entorno no válido. Use "local" o "production"');
         }
     },
     

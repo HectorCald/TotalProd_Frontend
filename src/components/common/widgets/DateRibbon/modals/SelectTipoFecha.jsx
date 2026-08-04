@@ -39,6 +39,11 @@ const SelectTipoFecha = ({ isOpen, onClose, onSelect }) => {
                     onClick={() => handleSelect('anual')}
                     className="btn-cancel"
                 />
+                <Boton
+                    label="Fecha personalizada"
+                    onClick={() => handleSelect('personalizada')}
+                    className="btn-cancel"
+                />
             
         </ModalCentro>
     );
