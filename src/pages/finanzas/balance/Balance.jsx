@@ -14,10 +14,14 @@ import gastosService from '../../../services/gastosService';
 import Skeleton from '../../../components/common/widgets/Skeleton';
 import { parseDateWithoutOffset } from '../../../utils/dateUtils';
 
-// Formato de precio sin redondeo: muestra el valor exacto con 2 decimales
+// Formato de precio: redondea al múltiplo de 0.10 más cercano y muestra 2 decimales
 const formatPrecio = (val) => {
-    const num = parseFloat(val ?? 0);
+    let num = parseFloat(val ?? 0);
     if (isNaN(num)) return '0,00';
+    
+    // Redondear a 1 decimal (múltiplos de 0.10, ej: 133.77 -> 133.8)
+    num = Math.round(num * 10) / 10;
+    
     const [intPart, decPart] = num.toFixed(2).split('.');
     const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     return `${intFormatted},${decPart}`;
