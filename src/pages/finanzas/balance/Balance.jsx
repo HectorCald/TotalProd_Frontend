@@ -205,6 +205,8 @@ const Balance = () => {
 
   useEffect(() => {
       const fetchDeudas = async () => {
+          if (!filtroFecha) return;
+
           const movimientosCredito = movimientos.filter(m => (m.metodo_pago || '').toLowerCase() === 'credito');
           if (movimientosCredito.length === 0) {
               setDeudasSaldoTotal(0);
@@ -239,6 +241,8 @@ const Balance = () => {
 
   useEffect(() => {
       const fetchGastos = async () => {
+          if (!filtroFecha) return;
+
           setLoadingGastos(true);
           try {
               const res = await gastosService.getAllSinLimite(null, null, filtroFecha);

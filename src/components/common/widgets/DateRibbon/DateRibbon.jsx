@@ -126,11 +126,11 @@ const DateRibbon = ({ onTipoFechaChange, onDateSelected, onCustomDateRange }) =>
   const [scrollLeftState, setScrollLeftState] = useState(0);
 
   useEffect(() => {
-      if (options.length > 0 && !options.find(opt => opt.value === selectedOption)) {
+      if (tipoFecha !== 'personalizada' && options.length > 0 && !options.find(opt => opt.value === selectedOption)) {
           const val = options[options.length - 1].value;
           setSelectedOption(val);
       }
-  }, [options, selectedOption]);
+  }, [options, selectedOption, tipoFecha]);
 
   useEffect(() => {
       if (onDateSelected && selectedOption) {
