@@ -63,7 +63,7 @@ const AgregarEditarConteo = ({ isOpen, onClose, isAcopio }) => {
             if (isAcopio) {
                 response = await productsAcopioService.productsConteo();
             } else {
-                response = await productsAlmacenService.productsConteo();
+                response = await productsAlmacenService.productsConteo(true);
             }
 
             if (response && response.success) {

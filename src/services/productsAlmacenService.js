@@ -256,8 +256,32 @@ class productsAlmacenService {
   }
 
   // Obtener productos para conteo
-  static async productsConteo() {
-    return productsAlmacenService._request('/products-almacen/conteo-data', { method: 'GET' }, {
+  static async productsConteo(includeSocios = false) {
+    const params = new URLSearchParams();
+
+    if (includeSocios) {
+      try {
+        const SOCIOS_KEY = 'socios';
+        const stored = localStorage.getItem(SOCIOS_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const sociosIds = Array.isArray(parsed) ? parsed : [];
+          
+          if (sociosIds.length > 0) {
+            sociosIds.forEach(id => {
+              if (id) params.append('empresas_asociadas', id);
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("No se pudieron cargar socios", e);
+      }
+    }
+
+    const queryString = params.toString();
+    const url = queryString ? `/products-almacen/conteo-data?${queryString}` : '/products-almacen/conteo-data';
+
+    return productsAlmacenService._request(url, { method: 'GET' }, {
       requireSucuId: true,
       requireEmpresaId: true,
       returnErrorObject: true
