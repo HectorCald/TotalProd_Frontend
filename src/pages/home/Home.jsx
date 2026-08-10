@@ -541,10 +541,10 @@ const Home = () => {
                 </div>
 
                 <div className={gridStyles.layoutGrid} style={{ marginTop: '20px' }}>
-                  <div style={{ gridColumn: 'span 2' }}>
+                  <div style={{ gridColumn: 'span 2', height: '100%' }}>
                     <GraficoVentas data={datosGrafico} cargando={loadingGrafico} />
                   </div>
-                  <div style={{ gridColumn: 'span 1' }}>
+                  <div style={{ gridColumn: 'span 1', height: '100%' }}>
                     <GraficoCategorias data={datosCategorias} total={totalProdVendidos} cargando={loadingCategorias} />
                   </div>
                 </div>

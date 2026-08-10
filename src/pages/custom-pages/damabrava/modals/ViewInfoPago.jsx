@@ -54,7 +54,7 @@ const ViewInfoPago = ({
     const periodoTexto = detallePago
         ? `${formatFechaLiteral(detallePago.fecha_inicio, true)} - ${formatFechaLiteral(detallePago.fecha_fin, true)}`
         : '--';
-    const fechaCreacion = formatFechaLiteral(detallePago?.fecha, true);
+    const fechaCreacion = formatFechaLiteral(detallePago?.fecha, false);
     
     const registradoPorNombre =
         detallePago?.registrado_por?.name ||
@@ -67,12 +67,30 @@ const ViewInfoPago = ({
         { label: 'Periodo', text: periodoTexto, icon: 'calendar' }
     ];
 
+    const personalStats = [
+        { label: 'Responsable', value: responsableNombre, icon: 'user' },
+        { label: 'Registrado por', value: registradoPorNombre, icon: 'id-card' }
+    ];
+
     const stats = [
         { label: 'Cernido', value: `Bs. ${formatNumber(detallePago?.cernido, 2)}`, icon: 'calculator' },
         { label: 'Sellado', value: `Bs. ${formatNumber(detallePago?.sellado, 2)}`, icon: 'calculator' },
         { label: 'Envasado', value: `Bs. ${formatNumber(detallePago?.envasado, 2)}`, icon: 'calculator' },
         { label: 'Etiquetado', value: `Bs. ${formatNumber(detallePago?.etiquetado, 2)}`, icon: 'calculator' }
     ];
+
+    const extrasNumber = Number(detallePago?.extras) || 0;
+    const aumentoNumber = Number(detallePago?.aumento) || 0;
+    const descuentoNumber = Number(detallePago?.descuento) || 0;
+    const totalProduccion = Number(detallePago?.total) || 0;
+    const totalConAjustes = Number(detallePago?.total_ajustado) || Number(detallePago?.total_con_ajustes) || (totalProduccion + extrasNumber + aumentoNumber - descuentoNumber);
+
+    const financeItems = [
+        { clave: 'Total Producción', valor: `Bs. ${formatNumber(totalProduccion)}` }
+    ];
+    if (extrasNumber > 0) financeItems.push({ clave: 'Extras (Bs.)', valor: `+ Bs. ${formatNumber(extrasNumber)}`, colorValor: 'var(--success-color)' });
+    if (aumentoNumber > 0) financeItems.push({ clave: 'Aumento (Bs.)', valor: `+ Bs. ${formatNumber(aumentoNumber)}`, colorValor: 'var(--success-color)' });
+    if (descuentoNumber > 0) financeItems.push({ clave: 'Descuento (Bs.)', valor: `- Bs. ${formatNumber(descuentoNumber)}`, colorValor: 'var(--error-color)' });
 
     const handlePagoActualizado = (pagoActualizado) => {
         setDetallePago(pagoActualizado);
@@ -124,6 +142,7 @@ const ViewInfoPago = ({
 
                 return {
                     id: registro.id,
+                    fecha: registro?.fecha || registro?.created_at,
                     producto: productoDetalle?.name || 'Sin producto',
                     terminados: Number(registro?.terminados) || 0,
                     verificados: Number(registro?.cantidad_verificada) || 0,
@@ -157,14 +176,20 @@ const ViewInfoPago = ({
         >
             {detallePago && (
                 <InfoCard
-                    title={responsableNombre}
-                    subtitle={`Registrado por ${registradoPorNombre} el ${fechaCreacion}`}
+                    title="Pago Registrado"
+                    subtitle={fechaCreacion}
                     statusDot={estadoActual === 'pendiente' ? 'error' : 'success'}
-                    icon="user"
+                    icon="wallet"
                     customBlock={
                         <>
                             {tags.length > 0 && (
                                 <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
+                            )}
+                            {personalStats.length > 0 && (
+                                <ColumnInfo 
+                                    title="Personal"
+                                    items={personalStats.map(s => ({ clave: s.label, valor: s.value }))}
+                                />
                             )}
                             {stats.length > 0 && (
                                 <ColumnInfo 
@@ -172,6 +197,12 @@ const ViewInfoPago = ({
                                     items={stats.map(s => ({ clave: s.label, valor: s.value }))}
                                 />
                             )}
+                            <ColumnInfo 
+                                title="Finanzas"
+                                items={financeItems}
+                                finance={true}
+                                financeTotal={`Bs. ${formatNumber(totalConAjustes)}`}
+                            />
                         </>
                     }
                     actionButton={

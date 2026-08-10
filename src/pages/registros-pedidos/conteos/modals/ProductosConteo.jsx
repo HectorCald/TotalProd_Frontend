@@ -40,7 +40,8 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
         {
             header: 'Producto',
             render: (row) => isAlmacen ? (row.producto_almacen?.name || 'Sin nombre') : (row.producto_acopio?.name || 'Sin nombre'),
-            width: isAlmacen ? '40%' : '30%'
+            width: isAlmacen ? '40%' : '30%',
+            isMobileMain: true
         },
         {
             header: 'Sistema',
@@ -49,7 +50,14 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
                 const medidaCode = !isAlmacen ? (row.producto_acopio?.type_measure?.code || '') : '';
                 return isAlmacen ? `${sistema} ud` : `${sistema.toFixed(2)} ${medidaCode}`;
             },
-            width: isAlmacen ? '20%' : '15%'
+            mobileRender: (row) => {
+                const sistema = Number(row.sistema || 0);
+                const medidaCode = !isAlmacen ? (row.producto_acopio?.type_measure?.code || '') : '';
+                return `SIS: ${isAlmacen ? `${sistema} ud` : `${sistema.toFixed(2)} ${medidaCode}`}`;
+            },
+            statusType: () => 'default',
+            width: isAlmacen ? '20%' : '15%',
+            isMobileStatus: true
         },
         {
             header: 'Físico',
@@ -58,7 +66,14 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
                 const medidaCode = !isAlmacen ? (row.producto_acopio?.type_measure?.code || '') : '';
                 return isAlmacen ? `${fisico} ud` : `${fisico.toFixed(2)} ${medidaCode}`;
             },
-            width: isAlmacen ? '20%' : '15%'
+            mobileRender: (row) => {
+                const fisico = Number(row.fisico || 0);
+                const medidaCode = !isAlmacen ? (row.producto_acopio?.type_measure?.code || '') : '';
+                return `FIS: ${isAlmacen ? `${fisico} ud` : `${fisico.toFixed(2)} ${medidaCode}`}`;
+            },
+            statusType: () => 'info',
+            width: isAlmacen ? '20%' : '15%',
+            isMobileStatus2: true
         },
         {
             header: isAlmacen ? 'Diferencia' : 'DIF.',
@@ -73,7 +88,23 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
                 if (diff > 0) return <span style={{color: '#10b981'}}>+{diffFormatted}</span>; // green
                 return <span style={{color: '#ef4444'}}>-{diffFormatted}</span>; // red
             },
-            width: isAlmacen ? '20%' : '15%'
+            mobileRender: (row) => {
+                const fisico = Number(row.fisico || 0);
+                const sistema = Number(row.sistema || 0);
+                const diff = fisico - sistema;
+                if (diff === 0) return '';
+                const medidaCode = !isAlmacen ? (row.producto_acopio?.type_measure?.code || '') : '';
+                const diffFormatted = isAlmacen ? `${Math.abs(diff)} ud` : `${Math.abs(diff).toFixed(2)} ${medidaCode}`;
+                return diff > 0 ? `+${diffFormatted}` : `-${diffFormatted}`;
+            },
+            statusType: (row) => {
+                const fisico = Number(row.fisico || 0);
+                const sistema = Number(row.sistema || 0);
+                const diff = fisico - sistema;
+                return diff > 0 ? 'success' : 'error';
+            },
+            width: isAlmacen ? '20%' : '15%',
+            isMobileStatus3: true
         },
         ...(isAlmacen ? [] : [{
             header: 'Observaciones',
@@ -83,6 +114,7 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
     ], [isAlmacen]);
 
     const [search, setSearch] = useState('');
+    const [tableFilters, setTableFilters] = useState({});
 
     const productosFlattened = useMemo(() => {
         return (detalles || []).map(p => ({
@@ -92,12 +124,23 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
     }, [detalles, isAlmacen]);
 
     const filteredDetalles = useMemo(() => {
-        if (!search) return productosFlattened;
-        const s = search.toLowerCase();
-        return productosFlattened.filter(p => 
-            p.productoNombre && p.productoNombre.toLowerCase().includes(s)
-        );
-    }, [productosFlattened, search]);
+        let result = [...productosFlattened];
+        if (search) {
+            const s = search.toLowerCase();
+            result = result.filter(p => 
+                p.productoNombre && p.productoNombre.toLowerCase().includes(s)
+            );
+        }
+        
+        result.sort((a, b) => {
+            const valA = String(a.productoNombre || '');
+            const valB = String(b.productoNombre || '');
+            const direction = (tableFilters.sort_order && tableFilters.sort_order[0] === 'desc') ? -1 : 1;
+            return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' }) * direction;
+        });
+        
+        return result;
+    }, [productosFlattened, search, tableFilters]);
 
     const { visibleItems, hasMore, loadMore } = useVirtualPagination(filteredDetalles, 30);
 
@@ -120,6 +163,8 @@ const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {
                         remote={true}
                         searchValue={search}
                         onSearchChange={setSearch}
+                        externalFilters={tableFilters}
+                        onFiltersChange={setTableFilters}
                         searchKeys={['productoNombre']}
                         searchPlaceholder="Buscar por producto..."
                         containerStyle={{ minHeight: 'auto', padding: 0 }}

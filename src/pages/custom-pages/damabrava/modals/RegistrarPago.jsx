@@ -178,6 +178,7 @@ const RegistrarPago = ({ isOpen, onClose, reglas = [], onPagoRegistrado }) => {
 
                 filas.push({
                     id: registro.id,
+                    fecha: registro?.fecha || registro?.created_at,
                     producto: productoDetalle?.name || 'Sin producto',
                     terminados: Number(registro?.terminados) || 0,
                     verificados: Number(registro?.cantidad_verificada) || 0,

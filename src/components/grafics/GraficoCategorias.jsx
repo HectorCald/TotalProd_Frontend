@@ -83,7 +83,7 @@ const GraficoCategorias = ({ data = [], total = 0, cargando = false }) => {
                 </div>
               </div>
 
-              <div className={styles.subtituloCategorias}>6 categorías más vendidas</div>
+              <div className={styles.subtituloCategorias}>{data.length < 6 ? 'Categorías más vendidas' : '6 categorías más vendidas'}</div>
             </div>
           </div>
 

@@ -11,8 +11,8 @@ import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive
 import conteosService from '../../../services/conteosService';
 import EliminarConteo from './modals/EliminarConteo';
 import ReemplazarConteo from './modals/ReemplazarConteo';
-import ProductosConteo from './modals/ProductosConteo';
 import SelectTipoNuevo from './modals/SelectTipoNuevo';
+import ViewInfo from './modals/ViewInfo';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
 
 const LiteralDateCell = ({ dateStr }) => {
@@ -42,7 +42,7 @@ const Conteos = () => {
   const [tableFilters, setTableFilters] = useState({});
 
   // Modals state
-  const [modalProductosOpen, setModalProductosOpen] = useState(false);
+  const [modalViewInfoOpen, setModalViewInfoOpen] = useState(false);
   const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
   const [modalReemplazarOpen, setModalReemplazarOpen] = useState(false);
   const [modalAgregarEditarOpen, setModalAgregarEditarOpen] = useState(false);
@@ -175,7 +175,7 @@ const Conteos = () => {
             filters={tableFiltersConfig}
             onRowClick={(conteo) => {
               setConteoSeleccionado(conteo);
-              setModalProductosOpen(true);
+              setModalViewInfoOpen(true);
             }}
             searchValue={search}
             onSearchChange={setSearch}
@@ -200,10 +200,12 @@ const Conteos = () => {
         onError={handleError}
       />
 
-      <ProductosConteo
-        isOpen={modalProductosOpen}
-        onClose={() => setModalProductosOpen(false)}
-        conteoSeleccionado={conteoSeleccionado}
+      <ViewInfo
+        isOpen={modalViewInfoOpen}
+        onClose={() => setModalViewInfoOpen(false)}
+        conteo={conteoSeleccionado}
+        onEliminar={handleConteoEliminado}
+        onReemplazar={handleConteoReemplazado}
       />
 
       <EliminarConteo

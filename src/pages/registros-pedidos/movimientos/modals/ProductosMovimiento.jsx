@@ -198,6 +198,7 @@ const ProductosMovimiento = ({
                         data={rows}
                         columns={columns}
                         searchKeys={['nombre']}
+                        sortKey="nombre"
                         searchPlaceholder="Buscar por producto..."
                         containerStyle={{ minHeight: 'auto', padding: 0 }}
                     />

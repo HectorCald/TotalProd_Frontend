@@ -11,6 +11,8 @@ const ItemMobile = ({
   statusType = 'default',
   status2 = '',
   status2Type = 'default',
+  status3 = '',
+  status3Type = 'default',
   customControls = null,
   onClick,
   actions = [],
@@ -32,6 +34,11 @@ const ItemMobile = ({
             {status2 && (
               <span className={`${styles.badge} ${styles[status2Type] || styles.default}`}>
                 {status2}
+              </span>
+            )}
+            {status3 && (
+              <span className={`${styles.badge} ${styles[status3Type] || styles.default}`}>
+                {status3}
               </span>
             )}
           </div>

@@ -11,6 +11,13 @@ const formatNumberString = (value, decimals = 2) => {
 };
 
 const RegistrosPago = ({ isOpen, onClose, data = [] }) => {
+    const sortedData = useMemo(() => {
+        return [...data].sort((a, b) => {
+            const dateA = new Date(a.fecha || 0).getTime();
+            const dateB = new Date(b.fecha || 0).getTime();
+            return dateA - dateB;
+        });
+    }, [data]);
     const columns = useMemo(() => [
         {
             header: 'Producto',
@@ -66,7 +73,7 @@ const RegistrosPago = ({ isOpen, onClose, data = [] }) => {
             <div style={{ padding: '10px 0' }}>
                 {data.length > 0 ? (
                     <Tabla
-                        data={data}
+                        data={sortedData}
                         columns={columns}
                         searchKeys={['producto']}
                         searchPlaceholder="Buscar por producto..."

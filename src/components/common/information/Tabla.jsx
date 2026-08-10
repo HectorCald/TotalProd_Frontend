@@ -65,7 +65,9 @@ const Tabla = ({
     onFiltersChange,
     filters,
     containerStyle,
-    mobileCustomControls
+    mobileCustomControls,
+    hideSearch = false,
+    customHeaderComponent = null
 }) => {
     const { isLargeScreen } = useLayout();
     const [localSearch, setLocalSearch] = useState('');
@@ -184,17 +186,24 @@ const Tabla = ({
     return (
         <div className={styles.container} style={containerStyle}>
             <div className={styles.header}>
-                <div className={styles.searchWrapper} style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, maxWidth: '600px' }}>
-                    <div style={{ flex: 1 }}>
-                        <Input
-                            tipo="text"
-                            placeholder={searchPlaceholder}
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            isSearch={true}
-                            style={{ margin: '0' }}
-                        />
-                    </div>
+                <div className={styles.searchWrapper} style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, maxWidth: '600px', justifyContent: 'flex-start' }}>
+                    {!hideSearch && (
+                        <div style={{ flex: 1 }}>
+                            <Input
+                                tipo="text"
+                                placeholder={searchPlaceholder}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                isSearch={true}
+                                style={{ margin: '0' }}
+                            />
+                        </div>
+                    )}
+                    {customHeaderComponent && (
+                        <div style={{ flex: 'none' }}>
+                            {customHeaderComponent}
+                        </div>
+                    )}
                     <FilterMultiple
                         filters={filtersToUse}
                         onApply={(filters) => setActiveFilters(filters)}
@@ -458,7 +467,8 @@ const Tabla = ({
                             const mainCol = columns.find(c => c.isMobileMain) || columns.find(c => c.hasIcon) || columns[0];
                             const statusCol = columns.find(c => c.isMobileStatus) || columns.find(c => c.hasStatusDot || c.hasStatus || c.isBadge);
                             const status2Col = columns.find(c => c.isMobileStatus2);
-                            const subtitleCol = columns.find(c => c.isMobileSubtitle) || columns.find(c => c !== mainCol && c !== statusCol && c !== status2Col);
+                            const status3Col = columns.find(c => c.isMobileStatus3);
+                            const subtitleCol = columns.find(c => c.isMobileSubtitle) || columns.find(c => c !== mainCol && c !== statusCol && c !== status2Col && c !== status3Col);
 
                             const title = mainCol?.mobileRender ? mainCol.mobileRender(row) : (mainCol?.render ? mainCol.render(row) : (row[mainCol?.accessor] || '--'));
                             const status = statusCol ? (statusCol.mobileRender ? statusCol.mobileRender(row) : (statusCol.render ? statusCol.render(row) : row[statusCol.accessor])) : '';
@@ -466,6 +476,9 @@ const Tabla = ({
                             
                             const status2 = status2Col ? (status2Col.mobileRender ? status2Col.mobileRender(row) : (status2Col.render ? status2Col.render(row) : row[status2Col.accessor])) : '';
                             const status2Type = status2Col && status2Col.statusType ? status2Col.statusType(row) : 'default';
+
+                            const status3 = status3Col ? (status3Col.mobileRender ? status3Col.mobileRender(row) : (status3Col.render ? status3Col.render(row) : row[status3Col.accessor])) : '';
+                            const status3Type = status3Col && status3Col.statusType ? status3Col.statusType(row) : 'default';
 
                             const subtitle = subtitleCol ? (subtitleCol.mobileRender ? subtitleCol.mobileRender(row) : (subtitleCol.render ? subtitleCol.render(row) : row[subtitleCol.accessor])) : '';
                             
@@ -485,6 +498,8 @@ const Tabla = ({
                                     statusType={statusType}
                                     status2={status2}
                                     status2Type={status2Type}
+                                    status3={status3}
+                                    status3Type={status3Type}
                                     customControls={mobileCustomControls ? mobileCustomControls(row) : null}
                                     onClick={() => onRowClick && onRowClick(row)}
                                     actions={acciones ? acciones.map(a => ({

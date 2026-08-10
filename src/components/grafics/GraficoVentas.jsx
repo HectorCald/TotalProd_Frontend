@@ -7,18 +7,14 @@ import styles from './GraficoVentas.module.css';
 const GraficoVentas = ({ data = [], cargando = false }) => {
   const { formatPrice } = useFormatNumber();
 
-  const mesActual = React.useMemo(() => {
-    const meses = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    return meses[new Date().getMonth()];
+  const anoActual = React.useMemo(() => {
+    return new Date().getFullYear();
   }, []);
 
   return (
     <div className={styles.contenedorGrafico}>
       <div className={styles.cabecera}>
-        <h3 className={styles.titulo}>{`Ventas (${mesActual})`}</h3>
+        <h3 className={styles.titulo}>{`Ventas (${anoActual})`}</h3>
       </div>
       <div className={styles.cuerpoGrafico}>
         {cargando ? (
