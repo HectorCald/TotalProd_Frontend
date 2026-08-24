@@ -186,7 +186,7 @@ const CanastaAlmacen = ({
   const esVenta = modo === 'VENTA' || modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO' || modo === 'COPIA_VENTA';
 
   const { calculateTotalCanasta } = useFormatNumberPrice();
-  const totalRedondeado = calculateTotalCanasta(canasta, modoAgrupacion, esVenta, precioSeleccionado, getProductPrice);
+  const totalRedondeado = calculateTotalCanasta(canasta, modoAgrupacion, true, precioSeleccionado, getProductPrice);
 
   const displayModo = (modo === 'VENTA_COTIZACION' || modo === 'ENTREGA_PEDIDO' || modo === 'COPIA_VENTA') ? 'VENTA' : (modo === 'COPIA_COTIZACION' ? 'COTIZACIÓN' : modo);
 

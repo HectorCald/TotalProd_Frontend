@@ -60,7 +60,7 @@ const ProductoItem = ({ producto, actualizarCantidad, actualizarPrecio, eliminar
   
   const precioBase = Number(precioUnitario || 0);
   const precioCrudo = esPorGrupo ? precioBase * Number(producto.grup) : precioBase;
-  const precioDefecto = (esVenta && esPorGrupo) ? Math.round(precioCrudo) : precioCrudo;
+  const precioDefecto = esPorGrupo ? Math.round(precioCrudo) : precioCrudo;
   const precio = producto.precioCustom !== undefined && producto.precioCustom !== '' ? Number(producto.precioCustom) : precioDefecto;
   const subtotal = precio * producto.cantidad;
   
