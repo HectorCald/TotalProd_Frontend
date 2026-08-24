@@ -5,12 +5,15 @@ import InputSelect from '../../../../../components/common/inputs/InputSelect';
 const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, medida, onMedidaChange }) => {
   const inputRef = useRef(null);
   const opcionesMedida = [
-    { value: 'Kilogramo', label: 'Kilogramo' },
-    { value: 'Quintal', label: 'Quintal' },
-    { value: 'Litro', label: 'Litro' },
-    { value: 'Libras', label: 'Libras' },
-    { value: 'Arroba', label: 'Arroba' },
-    { value: 'Caja', label: 'Caja' }
+    { value: 'kg', label: 'kg' },
+    { value: 'qq', label: 'qq' },
+    { value: 'ltr', label: 'ltr' },
+    { value: 'lb', label: 'lb' },
+    { value: '@', label: '@' },
+    { value: 'caj', label: 'caj' },
+    { value: 'bls', label: 'bls' },
+    { value: 'pza', label: 'pza' },
+    { value: 'ud', label: 'ud' }
   ];
 
   useEffect(() => {

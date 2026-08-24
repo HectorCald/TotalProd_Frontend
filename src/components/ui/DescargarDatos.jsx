@@ -33,7 +33,9 @@ function DescargarDatos({
     movimientoId = null,
     clienteInfo = null, // { nombre: string, numeroOrden: number }
     separarColumnas = false, // Prop para separar columnas con líneas
-    columnWidths = null // { [key: string]: string } - Anchos personalizados para columnas
+    columnWidths = null, // { [key: string]: string } - Anchos personalizados para columnas (por texto de header o clave legacy)
+    mostrarNro = true, // Si es false, no agrega la columna automática "Nro" en PDF/Imagen
+    orientacion = 'vertical' // 'vertical' u 'horizontal' - orientación de la hoja PDF / ancho del canvas Imagen
 }) {
     const { formatPrice } = useFormatNumber();
     const { calculateSubtotal, calculateSpecialPrice } = useFormatNumberPrice();
@@ -362,6 +364,8 @@ function DescargarDatos({
     incluirLogos,
     separarColumnas,
     columnWidths,
+    mostrarNro,
+    orientacion,
     setIsSubmitting,
     setIsOpen
 };

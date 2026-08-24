@@ -74,8 +74,7 @@ export const SideBarOptions = [
       { id: "cargos", title: "Cargos", icon: "briefcase", route: "/cargos", key: "cargos", key_submenu: "gestionar" },
       { id: "categorias", title: "Categorías", icon: "category", route: "/categorias", key: "categorias", key_submenu: "gestionar" },
       { id: "socios", title: "Socios", icon: "group", route: "/socios", key: "socios", key_submenu: "gestionar" },
-      { id: "exportar", title: "Exportar", icon: "export", route: "/exportar",isNew: false, key: "exportar_importar", key_submenu: "importar_exportar" },
-      { id: "reportes", title: "Reportes", icon: "receipt", route: "/reportes", isBuilding: true, key: "reportes", key_submenu: "generar_reportes" }
+      { id: "exportar", title: "Exportar", icon: "export", route: "/exportar",isNew: false, key: "exportar_importar", key_submenu: "importar_exportar" }
     ]
   },
   {

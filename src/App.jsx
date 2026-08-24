@@ -39,7 +39,6 @@ import Categorias from './pages/configuracion/categorias/Categorias';
 import Sucursales from './pages/configuracion/sucursales/Sucursales';
 import Socios from './pages/configuracion/socios/Socios';
 import Exportar from './pages/configuracion/exportar/Exportar';
-import ReportesConfig from './pages/configuracion/reportes/Reportes';
 
 // Section DAMABRAVA
 import Verificacion from './pages/custom-pages/damabrava/Verificacion';
@@ -700,11 +699,6 @@ function AppContent({ token, tokenType }) {
           path="/exportar"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <Exportar />}
         />
-        <Route
-          path="/reportes"
-          element={!hasActiveSession ? <Navigate to="/login" replace /> : <ReportesConfig />}
-        />
-
         {/* Section DAMABRAVA */}
         <Route
           path="/damabrava/verificacion"

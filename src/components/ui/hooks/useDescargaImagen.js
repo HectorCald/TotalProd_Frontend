@@ -14,6 +14,8 @@ export const useDescargaImagen = ({
     incluirLogos,
     separarColumnas,
     columnWidths,
+    mostrarNro = true,
+    orientacion = 'vertical', // 'vertical' u 'horizontal' - ancho del canvas exportado
     setIsSubmitting,
     setIsOpen
 }) => {
@@ -29,7 +31,8 @@ export const useDescargaImagen = ({
             container.style.position = 'absolute';
             container.style.left = '-9999px';
             container.style.top = '0';
-            container.style.width = '794px'; // Ancho A4 en píxeles (210mm a 96 DPI)
+            // Ancho A4 en píxeles a 96 DPI: 794px vertical (210mm), 1123px horizontal (297mm)
+            container.style.width = orientacion === 'horizontal' ? '1123px' : '794px';
             container.style.backgroundColor = '#ffffff';
             container.style.padding = '30px 36px';
             container.style.fontFamily = 'Arial, sans-serif';
@@ -176,8 +179,8 @@ export const useDescargaImagen = ({
                 container.appendChild(watermark);
             }
 
-            const finalHeaders = tablaHeaders && tablaHeaders.length > 0 ? ['Nro', ...tablaHeaders] : [];
-            const finalValores = tablaValores && tablaValores.length > 0 ? tablaValores.map((row, index) => [index + 1, ...row]) : [];
+            const finalHeaders = tablaHeaders && tablaHeaders.length > 0 ? (mostrarNro ? ['Nro', ...tablaHeaders] : tablaHeaders) : [];
+            const finalValores = tablaValores && tablaValores.length > 0 ? (mostrarNro ? tablaValores.map((row, index) => [index + 1, ...row]) : tablaValores) : [];
 
             // Tablas
             const getWidthsPct = (headers) => {
@@ -185,6 +188,14 @@ export const useDescargaImagen = ({
 
                 const getNumericWidth = (header, index) => {
                     if (columnWidths && typeof columnWidths === 'object') {
+                        // Coincidencia exacta con el texto del header: forma genérica y
+                        // recomendada para reportes nuevos, ej. columnWidths = { 'Concepto': '30%' }.
+                        if (columnWidths[header]) {
+                            return parseFloat(columnWidths[header].toString().replace('%', ''));
+                        }
+
+                        // Compatibilidad con reportes antiguos que usan claves semánticas
+                        // (producto, entradaGrup, etc.) en vez del texto del header.
                         const headerKeys = ['fecha', 'concepto', 'proveedor', 'metodoPago', 'subtotal',
                             'producto', 'entradaGrup', 'entradaUd', 'salidaGrup', 'salidaUd',
                             'tipoMedida', 'entrada', 'salida', 'verificado', 'terminados',

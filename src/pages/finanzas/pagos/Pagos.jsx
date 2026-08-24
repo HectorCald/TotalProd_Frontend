@@ -14,6 +14,8 @@ import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import AgregarEditarPago from './modals/AgregarEditarPago';
 import EliminarPago from './modals/EliminarPago';
 import ViewInfo from './modals/ViewInfo';
+import DescargarDatos from '../../../components/ui/DescargarDatos';
+import { useReportePagos } from './reporte/useReportePagos';
 
 const LiteralDateCell = ({ dateStr }) => {
   const safeDateStr = dateStr && typeof dateStr === 'string' ? dateStr.substring(0, 10) : dateStr;
@@ -52,6 +54,8 @@ const Pagos = () => {
 
   const [debouncedSearch] = useDebounce(search, 500);
   const [tablaFilters, setTablaFilters] = useState({});
+
+  const { generarReporte, isDescargaOpen, setIsDescargaOpen, datosReporte } = useReportePagos();
 
   const handleFiltersChange = (filters) => {
     setTablaFilters(filters);
@@ -226,6 +230,12 @@ const Pagos = () => {
               setPagoEditando(null);
               setModalAgregarEditarOpen(true);
             }}
+            onExportClick={false && (() => generarReporte({
+              metodoPago: filtroMetodoPago,
+              proveedorId,
+              filtroFecha,
+              search: debouncedSearch
+            }))}
             searchKeys={['concepto']}
             sortKey="concepto"
             onLoadMore={handleLoadMore}
@@ -319,6 +329,18 @@ const Pagos = () => {
           setModalInfoOpen(false);
         }}
       />
+      <DescargarDatos
+        isOpen={isDescargaOpen}
+        setIsOpen={setIsDescargaOpen}
+        titulo="Descargar Reporte"
+        subtitulo="Selecciona el formato que prefieras para descargar este reporte."
+        nombreArchivo="Reporte_Pagos"
+        tituloDocumento="Reporte de Pagos"
+        mostrarNro={false}
+        orientacion="horizontal"
+        {...datosReporte}
+      />
+
       {!isLargeScreen && <MenuSide />}
     </>
   );

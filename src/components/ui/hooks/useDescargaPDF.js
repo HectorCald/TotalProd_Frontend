@@ -14,6 +14,8 @@ export const useDescargaPDF = ({
     incluirLogos,
     separarColumnas,
     columnWidths,
+    mostrarNro = true,
+    orientacion = 'vertical', // 'vertical' (portrait) u 'horizontal' (landscape)
     setIsSubmitting,
     setIsOpen
 }) => {
@@ -114,14 +116,22 @@ export const useDescargaPDF = ({
             const leftEntries = entriesSorted.slice(0, mid);
             const rightEntries = entriesSorted.slice(mid);
 
-            const finalHeaders = tablaHeaders && tablaHeaders.length > 0 ? ['Nro', ...tablaHeaders] : [];
-            const finalValores = tablaValores && tablaValores.length > 0 ? tablaValores.map((row, index) => [index + 1, ...row]) : [];
+            const finalHeaders = tablaHeaders && tablaHeaders.length > 0 ? (mostrarNro ? ['Nro', ...tablaHeaders] : tablaHeaders) : [];
+            const finalValores = tablaValores && tablaValores.length > 0 ? (mostrarNro ? tablaValores.map((row, index) => [index + 1, ...row]) : tablaValores) : [];
 
             const getWidthsPct = (headers) => {
                 if (!headers || headers.length === 0) return [];
 
                 const getNumericWidth = (header, index) => {
                     if (columnWidths && typeof columnWidths === 'object') {
+                        // Coincidencia exacta con el texto del header: forma genérica y
+                        // recomendada para reportes nuevos, ej. columnWidths = { 'Concepto': '30%' }.
+                        if (columnWidths[header]) {
+                            return parseFloat(columnWidths[header].toString().replace('%', ''));
+                        }
+
+                        // Compatibilidad con reportes antiguos que usan claves semánticas
+                        // (producto, entradaGrup, etc.) en vez del texto del header.
                         const headerKeys = ['fecha', 'concepto', 'proveedor', 'metodoPago', 'subtotal',
                             'producto', 'entradaGrup', 'entradaUd', 'salidaGrup', 'salidaUd',
                             'tipoMedida', 'entrada', 'salida', 'verificado', 'terminados',
@@ -196,7 +206,7 @@ export const useDescargaPDF = ({
 
             const doc = (
                 <Document>
-                    <Page size="A4" style={styles.page}>
+                    <Page size="A4" orientation={orientacion === 'horizontal' ? 'landscape' : 'portrait'} style={styles.page}>
                         {/* Marca de agua FIJA para todas las páginas automáticas */}
                         {incluirLogos && empresaImageBase64 && (
                             <View style={styles.watermarkFixed} fixed>

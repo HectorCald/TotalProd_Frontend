@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import InfoCard from '../../../../components/common/information/InfoCard';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
-import { formatFechaLiteral } from '../../../../utils/dateUtils';
+import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 import Boton from '../../../../components/common/botones/Boton';
 import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 import MarcarPago from './MarcarPago';
@@ -41,6 +41,12 @@ const ViewInfoPago = ({
     const [reglasFetched, setReglasFetched] = useState([]);
     const { showDanger } = useToast();
 
+    // Mismo hook que usa el resto de la app para fechas con hora
+    // (movimientos, pedidos, etc.) en vez del formateador aparte de dateUtils.
+    const fechaInicioLiteral = useFechaLiteral(detallePago?.fecha_inicio, false, true);
+    const fechaFinLiteral = useFechaLiteral(detallePago?.fecha_fin, false, true);
+    const fechaCreacion = useFechaLiteral(detallePago?.fecha, false, false);
+
     useEffect(() => {
         if (isOpen) {
             setDetallePago(pago || null);
@@ -52,9 +58,8 @@ const ViewInfoPago = ({
     const estadoActual = detallePago?.estado || 'pendiente';
     const responsableNombre = detallePago?.responsable?.name || 'Sin responsable';
     const periodoTexto = detallePago
-        ? `${formatFechaLiteral(detallePago.fecha_inicio, true)} - ${formatFechaLiteral(detallePago.fecha_fin, true)}`
+        ? `${fechaInicioLiteral} - ${fechaFinLiteral}`
         : '--';
-    const fechaCreacion = formatFechaLiteral(detallePago?.fecha, false);
     
     const registradoPorNombre =
         detallePago?.registrado_por?.name ||

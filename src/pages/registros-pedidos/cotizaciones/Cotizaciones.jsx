@@ -280,7 +280,7 @@ const Cotizaciones = () => {
       header: 'Fecha',
       accessor: 'fecha',
       width: '15%',
-      render: (row) => new Date(row.fecha).toLocaleDateString()
+      render: (row) => <LiteralDateCell dateStr={row.fecha} />
     },
     {
       header: 'Estado',

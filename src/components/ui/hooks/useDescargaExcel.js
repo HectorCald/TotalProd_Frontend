@@ -182,8 +182,20 @@ export const useDescargaExcel = ({
                 tablaHeaders.length // Para tabla
             );
 
-            // Calcular ancho automático para cada columna
+            // Calcular ancho automático para cada columna (o el % personalizado si
+            // columnWidths trae el texto exacto del header, ej. { 'Concepto': '30%' })
+            const ANCHO_TOTAL_HOJA = 150; // presupuesto de caracteres a repartir por porcentaje
             for (let i = 0; i < maxCols; i++) {
+                const headerText = tablaHeaders[i];
+                const customPct = columnWidths && headerText && columnWidths[headerText]
+                    ? parseFloat(columnWidths[headerText].toString().replace('%', ''))
+                    : null;
+
+                if (customPct) {
+                    colWidths.push({ wch: Math.max(Math.round((customPct / 100) * ANCHO_TOTAL_HOJA), 8) });
+                    continue;
+                }
+
                 let maxWidth = 10; // Ancho mínimo
 
                 // Revisar todas las filas para encontrar el contenido más largo

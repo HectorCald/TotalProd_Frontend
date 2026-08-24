@@ -10,7 +10,8 @@ export const useCanasta = () => {
       if (existe) {
         return prev.map(p => p.id === producto.id ? { ...p, cantidad: (p.cantidad || 1) + 1 } : p);
       }
-      return [...prev, { ...producto, cantidad: 1, tipo_medida: 'Kilogramo' }];
+      const defaultMedida = producto.type_measure?.code || 'kg';
+      return [...prev, { ...producto, cantidad: 1, tipo_medida: defaultMedida }];
     });
   }, []);
 

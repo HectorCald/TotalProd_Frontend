@@ -11,6 +11,8 @@ import clientService from '../../../services/clientService';
 import AgregarEditarCliente from './modals/AgregarEditarCliente';
 import EliminarCliente from './modals/EliminarCliente';
 import ViewInfo from './modals/ViewInfo';
+import DescargarDatos from '../../../components/ui/DescargarDatos';
+import { useReporteClientes } from './reporte/useReporteClientes';
 
 
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
@@ -45,6 +47,8 @@ const Clientes = () => {
   }, [clientes, search]);
 
   const { visibleItems, hasMore, loadMore } = useVirtualPagination(filteredClientes, 30);
+
+  const { generarReporte, isDescargaOpen, setIsDescargaOpen, datosReporte } = useReporteClientes();
 
   const handleClientesLoaded = useCallback((data) => {
     setClientes(data);
@@ -123,6 +127,7 @@ const Clientes = () => {
               setClienteSeleccionado(null);
               setIsModalOpen(true);
             }}
+            onExportClick={false && (() => generarReporte(filteredClientes))}
             searchKeys={['name', 'phone']}
             sortKey="name"
             onRowClick={(cliente) => {
@@ -188,6 +193,15 @@ const Clientes = () => {
         onLoadingStart={handleLoadingStart}
         onLoadingEnd={handleLoadingEnd}
         onError={handleError}
+      />
+      <DescargarDatos
+        isOpen={isDescargaOpen}
+        setIsOpen={setIsDescargaOpen}
+        titulo="Descargar Reporte"
+        subtitulo="Selecciona el formato que prefieras para descargar este reporte."
+        nombreArchivo="Reporte_Clientes"
+        tituloDocumento="REPORTE DE CLIENTES"
+        {...datosReporte}
       />
       {!isLargeScreen && <MenuSide />}
     </>

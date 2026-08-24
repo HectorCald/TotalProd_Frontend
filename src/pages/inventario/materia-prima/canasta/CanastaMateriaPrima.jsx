@@ -43,7 +43,7 @@ const CanastaMateriaPrima = ({
       productos: canasta.map(p => ({
         id: p.id,
         cantidad: p.cantidad,
-        tipo_medida: p.tipo_medida || 'Kilogramo',
+        tipo_medida: p.tipo_medida || p.type_measure?.code || 'kg',
       })),
     };
 
@@ -113,7 +113,7 @@ const CanastaMateriaPrima = ({
               producto={producto}
               actualizarCantidad={actualizarCantidad}
               eliminarProducto={eliminarProducto}
-              medida={producto.tipo_medida || 'Kilogramo'}
+              medida={producto.tipo_medida || producto.type_measure?.code || 'kg'}
               onMedidaChange={(val) => actualizarMedida(producto.id, val)}
             />
           ))

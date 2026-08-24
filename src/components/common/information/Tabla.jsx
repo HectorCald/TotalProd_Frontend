@@ -53,6 +53,9 @@ const Tabla = ({
     buttonLabel,
     buttonIcon = 'plus',
     onButtonClick,
+    onExportClick,
+    exportLabel = 'Exportar',
+    exportIcon = 'file-export',
     searchPlaceholder = 'Buscar',
     searchKeys = [],
     sortKey,
@@ -210,21 +213,40 @@ const Tabla = ({
                         activeFilters={activeFilters}
                     />
                 </div>
-                {onButtonClick && (
-                    <div>
-                        {isLargeScreen ? (
-                            <Boton
-                                className="btn-primary"
-                                label={buttonLabel}
-                                iconName={buttonIcon}
-                                onClick={onButtonClick}
-                            />
-                        ) : (
-                            <BotonIcon
-                                className="btn-primary"
-                                iconName={buttonIcon}
-                                onClick={onButtonClick}
-                            />
+                {(onButtonClick || onExportClick) && (
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {onExportClick && (
+                            isLargeScreen ? (
+                                <Boton
+                                    className="btn-cancel"
+                                    label={exportLabel}
+                                    iconName={exportIcon}
+                                    onClick={onExportClick}
+                                />
+                            ) : (
+                                <BotonIcon
+                                    className="btn-cancel"
+                                    iconName={exportIcon}
+                                    onClick={onExportClick}
+                                    tooltip={exportLabel}
+                                />
+                            )
+                        )}
+                        {onButtonClick && (
+                            isLargeScreen ? (
+                                <Boton
+                                    className="btn-primary"
+                                    label={buttonLabel}
+                                    iconName={buttonIcon}
+                                    onClick={onButtonClick}
+                                />
+                            ) : (
+                                <BotonIcon
+                                    className="btn-primary"
+                                    iconName={buttonIcon}
+                                    onClick={onButtonClick}
+                                />
+                            )
                         )}
                     </div>
                 )}
