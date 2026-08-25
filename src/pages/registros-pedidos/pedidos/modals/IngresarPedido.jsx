@@ -35,9 +35,12 @@ const IngresarPedido = ({ isOpen, setIsOpen, pedido, movimientoSalida, onIngresa
             };
 
             // 2. Realizar la entrada
+            console.log('IngresarPedido - Payload para entrada:', payload);
             const result = await movimientosAlmacenService.createFast(payload);
+            console.log('IngresarPedido - Resultado de createFast:', result);
 
             if (!result.success) {
+                console.error('IngresarPedido - Error en createFast:', result);
                 showDanger(null, result.message || 'Error al registrar el ingreso del pedido');
                 setLoading(false);
                 return;
@@ -51,8 +54,10 @@ const IngresarPedido = ({ isOpen, setIsOpen, pedido, movimientoSalida, onIngresa
                 undefined, 
                 result.data.id
             );
+            console.log('IngresarPedido - Resultado de updateEstado:', updateResult);
 
             if (!updateResult.success) {
+                console.error('IngresarPedido - Error en updateEstado:', updateResult);
                 showDanger(null, 'Ingreso creado pero error al actualizar el estado del pedido: ' + updateResult.message);
                 setLoading(false);
                 return;
