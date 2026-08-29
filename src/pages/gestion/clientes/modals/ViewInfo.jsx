@@ -1,40 +1,13 @@
-import React, { useState, useEffect } from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
-import clientService from '../../../../services/clientService';
 import Boton from '../../../../components/common/botones/Boton';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import InfoCard from '../../../../components/common/information/InfoCard';
 import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 
 const ViewInfo = ({ isOpen, onClose, cliente, onEdit, onDelete }) => {
-    const [ubicacion, setUbicacion] = useState(null);
-    const [loadingUbicacion, setLoadingUbicacion] = useState(false);
-
-    useEffect(() => {
-        if (isOpen && cliente?.id) {
-            // Cargar la ubicación usando el service
-            const fetchLocation = async () => {
-                setLoadingUbicacion(true);
-                try {
-                    const response = await clientService.getLocation(cliente.id);
-                    if (response.success && response.data) {
-                        setUbicacion(response.data.location || cliente.location);
-                    } else {
-                        setUbicacion(cliente.location);
-                    }
-                } catch (error) {
-                    setUbicacion(cliente.location);
-                } finally {
-                    setLoadingUbicacion(false);
-                }
-            };
-            fetchLocation();
-        } else {
-            setUbicacion(null);
-        }
-    }, [isOpen, cliente]);
-
     if (!cliente) return null;
+
+    const ubicacion = cliente.location;
 
     return (
         <ModalCentro
@@ -45,7 +18,6 @@ const ViewInfo = ({ isOpen, onClose, cliente, onEdit, onDelete }) => {
             onConfirm={() => {
                 if (onEdit) onEdit(cliente);
             }}
-            confirmDisabled={loadingUbicacion}
             hideFooter={true}
         >
                 <InfoCard
@@ -64,7 +36,7 @@ const ViewInfo = ({ isOpen, onClose, cliente, onEdit, onDelete }) => {
                                     { text: cliente.description }
                                 ]}
                                 title='Descripción'
-                            />
+                             />
                         </>
                         ) : null
                     }
@@ -74,13 +46,14 @@ const ViewInfo = ({ isOpen, onClose, cliente, onEdit, onDelete }) => {
                                 label="Ver en Google Maps"
                                 iconName="map"
                                 className="btn-primary"
-                                loading={loadingUbicacion}
-                                readOnly={!ubicacion && !loadingUbicacion}
+                                readOnly={!ubicacion}
                                 style={{ flex: 1 }}
                                 onClick={() => {
                                     if (ubicacion) {
-                                        const coordsLimpia = ubicacion.replace(/[()]/g, '');
-                                        window.open(`https://www.google.com/maps?q=${coordsLimpia}`, '_blank');
+                                        const coords = typeof ubicacion === 'object' && ubicacion !== null
+                                            ? `${ubicacion.x},${ubicacion.y}`
+                                            : String(ubicacion).replace(/[()]/g, '');
+                                        window.open(`https://www.google.com/maps?q=${coords}`, '_blank');
                                     }
                                 }}
                             />

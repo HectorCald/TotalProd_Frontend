@@ -3,6 +3,7 @@ import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Input from '../../../../components/common/inputs/Input';
 import Mensaje from '../../../../components/common/outputs/Mensaje';
 import personalService from '../../../../services/personalService';
+import UserService from '../../../../services/userService';
 
 const ContrasenaEmpleado = ({ isOpen, onClose, personalId, email, onLoginSuccess }) => {
     const [password, setPassword] = useState('');
@@ -47,7 +48,7 @@ const ContrasenaEmpleado = ({ isOpen, onClose, personalId, email, onLoginSuccess
         try {
             const response = await personalService.setPassword(personalId, password);
             if (response.success) {
-                const loginResponse = await personalService.loginEmployee(email, password);
+                const loginResponse = await UserService.login({ email, password });
                 if (loginResponse.success) {
                     onLoginSuccess(loginResponse.data);
                     onClose();

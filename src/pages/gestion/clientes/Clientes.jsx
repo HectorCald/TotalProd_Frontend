@@ -11,10 +11,6 @@ import clientService from '../../../services/clientService';
 import AgregarEditarCliente from './modals/AgregarEditarCliente';
 import EliminarCliente from './modals/EliminarCliente';
 import ViewInfo from './modals/ViewInfo';
-import DescargarDatos from '../../../components/ui/DescargarDatos';
-import { useReporteClientes } from './reporte/useReporteClientes';
-
-
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 const Clientes = () => {
@@ -48,8 +44,6 @@ const Clientes = () => {
 
   const { visibleItems, hasMore, loadMore } = useVirtualPagination(filteredClientes, 30);
 
-  const { generarReporte, isDescargaOpen, setIsDescargaOpen, datosReporte } = useReporteClientes();
-
   const handleClientesLoaded = useCallback((data) => {
     setClientes(data);
     setError(null);
@@ -69,20 +63,6 @@ const Clientes = () => {
     setError(err);
   }, []);
 
-  const tableActions = [
-    {
-      name: 'Editar', icon: 'edit', onClick: (cliente) => {
-        setClienteSeleccionado(cliente);
-        setIsModalOpen(true);
-      }
-    },
-    {
-      name: 'Eliminar', icon: 'trash', onClick: (cliente) => {
-        setClienteSeleccionado(cliente);
-        setIsDeleteModalOpen(true);
-      }
-    },
-  ];
 
   const columns = [
     {
@@ -121,13 +101,11 @@ const Clientes = () => {
             data={visibleItems}
             columns={columns}
             isLoading={isLoading}
-            acciones={tableActions}
             buttonLabel="Nuevo Cliente"
             onButtonClick={() => {
               setClienteSeleccionado(null);
               setIsModalOpen(true);
             }}
-            onExportClick={false && (() => generarReporte(filteredClientes))}
             searchKeys={['name', 'phone']}
             sortKey="name"
             onRowClick={(cliente) => {
@@ -193,15 +171,6 @@ const Clientes = () => {
         onLoadingStart={handleLoadingStart}
         onLoadingEnd={handleLoadingEnd}
         onError={handleError}
-      />
-      <DescargarDatos
-        isOpen={isDescargaOpen}
-        setIsOpen={setIsDescargaOpen}
-        titulo="Descargar Reporte"
-        subtitulo="Selecciona el formato que prefieras para descargar este reporte."
-        nombreArchivo="Reporte_Clientes"
-        tituloDocumento="REPORTE DE CLIENTES"
-        {...datosReporte}
       />
       {!isLargeScreen && <MenuSide />}
     </>

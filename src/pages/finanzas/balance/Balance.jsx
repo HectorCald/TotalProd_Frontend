@@ -245,7 +245,7 @@ const Balance = () => {
 
           setLoadingGastos(true);
           try {
-              const res = await gastosService.getAllSinLimite(null, null, filtroFecha);
+              const res = await gastosService.getAllSinLimite(null, filtroFecha);
               if (res && res.success && res.data) {
                   setGastos(res.data);
               } else {

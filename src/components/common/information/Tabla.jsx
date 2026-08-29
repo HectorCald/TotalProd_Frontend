@@ -53,9 +53,6 @@ const Tabla = ({
     buttonLabel,
     buttonIcon = 'plus',
     onButtonClick,
-    onExportClick,
-    exportLabel = 'Exportar',
-    exportIcon = 'file-export',
     searchPlaceholder = 'Buscar',
     searchKeys = [],
     sortKey,
@@ -213,27 +210,9 @@ const Tabla = ({
                         activeFilters={activeFilters}
                     />
                 </div>
-                {(onButtonClick || onExportClick) && (
+                {onButtonClick && (
                     <div style={{ display: 'flex', gap: '10px' }}>
-                        {onExportClick && (
-                            isLargeScreen ? (
-                                <Boton
-                                    className="btn-cancel"
-                                    label={exportLabel}
-                                    iconName={exportIcon}
-                                    onClick={onExportClick}
-                                />
-                            ) : (
-                                <BotonIcon
-                                    className="btn-cancel"
-                                    iconName={exportIcon}
-                                    onClick={onExportClick}
-                                    tooltip={exportLabel}
-                                />
-                            )
-                        )}
-                        {onButtonClick && (
-                            isLargeScreen ? (
+                        {isLargeScreen ? (
                                 <Boton
                                     className="btn-primary"
                                     label={buttonLabel}
@@ -246,8 +225,7 @@ const Tabla = ({
                                     iconName={buttonIcon}
                                     onClick={onButtonClick}
                                 />
-                            )
-                        )}
+                            )}
                     </div>
                 )}
             </div>
@@ -262,7 +240,6 @@ const Tabla = ({
                                     {typeof col.header === 'string' ? col.header.toUpperCase() : col.header}
                                 </th>
                             ))}
-                            {acciones && acciones.length > 0 && <th className={styles.th}></th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -274,11 +251,6 @@ const Tabla = ({
                                             <Skeleton width={col.skeletonWidth || "70%"} height="16px" />
                                         </td>
                                     ))}
-                                    {acciones && acciones.length > 0 && (
-                                        <td className={styles.td}>
-                                            <Skeleton width="20px" height="20px" borderRadius="50%" />
-                                        </td>
-                                    )}
                                 </tr>
                             ))
                         ) : sortedData.length > 0 ? (
@@ -384,71 +356,12 @@ const Tabla = ({
                                                 </td>
                                             );
                                         })}
-                                        {acciones && acciones.length > 0 && (
-                                            <td className={styles.td}>
-                                                {(() => {
-                                                    const visibleAcciones = acciones.filter(accion => !accion.show || accion.show(row));
-                                                    if (visibleAcciones.length === 0) return null;
-                                                    return (
-                                                        <div className={styles.dropdownContainer}>
-                                                            <div
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    if (activeDropdown === rowKey) {
-                                                                        setActiveDropdown(null);
-                                                                    } else {
-                                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                                        const menuHeight = visibleAcciones.length * 45 + 16;
-                                                                        let topPos = rect.bottom;
-                                                                        if (topPos + menuHeight > window.innerHeight) {
-                                                                            topPos = rect.top - menuHeight;
-                                                                        }
-                                                                        setDropdownPos({
-                                                                            top: topPos,
-                                                                            right: window.innerWidth - rect.right
-                                                                        });
-                                                                        setActiveDropdown(rowKey);
-                                                                    }
-                                                                }}
-                                                                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                                                            >
-                                                                <BoxIcon
-                                                                    name="dots-vertical-rounded"
-                                                                    className={styles.actions}
-                                                                />
-                                                            </div>
-                                                            {activeDropdown === rowKey && (
-                                                                <div
-                                                                    className={styles.dropdownMenu}
-                                                                    style={{ top: `${dropdownPos.top}px`, right: `${dropdownPos.right}px` }}
-                                                                >
-                                                                    {visibleAcciones.map((accion, actIdx) => (
-                                                                        <div
-                                                                            key={actIdx}
-                                                                            className={styles.dropdownItem}
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                accion.onClick(row);
-                                                                                setActiveDropdown(null);
-                                                                            }}
-                                                                        >
-                                                                            {accion.icon && <BoxIcon name={accion.icon} className={styles.icon} />}
-                                                                            <span>{accion.name}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </td>
-                                        )}
                                     </tr>
                                 );
                             })
                         ) : (
                             <tr>
-                                <td colSpan={columns.filter(c => !c.hiddenOnDesktop).length + (acciones && acciones.length > 0 ? 1 : 0)} className={styles.td} style={{ textAlign: 'center' }}>
+                                <td colSpan={columns.filter(c => !c.hiddenOnDesktop).length} className={styles.td} style={{ textAlign: 'center' }}>
                                     No hay datos
                                 </td>
                             </tr>
@@ -460,16 +373,11 @@ const Tabla = ({
                                         <Skeleton width={col.skeletonWidth || "70%"} height="16px" />
                                     </td>
                                 ))}
-                                {acciones && acciones.length > 0 && (
-                                    <td className={styles.td}>
-                                        <Skeleton width="20px" height="20px" borderRadius="50%" />
-                                    </td>
-                                )}
                             </tr>
                         )}
                         {onLoadMore && !isLoading && !isLoadingMore && (
                             <tr ref={loaderRef} style={{ height: '1px' }}>
-                                <td colSpan={columns.filter(c => !c.hiddenOnDesktop).length + (acciones && acciones.length > 0 ? 1 : 0)} style={{ padding: 0 }} />
+                                <td colSpan={columns.filter(c => !c.hiddenOnDesktop).length} style={{ padding: 0 }} />
                             </tr>
                         )}
                     </tbody>
@@ -524,10 +432,7 @@ const Tabla = ({
                                     status3Type={status3Type}
                                     customControls={mobileCustomControls ? mobileCustomControls(row) : null}
                                     onClick={() => onRowClick && onRowClick(row)}
-                                    actions={acciones ? acciones.map(a => ({
-                                        ...a,
-                                        onClick: () => a.onClick(row)
-                                    })) : []}
+                                    actions={[]}
                                 />
                             );
                         })

@@ -53,27 +53,6 @@ const Personal = () => {
     setError(err);
   }, []);
 
-  const tableActions = [
-    {
-      name: 'Editar', icon: 'edit', onClick: (personal) => {
-        setPersonalSeleccionado(personal);
-        setIsModalOpen(true);
-      }
-    },
-    {
-      name: 'Resetear Contraseña', icon: 'key', onClick: (personal) => {
-        setPersonalSeleccionado(personal);
-        setIsResetPasswordModalOpen(true);
-      }
-    },
-    {
-      name: 'Eliminar', icon: 'trash', onClick: (personal) => {
-        setPersonalSeleccionado(personal);
-        setIsDeleteModalOpen(true);
-      }
-    },
-  ];
-
   const columns = [
     {
       header: 'Nombre',
@@ -145,7 +124,6 @@ const Personal = () => {
             data={visibleItems}
             columns={columns}
             isLoading={isLoading}
-            acciones={tableActions}
             buttonLabel="Nuevo Personal"
             onButtonClick={() => {
               setPersonalSeleccionado(null);

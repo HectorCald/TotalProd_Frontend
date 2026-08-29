@@ -11,8 +11,6 @@ import proveedorService from '../../../services/proveedorService';
 import AgregarEditarProveedor from './modals/AgregarEditarProveedor';
 import EliminarProveedor from './modals/EliminarProveedor';
 import ViewInfo from './modals/ViewInfo';
-
-
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 const Proveedores = () => {
@@ -65,20 +63,6 @@ const Proveedores = () => {
     setError(err);
   }, []);
 
-  const tableActions = [
-    {
-      name: 'Editar', icon: 'edit', onClick: (proveedor) => {
-        setProveedorSeleccionado(proveedor);
-        setIsModalOpen(true);
-      }
-    },
-    {
-      name: 'Eliminar', icon: 'trash', onClick: (proveedor) => {
-        setProveedorSeleccionado(proveedor);
-        setIsDeleteModalOpen(true);
-      }
-    },
-  ];
 
   const columns = [
     {
@@ -117,7 +101,6 @@ const Proveedores = () => {
             data={visibleItems}
             columns={columns}
             isLoading={isLoading}
-            acciones={tableActions}
             buttonLabel="Nuevo Proveedor"
             onButtonClick={() => {
               setProveedorSeleccionado(null);

@@ -92,18 +92,7 @@ class clientService {
     });
   }
 
-  // Obtener ubicación del cliente (de la tabla o del último movimiento con ubicación)
-  static async getLocation(id) {
-    if (!id) {
-      return { success: false, message: 'ID del cliente es requerido', data: { location: null } };
-    }
-    
-    return clientService._request(`/clients/${id}/location`, { method: 'GET' }, {
-      requireSucuId: true,
-      returnErrorObject: true,
-      defaultData: { location: null }
-    });
-  }
+
 
   // Obtener un cliente por ID
   static async getById(id) {

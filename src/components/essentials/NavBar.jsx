@@ -50,10 +50,7 @@ const NavBar = () => {
   const seleccionarSucursal = isEmployeeSession ? seleccionarEmployeeSucursal : seleccionarUserSucursal;
   const empresaId = sucursalSeleccionada?.empresas?.id || userInfo?.empresa_id || employeeInfo?.sucursal?.empresas?.id;
   const isEverythingLoading = !usuario || !sucursalSeleccionada;
-  const empresaPlan = isEmployeeSession
-    ? employeeInfo?.sucursal?.empresas?.plan
-    : userInfo?.empresa?.plan;
-  const showCrown = empresaPlan?.name && empresaPlan.name !== 'Free';
+
 
   const sucursalesOptions = useMemo(() => {
     if (!empresaId) return [];
@@ -237,11 +234,6 @@ const NavBar = () => {
                     <span className={styles.userName}>
                       {getDisplayName()}
                     </span>
-                    {showCrown && (
-                      <div className={styles.goldBadgeSmall} title={empresaPlan.name}>
-                        <i className='bx bx-crown' style={{ color: '#fff', fontSize: '12px' }}></i>
-                      </div>
-                    )}
                   </div>
                   <span className={styles.userEmail}>{getDisplayEmail()}</span>
                 </div>
@@ -255,11 +247,6 @@ const NavBar = () => {
                     <div className={styles.dropdownHeaderMobile}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span className={styles.dropdownUserName}>{getDisplayName()}</span>
-                        {showCrown && (
-                          <div className={styles.goldBadgeSmall} title={empresaPlan.name}>
-                            <i className='bx bx-crown' style={{ color: '#fff', fontSize: '12px' }}></i>
-                          </div>
-                        )}
                       </div>
                       <span className={styles.dropdownUserEmail}>{getDisplayEmail()}</span>
                     </div>

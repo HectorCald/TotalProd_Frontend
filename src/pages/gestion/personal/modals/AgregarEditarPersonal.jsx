@@ -252,7 +252,7 @@ const AgregarEditarPersonal = ({ isOpen, onClose, personalSeleccionado, onGuarda
                 <Input
                     tipo="text"
                     required={true}
-                    label="Correo Empleado (Autogenerado)"
+                    label={`Correo Empleado (${personalSeleccionado ? 'No Editable' : 'Autogenerado'})`}
                     value={formData.email}
                     readOnly={true}
                     error={fieldErrors.email}

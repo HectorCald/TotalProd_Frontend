@@ -39,10 +39,6 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
 
   const usuario = isEmployeeSession ? employeeInfo : userInfo;
   const displayImage = usuario?.logo_tipo;
-  const empresaPlan = isEmployeeSession
-    ? employeeInfo?.sucursal?.empresas?.plan
-    : userInfo?.empresa?.plan;
-  const showCrown = empresaPlan?.name && empresaPlan.name !== 'Free';
   const [previewLogo, setPreviewLogo] = useState(null);
   const [logoRemoved, setLogoRemoved] = useState(false);
   
@@ -332,11 +328,6 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
                 <span className={inputStyles.switchLabel} style={{ fontSize: '14px', margin: 0 }}>
                   {isEmployeeSession ? `${employeeInfo?.first_name || ''} ${employeeInfo?.last_name || ''}`.trim() : `${userFirstName} ${userLastName}`.trim()}
                 </span>
-                {showCrown && (
-                  <div className="goldBadgeSmall" title={empresaPlan.name} style={{ position: 'static', width: '20px', height: '20px', padding: 0, alignSelf: 'center' }}>
-                    <i className='bx bx-crown' style={{ color: '#fff', fontSize: '12px' }}></i>
-                  </div>
-                )}
               </div>
               <p className={inputStyles.subtitle} style={{ fontSize: '12px' }}>
                 {isEmployeeSession ? (employeeInfo?.codigo || '') : userEmail}

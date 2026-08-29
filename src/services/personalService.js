@@ -66,17 +66,6 @@ const personalService = {
         });
     },
 
-    // Obtener personal por ID
-    async getById(id) {
-        if (!id) {
-            return { success: false, message: 'ID del personal es requerido' };
-        }
-        return this._request(`/personal/${id}`, { method: 'GET' }, {
-            requireEmpresaId: true,
-            throwOnError: true
-        });
-    },
-
     // Crear personal
     async create(personalData) {
         return this._request('/personal', {
@@ -115,17 +104,14 @@ const personalService = {
         });
     },
 
-    // Validar correo de empleado
-    async validateEmployeeEmail(email) {
-        if (!email) {
-            return { success: false, message: 'Correo es requerido' };
+    // Obtener personal por ID
+    async getById(id) {
+        if (!id) {
+            return { success: false, message: 'ID del personal es requerido' };
         }
-        const encodedEmail = encodeURIComponent(email);
-        return this._request(`/personal/validate-employee/${encodedEmail}`, {
-            method: 'GET'
-        }, {
-            requireEmpresaId: false,
-            returnErrorObject: true
+        return this._request(`/personal/${id}`, { method: 'GET' }, {
+            requireEmpresaId: true,
+            throwOnError: true
         });
     },
 
@@ -137,39 +123,6 @@ const personalService = {
         return this._request(`/personal/${personalId}/set-password`, {
             method: 'POST',
             body: JSON.stringify({ password })
-        }, {
-            requireEmpresaId: false,
-            returnErrorObject: true
-        });
-    },
-
-    // Login de empleado
-    async loginEmployee(email, password) {
-        if (!email || !password) {
-            return { success: false, message: 'Correo y contraseña son requeridos' };
-        }
-        const data = await this._request('/personal/login-employee', {
-            method: 'POST',
-            body: JSON.stringify({ email, password })
-        }, {
-            requireEmpresaId: false,
-            returnErrorObject: true
-        });
-        
-        if (data.success && data.data && data.data.token) {
-            localStorage.setItem('token', data.data.token);
-        }
-        return data;
-    },
-
-    // Cambiar contraseña de empleado
-    async changePassword(personalId, currentPassword, newPassword) {
-        if (!personalId || !currentPassword || !newPassword) {
-            return { success: false, message: 'ID del personal, contraseña actual y nueva contraseña son requeridos' };
-        }
-        return this._request(`/personal/${personalId}/change-password`, {
-            method: 'POST',
-            body: JSON.stringify({ currentPassword, newPassword })
         }, {
             requireEmpresaId: false,
             returnErrorObject: true
