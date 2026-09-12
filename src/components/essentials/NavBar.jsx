@@ -8,6 +8,8 @@ import { useEmployee } from '../../context/EmployeeContext';
 import Skeleton from '../common/widgets/Skeleton';
 import CerrarSesion from './modals/CerrarSesion';
 import ModalPerfil from './modals/ModalPerfil';
+import ModalAnuncios from '../../pages/home/modals/ModalAnuncios';
+import BotonIcon from '../common/botones/BotonIcon';
 import InputSelect from '../common/inputs/InputSelect';
 import sucursalesService from '../../services/sucursalesService';
 import { SideConfigOptions } from '../../constants/SideConfigOptions';
@@ -23,6 +25,7 @@ const NavBar = () => {
   const [dropdownView, setDropdownView] = useState('main');
   const [isCerrarSesionOpen, setIsCerrarSesionOpen] = useState(false);
   const [isConfiguracionOpen, setIsConfiguracionOpen] = useState(false);
+  const [isAnunciosOpen, setIsAnunciosOpen] = useState(false);
   const [sucursales, setSucursales] = useState([]);
   const [loadingSucursales, setLoadingSucursales] = useState(false);
   const [hasFetchedSucursales, setHasFetchedSucursales] = useState(false);
@@ -233,7 +236,25 @@ const NavBar = () => {
             )}
           </div>
         ) : (
-          <div className={styles.userProfile} ref={dropdownRef}>
+          <>
+            {isLargeScreen && (
+              <div className={styles.bocinaWrapper}>
+                <BotonIcon
+                  buttonIcon="megaphone"
+                  className="btn-primary-inverted"
+                  onClick={() => setIsAnunciosOpen(true)}
+                  style={{ marginBottom: 0 }}
+                />
+                <span
+                  className={styles.badgeContador}
+                  onClick={() => setIsAnunciosOpen(true)}
+                >
+                  !
+                </span>
+              </div>
+            )}
+
+            <div className={styles.userProfile} ref={dropdownRef}>
             <div
               className={styles.userInfo}
               onClick={() => {
@@ -343,7 +364,8 @@ const NavBar = () => {
                 )}
               </div>
             )}
-          </div>
+            </div>
+          </>
         )}
       </div>
       {isCerrarSesionOpen && (
@@ -356,6 +378,12 @@ const NavBar = () => {
         <ModalPerfil
           isOpen={isConfiguracionOpen}
           onClose={() => setIsConfiguracionOpen(false)}
+        />
+      )}
+      {isAnunciosOpen && (
+        <ModalAnuncios
+          isOpen={isAnunciosOpen}
+          onClose={() => setIsAnunciosOpen(false)}
         />
       )}
     </nav>

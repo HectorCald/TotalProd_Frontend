@@ -432,7 +432,7 @@ const MateriaPrima = () => {
           iconName="cart"
           onClick={() => setIsCanastaMobileOpen(true)}
           ariaLabel="Ver Canasta"
-          style={{ bottom: '80px' }}
+          style={{ bottom: '100px' }}
           badgeCount={canasta.length}
         />
       )}

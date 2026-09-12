@@ -55,6 +55,7 @@
   display: flex;
   align-items: center;
   position: relative;
+  gap: 10px;
 }
 
 .skeletonContainer {
@@ -274,4 +275,34 @@
 @keyframes shimmerGold {
   0% { background-position: 0% center; }
   100% { background-position: -200% center; }
+}
+
+.bocinaWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badgeContador {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background-color: var(--warning-color, #FB8713);
+  color: #ffffff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: inherit;
+  border: 1.5px solid var(--white-color, #ffffff);
+  box-shadow: 0 2px 4px rgba(251, 135, 19, 0.4);
+  cursor: pointer;
+  z-index: 2;
+  line-height: 1;
 }

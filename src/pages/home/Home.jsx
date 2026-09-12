@@ -18,6 +18,8 @@ import ModalOpcionesAlmacen from '../inventario/almacen/modals/ModalOpcionesAlma
 import ModalOpcionesMateriaPrima from '../inventario/materia-prima/modals/ModalOpcionesMateriaPrima';
 import ModalOpcionesMovimientos from '../registros-pedidos/movimientos/modals/ModalOpcionesMovimientos';
 import ModalOpcionesPedidos from '../registros-pedidos/pedidos/modals/ModalOpcionesPedidos';
+import ModalOrdenarModulos from './modals/ModalOrdenarModulos';
+import ModalEncuestaIA from './modals/ModalEncuestaIA';
 import TarjetaGrafico from '../../components/grafics/TarjetaGrafico';
 import GraficoVentas from '../../components/grafics/GraficoVentas';
 import GraficoCategorias from '../../components/grafics/GraficoCategorias';
@@ -112,6 +114,41 @@ const Home = () => {
 
   const { itemsWithoutSubmenu: carouselItems, itemsWithSubmenu } = getCarouselItems();
 
+  const [orderVersion, setOrderVersion] = useState(0);
+
+  const storageKey = usuario?.id
+    ? `home_modules_order_${isEmployee ? 'emp_' : 'usr_'}${usuario.id}`
+    : 'home_modules_order';
+
+  const sortModulesBySavedOrder = (items) => {
+    try {
+      const savedRaw = localStorage.getItem(storageKey);
+      if (!savedRaw) return items;
+      const savedOrder = JSON.parse(savedRaw);
+      if (!Array.isArray(savedOrder)) return items;
+      return [...items].sort((a, b) => {
+        const indexA = savedOrder.indexOf(a.id);
+        const indexB = savedOrder.indexOf(b.id);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+    } catch (e) {
+      return items;
+    }
+  };
+
+  const orderedCarouselItems = useMemo(() => {
+    return sortModulesBySavedOrder(carouselItems);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carouselItems, storageKey, orderVersion]);
+
+  const orderedEmployeeItems = useMemo(() => {
+    return sortModulesBySavedOrder([...itemsWithSubmenu, ...carouselItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemsWithSubmenu, carouselItems, storageKey, orderVersion]);
+
   const mesActual = useMemo(() => {
     const meses = [
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -124,6 +161,35 @@ const Home = () => {
   const [modalOpcionesMateriaPrimaOpen, setModalOpcionesMateriaPrimaOpen] = useState(false);
   const [modalOpcionesMovimientosOpen, setModalOpcionesMovimientosOpen] = useState(false);
   const [modalOpcionesPedidosOpen, setModalOpcionesPedidosOpen] = useState(false);
+  const [modalOrdenarOpen, setModalOrdenarOpen] = useState(false);
+  const [modalEncuestaOpen, setModalEncuestaOpen] = useState(false);
+
+  const handleItemClick = (item) => {
+    if (item.isBuilding) {
+      showWarning('En construcción', 'Este módulo aún está en construcción');
+      return;
+    }
+    if (item.submenu) {
+      if (item.submenu.length === 1 && item.submenu[0].route) {
+        navigate(item.submenu[0].route);
+        return;
+      }
+      if (item.id === 'almacen') setModalOpcionesAlmacenOpen(true);
+      else if (item.id === 'materia-prima') setModalOpcionesMateriaPrimaOpen(true);
+      else if (item.id === 'movimientos') {
+        if (isSoloVentas) navigate('/movimientos/almacen');
+        else setModalOpcionesMovimientosOpen(true);
+      }
+      else if (item.id === 'pedidos') {
+        if (isSoloVentas) navigate('/pedidos/almacen');
+        else setModalOpcionesPedidosOpen(true);
+      } else if (item.submenu.length > 0 && item.submenu[0].route) {
+        navigate(item.submenu[0].route);
+      }
+    } else {
+      navigate(item.route);
+    }
+  };
 
   return (
     <>
@@ -131,8 +197,8 @@ const Home = () => {
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea}>
-          {!isEmployee || tieneGraficosInicio ? (
-            isLargeScreen ? (
+          {isLargeScreen ? (
+            !isEmployee || tieneGraficosInicio ? (
               <>
                 <h1 className={styles.title}>Inicio</h1>
                 <div className={gridStyles.layoutGrid}>
@@ -164,22 +230,100 @@ const Home = () => {
               </>
             ) : (
               <>
-                <h1 className={styles.title}>Descubre más</h1>
+                <h1 className={styles.title}>¡ANUNCIOS!</h1>
+                <div style={{ padding: '0 5px', width: '100%' }}>
+                  <BotonCuadrante
+                    anuncio={true}
+                    icon="bot"
+                    title="Encuesta sobre IA"
+                    badge="Sugerido"
+                    badgeStatus="warning"
+                    description="¿Dónde te gustaría implementarla y de qué manera te gustaría que te ayude?"
+                    onClick={() => setModalEncuestaOpen(true)}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h1 className={styles.title}>Módulos Asignados</h1>
+                  <i
+                    className="bx bx-pencil"
+                    style={{ color: 'var(--primary-color)', fontSize: '20px', cursor: 'pointer', padding: '4px' }}
+                    onClick={() => setModalOrdenarOpen(true)}
+                    title="Organizar módulos"
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
+                  {orderedEmployeeItems.map(item => (
+                    <BotonCuadrante
+                      key={item.id}
+                      icon={item.icon}
+                      title={item.title}
+                      onClick={() => handleItemClick(item)}
+                      isNew={item.isNew}
+                      isBuilding={item.isBuilding}
+                    />
+                  ))}
+                </div>
+              </>
+            )
+          ) : (
+            isEmployee ? (
+              <>
+                <h1 className={styles.title}>¡ANUNCIOS!</h1>
+                <div style={{ padding: '0 5px', width: '100%' }}>
+                  <BotonCuadrante
+                    anuncio={true}
+                    icon="bot"
+                    title="Encuesta sobre IA"
+                    badge="Sugerido"
+                    badgeStatus="warning"
+                    description="¿Dónde te gustaría implementarla y de qué manera te gustaría que te ayude?"
+                    onClick={() => setModalEncuestaOpen(true)}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h1 className={styles.title}>Módulos Asignados</h1>
+                  <i
+                    className="bx bx-pencil"
+                    style={{ color: 'var(--primary-color)', fontSize: '20px', cursor: 'pointer', padding: '4px' }}
+                    onClick={() => setModalOrdenarOpen(true)}
+                    title="Organizar módulos"
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
+                  {orderedEmployeeItems.map(item => (
+                    <BotonCuadrante
+                      key={item.id}
+                      icon={item.icon}
+                      title={item.title}
+                      onClick={() => handleItemClick(item)}
+                      isNew={item.isNew}
+                      isBuilding={item.isBuilding}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h1 className={styles.title}>Descubre más</h1>
+                  <i
+                    className="bx bx-pencil"
+                    style={{ color: 'var(--primary-color)', fontSize: '20px', cursor: 'pointer', padding: '4px' }}
+                    onClick={() => setModalOrdenarOpen(true)}
+                    title="Organizar módulos"
+                  />
+                </div>
                 <Carousel
-                  items={carouselItems}
+                  items={orderedCarouselItems}
                   itemsPerPage={4}
                   renderItem={(item) => (
                     <BotonCuadrante
                       key={item.id}
                       icon={item.icon}
                       title={item.title}
-                      onClick={() => {
-                        if (item.isBuilding) {
-                          showWarning('En construcción', 'Este módulo aún está en construcción');
-                          return;
-                        }
-                        navigate(item.route);
-                      }}
+                      onClick={() => handleItemClick(item)}
                       isNew={item.isNew}
                       isBuilding={item.isBuilding}
                     />
@@ -193,76 +337,27 @@ const Home = () => {
                       key={item.id}
                       icon={item.icon}
                       title={item.title}
-                      onClick={() => {
-                        if (item.isBuilding) {
-                          showWarning('En construcción', 'Este módulo aún está en construcción');
-                          return;
-                        }
-                        if (item.submenu && item.submenu.length === 1 && item.submenu[0].route) {
-                          navigate(item.submenu[0].route);
-                          return;
-                        }
-                        if (item.id === 'almacen') setModalOpcionesAlmacenOpen(true);
-                        else if (item.id === 'materia-prima') setModalOpcionesMateriaPrimaOpen(true);
-                        else if (item.id === 'movimientos') {
-                          if (isSoloVentas) navigate('/movimientos/almacen');
-                          else setModalOpcionesMovimientosOpen(true);
-                        }
-                        else if (item.id === 'pedidos') {
-                          if (isSoloVentas) navigate('/pedidos/almacen');
-                          else setModalOpcionesPedidosOpen(true);
-                        } else if (item.submenu && item.submenu.length > 0 && item.submenu[0].route) {
-                          navigate(item.submenu[0].route);
-                        }
-                      }}
+                      onClick={() => handleItemClick(item)}
                       isNew={item.isNew}
                       isBuilding={item.isBuilding}
                     />
                   ))}
                 </div>
+
+                <h1 className={styles.title}>¡ANUNCIOS!</h1>
+                <div style={{ padding: '0 5px', width: '100%' }}>
+                  <BotonCuadrante
+                    anuncio={true}
+                    icon="bot"
+                    title="Encuesta sobre IA"
+                    badge="Sugerido"
+                    badgeStatus="warning"
+                    description="¿Dónde te gustaría implementarla y de qué manera te gustaría que te ayude?"
+                    onClick={() => setModalEncuestaOpen(true)}
+                  />
+                </div>
               </>
             )
-          ) : (
-            <>
-              <h1 className={styles.title}>Módulos Asignados</h1>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
-                {[...itemsWithSubmenu, ...carouselItems].map(item => (
-                  <BotonCuadrante
-                    key={item.id}
-                    icon={item.icon}
-                    title={item.title}
-                    onClick={() => {
-                      if (item.isBuilding) {
-                        showWarning('En construcción', 'Este módulo aún está en construcción');
-                        return;
-                      }
-                      if (item.submenu) {
-                        if (item.submenu.length === 1 && item.submenu[0].route) {
-                          navigate(item.submenu[0].route);
-                          return;
-                        }
-                        if (item.id === 'almacen') setModalOpcionesAlmacenOpen(true);
-                        else if (item.id === 'materia-prima') setModalOpcionesMateriaPrimaOpen(true);
-                        else if (item.id === 'movimientos') {
-                          if (isSoloVentas) navigate('/movimientos/almacen');
-                          else setModalOpcionesMovimientosOpen(true);
-                        }
-                        else if (item.id === 'pedidos') {
-                          if (isSoloVentas) navigate('/pedidos/almacen');
-                          else setModalOpcionesPedidosOpen(true);
-                        } else if (item.submenu && item.submenu.length > 0 && item.submenu[0].route) {
-                          navigate(item.submenu[0].route);
-                        }
-                      } else {
-                        navigate(item.route);
-                      }
-                    }}
-                    isNew={item.isNew}
-                    isBuilding={item.isBuilding}
-                  />
-                ))}
-              </div>
-            </>
           )}
         </div>
       </div>
@@ -273,6 +368,17 @@ const Home = () => {
       <ModalOpcionesMateriaPrima isOpen={modalOpcionesMateriaPrimaOpen} onClose={() => setModalOpcionesMateriaPrimaOpen(false)} />
       <ModalOpcionesMovimientos isOpen={modalOpcionesMovimientosOpen} onClose={() => setModalOpcionesMovimientosOpen(false)} />
       <ModalOpcionesPedidos isOpen={modalOpcionesPedidosOpen} onClose={() => setModalOpcionesPedidosOpen(false)} />
+      <ModalOrdenarModulos
+        isOpen={modalOrdenarOpen}
+        onClose={() => setModalOrdenarOpen(false)}
+        modules={isEmployee ? orderedEmployeeItems : orderedCarouselItems}
+        storageKey={storageKey}
+        onSave={() => setOrderVersion(v => v + 1)}
+      />
+      <ModalEncuestaIA
+        isOpen={modalEncuestaOpen}
+        onClose={() => setModalEncuestaOpen(false)}
+      />
     </>
   );
 };

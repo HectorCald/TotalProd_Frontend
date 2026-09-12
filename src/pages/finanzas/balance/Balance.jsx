@@ -276,69 +276,76 @@ const Balance = () => {
                 onDateSelected={setSelectedDate} 
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: isLargeScreen ? 'repeat(5, 1fr)' : 'repeat(2, 1fr)', gap: '10px', marginBottom: '10px' }}>
-                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isLargeScreen ? 'repeat(5, minmax(0, 1fr))' : 'repeat(2, minmax(0, 1fr))', 
+                gap: '10px', 
+                marginBottom: '10px',
+                width: '100%',
+                boxSizing: 'border-box'
+            }}>
+                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                     {loading ? (
                         <>
-                            <Skeleton width="120px" height="20px" style={{ marginBottom: '5px' }} />
-                            <Skeleton width="150px" height="20px" />
+                            <Skeleton width="70%" height="16px" style={{ marginBottom: '8px', maxWidth: '120px' }} />
+                            <Skeleton width="85%" height="22px" style={{ maxWidth: '140px' }} />
                         </>
                     ) : (
                         <>
-                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Ingresos Totales</span>
-                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: '#28a745' }}>Bs. {formatPrecio(ingresosTotales)}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px', wordBreak: 'break-word', maxWidth: '100%' }}>Ingresos Totales</span>
+                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: '#28a745', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(ingresosTotales)}</span>
                         </>
                     )}
                 </div>
-                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                     {loadingGastos ? (
                         <>
-                            <Skeleton width="120px" height="20px" style={{ marginBottom: '8px' }} />
-                            <Skeleton width="150px" height="20px" />
+                            <Skeleton width="70%" height="16px" style={{ marginBottom: '8px', maxWidth: '120px' }} />
+                            <Skeleton width="85%" height="22px" style={{ maxWidth: '140px' }} />
                         </>
                     ) : (
                         <>
-                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Egresos Totales</span>
-                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: '#dc3545' }}>Bs. {formatPrecio(egresosTotales)}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px', wordBreak: 'break-word', maxWidth: '100%' }}>Egresos Totales</span>
+                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: '#dc3545', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(egresosTotales)}</span>
                         </>
                     )}
                 </div>
-                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                     {loading || loadingDeudas ? (
                         <>
-                            <Skeleton width="120px" height="20px" style={{ marginBottom: '8px' }} />
-                            <Skeleton width="150px" height="20px" />
+                            <Skeleton width="70%" height="16px" style={{ marginBottom: '8px', maxWidth: '120px' }} />
+                            <Skeleton width="85%" height="22px" style={{ maxWidth: '140px' }} />
                         </>
                     ) : (
                         <>
-                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Deudas Saldos (Ingresos)</span>
-                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: 'var(--warning-color)' }}>Bs. {formatPrecio(deudasSaldoTotal)}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px', wordBreak: 'break-word', maxWidth: '100%' }}>Deudas Saldos (Ingresos)</span>
+                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: 'var(--warning-color)', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(deudasSaldoTotal)}</span>
                         </>
                     )}
                 </div>
-                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                     {loading || loadingGastos || loadingDeudas ? (
                         <>
-                            <Skeleton width="120px" height="20px" style={{ marginBottom: '8px' }} />
-                            <Skeleton width="150px" height="20px" />
+                            <Skeleton width="70%" height="16px" style={{ marginBottom: '8px', maxWidth: '120px' }} />
+                            <Skeleton width="85%" height="22px" style={{ maxWidth: '140px' }} />
                         </>
                     ) : (
                         <>
-                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Total General</span>
-                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: 'var(--info-color)' }}>Bs. {formatPrecio(totalGeneral)}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px', wordBreak: 'break-word', maxWidth: '100%' }}>Total General</span>
+                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: 'var(--info-color)', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(totalGeneral)}</span>
                         </>
                     )}
                 </div>
-                <div style={{ gridColumn: isLargeScreen ? 'auto' : '1 / -1', background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                <div style={{ gridColumn: isLargeScreen ? 'auto' : '1 / -1', background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                     {loading || loadingGastos || loadingDeudas ? (
                         <>
-                            <Skeleton width="120px" height="20px" style={{ marginBottom: '8px' }} />
-                            <Skeleton width="150px" height="20px" />
+                            <Skeleton width="70%" height="16px" style={{ marginBottom: '8px', maxWidth: '120px' }} />
+                            <Skeleton width="85%" height="22px" style={{ maxWidth: '140px' }} />
                         </>
                     ) : (
                         <>
-                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Total Ganancias</span>
-                            <span style={{ fontSize: '21px', fontWeight: 'bold', color: 'var(--primary-color)' }}>Bs. {formatPrecio(totalGanancias)}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px', wordBreak: 'break-word', maxWidth: '100%' }}>Total Ganancias</span>
+                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: 'var(--primary-color)', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(totalGanancias)}</span>
                         </>
                     )}
                 </div>

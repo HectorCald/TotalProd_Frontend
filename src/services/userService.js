@@ -167,6 +167,16 @@ class UserService {
       actionName: 'updateConfig'
     });
   }
+
+  // Enviar encuesta IA
+  static async enviarEncuestaIA(data) {
+    return this._request('/users/encuesta-ia', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }, {
+      actionName: 'enviarEncuestaIA'
+    });
+  }
 }
 
 export default UserService;
