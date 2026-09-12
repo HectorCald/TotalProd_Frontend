@@ -4,15 +4,26 @@ import useFormatNumber from '../../hooks/useFormatNumber';
 import Skeleton from '../common/widgets/Skeleton';
 import styles from './GraficoVentas.module.css';
 
-const GraficoVentas = ({ data = [], cargando = false }) => {
+const GraficoVentas = ({ data = [], cargando = false, noDisponible = false }) => {
   const { formatPrice } = useFormatNumber();
 
   const anoActual = React.useMemo(() => {
     return new Date().getFullYear();
   }, []);
 
+  const chartData = React.useMemo(() => {
+    if (data && data.length > 0) return data;
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return meses.map(m => ({ fecha: m, Ventas: 0, Pedidos: 0 }));
+  }, [data]);
+
   return (
     <div className={styles.contenedorGrafico}>
+      {noDisponible && (
+        <div className={styles.overlayBloqueo}>
+          <span className={styles.badgeNoDisponible}>No disponible por el momento</span>
+        </div>
+      )}
       <div className={styles.cabecera}>
         <h3 className={styles.titulo}>{`Ventas (${anoActual})`}</h3>
       </div>
@@ -23,7 +34,7 @@ const GraficoVentas = ({ data = [], cargando = false }) => {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis 
                 dataKey="fecha" 

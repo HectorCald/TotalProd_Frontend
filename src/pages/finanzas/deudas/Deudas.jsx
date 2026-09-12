@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
@@ -22,7 +21,6 @@ const LiteralDateCell = ({ dateStr }) => {
 
 const Deudas = () => {
   const { isLargeScreen } = useLayout();
-  const location = useLocation();
   const { formatPrice } = useFormatNumber();
 
   const [deudas, setDeudas] = useState([]);
@@ -69,40 +67,15 @@ const Deudas = () => {
   };
 
   const dynamicFilters = useMemo(() => [
-    {
-      id: 'sort_order',
-      title: 'Ordenamiento',
-      singleSelect: true,
-      options: [
-        { label: 'Más recientes primero', value: 'desc' },
-        { label: 'Más antiguos primero', value: 'asc' }
-      ]
-    },
+    'sort_order',
     {
       id: 'estado',
-      title: 'Estado de Deuda',
-      singleSelect: true,
-      options: [
-        { label: 'Pendiente', value: 'pendiente' },
-        { label: 'Pagada', value: 'pagada' },
-        { label: 'Vencida', value: 'vencida' }
-      ]
+      title: 'Estado de Deuda'
     },
-    {
-      id: 'cliente_id',
-      title: 'Clientes'
-    },
-    {
-      id: 'fecha',
-      title: 'Fecha',
-      type: 'date'
-    }
+    'cliente_id',
+    'fecha'
   ], []);
 
-  // Resetear página cuando cambia la ruta
-  useEffect(() => {
-    setPage(1);
-  }, [location.pathname]);
 
   // Resetear página y limpiar deudas cuando cambian los filtros o la búsqueda
   useEffect(() => {
@@ -157,44 +130,29 @@ const Deudas = () => {
     }
   };
 
-  const tableActions = [
-    {
-      name: 'Editar', icon: 'edit', onClick: (deuda) => {
-        setDeudaEditando(deuda);
-        setModalAgregarEditarOpen(true);
-      }
-    },
-    {
-      name: 'Eliminar', icon: 'trash', onClick: (deuda) => {
-        setDeudaEliminar(deuda);
-        setModalEliminarOpen(true);
-      }
-    }
-  ];
-
   const columns = [
     {
       header: 'Concepto',
       accessor: 'concepto',
       style: { fontWeight: 600, color: '#333' },
-      width: '25%'
+      width: '30%'
     },
     {
       header: 'Fecha',
       accessor: 'fecha_deuda',
-      width: '15%',
+      width: '10%',
       render: (row) => <LiteralDateCell dateStr={row.fecha_deuda} />
     },
     {
       header: 'Vencimiento',
       accessor: 'fecha_vencimiento',
-      width: '15%',
+      width: '10%',
       render: (row) => <LiteralDateCell dateStr={row.fecha_vencimiento} />
     },
     {
       header: 'Cliente',
       accessor: 'cliente',
-      width: '15%',
+      width: '20%',
       render: (row) => row.cliente?.name || '--'
     },
     {
@@ -242,7 +200,6 @@ const Deudas = () => {
             columns={columns}
             isLoading={isLoading}
             isLoadingMore={isLoadingMore}
-            acciones={tableActions}
             buttonLabel="Nueva Deuda"
             onButtonClick={() => {
               setDeudaEditando(null);

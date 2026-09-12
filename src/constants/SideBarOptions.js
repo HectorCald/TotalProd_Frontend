@@ -1,12 +1,15 @@
 export const SideBarOptions = [
   {
-    title: "HOME",
+    title: "PRINCIPAL",
+    isCollapsible: false,
     items: [
-      { id: "home", title: "Home", icon: "home", route: "/home", MenuSide: true }
+      { id: "home", title: "Inicio", icon: "home", route: "/home", MenuSide: true },
+      { id: "balance", title: "Balance", icon: "bar-chart-alt", route: "/balance", key: "balance", key_submenu: "ver_balance", MenuSide: true }
     ]
   },
   {
     title: "INVENTARIO",
+    isCollapsible: false,
     items: [
       {
         id: "almacen", title: "Almacén General", icon: "store", route: "/almacen", key: "almacen_general",
@@ -31,6 +34,7 @@ export const SideBarOptions = [
   },
   {
     title: "REGISTROS Y PEDIDOS",
+    isCollapsible: false,
     items: [
       {
         id: "movimientos", title: "Movimientos", icon: "transfer", route: "/movimientos", key: "movimientos",
@@ -52,6 +56,8 @@ export const SideBarOptions = [
   },
   {
     title: "GESTIÓN",
+    isCollapsible: true,
+    defaultOpen: false,
     items: [
       { id: "clientes", title: "Clientes", icon: "user", route: "/clientes", key: "clientes", key_submenu: "gestionar" },
       { id: "proveedores", title: "Proveedores", icon: "user", route: "/proveedores", key: "proveedores", key_submenu: "gestionar" },
@@ -60,25 +66,17 @@ export const SideBarOptions = [
   },
   {
     title: "FINANZAS",
+    isCollapsible: true,
+    defaultOpen: false,
     items: [
       { id: "pagos", title: "Pagos", icon: "wallet", route: "/pagos", key: "pagos", key_submenu: "gestionar" },
-      { id: "deudas", title: "Deudas", icon: "receipt", route: "/deudas", key: "deudas", key_submenu: "gestionar", MenuSide: true },
-      { id: "balance", title: "Balance", icon: "bar-chart-alt", route: "/balance", key: "balance", key_submenu: "ver_balance", MenuSide: true }
-    ]
-  },
-  {
-    title: "CONFIGURACIÓN",
-    items: [
-      { id: "precios", title: "Precios", icon: "dollar", route: "/precios", key: "precios", key_submenu: "gestionar" },
-      { id: "sucursales", title: "Sucursales", icon: "building", route: "/sucursales", key: "sucursales", key_submenu: "gestionar" },
-      { id: "cargos", title: "Cargos", icon: "briefcase", route: "/cargos", key: "cargos", key_submenu: "gestionar" },
-      { id: "categorias", title: "Categorías", icon: "category", route: "/categorias", key: "categorias", key_submenu: "gestionar" },
-      { id: "socios", title: "Socios", icon: "group", route: "/socios", key: "socios", key_submenu: "gestionar" },
-      { id: "exportar", title: "Exportar", icon: "export", route: "/exportar",isNew: false, key: "exportar_importar", key_submenu: "importar_exportar" }
+      { id: "deudas", title: "Deudas", icon: "receipt", route: "/deudas", key: "deudas", key_submenu: "gestionar", MenuSide: true }
     ]
   },
   {
     title: "DAMABRAVA",
+    isCollapsible: true,
+    defaultOpen: false,
     empresaCodigo: "damabrava",
     items: [
       { id: "Verificación", title: "Verificación", icon: "check-circle", route: "/damabrava/verificacion", key: "damabrava", key_submenu: "verificar" },
@@ -87,5 +85,6 @@ export const SideBarOptions = [
       { id: "Pagos", title: "Pagos", icon: "wallet", route: "/damabrava/pagos", key: "damabrava", key_submenu: "pagos_damabrava" },
     ]
   }
-
 ];
+
+export { SideConfigOptions, SideConfigOptions as ConfigOptions } from './SideConfigOptions';

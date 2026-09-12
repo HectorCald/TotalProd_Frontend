@@ -17,80 +17,53 @@ const MenuSide = () => {
   const sucursalSeleccionada = userSucursal || employeeSucursal;
   const isEmployee = !!employeeInfo;
 
-  const getFilteredOptions = () => {
+  const getNavOptions = () => {
     const codigoEmpresa = sucursalSeleccionada?.empresas?.codigo || userInfo?.empresa?.codigo || employeeInfo?.sucursal?.empresas?.codigo || '';
 
-    const filteredSections = SideBarOptions.filter(section => {
-      if (section.empresaCodigo && section.empresaCodigo !== codigoEmpresa) {
-        return false;
+    const availableLeftItems = [];
+    let hasVender = false;
+
+    if (!isEmployee) {
+      availableLeftItems.push(
+        { id: 'home', title: 'Inicio', icon: 'home', route: '/home' },
+        { id: 'balance', title: 'Balance', icon: 'bar-chart-alt', route: '/balance' },
+        { id: 'almacen-gestionar', title: 'Inventario', icon: 'package', route: '/almacen/gestionar' },
+        { id: 'deudas', title: 'Deudas', icon: 'receipt', route: '/deudas' }
+      );
+      hasVender = true;
+    } else {
+      if (!usuario?.modules) return { leftItems: [], venderItem: null };
+
+      availableLeftItems.push({ id: 'home', title: 'Inicio', icon: 'home', route: '/home' });
+
+      const hasBalance = usuario.modules.some(m => m.modulos?.clave === 'balance');
+      if (hasBalance) {
+        availableLeftItems.push({ id: 'balance', title: 'Balance', icon: 'bar-chart-alt', route: '/balance' });
       }
-      return true;
-    });
 
-    if (!isEmployee || !usuario?.modules) return filteredSections;
+      const hasInventario = usuario.modules.some(m =>
+        m.modulos?.clave === 'almacen_general' && (!m.name || m.name === 'gestionar')
+      );
+      if (hasInventario) {
+        availableLeftItems.push({ id: 'almacen-gestionar', title: 'Inventario', icon: 'package', route: '/almacen/gestionar' });
+      }
 
-    return filteredSections.map(section => {
-      const filteredItems = section.items.map(item => {
-        if (!item.key && item.id === 'home') return item;
-        if (!item.key) return item;
+      const hasDeudas = usuario.modules.some(m => m.modulos?.clave === 'deudas');
+      if (hasDeudas) {
+        availableLeftItems.push({ id: 'deudas', title: 'Deudas', icon: 'receipt', route: '/deudas' });
+      }
 
-        const hasModule = usuario.modules.some(m => m.modulos?.clave === item.key);
-        if (!hasModule) return null;
+      hasVender = usuario.modules.some(m =>
+        m.modulos?.clave === 'almacen_general' && (!m.name || m.name === 'realizar_salidas')
+      );
+    }
 
-        let filteredSubmenu = item.submenu;
-        if (item.submenu) {
-          filteredSubmenu = item.submenu.filter(sub => {
-            if (!sub.key) return true;
-            return usuario.modules.some(m => 
-              m.modulos?.clave === item.key && m.name === sub.key
-            );
-          });
-        }
-        return { ...item, submenu: filteredSubmenu };
-      }).filter(Boolean);
+    const venderItem = hasVender ? { id: 'almacen-salidas', title: 'Vender', icon: 'cart', route: '/almacen/salidas' } : null;
 
-      if (filteredItems.length === 0) return null;
-      return { ...section, items: filteredItems };
-    }).filter(Boolean);
+    return { leftItems: availableLeftItems, venderItem };
   };
 
-  const visibleOptions = getFilteredOptions();
-  const menuItems = [];
-  visibleOptions.forEach(section => {
-    section.items.forEach(item => {
-      let addMainItem = item.MenuSide;
-
-      // Si es empleado y tiene asignado balance o deudas, se muestra en el menú inferior
-      if (isEmployee && (item.id === 'balance' || item.id === 'deudas')) {
-        addMainItem = true;
-      }
-
-      if (addMainItem) {
-        if (!menuItems.some(m => m.id === item.id)) {
-          menuItems.push(item);
-        }
-      }
-
-      if (item.submenu) {
-        item.submenu.forEach(sub => {
-          let addSubItem = sub.MenuSide;
-          let subItemToPush = { ...sub };
-
-          // Si es empleado y tiene asignado ventas (almacen-salidas), agregar opción de "Vender"
-          if (isEmployee && sub.id === 'almacen-salidas') {
-            addSubItem = true;
-            subItemToPush.title = 'Vender';
-          }
-
-          if (addSubItem) {
-            if (!menuItems.some(m => m.id === sub.id)) {
-              menuItems.push(subItemToPush);
-            }
-          }
-        });
-      }
-    });
-  });
+  const { leftItems, venderItem } = getNavOptions();
 
   if (!usuario || !sucursalSeleccionada) {
     return null;
@@ -98,20 +71,32 @@ const MenuSide = () => {
 
   return (
     <div className={styles.menuSideContainer}>
-      {menuItems.map(item => {
-        const isActive = currentPath === item.route || (item.route !== '/' && currentPath.startsWith(item.route));
+      <div className={styles.leftItemsContainer}>
+        {leftItems.map(item => {
+          const isActive = currentPath === item.route || (item.route !== '/' && currentPath.startsWith(item.route));
 
-        return (
-          <div 
-            key={item.id} 
-            className={`${styles.menuItem} ${isActive ? styles.active : ''}`}
-            onClick={() => navigate(item.route)}
-          >
-            <i className={`bx bx-${item.icon} ${styles.icon}`}></i>
-            <span className={styles.title}>{item.title}</span>
-          </div>
-        );
-      })}
+          return (
+            <div 
+              key={item.id} 
+              className={`${styles.menuItem} ${isActive ? styles.active : ''}`}
+              onClick={() => navigate(item.route)}
+            >
+              <i className={`bx bx-${item.icon} ${styles.icon}`}></i>
+              <span className={styles.title}>{item.title}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {venderItem && (
+        <div
+          className={`${styles.menuItem} ${styles.btnVender} ${currentPath.startsWith(venderItem.route) ? styles.btnVenderActive : ''}`}
+          onClick={() => navigate(venderItem.route)}
+        >
+          <i className={`bx bx-${venderItem.icon} ${styles.icon}`}></i>
+          <span className={styles.title}>{venderItem.title}</span>
+        </div>
+      )}
     </div>
   );
 };

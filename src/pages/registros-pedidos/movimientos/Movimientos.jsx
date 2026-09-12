@@ -11,6 +11,7 @@ import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive
 import movimientosAcopioService from '../../../services/movimientosAcopioService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import useFormatNumber from '../../../hooks/useFormatNumber';
+import useFormatNumberPrice from '../../../hooks/useFormatNumberPrice';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import ViewInfo from './modals/ViewInfo';
 import ViewInfoAcopio from './modals/ViewInfoAcopio';
@@ -28,6 +29,7 @@ const Movimientos = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { formatPrice } = useFormatNumber();
+  const { calculateSubtotal } = useFormatNumberPrice();
 
   const isAcopio = location.pathname.includes('/movimientos/acopio');
   const getTitulo = () => {
@@ -412,7 +414,16 @@ const Movimientos = () => {
       accessor: 'total',
       width: '13%',
       render: (row) => {
-        let subtotal = row.subtotal !== undefined ? row.subtotal : (row.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
+        let subtotal = 0;
+        if (row.productos && row.productos.length > 0) {
+          subtotal = row.productos.reduce((sum, p) => {
+            const cant = p.cantidad || p.pivot?.cantidad;
+            const prec = p.precio_unitario || p.pivot?.precio_unitario || p.precio || p.pivot?.precio;
+            return sum + calculateSubtotal(cant, prec, p.producto?.grup, row?.agrupado, row?.type === 'salida' || row?.tipo === 'salida');
+          }, 0);
+        } else if (row.subtotal !== undefined) {
+          subtotal = parseFloat(row.subtotal) || 0;
+        }
         subtotal = Math.round(subtotal * 10) / 10;
         const descuento = parseFloat(row.descuento) || 0;
         const aumento = parseFloat(row.aumento) || 0;
@@ -422,29 +433,40 @@ const Movimientos = () => {
         const isLegacyPercentage = esPorcentaje && dateStr && dateStr <= LEGACY_PERCENTAGE_CUTOFF_DATE;
         
         const descCalculado = esPorcentaje 
-            ? (isLegacyPercentage ? descuento : Math.round((subtotal * descuento / 100) * 10) / 10) 
+            ? (isLegacyPercentage ? descuento : (subtotal * descuento / 100)) 
             : descuento;
         const aumCalculado = esPorcentaje 
-            ? (isLegacyPercentage ? aumento : Math.round((subtotal * aumento / 100) * 10) / 10) 
+            ? (isLegacyPercentage ? aumento : (subtotal * aumento / 100)) 
             : aumento;
         let totalFinal = subtotal - descCalculado + aumCalculado;
         
-        totalFinal = Math.round(totalFinal * 10) / 10;
         return `Bs. ${formatPrice(totalFinal)}`;
       },
       isMobileSubtitle: true,
       mobileRender: (row) => {
-        let subtotal = row.subtotal !== undefined ? row.subtotal : (row.productos || []).reduce((sum, p) => sum + (parseFloat(p.subtotal) || 0), 0);
+        let subtotal = 0;
+        if (row.productos && row.productos.length > 0) {
+          subtotal = row.productos.reduce((sum, p) => {
+            const cant = p.cantidad || p.pivot?.cantidad;
+            const prec = p.precio_unitario || p.pivot?.precio_unitario || p.precio || p.pivot?.precio;
+            return sum + calculateSubtotal(cant, prec, p.producto?.grup, row?.agrupado, row?.type === 'salida' || row?.tipo === 'salida');
+          }, 0);
+        } else if (row.subtotal !== undefined) {
+          subtotal = parseFloat(row.subtotal) || 0;
+        }
         subtotal = Math.round(subtotal * 10) / 10;
         const descuento = parseFloat(row.descuento) || 0;
         const aumento = parseFloat(row.aumento) || 0;
         const esPorcentaje = row.porcentaje;
         const dateStr = row.fecha ? (row.fecha.split('T')[0] || row.fecha.substring(0, 10)) : '';
         const isLegacyPercentage = esPorcentaje && dateStr && dateStr <= LEGACY_PERCENTAGE_CUTOFF_DATE;
-        const descCalculado = esPorcentaje ? (isLegacyPercentage ? descuento : Math.round((subtotal * descuento / 100) * 10) / 10) : descuento;
-        const aumCalculado = esPorcentaje ? (isLegacyPercentage ? aumento : Math.round((subtotal * aumento / 100) * 10) / 10) : aumento;
+        const descCalculado = esPorcentaje 
+            ? (isLegacyPercentage ? descuento : (subtotal * descuento / 100)) 
+            : descuento;
+        const aumCalculado = esPorcentaje 
+            ? (isLegacyPercentage ? aumento : (subtotal * aumento / 100)) 
+            : aumento;
         let totalFinal = subtotal - descCalculado + aumCalculado;
-        totalFinal = Math.round(totalFinal * 10) / 10;
         return (
           <>
             Bs. {formatPrice(totalFinal)} • <LiteralDateCell dateStr={row.fecha || dateStr} />

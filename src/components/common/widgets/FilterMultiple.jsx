@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './FilterMultiple.module.css';
 import { BoxIcon } from 'boxicons-react';
@@ -14,6 +14,57 @@ import categoryAcopioService from '../../../services/categoryAcopioService';
 import categoryAlmacenService from '../../../services/categoryAlmacenService';
 import { useLayout } from '../../../context/LayoutContext';
 import BotonIcon from '../botones/BotonIcon';
+
+const PREDEFINED_FILTERS = {
+    sort_order: {
+        id: 'sort_order',
+        title: 'Ordenamiento',
+        singleSelect: true,
+        options: [
+            { label: 'Más recientes primero', value: 'desc' },
+            { label: 'Más antiguos primero', value: 'asc' }
+        ]
+    },
+    metodo_pago: {
+        id: 'metodo_pago',
+        title: 'Método de Pago',
+        singleSelect: true,
+        options: [
+            { label: 'Efectivo', value: 'efectivo' },
+            { label: 'Transferencia', value: 'transferencia' },
+            { label: 'Tarjeta', value: 'tarjeta' },
+            { label: 'QR', value: 'qr' },
+            { label: 'Crédito', value: 'credito' }
+        ]
+    },
+    proveedor_id: {
+        id: 'proveedor_id',
+        title: 'Proveedores'
+    },
+    cliente_id: {
+        id: 'cliente_id',
+        title: 'Clientes'
+    },
+    category_id: {
+        id: 'category_id',
+        title: 'Categorías'
+    },
+    fecha: {
+        id: 'fecha',
+        title: 'Fecha',
+        type: 'date'
+    },
+    estado: {
+        id: 'estado',
+        title: 'Estado',
+        singleSelect: true,
+        options: [
+            { label: 'Pendiente', value: 'pendiente' },
+            { label: 'Pagada', value: 'pagada' },
+            { label: 'Vencida', value: 'vencida' }
+        ]
+    }
+};
 
 const DateFilterField = ({ label, value, onClick, onClear }) => {
     const literal = useFechaLiteral(value);
@@ -61,6 +112,18 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
     const [calendarOpen, setCalendarOpen] = useState(null); // { filterId, key: 'inicio' | 'fin' }
     const { isLargeScreen } = useLayout();
 
+    const normalizedFilters = useMemo(() => {
+        return (filters || []).map(filter => {
+            if (typeof filter === 'string') {
+                return PREDEFINED_FILTERS[filter] || { id: filter, title: filter };
+            }
+            if (filter && filter.id && PREDEFINED_FILTERS[filter.id]) {
+                return { ...PREDEFINED_FILTERS[filter.id], ...filter };
+            }
+            return filter;
+        });
+    }, [filters]);
+
     const [dynamicOptions, setDynamicOptions] = useState({});
     const [loadingDynamic, setLoadingDynamic] = useState({});
     const fetchedFiltersRef = useRef(new Set());
@@ -68,7 +131,7 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
     useEffect(() => {
         let active = true;
 
-        filters.forEach(filter => {
+        normalizedFilters.forEach(filter => {
             if (fetchedFiltersRef.current.has(filter.id)) {
                 return;
             }
@@ -151,7 +214,7 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
         return () => {
             active = false;
         };
-    }, [filters]);
+    }, [normalizedFilters]);
 
     // Reset local state to applied filters when opening the menu
     useEffect(() => {
@@ -167,7 +230,7 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
             const currentFilterSelections = prev[filterId] || [];
             let newSelections = [...currentFilterSelections];
             
-            const filterConfig = filters.find(f => f.id === filterId);
+            const filterConfig = normalizedFilters.find(f => f.id === filterId);
             if (filterConfig && filterConfig.singleSelect) {
                 newSelections = isChecked ? [optionValue] : [];
             } else {
@@ -275,7 +338,7 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
                         </div>
 
                         <div className={styles.content}>
-                            {filters.map(filter => {
+                            {normalizedFilters.map(filter => {
                                 const isDynamic = filter.fetchOptions || ['cliente_id', 'proveedor_id', 'category_id'].includes(filter.id);
                                 const options = dynamicOptions[filter.id] || [];
                                 const isLoading = loadingDynamic[filter.id];
@@ -336,7 +399,7 @@ const FilterMultiple = ({ filters = [], onApply, activeFilters = {} }) => {
                                     </div>
                                 </Accordion>
                             )})}
-                            {filters.length === 0 && (
+                            {normalizedFilters.length === 0 && (
                                 <p style={{ color: '#718096', fontSize: '14px', textAlign: 'center', margin: 0 }}>No hay filtros disponibles</p>
                             )}
                         </div>

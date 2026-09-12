@@ -215,7 +215,7 @@ const Balance = () => {
 
           setLoadingDeudas(true);
           try {
-              const res = await deudasService.getAll(1, 99999, '', null, null, 'fecha_desc', null, null);
+              const res = await deudasService.getAllSinLimite(null, null);
               if (res && res.success && res.data) {
                   const idsMovimientosCredito = movimientosCredito.map(m => m.id);
                   const deudasAsociadas = res.data.filter(d => idsMovimientosCredito.includes(d.movimiento_salida_id));

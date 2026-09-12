@@ -42,8 +42,8 @@
 
 .th {
     padding: 16px;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     color: var(--secondary-color);
     background-color: var(--senary-color);
     position: sticky;

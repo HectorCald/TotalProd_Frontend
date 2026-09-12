@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './ColumnInfo.module.css';
 
-const ColumnInfo = ({ title, items = [], hasBorder = true, finance = false, financeTotal, variant = 'default' }) => {
+const ColumnInfo = ({ title, items = [], hasBorder = true, finance = false, financeLabel = 'Total:', financeTotal, variant = 'default' }) => {
     if (!items || items.length === 0) return null;
 
     if (variant === 'changes') {
@@ -45,7 +45,7 @@ const ColumnInfo = ({ title, items = [], hasBorder = true, finance = false, fina
                         alignItems: 'center',
                         width: '100%'
                     }}>
-                        <span style={{ fontSize: '13px', color: 'var(--secondary-color)', fontWeight: '700' }}>Total:</span>
+                        <span style={{ fontSize: '13px', color: 'var(--secondary-color)', fontWeight: '700' }}>{financeLabel || 'Total:'}</span>
                         <span style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--secondary-color)' }}>{financeTotal}</span>
                     </div>
                 )}

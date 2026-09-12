@@ -29,15 +29,66 @@
   width: 100%;
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 12px 12px 6px 12px;
+  border-radius: 6px;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.sectionHeader:hover {
+  background-color: var(--primary-color-light);
+}
+
+.sectionHeader:hover .sectionTitle {
+  color: var(--primary-color);
+}
+
 .sectionTitle {
   font-size: 11px;
   color: #7b7b7b;
   letter-spacing: 0.05em;
-  padding: 16px 16px 8px 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+}
+
+.sectionTitleStatic {
+  font-size: 11px;
+  color: #7b7b7b;
+  letter-spacing: 0.05em;
+  padding: 12px 12px 6px 12px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sectionChevron {
+  font-size: 16px;
+  color: #7b7b7b;
+  transition: transform 0.3s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.sectionHeader:hover .sectionChevron {
+  color: var(--primary-color);
+}
+
+.sectionItemsClosed {
+  display: none;
+}
+
+.sectionItemsOpen {
+  display: block;
+  overflow: hidden;
 }
 
 .itemContainer {
@@ -51,7 +102,7 @@
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: 11px;
   border-radius: 8px;
   transition: background-color 0.2s ease, color 0.2s ease, padding 0.3s ease;
   margin-bottom: 4px;

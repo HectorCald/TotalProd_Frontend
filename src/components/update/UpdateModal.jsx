@@ -29,30 +29,6 @@ const UpdateModal = ({ isOpen, onClose, version }) => {
             <p style={{ fontSize: '12px', color: '#555', lineHeight: '1.5', margin: '0 0 15px 0' }}>
                 {UPDATE_INFO.description}
             </p>
-
-            {UPDATE_INFO.cambios && UPDATE_INFO.cambios.length > 0 && (
-                <ColumnInfo
-                    title="Cambios:"
-                    items={UPDATE_INFO.cambios}
-                    variant="changes"
-                />
-            )}
-
-            {UPDATE_INFO.nuevasFunciones && UPDATE_INFO.nuevasFunciones.length > 0 && (
-                <ColumnInfo
-                    title="Nuevas funciones:"
-                    items={UPDATE_INFO.nuevasFunciones}
-                    variant="changes"
-                />
-            )}
-
-            {UPDATE_INFO.correcciones && UPDATE_INFO.correcciones.length > 0 && (
-                <ColumnInfo
-                    title="Correcciones:"
-                    items={UPDATE_INFO.correcciones}
-                    variant="changes"
-                />
-            )}
         </ModalCentro>
     );
 };

@@ -8,73 +8,12 @@ import useFormatNumber from '../../../../hooks/useFormatNumber';
 import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 import { useToast } from '../../../../context/ToastContext';
 import deudasService from '../../../../services/deudasService';
-import { BoxIcon } from 'boxicons-react';
-import NoData from '../../../../components/common/widgets/NoData';
+import RegisterBlock from '../../../../components/common/widgets/RegisterBlock';
 import AgregarPagoParcial from './AgregarPagoParcial';
 import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
 import ViewInfoMovimiento from '../../../registros-pedidos/movimientos/modals/ViewInfo';
 import EliminarDeuda from './EliminarDeuda';
 
-const PagoRow = ({ pago, onDelete, isDeleting }) => {
-    const { formatPrice } = useFormatNumber();
-    // Pre-recortar a YYYY-MM-DD ya que pago.fecha es una fecha conceptual (no timestamp de evento)
-    const fechaStr = typeof pago.fecha === 'string' && pago.fecha.length > 10 ? pago.fecha.substring(0, 10) : pago.fecha;
-    const literalDate = useFechaLiteral(fechaStr, false);
-    return (
-        <div
-            style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                border: '1px solid var(--quaternary-color)',
-                marginBottom: '10px'
-            }}
-        >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: '600', color: 'var(--dark-color)' }}>
-                        {`Bs. ${formatPrice(pago.monto)}`}
-                    </span>
-                    <span style={{ fontSize: '12.5px', color: 'var(--secondary-color)', fontWeight: '500' }}>
-                        • {literalDate || pago.fecha}
-                    </span>
-                </div>
-                {pago.detalle && (
-                    <span style={{ fontSize: '12.5px', color: 'var(--tertiary-color)', wordBreak: 'break-word' }}>
-                        {pago.detalle}
-                    </span>
-                )}
-            </div>
-            <button
-                type="button"
-                onClick={() => onDelete(pago.id)}
-                disabled={isDeleting}
-                style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: isDeleting ? 'not-allowed' : 'pointer',
-                    color: '#e53935',
-                    padding: '8px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background-color 0.15s',
-                    opacity: isDeleting ? 0.5 : 1,
-                    flexShrink: 0
-                }}
-                onMouseEnter={(e) => { if (!isDeleting) e.currentTarget.style.backgroundColor = 'rgba(229, 57, 53, 0.08)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                title="Eliminar pago"
-            >
-                <BoxIcon name={isDeleting ? "loader-alt" : "trash"} className={isDeleting ? "bx-spin" : ""} size="sm" />
-            </button>
-        </div>
-    );
-};
 
 const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada, onEliminar }) => {
     const { formatPrice } = useFormatNumber();
@@ -174,31 +113,7 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada, onElimin
 
     if (!deuda) return null;
 
-    const tags = [
-        deuda.cliente ? {
-            text: deuda.cliente.name || 'Cliente',
-            icon: 'user',
-            label: 'Cliente'
-        } : null,
-    ].filter(Boolean);
-
-    const stats = [
-        {
-            label: 'Monto Total',
-            value: `Bs. ${formatPrice(deuda.monto_total)}`,
-            icon: ''
-        },
-        {
-            label: 'Saldo Pendiente',
-            value: `Bs. ${formatPrice(deuda.saldo_pendiente)}`,
-            icon: ''
-        },
-        {
-            label: 'Vencimiento',
-            value: fechaVencimientoLiteral,
-            icon: 'time'
-        }
-    ];
+    const totalPagado = Math.max(0, (parseFloat(deuda.monto_total) || 0) - (parseFloat(deuda.saldo_pendiente) || 0));
 
     return (
         <>
@@ -208,7 +123,6 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada, onElimin
                 title=""
                 confirmText="Editar"
                 onConfirm={() => {
-                    onClose();
                     if (onEdit) onEdit(deuda);
                 }}
                 hideFooter={true}
@@ -221,48 +135,39 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada, onElimin
                         icon="credit-card"
                         customBlock={
                             <>
-                                {tags.length > 0 && (
-                                    <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
-                                )}
-                                {stats.length > 0 && (
+                                <ColumnInfo 
+                                    items={[
+                                        deuda.cliente && { 
+                                            icon: 'user', 
+                                            text: deuda.cliente.name || 'Cliente' 
+                                        }
+                                    ].filter(Boolean)} 
+                                />
+                                {fechaVencimientoLiteral && (
                                     <ColumnInfo 
                                         title="Detalles"
-                                        items={stats.map(s => ({ clave: s.label, valor: s.value }))}
+                                        items={[
+                                            { clave: 'Vencimiento', valor: fechaVencimientoLiteral }
+                                        ]}
                                     />
                                 )}
-                                <div style={{ marginBottom: '15px', }}>
-                                    <p style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--secondary-color)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                        Historial de Pagos
-                                    </p>
-                                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                                    {loadingPagos ? (
-                                        <NoData
-                                            icon="loader-alt"
-                                            title="Cargando pagos..."
-                                            detail="Obteniendo el historial de pagos"
-                                            transparent={true}
-                                            minHeight="100px"
-                                        />
-                                    ) : pagos.length > 0 ? (
-                                        pagos.map(pago => (
-                                            <PagoRow
-                                                key={pago.id}
-                                                pago={pago}
-                                                onDelete={handleEliminarPago}
-                                                isDeleting={deletingPagoId === pago.id}
-                                            />
-                                        ))
-                                    ) : (
-                                        <NoData
-                                            icon="history"
-                                            title="No hay pagos"
-                                            detail="Esta deuda no tiene pagos registrados aún"
-                                            transparent={true}
-                                            minHeight="100px"
-                                        />
-                                    )}
-                                </div>
-                            </div>
+                                <ColumnInfo 
+                                    title="Finanzas"
+                                    items={[
+                                        { clave: 'Monto Total', valor: `Bs. ${formatPrice(deuda.monto_total)}` },
+                                        { clave: 'Total Pagado', valor: `Bs. ${formatPrice(totalPagado)}` }
+                                    ]}
+                                    finance={true}
+                                    financeLabel="Saldo Pendiente:"
+                                    financeTotal={`Bs. ${formatPrice(deuda.saldo_pendiente)}`}
+                                />
+                                <RegisterBlock
+                                    title="Historial de Pagos"
+                                    items={pagos}
+                                    loading={loadingPagos}
+                                    onDelete={handleEliminarPago}
+                                    deletingId={deletingPagoId}
+                                />
                             </>
                         }
                         actionButton={

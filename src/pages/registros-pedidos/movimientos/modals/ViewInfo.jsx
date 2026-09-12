@@ -373,11 +373,15 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
     let isLegacyPercentage = false;
 
     if (!isAcopio) {
-        subtotalNum = (movimiento.productos || []).reduce((sum, p) => {
-            const cant = p.cantidad || p.pivot?.cantidad;
-            const prec = p.precio_unitario || p.pivot?.precio_unitario || p.precio || p.pivot?.precio;
-            return sum + calculateSubtotal(cant, prec, p.producto?.grup, movimiento?.agrupado, movimiento?.type === 'salida' || movimiento?.tipo === 'salida');
-        }, 0);
+        if (movimiento.productos && movimiento.productos.length > 0) {
+            subtotalNum = movimiento.productos.reduce((sum, p) => {
+                const cant = p.cantidad || p.pivot?.cantidad;
+                const prec = p.precio_unitario || p.pivot?.precio_unitario || p.precio || p.pivot?.precio;
+                return sum + calculateSubtotal(cant, prec, p.producto?.grup, movimiento?.agrupado, movimiento?.type === 'salida' || movimiento?.tipo === 'salida');
+            }, 0);
+        } else if (movimiento.subtotal !== undefined && movimiento.subtotal !== null) {
+            subtotalNum = parseFloat(movimiento.subtotal) || 0;
+        }
         subtotalNum = Math.round(subtotalNum * 10) / 10;
         descValNum = parseFloat(movimiento.descuento) || 0;
         aumValNum = parseFloat(movimiento.aumento) || 0;

@@ -7,9 +7,10 @@ import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import Skeleton from '../common/widgets/Skeleton';
 import CerrarSesion from './modals/CerrarSesion';
-import ModalConfiguracion from './modals/ModalConfiguracion';
+import ModalPerfil from './modals/ModalPerfil';
 import InputSelect from '../common/inputs/InputSelect';
 import sucursalesService from '../../services/sucursalesService';
+import { SideConfigOptions } from '../../constants/SideConfigOptions';
 
 const NavBar = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const NavBar = () => {
   const { user: userInfo, loading: userLoading, sucursalSeleccionada: userSucursal, seleccionarSucursal: seleccionarUserSucursal } = useUser();
   const { employee: employeeInfo, loading: employeeLoading, sucursalSeleccionada: employeeSucursal, seleccionarSucursal: seleccionarEmployeeSucursal } = useEmployee();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [dropdownView, setDropdownView] = useState('main');
   const [isCerrarSesionOpen, setIsCerrarSesionOpen] = useState(false);
   const [isConfiguracionOpen, setIsConfiguracionOpen] = useState(false);
   const [sucursales, setSucursales] = useState([]);
@@ -43,6 +45,7 @@ const NavBar = () => {
     return false;
   })();
 
+  const isEmployee = isEmployeeSession;
   const usuario = isEmployeeSession ? employeeInfo : userInfo;
   const loading = isEmployeeSession ? employeeLoading : userLoading;
 
@@ -137,11 +140,25 @@ const NavBar = () => {
     }
   };
 
+  const visibleConfigOptions = useMemo(() => {
+    if (!isEmployee || !usuario?.modules) return SideConfigOptions;
+    return SideConfigOptions.filter(item => {
+      if (!item.key) return true;
+      return usuario.modules.some(m => {
+        if (item.key_submenu) {
+          return m.modulos?.clave === item.key && m.name === item.key_submenu;
+        }
+        return m.modulos?.clave === item.key;
+      });
+    });
+  }, [isEmployee, usuario]);
+
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
+        setDropdownView('main');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -217,7 +234,10 @@ const NavBar = () => {
           <div className={styles.userProfile} ref={dropdownRef}>
             <div
               className={styles.userInfo}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              onClick={() => {
+                setIsDropdownOpen(!isDropdownOpen);
+                if (isDropdownOpen) setDropdownView('main');
+              }}
             >
               <div className={styles.avatar}>
                 {displayImage ? (
@@ -242,28 +262,80 @@ const NavBar = () => {
  
             {isDropdownOpen && (
               <div className={styles.dropdownMenu}>
-                {!isLargeScreen && (
-                  <>
-                    <div className={styles.dropdownHeaderMobile}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className={styles.dropdownUserName}>{getDisplayName()}</span>
+                {dropdownView === 'main' ? (
+                  <React.Fragment key="view-main">
+                    {!isLargeScreen && (
+                      <div className={styles.dropdownHeaderMobile}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className={styles.dropdownUserName}>{getDisplayName()}</span>
+                        </div>
+                        <span className={styles.dropdownUserEmail}>{getDisplayEmail()}</span>
                       </div>
-                      <span className={styles.dropdownUserEmail}>{getDisplayEmail()}</span>
-                    </div>
-                  </>
+                    )}
+                    <button
+                      key="btn-perfil"
+                      className={styles.dropdownItem}
+                      onClick={() => {
+                        setIsConfiguracionOpen(true);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      <i className='bx bx-user'></i> Perfil
+                    </button>
+                    {visibleConfigOptions.length > 0 && (
+                      <button
+                        key="btn-to-config"
+                        className={styles.dropdownItem}
+                        onClick={() => setDropdownView('configuracion')}
+                        style={{ justifyContent: 'space-between' }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <i className='bx bx-cog'></i> Configuración
+                        </span>
+                        <i className='bx bx-chevron-right' style={{ fontSize: '18px', color: '#999' }}></i>
+                      </button>
+                    )}
+                    <div className={styles.dropdownDivider} />
+                    <button
+                      key="btn-logout"
+                      className={styles.dropdownItem}
+                      onClick={() => {
+                        setIsCerrarSesionOpen(true);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      <i className='bx bx-log-out'></i> Cerrar sesión
+                    </button>
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment key="view-config">
+                    <button
+                      key="btn-back-to-main"
+                      className={styles.dropdownHeaderBack}
+                      onClick={() => setDropdownView('main')}
+                    >
+                      <i className='bx bx-chevron-left'></i>
+                      <span>Configuración</span>
+                    </button>
+                    <div className={styles.dropdownDivider} />
+                    {visibleConfigOptions.map((opt) => (
+                      <button
+                        key={`config-opt-${opt.id}`}
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          navigate(opt.route);
+                          setIsDropdownOpen(false);
+                          setDropdownView('main');
+                        }}
+                      >
+                        <i className={`bx bx-${opt.icon}`}></i> {opt.title}
+                      </button>
+                    ))}
+                    {visibleConfigOptions.length === 0 && (
+                      <div className={styles.dropdownEmpty}>Sin opciones disponibles</div>
+                    )}
+                  </React.Fragment>
                 )}
-                <button className={styles.dropdownItem} onClick={() => {
-                  setIsConfiguracionOpen(true);
-                  setIsDropdownOpen(false);
-                }}>
-                  <i className='bx bx-cog'></i> Configuración
-                </button>
-                <button className={styles.dropdownItem} onClick={() => {
-                  setIsCerrarSesionOpen(true);
-                  setIsDropdownOpen(false);
-                }}>
-                  <i className='bx bx-log-out'></i> Cerrar sesión
-                </button>
               </div>
             )}
           </div>
@@ -276,7 +348,7 @@ const NavBar = () => {
         />
       )}
       {isConfiguracionOpen && (
-        <ModalConfiguracion
+        <ModalPerfil
           isOpen={isConfiguracionOpen}
           onClose={() => setIsConfiguracionOpen(false)}
         />

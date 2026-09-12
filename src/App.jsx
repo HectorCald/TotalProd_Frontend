@@ -676,27 +676,27 @@ function AppContent({ token, tokenType }) {
 
         {/* Section CONFIGURACIÓN */}
         <Route
-          path="/precios"
+          path="/configuracion/precios"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <Precios />}
         />
         <Route
-          path="/cargos"
+          path="/configuracion/cargos"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <Cargos />}
         />
         <Route
-          path="/categorias"
+          path="/configuracion/categorias"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <Categorias />}
         />
         <Route
-          path="/sucursales"
+          path="/configuracion/sucursales"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <Sucursales />}
         />
         <Route
-          path="/socios"
+          path="/configuracion/socios"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <Socios />}
         />
         <Route
-          path="/exportar"
+          path="/configuracion/exportar"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <Exportar />}
         />
         {/* Section DAMABRAVA */}

@@ -6,7 +6,6 @@ import MenuSide from '../../../components/essentials/MenuSide';
 import layoutStyles from '../../../pages/home/View.module.css';
 import UploadFile from '../../../components/common/widgets/UploadFile';
 import InputSelect from '../../../components/common/inputs/InputSelect';
-import InputSelectIcon from '../../../components/common/inputs/InputSelectIcon';
 import Boton from '../../../components/common/botones/Boton';
 import BotonIcon from '../../../components/common/botones/BotonIcon';
 import LayoutPercentage from '../../../components/layout/LayoutPercentage';
@@ -35,12 +34,6 @@ const TIPO_OPTIONS = [
   { value: TYPE_ID.MP, label: 'Materia Prima' },
 ];
 
-const FORMAT_OPTIONS = [
-  { value: 'excel', label: 'EXCEL', icon: 'file',     color: 'var(--success-color)', bgColor: 'rgba(96, 223, 67, 0.1)' },
-  { value: 'csv',   label: 'CSV',   icon: 'list-ul',  color: 'var(--primary-color)', bgColor: 'var(--primary-color-light)' },
-  { value: 'pdf',   label: 'PDF',   icon: 'file-pdf', iconType: 'solid', color: 'var(--error-color)', bgColor: 'rgba(255, 76, 76, 0.1)' },
-];
-
 const Exportar = () => {
   const { isLargeScreen } = useLayout();
   const { showDanger, showSuccess } = useToast();
@@ -48,9 +41,6 @@ const Exportar = () => {
   /* ── Tipo de almacén (compartido entre importar y exportar) ── */
   const [tipoAlmacen, setTipoAlmacen] = useState(TYPE_ID.AG);
   const [isImporting, setIsImporting] = useState(false);
-
-  /* ── Datos del panel derecho (exportar) ── */
-  const [format, setFormat]           = useState('excel');
 
   /* ── Catálogos dinámicos ── */
   const { value: categoriasAG, setValue: setCategoriasAG } = useSessionCache({ key: 'categoriasAlmacenListado', defaultValue: [] });
@@ -306,11 +296,6 @@ const Exportar = () => {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
-    if (format !== 'excel') {
-      showDanger(null, 'Por el momento solo se soporta exportación en formato EXCEL.');
-      return;
-    }
-
     if (tipoAlmacen === TYPE_ID.AG) {
       setIsExporting(true);
       try {
@@ -433,20 +418,13 @@ const Exportar = () => {
             </div>
 
             {/* ── Columna derecha: EXPORTAR ── */}
-            <div style={{ flex: isLargeScreen ? '35' : 'none', backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ flex: isLargeScreen ? '35' : 'none', backgroundColor: '#ffffff', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <InputSelect
                 label="Tipo de Almacén"
                 value={tipoAlmacen}
                 onChange={setTipoAlmacen}
                 options={TIPO_OPTIONS}
                 placeholder="Seleccionar tipo"
-              />
-
-              <InputSelectIcon
-                label="Seleccionar Formato"
-                value={format}
-                onChange={setFormat}
-                options={FORMAT_OPTIONS}
               />
 
               <Boton

@@ -4,7 +4,6 @@ import Input from '../../../../components/common/inputs/Input';
 import InputFecha from '../../../../components/common/inputs/InputFecha';
 import SelectMetodoPago from '../../../../components/common/fast/SelectMetodoPago';
 import SelectProveedores from '../../../../components/common/fast/SelectProveedores';
-import { getFullTimestamp } from '../../../../utils/dateUtils';
 import { useToast } from '../../../../context/ToastContext';
 import gastosService from '../../../../services/gastosService';
 
@@ -84,7 +83,7 @@ const AgregarEditarPago = ({ isOpen, onClose, pagoSeleccionado, onGuardar }) => 
         setLoading(true);
         try {
             const pagoData = {
-                fecha_gasto: getFullTimestamp(formData.fecha_gasto),
+                fecha_gasto: formData.fecha_gasto,
                 valor: parseFloat(formData.valor),
                 concepto: formData.concepto.trim(),
                 metodo_pago: formData.metodo_pago,

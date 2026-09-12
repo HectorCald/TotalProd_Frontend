@@ -1,18 +1,4 @@
-import apiClient, { getSucuId, getEmpresaId } from '../config/apiClient';
-
-// Función helper para obtener personal_id del token
-const getPersonalId = () => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.id;
-    } catch (error) {
-      console.error('Error parsing token:', error);
-    }
-  }
-  return null;
-};
+import apiClient, { getSucuId, getPersonalId } from '../config/apiClient';
 
 class gastosService {
 
@@ -72,12 +58,10 @@ class gastosService {
     const params = new URLSearchParams();
     if (sucuIdParam) params.append('sucu_id', sucuIdParam);
     if (filtroFecha) {
-      if (filtroFecha.fechaStrInicio || filtroFecha.inicio) {
-        params.append('fecha_inicio', filtroFecha.fechaStrInicio || filtroFecha.inicio.split('T')[0]);
-      }
-      if (filtroFecha.fechaStrFin || filtroFecha.fin) {
-        params.append('fecha_fin', filtroFecha.fechaStrFin || filtroFecha.fin.split('T')[0]);
-      }
+      const inicio = filtroFecha.fechaStrInicio || filtroFecha.inicio;
+      const fin = filtroFecha.fechaStrFin || filtroFecha.fin;
+      if (inicio) params.append('fecha_inicio', String(inicio).split('T')[0]);
+      if (fin) params.append('fecha_fin', String(fin).split('T')[0]);
     }
     
     return gastosService._request(`/gastos/sin-limite?${params}`, { method: 'GET' }, {
@@ -108,33 +92,14 @@ class gastosService {
       params.append('proveedor_id', proveedor);
     }
     if (filtroFecha) {
-      if (filtroFecha.inicio) {
-        params.append('fecha_inicio', filtroFecha.inicio);
-      }
-      if (filtroFecha.fin) {
-        params.append('fecha_fin', filtroFecha.fin);
-      }
+      const inicio = filtroFecha.fechaStrInicio || filtroFecha.inicio;
+      const fin = filtroFecha.fechaStrFin || filtroFecha.fin;
+      if (inicio) params.append('fecha_inicio', String(inicio).split('T')[0]);
+      if (fin) params.append('fecha_fin', String(fin).split('T')[0]);
     }
 
     return gastosService._request(`/gastos?${params}`, { method: 'GET' }, {
       requireSucuId: !sucuIdParam,
-      throwOnError: true
-    });
-  }
-
-  // Obtener un gasto por ID
-  static async getById(id, empresaIdParam = null) {
-    const empresaId = empresaIdParam || getEmpresaId();
-    
-    const params = new URLSearchParams();
-    if (empresaId) {
-      params.append('empresa_id', empresaId);
-    }
-
-    const endpoint = `/gastos/${id}${params.toString() ? `?${params.toString()}` : ''}`;
-
-    return gastosService._request(endpoint, { method: 'GET' }, {
-      requireEmpresaId: !empresaIdParam,
       throwOnError: true
     });
   }
@@ -178,22 +143,14 @@ class gastosService {
     });
   }
 
-  // Obtener gastos por rango de fechas
-  static async getByDateRange(fechaInicio, fechaFin, sucuIdParam = null) {
-    const params = new URLSearchParams({
-      fechaInicio: fechaInicio,
-      fechaFin: fechaFin
-    });
-    
-    if (sucuIdParam) {
-      params.append('sucu_id', sucuIdParam);
-    }
-
-    return gastosService._request(`/gastos/por-fechas?${params}`, { method: 'GET' }, {
-      requireSucuId: !sucuIdParam,
-      returnErrorObject: true
+  // Obtener un gasto por ID
+  static async getById(id) {
+    return gastosService._request(`/gastos/${id}`, { method: 'GET' }, {
+      requireEmpresaId: false,
+      throwOnError: true
     });
   }
+
 }
 
 export default gastosService;

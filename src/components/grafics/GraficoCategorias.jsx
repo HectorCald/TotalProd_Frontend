@@ -3,7 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import Skeleton from '../common/widgets/Skeleton';
 import styles from './GraficoCategorias.module.css';
 
-const GraficoCategorias = ({ data = [], total = 0, cargando = false }) => {
+const GraficoCategorias = ({ data = [], total = 0, cargando = false, noDisponible = false }) => {
   const formatInteger = (val) => {
     const num = parseInt(val ?? 0);
     if (isNaN(num)) return '0';
@@ -24,6 +24,9 @@ const GraficoCategorias = ({ data = [], total = 0, cargando = false }) => {
   ];
 
   const chartData = React.useMemo(() => {
+    if (!data || data.length === 0) {
+      return [{ nombre: 'Sin datos', valor: 1, visual_valor: 1 }];
+    }
     const sumValues = data.reduce((acc, curr) => acc + curr.valor, 0);
     const minThreshold = sumValues * 0.025; // 2.5% minimum visual width
     return data.map(item => {
@@ -43,8 +46,15 @@ const GraficoCategorias = ({ data = [], total = 0, cargando = false }) => {
     return meses[new Date().getMonth()];
   }, []);
 
+  const totalAMostrar = noDisponible ? (total || 0) : total;
+
   return (
     <div className={styles.contenedorTarjeta}>
+      {noDisponible && (
+        <div className={styles.overlayBloqueo}>
+          <span className={styles.badgeNoDisponible}>No disponible por el momento</span>
+        </div>
+      )}
       {cargando ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '280px', gap: '20px' }}>
           <Skeleton width="160px" height="160px" borderRadius="50%" />
@@ -78,7 +88,7 @@ const GraficoCategorias = ({ data = [], total = 0, cargando = false }) => {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className={styles.centroTexto}>
-                  <span className={styles.valorCentro}>{formatInteger(total)}</span>
+                  <span className={styles.valorCentro}>{formatInteger(totalAMostrar)}</span>
                   <span className={styles.labelCentro} style={{ textAlign: 'center', lineHeight: '1.2' }}>Productos<br/>vendidos</span>
                 </div>
               </div>

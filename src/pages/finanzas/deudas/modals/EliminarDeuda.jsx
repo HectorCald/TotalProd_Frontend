@@ -47,6 +47,7 @@ const EliminarDeuda = ({ isOpen, onClose, deudaSeleccionada, onEliminar }) => {
             onClose={handleClose}
             title="Eliminar deuda"
             mensaje={`¿Estás seguro de que deseas eliminar la deuda por concepto de ${deudaSeleccionada?.concepto}?`}
+            detalle="Esta acción es irreversible y no podrás recuperar la información de esta deuda una vez eliminada"
             confirmText="Eliminar"
             confirmColorClass="btn-error"
             onConfirm={handleConfirm}
@@ -57,7 +58,7 @@ const EliminarDeuda = ({ isOpen, onClose, deudaSeleccionada, onEliminar }) => {
             <Mensaje
                 type="warning"
                 title="Advertencia"
-                message="Al eliminar esta deuda se borrarán también todos los pagos parciales registrados. (Nota: Las deudas generadas automáticamente por ventas no pueden eliminarse por esta vía; debe anular el movimiento de almacén correspondiente)."
+                message="Al eliminar esta deuda se borrarán también todos los pagos parciales registrados. (Nota: Las deudas generadas automáticamente por ventas no pueden eliminarse por esta vía, debe anular el movimiento de almacén correspondiente)."
             />
         </ModalCentro>
     );

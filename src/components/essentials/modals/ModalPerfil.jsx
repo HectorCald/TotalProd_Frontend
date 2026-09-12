@@ -9,15 +9,18 @@ import Boton from '../../common/botones/Boton';
 import BotonIcon from '../../common/botones/BotonIcon';
 import Accordion from '../../common/widgets/Accordion';
 import { UPDATE_INFO } from '../../update/constants/updateInfo';
+import ModalInformacion from './ModalInformacion';
 import inputStyles from '../../common/inputs/Input.module.css';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
 import { useToast } from '../../../context/ToastContext';
 
-const ModalConfiguracion = ({ isOpen, onClose }) => {
+const ModalPerfil = ({ isOpen, onClose }) => {
   const { user: userInfo, empresa: userEmpresa, setUserFromService, setEmpresa } = useUser();
   const { employee: employeeInfo } = useEmployee();
   const { showDanger } = useToast();
+
+  const [isVersionDetailsOpen, setIsVersionDetailsOpen] = useState(false);
 
   const token = localStorage.getItem('token');
   const isEmployeeSession = (() => {
@@ -44,7 +47,6 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
   
   const currentLogo = previewLogo || (logoRemoved ? null : displayImage);
   const currentVersion = window.__current_sw_version || localStorage.getItem('sw_version') || UPDATE_INFO.version;
-
 
   const [loading, setLoading] = useState(false);
 
@@ -193,6 +195,12 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
           </div>
         </Accordion>
         <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <Boton 
+            label="Detalles de la versión"
+            className="btn-cancel"
+            iconName="info-circle"
+            onClick={() => setIsVersionDetailsOpen(true)}
+          />
           <Link 
             text="Términos y Condiciones" 
             iconEnd="right-arrow-alt" 
@@ -261,10 +269,10 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
         </Accordion>
         <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <Boton 
-            label="Eliminar Cuenta"
+            label="Detalles de la versión"
             className="btn-cancel"
-            iconName="trash"
-            onClick={() => showDanger(null, 'No es posible eliminar la cuenta por el momento')}
+            iconName="info-circle"
+            onClick={() => setIsVersionDetailsOpen(true)}
           />
           <Link 
             text="Términos y Condiciones" 
@@ -279,132 +287,131 @@ const ModalConfiguracion = ({ isOpen, onClose }) => {
   };
 
   return (
-    <ModalLateral
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Configuración"
-      onConfirm={handleConfirm}
-      confirmText="Guardar"
-      hideFooter={isEmployeeSession}
-      confirmDisabled={!hasChanges}
-      loading={loading}
-      disableClose={loading}
-    >
-      <div style={{ maxHeight: '70vh', paddingRight: '8px', paddingBottom: '8px' }}>
-        <style>{`
-          .goldBadgeSmall {
-            background: linear-gradient(90deg, #dfa91b 0%, #ffeb9b 50%, #dfa91b 100%);
-            background-size: 200% auto;
-            border-radius: 50%;
-            padding: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            animation: shimmerGold 3s linear infinite;
-            box-shadow: 0 2px 8px rgba(223, 169, 27, 0.4);
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            z-index: 2;
-          }@keyframes shimmerGold {
-            0% { background-position: 0% center; }
-            100% { background-position: -200% center; }
-          }
-        `}</style>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
-          <div style={{ position: 'relative', width: '88px', height: '88px', flexShrink: 0 }}>
-            {currentLogo ? (
-              <img src={currentLogo} alt="Logo" style={{ width: '100%', height: '100%', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--primary-color)' }} />
-            ) : (
-              <div style={{ width: '100%', height: '100%', borderRadius: '8px', backgroundColor: 'var(--primary-color-light, #e6f0fa)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--primary-color)' }}>
-                <i className='bx bxs-building' style={{ color: 'var(--primary-color, #3182ce)', fontSize: '44px' }}></i>
-              </div>
-            )}
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className={inputStyles.switchLabel} style={{ fontSize: '14px', margin: 0 }}>
-                  {isEmployeeSession ? `${employeeInfo?.first_name || ''} ${employeeInfo?.last_name || ''}`.trim() : `${userFirstName} ${userLastName}`.trim()}
-                </span>
-              </div>
-              <p className={inputStyles.subtitle} style={{ fontSize: '12px' }}>
-                {isEmployeeSession ? (employeeInfo?.codigo || '') : userEmail}
-              </p>
+    <>
+      <ModalLateral
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Perfil"
+        onConfirm={handleConfirm}
+        confirmText="Guardar"
+        hideFooter={isEmployeeSession}
+        confirmDisabled={!hasChanges}
+        loading={loading}
+        disableClose={loading}
+      >
+        <div style={{ maxHeight: '70vh', paddingRight: '8px', paddingBottom: '8px' }}>
+          <style>{`
+            .goldBadgeSmall {
+              background: linear-gradient(90deg, #dfa91b 0%, #ffeb9b 50%, #dfa91b 100%);
+              background-size: 200% auto;
+              border-radius: 50%;
+              padding: 8px;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              animation: shimmerGold 3s linear infinite;
+              box-shadow: 0 2px 8px rgba(223, 169, 27, 0.4);
+              position: absolute;
+              top: -8px;
+              right: -8px;
+              z-index: 2;
+            }@keyframes shimmerGold {
+              0% { background-position: 0% center; }
+              100% { background-position: -200% center; }
+            }
+          `}</style>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+            <div style={{ position: 'relative', width: '88px', height: '88px', flexShrink: 0 }}>
+              {currentLogo ? (
+                <img src={currentLogo} alt="Logo" style={{ width: '100%', height: '100%', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--primary-color)' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', borderRadius: '8px', backgroundColor: 'var(--primary-color-light, #e6f0fa)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--primary-color)' }}>
+                  <i className='bx bxs-building' style={{ color: 'var(--primary-color, #3182ce)', fontSize: '44px' }}></i>
+                </div>
+              )}
             </div>
-            {!isEmployeeSession && (
-              <div style={{ display: 'flex', flexDirection: 'row', gap: '8px' }}>
-                <Boton 
-                  label={currentLogo ? "Cambiar Logo" : "Agregar Logo"} 
-                  className="btn-cancel" 
-                  iconName={currentLogo ? "upload" : "plus"}
-                  readOnly={isEmployeeSession}
-                  onClick={() => { if (!isEmployeeSession) fileInputRef.current?.click(); }}
-                  style={{ flex: 1 }}
-                />
-                <BotonIcon 
-                  className="btn-error" 
-                  iconName="trash"
-                  tooltip="Eliminar Logo"
-                  tooltipAlign="end"
-                  readOnly={!currentLogo || isEmployeeSession} 
-                  onClick={() => { 
-                    if (!isEmployeeSession) {
-                      if (previewLogo) {
-                        setPreviewLogo(null);
-                      } else {
-                        setLogoRemoved(true);
-                      }
-                    }
-                  }}
-                />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className={inputStyles.switchLabel} style={{ fontSize: '14px', margin: 0 }}>
+                    {isEmployeeSession ? `${employeeInfo?.first_name || ''} ${employeeInfo?.last_name || ''}`.trim() : `${userFirstName} ${userLastName}`.trim()}
+                  </span>
+                </div>
+                <p className={inputStyles.subtitle} style={{ fontSize: '12px' }}>
+                  {isEmployeeSession ? (employeeInfo?.codigo || '') : userEmail}
+                </p>
               </div>
-            )}
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              style={{ display: 'none' }} 
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (event) => {
-                    const base64 = event.target.result;
-                    const img = new Image();
-                    img.onload = () => {
-                      const ratio = img.width / img.height;
-                      if (ratio < 0.8 || ratio > 1.25) {
-                        showDanger(null, 'La imagen debe ser similar a un cuadrado');
-                      } else {
-                        setPreviewLogo(base64);
-                        setLogoRemoved(false);
+              {!isEmployeeSession && (
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '8px' }}>
+                  <Boton 
+                    label={currentLogo ? "Cambiar Logo" : "Agregar Logo"} 
+                    className="btn-cancel" 
+                    iconName={currentLogo ? "upload" : "plus"}
+                    readOnly={isEmployeeSession}
+                    onClick={() => { if (!isEmployeeSession) fileInputRef.current?.click(); }}
+                    style={{ flex: 1 }}
+                  />
+                  <BotonIcon 
+                    className="btn-error" 
+                    iconName="trash"
+                    tooltip="Eliminar Logo"
+                    tooltipAlign="end"
+                    readOnly={!currentLogo || isEmployeeSession} 
+                    onClick={() => { 
+                      if (!isEmployeeSession) {
+                        if (previewLogo) {
+                          setPreviewLogo(null);
+                        } else {
+                          setLogoRemoved(true);
+                        }
                       }
+                    }}
+                  />
+                </div>
+              )}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      const base64 = event.target.result;
+                      const img = new Image();
+                      img.onload = () => {
+                        const ratio = img.width / img.height;
+                        if (ratio < 0.8 || ratio > 1.25) {
+                          showDanger(null, 'La imagen debe ser similar a un cuadrado');
+                        } else {
+                          setPreviewLogo(base64);
+                          setLogoRemoved(false);
+                        }
+                      };
+                      img.src = base64;
                     };
-                    img.src = base64;
-                  };
-                  reader.readAsDataURL(file);
-                  e.target.value = '';
-                }
-              }}
-            />
+                    reader.readAsDataURL(file);
+                    e.target.value = '';
+                  }
+                }}
+              />
+            </div>
           </div>
+
+          {isEmployeeSession ? renderEmployeeContent() : renderUserContent()}
         </div>
+      </ModalLateral>
 
-
-        {/* 
-            <ColumnInfo 
-                items={[{ text: getTipoEmpresa(), icon: 'store-alt' }]} 
-                hasBorder={true}
-            />
-        */}
-
-
-        {isEmployeeSession ? renderEmployeeContent() : renderUserContent()}
-      </div>
-    </ModalLateral>
+      <ModalInformacion
+        isOpen={isVersionDetailsOpen}
+        onClose={() => setIsVersionDetailsOpen(false)}
+        info={{ ...UPDATE_INFO, version: currentVersion }}
+      />
+    </>
   );
 };
 
-export default ModalConfiguracion;
+export default ModalPerfil;

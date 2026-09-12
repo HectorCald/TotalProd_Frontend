@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ModalLateral from '../../../../components/common/modals/ModalLateral';
 import Input from '../../../../components/common/inputs/Input';
-import { getFullTimestamp } from '../../../../utils/dateUtils';
 import InputFecha from '../../../../components/common/inputs/InputFecha';
 import { useToast } from '../../../../context/ToastContext';
 import deudasService from '../../../../services/deudasService';
@@ -55,7 +54,7 @@ const AgregarPagoParcial = ({ isOpen, onClose, deuda, onPagoRegistrado }) => {
         try {
             const response = await deudasService.createPagoParcial(deuda.id, {
                 monto: montoNum,
-                fecha: getFullTimestamp(pagoForm.fecha),
+                fecha: pagoForm.fecha,
                 detalle: pagoForm.detalle?.trim() || null
             });
 

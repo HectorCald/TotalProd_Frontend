@@ -47,6 +47,7 @@ const EliminarPago = ({ isOpen, onClose, pagoSeleccionado, onEliminar }) => {
             onClose={handleClose}
             title="Eliminar pago"
             mensaje={`¿Estás seguro de que deseas eliminar el pago por concepto de ${pagoSeleccionado?.concepto}?`}
+            detalle="Esta acción es irreversible y no podrás recuperar la información de este pago una vez eliminado"
             confirmText="Eliminar"
             confirmColorClass="btn-error"
             onConfirm={handleConfirm}
@@ -58,7 +59,7 @@ const EliminarPago = ({ isOpen, onClose, pagoSeleccionado, onEliminar }) => {
             <Mensaje
                 type="warning"
                 title="Advertencia"
-                message="Nota: Los pagos generadas automáticamente por compras, ingresos o movimientos de almacén no pueden eliminarse por esta vía; para ello debe anular el movimiento correspondiente."
+                message="Los pagos generados automáticamente por compras, ingresos o movimientos de almacén no pueden eliminarse por esta vía, para ello debe anular el movimiento correspondiente."
             />
 
         </ModalCentro>

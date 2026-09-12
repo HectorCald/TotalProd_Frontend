@@ -1,0 +1,83 @@
+.container {
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+.title {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--secondary-color);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.list {
+    overflow-y: auto;
+}
+
+.item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--quaternary-color);
+    margin-bottom: 10px;
+}
+
+.itemContent {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.itemHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.itemAmount {
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.itemDate {
+    font-size: 12.5px;
+    color: var(--secondary-color);
+    font-weight: 500;
+}
+
+.itemDetail {
+    font-size: 12.5px;
+    color: var(--tertiary-color);
+    word-break: break-word;
+}
+
+.deleteButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--error-color, #e53935);
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s;
+    flex-shrink: 0;
+}
+
+.deleteButton:hover:not(:disabled) {
+    background-color: rgba(229, 57, 53, 0.08);
+}
+
+.deleteButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}

@@ -33,6 +33,20 @@ export const getEmpresaId = () => {
   return localStorage.getItem('empresa_id') || null;
 };
 
+// Función helper para obtener personal_id del token
+export const getPersonalId = () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.id || null;
+    } catch (error) {
+      console.error('Error parsing token:', error);
+    }
+  }
+  return null;
+};
+
 class apiClient {
   /**
    * Realiza una petición fetch añadiendo automáticamente headers y sucu_id o empresa_id si corresponde.

@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
@@ -18,13 +17,12 @@ import ViewInfo from './modals/ViewInfo';
 
 const LiteralDateCell = ({ dateStr }) => {
   const safeDateStr = dateStr && typeof dateStr === 'string' ? dateStr.substring(0, 10) : dateStr;
-  const literal = useFechaLiteral(safeDateStr, true);
+  const literal = useFechaLiteral(safeDateStr);
   return <span>{literal || (safeDateStr ? new Date(safeDateStr + 'T00:00:00').toLocaleDateString() : '')}</span>;
 };
 
 const Pagos = () => {
   const { isLargeScreen } = useLayout();
-  const location = useLocation();
   const { formatPrice } = useFormatNumber();
 
   const [pagos, setPagos] = useState([]);
@@ -70,43 +68,7 @@ const Pagos = () => {
     setFiltroFecha(range);
   };
 
-  const dynamicFilters = useMemo(() => [
-    {
-      id: 'sort_order',
-      title: 'Ordenamiento',
-      singleSelect: true,
-      options: [
-        { label: 'Más recientes primero', value: 'desc' },
-        { label: 'Más antiguos primero', value: 'asc' }
-      ]
-    },
-    {
-      id: 'metodo_pago',
-      title: 'Método de Pago',
-      singleSelect: true,
-      options: [
-        { label: 'Efectivo', value: 'efectivo' },
-        { label: 'Transferencia', value: 'transferencia' },
-        { label: 'Tarjeta', value: 'tarjeta' },
-        { label: 'QR', value: 'qr' },
-        { label: 'Crédito', value: 'credito' }
-      ]
-    },
-    {
-      id: 'proveedor_id',
-      title: 'Proveedores'
-    },
-    {
-      id: 'fecha',
-      title: 'Fecha',
-      type: 'date'
-    }
-  ], []);
-
-  // Resetear página cuando cambia la ruta
-  useEffect(() => {
-    setPage(1);
-  }, [location.pathname]);
+  const dynamicFilters = useMemo(() => ['sort_order', 'metodo_pago', 'proveedor_id', 'fecha'], []);
 
   // Resetear página y limpiar pagos cuando cambian los filtros o la búsqueda
   useEffect(() => {
@@ -161,20 +123,6 @@ const Pagos = () => {
     }
   };
 
-  const tableActions = [
-    {
-      name: 'Editar', icon: 'edit', onClick: (pago) => {
-        setPagoEditando(pago);
-        setModalAgregarEditarOpen(true);
-      }
-    },
-    {
-      name: 'Eliminar', icon: 'trash', onClick: (pago) => {
-        setPagoEliminar(pago);
-        setModalEliminarOpen(true);
-      }
-    }
-  ];
 
   const columns = [
     {
@@ -192,7 +140,7 @@ const Pagos = () => {
     {
       header: 'Proveedor',
       accessor: 'proveedor',
-      width: '20%',
+      width: '25%',
       render: (row) => row.proveedor?.name || '--'
     },
     {
@@ -221,7 +169,6 @@ const Pagos = () => {
             columns={columns}
             isLoading={isLoading}
             isLoadingMore={isLoadingMore}
-            acciones={tableActions}
             buttonLabel="Nuevo Pago"
             onButtonClick={() => {
               setPagoEditando(null);
@@ -278,6 +225,9 @@ const Pagos = () => {
             }
             return [nuevoPago, ...prev];
           });
+          if (pagoSeleccionado && pagoSeleccionado.id === nuevoPago.id) {
+            setPagoSeleccionado(prev => ({ ...prev, ...nuevoPago }));
+          }
         }}
       />
 

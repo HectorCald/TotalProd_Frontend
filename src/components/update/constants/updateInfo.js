@@ -2,7 +2,8 @@ export const UPDATE_INFO = {
     version: '1.2.0',
     date: '21 de Julio del 2026',
     title: '¡Nueva actualización!',
-    description: 'Hemos añadido nuevas funciones y mejoras al sistema para brindarte una mejor experiencia.',
+    description: 'Hemos añadido nuevas funciones y mejoras al sistema para brindarte una mejor experiencia. Para ver más detalles, dirígete a tu Perfil y selecciona "Detalles de la versión".',
+    descriptionDetails: 'Hemos añadido nuevas funciones y mejoras al sistema para brindarte una mejor experiencia.',
     cambios: [],
     nuevasFunciones: [
         'Configuración de modalidad de venta disponible en los ajustes del sistema.'

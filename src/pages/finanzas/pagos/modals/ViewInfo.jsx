@@ -55,27 +55,6 @@ const ViewInfo = ({ isOpen, onClose, pago, onEdit, onEliminar }) => {
 
     if (!pago) return null;
 
-    const tags = [
-        {
-            text: pago.metodo_pago ? pago.metodo_pago.charAt(0).toUpperCase() + pago.metodo_pago.slice(1) : 'Método de pago',
-            icon: 'money',
-            label: 'Método de pago'
-        },
-        pago.proveedor ? {
-            text: pago.proveedor.name || 'Proveedor',
-            icon: 'building',
-            label: 'Proveedor'
-        } : null,
-    ].filter(Boolean);
-
-    const stats = [
-        {
-            label: 'Valor Total',
-            value: `Bs. ${formatPrice(pago.valor)}`,
-            icon: ''
-        }
-    ];
-
     const handleVerMovimiento = async () => {
         if (!pago.movimiento_entrada_id) return;
         setLoadingMovimiento(true);
@@ -120,7 +99,6 @@ const ViewInfo = ({ isOpen, onClose, pago, onEdit, onEliminar }) => {
             title=""
             confirmText="Editar"
             onConfirm={() => {
-                onClose();
                 if (onEdit) onEdit(pago);
             }}
             hideFooter={true}
@@ -132,15 +110,26 @@ const ViewInfo = ({ isOpen, onClose, pago, onEdit, onEliminar }) => {
                     icon="wallet"
                     customBlock={
                         <>
-                            {tags.length > 0 && (
-                                <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
-                            )}
-                            {stats.length > 0 && (
-                                <ColumnInfo 
-                                    title="Detalles"
-                                    items={stats.map(s => ({ clave: s.label, valor: s.value }))}
-                                />
-                            )}
+                            <ColumnInfo 
+                                items={[
+                                    pago.metodo_pago && { 
+                                        icon: 'money', 
+                                        text: pago.metodo_pago.charAt(0).toUpperCase() + pago.metodo_pago.slice(1) 
+                                    },
+                                    pago.proveedor && { 
+                                        icon: 'building', 
+                                        text: pago.proveedor.name 
+                                    }
+                                ].filter(Boolean)} 
+                            />
+                            <ColumnInfo 
+                                title="Finanzas"
+                                items={[
+                                    { clave: 'Monto', valor: `Bs. ${formatPrice(pago.valor)}` }
+                                ]}
+                                finance={true}
+                                financeTotal={`Bs. ${formatPrice(pago.valor)}`}
+                            />
                         </>
                     }
                     actionButton={
@@ -151,7 +140,6 @@ const ViewInfo = ({ isOpen, onClose, pago, onEdit, onEliminar }) => {
                                 className="btn-primary"
                                 style={{ flex: 1 }}
                                 onClick={() => {
-                                    onClose();
                                     if (onEdit) onEdit(pago);
                                 }}
                             />
