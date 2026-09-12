@@ -160,7 +160,7 @@ const Categorias = () => {
         }}
         iconName="plus"
         ariaLabel="Nueva Categoría"
-        style={{ bottom: !isLargeScreen ? '80px' : undefined }}
+        style={{ bottom: !isLargeScreen ? '100px' : undefined }}
       />
 
       <AgregarEditarCategoria

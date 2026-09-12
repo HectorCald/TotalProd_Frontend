@@ -92,7 +92,7 @@ const Precios = () => {
         }}
         iconName="plus"
         ariaLabel="Nuevo Tipo de Precio"
-        style={{ bottom: !isLargeScreen ? '80px' : undefined }}
+        style={{ bottom: !isLargeScreen ? '100px' : undefined }}
       />
 
       {/* Modal para agregar o editar precio */}
