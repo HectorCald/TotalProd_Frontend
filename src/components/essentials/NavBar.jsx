@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './NavBar.module.css';
 import LogoAnimation from './LogoAnimation';
 import { useLayout } from '../../context/LayoutContext';
@@ -14,6 +14,8 @@ import { SideConfigOptions } from '../../constants/SideConfigOptions';
 
 const NavBar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
   const { toggleSidebar, sidebarCollapsed, isLargeScreen } = useLayout();
   const { user: userInfo, loading: userLoading, sucursalSeleccionada: userSucursal, seleccionarSucursal: seleccionarUserSucursal } = useUser();
   const { employee: employeeInfo, loading: employeeLoading, sucursalSeleccionada: employeeSucursal, seleccionarSucursal: seleccionarEmployeeSucursal } = useEmployee();
@@ -318,19 +320,22 @@ const NavBar = () => {
                       <span>Configuración</span>
                     </button>
                     <div className={styles.dropdownDivider} />
-                    {visibleConfigOptions.map((opt) => (
-                      <button
-                        key={`config-opt-${opt.id}`}
-                        className={styles.dropdownItem}
-                        onClick={() => {
-                          navigate(opt.route);
-                          setIsDropdownOpen(false);
-                          setDropdownView('main');
-                        }}
-                      >
-                        <i className={`bx bx-${opt.icon}`}></i> {opt.title}
-                      </button>
-                    ))}
+                    {visibleConfigOptions.map((opt) => {
+                      const isActive = currentPath === opt.route || (opt.route !== '/' && currentPath.startsWith(opt.route));
+                      return (
+                        <button
+                          key={`config-opt-${opt.id}`}
+                          className={`${styles.dropdownItem} ${isActive ? styles.active : ''}`}
+                          onClick={() => {
+                            navigate(opt.route);
+                            setIsDropdownOpen(false);
+                            setDropdownView('main');
+                          }}
+                        >
+                          <i className={`bx bx-${opt.icon}`}></i> {opt.title}
+                        </button>
+                      );
+                    })}
                     {visibleConfigOptions.length === 0 && (
                       <div className={styles.dropdownEmpty}>Sin opciones disponibles</div>
                     )}

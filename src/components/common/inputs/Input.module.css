@@ -289,14 +289,23 @@
   transition: background-color 0.15s ease;
 }
 
-.option:hover {
-  background: var(--primary-color-light);
-  color: var(--primary-color);
+@media (hover: hover) and (min-width: 1025px) {
+  .option:hover {
+    background: var(--primary-color-light);
+    color: var(--primary-color);
+  }
 }
 
 .optionSelected {
   background: var(--primary-color-light);
   color: var(--primary-color);
+}
+
+@media (max-width: 1024px), (hover: none) {
+  .option:hover:not(.optionSelected) {
+    background: transparent !important;
+    color: var(--secondary-color) !important;
+  }
 }
 
 .dropdownUp {
