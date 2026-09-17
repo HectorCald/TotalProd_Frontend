@@ -141,6 +141,7 @@ const Organigrama = () => {
 
   // Manejo de zoom con la rueda del ratón (solo en el div del canvas)
   useEffect(() => {
+    if (isLoadingPersonal) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -165,10 +166,13 @@ const Organigrama = () => {
 
     canvas.addEventListener('wheel', handleWheel, { passive: false });
     return () => canvas.removeEventListener('wheel', handleWheel);
-  }, []);
+  }, [isLoadingPersonal]);
 
   // Manejo unificado de pan y pinch-zoom con Pointer Events (funciona en mouse y touch)
+  const isDraggingRef = useRef(false);
+
   useEffect(() => {
+    if (isLoadingPersonal) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -192,6 +196,8 @@ const Organigrama = () => {
     let globalMoveCleanup = null;
 
     const attachGlobalListeners = () => {
+      if (globalMoveCleanup) return;
+
       const onWindowMove = (e) => {
         if (!activePointers.has(e.pointerId)) return;
         activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -199,11 +205,15 @@ const Organigrama = () => {
         if (activePointers.size === 1 && panStart) {
           const dx = e.clientX - panStart.startX;
           const dy = e.clientY - panStart.startY;
+          if (Math.hypot(dx, dy) > 5) {
+            isDraggingRef.current = true;
+          }
           setPan({
             x: Math.round(panStart.initPanX + dx),
             y: Math.round(panStart.initPanY + dy),
           });
         } else if (activePointers.size === 2 && pinchState) {
+          isDraggingRef.current = true;
           const pts = Array.from(activePointers.values());
           const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
           const midX = (pts[0].x + pts[1].x) / 2;
@@ -229,6 +239,7 @@ const Organigrama = () => {
       };
 
       const onWindowUp = (e) => {
+        if (!activePointers.has(e.pointerId)) return;
         activePointers.delete(e.pointerId);
 
         if (activePointers.size === 0) {
@@ -236,6 +247,9 @@ const Organigrama = () => {
           pinchState = null;
           setIsPanning(false);
           detachGlobalListeners();
+          setTimeout(() => {
+            isDraggingRef.current = false;
+          }, 50);
         } else if (activePointers.size === 1) {
           // Pinch → pan: reiniciar con el dedo que queda
           const [remaining] = activePointers.values();
@@ -269,6 +283,7 @@ const Organigrama = () => {
     // ─────────────────────────────────────────────────────────────────────
 
     const handlePointerDown = (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (isInteractiveEl(e.target)) return;
 
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -300,7 +315,7 @@ const Organigrama = () => {
       canvas.removeEventListener('pointerdown', handlePointerDown);
       detachGlobalListeners();
     };
-  }, []);
+  }, [isLoadingPersonal]);
 
 
   const handleZoomIn = () => {
@@ -827,7 +842,14 @@ const Organigrama = () => {
             /* Cuadrante vacío con símbolo + */
             <div
               className={styles.emptyCard}
-              onClick={isReadOnly ? undefined : () => setActiveSelectNodeId(node.id)}
+              onClick={
+                isReadOnly
+                  ? undefined
+                  : () => {
+                      if (isDraggingRef.current) return;
+                      setActiveSelectNodeId(node.id);
+                    }
+              }
               style={isReadOnly ? { cursor: 'default', opacity: 0.7 } : {}}
               title={isReadOnly ? undefined : "Click para asignar personal o administrador"}
             >

@@ -34,6 +34,7 @@
   align-items: flex-start;
   transform-origin: 50% 40px;
   padding: 40px 60px 80px 60px;
+  touch-action: none;
 }
 
 @media (max-width: 1024px) {
