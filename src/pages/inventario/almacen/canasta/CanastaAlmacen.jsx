@@ -317,7 +317,11 @@ const CanastaAlmacen = ({
           />
         </div>
       )}
+    </div>
+  );
 
+  const modals = (
+    <>
       <ConfirmacionVenta 
         isOpen={modalVentaOpen}
         onClose={() => setModalVentaOpen(false)}
@@ -358,19 +362,29 @@ const CanastaAlmacen = ({
         vaciarCanasta={vaciarCanasta}
         modoAgrupacion={modoAgrupacion}
       />
-    </div>
+    </>
   );
 
   if (!isLargeScreen) {
-    return createPortal(
-      <div className={modalStyles.overlay} onClick={onClose}>
-        {content}
-      </div>,
-      document.body
+    return (
+      <>
+        {createPortal(
+          <div className={modalStyles.overlay} onClick={onClose}>
+            {content}
+          </div>,
+          document.body
+        )}
+        {modals}
+      </>
     );
   }
 
-  return content;
+  return (
+    <>
+      {content}
+      {modals}
+    </>
+  );
 };
 
 export default CanastaAlmacen;

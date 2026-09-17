@@ -5,7 +5,7 @@
   width: 100vw;
   height: 100vh;
   background-color: rgba(0, 0, 0, 0.4);
-  z-index: 10050; /* Higher than ModalLateral's 10000 */
+  z-index: 10200; /* Higher than ModalCentro's 10100 and ModalLateral's 10010 */
   display: flex;
   justify-content: center;
   align-items: center;
