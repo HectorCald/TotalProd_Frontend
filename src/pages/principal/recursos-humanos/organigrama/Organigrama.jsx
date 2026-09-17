@@ -108,7 +108,6 @@ const Organigrama = () => {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const panRef = useRef(pan);
   panRef.current = pan;
@@ -168,203 +167,141 @@ const Organigrama = () => {
     return () => canvas.removeEventListener('wheel', handleWheel);
   }, []);
 
-  // Manejo de gestos táctiles (desplazamiento con un dedo y pellizcar para zoom con dos dedos)
+  // Manejo unificado de pan y pinch-zoom con Pointer Events (funciona en mouse y touch)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let touchData = {
-      mode: null,
-      startX: 0,
-      startY: 0,
-      initialPanX: 0,
-      initialPanY: 0,
-      initialDistance: 0,
-      initialZoom: 1,
-      initialMidpoint: { x: 0, y: 0 },
-      hasMoved: false,
-    };
+    // Mapa de punteros activos (touch: múltiples; mouse: solo 1)
+    const activePointers = new Map();
+    let panStart = null;   // { startX, startY, initPanX, initPanY }
+    let pinchState = null; // { lastDist, lastMidX, lastMidY }
 
-    const getDistance = (t1, t2) => {
-      return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-    };
+    const isInteractiveEl = (target) =>
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest(`[class*="selectWrapper"]`) ||
+      target.closest(`[class*="zoomControls"]`) ||
+      target.closest('[role="listbox"]') ||
+      target.closest('[role="option"]') ||
+      target.closest('ul') ||
+      target.closest('li') ||
+      target.closest('a');
 
-    const getMidpoint = (t1, t2) => {
-      return {
-        x: (t1.clientX + t2.clientX) / 2,
-        y: (t1.clientY + t2.clientY) / 2,
+    // ── Listeners globales registrados dinámicamente ──────────────────────
+    let globalMoveCleanup = null;
+
+    const attachGlobalListeners = () => {
+      const onWindowMove = (e) => {
+        if (!activePointers.has(e.pointerId)) return;
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (activePointers.size === 1 && panStart) {
+          const dx = e.clientX - panStart.startX;
+          const dy = e.clientY - panStart.startY;
+          setPan({
+            x: Math.round(panStart.initPanX + dx),
+            y: Math.round(panStart.initPanY + dy),
+          });
+        } else if (activePointers.size === 2 && pinchState) {
+          const pts = Array.from(activePointers.values());
+          const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+          const midX = (pts[0].x + pts[1].x) / 2;
+          const midY = (pts[0].y + pts[1].y) / 2;
+
+          const factor = dist / pinchState.lastDist;
+          setZoom((prev) => {
+            const next = Math.min(Math.max(prev * factor, 0.4), 2.0);
+            return Number(next.toFixed(3));
+          });
+
+          const ddx = midX - pinchState.lastMidX;
+          const ddy = midY - pinchState.lastMidY;
+          setPan((prev) => ({
+            x: Math.round(prev.x + ddx),
+            y: Math.round(prev.y + ddy),
+          }));
+
+          pinchState.lastDist = dist || 1;
+          pinchState.lastMidX = midX;
+          pinchState.lastMidY = midY;
+        }
+      };
+
+      const onWindowUp = (e) => {
+        activePointers.delete(e.pointerId);
+
+        if (activePointers.size === 0) {
+          panStart = null;
+          pinchState = null;
+          setIsPanning(false);
+          detachGlobalListeners();
+        } else if (activePointers.size === 1) {
+          // Pinch → pan: reiniciar con el dedo que queda
+          const [remaining] = activePointers.values();
+          panStart = {
+            startX: remaining.x,
+            startY: remaining.y,
+            initPanX: panRef.current.x,
+            initPanY: panRef.current.y,
+          };
+          pinchState = null;
+        }
+      };
+
+      window.addEventListener('pointermove', onWindowMove);
+      window.addEventListener('pointerup', onWindowUp);
+      window.addEventListener('pointercancel', onWindowUp);
+
+      globalMoveCleanup = () => {
+        window.removeEventListener('pointermove', onWindowMove);
+        window.removeEventListener('pointerup', onWindowUp);
+        window.removeEventListener('pointercancel', onWindowUp);
       };
     };
 
-    const isInteractive = (target) => {
-      return (
-        target.closest(`.${styles.selectWrapper}`) ||
-        target.closest(`.${styles.zoomControls}`) ||
-        target.closest('[role="listbox"]') ||
-        target.closest('ul') ||
-        target.closest('li')
-      );
+    const detachGlobalListeners = () => {
+      if (globalMoveCleanup) {
+        globalMoveCleanup();
+        globalMoveCleanup = null;
+      }
     };
+    // ─────────────────────────────────────────────────────────────────────
 
-    const handleTouchStart = (e) => {
-      if (isInteractive(e.target)) return;
+    const handlePointerDown = (e) => {
+      if (isInteractiveEl(e.target)) return;
 
-      // Prevenir scroll del contenedor padre desde el primer toque
-      e.preventDefault();
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      if (e.touches.length === 1) {
-        const t = e.touches[0];
-        touchData = {
-          mode: 'pan',
-          startX: t.clientX,
-          startY: t.clientY,
-          initialPanX: panRef.current.x,
-          initialPanY: panRef.current.y,
-          initialDistance: 0,
-          initialZoom: zoomRef.current,
-          initialMidpoint: { x: 0, y: 0 },
-          hasMoved: false,
+      if (activePointers.size === 1) {
+        panStart = {
+          startX: e.clientX,
+          startY: e.clientY,
+          initPanX: panRef.current.x,
+          initPanY: panRef.current.y,
         };
+        pinchState = null;
         setIsPanning(true);
-      } else if (e.touches.length === 2) {
-        const t1 = e.touches[0];
-        const t2 = e.touches[1];
-        const dist = getDistance(t1, t2);
-        const mid = getMidpoint(t1, t2);
-        touchData = {
-          mode: 'pinch',
-          startX: mid.x,
-          startY: mid.y,
-          initialPanX: panRef.current.x,
-          initialPanY: panRef.current.y,
-          initialDistance: dist > 0 ? dist : 1,
-          initialZoom: zoomRef.current,
-          initialMidpoint: mid,
-          hasMoved: true,
-        };
+        attachGlobalListeners();
+      } else if (activePointers.size === 2) {
+        const pts = Array.from(activePointers.values());
+        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        const midX = (pts[0].x + pts[1].x) / 2;
+        const midY = (pts[0].y + pts[1].y) / 2;
+        pinchState = { lastDist: dist || 1, lastMidX: midX, lastMidY: midY };
+        panStart = null;
         setIsPanning(true);
       }
     };
 
-    const handleTouchMove = (e) => {
-      // Si el modo es pan o pinch, prevenir scroll del padre SIEMPRE (no condicionalmente)
-      if (touchData.mode === 'pan' || touchData.mode === 'pinch') {
-        e.preventDefault();
-      }
-
-      if (isInteractive(e.target) && touchData.mode !== 'pinch') return;
-
-      if (e.touches.length === 1 && touchData.mode === 'pan') {
-        const t = e.touches[0];
-        const dx = t.clientX - touchData.startX;
-        const dy = t.clientY - touchData.startY;
-
-        if (!touchData.hasMoved && Math.hypot(dx, dy) > 3) {
-          touchData.hasMoved = true;
-        }
-
-        if (touchData.hasMoved) {
-          setPan({
-            x: Math.round(touchData.initialPanX + dx),
-            y: Math.round(touchData.initialPanY + dy),
-          });
-        }
-      } else if (e.touches.length === 2) {
-        const t1 = e.touches[0];
-        const t2 = e.touches[1];
-        const dist = getDistance(t1, t2);
-        const mid = getMidpoint(t1, t2);
-
-        if (touchData.mode !== 'pinch') {
-          touchData = {
-            mode: 'pinch',
-            startX: mid.x,
-            startY: mid.y,
-            initialPanX: panRef.current.x,
-            initialPanY: panRef.current.y,
-            initialDistance: dist > 0 ? dist : 1,
-            initialZoom: zoomRef.current,
-            initialMidpoint: mid,
-            hasMoved: true,
-          };
-          setIsPanning(true);
-          return;
-        }
-
-        const factor = dist / touchData.initialDistance;
-        const nextZoom = Math.min(Math.max(touchData.initialZoom * factor, 0.4), 2.0);
-        setZoom(Number(nextZoom.toFixed(2)));
-
-        const midDx = mid.x - touchData.initialMidpoint.x;
-        const midDy = mid.y - touchData.initialMidpoint.y;
-        setPan({
-          x: Math.round(touchData.initialPanX + midDx),
-          y: Math.round(touchData.initialPanY + midDy),
-        });
-      }
-    };
-
-    const handleTouchEnd = (e) => {
-      if (e.touches.length === 0) {
-        touchData.mode = null;
-        setIsPanning(false);
-      } else if (e.touches.length === 1) {
-        const t = e.touches[0];
-        touchData = {
-          mode: 'pan',
-          startX: t.clientX,
-          startY: t.clientY,
-          initialPanX: panRef.current.x,
-          initialPanY: panRef.current.y,
-          initialDistance: 0,
-          initialZoom: zoomRef.current,
-          initialMidpoint: { x: 0, y: 0 },
-          hasMoved: false,
-        };
-        setIsPanning(true);
-      }
-    };
-
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    canvas.addEventListener('pointerdown', handlePointerDown);
 
     return () => {
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
-      canvas.removeEventListener('touchcancel', handleTouchEnd);
+      canvas.removeEventListener('pointerdown', handlePointerDown);
+      detachGlobalListeners();
     };
   }, []);
 
-  // Manejo de arrastre (pan)
-  const handleMouseDown = (e) => {
-    if (e.button !== 0) return;
-    if (
-      e.target.closest(`.${styles.selectWrapper}`) ||
-      e.target.closest(`.${styles.card}`) ||
-      e.target.closest(`.${styles.emptyCard}`) ||
-      e.target.closest(`.${styles.zoomControls}`) ||
-      e.target.closest('button, input, [role="button"], a, select, [role="listbox"], [role="option"], li, ul')
-    ) {
-      return;
-    }
-    setIsPanning(true);
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isPanning) return;
-    setPan({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsPanning(false);
-  };
 
   const handleZoomIn = () => {
     setZoom((z) => Math.min(Number((z + 0.1).toFixed(2)), 2.0));
@@ -1070,11 +1007,7 @@ const Organigrama = () => {
               <div
                 className={styles.canvasContainer}
                 ref={canvasRef}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
+                style={{ cursor: isPanning ? 'grabbing' : 'grab', touchAction: 'none' }}
               >
                 <div
                   className={styles.transformArea}
