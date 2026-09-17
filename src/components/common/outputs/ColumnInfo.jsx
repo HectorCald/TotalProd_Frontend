@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './ColumnInfo.module.css';
 
-const ColumnInfo = ({ title, items = [], hasBorder = true, finance = false, financeLabel = 'Total:', financeTotal, variant = 'default' }) => {
+const ColumnInfo = ({ title, items = [], hasBorder = true, finance = false, financeLabel = 'Total:', financeTotal, variant = 'default', noScroll = false }) => {
     if (!items || items.length === 0) return null;
 
     if (variant === 'changes') {
@@ -20,7 +20,7 @@ const ColumnInfo = ({ title, items = [], hasBorder = true, finance = false, fina
     return (
         <div className={`${styles.container} ${hasBorder ? styles.withBorder : ''}`}>
             {title && <h4 className={styles.title}>{title}</h4>}
-            <div className={styles.list}>
+            <div className={styles.list} style={noScroll ? { maxHeight: 'none', overflowY: 'visible', paddingRight: 0 } : {}}>
                 {items.map((item, index) => (
                     <div key={index} className={styles.listItem}>
                         {item.icon && <i className={`bx bx-${item.icon} ${styles.icon}`}></i>}

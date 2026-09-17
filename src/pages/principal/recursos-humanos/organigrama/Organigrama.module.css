@@ -1,0 +1,485 @@
+.organigramaWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  flex: 1;
+}
+
+/* Lienzo con Pan & Zoom */
+.canvasContainer {
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  min-height: 600px;
+  height: calc(100vh - 160px);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  background-image: radial-gradient(#e2e8f0 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+
+.transformArea {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  transform-origin: 50% 40px;
+  padding: 40px 60px 80px 60px;
+}
+
+@media (max-width: 1024px) {
+  .organigramaWrapper {
+    height: 100%;
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .canvasContainer {
+    height: calc(100dvh - 175px);
+    max-height: calc(100vh - 175px);
+    min-height: unset;
+  }
+}
+
+@media (max-width: 768px) {
+  .canvasContainer {
+    border-radius: 8px;
+  }
+
+  .transformArea {
+    padding: 20px 20px 60px 20px;
+  }
+
+  .zoomControls {
+    bottom: 12px;
+    right: 12px;
+  }
+}
+
+/* Controles de Zoom y Centrado flotantes */
+.zoomControls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 4px;
+  gap: 2px;
+  z-index: 40;
+}
+
+.zoomBtn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: #475569;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.zoomBtn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.zoomTextBtn {
+  min-width: 44px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.zoomTextBtn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.zoomDivider {
+  width: 1px;
+  height: 18px;
+  background-color: #e2e8f0;
+  margin: 0 2px;
+}
+
+/* Organigram Tree structure */
+.treeRoot {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  margin: 0 auto;
+}
+
+.treeNode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.nodeCardWrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  z-index: 5;
+}
+
+/* Card Minimalista */
+.card {
+  width: 220px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+  padding: 14px;
+  margin: 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
+}
+
+.myCard {
+  border: 3px solid var(--primary-color, #3182ce) !important;
+  box-shadow: 0 0 0 4px var(--primary-color-light, rgba(49, 130, 206, 0.2)), 0 4px 14px rgba(49, 130, 206, 0.15) !important;
+}
+
+.meBadge {
+  background-color: var(--primary-color, #3182ce);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  margin-left: 6px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.avatarCircle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 15px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.deleteBtn:hover {
+  color: #ef4444;
+  background-color: #fee2e2;
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.personName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.personCargo {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.personSucursal {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.personEmail {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  word-break: break-all;
+}
+
+.cardActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.actionPill {
+  flex: 1;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 5px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.actionPill:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+/* Empty Card Minimalista con + */
+.emptyCard {
+  width: 220px;
+  min-height: 110px;
+  background-color: #f8fafc;
+  border-radius: 10px;
+  border: 1.5px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 14px;
+  margin: 0 14px;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+  position: relative;
+}
+
+.emptyCard:hover {
+  border-color: var(--primary-color, #2563eb);
+  background-color: #f1f5f9;
+  transform: translateY(-2px);
+}
+
+.deleteEmptyBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 16px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.deleteEmptyBtn:hover {
+  color: #ef4444;
+  background-color: #fee2e2;
+}
+
+.plusIconWrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #475569;
+}
+
+.emptyCard:hover .plusIconWrap {
+  border-color: var(--primary-color, #2563eb);
+  color: var(--primary-color, #2563eb);
+}
+
+.emptyText {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+}
+
+/* Selector inline box */
+.selectWrapper {
+  width: 250px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 12px;
+  margin: 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+}
+
+.selectHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.closeSelectBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.closeSelectBtn:hover {
+  color: #ef4444;
+}
+
+/* Conectores Jerárquicos Continuos y Conectados */
+.childrenSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.parentLineDown {
+  width: 2px;
+  height: 20px;
+  background-color: #94a3b8;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.childrenWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  width: 100%;
+}
+
+.childBranch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 0;
+}
+
+.connectorContainer {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.childLineDown {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 20px;
+  background-color: #94a3b8;
+  z-index: 1;
+}
+
+.railSegment {
+  position: absolute;
+  top: 0;
+  height: 2px;
+  background-color: #94a3b8;
+  z-index: 1;
+}
+
+.railFirst {
+  left: 50%;
+  right: 0;
+}
+
+.railMiddle {
+  left: 0;
+  right: 0;
+}
+
+.railLast {
+  left: 0;
+  width: 50%;
+}

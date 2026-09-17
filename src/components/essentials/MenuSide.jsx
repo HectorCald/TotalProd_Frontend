@@ -28,7 +28,7 @@ const MenuSide = () => {
         { id: 'home', title: 'Inicio', icon: 'home', route: '/home' },
         { id: 'balance', title: 'Balance', icon: 'bar-chart-alt', route: '/balance' },
         { id: 'almacen-gestionar', title: 'Inventario', icon: 'package', route: '/almacen/gestionar' },
-        { id: 'deudas', title: 'Deudas', icon: 'receipt', route: '/deudas' }
+        { id: 'planificador', title: 'Planificador', icon: 'calendar', route: '/recursos-humanos/planificador' }
       );
       hasVender = true;
     } else {
@@ -48,8 +48,15 @@ const MenuSide = () => {
         availableLeftItems.push({ id: 'almacen-gestionar', title: 'Inventario', icon: 'package', route: '/almacen/gestionar' });
       }
 
+      const hasPlanificador = usuario.modules.some(m =>
+        (m.modulos?.clave === 'recursos_humanos' && m.name === 'planificador') ||
+        m.modulos?.clave === 'planificador'
+      );
       const hasDeudas = usuario.modules.some(m => m.modulos?.clave === 'deudas');
-      if (hasDeudas) {
+
+      if (hasPlanificador) {
+        availableLeftItems.push({ id: 'planificador', title: 'Planificador', icon: 'calendar', route: '/recursos-humanos/planificador' });
+      } else if (hasDeudas) {
         availableLeftItems.push({ id: 'deudas', title: 'Deudas', icon: 'receipt', route: '/deudas' });
       }
 

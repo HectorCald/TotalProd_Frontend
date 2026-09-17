@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import ModalCentro from '../../../../components/common/modals/ModalCentro';
-import { useToast } from '../../../../context/ToastContext';
-import personalService from '../../../../services/personalService';
+import ModalCentro from '../../../../../components/common/modals/ModalCentro';
+import { useToast } from '../../../../../context/ToastContext';
+import personalService from '../../../../../services/personalService';
 
-const ResetPasswordPersonal = ({ isOpen, onClose, personalSeleccionado }) => {
+const EliminarPersonal = ({ isOpen, onClose, personalSeleccionado, onEliminar }) => {
     const { showSuccess, showDanger } = useToast();
 
     const [loading, setLoading] = useState(false);
@@ -16,12 +16,13 @@ const ResetPasswordPersonal = ({ isOpen, onClose, personalSeleccionado }) => {
 
         setLoading(true);
         try {
-            const response = await personalService.resetPassword(personalSeleccionado.id);
+            const response = await personalService.delete(personalSeleccionado.id);
 
             if (response.success) {
+                if (onEliminar) onEliminar(personalSeleccionado.id);
                 setLoading(false);
                 onClose(true);
-                showSuccess(null, response.message || 'Contraseña reseteada correctamente');
+                showSuccess(null, response.message || 'Personal eliminado correctamente');
             } else {
                 setLoading(false);
                 showDanger(null, response.message);
@@ -43,11 +44,11 @@ const ResetPasswordPersonal = ({ isOpen, onClose, personalSeleccionado }) => {
         <ModalCentro
             isOpen={isOpen}
             onClose={handleClose}
-            title="Resetear contraseña"
-            mensaje={`¿Estás seguro de que deseas resetear la contraseña de ${personalSeleccionado?.first_name} ${personalSeleccionado?.last_name}?`}
-            detalle="Se borrará la contraseña actual y el empleado podrá establecer una nueva ingresando con su código."
-            confirmText="Resetear"
-            confirmColorClass="btn-warning"
+            title="Eliminar personal"
+            mensaje={`¿Estás seguro de que deseas eliminar a ${personalSeleccionado?.first_name} ${personalSeleccionado?.last_name}?`}
+            detalle="Esta acción es irreversible y no podrás recuperar la información de este personal una vez eliminada."
+            confirmText="Eliminar"
+            confirmColorClass="btn-error"
             onConfirm={handleConfirm}
             loading={loading}
             disableClose={loading}
@@ -56,4 +57,4 @@ const ResetPasswordPersonal = ({ isOpen, onClose, personalSeleccionado }) => {
     );
 };
 
-export default ResetPasswordPersonal;
+export default EliminarPersonal;

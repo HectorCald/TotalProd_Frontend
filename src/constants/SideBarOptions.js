@@ -4,7 +4,16 @@ export const SideBarOptions = [
     isCollapsible: false,
     items: [
       { id: "home", title: "Inicio", icon: "home", route: "/home", MenuSide: true },
-      { id: "balance", title: "Balance", icon: "bar-chart-alt", route: "/balance", key: "balance", key_submenu: "ver_balance", MenuSide: true }
+      { id: "balance", title: "Balance", icon: "bar-chart-alt", route: "/balance", key: "balance", key_submenu: "ver_balance", MenuSide: true },
+      { id: "reportes", title: "Reportes", icon: "spreadsheet", route: "/reportes", isBuilding: true, builder: true },
+      {
+        id: "recursos-humanos", title: "Recursos Humanos", icon: "group", route: "/recursos-humanos", key: "recursos_humanos",
+        submenu: [
+          { id: "personal", title: "Personal", icon: "user", route: "/recursos-humanos/personal", key: "personal" },
+          { id: "organigrama", title: "Organigrama", icon: "sitemap", route: "/recursos-humanos/organigrama", key: "organigrama", isBuilding: false },
+          { id: "planificador", title: "Planificador", icon: "calendar", route: "/recursos-humanos/planificador", key: "planificador", isBuilding: false }
+        ]
+      }
     ]
   },
   {
@@ -60,8 +69,7 @@ export const SideBarOptions = [
     defaultOpen: false,
     items: [
       { id: "clientes", title: "Clientes", icon: "user", route: "/clientes", key: "clientes", key_submenu: "gestionar" },
-      { id: "proveedores", title: "Proveedores", icon: "user", route: "/proveedores", key: "proveedores", key_submenu: "gestionar" },
-      { id: "personal", title: "Personal", icon: "group", route: "/personal", key: "personal", key_submenu: "gestionar" }
+      { id: "proveedores", title: "Proveedores", icon: "user", route: "/proveedores", key: "proveedores", key_submenu: "gestionar" }
     ]
   },
   {

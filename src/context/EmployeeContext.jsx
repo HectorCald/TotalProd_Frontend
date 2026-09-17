@@ -19,6 +19,45 @@ export const EmployeeProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const loadingEmployeeRef = useRef(false); // Ref para evitar múltiples llamadas simultáneas
 
+  const calcularSuperiorOrganigrama = (organigrama, targetId) => {
+    if (!organigrama || !targetId) return 'No asignado';
+    let rawTree = [];
+    try {
+      rawTree = Array.isArray(organigrama)
+        ? organigrama
+        : typeof organigrama === 'string'
+        ? JSON.parse(organigrama)
+        : [organigrama];
+    } catch (e) {
+      return 'No asignado';
+    }
+
+    const findSuperior = (nodes, id) => {
+      if (!nodes || !Array.isArray(nodes)) return null;
+      for (const node of nodes) {
+        if (node.children && Array.isArray(node.children)) {
+          const hasChild = node.children.some((c) => {
+            const cId = c.person?.id || c.person_id;
+            return cId && String(cId) === String(id);
+          });
+
+          if (hasChild) {
+            if (node.is_admin || String(node.person_id).startsWith('admin-')) {
+              return node.person_name || 'Administrador / Propietario';
+            }
+            return node.person?.nombre_completo || node.person_name || 'Sin nombre';
+          }
+
+          const nested = findSuperior(node.children, id);
+          if (nested) return nested;
+        }
+      }
+      return null;
+    };
+
+    return findSuperior(rawTree, targetId) || 'No asignado';
+  };
+
   const normalizePermisos = (permisos = {}) => ({
     crear: !!permisos.crear,
     eliminar: !!permisos.eliminar,
@@ -71,9 +110,16 @@ export const EmployeeProvider = ({ children }) => {
     setEmployee(prevEmployee => {
       if (!prevEmployee) return prevEmployee;
 
+      const organigrama = sucursal?.empresas?.organigrama || prevEmployee?.sucursal?.empresas?.organigrama;
+      const superior = calcularSuperiorOrganigrama(organigrama, prevEmployee.id);
+      const logo = sucursal?.empresas?.logo_tipo || sucursal?.empresas?.logo || prevEmployee?.logo_tipo || null;
+
       const updatedEmployee = {
         ...prevEmployee,
         sucursal_id: sucursal?.id || null,
+        reporta_a: superior !== 'No asignado' ? superior : (prevEmployee.reporta_a || 'No asignado'),
+        superior_inmediato: superior !== 'No asignado' ? superior : (prevEmployee.superior_inmediato || 'No asignado'),
+        logo_tipo: logo,
         sucursal: sucursal
           ? {
               id: sucursal.id,
@@ -81,7 +127,8 @@ export const EmployeeProvider = ({ children }) => {
               empresas: sucursal.empresas ? {
                 id: sucursal.empresas.id,
                 name: sucursal.empresas.name,
-                logo_tipo: sucursal.empresas.logo_tipo || sucursal.empresas.logo
+                logo_tipo: sucursal.empresas.logo_tipo || sucursal.empresas.logo,
+                organigrama: sucursal.empresas.organigrama || null
               } : null
             }
           : null
@@ -178,8 +225,17 @@ export const EmployeeProvider = ({ children }) => {
           return { success: false, error: errorMessage };
         }
         
+        const organigrama = employeeData.data.sucursal?.empresas?.organigrama;
+        const superior = employeeData.data.reporta_a && employeeData.data.reporta_a !== 'No asignado'
+          ? employeeData.data.reporta_a
+          : calcularSuperiorOrganigrama(organigrama, employeeData.data.id);
+        const logo = employeeData.data.logo_tipo || employeeData.data.sucursal?.empresas?.logo_tipo || null;
+
         const normalizedEmployeeData = {
           ...employeeData.data,
+          reporta_a: superior,
+          superior_inmediato: superior,
+          logo_tipo: logo,
           permisos: normalizePermisos(employeeData.data.permisos)
         };
 
@@ -232,6 +288,11 @@ export const EmployeeProvider = ({ children }) => {
                     }
                   };
                   setSucursalSeleccionada(updatedSucursal);
+                  setEmployee(prev => prev ? {
+                    ...prev,
+                    logo_tipo: imageUrl,
+                    sucursal: updatedSucursal
+                  } : prev);
                   if (updatedSucursal?.id) {
                       localStorage.setItem('sucursalIdSeleccionada', updatedSucursal.id);
                       const empresaId = updatedSucursal.empresas?.id || updatedSucursal.empresa_id;

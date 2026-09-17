@@ -1,18 +1,18 @@
 import React, { useState, useCallback } from 'react';
-import { useLayout } from '../../../context/LayoutContext';
-import SideBar from '../../../components/essentials/SideBar';
-import NavBar from '../../../components/essentials/NavBar';
-import MenuSide from '../../../components/essentials/MenuSide';
-import styles from '../../../pages/home/View.module.css';
-import Tabla from '../../../components/common/information/Tabla';
-import useSessionCache from '../../../hooks/useSessionCache';
-import FetchData from '../../../components/mixed/FetchData';
-import personalService from '../../../services/personalService';
+import { useLayout } from '../../../../context/LayoutContext';
+import SideBar from '../../../../components/essentials/SideBar';
+import NavBar from '../../../../components/essentials/NavBar';
+import MenuSide from '../../../../components/essentials/MenuSide';
+import styles from '../../../../pages/home/View.module.css';
+import Tabla from '../../../../components/common/information/Tabla';
+import useSessionCache from '../../../../hooks/useSessionCache';
+import FetchData from '../../../../components/mixed/FetchData';
+import personalService from '../../../../services/personalService';
 import AgregarEditarPersonal from './modals/AgregarEditarPersonal';
 import EliminarPersonal from './modals/EliminarPersonal';
 import ResetPasswordPersonal from './modals/ResetPasswordPersonal';
 import ViewInfo from './modals/ViewInfo';
-import useVirtualPagination from '../../../hooks/useVirtualPagination';
+import useVirtualPagination from '../../../../hooks/useVirtualPagination';
 
 const Personal = () => {
   const { isLargeScreen } = useLayout();

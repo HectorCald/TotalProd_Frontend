@@ -3,6 +3,7 @@ import './styles/global.css';
 import Login from './pages/auth/Login';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from './pages/home/Home';
+import Reportes from './pages/principal/reportes/Reportes';
 
 // Section INVENTARIO - Almacen
 import AlmacenGeneral from './pages/inventario/almacen/AlmacenGeneral';
@@ -25,7 +26,10 @@ import Cotizaciones from './pages/registros-pedidos/cotizaciones/Cotizaciones';
 // Section GESTIÓN
 import Clientes from './pages/gestion/clientes/Clientes';
 import Proveedores from './pages/gestion/proveedores/Proveedores';
-import Personal from './pages/gestion/personal/Personal';
+// Section PRINCIPAL - Recursos Humanos
+import Personal from './pages/principal/recursos-humanos/personal/Personal';
+import Organigrama from './pages/principal/recursos-humanos/organigrama/Organigrama';
+import Planificador from './pages/principal/recursos-humanos/planificador/Planificador';
 
 // Section FINANZAS
 import Pagos from './pages/finanzas/pagos/Pagos';
@@ -543,6 +547,10 @@ function AppContent({ token, tokenType }) {
             )
           }
         />
+        <Route
+          path="/reportes"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Reportes />}
+        />
         {/* Section INVENTARIO - Almacen */}
         <Route
           path="/almacen"
@@ -656,8 +664,16 @@ function AppContent({ token, tokenType }) {
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <Proveedores />}
         />
         <Route
-          path="/personal"
+          path="/recursos-humanos/personal"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <Personal />}
+        />
+        <Route
+          path="/recursos-humanos/organigrama"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Organigrama />}
+        />
+        <Route
+          path="/recursos-humanos/planificador"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Planificador />}
         />
 
         {/* Section FINANZAS */}

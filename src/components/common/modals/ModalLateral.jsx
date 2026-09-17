@@ -6,7 +6,7 @@ import { BoxIcon } from 'boxicons-react';
 import { useModalStack } from '../../../context/ModalStackContext';
 import { useLayout } from '../../../context/LayoutContext';
 
-const ModalLateral = ({ isOpen, onClose, title, children, confirmText = 'Confirmar', onConfirm, loading = false, disableClose = false, hideFooter = false, confirmDisabled = false, confirmReadOnly = false }) => {
+const ModalLateral = ({ isOpen, onClose, title, children, confirmText = 'Confirmar', onConfirm, loading = false, disableClose = false, hideFooter = false, confirmDisabled = false, confirmReadOnly = false, overlayStyle = {} }) => {
     const { isLargeScreen } = useLayout();
     const { registerModal, unregisterModal } = useModalStack();
     const modalIdRef = useRef(null);
@@ -37,7 +37,7 @@ const ModalLateral = ({ isOpen, onClose, title, children, confirmText = 'Confirm
     if (!isOpen) return null;
 
     return createPortal(
-        <div className={styles.overlay} onClick={disableClose ? undefined : onClose}>
+        <div className={styles.overlay} style={overlayStyle} onClick={disableClose ? undefined : onClose}>
             <div className={`${styles.drawer} ${isOpen ? styles.open : ''}`} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.header}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

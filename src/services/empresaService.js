@@ -124,6 +124,30 @@ class EmpresaService {
       };
     }
   }
+
+  // Actualizar organigrama de empresa
+  static async updateOrganigrama(empresaId, organigrama) {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/empresas/${empresaId}/organigrama`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ organigrama }),
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en updateOrganigrama:', error);
+      return {
+        success: false,
+        error: 'Error de conexión con el servidor'
+      };
+    }
+  }
 }
 
 export default EmpresaService;

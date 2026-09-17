@@ -1,9 +1,9 @@
 import React from 'react';
-import ModalCentro from '../../../../components/common/modals/ModalCentro';
-import Boton from '../../../../components/common/botones/Boton';
-import BotonIcon from '../../../../components/common/botones/BotonIcon';
-import InfoCard from '../../../../components/common/information/InfoCard';
-import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
+import ModalCentro from '../../../../../components/common/modals/ModalCentro';
+import Boton from '../../../../../components/common/botones/Boton';
+import BotonIcon from '../../../../../components/common/botones/BotonIcon';
+import InfoCard from '../../../../../components/common/information/InfoCard';
+import ColumnInfo from '../../../../../components/common/outputs/ColumnInfo';
 
 const ViewInfo = ({ isOpen, onClose, personal, onEdit, onResetPassword, onDelete }) => {
     if (!personal) return null;

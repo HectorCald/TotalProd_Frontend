@@ -18,6 +18,7 @@ import ModalOpcionesAlmacen from '../inventario/almacen/modals/ModalOpcionesAlma
 import ModalOpcionesMateriaPrima from '../inventario/materia-prima/modals/ModalOpcionesMateriaPrima';
 import ModalOpcionesMovimientos from '../registros-pedidos/movimientos/modals/ModalOpcionesMovimientos';
 import ModalOpcionesPedidos from '../registros-pedidos/pedidos/modals/ModalOpcionesPedidos';
+import ModalOpcionesRecursosHumanos from '../principal/recursos-humanos/modals/ModalOpcionesRecursosHumanos';
 import ModalOrdenarModulos from './modals/ModalOrdenarModulos';
 import ModalEncuestaIA from './modals/ModalEncuestaIA';
 import TarjetaGrafico from '../../components/grafics/TarjetaGrafico';
@@ -161,6 +162,7 @@ const Home = () => {
   const [modalOpcionesMateriaPrimaOpen, setModalOpcionesMateriaPrimaOpen] = useState(false);
   const [modalOpcionesMovimientosOpen, setModalOpcionesMovimientosOpen] = useState(false);
   const [modalOpcionesPedidosOpen, setModalOpcionesPedidosOpen] = useState(false);
+  const [modalOpcionesRecursosHumanosOpen, setModalOpcionesRecursosHumanosOpen] = useState(false);
   const [modalOrdenarOpen, setModalOrdenarOpen] = useState(false);
   const [modalEncuestaOpen, setModalEncuestaOpen] = useState(false);
 
@@ -183,7 +185,9 @@ const Home = () => {
       else if (item.id === 'pedidos') {
         if (isSoloVentas) navigate('/pedidos/almacen');
         else setModalOpcionesPedidosOpen(true);
-      } else if (item.submenu.length > 0 && item.submenu[0].route) {
+      }
+      else if (item.id === 'recursos-humanos') setModalOpcionesRecursosHumanosOpen(true);
+      else if (item.submenu.length > 0 && item.submenu[0].route) {
         navigate(item.submenu[0].route);
       }
     } else {
@@ -368,6 +372,7 @@ const Home = () => {
       <ModalOpcionesMateriaPrima isOpen={modalOpcionesMateriaPrimaOpen} onClose={() => setModalOpcionesMateriaPrimaOpen(false)} />
       <ModalOpcionesMovimientos isOpen={modalOpcionesMovimientosOpen} onClose={() => setModalOpcionesMovimientosOpen(false)} />
       <ModalOpcionesPedidos isOpen={modalOpcionesPedidosOpen} onClose={() => setModalOpcionesPedidosOpen(false)} />
+      <ModalOpcionesRecursosHumanos isOpen={modalOpcionesRecursosHumanosOpen} onClose={() => setModalOpcionesRecursosHumanosOpen(false)} />
       <ModalOrdenarModulos
         isOpen={modalOrdenarOpen}
         onClose={() => setModalOrdenarOpen(false)}

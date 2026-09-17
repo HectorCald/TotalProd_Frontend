@@ -299,7 +299,11 @@ const SideBar = () => {
                               if (sub.route) navigate(sub.route);
                             }}
                           >
-                            {typeof sub.title === 'string' ? sub.title.toUpperCase() : sub.title}
+                            <span className={styles.itemTitleWrap}>
+                              {typeof sub.title === 'string' ? sub.title.toUpperCase() : sub.title}
+                              {sub.isNew && <span className={styles.newBadge}>NEW</span>}
+                              {sub.isBuilding && <span className={styles.buildingBadge}><i className='bx bx-wrench'></i></span>}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -320,7 +324,11 @@ const SideBar = () => {
                               if (sub.route) navigate(sub.route);
                             }}
                           >
-                            {typeof sub.title === 'string' ? sub.title.toUpperCase() : sub.title}
+                            <span className={styles.itemTitleWrap}>
+                              {typeof sub.title === 'string' ? sub.title.toUpperCase() : sub.title}
+                              {sub.isNew && <span className={styles.newBadge}>NEW</span>}
+                              {sub.isBuilding && <span className={styles.buildingBadge}><i className='bx bx-wrench'></i></span>}
+                            </span>
                           </div>
                         ))}
                       </div>

@@ -181,6 +181,11 @@ const InputSelectBox = ({
                       role="option"
                       aria-selected={isSelected}
                       className={`${styles.option} ${isSelected ? styles.optionSelected : ''}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelect(opt);
+                      }}
                       onClick={() => handleSelect(opt)}
                     >
                       {getLabel(opt)}

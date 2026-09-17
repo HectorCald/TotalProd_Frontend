@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import ModalLateral from '../../../../components/common/modals/ModalLateral';
-import Input from '../../../../components/common/inputs/Input';
-import InputSelect from '../../../../components/common/inputs/InputSelect';
-import Checkbox from '../../../../components/common/inputs/Checkbox';
-import InputSwitch from '../../../../components/common/inputs/InputSwitch';
-import { useToast } from '../../../../context/ToastContext';
-import personalService from '../../../../services/personalService';
-import cargosService from '../../../../services/cargosService';
-import SelectSucursal from '../../../../components/common/fast/SelectSucursal';
-import { useUser } from '../../../../context/UserContext';
-import { useEmployee } from '../../../../context/EmployeeContext';
+import ModalLateral from '../../../../../components/common/modals/ModalLateral';
+import Input from '../../../../../components/common/inputs/Input';
+import InputSelect from '../../../../../components/common/inputs/InputSelect';
+import Checkbox from '../../../../../components/common/inputs/Checkbox';
+import InputSwitch from '../../../../../components/common/inputs/InputSwitch';
+import { useToast } from '../../../../../context/ToastContext';
+import personalService from '../../../../../services/personalService';
+import cargosService from '../../../../../services/cargosService';
+import SelectSucursal from '../../../../../components/common/fast/SelectSucursal';
+import { useUser } from '../../../../../context/UserContext';
+import { useEmployee } from '../../../../../context/EmployeeContext';
 
 const AgregarEditarPersonal = ({ isOpen, onClose, personalSeleccionado, onGuardar }) => {
     const { empresa } = useUser();
