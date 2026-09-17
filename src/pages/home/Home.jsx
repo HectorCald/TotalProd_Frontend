@@ -336,7 +336,7 @@ const Home = () => {
                     <BotonCuadrante
                       key={item.id}
                       icon={item.icon}
-                      title={item.title}
+                      title={item.id === 'recursos-humanos' ? 'RRHH' : item.title}
                       onClick={() => handleItemClick(item)}
                       isNew={item.isNew}
                       isBuilding={item.isBuilding}
@@ -390,7 +390,7 @@ const Home = () => {
       <ModalOrdenarModulos
         isOpen={modalOrdenarOpen}
         onClose={() => setModalOrdenarOpen(false)}
-        modules={isEmployee ? orderedEmployeeItems : orderedCarouselItems}
+        modules={isEmployee ? orderedEmployeeItems : sortModulesBySavedOrder(carouselItemsMobile)}
         storageKey={storageKey}
         onSave={() => setOrderVersion(v => v + 1)}
       />

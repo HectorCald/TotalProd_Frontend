@@ -247,6 +247,11 @@ const Organigrama = () => {
     };
 
     const handleTouchMove = (e) => {
+      // Si el modo es pan o pinch, prevenir scroll del padre SIEMPRE (no condicionalmente)
+      if (touchData.mode === 'pan' || touchData.mode === 'pinch') {
+        e.preventDefault();
+      }
+
       if (isInteractive(e.target) && touchData.mode !== 'pinch') return;
 
       if (e.touches.length === 1 && touchData.mode === 'pan') {
@@ -259,14 +264,12 @@ const Organigrama = () => {
         }
 
         if (touchData.hasMoved) {
-          e.preventDefault();
           setPan({
             x: Math.round(touchData.initialPanX + dx),
             y: Math.round(touchData.initialPanY + dy),
           });
         }
       } else if (e.touches.length === 2) {
-        e.preventDefault();
         const t1 = e.touches[0];
         const t2 = e.touches[1];
         const dist = getDistance(t1, t2);

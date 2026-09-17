@@ -26,6 +26,12 @@
   background-size: 24px 24px;
 }
 
+/* Todos los hijos del canvas heredan touch-action: none para que el browser
+   no intercepte los gestos táctiles en elementos internos */
+.canvasContainer * {
+  touch-action: none;
+}
+
 .transformArea {
   position: relative;
   display: flex;
