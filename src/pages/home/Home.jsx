@@ -115,6 +115,16 @@ const Home = () => {
 
   const { itemsWithoutSubmenu: carouselItems, itemsWithSubmenu } = getCarouselItems();
 
+  // En móvil (no-employee), recursos-humanos debe aparecer en el carousel "Descubre más"
+  const carouselItemsMobile = useMemo(() => {
+    const rh = itemsWithSubmenu.find(i => i.id === 'recursos-humanos');
+    return rh ? [...carouselItems, rh] : carouselItems;
+  }, [carouselItems, itemsWithSubmenu]);
+
+  const itemsWithSubmenuFiltered = useMemo(() => {
+    return itemsWithSubmenu.filter(i => i.id !== 'recursos-humanos');
+  }, [itemsWithSubmenu]);
+
   const [orderVersion, setOrderVersion] = useState(0);
 
   const storageKey = usuario?.id
@@ -320,7 +330,7 @@ const Home = () => {
                   />
                 </div>
                 <Carousel
-                  items={orderedCarouselItems}
+                  items={sortModulesBySavedOrder(carouselItemsMobile)}
                   itemsPerPage={4}
                   renderItem={(item) => (
                     <BotonCuadrante
@@ -334,19 +344,23 @@ const Home = () => {
                   )}
                 />
 
-                <h1 className={styles.title}>Gestión</h1>
-                <div style={{ display: 'grid', gridTemplateColumns: itemsWithSubmenu.length === 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
-                  {itemsWithSubmenu.map(item => (
-                    <BotonCuadrante
-                      key={item.id}
-                      icon={item.icon}
-                      title={item.title}
-                      onClick={() => handleItemClick(item)}
-                      isNew={item.isNew}
-                      isBuilding={item.isBuilding}
-                    />
-                  ))}
-                </div>
+                {itemsWithSubmenuFiltered.length > 0 && (
+                  <>
+                    <h1 className={styles.title}>Gestión</h1>
+                    <div style={{ display: 'grid', gridTemplateColumns: itemsWithSubmenuFiltered.length === 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
+                      {itemsWithSubmenuFiltered.map(item => (
+                        <BotonCuadrante
+                          key={item.id}
+                          icon={item.icon}
+                          title={item.title}
+                          onClick={() => handleItemClick(item)}
+                          isNew={item.isNew}
+                          isBuilding={item.isBuilding}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 <h1 className={styles.title}>¡ANUNCIOS!</h1>
                 <div style={{ padding: '0 5px', width: '100%' }}>

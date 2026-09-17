@@ -209,6 +209,9 @@ const Organigrama = () => {
     const handleTouchStart = (e) => {
       if (isInteractive(e.target)) return;
 
+      // Prevenir scroll del contenedor padre desde el primer toque
+      e.preventDefault();
+
       if (e.touches.length === 1) {
         const t = e.touches[0];
         touchData = {
@@ -222,8 +225,8 @@ const Organigrama = () => {
           initialMidpoint: { x: 0, y: 0 },
           hasMoved: false,
         };
+        setIsPanning(true);
       } else if (e.touches.length === 2) {
-        e.preventDefault();
         const t1 = e.touches[0];
         const t2 = e.touches[1];
         const dist = getDistance(t1, t2);
@@ -251,9 +254,8 @@ const Organigrama = () => {
         const dx = t.clientX - touchData.startX;
         const dy = t.clientY - touchData.startY;
 
-        if (!touchData.hasMoved && Math.hypot(dx, dy) > 5) {
+        if (!touchData.hasMoved && Math.hypot(dx, dy) > 3) {
           touchData.hasMoved = true;
-          setIsPanning(true);
         }
 
         if (touchData.hasMoved) {
@@ -316,6 +318,7 @@ const Organigrama = () => {
           initialMidpoint: { x: 0, y: 0 },
           hasMoved: false,
         };
+        setIsPanning(true);
       }
     };
 
