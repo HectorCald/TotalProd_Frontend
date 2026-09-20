@@ -14,9 +14,7 @@ import useFormatNumber from '../../../hooks/useFormatNumber';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import ViewInfo from './modals/ViewInfo';
 import ViewInfoAcopio from './modals/ViewInfoAcopio';
-import EliminarPedido from './modals/EliminarPedido';
 import AnularEntrega from './modals/AnularEntrega';
-import ProductosMovimiento from '../movimientos/modals/ProductosMovimiento';
 
 const LiteralDateCell = ({ dateStr }) => {
   const literal = useFechaLiteral(dateStr, true, true);
@@ -52,9 +50,7 @@ const Pedidos = () => {
   
   // Modals state
   const [modalInfoOpen, setModalInfoOpen] = useState(false);
-  const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
   const [modalAnularOpen, setModalAnularOpen] = useState(false);
-  const [modalProductosOpen, setModalProductosOpen] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
 
   const [debouncedSearch] = useDebounce(search, 500);
@@ -178,52 +174,7 @@ const Pedidos = () => {
     setPedidoSeleccionado(prev => prev && prev.id === updatedPedido.id ? { ...prev, ...updatedPedido } : prev);
   };
 
-  const tableActions = [
-    {
-      name: 'Productos',
-      icon: 'box',
-      show: () => true,
-      onClick: (pedido) => {
-        setPedidoSeleccionado(pedido);
-        setModalProductosOpen(true);
-      }
-    },
-    {
-      name: 'Editar', 
-      icon: 'edit', 
-      show: (row) => !row.destino && row.estado === 'Pendiente',
-      onClick: (pedido) => {
-        const editarData = {
-            id: pedido.id,
-            prices_types_id: pedido.precio_id || pedido.precio?.id,
-            modalidad: pedido.agrupado ? 'grupos' : 'unidades',
-            observaciones: pedido.observaciones === '--' ? '' : (pedido.observaciones || ''),
-            fecha: pedido.fecha || pedido.date || pedido.created_at || new Date().toISOString(),
-            sucursal_destino_id: pedido.sucursal_destino_id || pedido.sucursal_destino?.id,
-            productos_lista: (pedido.pedido_almacen_detalle || []).map(p => {
-                const grup = parseFloat(p.producto_almacen?.grup) || 0;
-                const cantidadUD = parseFloat(p.cantidad) || 1;
-                const esPorGrupo = pedido.agrupado && grup > 0;
-                return {
-                    id: p.producto_almacen_id || p.producto_almacen?.id || p.id,
-                    cantidad: esPorGrupo ? Math.floor(cantidadUD / grup) : cantidadUD
-                };
-            })
-        };
-        sessionStorage.setItem('pedidoParaEditar', JSON.stringify(editarData));
-        navigate('/almacen/pedidos/editar');
-      }
-    },
-    {
-      name: 'Eliminar', 
-      icon: 'trash', 
-      show: (row) => !row.destino && row.estado !== 'Completado' && row.estado !== 'Entregado',
-      onClick: (pedido) => {
-        setPedidoSeleccionado(pedido);
-        setModalEliminarOpen(true);
-      }
-    },
-  ];
+
 
   const columns = isAcopio ? [
     {
@@ -371,7 +322,6 @@ const Pedidos = () => {
               setPedidoSeleccionado(row);
               setModalInfoOpen(true);
             }}
-            acciones={tableActions}
             buttonLabel="Nuevo Pedido"
             onButtonClick={() => {
               if (isAcopio) {
@@ -451,17 +401,6 @@ const Pedidos = () => {
         />
       )}
 
-      <EliminarPedido 
-        isOpen={modalEliminarOpen} 
-        setIsOpen={setModalEliminarOpen} 
-        pedido={pedidoSeleccionado}
-        isAcopio={isAcopio}
-        onDeleted={(id) => {
-          handlePedidoEliminado(id);
-          setModalInfoOpen(false);
-        }}
-      />
-
       <AnularEntrega 
         isOpen={modalAnularOpen} 
         setIsOpen={setModalAnularOpen} 
@@ -470,12 +409,6 @@ const Pedidos = () => {
         onAnulado={(updated) => {
           handlePedidoActualizado(updated);
         }}
-      />
-
-      <ProductosMovimiento
-        isOpen={modalProductosOpen}
-        onClose={() => setModalProductosOpen(false)}
-        pedido={pedidoSeleccionado}
       />
       
       {!isLargeScreen && <MenuSide />}

@@ -85,32 +85,8 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
 
     if (!pedido) return null;
 
-    const tags = [].filter(Boolean);
-
-    if (pedido.codigo) {
-        tags.push({
-            label: 'Código',
-            text: pedido.codigo,
-            icon: 'hash'
-        });
-    }
-
-    if (pedido.precio && pedido.precio.name) {
-        tags.push({
-            label: 'Precio',
-            text: pedido.precio.name,
-            icon: 'dollar'
-        });
-    }
-
-    let solicitanteNombre = pedido.user?.name || pedido.personal?.name || '';
-    if (solicitanteNombre) {
-        tags.push({
-            label: 'Solicitante',
-            text: solicitanteNombre,
-            icon: 'user'
-        });
-    }
+    const solicitanteNombre = pedido.user?.name || pedido.personal?.name || '';
+    const observaciones = pedido.observaciones && pedido.observaciones !== '--' ? pedido.observaciones : '';
 
     const obtenerTotalFormateado = (ped) => {
         let total = (ped.pedido_almacen_detalle || []).reduce((sum, detalle) => {
@@ -125,42 +101,6 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
     };
 
     const totalNum = obtenerTotalFormateado(pedido);
-
-    const financeItems = [
-        { clave: 'Subtotal', valor: `Bs. ${formatPrice(totalNum)}` }
-    ];
-
-    const stats = [];
-
-    if (pedido.sucursales?.name || pedido.sucursal?.name) {
-        stats.push({
-            label: 'S. Solicitante',
-            value: pedido.sucursales?.name || pedido.sucursal?.name,
-            icon: 'store'
-        });
-    }
-
-    if (pedido.sucursal_destino?.name) {
-        stats.push({
-            label: 'S. Destino',
-            value: pedido.sucursal_destino.name,
-            icon: 'building'
-        });
-    }
-
-    if (pedido.agrupado !== undefined && pedido.agrupado !== null) {
-        stats.push({
-            label: 'Modalidad',
-            value: pedido.agrupado ? 'Grupos' : 'Unidades',
-            icon: pedido.agrupado ? 'layer' : 'box'
-        });
-    }
-
-    stats.push({
-        label: 'Productos',
-        value: pedido.pedido_almacen_detalle?.length || 0,
-        icon: 'package'
-    });
     
     let title = 'Pedido';
 
@@ -231,7 +171,6 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
                 <InfoCard
                     title={`${title}${pedido.numero_pedido ? ` (Nº ${pedido.numero_pedido})` : ''}`}
                     subtitle={fechaLiteral}
-                    description={pedido.observaciones}
                     statusDot={statusDotColor}
                     icon={'file'}
                     customBlock={
@@ -243,18 +182,48 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido, onEdit, onEliminar, onAn
                                     onClick={handleDescargar} 
                                 />
                             </div>
-                            {tags.length > 0 && (
-                                <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
-                            )}
-                            {stats.length > 0 && (
-                                <ColumnInfo 
-                                    title="Detalles"
-                                    items={stats.map(s => ({ clave: s.label, valor: s.value }))}
-                                />
-                            )}
+                            <ColumnInfo 
+                                items={[
+                                    pedido.codigo && { 
+                                        icon: 'hash', 
+                                        text: pedido.codigo 
+                                    },
+                                    (pedido.agrupado !== undefined && pedido.agrupado !== null) && { 
+                                        icon: pedido.agrupado ? 'layer' : 'box', 
+                                        text: pedido.agrupado ? 'Grupos' : 'Unidades' 
+                                    }
+                                ].filter(Boolean)} 
+                            />
+                            <ColumnInfo 
+                                title="Detalles"
+                                items={[
+                                    solicitanteNombre && { 
+                                        clave: 'Solicitante', 
+                                        valor: solicitanteNombre 
+                                    },
+                                    (pedido.sucursales?.name || pedido.sucursal?.name) && { 
+                                        clave: 'S. Solicitante', 
+                                        valor: pedido.sucursales?.name || pedido.sucursal?.name 
+                                    },
+                                    pedido.sucursal_destino?.name && { 
+                                        clave: 'S. Destino', 
+                                        valor: pedido.sucursal_destino.name 
+                                    },
+                                    pedido.precio?.name && { 
+                                        clave: 'Precio', 
+                                        valor: pedido.precio.name 
+                                    },
+                                    observaciones && { 
+                                        clave: 'Observaciones', 
+                                        valor: observaciones 
+                                    }
+                                ].filter(Boolean)}
+                            />
                             <ColumnInfo 
                                 title="Finanzas"
-                                items={financeItems}
+                                items={[
+                                    { clave: 'Subtotal', valor: `Bs. ${formatPrice(totalNum)}` }
+                                ]}
                                 finance={true}
                                 financeTotal={`Bs. ${formatPrice(totalNum)}`}
                             />

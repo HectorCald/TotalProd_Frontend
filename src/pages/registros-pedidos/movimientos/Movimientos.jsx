@@ -20,7 +20,7 @@ import AnularMovimiento from './modals/AnularMovimiento';
 import { LEGACY_PERCENTAGE_CUTOFF_DATE } from '../../../constants/movimientosConstants';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, true, true);
+  const literal = useFechaLiteral(dateStr);
   return <span>{literal || dateStr}</span>;
 };
 
@@ -319,12 +319,12 @@ const Movimientos = () => {
       accessor: 'tipo_texto',
       hasStatus: true,
       statusType: (row) => row.type === 'entrada' ? 'success' : row.type === 'transferencia' ? 'info' : 'error',
-      width: '15%'
+      width: '10%'
     },
     {
       header: 'Cantidad',
       accessor: 'quantity',
-      width: '15%',
+      width: '10%',
       render: (row) => `${formatPrice(Number(row.quantity || 0))} ${row.product?.type_measure?.code || ''}`,
       isMobileSubtitle: true,
       mobileRender: (row) => (
@@ -336,13 +336,13 @@ const Movimientos = () => {
     {
       header: 'Fecha',
       accessor: 'date',
-      width: '15%',
+      width: '18%',
       render: (row) => <LiteralDateCell dateStr={row.date} />
     },
     {
       header: 'Observaciones',
       accessor: 'observations',
-      width: '18%',
+      width: '25%',
       render: (row) => (
         <div 
           style={{ 
@@ -387,12 +387,12 @@ const Movimientos = () => {
       accessor: 'tipo_texto',
       hasStatus: true,
       statusType: (row) => row.type === 'entrada' ? 'success' : row.type === 'transferencia' ? 'info' : 'error',
-      width: '15%'
+      width: '10%'
     },
     {
       header: 'Fecha',
       accessor: 'fecha',
-      width: '10%',
+      width: '15%',
       render: (row) => <LiteralDateCell dateStr={row.fecha} />
     },
     {
@@ -400,14 +400,6 @@ const Movimientos = () => {
       accessor: 'cliente_proveedor',
       width: '20%',
       render: (row) => getClientProviderName(row)
-    },
-    {
-      header: 'Estado',
-      accessor: 'estado_texto',
-      hasStatusDot: true,
-      statusType: (row) => row.estado === 'anulado' ? 'error' : 'info',
-      width: '12%',
-      isMobileStatus: true
     },
     {
       header: 'Total',
@@ -473,6 +465,14 @@ const Movimientos = () => {
           </>
         );
       }
+    },
+     {
+      header: 'Estado',
+      accessor: 'estado_texto',
+      hasStatusDot: true,
+      statusType: (row) => row.estado === 'anulado' ? 'error' : 'info',
+      width: '12%',
+      isMobileStatus: true
     }
   ];
 

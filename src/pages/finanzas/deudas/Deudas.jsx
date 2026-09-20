@@ -135,18 +135,18 @@ const Deudas = () => {
       header: 'Concepto',
       accessor: 'concepto',
       style: { fontWeight: 600, color: '#333' },
-      width: '30%'
+      width: '20%'
     },
     {
       header: 'Fecha',
       accessor: 'fecha_deuda',
-      width: '10%',
+      width: '12%',
       render: (row) => <LiteralDateCell dateStr={row.fecha_deuda} />
     },
     {
       header: 'Vencimiento',
       accessor: 'fecha_vencimiento',
-      width: '10%',
+      width: '12%',
       render: (row) => <LiteralDateCell dateStr={row.fecha_vencimiento} />
     },
     {
@@ -154,6 +154,18 @@ const Deudas = () => {
       accessor: 'cliente',
       width: '20%',
       render: (row) => row.cliente?.name || '--'
+    },
+    {
+      header: 'Monto',
+      accessor: 'monto_total',
+      width: '13%',
+      render: (row) => `Bs. ${formatPrice(row.monto_total)}`
+    },
+    {
+      header: 'Saldo',
+      accessor: 'saldo_pendiente',
+      width: '13%',
+      render: (row) => `Bs. ${formatPrice(row.saldo_pendiente)}`
     },
     {
       header: 'Estado',
@@ -166,18 +178,6 @@ const Deudas = () => {
         return 'info';
       },
       width: '10%'
-    },
-    {
-      header: 'Monto',
-      accessor: 'monto_total',
-      width: '10%',
-      render: (row) => `Bs. ${formatPrice(row.monto_total)}`
-    },
-    {
-      header: 'Saldo',
-      accessor: 'saldo_pendiente',
-      width: '10%',
-      render: (row) => `Bs. ${formatPrice(row.saldo_pendiente)}`
     }
   ];
 

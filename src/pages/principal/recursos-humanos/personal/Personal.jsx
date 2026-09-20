@@ -33,9 +33,15 @@ const Personal = () => {
   const [personalSeleccionado, setPersonalSeleccionado] = useState(null);
   const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
   const [returnToViewOnResetClose, setReturnToViewOnResetClose] = useState(false);
+  const [tableFilters, setTableFilters] = useState({});
 
   const handlePersonalLoaded = useCallback((data) => {
-    setPersonal(data);
+    const sorted = [...(data || [])].sort((a, b) => {
+      const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim();
+      const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim();
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+    setPersonal(sorted);
     setError(null);
   }, [setPersonal]);
 
@@ -65,7 +71,7 @@ const Personal = () => {
     {
       header: 'Cargo',
       accessor: 'cargo',
-      width: '15%',
+      width: '20%',
       isMobileSubtitle: true
     },
     {
@@ -74,17 +80,17 @@ const Personal = () => {
       width: '25%'
     },
     {
+      header: 'Sucursal',
+      accessor: 'sucursal_nombre',
+      width: '15%'
+    },
+    {
       header: 'Estado',
       accessor: 'estado_texto',
       hasStatusDot: true,
       statusType: (row) => row.is_active ? 'success' : 'error',
       width: '10%',
       isMobileStatus: true
-    },
-    {
-      header: 'Sucursal',
-      accessor: 'sucursal_nombre',
-      width: '25%'
     }
   ];
 
@@ -102,14 +108,23 @@ const Personal = () => {
   const [search, setSearch] = useState('');
 
   const filteredPersonal = React.useMemo(() => {
-    if (!search) return mappedPersonal;
-    const s = search.toLowerCase();
-    return mappedPersonal.filter(p => 
-      (p.nombre_completo && p.nombre_completo.toLowerCase().includes(s)) ||
-      (p.codigo && p.codigo.toLowerCase().includes(s)) ||
-      (p.cargo && p.cargo.toLowerCase().includes(s))
-    );
-  }, [mappedPersonal, search]);
+    let result = mappedPersonal;
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter(p => 
+        (p.nombre_completo && p.nombre_completo.toLowerCase().includes(s)) ||
+        (p.codigo && p.codigo.toLowerCase().includes(s)) ||
+        (p.cargo && p.cargo.toLowerCase().includes(s))
+      );
+    }
+    const isDesc = tableFilters?.sort_order && tableFilters.sort_order[0] === 'desc';
+    return [...result].sort((a, b) => {
+      const nameA = a.nombre_completo || '';
+      const nameB = b.nombre_completo || '';
+      const cmp = nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+      return isDesc ? -cmp : cmp;
+    });
+  }, [mappedPersonal, search, tableFilters]);
 
   const { visibleItems, hasMore, loadMore } = useVirtualPagination(filteredPersonal, 30);
 
@@ -138,6 +153,8 @@ const Personal = () => {
             remote={true}
             searchValue={search}
             onSearchChange={setSearch}
+            externalFilters={tableFilters}
+            onFiltersChange={setTableFilters}
             onLoadMore={hasMore ? loadMore : undefined}
           />
         </div>

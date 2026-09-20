@@ -15,7 +15,7 @@ import ViewInfo from './modals/ViewInfo';
 import Formulario from './modals/Formulario';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, true, true);
+  const literal = useFechaLiteral(dateStr);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
@@ -188,25 +188,25 @@ const Verificacion = () => {
       header: 'Producto',
       accessor: 'producto_nombre',
       style: { fontWeight: 600, color: '#333' },
-      width: '25%',
+      width: '20%',
       render: (row) => row.producto_almacen?.name || 'Sin producto'
     },
     {
       header: 'Responsable',
       accessor: 'responsable_nombre',
-      width: '20%',
+      width: '15%',
       render: (row) => row.user?.name || row.personal?.name || 'Usuario desconocido'
     },
     {
       header: 'Lote',
       accessor: 'lote',
-      width: '10%',
+      width: '8%',
       render: (row) => row.lote || '0'
     },
     {
       header: 'Proceso',
       accessor: 'proceso_texto',
-      width: '15%',
+      width: '10%',
       render: (row) => row.proceso === 'cernido' ? 'Cernido' : row.proceso === 'seleccionado' ? 'Seleccionado' : row.proceso === 'ninguno' ? 'Ninguno' : (row.proceso || '--')
     },
     {
@@ -218,7 +218,7 @@ const Verificacion = () => {
     {
       header: 'Fecha',
       accessor: 'fecha',
-      width: '10%',
+      width: '15%',
       render: (row) => <LiteralDateCell dateStr={row.fecha} />
     },
     {
@@ -226,7 +226,7 @@ const Verificacion = () => {
       accessor: 'estado_texto',
       hasStatusDot: true,
       statusType: (row) => row.estado === 'pendiente' ? 'error' : row.estado === 'verificado' ? 'success' : 'info',
-      width: '10%'
+      width: '12%'
     }
   ];
 

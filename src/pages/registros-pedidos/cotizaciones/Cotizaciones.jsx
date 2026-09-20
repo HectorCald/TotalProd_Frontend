@@ -15,7 +15,7 @@ import useFormatNumber from '../../../hooks/useFormatNumber';
 import useFormatNumberPrice from '../../../hooks/useFormatNumberPrice';
 
 const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, true, true);
+  const literal = useFechaLiteral(dateStr);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
@@ -146,7 +146,7 @@ const Cotizaciones = () => {
       header: 'Nº',
       accessor: 'numero_cotizacion',
       style: { fontWeight: 600, color: '#333' },
-      width: '10%'
+      width: '5%'
     },
     {
       header: 'Detalle',
@@ -210,13 +210,23 @@ const Cotizaciones = () => {
     {
       header: 'Fecha',
       accessor: 'fecha',
-      width: '15%',
+      width: '20%',
       render: (row) => <LiteralDateCell dateStr={row.fecha} />
+    },
+    {
+      header: 'Método de pago',
+      accessor: 'metodo_pago',
+      width: '20%',
+      render: (row) => {
+          if (!row.metodo_pago) return '--';
+          const metodo = row.metodo_pago.toLowerCase();
+          return metodo.charAt(0).toUpperCase() + metodo.slice(1);
+      }
     },
     {
       header: 'Estado',
       accessor: 'estado',
-      width: '15%',
+      width: '20%',
       render: (row) => {
         const estado = row.estado || 'pendiente';
         let color = 'gray';
@@ -232,16 +242,6 @@ const Cotizaciones = () => {
       hasStatusDot: true,
       statusType: (row) => row.estado === 'aprobada' ? 'success' : row.estado === 'rechazada' ? 'error' : 'warning',
       isMobileStatus: true
-    },
-    {
-      header: 'Método de pago',
-      accessor: 'metodo_pago',
-      width: '20%',
-      render: (row) => {
-          if (!row.metodo_pago) return '--';
-          const metodo = row.metodo_pago.toLowerCase();
-          return metodo.charAt(0).toUpperCase() + metodo.slice(1);
-      }
     }
   ];
 

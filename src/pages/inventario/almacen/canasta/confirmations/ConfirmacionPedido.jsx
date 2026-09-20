@@ -94,7 +94,7 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
 
       let result;
       if (isEditing) {
-        result = await pedidosAlmacenService.updateFast(pedidoDefaults.id, {
+        result = await pedidosAlmacenService.update(pedidoDefaults.id, {
           sucursal_destino_id: sucursal,
           observaciones: observaciones.trim() || null,
           precio_id: precioSeleccionado,
@@ -103,7 +103,7 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
           productos
         });
       } else {
-        result = await pedidosAlmacenService.createFast({
+        result = await pedidosAlmacenService.create({
           sucursal_destino_id: sucursal,
           observaciones: observaciones.trim() || null,
           precio_id: precioSeleccionado,

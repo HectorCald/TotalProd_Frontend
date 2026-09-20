@@ -121,68 +121,7 @@ const ViewInfoAcopio = ({ isOpen, setIsOpen, onClose, pedido, onEliminar, onAnul
         }
     };
 
-    const tags = [].filter(Boolean);
-
-    const obtenerTotalFormateado = (ped) => {
-        return `${ped.cantidad || '0'} ${ped.tipo_medida || ''}`;
-    };
-
-    const statsSolicitado = [];
-    const statsEntregado = [];
-
-    if (pedido.codigo) {
-        statsSolicitado.push({
-            label: 'Código',
-            value: pedido.codigo,
-            icon: 'hash'
-        });
-    }
-
-    let solicitanteNombre = pedido.user?.name || pedido.personal?.name || '';
-    if (solicitanteNombre) {
-        statsSolicitado.push({
-            label: 'Solicitante',
-            value: solicitanteNombre,
-            icon: 'user'
-        });
-    }
-
-    statsSolicitado.push({
-        label: 'Cantidad',
-        value: obtenerTotalFormateado(pedido),
-        icon: ''
-    });
-
-    if (pedido.estado === 'Entregado' || pedido.estado === 'Completado') {
-        if (pedido.cantidad_entregada) {
-            statsEntregado.push({
-                label: 'Peso',
-                value: `${pedido.cantidad_entregada} ${pedido.unidadEntregada || pedido.tipo_medida || ''}`.trim(),
-                icon: 'purchase-tag-alt'
-            });
-        }
-        if (pedido.cantidad_entregada_ud) {
-            statsEntregado.push({
-                label: 'Piezas',
-                value: `${pedido.cantidad_entregada_ud} ${pedido.cantidad_entregada_medida || ''}`.trim(),
-                icon: 'purchase-tag-alt'
-            });
-        }
-        if (pedido.estado_entrega) {
-            statsEntregado.push({
-                label: 'Llegada',
-                value: pedido.estado_entrega,
-                icon: pedido.estado_entrega === 'Llego' ? 'check-circle' : 'x-circle'
-            });
-        }
-        if (pedido.fecha_entregado) {
-            statsEntregado.push({
-                label: 'F. Entrega',
-                value: fechaEntregaLiteral,
-                icon: 'calendar'
-            });
-        }
-    }
+    const solicitanteNombre = pedido.user?.name || pedido.personal?.name || '';
     
     let title = pedido.producto_acopio?.name || 'Producto desconocido';
 
@@ -212,19 +151,48 @@ const ViewInfoAcopio = ({ isOpen, setIsOpen, onClose, pedido, onEliminar, onAnul
                     icon={'box'}
                     customBlock={
                         <>
-                            {tags.length > 0 && (
-                                <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
-                            )}
-                            {statsSolicitado.length > 0 && (
-                                <ColumnInfo 
-                                    title="Solicitado"
-                                    items={statsSolicitado.map(s => ({ clave: s.label, valor: s.value }))}
-                                />
-                            )}
-                            {statsEntregado.length > 0 && (
+                            <ColumnInfo 
+                                items={[
+                                    pedido.codigo && { 
+                                        icon: 'hash', 
+                                        text: pedido.codigo 
+                                    },
+                                    solicitanteNombre && { 
+                                        icon: 'user', 
+                                        text: solicitanteNombre 
+                                    }
+                                ].filter(Boolean)} 
+                            />
+                            <ColumnInfo 
+                                title="Solicitado"
+                                items={[
+                                    { 
+                                        clave: 'Cantidad', 
+                                        valor: `${pedido.cantidad || '0'} ${pedido.tipo_medida || ''}` 
+                                    }
+                                ]}
+                            />
+                            {(pedido.estado === 'Entregado' || pedido.estado === 'Completado') && (
                                 <ColumnInfo 
                                     title="Entregado"
-                                    items={statsEntregado.map(s => ({ clave: s.label, valor: s.value }))}
+                                    items={[
+                                        pedido.cantidad_entregada && {
+                                            clave: 'Peso',
+                                            valor: `${pedido.cantidad_entregada} ${pedido.unidadEntregada || pedido.tipo_medida || ''}`.trim()
+                                        },
+                                        pedido.cantidad_entregada_ud && {
+                                            clave: 'Piezas',
+                                            valor: `${pedido.cantidad_entregada_ud} ${pedido.cantidad_entregada_medida || ''}`.trim()
+                                        },
+                                        pedido.estado_entrega && {
+                                            clave: 'Llegada',
+                                            valor: pedido.estado_entrega
+                                        },
+                                        pedido.fecha_entregado && {
+                                            clave: 'F. Entrega',
+                                            valor: fechaEntregaLiteral
+                                        }
+                                    ].filter(Boolean)}
                                 />
                             )}
                         </>

@@ -1,18 +1,4 @@
-import apiClient, { getSucuId, getEmpresaId } from '../config/apiClient';
-
-// Función helper para obtener personal_id del token
-const getPersonalId = () => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.id;
-    } catch (error) {
-      console.error('Error parsing token:', error);
-    }
-  }
-  return null;
-};
+import apiClient, { getSucuId, getEmpresaId, getPersonalId } from '../config/apiClient';
 
 class pedidosAcopioService {
 
@@ -65,7 +51,7 @@ class pedidosAcopioService {
       if (throwOnError || error.status === 403) {
         throw error;
       }
-      
+
       if (returnErrorObject) {
         return {
           success: false,
@@ -73,9 +59,29 @@ class pedidosAcopioService {
           ...(defaultData !== undefined ? { data: defaultData } : {})
         };
       }
-      
+
       return { success: false, message: error.message || 'Error de conexión con el servidor' };
     }
+  }
+
+  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc', responsableId = null, filtroFecha = null) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ordenamiento: ordenamiento
+    });
+
+    if (searchQuery && searchQuery.trim() !== '') params.append('search', searchQuery);
+    if (estado && estado.trim() !== '') params.append('estado', estado);
+    if (responsableId) params.append('responsable_id', responsableId);
+    if (filtroFecha) {
+      if (filtroFecha.inicio) params.append('fecha_inicio', filtroFecha.inicio);
+      if (filtroFecha.fin) params.append('fecha_fin', filtroFecha.fin);
+    }
+
+    return pedidosAcopioService._request(`/pedidos-acopio?${params}`, { method: 'GET' }, {
+      requireEmpresaId: true
+    });
   }
 
   static async create(pedidoData) {
@@ -94,24 +100,8 @@ class pedidosAcopioService {
     });
   }
 
-  static async getAll(page = 1, limit = 10, searchQuery = null, estado = null, ordenamiento = 'fecha_desc', responsableId = null, filtroFecha = null) {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ordenamiento: ordenamiento
-    });
-    
-    if (searchQuery && searchQuery.trim() !== '') params.append('search', searchQuery);
-    if (estado && estado.trim() !== '') params.append('estado', estado);
-    if (responsableId) params.append('responsable_id', responsableId);
-    if (filtroFecha) {
-      if (filtroFecha.inicio) params.append('fecha_inicio', filtroFecha.inicio);
-      if (filtroFecha.fin) params.append('fecha_fin', filtroFecha.fin);
-    }
-    
-    return pedidosAcopioService._request(`/pedidos-acopio?${params}`, { method: 'GET' }, {
-      requireEmpresaId: true
-    });
+  static async delete(pedidoId) {
+    return pedidosAcopioService._request(`/pedidos-acopio/${pedidoId}`, { method: 'DELETE' });
   }
 
   static async getById(pedidoId) {
@@ -123,19 +113,11 @@ class pedidosAcopioService {
     if (movimientoEntradaId !== undefined) {
       body.movimiento_entrada_id = movimientoEntradaId;
     }
-    
+
     return pedidosAcopioService._request(`/pedidos-acopio/${pedidoId}/estado`, {
       method: 'PATCH',
       body: JSON.stringify(body)
     });
-  }
-
-  static async verificarProductoEnPedidos(productoId) {
-    return pedidosAcopioService._request(`/pedidos-acopio/verificar-producto/${productoId}`, { method: 'GET' });
-  }
-
-  static async eliminar(pedidoId) {
-    return pedidosAcopioService._request(`/pedidos-acopio/${pedidoId}`, { method: 'DELETE' });
   }
 
   static async entregar(pedidoId, entregaData) {

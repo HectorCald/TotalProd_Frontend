@@ -17,8 +17,8 @@ const EliminarPedido = ({ isOpen, setIsOpen, pedido, isAcopio, onDeleted }) => {
         setLoading(true);
         try {
             const response = isAcopio
-                ? await pedidosAcopioService.eliminar(pedido.id)
-                : await pedidosAlmacenService.eliminar(pedido.id);
+                ? await pedidosAcopioService.delete(pedido.id)
+                : await pedidosAlmacenService.delete(pedido.id);
 
             if (response.success) {
                 if (onDeleted) {

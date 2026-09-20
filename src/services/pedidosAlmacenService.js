@@ -1,18 +1,4 @@
-import apiClient, { getSucuId, getEmpresaId } from '../config/apiClient';
-
-// Función helper para obtener personal_id del token
-const getPersonalId = () => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.id;
-    } catch (error) {
-      console.error('Error parsing token:', error);
-    }
-  }
-  return null;
-};
+import apiClient, { getSucuId, getEmpresaId, getPersonalId } from '../config/apiClient';
 
 class pedidosAlmacenService {
 
@@ -65,7 +51,7 @@ class pedidosAlmacenService {
       if (throwOnError || error.status === 403) {
         throw error;
       }
-      
+
       if (returnErrorObject) {
         return {
           success: false,
@@ -73,26 +59,9 @@ class pedidosAlmacenService {
           ...(defaultData !== undefined ? { data: defaultData } : {})
         };
       }
-      
+
       return { success: false, message: error.message || 'Error de conexión con el servidor' };
     }
-  }
-
-  // Crear un pedido
-  static async create(pedidoData) {
-    const personalId = getPersonalId();
-    const bodyObj = {
-      ...pedidoData,
-      personal_id: personalId
-    };
-
-    return pedidosAlmacenService._request('/pedidos-almacen', {
-      method: 'POST',
-      body: JSON.stringify(bodyObj)
-    }, {
-      requireSucuId: true,
-      requireEmpresaId: true
-    });
   }
 
   // Obtener todos los pedidos de la sucursal
@@ -130,6 +99,46 @@ class pedidosAlmacenService {
     return result;
   }
 
+  // Crear pedido
+  static async create({ sucursal_destino_id, observaciones, precio_id, agrupado, fecha, date, productos }) {
+    return pedidosAlmacenService._request('/pedidos-almacen', {
+      method: 'POST',
+      body: JSON.stringify({
+        sucursal_destino_id,
+        observaciones: observaciones || null,
+        precio_id,
+        agrupado: !!agrupado,
+        fecha: fecha || date,
+        productos
+      })
+    }, {
+      requireSucuId: true
+    });
+  }
+
+  // Actualizar pedido
+  static async update(pedidoId, { observaciones, precio_id, sucursal_destino_id, agrupado, fecha, date, productos }) {
+    return pedidosAlmacenService._request(`/pedidos-almacen/${pedidoId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        observaciones: observaciones || null,
+        precio_id,
+        sucursal_destino_id,
+        agrupado: !!agrupado,
+        fecha: fecha || date,
+        productos
+      })
+    }, {
+      requireSucuId: true,
+      requireEmpresaId: true
+    });
+  }
+
+  // Eliminar pedido
+  static async delete(pedidoId) {
+    return pedidosAlmacenService._request(`/pedidos-almacen/${pedidoId}`, { method: 'DELETE' });
+  }
+
   // Obtener un pedido por ID
   static async getById(pedidoId) {
     const result = await pedidosAlmacenService._request(`/pedidos-almacen/${pedidoId}`, { method: 'GET' });
@@ -140,39 +149,10 @@ class pedidosAlmacenService {
     return result;
   }
 
-  // Actualizar pedido completo
-  static async update(pedidoId, pedidoData) {
-    const personalId = getPersonalId();
-    const bodyObj = {
-      ...pedidoData,
-      personal_id: personalId
-    };
-
-    return pedidosAlmacenService._request(`/pedidos-almacen/${pedidoId}`, {
-      method: 'PUT',
-      body: JSON.stringify(bodyObj)
-    }, {
-      requireSucuId: true,
-      requireEmpresaId: true
-    });
-  }
-
-  // DEPRECATED - Actualizar entrega de pedido - YA NO SE USA
-  static async updateEntrega(pedidoId, pedidoData) {
-    console.warn('updateEntrega está deprecado. Use los servicios individuales.');
-    return { success: false, message: 'Este método está deprecado' };
-  }
-
-  // DEPRECATED - Entregar pedido - YA NO SE USA
-  static async entregar(pedidoId, { sucu_id, precio_id, productos, metodo_pago }) {
-    console.warn('entregar está deprecado. Use los servicios individuales.');
-    return { success: false, message: 'Este método está deprecado' };
-  }
-
   // Actualizar estado del pedido
   static async updateEstado(pedidoId, nuevoEstado, movimientoSalidaId = undefined, deudaId = undefined, movimientoEntradaId = undefined) {
     const body = { estado: nuevoEstado };
-    
+
     if (movimientoSalidaId !== undefined) {
       body.movimiento_salida_id = movimientoSalidaId;
     }
@@ -189,88 +169,10 @@ class pedidosAlmacenService {
     });
   }
 
-  // Verificar si un producto tiene pedidos asociados
-  static async verificarProductoEnPedidos(productoId) {
-    return pedidosAlmacenService._request(`/pedidos-almacen/verificar-producto/${productoId}`, { method: 'GET' });
-  }
-
-  // Obtener todos los pedidos sin límite (para reportes)
-  static async getAllSinLimite(sucuIdParam = null, filtroFecha = null, ordenamiento = 'fecha_desc') {
-    const sucuId = sucuIdParam || getSucuId();
-    const params = new URLSearchParams({
-      page: '1',
-      limit: '999999',
-      sucu_id: sucuId || '',
-      ordenamiento
-    });
-
-    if (filtroFecha) {
-      if (filtroFecha.inicio) params.append('fecha_inicio', filtroFecha.inicio);
-      if (filtroFecha.fin) params.append('fecha_fin', filtroFecha.fin);
-    }
-
-    return pedidosAlmacenService._request(`/pedidos-almacen?${params}`, { method: 'GET' }, {
-      requireSucuId: !sucuIdParam
-    });
-  }
-
-  // Eliminar pedido
-  static async eliminar(pedidoId) {
-    return pedidosAlmacenService._request(`/pedidos-almacen/${pedidoId}`, { method: 'DELETE' });
-  }
-
   // Obtener solicitantes únicos de todos los pedidos
   static async getSolicitantesUnicos() {
     return pedidosAlmacenService._request('/pedidos-almacen/solicitantes-unicos', { method: 'GET' }, {
       requireSucuId: true
-    });
-  }
-
-  // Crear pedido de golpe (fast)
-  static async createFast({ sucursal_destino_id, observaciones, precio_id, agrupado, fecha, date, productos }) {
-    return pedidosAlmacenService._request('/pedidos-almacen/fast', {
-      method: 'POST',
-      body: JSON.stringify({
-        sucursal_destino_id,
-        observaciones: observaciones || null,
-        precio_id,
-        agrupado: !!agrupado,
-        fecha: fecha || date,
-        productos
-      })
-    }, {
-      requireSucuId: true
-    });
-  }
-
-  // Actualizar pedido de golpe (fast)
-  static async updateFast(pedidoId, { observaciones, precio_id, sucursal_destino_id, agrupado, fecha, date, productos }) {
-    return pedidosAlmacenService._request(`/pedidos-almacen/${pedidoId}/update-fast`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        observaciones: observaciones || null,
-        precio_id,
-        sucursal_destino_id,
-        agrupado: !!agrupado,
-        fecha: fecha || date,
-        productos
-      })
-    }, {
-      requireSucuId: true,
-      requireEmpresaId: true
-    });
-  }
-
-  // Obtener resumen mensual de pedidos (mes actual y anterior)
-  static async getResumenMensual(sucuIdParam = null) {
-    const sucuId = sucuIdParam || getSucuId();
-    const params = new URLSearchParams();
-    if (sucuId) params.append('sucu_id', sucuId);
-
-    return pedidosAlmacenService._request(`/pedidos-almacen/resumen-mensual?${params}`, {
-      method: 'GET'
-    }, {
-      requireSucuId: !sucuId
     });
   }
 }
