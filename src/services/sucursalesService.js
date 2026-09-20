@@ -17,27 +17,24 @@ const getCasaMatrizId = async (empresaId) => {
     }
 };
 
-class sucursalesService {
-
-    static getEmpresaId() {
-        return getEmpresaId();
-    }
-
-    static getEmpresasAsociadasIds() {
-        try {
-            const SOCIOS_KEY = 'socios';
-            const stored = localStorage.getItem(SOCIOS_KEY);
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                const sociosIds = Array.isArray(parsed) ? parsed : [];
-                return sociosIds.filter(id => id);
-            }
-            return [];
-        } catch (error) {
-            console.error('Error al obtener socios:', error);
-            return [];
+// Helper para empresas asociadas
+const getEmpresasAsociadasIds = () => {
+    try {
+        const SOCIOS_KEY = 'socios';
+        const stored = localStorage.getItem(SOCIOS_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            const sociosIds = Array.isArray(parsed) ? parsed : [];
+            return sociosIds.filter(id => id);
         }
+        return [];
+    } catch (error) {
+        console.error('Error al obtener socios:', error);
+        return [];
     }
+};
+
+class sucursalesService {
 
     static async _request(endpoint, options = {}, config = {}) {
         const {
@@ -63,15 +60,9 @@ class sucursalesService {
             const data = await response.json();
 
             if (!response.ok) {
-                if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
-                    return data;
-                }
-
                 const error = new Error(data.message || 'Error en la petición');
                 error.status = response.status;
                 error.code = data.code;
-                error.currentPlan = data.currentPlan;
-                error.requiredModule = data.requiredModule;
                 throw error;
             }
 
@@ -80,7 +71,7 @@ class sucursalesService {
             if (throwOnError) {
                 throw error;
             }
-            
+
             if (returnErrorObject) {
                 return {
                     success: false,
@@ -88,7 +79,7 @@ class sucursalesService {
                     ...(defaultData !== undefined ? { data: defaultData } : {})
                 };
             }
-            
+
             return {
                 success: false,
                 message: error.message || 'Error de conexión con el servidor'
@@ -96,17 +87,12 @@ class sucursalesService {
         }
     }
 
-    // Mantener nombre getByEmpresaId por compatibilidad
-    static async getByEmpresaId(empresaIdParam = null, includeSocios = true) {
-        return this.getAll(empresaIdParam, includeSocios);
-    }
-
     static async getAll(empresaIdParam = null, includeSocios = true) {
         let endpoint = '/sucursales';
         const params = new URLSearchParams();
 
         if (includeSocios) {
-            const empresasAsociadasIds = this.getEmpresasAsociadasIds();
+            const empresasAsociadasIds = getEmpresasAsociadasIds();
             if (empresasAsociadasIds && Array.isArray(empresasAsociadasIds) && empresasAsociadasIds.length > 0) {
                 empresasAsociadasIds.forEach(id => {
                     params.append('empresas_asociadas', id);
@@ -133,12 +119,6 @@ class sucursalesService {
         });
     }
 
-    static async getById(id) {
-        return sucursalesService._request(`/sucursales/${id}`, { method: 'GET' }, {
-            requireEmpresaId: false
-        });
-    }
-
     static async create(sucursalData) {
         const empresaId = sucursalData.empresa_id || getEmpresaId();
         const shouldUseAlmacenSucursal = (sucursalData && typeof sucursalData.almacenSeparado === 'boolean') ? !sucursalData.almacenSeparado : false;
@@ -151,7 +131,7 @@ class sucursalesService {
             ...(casaMatrizId ? { almacen_sucursal_id: casaMatrizId } : {}),
             ...(precios && Array.isArray(precios) ? { precios } : {})
         };
-        
+
         return sucursalesService._request('/sucursales', {
             method: 'POST',
             body: JSON.stringify(bodyData)
@@ -167,9 +147,9 @@ class sucursalesService {
         const empresaId = getEmpresaId();
         const casaMatrizId = shouldUseAlmacenSucursal ? await getCasaMatrizId(empresaId) : null;
         const { almacenSeparado, precios, ...payload } = sucursalData;
-        
+
         const preciosArray = Array.isArray(precios) ? precios : [];
-        
+
         const bodyData = {
             ...payload,
             ...(hasFlag ? { almacen_sucursal_id: casaMatrizId } : {}),
@@ -194,8 +174,8 @@ class sucursalesService {
         });
     }
 
-    static async getPreciosBySucursalId(sucursalId) {
-        return sucursalesService._request(`/sucursales/${sucursalId}/precios`, { method: 'GET' }, {
+    static async getById(id) {
+        return sucursalesService._request(`/sucursales/${id}`, { method: 'GET' }, {
             requireEmpresaId: false
         });
     }

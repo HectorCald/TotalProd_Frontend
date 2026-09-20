@@ -4,15 +4,10 @@ import Text from '../../../../components/common/old/Text';
 import { useToast } from '../../../../context/ToastContext';
 import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
 import pedidosAlmacenService from '../../../../services/pedidosAlmacenService';
-import useHistorialLogger from '../../../../components/ui/HistorialLogger';
 
 const IngresarPedido = ({ isOpen, setIsOpen, pedido, movimientoSalida, onIngresado }) => {
     const { showSuccess, showDanger } = useToast();
     const [loading, setLoading] = useState(false);
-
-    const { logAccion } = useHistorialLogger({
-        modulo: 'Pedidos'
-    });
 
     const handleConfirm = async () => {
         if (!pedido || !movimientoSalida) return;
@@ -65,12 +60,6 @@ const IngresarPedido = ({ isOpen, setIsOpen, pedido, movimientoSalida, onIngresa
 
             showSuccess(null, 'Pedido ingresado correctamente');
             setIsOpen(false);
-
-            await logAccion({
-                accion: 'INGRESAR_PEDIDO',
-                lugarAfectado: `Pedido #${pedido.numero_pedido || pedido.id}`,
-                registroId: pedido.id
-            });
 
             if (onIngresado) {
                 onIngresado(updateResult.data || pedido);

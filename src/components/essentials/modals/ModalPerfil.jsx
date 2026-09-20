@@ -63,7 +63,7 @@ const ModalPerfil = ({ isOpen, onClose }) => {
         employeeInfo?.empresa_id ||
         localStorage.getItem('empresa_id');
       if (empresaId) {
-        import('../../../services/empresaImagenService').then(({ default: service }) => {
+        import('../../../services/empresaService').then(({ default: service }) => {
           service.getImage(empresaId).then(res => {
             if (res?.success) {
               const url = res.data?.imagen_url || res.data?.secure_url || res.data?.url || res.data?.image_url;

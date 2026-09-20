@@ -29,15 +29,9 @@ class cargosService {
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.code === 'MODULE_NOT_INCLUDED' || data.code === 'NO_PLAN') {
-          return data;
-        }
-
         const error = new Error(data.message || 'Error en la petición');
         error.status = response.status;
         error.code = data.code;
-        error.currentPlan = data.currentPlan;
-        error.requiredModule = data.requiredModule;
         throw error;
       }
 
@@ -46,7 +40,7 @@ class cargosService {
       if (throwOnError) {
         throw error;
       }
-      
+
       if (returnErrorObject) {
         return {
           success: false,
@@ -54,7 +48,7 @@ class cargosService {
           ...(defaultData !== undefined ? { data: defaultData } : {})
         };
       }
-      
+
       return {
         success: false,
         message: error.message || 'Error de conexión con el servidor'
@@ -77,43 +71,11 @@ class cargosService {
     });
   }
 
-  // Obtener un cargo por ID
-  static async getById(id) {
-    try {
-      const response = await this.getAll();
-      if (!response.success || !response.data) {
-        return {
-          success: false,
-          message: response.message || 'No se pudo obtener el cargo'
-        };
-      }
-      const found = Array.isArray(response.data)
-        ? response.data.find((c) => String(c.id) === String(id))
-        : null;
-      if (!found) {
-        return {
-          success: false,
-          message: 'Cargo no encontrado'
-        };
-      }
-      return {
-        success: true,
-        data: found
-      };
-    } catch (error) {
-      console.error('Error en cargosService.getById:', error);
-      return {
-        success: false,
-        message: error.message || 'Error al obtener el cargo'
-      };
-    }
-  }
-
   // Crear un cargo
   static async create(cargoData) {
     const empresaId = cargoData.empresa_id || getEmpresaId();
     const bodyData = { ...cargoData, empresa_id: empresaId };
-    
+
     return cargosService._request('/cargos', {
       method: 'POST',
       body: JSON.stringify(bodyData)

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import { useToast } from '../../../../context/ToastContext';
-import useHistorialLogger from '../../../../components/ui/HistorialLogger';
-import { buildPedidoDetallesParaHistorial } from '../../../../utils/logFormatters';
 import pedidosAlmacenService from '../../../../services/pedidosAlmacenService';
 import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
 import Text from '../../../../components/common/old/Text';
@@ -10,17 +8,12 @@ import Text from '../../../../components/common/old/Text';
 const AnularIngreso = ({ isOpen, setIsOpen, pedido, onAnulado }) => {
     const { showSuccess, showDanger } = useToast();
     const [loading, setLoading] = useState(false);
-    
-    const { logAccion } = useHistorialLogger({
-        modulo: 'Pedidos'
-    });
 
     const handleConfirm = async () => {
         if (!pedido) return;
 
         try {
             setLoading(true);
-            const pedidoAntes = pedido ? JSON.parse(JSON.stringify(pedido)) : null;
 
             const movimientoEntradaId = pedido.movimiento_entrada_id;
 
@@ -56,14 +49,6 @@ const AnularIngreso = ({ isOpen, setIsOpen, pedido, onAnulado }) => {
             setIsOpen(false);
 
             const pedidoActualizado = cambiarEstadoResponse.data || { ...pedido, estado: 'Entregado', movimiento_entrada_id: null };
-
-            const det = buildPedidoDetallesParaHistorial(pedidoAntes, null, 'ANULAR_INGRESO');
-            await logAccion({
-                accion: 'ANULAR_INGRESO',
-                lugarAfectado: `Pedido #${pedidoAntes?.numero_pedido ?? pedidoAntes?.id ?? ''}`,
-                registroId: pedidoActualizado?.id || pedidoAntes?.id || null,
-                detallesPersonalizados: det
-            });
 
             if (onAnulado) {
                 onAnulado(pedidoActualizado);

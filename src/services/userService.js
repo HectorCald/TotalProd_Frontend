@@ -129,7 +129,7 @@ class UserService {
   
   // Solicitar reset de contraseña
   static async requestPasswordReset(email) {
-    return this._request('/passwordReset/request', {
+    return this._request('/users/password-reset/request', {
       method: 'POST',
       body: JSON.stringify({ email })
     }, {
@@ -139,7 +139,7 @@ class UserService {
 
   // Verificar token de reset
   static async verifyResetToken(token) {
-    return this._request('/passwordReset/verify', {
+    return this._request('/users/password-reset/verify', {
       method: 'POST',
       body: JSON.stringify({ token })
     }, {
@@ -149,7 +149,7 @@ class UserService {
 
   // Resetear contraseña
   static async resetPassword(token, newPassword) {
-    return this._request('/passwordReset/reset', {
+    return this._request('/users/password-reset/reset', {
       method: 'POST',
       body: JSON.stringify({ token, newPassword })
     }, {

@@ -124,12 +124,6 @@ const AgregarEditarCargo = ({ isOpen, onClose, cargoSeleccionado, onGuardar }) =
                 setLoading(false);
                 onClose();
                 showSuccess(null, response.message || `Cargo ${tipo === 'editar' ? 'actualizado' : 'creado'} correctamente`);
-            } else if (response.code === 'MODULE_NOT_INCLUDED') {
-                setLoading(false);
-                showDanger(null, `Tu plan actual (${response.currentPlan}) no incluye acceso al módulo "${response.requiredModule}".`);
-            } else if (response.code === 'NO_PLAN') {
-                setLoading(false);
-                showDanger(null, 'Necesitas un plan activo para acceder a esta función.');
             } else {
                 setLoading(false);
                 showDanger(null, response.message || `Error al ${tipo} el cargo`);

@@ -17,8 +17,6 @@ import NoData from '../../../../common/widgets/NoData';
 import ResumenFinanciero from '../../../../ui/ResumenFinanciero';
 import StatusBadge from '../../../../common/old/StatusBadge';
 import { useToast } from '../../../../../context/ToastContext';
-import useHistorialLogger from '../../../../ui/HistorialLogger';
-import { buildPagoDetallesParaHistorial } from '../../../../../utils/logFormatters';
 
 const formatNumber = (value, decimals = 2) => {
     const num = Number(value || 0);
@@ -38,7 +36,6 @@ const VerPago = ({
 }) => {
     const { isLargeScreen } = useLayout();
     const { showSuccess, showWarning, showDanger } = useToast();
-    const { logAccion } = useHistorialLogger({ modulo: 'Pagos' });
     const [detallePago, setDetallePago] = useState(pago || null);
     const [isRegistrosModalOpen, setIsRegistrosModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);

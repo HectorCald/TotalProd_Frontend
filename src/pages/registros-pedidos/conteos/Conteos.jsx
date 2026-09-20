@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
 import SideBar from '../../../components/essentials/SideBar';
@@ -9,8 +9,6 @@ import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive';
 import conteosService from '../../../services/conteosService';
-import EliminarConteo from './modals/EliminarConteo';
-import ReemplazarConteo from './modals/ReemplazarConteo';
 import SelectTipoNuevo from './modals/SelectTipoNuevo';
 import ViewInfo from './modals/ViewInfo';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
@@ -23,19 +21,16 @@ const LiteralDateCell = ({ dateStr }) => {
 const Conteos = () => {
   const { isLargeScreen } = useLayout();
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const getTitulo = () => 'Conteos';
 
   const conteosServiceWrapper = useMemo(() => ({
-    getAll: async (page, limit) => {
+    getAll: async () => {
         return await conteosService.getAll({ tipo: null });
     }
   }), []);
 
   const [conteos, setConteos] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [, setError] = useState(null);
+  const [error, setError] = useState(null);
 
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebounce(search, 500);
@@ -43,8 +38,6 @@ const Conteos = () => {
 
   // Modals state
   const [modalViewInfoOpen, setModalViewInfoOpen] = useState(false);
-  const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
-  const [modalReemplazarOpen, setModalReemplazarOpen] = useState(false);
   const [modalAgregarEditarOpen, setModalAgregarEditarOpen] = useState(false);
   const [conteoSeleccionado, setConteoSeleccionado] = useState(null);
 
@@ -77,27 +70,8 @@ const Conteos = () => {
   };
 
   const handleConteoReemplazado = (id) => {
-    // Si necesitas actualizar el estado visualmente, se puede hacer aquí
+    // Actualizar estado si es necesario
   };
-
-  const tableActions = [
-    {
-      name: 'Reemplazar Stock', 
-      icon: 'box', 
-      onClick: (conteo) => {
-        setConteoSeleccionado(conteo);
-        setModalReemplazarOpen(true);
-      }
-    },
-    {
-      name: 'Eliminar', 
-      icon: 'trash', 
-      onClick: (conteo) => {
-        setConteoSeleccionado(conteo);
-        setModalEliminarOpen(true);
-      }
-    }
-  ];
 
   const columns = [
     {
@@ -161,12 +135,11 @@ const Conteos = () => {
       <div className={styles.dashboardContainer}>
         {isLargeScreen && <SideBar />}
         <div className={styles.contentArea}>
-          <h1 className={styles.title}>{getTitulo()}</h1>
+          <h1 className={styles.title}>Conteos</h1>
           <Tabla
             data={filteredConteos}
             columns={columns}
             isLoading={isLoading}
-            acciones={tableActions}
             buttonLabel="Nuevo Conteo"
             onButtonClick={() => {
               setModalAgregarEditarOpen(true);
@@ -205,20 +178,6 @@ const Conteos = () => {
         onClose={() => setModalViewInfoOpen(false)}
         conteo={conteoSeleccionado}
         onEliminar={handleConteoEliminado}
-        onReemplazar={handleConteoReemplazado}
-      />
-
-      <EliminarConteo
-        isOpen={modalEliminarOpen}
-        onClose={() => setModalEliminarOpen(false)}
-        conteoSeleccionado={conteoSeleccionado}
-        onEliminar={handleConteoEliminado}
-      />
-
-      <ReemplazarConteo
-        isOpen={modalReemplazarOpen}
-        onClose={() => setModalReemplazarOpen(false)}
-        conteoSeleccionado={conteoSeleccionado}
         onReemplazar={handleConteoReemplazado}
       />
 

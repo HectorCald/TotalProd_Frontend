@@ -2,18 +2,11 @@ import React, { useState } from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import { useToast } from '../../../../context/ToastContext';
 import conteosService from '../../../../services/conteosService';
-import useHistorialLogger from '../../../../components/ui/HistorialLogger';
-import { buildConteoDetallesParaHistorial } from '../../../../utils/logFormatters';
 import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 
 const EliminarConteo = ({ isOpen, onClose, conteoSeleccionado, onEliminar }) => {
     const { showSuccess, showDanger } = useToast();
     const [loading, setLoading] = useState(false);
-    
-    const moduloConteo = conteoSeleccionado?.tipo === 'acopio' ? 'Pesaje' : 'Conteo';
-    const { logAccion } = useHistorialLogger({
-        modulo: moduloConteo
-    });
 
     const fechaLiteral = useFechaLiteral(conteoSeleccionado?.fecha, false);
 
@@ -31,10 +24,6 @@ const EliminarConteo = ({ isOpen, onClose, conteoSeleccionado, onEliminar }) => 
                 if (onEliminar) {
                     onEliminar(conteoSeleccionado.id);
                 }
-                
-                const detallesPersonalizados = buildConteoDetallesParaHistorial(conteoSeleccionado, 'ELIMINAR');
-                const codigo = conteoSeleccionado?.codigo ?? conteoSeleccionado?.id ?? '';
-                if (onEliminar) onEliminar(conteoSeleccionado.id);
                 setLoading(false);
                 onClose(true);
                 showSuccess(null, response.message || 'Conteo eliminado exitosamente');

@@ -13,7 +13,7 @@ const SelectSucursal = ({ value, onChange, error, label = "Sucursal", required =
     useEffect(() => {
         const fetchSucursales = async () => {
             try {
-                const response = await sucursalesService.getByEmpresaId(null, includeSocios);
+                const response = await sucursalesService.getAll(null, includeSocios);
                 if (response.success && response.data) {
                     setSucursales(response.data);
                     if (onLoaded) onLoaded(response.data);

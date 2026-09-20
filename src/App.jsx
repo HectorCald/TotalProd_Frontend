@@ -342,7 +342,7 @@ function AppContent({ token, tokenType }) {
         sucursalesData = sucursalesPrecargadas;
       } else {
         const isDamabrava = empresaId === '259a05d2-2417-47b0-8bbd-50cd5723aae1';
-        const response = await sucursalesService.getByEmpresaId(empresaId, isDamabrava);
+        const response = await sucursalesService.getAll(empresaId, isDamabrava);
         if (response.success && response.data) {
           sucursalesData = response.data;
         }

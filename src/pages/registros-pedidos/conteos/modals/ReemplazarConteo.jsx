@@ -2,18 +2,11 @@ import React, { useState } from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import { useToast } from '../../../../context/ToastContext';
 import conteosService from '../../../../services/conteosService';
-import useHistorialLogger from '../../../../components/ui/HistorialLogger';
-import { buildConteoDetallesParaHistorial } from '../../../../utils/logFormatters';
 import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 
 const ReemplazarConteo = ({ isOpen, onClose, conteoSeleccionado, onReemplazar }) => {
     const { showSuccess, showDanger } = useToast();
     const [loading, setLoading] = useState(false);
-    
-    const moduloConteo = conteoSeleccionado?.tipo === 'acopio' ? 'Pesaje' : 'Conteo';
-    const { logAccion } = useHistorialLogger({
-        modulo: moduloConteo
-    });
 
     const fechaLiteral = useFechaLiteral(conteoSeleccionado?.fecha, false);
 
@@ -36,17 +29,6 @@ const ReemplazarConteo = ({ isOpen, onClose, conteoSeleccionado, onReemplazar })
                 if (onReemplazar) {
                     onReemplazar(conteoSeleccionado.id);
                 }
-
-                const detallesPersonalizados = buildConteoDetallesParaHistorial(conteoSeleccionado, 'REMPLAZO');
-                const codigo = conteoSeleccionado?.codigo ?? conteoSeleccionado?.id ?? '';
-
-                await logAccion({
-                    accion: 'REMPLAZO',
-                    lugarAfectado: `Conteo ${codigo ? '#' + codigo : ''}`.trim() || 'Conteo',
-                    registroId: conteoSeleccionado.id,
-                    comentario: 'Reemplazo de stock con conteo',
-                    detallesPersonalizados
-                });
 
                 setLoading(false);
                 onClose();

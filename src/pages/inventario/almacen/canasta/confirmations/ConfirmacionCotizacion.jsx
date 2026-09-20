@@ -113,7 +113,7 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
         })
       };
 
-      const result = await cotizacionesService.createFast(payload);
+      const result = await cotizacionesService.create(payload);
 
       if (!result.success) {
         showDanger(null, result.message || 'Error al registrar la cotización');

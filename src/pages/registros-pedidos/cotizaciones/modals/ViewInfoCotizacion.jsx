@@ -34,78 +34,24 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
     const rawFechaStr = cotizacion?.fecha || cotizacion?.date || cotizacion?.created_at || '';
     const fechaLiteral = useFechaLiteral(rawFechaStr, false, true) || rawFechaStr;
 
+    const rawFechaVencimiento = cotizacion?.fecha_vencimiento || '';
+    const fechaVencimientoLiteral = useFechaLiteral(rawFechaVencimiento, false, true) || rawFechaVencimiento;
+
     if (!cotizacion) return null;
 
-    const tags = [].filter(Boolean);
-
-    if (cotizacion.codigo) {
-        tags.push({
-            label: 'Código',
-            text: cotizacion.codigo,
-            icon: 'hash'
-        });
-    }
-
-    if (cotizacion.precio && cotizacion.precio.name) {
-        tags.push({
-            label: 'Precio',
-            text: cotizacion.precio.name,
-            icon: 'dollar-circle'
-        });
-    }
-
-
-
-    if (cotizacion.cliente?.name) {
-        tags.push({
-            label: 'Cliente',
-            text: cotizacion.cliente.name,
-            icon: 'user'
-        });
-    }
-
+    const clienteNombre = cotizacion.cliente?.name || '';
     const responsableNombre = cotizacion?.user?.name || cotizacion?.personal?.name || '';
-    if (responsableNombre) {
-        tags.push({
-            label: 'Responsable',
-            text: responsableNombre,
-            icon: 'user'
-        });
-    }
-    
-    if (cotizacion.metodo_pago) {
-        const metodo = cotizacion.metodo_pago.toLowerCase();
-        tags.push({
-            label: 'Pago',
-            text: metodo.charAt(0).toUpperCase() + metodo.slice(1),
-            icon: 'credit-card'
-        });
+
+    let title = '';
+    if (clienteNombre) {
+        title = clienteNombre;
+    } else if (cotizacion.productos && cotizacion.productos.length === 1) {
+        title = cotizacion.productos[0]?.producto?.name || 'Cotización';
+    } else {
+        title = 'Cotización';
     }
 
-    const stats = [];
-
-    if (cotizacion.agrupado !== undefined && cotizacion.agrupado !== null) {
-        stats.push({
-            label: 'Modalidad',
-            value: cotizacion.agrupado ? 'Grupos' : 'Unidades',
-            icon: cotizacion.agrupado ? 'layer' : 'box'
-        });
-    }
-
-    stats.push({
-        label: 'Productos',
-        value: cotizacion.productos?.length || 0,
-        icon: 'package'
-    });
-
-
-
-    let title = cotizacion.cliente?.name || 'Cotización';
-    if (cotizacion.numero_cotizacion) {
-        title = `${title} (Nº ${cotizacion.numero_cotizacion})`;
-    }
-
-    // Cálculos para el bloque personalizado
+    // Cálculos para el bloque de finanzas
     let subtotalNum = (cotizacion.productos || []).reduce((sum, p) => sum + calculateSubtotal(p.cantidad, p.precio_unitario || p.precio, p.producto?.grup, cotizacion?.agrupado, true), 0);
     subtotalNum = Math.round(subtotalNum * 10) / 10;
     
@@ -113,48 +59,33 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
     let aumValNum = parseFloat(cotizacion.aumento) || 0;
     let esPorcentaje = cotizacion.porcentaje;
     
-    let descCalculadoNum = 0;
-    let aumCalculadoNum = 0;
-
-    if (esPorcentaje) {
-        descCalculadoNum = subtotalNum * (descValNum / 100);
-        aumCalculadoNum = subtotalNum * (aumValNum / 100);
-    } else {
-        descCalculadoNum = descValNum;
-        aumCalculadoNum = aumValNum;
-    }
+    let descCalculadoNum = esPorcentaje ? subtotalNum * (descValNum / 100) : descValNum;
+    let aumCalculadoNum = esPorcentaje ? subtotalNum * (aumValNum / 100) : aumValNum;
     
-    let totalFinalRaw = subtotalNum - descCalculadoNum + aumCalculadoNum;
-    let totalFinalNum = Math.round(totalFinalRaw * 10) / 10;
+    let totalFinalNum = Math.round((subtotalNum - descCalculadoNum + aumCalculadoNum) * 10) / 10;
 
-    const financeItems = [];
-    financeItems.push({ clave: 'Subtotal', valor: `Bs. ${formatPrice(subtotalNum)}` });
-    if (descValNum > 0) {
-        financeItems.push({ 
-            clave: `Descuento ${esPorcentaje ? `(${formatPrice(descValNum)}%)` : '(Bs.)'}`, 
-            valor: `- Bs. ${formatPrice(descCalculadoNum)}`,
-            colorValor: 'var(--error-color)'
-        });
-    }
-    if (aumValNum > 0) {
-        financeItems.push({ 
-            clave: `Aumento ${esPorcentaje ? `(${formatPrice(aumValNum)}%)` : '(Bs.)'}`, 
-            valor: `+ Bs. ${formatPrice(aumCalculadoNum)}`,
-            colorValor: 'var(--success-color)'
-        });
-    }
+    const descPerc = esPorcentaje 
+        ? descValNum 
+        : (subtotalNum > 0 ? (descValNum / subtotalNum) * 100 : 0);
+    const aumPerc = esPorcentaje 
+        ? aumValNum 
+        : (subtotalNum > 0 ? (aumValNum / subtotalNum) * 100 : 0);
 
-    const informacionSuperiorDescarga = {};
-    if (fechaLiteral) informacionSuperiorDescarga['Fecha'] = fechaLiteral;
-    if (cotizacion.cliente?.name) informacionSuperiorDescarga['Cliente'] = cotizacion.cliente.name;
-    if (responsableNombre) informacionSuperiorDescarga['Responsable'] = responsableNombre;
-    if (cotizacion.metodo_pago) informacionSuperiorDescarga['Método de pago'] = cotizacion.metodo_pago.charAt(0).toUpperCase() + cotizacion.metodo_pago.slice(1);
-    if (cotizacion.codigo) informacionSuperiorDescarga['Código'] = cotizacion.codigo;
-    if (cotizacion.numero_cotizacion) informacionSuperiorDescarga['Nº Cotización'] = cotizacion.numero_cotizacion;
-    if (cotizacion.agrupado !== undefined && cotizacion.agrupado !== null) {
+    const informacionSuperiorDescarga = {
+        'Fecha': fechaLiteral,
+        'Cliente': clienteNombre || 'Cliente ocasional',
+        'Método de pago': cotizacion?.metodo_pago ? (cotizacion.metodo_pago.charAt(0).toUpperCase() + cotizacion.metodo_pago.slice(1)) : ''
+    };
+    if (cotizacion?.codigo) informacionSuperiorDescarga['Código'] = cotizacion.codigo;
+    if (cotizacion?.numero_cotizacion) informacionSuperiorDescarga['Nº Cotización'] = cotizacion.numero_cotizacion;
+    if (cotizacion?.agrupado !== undefined && cotizacion?.agrupado !== null) {
         informacionSuperiorDescarga['Modalidad'] = cotizacion.agrupado ? 'Grupos' : 'Unidades';
     }
-    if (cotizacion.precio?.name) informacionSuperiorDescarga['Tipo de Precio'] = cotizacion.precio.name;
+    if (cotizacion?.precio?.name) {
+        informacionSuperiorDescarga['Tipo de Precio'] = cotizacion.precio.name;
+    }
+    if (responsableNombre) informacionSuperiorDescarga['Responsable'] = responsableNombre;
+    if (rawFechaVencimiento) informacionSuperiorDescarga['Vencimiento'] = fechaVencimientoLiteral;
     if (cotizacion.observaciones) informacionSuperiorDescarga['Observaciones'] = cotizacion.observaciones;
     if (descValNum > 0) informacionSuperiorDescarga['Descuento'] = `Bs. ${formatPrice(descCalculadoNum)}`;
     if (aumValNum > 0) informacionSuperiorDescarga['Aumento'] = `Bs. ${formatPrice(aumCalculadoNum)}`;
@@ -171,9 +102,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
         const esAgrupado = cotizacion?.agrupado && grup > 0;
         
         let cantidadStr = `${cant}`;
-        
         let precioDescarga = calculateSpecialPrice(prec, grup, esAgrupado, true);
-
         const subt = calculateSubtotal(cant, prec, grup, cotizacion?.agrupado, true);
 
         if (esAgrupado) {
@@ -266,9 +195,11 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
                 if (onEdit) onEdit(cotizacion);
             }}
             hideFooter={true}
+            width="450px"
+            receipt={true}
         >
                 <InfoCard
-                    title={title}
+                    title={`${title}${cotizacion.numero_cotizacion ? ` (Nº ${cotizacion.numero_cotizacion})` : ''}`}
                     subtitle={fechaLiteral}
                     description={cotizacion.observaciones || ''}
                     statusDot={getStatusColor(cotizacion.estado)}
@@ -282,18 +213,62 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
                                     onClick={handleDescargar} 
                                 />
                             </div>
-                            {tags.length > 0 && (
-                                <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
-                            )}
-                            {stats.length > 0 && (
-                                <ColumnInfo 
-                                    title="Detalles"
-                                    items={stats.map(s => ({ clave: s.label, valor: s.value }))}
-                                />
-                            )}
+                            <ColumnInfo 
+                                items={[
+                                    cotizacion.codigo && {
+                                        icon: 'hash',
+                                        text: cotizacion.codigo
+                                    },
+                                    cotizacion.metodo_pago && {
+                                        icon: 'credit-card',
+                                        text: cotizacion.metodo_pago.charAt(0).toUpperCase() + cotizacion.metodo_pago.slice(1)
+                                    },
+                                    (cotizacion.agrupado !== undefined && cotizacion.agrupado !== null) && {
+                                        icon: cotizacion.agrupado ? 'layer' : 'box',
+                                        text: cotizacion.agrupado ? 'Grupos' : 'Unidades'
+                                    }
+                                ].filter(Boolean)} 
+                            />
+                            <ColumnInfo 
+                                title="Detalles"
+                                items={[
+                                    clienteNombre && {
+                                        clave: 'Cliente',
+                                        valor: clienteNombre,
+                                        icon: 'id-card'
+                                    },
+                                    cotizacion.precio?.name && {
+                                        clave: 'Precio',
+                                        valor: cotizacion.precio.name,
+                                        icon: 'dollar'
+                                    },
+                                    responsableNombre && {
+                                        clave: 'Responsable',
+                                        valor: responsableNombre,
+                                        icon: 'user'
+                                    },
+                                    rawFechaVencimiento && {
+                                        clave: 'Vencimiento',
+                                        valor: fechaVencimientoLiteral,
+                                        icon: 'calendar'
+                                    }
+                                ].filter(Boolean)}
+                            />
                             <ColumnInfo 
                                 title="Finanzas"
-                                items={financeItems}
+                                items={[
+                                    { clave: 'Subtotal', valor: `Bs. ${formatPrice(subtotalNum)}` },
+                                    descValNum > 0 && {
+                                        clave: `Descuento ${esPorcentaje ? `(${formatPrice(descPerc)}%)` : '(Bs.)'}`,
+                                        valor: `- Bs. ${formatPrice(descCalculadoNum)}`,
+                                        colorValor: 'var(--error-color)'
+                                    },
+                                    aumValNum > 0 && {
+                                        clave: `Aumento ${esPorcentaje ? `(${formatPrice(aumPerc)}%)` : '(Bs.)'}`,
+                                        valor: `+ Bs. ${formatPrice(aumCalculadoNum)}`,
+                                        colorValor: 'var(--success-color)'
+                                    }
+                                ].filter(Boolean)}
                                 finance={true}
                                 financeTotal={`Bs. ${formatPrice(totalFinalNum)}`}
                             />
@@ -439,8 +414,10 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion, onEdit, onUpdate, onE
             tablaValores={tablaValoresDescarga}
             nombreArchivo={`COTIZACION_${cotizacion.codigo || cotizacion.id || ''}`}
             tituloDocumento="COTIZACIÓN"
+            esMovimiento={true}
+            fechaMovimiento={rawFechaStr}
             clienteInfo={{
-                nombre: cotizacion.cliente?.name || '',
+                nombre: clienteNombre || '',
                 numeroOrden: cotizacion.numero_cotizacion || ''
             }}
         />

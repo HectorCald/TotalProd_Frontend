@@ -269,8 +269,8 @@ export const EmployeeProvider = ({ children }) => {
           // Si la sucursal tiene empresa pero no tiene logo_tipo, cargar la imagen
           if (sucursalActual.empresas && sucursalActual.empresas.id && !sucursalActual.empresas.logo_tipo) {
             try {
-              const EmpresaImagenService = (await import('../services/empresaImagenService')).default;
-              const imageResponse = await EmpresaImagenService.getImage(sucursalActual.empresas.id);
+              const EmpresaService = (await import('../services/empresaService')).default;
+              const imageResponse = await EmpresaService.getImage(sucursalActual.empresas.id);
               
               if (imageResponse.success) {
                 const imageUrl = imageResponse.data?.imagen_url || 

@@ -66,7 +66,7 @@ class cotizacionesService {
       if (throwOnError || error.status === 403) {
         throw error;
       }
-      
+
       if (returnErrorObject) {
         return {
           success: false,
@@ -74,21 +74,12 @@ class cotizacionesService {
           ...(defaultData !== undefined ? { data: defaultData } : {})
         };
       }
-      
+
       return { success: false, message: error.message || 'Error de conexión con el servidor' };
     }
   }
 
-  // Obtener una cotización por ID
-  static async getById(cotizacionId) {
-    return cotizacionesService._request(`/cotizaciones/${cotizacionId}`, {
-      method: 'GET'
-    }, {
-      requireSucuId: true,
-      requireEmpresaId: true
-    });
-  }
-
+  // Obtener todas las cotizaciones
   static async getAll(
     page = 1,
     limit = 30,
@@ -142,7 +133,7 @@ class cotizacionesService {
     });
   }
 
-  // Crear una nueva cotización
+  // Crear cotización
   static async create(cotizacionData) {
     const personalId = getPersonalId();
     const dataToSend = {
@@ -155,25 +146,28 @@ class cotizacionesService {
       body: JSON.stringify(dataToSend)
     }, {
       requireSucuId: true,
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
+  }
+
+  // Eliminar una cotización
+  static async delete(cotizacionId) {
+    return cotizacionesService._request(`/cotizaciones/${cotizacionId}`, {
+      method: 'DELETE'
+    }, {
+      requireSucuId: true,
       requireEmpresaId: true
     });
   }
 
-  // Crear cotización rápida de golpe
-  static async createFast(cotizacionData) {
-    const personalId = getPersonalId();
-    const dataToSend = {
-      ...cotizacionData,
-      personal_id: personalId
-    };
-
-    return cotizacionesService._request('/cotizaciones/fast', {
-      method: 'POST',
-      body: JSON.stringify(dataToSend)
+  // Obtener una cotización por ID
+  static async getById(cotizacionId) {
+    return cotizacionesService._request(`/cotizaciones/${cotizacionId}`, {
+      method: 'GET'
     }, {
       requireSucuId: true,
-      requireEmpresaId: true,
-      returnErrorObject: true
+      requireEmpresaId: true
     });
   }
 
@@ -188,15 +182,6 @@ class cotizacionesService {
     });
   }
 
-  // Eliminar una cotización
-  static async eliminar(cotizacionId) {
-    return cotizacionesService._request(`/cotizaciones/${cotizacionId}`, {
-      method: 'DELETE'
-    }, {
-      requireSucuId: true,
-      requireEmpresaId: true
-    });
-  }
 }
 
 export default cotizacionesService;

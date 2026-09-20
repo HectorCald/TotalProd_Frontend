@@ -12,7 +12,7 @@ import { pdf as pdfRenderer, Document, Page, View, Text, Image, StyleSheet } fro
 import { useUser } from '../../context/UserContext';
 import { useEmployee } from '../../context/EmployeeContext';
 import { useLayout } from '../../context/LayoutContext';
-import EmpresaImagenService from '../../services/empresaImagenService';
+import EmpresaService from '../../services/empresaService';
 import Checkbox from '../common/inputs/Checkbox';
 
 function ModalDescarga({
@@ -133,7 +133,7 @@ function ModalDescarga({
                         }
 
                         // Si no está en los datos, hacer llamada al servicio
-                        const response = await EmpresaImagenService.getImage(sucursal.empresas.id);
+                        const response = await EmpresaService.getImage(sucursal.empresas.id);
 
                         // Intentar diferentes propiedades de la respuesta
                         const imageUrl = response.data?.imagen_url ||

@@ -163,7 +163,7 @@ const NavBar = () => {
       setLoadingSucursales(true);
       try {
         const isDamabrava = empresaId === '259a05d2-2417-47b0-8bbd-50cd5723aae1';
-        const response = await sucursalesService.getByEmpresaId(empresaId, isDamabrava);
+        const response = await sucursalesService.getAll(empresaId, isDamabrava);
         if (response.success && response.data) {
           const filtradas = response.data.filter(s => {
             if (isDamabrava) return true;

@@ -15,7 +15,7 @@ const EliminarCotizacion = ({ isOpen, onClose, cotizacionSeleccionada, onElimina
 
         setLoading(true);
         try {
-            const response = await cotizacionesService.eliminar(cotizacionSeleccionada.id);
+            const response = await cotizacionesService.delete(cotizacionSeleccionada.id);
 
             if (response.success) {
                 if (onEliminar) onEliminar(cotizacionSeleccionada.id);

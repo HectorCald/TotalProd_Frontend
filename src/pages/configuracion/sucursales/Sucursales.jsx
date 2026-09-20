@@ -127,7 +127,7 @@ const Sucursales = () => {
 
       <FetchData
         service={sucursalesService}
-        method="getByEmpresaId"
+        method="getAll"
         methodParams={[null, false]}
         serviceName="sucursalesService"
         isOpen={true}

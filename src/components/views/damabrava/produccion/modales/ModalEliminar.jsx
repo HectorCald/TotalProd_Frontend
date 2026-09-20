@@ -5,14 +5,11 @@ import HeaderModal from '../../../../common/old/HeaderModal';
 import Boton from '../../../../common/botones/Boton';
 import Text from '../../../../common/old/Text';
 import { useToast } from '../../../../../context/ToastContext';
-import useHistorialLogger from '../../../../ui/HistorialLogger';
-import { buildProduccionDetallesParaHistorial } from '../../../../../utils/logFormatters';
 import registrosProduccionDamabravaService from '../../../../../services/registrosProduccionDamabravaService';
 
 function ModalEliminar({ isOpen, setIsOpen, registro, onEliminado }) {
     const { showSuccess, showDanger, showWarning } = useToast();
     const [loading, setLoading] = useState(false);
-    const { logAccion } = useHistorialLogger({ modulo: 'Producción' });
 
     const terminados = registro?.terminados || 0;
 
@@ -22,14 +19,6 @@ function ModalEliminar({ isOpen, setIsOpen, registro, onEliminado }) {
             const response = await registrosProduccionDamabravaService.delete(registro?.id);
 
             if (response.success) {
-                const det = buildProduccionDetallesParaHistorial(registro, 'ELIMINAR');
-                await logAccion({
-                    accion: 'ELIMINAR',
-                    lugarAfectado: `Registro Producción Lote ${registro?.lote ?? registro?.id ?? ''} - ${registro?.producto_almacen?.name ?? 'Producto'}`,
-                    registroId: registro?.id || null,
-                    detallesPersonalizados: det
-                });
-
                 showSuccess('Registro eliminado', 'Registro eliminado correctamente');
                 setIsOpen(false);
                 if (onEliminado) onEliminado(registro?.id);
