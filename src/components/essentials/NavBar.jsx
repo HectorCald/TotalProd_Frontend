@@ -67,6 +67,9 @@ const NavBar = () => {
     localStorage.setItem('employeeCanSwitchSucursal', String(!!employeeInfo.permisos?.sucursales));
   }, [isEmployeeSession, employeeInfo]);
 
+  // En PC siempre se muestra el texto; en mobile solo si no hay selector de sucursal
+  const showLogoText = isLargeScreen || !canSwitchSucursal;
+
 
   const sucursalesOptions = useMemo(() => {
     if (!empresaId) return [];
@@ -200,12 +203,12 @@ const NavBar = () => {
         <div className={styles.logoContainer}>
           {isEverythingLoading ? (
             <Skeleton
-              width={isLargeScreen ? "140px" : "38px"}
-              height={isLargeScreen ? "35px" : "38px"}
-              borderRadius={isLargeScreen ? "8px" : "50%"}
+              width={showLogoText ? "140px" : "38px"}
+              height={showLogoText ? "35px" : "38px"}
+              borderRadius={showLogoText ? "8px" : "50%"}
             />
           ) : (
-            <LogoAnimation height="38px" textPosition="right" showText={isLargeScreen} />
+            <LogoAnimation height="38px" textPosition="right" showText={showLogoText} />
           )}
         </div>
         {isLargeScreen && (
