@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
-import Text from '../../../../components/common/old/Text';
+import Mensaje from '../../../../components/common/outputs/Mensaje';
 import { useToast } from '../../../../context/ToastContext';
 import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
 import pedidosAlmacenService from '../../../../services/pedidosAlmacenService';
@@ -31,11 +31,11 @@ const IngresarPedido = ({ isOpen, setIsOpen, pedido, movimientoSalida, onIngresa
 
             // 2. Realizar la entrada
             console.log('IngresarPedido - Payload para entrada:', payload);
-            const result = await movimientosAlmacenService.createFast(payload);
-            console.log('IngresarPedido - Resultado de createFast:', result);
+            const result = await movimientosAlmacenService.create(payload);
+            console.log('IngresarPedido - Resultado de create:', result);
 
             if (!result.success) {
-                console.error('IngresarPedido - Error en createFast:', result);
+                console.error('IngresarPedido - Error en create:', result);
                 showDanger(null, result.message || 'Error al registrar el ingreso del pedido');
                 setLoading(false);
                 return;
@@ -88,9 +88,10 @@ const IngresarPedido = ({ isOpen, setIsOpen, pedido, movimientoSalida, onIngresa
             mensaje={`¿Estás seguro que deseas ingresar el pedido Nro ${pedido.numero_pedido || pedido.id}?`}
             detalle={
                 <div style={{ marginTop: '10px', width: '100%' }}>
-                    <Text type="info" align="left">
-                        Se ingresarán automáticamente todos los productos entregados en el movimiento de salida a tu stock actual. Esta acción cambiará el estado del pedido a "Completado".
-                    </Text>
+                    <Mensaje 
+                        type="info" 
+                        message="Se ingresarán automáticamente todos los productos entregados en el movimiento de salida a tu stock actual. Esta acción cambiará el estado del pedido a &quot;Completado&quot;." 
+                    />
                 </div>
             }
             confirmText="Sí, ingresar pedido"

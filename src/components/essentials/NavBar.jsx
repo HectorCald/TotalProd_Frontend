@@ -8,12 +8,8 @@ import { useEmployee } from '../../context/EmployeeContext';
 import Skeleton from '../common/widgets/Skeleton';
 import CerrarSesion from './modals/CerrarSesion';
 import ModalPerfil from './modals/ModalPerfil';
-import ModalAnuncios from '../../pages/home/modals/ModalAnuncios';
-import ModalInformacion from './modals/ModalInformacion';
-import BotonIcon from '../common/botones/BotonIcon';
 import InputSelect from '../common/inputs/InputSelect';
 import sucursalesService from '../../services/sucursalesService';
-import planificadorService from '../../services/planificadorService';
 import { SideConfigOptions } from '../../constants/SideConfigOptions';
 
 const NavBar = () => {
@@ -27,10 +23,6 @@ const NavBar = () => {
   const [dropdownView, setDropdownView] = useState('main');
   const [isCerrarSesionOpen, setIsCerrarSesionOpen] = useState(false);
   const [isConfiguracionOpen, setIsConfiguracionOpen] = useState(false);
-  const [isAnunciosOpen, setIsAnunciosOpen] = useState(false);
-  const [isTareasOpen, setIsTareasOpen] = useState(false);
-  const [tareasPendientes, setTareasPendientes] = useState([]);
-  const [loadingTaskId, setLoadingTaskId] = useState(null);
   const [sucursales, setSucursales] = useState([]);
   const [loadingSucursales, setLoadingSucursales] = useState(false);
   const [hasFetchedSucursales, setHasFetchedSucursales] = useState(false);
@@ -63,54 +55,18 @@ const NavBar = () => {
   const seleccionarSucursal = isEmployeeSession ? seleccionarEmployeeSucursal : seleccionarUserSucursal;
   const empresaId = sucursalSeleccionada?.empresas?.id || userInfo?.empresa_id || employeeInfo?.sucursal?.empresas?.id;
   const isEverythingLoading = !usuario || !sucursalSeleccionada;
-
-  const responsableId = isEmployeeSession ? employeeInfo?.id : (userInfo?.personal_id || userInfo?.id);
-
-  const cargarTareasPendientes = useCallback(async () => {
-    if (!responsableId) return;
-    try {
-      const res = await planificadorService.getByIdEstado(responsableId, 'Pendiente,En Progreso');
-      if (res && res.success && Array.isArray(res.data)) {
-        setTareasPendientes(res.data);
-      }
-    } catch (err) {
-      console.error('Error al cargar tareas pendientes en NavBar:', err);
-    }
-  }, [responsableId]);
+  const canSwitchSucursal = useMemo(() => {
+    if (!isEmployeeSession) return true;
+    if (employeeInfo) return !!employeeInfo.permisos?.sucursales;
+    // Mientras carga, usar el último permiso conocido para no mostrar el skeleton innecesariamente
+    return localStorage.getItem('employeeCanSwitchSucursal') === 'true';
+  }, [isEmployeeSession, employeeInfo]);
 
   useEffect(() => {
-    cargarTareasPendientes();
-  }, [cargarTareasPendientes]);
+    if (!isEmployeeSession || !employeeInfo) return;
+    localStorage.setItem('employeeCanSwitchSucursal', String(!!employeeInfo.permisos?.sucursales));
+  }, [isEmployeeSession, employeeInfo]);
 
-  const handleEmpezarTarea = async (taskId) => {
-    try {
-      setLoadingTaskId(taskId);
-      const res = await planificadorService.updateEstado(taskId, 'En Progreso');
-      if (res && res.success) {
-        setTareasPendientes((prev) =>
-          prev.map((t) => (t.id === taskId ? { ...t, estado: 'En Progreso' } : t))
-        );
-      }
-    } catch (err) {
-      console.error('Error al empezar tarea:', err);
-    } finally {
-      setLoadingTaskId(null);
-    }
-  };
-
-  const handleFinalizarTarea = async (taskId) => {
-    try {
-      setLoadingTaskId(taskId);
-      const res = await planificadorService.updateEstado(taskId, 'Completado');
-      if (res && res.success) {
-        setTareasPendientes((prev) => prev.filter((t) => t.id !== taskId));
-      }
-    } catch (err) {
-      console.error('Error al finalizar tarea:', err);
-    } finally {
-      setLoadingTaskId(null);
-    }
-  };
 
   const sucursalesOptions = useMemo(() => {
     if (!empresaId) return [];
@@ -243,9 +199,13 @@ const NavBar = () => {
       <div className={styles.leftContainer}>
         <div className={styles.logoContainer}>
           {isEverythingLoading ? (
-            <Skeleton width={isLargeScreen ? "80px" : "30px"} height="24px" borderRadius="4px" />
+            <Skeleton
+              width={isLargeScreen ? "140px" : "38px"}
+              height={isLargeScreen ? "35px" : "38px"}
+              borderRadius={isLargeScreen ? "8px" : "50%"}
+            />
           ) : (
-            <LogoAnimation height="24px" hideIcon={true} short={!isLargeScreen} />
+            <LogoAnimation height="38px" textPosition="right" showText={isLargeScreen} />
           )}
         </div>
         {isLargeScreen && (
@@ -259,10 +219,12 @@ const NavBar = () => {
         )}
 
         {isEverythingLoading ? (
-          <div className={styles.sucursalSkeleton}>
-            <Skeleton width={isLargeScreen ? "150px" : "100px"} height="35px" borderRadius="8px" />
-          </div>
-        ) : (
+          canSwitchSucursal && (
+            <div className={styles.sucursalSkeleton}>
+              <Skeleton width={isLargeScreen ? "150px" : "100px"} height="35px" borderRadius="8px" />
+            </div>
+          )
+        ) : canSwitchSucursal && (
           <div className={styles.sucursalSelector}>
             <InputSelect
               value={sucursalSeleccionada?.id}
@@ -271,6 +233,7 @@ const NavBar = () => {
               placeholder={loadingSucursales ? "Cargando..." : "Seleccionar sucursal"}
               disabled={sucursalesOptions.length <= 1 || loadingSucursales}
               clearable={false}
+              style={{ marginBottom: 0 }}
             />
           </div>
         )}
@@ -289,46 +252,7 @@ const NavBar = () => {
           </div>
         ) : (
           <>
-            <div className={styles.bocinaWrapper}>
-              <BotonIcon
-                buttonIcon="file"
-                className="btn-primary-inverted"
-                onClick={() => {
-                  cargarTareasPendientes();
-                  setIsTareasOpen(true);
-                }}
-                style={{ marginBottom: 0 }}
-                title="Mis tareas"
-              />
-              {tareasPendientes.length > 0 && (
-                <span
-                  className={styles.badgeContador}
-                  onClick={() => {
-                    cargarTareasPendientes();
-                    setIsTareasOpen(true);
-                  }}
-                >
-                  {tareasPendientes.length}
-                </span>
-              )}
-            </div>
 
-            {isLargeScreen && (
-              <div className={styles.bocinaWrapper}>
-                <BotonIcon
-                  buttonIcon="megaphone"
-                  className="btn-primary-inverted"
-                  onClick={() => setIsAnunciosOpen(true)}
-                  style={{ marginBottom: 0 }}
-                />
-                <span
-                  className={styles.badgeContador}
-                  onClick={() => setIsAnunciosOpen(true)}
-                >
-                  !
-                </span>
-              </div>
-            )}
 
             <div className={styles.userProfile} ref={dropdownRef}>
             <div
@@ -454,23 +378,6 @@ const NavBar = () => {
         <ModalPerfil
           isOpen={isConfiguracionOpen}
           onClose={() => setIsConfiguracionOpen(false)}
-        />
-      )}
-      {isAnunciosOpen && (
-        <ModalAnuncios
-          isOpen={isAnunciosOpen}
-          onClose={() => setIsAnunciosOpen(false)}
-        />
-      )}
-      {isTareasOpen && (
-        <ModalInformacion
-          isOpen={isTareasOpen}
-          onClose={() => setIsTareasOpen(false)}
-          title="Mis tareas"
-          tareas={tareasPendientes}
-          onEmpezarTarea={handleEmpezarTarea}
-          onFinalizarTarea={handleFinalizarTarea}
-          loadingTaskId={loadingTaskId}
         />
       )}
     </nav>

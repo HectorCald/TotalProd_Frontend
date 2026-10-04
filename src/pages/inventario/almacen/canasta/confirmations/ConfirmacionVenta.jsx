@@ -138,7 +138,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
       };
 
       console.log('Payload de venta frontend:', payload);
-      const result = await movimientosAlmacenService.createFast(payload);
+      const result = await movimientosAlmacenService.create(payload);
 
       if (!result.success) {
         console.error('Error desde backend:', result);

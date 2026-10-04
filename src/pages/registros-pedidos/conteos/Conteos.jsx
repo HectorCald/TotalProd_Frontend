@@ -13,8 +13,8 @@ import SelectTipoNuevo from './modals/SelectTipoNuevo';
 import ViewInfo from './modals/ViewInfo';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
 
-const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, false, true);
+const LiteralDateCell = ({ dateStr, abbreviate = false }) => {
+  const literal = useFechaLiteral(dateStr, abbreviate, !abbreviate);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
@@ -86,7 +86,9 @@ const Conteos = () => {
       header: 'Fecha',
       accessor: 'fecha',
       width: '20%',
-      render: (row) => <LiteralDateCell dateStr={row.fecha} />
+      render: (row) => <LiteralDateCell dateStr={row.fecha} />,
+      mobileRender: (row) => <LiteralDateCell dateStr={row.fecha} abbreviate={true} />,
+      isMobileSubtitle: true
     },
     {
       header: 'Ítems Contados',

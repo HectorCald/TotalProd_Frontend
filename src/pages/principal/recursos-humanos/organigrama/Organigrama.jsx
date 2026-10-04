@@ -413,7 +413,7 @@ const Organigrama = () => {
 
         // 1. Cargar catálogo de personal
         try {
-          const personalRes = await personalService.getAll();
+          const personalRes = await personalService.getForOrganigrama();
           if (personalRes && personalRes.success && Array.isArray(personalRes.data)) {
             setPersonal(personalRes.data);
           }

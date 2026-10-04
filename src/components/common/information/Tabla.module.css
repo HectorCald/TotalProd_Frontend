@@ -183,6 +183,38 @@
     background-color: var(--info-color) !important;
 }
 
+.primary {
+    color: var(--primary-color) !important;
+}
+.primary .dot {
+    background-color: var(--primary-color) !important;
+}
+
+.secondary {
+    color: var(--secondary-color) !important;
+}
+.secondary .dot {
+    background-color: var(--secondary-color) !important;
+}
+
+.boldCell {
+    font-weight: 600;
+    color: var(--dark-color, #1a202c) !important;
+}
+
+.dotCell {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.indicatorDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
 .badgeArrayContainer {
     display: flex;
     gap: 4px;

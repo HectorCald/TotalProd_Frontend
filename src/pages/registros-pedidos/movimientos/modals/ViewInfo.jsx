@@ -10,7 +10,6 @@ import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 import EliminarMovimiento from './EliminarMovimiento';
 import AnularMovimiento from './AnularMovimiento';
 import ProductosMovimiento from './ProductosMovimiento';
-import movimientosAcopioService from '../../../../services/movimientosAcopioService';
 import gastosService from '../../../../services/gastosService';
 import { useToast } from '../../../../context/ToastContext';
 import deudasService from '../../../../services/deudasService';
@@ -33,10 +32,6 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
-    
-    const [isParentLoading, setIsParentLoading] = useState(false);
-    const [parentMovimiento, setParentMovimiento] = useState(null);
-    const [isParentViewOpen, setIsParentViewOpen] = useState(false);
 
     const [isPagoViewOpen, setIsPagoViewOpen] = useState(false);
     const [selectedPago, setSelectedPago] = useState(null);
@@ -91,23 +86,6 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
             setHideDeudas(false);
         }
     }, [isOpen, propsMovimiento]);
-
-    const handleVerEntrada = async () => {
-        setIsParentLoading(true);
-        try {
-            const res = await movimientosAcopioService.getById(movimiento.movimiento_entrada_id);
-            if (res.success) {
-                setParentMovimiento(res.data);
-                setIsParentViewOpen(true);
-            } else {
-                showDanger(null, 'No se pudo obtener el movimiento principal');
-            }
-        } catch (error) {
-            showDanger(null, 'Error de conexión');
-        } finally {
-            setIsParentLoading(false);
-        }
-    };
 
     const handleVerPago = async () => {
         const pagoId = Array.isArray(movimiento.gastos) ? movimiento.gastos[0]?.id : movimiento.gastos?.id;
@@ -225,220 +203,109 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
 
     if (!movimiento) return null;
 
-    const isAcopio = !!movimiento.product;
-
-    const tags = [].filter(Boolean);
-
-    if (movimiento.codigo) {
-        tags.push({
-            label: 'Código',
-            text: movimiento.codigo,
-            icon: 'hash'
-        });
-    }
-
-
-
     let clienteProveedorNombre = '';
     let esProveedor = false;
-    if (isAcopio) {
+    if (movimiento.type === 'transferencia') {
+        clienteProveedorNombre = movimiento.cliente?.name || '';
+    } else {
         if (movimiento.type === 'entrada') {
             clienteProveedorNombre = movimiento.proveedor?.name || '';
             esProveedor = true;
         } else {
             clienteProveedorNombre = movimiento.cliente?.name || '';
         }
-    } else {
-        if (movimiento.type === 'transferencia') {
-            clienteProveedorNombre = movimiento.cliente?.name || '';
-        } else {
-            if (movimiento.type === 'entrada') {
-                clienteProveedorNombre = movimiento.proveedor?.name || '';
-                esProveedor = true;
-            } else {
-                clienteProveedorNombre = movimiento.cliente?.name || '';
-            }
-        }
-    }
-
-    // Cliente / Proveedor logic to be pushed to stats below
-
-    // Responsable logic moved to stats
-
-    if (movimiento.type === 'salida' && movimiento.metodo_pago) {
-        const metodo = movimiento.metodo_pago.toLowerCase();
-        tags.push({
-            label: 'Pago',
-            text: metodo.charAt(0).toUpperCase() + metodo.slice(1),
-            icon: 'credit-card'
-        });
-    }
-
-    tags.push({
-        label: 'Tipo',
-        text: movimiento.type === 'entrada' ? 'Entrada' : movimiento.type === 'transferencia' ? 'Transferencia' : 'Salida',
-        icon: 'transfer'
-    });
-
-    if (movimiento.agrupado !== undefined && movimiento.agrupado !== null) {
-        tags.push({
-            label: 'Modalidad',
-            text: movimiento.agrupado ? 'Grupos' : 'Unidades',
-            icon: movimiento.agrupado ? 'layer' : 'box'
-        });
-    }
-
-    const stats = [];
-    
-    /*
-    const responsableNombre = movimiento?.user?.name || movimiento?.personal?.name || '';
-    if (responsableNombre) {
-        stats.push({
-            label: 'Responsable',
-            value: responsableNombre,
-            icon: 'user'
-        });
-    }
-    */
-
-    if (clienteProveedorNombre) {
-        stats.push({
-            label: esProveedor ? 'Proveedor' : 'Cliente',
-            value: clienteProveedorNombre,
-            icon: esProveedor ? 'building' : 'id-card'
-        });
-    }
-
-    if (movimiento.precio && movimiento.precio.name) {
-        stats.push({
-            label: 'Precio',
-            value: movimiento.precio.name,
-            icon: 'dollar'
-        });
-    }
-
-    if (isAcopio) {
-        stats.push({
-            label: 'Cantidad',
-            value: `${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`,
-            icon: ''
-        });
     }
 
     const observaciones = movimiento.observaciones || movimiento.observations || movimiento.detalle || '';
-    if (observaciones) {
-        stats.push({
-            label: 'Observaciones',
-            value: observaciones,
-            icon: 'detail'
-        });
-    }
     
     let title = '';
-    if (isAcopio) {
-        title = movimiento.product?.name || 'Sin producto';
-    } else {
-        if (movimiento.type === 'transferencia') {
-            if (movimiento.concepto && movimiento.concepto.trim() !== '') {
-                title = movimiento.concepto;
-            } else {
-                const origen = movimiento.sucursal_origen?.name || movimiento.sucursal?.name || 'Origen';
-                const destino = movimiento.sucursal_destino?.name || 'Destino';
-                title = `${origen} > ${destino}`;
-            }
-        } else if (movimiento.concepto && movimiento.concepto.trim() !== '') {
+    if (movimiento.type === 'transferencia') {
+        if (movimiento.concepto && movimiento.concepto.trim() !== '') {
             title = movimiento.concepto;
         } else {
-            const clienteNombre = movimiento.type === 'entrada' 
-                ? (movimiento.proveedor?.name || null)
-                : (movimiento.cliente?.name || null);
-            if (clienteNombre) {
-                title = clienteNombre;
-            } else if (movimiento.productos && movimiento.productos.length === 1) {
-                title = movimiento.productos[0]?.producto?.name || (movimiento.type === 'entrada' ? 'Entrada rapida' : 'Venta rapida');
-            } else {
-                title = movimiento.type === 'entrada' ? 'Entrada rapida' : 'Venta rapida';
-            }
+            const origen = movimiento.sucursal_origen?.name || movimiento.sucursal?.name || 'Origen';
+            const destino = movimiento.sucursal_destino?.name || 'Destino';
+            title = `${origen} > ${destino}`;
+        }
+    } else if (movimiento.concepto && movimiento.concepto.trim() !== '') {
+        title = movimiento.concepto;
+    } else {
+        const clienteNombre = movimiento.type === 'entrada' 
+            ? (movimiento.proveedor?.name || null)
+            : (movimiento.cliente?.name || null);
+        if (clienteNombre) {
+            title = clienteNombre;
+        } else if (movimiento.productos && movimiento.productos.length === 1) {
+            title = movimiento.productos[0]?.producto?.name || (movimiento.type === 'entrada' ? 'Entrada rapida' : 'Venta rapida');
+        } else {
+            title = movimiento.type === 'entrada' ? 'Entrada rapida' : 'Venta rapida';
         }
     }
 
     // Cálculos para el bloque personalizado
     let subtotalNum = 0;
-    let descValNum = 0;
-    let aumValNum = 0;
-    let esPorcentaje = false;
-    let totalFinalNum = 0;
-    let descCalculadoNum = 0;
-    let aumCalculadoNum = 0;
-    let isLegacyPercentage = false;
-
-    if (!isAcopio) {
-        if (movimiento.productos && movimiento.productos.length > 0) {
-            subtotalNum = movimiento.productos.reduce((sum, p) => {
-                const cant = p.cantidad || p.pivot?.cantidad;
-                const prec = p.precio_unitario || p.pivot?.precio_unitario || p.precio || p.pivot?.precio;
-                return sum + calculateSubtotal(cant, prec, p.producto?.grup, movimiento?.agrupado, movimiento?.type === 'salida' || movimiento?.tipo === 'salida');
-            }, 0);
-        } else if (movimiento.subtotal !== undefined && movimiento.subtotal !== null) {
-            subtotalNum = parseFloat(movimiento.subtotal) || 0;
-        }
-        subtotalNum = Math.round(subtotalNum * 10) / 10;
-        descValNum = parseFloat(movimiento.descuento) || 0;
-        aumValNum = parseFloat(movimiento.aumento) || 0;
-        esPorcentaje = movimiento.porcentaje;
-        
-        const dateStr = movimiento.fecha ? (movimiento.fecha.split('T')[0] || movimiento.fecha.substring(0, 10)) : '';
-        isLegacyPercentage = esPorcentaje && dateStr && dateStr <= LEGACY_PERCENTAGE_CUTOFF_DATE;
-
-        descCalculadoNum = esPorcentaje 
-            ? (isLegacyPercentage ? descValNum : (subtotalNum * descValNum / 100)) 
-            : descValNum;
-        aumCalculadoNum = esPorcentaje 
-            ? (isLegacyPercentage ? aumValNum : (subtotalNum * aumValNum / 100)) 
-            : aumValNum;
-            
-        let totalFinalRaw = subtotalNum - descCalculadoNum + aumCalculadoNum;
-        totalFinalNum = totalFinalRaw;
+    if (movimiento.productos && movimiento.productos.length > 0) {
+        subtotalNum = movimiento.productos.reduce((sum, p) => {
+            const cant = p.cantidad || p.pivot?.cantidad;
+            const prec = p.precio_unitario || p.pivot?.precio_unitario || p.precio || p.pivot?.precio;
+            return sum + calculateSubtotal(cant, prec, p.producto?.grup, movimiento?.agrupado, movimiento?.type === 'salida' || movimiento?.tipo === 'salida');
+        }, 0);
+    } else if (movimiento.subtotal !== undefined && movimiento.subtotal !== null) {
+        subtotalNum = parseFloat(movimiento.subtotal) || 0;
     }
+    subtotalNum = Math.round(subtotalNum * 10) / 10;
+    const descValNum = parseFloat(movimiento.descuento) || 0;
+    const aumValNum = parseFloat(movimiento.aumento) || 0;
+    const esPorcentaje = movimiento.porcentaje;
+    
+    const dateStr = movimiento.fecha ? (movimiento.fecha.split('T')[0] || movimiento.fecha.substring(0, 10)) : '';
+    const isLegacyPercentage = esPorcentaje && dateStr && dateStr <= LEGACY_PERCENTAGE_CUTOFF_DATE;
+
+    const descCalculadoNum = esPorcentaje 
+        ? (isLegacyPercentage ? descValNum : (subtotalNum * descValNum / 100)) 
+        : descValNum;
+    const aumCalculadoNum = esPorcentaje 
+        ? (isLegacyPercentage ? aumValNum : (subtotalNum * aumValNum / 100)) 
+        : aumValNum;
+        
+    const totalFinalNum = subtotalNum - descCalculadoNum + aumCalculadoNum;
 
     const financeItems = [];
-    if (!isAcopio) {
-        financeItems.push({ clave: 'Subtotal', valor: `Bs. ${formatPrice(subtotalNum)}` });
-        if (descValNum > 0) {
-            const descPerc = esPorcentaje 
-                ? (isLegacyPercentage && subtotalNum > 0 ? (descValNum / subtotalNum) * 100 : descValNum) 
-                : (subtotalNum > 0 ? (descValNum / subtotalNum) * 100 : 0);
-            financeItems.push({ 
-                clave: `Descuento ${esPorcentaje ? `(${formatPrice(descPerc)}%)` : '(Bs.)'}`, 
-                valor: `- Bs. ${formatPrice(descCalculadoNum)}`,
-                colorValor: 'var(--error-color)'
-            });
-        }
-        if (aumValNum > 0) {
-            const aumPerc = esPorcentaje 
-                ? (isLegacyPercentage && subtotalNum > 0 ? (aumValNum / subtotalNum) * 100 : aumValNum) 
-                : (subtotalNum > 0 ? (aumValNum / subtotalNum) * 100 : 0);
-            financeItems.push({ 
-                clave: `Aumento ${esPorcentaje ? `(${formatPrice(aumPerc)}%)` : '(Bs.)'}`, 
-                valor: `+ Bs. ${formatPrice(aumCalculadoNum)}`,
-                colorValor: 'var(--success-color)'
-            });
-        }
+    financeItems.push({ clave: 'Subtotal', valor: `Bs. ${formatPrice(subtotalNum)}` });
+    if (descValNum > 0) {
+        const descPerc = esPorcentaje 
+            ? (isLegacyPercentage && subtotalNum > 0 ? (descValNum / subtotalNum) * 100 : descValNum) 
+            : (subtotalNum > 0 ? (descValNum / subtotalNum) * 100 : 0);
+        financeItems.push({ 
+            clave: `Descuento ${esPorcentaje ? `(${formatPrice(descPerc)}%)` : '(Bs.)'}`, 
+            valor: `- Bs. ${formatPrice(descCalculadoNum)}`,
+            colorValor: 'var(--error-color)'
+        });
+    }
+    if (aumValNum > 0) {
+        const aumPerc = esPorcentaje 
+            ? (isLegacyPercentage && subtotalNum > 0 ? (aumValNum / subtotalNum) * 100 : aumValNum) 
+            : (subtotalNum > 0 ? (aumValNum / subtotalNum) * 100 : 0);
+        financeItems.push({ 
+            clave: `Aumento ${esPorcentaje ? `(${formatPrice(aumPerc)}%)` : '(Bs.)'}`, 
+            valor: `+ Bs. ${formatPrice(aumCalculadoNum)}`,
+            colorValor: 'var(--success-color)'
+        });
+    }
 
-        if (movimiento.type === 'salida') {
-            let costoTotal = 0;
-            (movimiento.productos || []).forEach(p => {
-                const cant = parseFloat(p.pivot?.cantidad ?? p.cantidad ?? 0);
-                const costoUnit = parseFloat(p.producto?.costo_produccion ?? 0);
-                costoTotal += costoUnit * cant;
-            });
-            let gananciaNeta = totalFinalNum - costoTotal;
-            financeItems.push({ 
-                clave: 'Ganancia Neta', 
-                valor: `Bs. ${formatPrice(gananciaNeta)}`,
-                colorValor: gananciaNeta >= 0 ? 'var(--success-color)' : 'var(--error-color)'
-            });
-        }
+    if (movimiento.type === 'salida') {
+        let costoTotal = 0;
+        (movimiento.productos || []).forEach(p => {
+            const cant = parseFloat(p.pivot?.cantidad ?? p.cantidad ?? 0);
+            const costoUnit = parseFloat(p.producto?.costo_produccion ?? 0);
+            costoTotal += costoUnit * cant;
+        });
+        let gananciaNeta = totalFinalNum - costoTotal;
+        financeItems.push({ 
+            clave: 'Ganancia Neta', 
+            valor: `Bs. ${formatPrice(gananciaNeta)}`,
+            colorValor: gananciaNeta >= 0 ? 'var(--success-color)' : 'var(--error-color)'
+        });
     }
 
     const informacionSuperiorDescarga = {
@@ -502,7 +369,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
     return (
         <>
         <ModalCentro
-            isOpen={isOpen && !isParentViewOpen && !isPagoViewOpen && !isDeudaViewOpen && !isPedidoViewOpen && !isProductosOpen && !isAnularOpen && !isEliminarOpen && !isDescargaOpen}
+            isOpen={isOpen && !isPagoViewOpen && !isDeudaViewOpen && !isPedidoViewOpen && !isProductosOpen && !isAnularOpen && !isEliminarOpen && !isDescargaOpen}
             onClose={onClose}
             title=""
             confirmText="Editar"
@@ -531,49 +398,64 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                                     />
                                 </div>
                             )}
-                            {tags.length > 0 && (
-                                <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
-                            )}
-                            {stats.length > 0 && (
-                                <ColumnInfo 
-                                    title="Detalles"
-                                    items={stats.map(s => ({ clave: s.label, valor: s.value }))}
-                                />
-                            )}
-                            {!isAcopio && (
-                                <ColumnInfo 
-                                    title="Finanzas"
-                                    items={financeItems}
-                                    finance={true}
-                                    financeTotal={`Bs. ${formatPrice(totalFinalNum)}`}
-                                />
-                            )}
+                            <ColumnInfo 
+                                items={[
+                                    movimiento.codigo && { 
+                                        icon: 'hash', 
+                                        text: movimiento.codigo 
+                                    },
+                                    (movimiento.type === 'salida' && movimiento.metodo_pago) && { 
+                                        icon: 'credit-card', 
+                                        text: movimiento.metodo_pago.charAt(0).toUpperCase() + movimiento.metodo_pago.slice(1).toLowerCase() 
+                                    },
+                                    { 
+                                        icon: 'transfer', 
+                                        text: movimiento.type === 'entrada' ? 'Entrada' : movimiento.type === 'transferencia' ? 'Transferencia' : 'Salida' 
+                                    },
+                                    (movimiento.agrupado !== undefined && movimiento.agrupado !== null) && { 
+                                        icon: movimiento.agrupado ? 'layer' : 'box', 
+                                        text: movimiento.agrupado ? 'Grupos' : 'Unidades' 
+                                    }
+                                ].filter(Boolean)} 
+                            />
+                            <ColumnInfo 
+                                title="Detalles"
+                                items={[
+                                    clienteProveedorNombre && { 
+                                        clave: esProveedor ? 'Proveedor' : 'Cliente', 
+                                        valor: clienteProveedorNombre 
+                                    },
+                                    movimiento.precio?.name && { 
+                                        clave: 'Precio', 
+                                        valor: movimiento.precio.name 
+                                    },
+                                    observaciones && { 
+                                        clave: 'Observaciones', 
+                                        valor: observaciones 
+                                    }
+                                ].filter(Boolean)} 
+                            />
+                            <ColumnInfo 
+                                title="Finanzas"
+                                items={financeItems}
+                                finance={true}
+                                financeTotal={`Bs. ${formatPrice(totalFinalNum)}`}
+                            />
                         </>
                     }
                     actionButton={
                         <>
-                            {!isAcopio && isLoadingDetails ? (
+                            {isLoadingDetails ? (
                                 <Skeleton width="100%" height="44px" style={{ borderRadius: '8px' }} />
                             ) : (
                                 <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'flex-end' }}>
-                                    {!isAcopio && (
-                                        <Boton
-                                            label="Productos"
-                                            iconName={(hasDeuda && hasPedido) ? "" : "box"}
-                                            className="btn-primary"
-                                            style={{ flex: 1 }}
-                                            onClick={() => setIsProductosOpen(true)}
-                                        />
-                                    )}
-                                    {isAcopio && movimiento.movimiento_entrada_id && (
-                                        <BotonIcon
-                                            iconName="file"
-                                            className="btn-primary"
-                                            tooltip="Movimiento principal"
-                                            loading={isParentLoading}
-                                            onClick={handleVerEntrada}
-                                        />
-                                    )}
+                                    <Boton
+                                        label="Productos"
+                                        iconName={(hasDeuda && hasPedido) ? "" : "box"}
+                                        className="btn-primary"
+                                        style={{ flex: 1 }}
+                                        onClick={() => setIsProductosOpen(true)}
+                                    />
                                     
                                     {movimiento.gastos && (Array.isArray(movimiento.gastos) ? movimiento.gastos.length > 0 : Object.keys(movimiento.gastos).length > 0) && !hideGastos && (
                                         <BotonIcon
@@ -593,7 +475,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                                             onClick={handleVerDeuda}
                                         />
                                     )}
-                                    {!isAcopio && ((movimiento.pedidos_entrada && (Array.isArray(movimiento.pedidos_entrada) ? movimiento.pedidos_entrada.length > 0 : Object.keys(movimiento.pedidos_entrada).length > 0)) || (movimiento.pedidos_salida && (Array.isArray(movimiento.pedidos_salida) ? movimiento.pedidos_salida.length > 0 : Object.keys(movimiento.pedidos_salida).length > 0))) && (
+                                    {((movimiento.pedidos_entrada && (Array.isArray(movimiento.pedidos_entrada) ? movimiento.pedidos_entrada.length > 0 : Object.keys(movimiento.pedidos_entrada).length > 0)) || (movimiento.pedidos_salida && (Array.isArray(movimiento.pedidos_salida) ? movimiento.pedidos_salida.length > 0 : Object.keys(movimiento.pedidos_salida).length > 0))) && (
                                         <BotonIcon
                                             iconName="package"
                                             className="btn-primary"
@@ -602,16 +484,6 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                                             onClick={handleVerPedido}
                                         />
                                     )}
-                                    {/* {movimiento.estado !== 'anulado' && !(isAcopio && movimiento.movimiento_entrada_id) && (
-                                        <BotonIcon
-                                            iconName="edit"
-                                            className="btn-primary"
-                                            tooltip="Editar Movimiento"
-                                            onClick={() => {
-                                                if (onEdit) onEdit(movimiento);
-                                            }}
-                                        />
-                                    )} */}
 
                                     {movimiento.type !== 'entrada' && (
                                         <BotonIcon
@@ -631,7 +503,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                                             onClick={() => setIsAnularOpen(true)}
                                         />
                                     )}
-                                    {movimiento.estado === 'anulado' && !(isAcopio && movimiento.movimiento_entrada_id) && (
+                                    {movimiento.estado === 'anulado' && (
                                         <BotonIcon
                                             iconName="trash"
                                             className="btn-error"
@@ -666,12 +538,6 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
             onClose={() => setIsProductosOpen(false)}
             movimientoActual={movimiento}
             movimiento={movimiento}
-        />
-
-        <ViewInfo
-            isOpen={isParentViewOpen}
-            onClose={() => setIsParentViewOpen(false)}
-            movimiento={parentMovimiento}
         />
 
         <ViewInfoPago

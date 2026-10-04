@@ -19,8 +19,8 @@ const EliminarMovimiento = ({ isOpen, onClose, movimientoSeleccionado, onElimina
         try {
             const isAcopio = !!movimientoSeleccionado.product;
             const response = isAcopio
-                ? await movimientosAcopioService.eliminar(movimientoSeleccionado.id)
-                : await movimientosAlmacenService.eliminar(movimientoSeleccionado.id);
+                ? await movimientosAcopioService.delete(movimientoSeleccionado.id)
+                : await movimientosAlmacenService.delete(movimientoSeleccionado.id);
 
             if (response.success) {
                 if (onEliminar) {

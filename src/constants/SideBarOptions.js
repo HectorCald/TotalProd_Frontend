@@ -10,8 +10,7 @@ export const SideBarOptions = [
         id: "recursos-humanos", title: "Recursos Humanos", icon: "group", route: "/recursos-humanos", key: "recursos_humanos",
         submenu: [
           { id: "personal", title: "Personal", icon: "user", route: "/recursos-humanos/personal", key: "personal" },
-          { id: "organigrama", title: "Organigrama", icon: "sitemap", route: "/recursos-humanos/organigrama", key: "organigrama", isBuilding: false },
-          { id: "planificador", title: "Planificador", icon: "calendar", route: "/recursos-humanos/planificador", key: "planificador", isBuilding: false }
+          { id: "organigrama", title: "Organigrama", icon: "sitemap", route: "/recursos-humanos/organigrama", key: "organigrama", isBuilding: false }
         ]
       }
     ]

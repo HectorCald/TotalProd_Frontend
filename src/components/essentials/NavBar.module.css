@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 17px;
   position: fixed;
   top: 0;
   left: 0;
@@ -47,7 +47,16 @@
 
 .sucursalSelector {
   min-width: 200px;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
+
+.sucursalSelector > div {
+  margin-bottom: 0 !important;
+  width: 100%;
+}
+
 
 
 
@@ -81,11 +90,17 @@
   cursor: pointer;
   padding: 5px 10px;
   border-radius: 8px;
-  transition: background-color 0.2s;
 }
 
-.userInfo:hover {
-  background-color: var(--primary-color-light);
+@media (max-width: 1024px) {
+  .userInfo {
+    padding: 0;
+    gap: 0;
+  }
+
+  .dropdownMenu {
+    right: 0;
+  }
 }
 
 .avatar {

@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
-import Boton from '../../../../components/common/botones/Boton';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import InfoCard from '../../../../components/common/information/InfoCard';
-import useFormatNumber from '../../../../hooks/useFormatNumber';
 import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 import EliminarMovimiento from './EliminarMovimiento';
 import AnularMovimiento from './AnularMovimiento';
-import ProductosMovimiento from './ProductosMovimiento';
-import movimientosAcopioService from '../../../../services/movimientosAcopioService';
 import gastosService from '../../../../services/gastosService';
 import { useToast } from '../../../../context/ToastContext';
 import ViewInfoPago from '../../../finanzas/pagos/modals/ViewInfo';
@@ -19,13 +14,9 @@ import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 import Mensaje from '../../../../components/common/outputs/Mensaje';
 
 const ViewInfoAcopio = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnular }) => {
-    const navigate = useNavigate();
-    const { formatPrice } = useFormatNumber();
     const { showDanger } = useToast();
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
-    const [isProductosOpen, setIsProductosOpen] = useState(false);
-    
     const [isPagoViewOpen, setIsPagoViewOpen] = useState(false);
     const [selectedPago, setSelectedPago] = useState(null);
     const [loadingPago, setLoadingPago] = useState(false);
@@ -92,157 +83,28 @@ const ViewInfoAcopio = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnu
     };
 
     const rawFechaStr = movimiento?.fecha || movimiento?.date || '';
-    const fechaStr = rawFechaStr;
-    const fechaLiteral = useFechaLiteral(fechaStr, false, true) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
+    const fechaLiteral = useFechaLiteral(rawFechaStr, false, true) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
 
     if (!movimiento) return null;
 
-    const isAcopio = !!movimiento.product;
-
-    const tags = [].filter(Boolean);
-
-    if (movimiento.codigo) {
-        tags.push({
-            label: 'Código',
-            text: movimiento.codigo,
-            icon: 'hash'
-        });
-    }
-
-    if (movimiento.precio && movimiento.precio.name) {
-        tags.push({
-            label: 'Precio',
-            text: movimiento.precio.name,
-            icon: 'dollar'
-        });
-    }
-
-
-
     let clienteProveedorNombre = '';
     let esProveedor = false;
-    if (isAcopio) {
-        if (movimiento.type === 'entrada') {
-            clienteProveedorNombre = movimiento.proveedor?.name || '';
-            esProveedor = true;
-        } else {
-            clienteProveedorNombre = movimiento.cliente?.name || '';
-        }
+    if (movimiento.type === 'entrada') {
+        clienteProveedorNombre = movimiento.proveedor?.name || '';
+        esProveedor = true;
     } else {
-        if (movimiento.type === 'transferencia') {
-            clienteProveedorNombre = movimiento.cliente?.name || '';
-        } else {
-            if (movimiento.type === 'entrada') {
-                clienteProveedorNombre = movimiento.proveedor?.name || '';
-                esProveedor = true;
-            } else {
-                clienteProveedorNombre = movimiento.cliente?.name || '';
-            }
-        }
-    }
-
-    if (clienteProveedorNombre) {
-        tags.push({
-            label: esProveedor ? 'Proveedor' : 'Cliente',
-            text: clienteProveedorNombre,
-            icon: esProveedor ? 'building' : 'user'
-        });
-    }
-
-    const responsableNombre = movimiento?.user?.name || movimiento?.personal?.name || '';
-    if (responsableNombre) {
-        tags.push({
-            label: 'Responsable',
-            text: responsableNombre,
-            icon: 'user'
-        });
-    }
-
-    if (movimiento.type === 'salida' && movimiento.metodo_pago) {
-        const metodo = movimiento.metodo_pago.toLowerCase();
-        tags.push({
-            label: 'Pago',
-            text: metodo.charAt(0).toUpperCase() + metodo.slice(1),
-            icon: 'credit-card'
-        });
-    }
-
-
-    const stats = [];
-    
-    stats.push({
-        label: 'Tipo',
-        value: movimiento.type === 'entrada' ? 'Entrada' : movimiento.type === 'transferencia' ? 'Transferencia' : 'Salida',
-        icon: 'transfer'
-    });
-
-    if (movimiento.agrupado !== undefined && movimiento.agrupado !== null) {
-        stats.push({
-            label: 'Modalidad',
-            value: movimiento.agrupado ? 'Grps.' : 'Unds.',
-            icon: movimiento.agrupado ? 'layer' : 'box'
-        });
-    }
-
-    if (isAcopio) {
-        stats.push({
-            label: 'Cantidad',
-            value: `${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}`,
-            icon: ''
-        });
-    } else {
-        stats.push({
-            label: 'Productos',
-            value: movimiento.productos?.length || 0,
-            icon: 'package'
-        });
+        clienteProveedorNombre = movimiento.cliente?.name || '';
     }
 
     const observaciones = movimiento.observaciones || movimiento.observations || movimiento.detalle || '';
-    if (observaciones) {
-        stats.push({
-            label: 'Observaciones',
-            value: observaciones,
-            icon: 'detail'
-        });
-    }
-    
-    let title = '';
-    if (isAcopio) {
-        title = movimiento.product?.name || 'Sin producto';
-    } else {
-        if (movimiento.type === 'transferencia') {
-            if (movimiento.concepto && movimiento.concepto.trim() !== '') {
-                title = movimiento.concepto;
-            } else {
-                const origen = movimiento.sucursal_origen?.name || movimiento.sucursal?.name || 'Origen';
-                const destino = movimiento.sucursal_destino?.name || 'Destino';
-                title = `${origen} > ${destino}`;
-            }
-        } else if (movimiento.concepto && movimiento.concepto.trim() !== '') {
-            title = movimiento.concepto;
-        } else {
-            const clienteNombre = movimiento.type === 'entrada' 
-                ? (movimiento.proveedor?.name || null)
-                : (movimiento.cliente?.name || null);
-            if (clienteNombre) {
-                title = clienteNombre;
-            } else if (movimiento.productos && movimiento.productos.length > 0) {
-                title = movimiento.productos.length === 1
-                    ? movimiento.productos[0]?.producto?.name || 'Sin producto'
-                    : `${movimiento.productos.length} productos`;
-            } else {
-                title = 'Sin productos';
-            }
-        }
-    }
+    const title = movimiento.product?.name || 'Sin producto';
 
 
 
     return (
         <>
         <ModalCentro
-            isOpen={isOpen && !isEliminarOpen && !isAnularOpen && !isPagoViewOpen && !isPedidoViewOpen && !isProductosOpen}
+            isOpen={isOpen && !isEliminarOpen && !isAnularOpen && !isPagoViewOpen && !isPedidoViewOpen}
             onClose={onClose}
             title=""
             confirmText="Editar"
@@ -261,15 +123,47 @@ const ViewInfoAcopio = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnu
                     icon="transfer"
                     customBlock={
                         <>
-                            {tags.length > 0 && (
-                                <ColumnInfo items={tags.map(t => ({ text: t.text, icon: t.icon }))} />
-                            )}
-                            {stats.length > 0 && (
-                                <ColumnInfo 
-                                    title="Detalles"
-                                    items={stats.map(s => ({ clave: s.label, valor: s.value }))}
-                                />
-                            )}
+                            <ColumnInfo 
+                                items={[
+                                    movimiento.codigo && { 
+                                        icon: 'hash', 
+                                        text: movimiento.codigo 
+                                    },
+                                    (movimiento.type === 'salida' && movimiento.metodo_pago) && { 
+                                        icon: 'credit-card', 
+                                        text: movimiento.metodo_pago.charAt(0).toUpperCase() + movimiento.metodo_pago.slice(1).toLowerCase() 
+                                    },
+                                    { 
+                                        icon: 'transfer', 
+                                        text: movimiento.type === 'entrada' ? 'Entrada' : movimiento.type === 'transferencia' ? 'Transferencia' : 'Salida' 
+                                    },
+                                    (movimiento.agrupado !== undefined && movimiento.agrupado !== null) && { 
+                                        icon: movimiento.agrupado ? 'layer' : 'box', 
+                                        text: movimiento.agrupado ? 'Grupos' : 'Unidades' 
+                                    }
+                                ].filter(Boolean)} 
+                            />
+                            <ColumnInfo 
+                                title="Detalles"
+                                items={[
+                                    clienteProveedorNombre && { 
+                                        clave: esProveedor ? 'Proveedor' : 'Cliente', 
+                                        valor: clienteProveedorNombre 
+                                    },
+                                    movimiento.precio?.name && { 
+                                        clave: 'Precio', 
+                                        valor: movimiento.precio.name 
+                                    },
+                                    { 
+                                        clave: 'Cantidad', 
+                                        valor: `${movimiento.quantity || '0'} ${movimiento.product?.type_measure?.code || ''}` 
+                                    },
+                                    observaciones && { 
+                                        clave: 'Observaciones', 
+                                        valor: observaciones 
+                                    }
+                                ].filter(Boolean)} 
+                            />
                         </>
                     }
                     actionButton={
@@ -281,15 +175,6 @@ const ViewInfoAcopio = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnu
                                 />
                             )}
                             <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'flex-end' }}>
-                            {!isAcopio && (
-                                <Boton
-                                    label="Productos"
-                                    iconName="box"
-                                    className="btn-primary"
-                                    style={{ flex: 1 }}
-                                    onClick={() => setIsProductosOpen(true)}
-                                />
-                            )}
                             {movimiento.gastos && (Array.isArray(movimiento.gastos) ? movimiento.gastos.length > 0 : Object.keys(movimiento.gastos).length > 0) && !hideGastos && (
                                 <BotonIcon
                                     iconName="wallet"
@@ -358,15 +243,6 @@ const ViewInfoAcopio = ({ isOpen, onClose, movimiento, onEdit, onEliminar, onAnu
             movimientoSeleccionado={movimiento}
             onAnular={handleMovimientoAnulado}
         />
-
-        <ProductosMovimiento
-            isOpen={isProductosOpen}
-            onClose={() => setIsProductosOpen(false)}
-            movimientoActual={movimiento}
-            movimiento={movimiento}
-        />
-
-
 
         <ViewInfoPago
             isOpen={isPagoViewOpen}

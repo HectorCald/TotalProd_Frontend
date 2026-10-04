@@ -66,6 +66,14 @@ const personalService = {
         });
     },
 
+    // Obtener personal activo con datos mínimos para el organigrama
+    async getForOrganigrama() {
+        return this._request('/personal/organigrama', { method: 'GET' }, {
+            requireEmpresaId: true,
+            throwOnError: true
+        });
+    },
+
     // Crear personal
     async create(personalData) {
         return this._request('/personal', {

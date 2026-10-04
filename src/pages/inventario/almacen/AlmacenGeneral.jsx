@@ -9,9 +9,8 @@ import styles from '../../../pages/home/View.module.css';
 import Tabla from '../../../components/common/information/Tabla';
 import FetchDataProgressive from '../../../components/mixed/FetchDataProgressive';
 import productsAlmacenService from '../../../services/productsAlmacenService';
-import AgregarEditarProducto from './modals/AgregarEditarProducto';
-import EliminarProducto from './modals/EliminarProducto';
 import ViewInfo from './modals/ViewInfo';
+import AgregarEditarProducto from './modals/AgregarEditarProducto';
 import BotonFlotante from '../../../components/common/botones/BotonFlotante';
 import CanastaAlmacen from './canasta/CanastaAlmacen';
 import { useCanasta } from './hooks/useCanasta';
@@ -20,134 +19,6 @@ import ViewInfoMovimiento from '../../../pages/registros-pedidos/movimientos/mod
 import useSound from 'use-sound';
 import { cashSound } from '../../../assets/sounds/cashBase64';
 
-const MobileQtyControl = ({ row, canasta, modoCanastaStr, modoAgrupacion, actualizarCantidad, eliminarProducto, agregarProducto, showDanger }) => {
-  const inCanasta = canasta.find(p => p.id === row.id);
-  const qty = inCanasta ? inCanasta.cantidad : 0;
-  const rawStock = Number(row.stock || 0);
-  const esPorGrupo = modoAgrupacion === 'grupo' && row.grup && row.grup > 0;
-  const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(row.grup)) : rawStock;
-  const esVenta = modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION' || modoCanastaStr === 'ENTREGA_PEDIDO' || modoCanastaStr === 'COPIA_VENTA';
-  
-  const [localVal, setLocalVal] = useState(qty === 0 ? '0' : qty.toString());
-
-  useEffect(() => {
-    setLocalVal(qty === 0 ? '0' : qty.toString());
-  }, [qty]);
-
-  const handleChange = (e) => {
-    const valStr = e.target.value;
-    if (valStr.includes('-')) return;
-
-    setLocalVal(valStr);
-
-    if (valStr === '') return;
-
-    let val = parseInt(valStr, 10);
-    if (isNaN(val)) return;
-
-    if (esVenta && val > baseStockValue) {
-      val = baseStockValue > 0 ? baseStockValue : 1;
-      setLocalVal(val.toString());
-    }
-
-    if (qty === 0 && val > 0) {
-      if (modoCanastaStr === 'PEDIDO' && canasta.length > 0) {
-        const empresaIdCanasta = canasta[0].empresa_id;
-        if (empresaIdCanasta && String(row.empresa_id) !== String(empresaIdCanasta)) {
-          showDanger(null, 'No puedes pedir a diferentes empresas a la vez.');
-          setLocalVal('0');
-          return;
-        }
-      }
-      agregarProducto(row, modoCanastaStr);
-      setTimeout(() => actualizarCantidad(row.id, val), 0);
-    } else if (val === 0 && qty > 0) {
-      eliminarProducto(row.id);
-    } else if (qty > 0) {
-      actualizarCantidad(row.id, val);
-    }
-  };
-
-  const handleBlur = () => {
-    let val = parseInt(localVal, 10);
-    if (isNaN(val) || val < 1) {
-      setLocalVal('0');
-      if (qty > 0) eliminarProducto(row.id);
-    } else {
-      setLocalVal(val.toString());
-    }
-  };
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
-      <button 
-        onClick={(e) => {
-          e.stopPropagation();
-          if (qty > 1) actualizarCantidad(row.id, qty - 1);
-          else if (qty === 1) eliminarProducto(row.id);
-        }}
-        style={{
-          width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #e2e8f0',
-          backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'
-        }}
-      >
-        <i className='bx bx-minus'></i>
-      </button>
-      <input
-        type="number"
-        min="0"
-        value={localVal}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === '-' || e.key === 'e') {
-            e.preventDefault();
-          }
-        }}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        style={{
-          width: '46px',
-          height: '32px',
-          borderRadius: '6px',
-          border: '1px solid #e2e8f0',
-          textAlign: 'center',
-          fontSize: '14px',
-          fontWeight: '600',
-          color: '#1e293b',
-          backgroundColor: '#ffffff',
-          outline: 'none',
-          MozAppearance: 'textfield'
-        }}
-      />
-      <button 
-        onClick={(e) => {
-          e.stopPropagation();
-          if (esVenta && qty >= baseStockValue) {
-            showDanger(null, 'Stock insuficiente');
-            return;
-          }
-          if (qty > 0) actualizarCantidad(row.id, qty + 1);
-          else {
-            if (modoCanastaStr === 'PEDIDO' && canasta.length > 0) {
-              const empresaIdCanasta = canasta[0].empresa_id;
-              if (empresaIdCanasta && String(row.empresa_id) !== String(empresaIdCanasta)) {
-                showDanger(null, 'No puedes pedir a diferentes empresas a la vez.');
-                return;
-              }
-            }
-            agregarProducto(row, modoCanastaStr);
-          }
-        }}
-        style={{
-          width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #e2e8f0',
-          backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'
-        }}
-      >
-        <i className='bx bx-plus'></i>
-      </button>
-    </div>
-  );
-};
 
 const AlmacenGeneral = () => {
   const { isLargeScreen } = useLayout();
@@ -287,7 +158,7 @@ const AlmacenGeneral = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
 
   // Paginación y filtros
   const [page, setPage] = useState(1);
@@ -299,11 +170,8 @@ const AlmacenGeneral = () => {
   // Modals state
   const [modalAgregarEditarOpen, setModalAgregarEditarOpen] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
-  const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
-  const [productoEliminar, setProductoEliminar] = useState(null);
   const [modalInfoOpen, setModalInfoOpen] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-  const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
   const [isCanastaMobileOpen, setIsCanastaMobileOpen] = useState(false);
 
   const [debouncedSearch] = useDebounce(search, 500);
@@ -399,50 +267,22 @@ const AlmacenGeneral = () => {
     }
   };
 
-  const tableActions = [
-    {
-      name: 'Editar', icon: 'edit', onClick: (producto) => {
-        setProductoEditando(producto);
-        setModalAgregarEditarOpen(true);
-      }
-    },
-    {
-      name: 'Eliminar', icon: 'trash', onClick: (producto) => {
-        setProductoEliminar(producto);
-        setModalEliminarOpen(true);
-      }
-    }
-  ];
-
   const columns = [
     {
       header: 'Producto',
       accessor: 'name',
-      style: { fontWeight: 600, color: '#333' },
+      isMain: true,
       width: '30%',
       isMobileMain: true,
-      render: (row) => {
-        const inCanasta = canasta.some(p => p.id === row.id);
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isCanastaMode && inCanasta && (
-              <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--primary-color)',
-                flexShrink: 0
-              }} title="En canasta" />
-            )}
-            <span>{row.name}</span>
-          </div>
-        );
-      }
+      hasDot: isCanastaMode ? (row) => canasta.some(p => p.id === row.id) : null,
+      dotColor: 'var(--primary-color)',
+      dotTitle: 'En canasta'
     },
     {
       header: 'Stock',
       accessor: 'displayStock',
       width: '15%',
+      hasStatus: true,
       isMobileStatus: true,
       statusType: (row) => {
         const stock = Number(row.displayStock ?? row.stock ?? 0);
@@ -456,43 +296,16 @@ const AlmacenGeneral = () => {
         }
         return 'info';
       },
-      mobileRender: (row) => {
-        const stock = Number(row.displayStock ?? row.stock ?? 0);
-        return `${stock}`;
-      },
-      render: (row) => {
-        const stock = Number(row.displayStock ?? row.stock ?? 0);
-        const minimo = Number(row.stock_minimo_ajustado ?? row.stock_minimo ?? 0);
-        let color = 'var(--info-color)';
-        if (minimo > 0) {
-          if (stock <= minimo) color = 'var(--error-color)';
-          else if (stock <= minimo * 1.5) color = 'var(--warning-color)';
-        } else {
-          if (stock <= 0) color = 'var(--error-color)';
-          else if (stock <= 5) color = 'var(--warning-color)';
-        }
-        return (
-          <span style={{
-            color,
-            fontWeight: 600,
-            padding: '2px 10px',
-            display: 'inline-block',
-            fontSize: '12px',
-          }}>
-            {stock}
-          </span>
-        );
-      }
+      mobileRender: (row) => `${Number(row.displayStock ?? row.stock ?? 0)}`
     },
     ...(!isCanastaMode ? [{
       header: 'Grupo',
-      accessor: 'grupo',
-      width: '10%',
-      render: (row) => {
+      accessor: (row) => {
         const units = Number(row.remainingUnits ?? row.stock ?? 0);
         const grup = Number(row.grup ?? 0);
         return grup > 0 ? Math.floor(units / grup) : '--';
-      }
+      },
+      width: '10%'
     }] : []),
     ...(isCanastaMode ? [{
       header: 'Precio',
@@ -522,30 +335,14 @@ const AlmacenGeneral = () => {
       header: 'Categorías',
       accessor: 'category_names',
       width: '20%',
+      isBadgeArray: true,
+      badgeColor: 'var(--primary-color)',
       isMobileSubtitle: true,
       mobileRender: (row) => {
         const cats = Array.isArray(row.category_names) ? row.category_names : (typeof row.category_names === 'string' && row.category_names ? row.category_names.split(', ') : []);
         const firstCat = cats.length > 0 ? cats[0] : 'Sin categoría';
         const min = row.stock_minimo ?? 0;
         return `${firstCat} • Mín: ${min}`;
-      },
-      render: (row) => {
-        const cats = Array.isArray(row.category_names) ? row.category_names : (typeof row.category_names === 'string' && row.category_names ? row.category_names.split(', ') : []);
-        return (
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-            {cats.map((cat, idx) => (
-              <span key={idx} style={{
-                color: 'var(--primary-color)',
-                fontWeight: 600,
-                padding: '2px 10px',
-                display: 'inline-block',
-                fontSize: '12px',
-              }}>
-                {cat}
-              </span>
-            ))}
-          </div>
-        );
       }
     }
   ];
@@ -574,27 +371,42 @@ const AlmacenGeneral = () => {
             columns={columns}
             isLoading={isLoading}
             isLoadingMore={isLoadingMore}
-            acciones={isCanastaMode ? null : tableActions}
             buttonLabel={isCanastaMode ? null : "Nuevo Producto"}
             onButtonClick={isCanastaMode ? undefined : () => {
               setProductoEditando(null);
               setModalAgregarEditarOpen(true);
             }}
-            mobileCustomControls={(row) => {
-              if (!isCanastaMode) return null;
-              return (
-                <MobileQtyControl
-                  row={row}
-                  canasta={canasta}
-                  modoCanastaStr={modoCanastaStr}
-                  modoAgrupacion={modoAgrupacion}
-                  actualizarCantidad={actualizarCantidad}
-                  eliminarProducto={eliminarProducto}
-                  agregarProducto={agregarProducto}
-                  showDanger={showDanger}
-                />
-              );
-            }}
+            mobileQuantityControl={isCanastaMode ? (row) => {
+              const inCanasta = canasta.find(p => p.id === row.id);
+              const qty = inCanasta ? inCanasta.cantidad : 0;
+              const rawStock = Number(row.stock || 0);
+              const esPorGrupo = modoAgrupacion === 'grupo' && row.grup && row.grup > 0;
+              const baseStockValue = esPorGrupo ? Math.floor(rawStock / Number(row.grup)) : rawStock;
+              const esVenta = modoCanastaStr === 'VENTA' || modoCanastaStr === 'VENTA_COTIZACION' || modoCanastaStr === 'ENTREGA_PEDIDO' || modoCanastaStr === 'COPIA_VENTA';
+
+              return {
+                quantity: qty,
+                max: esVenta ? baseStockValue : undefined,
+                onMaxExceeded: () => showDanger(null, 'Stock insuficiente'),
+                onQuantityChange: (val) => {
+                  if (qty === 0 && val > 0) {
+                    if (modoCanastaStr === 'PEDIDO' && canasta.length > 0) {
+                      const empresaIdCanasta = canasta[0].empresa_id;
+                      if (empresaIdCanasta && String(row.empresa_id) !== String(empresaIdCanasta)) {
+                        showDanger(null, 'No puedes pedir a diferentes empresas a la vez.');
+                        return;
+                      }
+                    }
+                    agregarProducto(row, modoCanastaStr);
+                    setTimeout(() => actualizarCantidad(row.id, val), 0);
+                  } else if (val === 0 && qty > 0) {
+                    eliminarProducto(row.id);
+                  } else if (qty > 0) {
+                    actualizarCantidad(row.id, val);
+                  }
+                }
+              };
+            } : null}
             searchKeys={['name', 'codigo_barras']}
             sortKey="name"
             onLoadMore={handleLoadMore}
@@ -695,37 +507,19 @@ const AlmacenGeneral = () => {
         }}
       />
 
-      <EliminarProducto
-        isOpen={modalEliminarOpen}
-        onClose={(wasDeleted) => {
-          setModalEliminarOpen(false);
-          if (returnToViewOnDeleteClose && wasDeleted !== true) {
-            setModalInfoOpen(true);
-          }
-          setReturnToViewOnDeleteClose(false);
-        }}
-        productoSeleccionado={productoEliminar}
-        onEliminar={(idEliminado) => {
-          setProductos(prev => prev.filter(p => p.id !== idEliminado));
-          setReturnToViewOnDeleteClose(false);
-          setModalInfoOpen(false);
-        }}
-      />
-
       <ViewInfo
         isOpen={modalInfoOpen}
         onClose={() => setModalInfoOpen(false)}
         producto={productoSeleccionado}
         readOnly={productoSeleccionado && String(productoSeleccionado.empresa_id) !== String(localStorage.getItem('empresa_id'))}
-        onEdit={(producto) => {
-          setProductoEditando(producto);
-          setModalAgregarEditarOpen(true);
+        onGuardar={(nuevoProducto) => {
+          setProductos(prev => prev.map(p => p.id === nuevoProducto.id ? { ...p, ...nuevoProducto } : p));
+          if (productoSeleccionado && productoSeleccionado.id === nuevoProducto.id) {
+            setProductoSeleccionado(prev => ({ ...prev, ...nuevoProducto }));
+          }
         }}
-        onDelete={(producto) => {
-          setReturnToViewOnDeleteClose(true);
-          setModalInfoOpen(false);
-          setProductoEliminar(producto);
-          setModalEliminarOpen(true);
+        onEliminar={(idEliminado) => {
+          setProductos(prev => prev.filter(p => p.id !== idEliminado));
         }}
       />
 

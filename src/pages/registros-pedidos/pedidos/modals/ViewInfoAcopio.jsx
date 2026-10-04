@@ -10,7 +10,7 @@ import gastosService from '../../../../services/gastosService';
 import { useToast } from '../../../../context/ToastContext';
 import ViewInfoPago from '../../../finanzas/pagos/modals/ViewInfo';
 import ConfirmacionEntrada from '../../../inventario/materia-prima/canasta/confirmations/ConfirmacionEntrada';
-import ViewInfoMovimientoAcopio from '../../movimientos/modals/ViewInfoAcopio';
+import ViewInfoMovimiento from '../../movimientos/modals/ViewInfoAcopio';
 import pedidosAcopioService from '../../../../services/pedidosAcopioService';
 import movimientosAcopioService from '../../../../services/movimientosAcopioService';
 import AnularIngreso from './materia-prima/AnularIngreso';
@@ -33,19 +33,15 @@ const ViewInfoAcopio = ({ isOpen, setIsOpen, onClose, pedido, onEliminar, onAnul
 
     const [isConfirmacionEntradaOpen, setIsConfirmacionEntradaOpen] = useState(false);
     
-    const [isMovimientoAcopioOpen, setIsMovimientoAcopioOpen] = useState(false);
-    const [selectedMovimientoAcopio, setSelectedMovimientoAcopio] = useState(null);
-    const [loadingMovimientoAcopio, setLoadingMovimientoAcopio] = useState(false);
-
-
+    const [isMovimientoOpen, setIsMovimientoOpen] = useState(false);
+    const [selectedMovimiento, setSelectedMovimiento] = useState(null);
+    const [loadingMovimiento, setLoadingMovimiento] = useState(false);
 
     const rawFechaStr = pedido?.fecha || pedido?.created_at || '';
-    const fechaStr = rawFechaStr;
-    const fechaLiteral = useFechaLiteral(fechaStr, false, true) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
+    const fechaLiteral = useFechaLiteral(rawFechaStr, false, true) || (rawFechaStr ? new Date(rawFechaStr).toLocaleDateString() : '');
 
     const rawFechaEntregaStr = pedido?.fecha_entregado || '';
-    const fechaEntregaStr = rawFechaEntregaStr;
-    const fechaEntregaLiteral = useFechaLiteral(fechaEntregaStr, false, true) || (rawFechaEntregaStr ? new Date(rawFechaEntregaStr).toLocaleDateString() : '');
+    const fechaEntregaLiteral = useFechaLiteral(rawFechaEntregaStr, false, true) || (rawFechaEntregaStr ? new Date(rawFechaEntregaStr).toLocaleDateString() : '');
 
     if (!pedido) return null;
 
@@ -103,21 +99,21 @@ const ViewInfoAcopio = ({ isOpen, setIsOpen, onClose, pedido, onEliminar, onAnul
         }
     };
 
-    const handleVerMovimientoAcopio = async () => {
+    const handleVerMovimiento = async () => {
         if (!pedido.movimiento_entrada_id) return;
-        setLoadingMovimientoAcopio(true);
+        setLoadingMovimiento(true);
         try {
             const response = await movimientosAcopioService.getById(pedido.movimiento_entrada_id);
             if (response.success && response.data) {
-                setSelectedMovimientoAcopio(response.data);
-                setIsMovimientoAcopioOpen(true);
+                setSelectedMovimiento(response.data);
+                setIsMovimientoOpen(true);
             } else {
-                showDanger(null, response.message || 'Error al obtener el movimiento de acopio');
+                showDanger(null, response.message || 'Error al obtener el movimiento');
             }
         } catch (error) {
             showDanger(null, 'Error de conexión');
         } finally {
-            setLoadingMovimientoAcopio(false);
+            setLoadingMovimiento(false);
         }
     };
 
@@ -134,7 +130,7 @@ const ViewInfoAcopio = ({ isOpen, setIsOpen, onClose, pedido, onEliminar, onAnul
     return (
         <>
         <ModalCentro
-            isOpen={isOpen && !isAnularEntregaOpen && !isAnularIngresoOpen && !isEliminarOpen && !isPagoCompraOpen && !isPagoTransporteOpen && !isEntregarOpen && !isConfirmacionEntradaOpen && !isMovimientoAcopioOpen}
+            isOpen={isOpen && !isAnularEntregaOpen && !isAnularIngresoOpen && !isEliminarOpen && !isPagoCompraOpen && !isPagoTransporteOpen && !isEntregarOpen && !isConfirmacionEntradaOpen && !isMovimientoOpen}
             onClose={() => {
                 if (setIsOpen) setIsOpen(false);
                 if (onClose) onClose();
@@ -229,12 +225,12 @@ const ViewInfoAcopio = ({ isOpen, setIsOpen, onClose, pedido, onEliminar, onAnul
                                 <>
                                     {pedido.movimiento_entrada_id && (
                                         <BotonIcon
-                                            key="btn-movimiento-acopio"
+                                            key="btn-movimiento"
                                             iconName="package"
                                             className="btn-primary"
-                                            tooltip="Movimiento Acopio"
-                                            loading={loadingMovimientoAcopio}
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVerMovimientoAcopio(); }}
+                                            tooltip="Movimiento"
+                                            loading={loadingMovimiento}
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVerMovimiento(); }}
                                         />
                                     )}
                                     <BotonIcon
@@ -357,13 +353,13 @@ const ViewInfoAcopio = ({ isOpen, setIsOpen, onClose, pedido, onEliminar, onAnul
             onSuccess={handleSuccessIngreso}
         />
 
-        {isMovimientoAcopioOpen && selectedMovimientoAcopio && (
-            <ViewInfoMovimientoAcopio
-                isOpen={isMovimientoAcopioOpen}
-                onClose={() => setIsMovimientoAcopioOpen(false)}
-                movimiento={selectedMovimientoAcopio}
+        {isMovimientoOpen && selectedMovimiento && (
+            <ViewInfoMovimiento
+                isOpen={isMovimientoOpen}
+                onClose={() => setIsMovimientoOpen(false)}
+                movimiento={selectedMovimiento}
                 onAnular={(updatedMovimiento) => {
-                    setIsMovimientoAcopioOpen(false);
+                    setIsMovimientoOpen(false);
                     onClose();
                     if (onEdit) onEdit({ ...pedido, estado: 'Entregado', movimiento_entrada_id: null });
                 }}

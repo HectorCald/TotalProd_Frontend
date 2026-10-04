@@ -29,7 +29,6 @@ import Proveedores from './pages/gestion/proveedores/Proveedores';
 // Section PRINCIPAL - Recursos Humanos
 import Personal from './pages/principal/recursos-humanos/personal/Personal';
 import Organigrama from './pages/principal/recursos-humanos/organigrama/Organigrama';
-import Planificador from './pages/principal/recursos-humanos/planificador/Planificador';
 
 // Section FINANZAS
 import Pagos from './pages/finanzas/pagos/Pagos';
@@ -59,6 +58,8 @@ import sucursalesService from './services/sucursalesService';
 import NavBar from './components/essentials/NavBar';
 import SideBar from './components/essentials/SideBar';
 import viewStyles from './pages/home/View.module.css';
+import gridStyles from './components/layout/LayoutGrid.module.css';
+import Skeleton from './components/common/widgets/Skeleton';
 import UpdateModal from './components/update/UpdateModal';
 import { UPDATE_INFO } from './components/update/constants/updateInfo';
 
@@ -503,18 +504,76 @@ function AppContent({ token, tokenType }) {
         <div className={viewStyles.dashboardContainer}>
           {isLargeScreen && <SideBar />}
           <div className={viewStyles.contentArea}>
-            <div style={{ padding: '20px' }}>
-              <div style={{ width: '200px', height: '40px', backgroundColor: '#e0e0e0', borderRadius: '8px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}></div>
-              <div style={{ width: '100%', height: '400px', backgroundColor: '#e0e0e0', borderRadius: '8px', animation: 'pulse 1.5s infinite' }}></div>
-            </div>
+            {isLargeScreen ? (
+              <>
+                <h1 className={viewStyles.title}>
+                  <Skeleton width="100px" height="14px" borderRadius="4px" />
+                </h1>
+                <div className={gridStyles.layoutGrid}>
+                  <Skeleton height="106px" borderRadius="12px" />
+                  <Skeleton height="106px" borderRadius="12px" />
+                  <Skeleton height="106px" borderRadius="12px" />
+                </div>
+
+                <div className={gridStyles.layoutGrid} style={{ marginTop: '20px' }}>
+                  <div style={{ gridColumn: 'span 2', height: '100%' }}>
+                    <Skeleton height="380px" borderRadius="12px" />
+                  </div>
+                  <div style={{ gridColumn: 'span 1', height: '100%' }}>
+                    <Skeleton height="380px" borderRadius="12px" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Bloque 1: Descubre más */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h1 className={viewStyles.title}>
+                    <Skeleton width="130px" height="14px" borderRadius="4px" />
+                  </h1>
+                  <Skeleton width="20px" height="20px" borderRadius="4px" style={{ marginRight: '4px' }} />
+                </div>
+
+                <div style={{ width: '100%', position: 'relative', overflow: 'hidden', padding: '5px 0' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', padding: '0 5px' }}>
+                    <Skeleton height="70px" borderRadius="10px" />
+                    <Skeleton height="70px" borderRadius="10px" />
+                    <Skeleton height="70px" borderRadius="10px" />
+                    <Skeleton height="70px" borderRadius="10px" />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '15px' }}>
+                    <Skeleton width="8px" height="8px" borderRadius="50%" />
+                    <Skeleton width="8px" height="8px" borderRadius="50%" />
+                  </div>
+                </div>
+
+                {/* Bloque 2: Gestión */}
+                <h1 className={viewStyles.title}>
+                  <Skeleton width="90px" height="14px" borderRadius="4px" />
+                </h1>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
+                  <Skeleton height="70px" borderRadius="10px" />
+                  <Skeleton height="70px" borderRadius="10px" />
+                  <Skeleton height="70px" borderRadius="10px" />
+                  <Skeleton height="70px" borderRadius="10px" />
+                </div>
+              </>
+            )}
           </div>
         </div>
         {!isLargeScreen && (
-            <div style={{ 
-              position: 'fixed', bottom: '15px', left: '50%', transform: 'translateX(-50%)',
-              width: '90%', maxWidth: '450px', height: '60px', backgroundColor: '#e0e0e0',
-              borderRadius: '10px', animation: 'pulse 1.5s infinite', zIndex: 1000
-            }}></div>
+          <div style={{ 
+            position: 'fixed',
+            bottom: '15px',
+            left: '15px',
+            right: '15px',
+            maxWidth: '480px',
+            margin: '0 auto',
+            zIndex: 1000
+          }}>
+            <Skeleton height="60px" borderRadius="12px" />
+          </div>
         )}
       </div>
     );
@@ -670,10 +729,6 @@ function AppContent({ token, tokenType }) {
         <Route
           path="/recursos-humanos/organigrama"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <Organigrama />}
-        />
-        <Route
-          path="/recursos-humanos/planificador"
-          element={!hasActiveSession ? <Navigate to="/login" replace /> : <Planificador />}
         />
 
         {/* Section FINANZAS */}

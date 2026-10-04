@@ -60,44 +60,40 @@
 
 .btnVender {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  background-color: var(--primary-color, #4f46e5);
+  justify-content: center;
+  background-color: var(--primary-color);
   color: #ffffff;
-  border: 1px solid var(--primary-color, #4f46e5);
-  border-radius: 8px;
-  padding: 6px 14px;
+  border: 1px solid var(--primary-color);
+  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 2px 8px rgba(45, 190, 161, 0.25);
   transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
   flex: 0 0 auto;
-  text-align: center;
 }
 
 .btnVender.active,
 .btnVenderActive {
-  background-color: #ffffff !important;
-  border: 1px solid var(--primary-color, #4f46e5) !important;
-  color: var(--primary-color, #4f46e5) !important;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+  background-color: transparent !important;
+  border: 1px solid var(--primary-color) !important;
+  color: var(--primary-color) !important;
+  box-shadow: none;
 }
 
 .btnVender.active .icon,
-.btnVender.active .title,
-.btnVenderActive .icon,
-.btnVenderActive .title {
-  color: var(--primary-color, #4f46e5) !important;
+.btnVenderActive .icon {
+  color: var(--primary-color) !important;
 }
 
 .btnVender .icon {
-  font-size: 22px;
-  margin-bottom: 2px;
+  font-size: 26px;
+  margin: 0;
   color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btnVender .title {
-  font-size: 8px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #ffffff;
-}

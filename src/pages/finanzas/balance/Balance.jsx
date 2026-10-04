@@ -118,13 +118,11 @@ const Balance = () => {
 
   const filtroFecha = useMemo(() => calcFiltroFecha(selectedDate, tipoBalance), [selectedDate, tipoBalance]);
 
-  // Params para getAllSinLimite: (tipo, estado, ordenamiento, sucuIdParam, filtroFecha)
+  // Params para getAllSinLimite: (tipo, fecha, estado)
   const fetchParams = useMemo(() => [
       'salida',         // tipo - solo salidas
-      null,             // estado - todos
-      'fecha_desc',     // ordenamiento
-      null,             // sucuIdParam - usa el del context
-      filtroFecha       // filtroFecha
+      filtroFecha,      // fecha
+      null              // estado - todos
   ], [filtroFecha]);
 
   const ingresosTotales = useMemo(() => {

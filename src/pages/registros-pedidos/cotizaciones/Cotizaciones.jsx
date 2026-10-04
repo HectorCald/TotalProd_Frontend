@@ -14,8 +14,8 @@ import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import useFormatNumber from '../../../hooks/useFormatNumber';
 import useFormatNumberPrice from '../../../hooks/useFormatNumberPrice';
 
-const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr);
+const LiteralDateCell = ({ dateStr, abbreviate = false }) => {
+  const literal = useFechaLiteral(dateStr, abbreviate);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
@@ -202,7 +202,7 @@ const Cotizaciones = () => {
 
         return (
           <>
-            Nº {row.numero_cotizacion || '--'} • {formatPrice(totalFinalNum)} • <LiteralDateCell dateStr={row.fecha} />
+            Nº {row.numero_cotizacion || '--'} • {formatPrice(totalFinalNum)} • <LiteralDateCell dateStr={row.fecha} abbreviate={true} />
           </>
         );
       }

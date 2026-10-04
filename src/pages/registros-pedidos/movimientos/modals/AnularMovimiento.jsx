@@ -20,7 +20,7 @@ const AnularMovimiento = ({ isOpen, onClose, movimientoSeleccionado, onAnular })
             const isAcopio = !!movimientoSeleccionado.product;
             const response = isAcopio
                 ? await movimientosAcopioService.anular(movimientoSeleccionado.id)
-                : await movimientosAlmacenService.anularFast(movimientoSeleccionado.id);
+                : await movimientosAlmacenService.anular(movimientoSeleccionado.id);
 
             if (response.success && isAcopio && movimientoSeleccionado.pedidos_entrada) {
                 // Si el movimiento tiene un pedido asociado, también actualizamos el pedido a Entregado
@@ -82,6 +82,7 @@ const AnularMovimiento = ({ isOpen, onClose, movimientoSeleccionado, onAnular })
             onClose={handleClose}
             title="Anular movimiento"
             mensaje={`¿Estás seguro de que deseas anular el movimiento de ${itemConcepto}?`}
+           detalle="Una vez confirmada, esta acción anulará el movimiento de forma permanente. El registro quedará marcado como anulado y no podrá revertirse posteriormente."
             confirmText="Anular"
             confirmColorClass="btn-warning"
             onConfirm={handleConfirm}

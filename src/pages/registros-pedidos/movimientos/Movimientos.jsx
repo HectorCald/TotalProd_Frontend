@@ -15,12 +15,10 @@ import useFormatNumberPrice from '../../../hooks/useFormatNumberPrice';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import ViewInfo from './modals/ViewInfo';
 import ViewInfoAcopio from './modals/ViewInfoAcopio';
-import EliminarMovimiento from './modals/EliminarMovimiento';
-import AnularMovimiento from './modals/AnularMovimiento';
 import { LEGACY_PERCENTAGE_CUTOFF_DATE } from '../../../constants/movimientosConstants';
 
-const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr);
+const LiteralDateCell = ({ dateStr, abbreviate = false }) => {
+  const literal = useFechaLiteral(dateStr, abbreviate);
   return <span>{literal || dateStr}</span>;
 };
 
@@ -56,8 +54,6 @@ const Movimientos = () => {
 
   // Modals state
   const [modalInfoOpen, setModalInfoOpen] = useState(false);
-  const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
-  const [modalAnularOpen, setModalAnularOpen] = useState(false);
   const [movimientoSeleccionado, setMovimientoSeleccionado] = useState(null);
 
   const [debouncedSearch] = useDebounce(search, 500);
@@ -202,69 +198,6 @@ const Movimientos = () => {
     setMovimientoSeleccionado(prev => prev && prev.id === updatedMovimiento.id ? { ...prev, ...updatedMovimiento, estado: 'anulado' } : prev);
   };
 
-  const tableActions = [
-    {
-      name: 'Copiar', 
-      icon: 'copy', 
-      show: (row) => !isAcopio && row.type !== 'entrada',
-      onClick: async (movimiento) => {
-        let fullMovimiento = movimiento;
-        if (!movimiento.productos) {
-            try {
-                const res = await movimientosAlmacenService.getRelations(movimiento.id, movimiento.sucu_id);
-                if (res && res.success) {
-                    fullMovimiento = { ...movimiento, ...res.data };
-                }
-            } catch (error) {
-                console.error("Error fetching details", error);
-            }
-        }
-        
-        const ventaData = {
-            prices_types_id: fullMovimiento.prices_types_id || fullMovimiento.precio?.id,
-            modalidad: fullMovimiento.agrupado ? 'grupos' : 'unidades',
-            productos_lista: (fullMovimiento.productos || []).map(p => {
-                const grup = parseFloat(p.producto?.grup || p.grup) || 0;
-                const cantidadUD = parseFloat(p.cantidad || p.pivot?.cantidad) || 1;
-                const esPorGrupo = fullMovimiento.agrupado && grup > 0;
-                return {
-                    id: p.producto?.id || p.producto_almacen_id || p.products_id || p.id,
-                    cantidad: esPorGrupo ? Math.floor(cantidadUD / grup) : cantidadUD
-                };
-            }),
-            cliente_id: fullMovimiento.clients_id || fullMovimiento.cliente?.id || fullMovimiento.suppliers_id || fullMovimiento.proveedor?.id,
-            descuento: parseFloat(fullMovimiento.descuento) || 0,
-            aumento: parseFloat(fullMovimiento.aumento) || 0,
-            porcentaje: !!fullMovimiento.porcentaje,
-            metodo_pago: fullMovimiento.metodo_pago,
-            fecha: fullMovimiento.fecha || fullMovimiento.date || fullMovimiento.created_at || new Date().toISOString()
-        };
-        localStorage.removeItem('ventaEnProgreso');
-        localStorage.removeItem('entradaEnProgreso');
-        sessionStorage.setItem('movimientoParaCopiar', JSON.stringify(ventaData));
-        navigate('/almacen/salidas/copia');
-      }
-    },
-    {
-      name: 'Eliminar', 
-      icon: 'trash', 
-      show: (row) => (row.estado && row.estado.toLowerCase() === 'anulado') && !(isAcopio && row.movimiento_entrada_id),
-      onClick: (movimiento) => {
-        setMovimientoSeleccionado(movimiento);
-        setModalEliminarOpen(true);
-      }
-    },
-    {
-      name: 'Anular', 
-      icon: 'block', 
-      show: (row) => (!row.estado || row.estado.toLowerCase() !== 'anulado') && !(isAcopio && row.movimiento_entrada_id),
-      onClick: (movimiento) => {
-        setMovimientoSeleccionado(movimiento);
-        setModalAnularOpen(true);
-      }
-    }
-  ];
-
   const getProductName = (movimiento) => {
     if (isAcopio) {
       return movimiento.product?.name || 'Sin producto';
@@ -329,7 +262,7 @@ const Movimientos = () => {
       isMobileSubtitle: true,
       mobileRender: (row) => (
         <>
-          {formatPrice(Number(row.quantity || 0))} {row.product?.type_measure?.code || ''} • <LiteralDateCell dateStr={row.date} />
+          {formatPrice(Number(row.quantity || 0))} {row.product?.type_measure?.code || ''} • <LiteralDateCell dateStr={row.date} abbreviate={true} />
         </>
       )
     },
@@ -461,7 +394,7 @@ const Movimientos = () => {
         let totalFinal = subtotal - descCalculado + aumCalculado;
         return (
           <>
-            Bs. {formatPrice(totalFinal)} • <LiteralDateCell dateStr={row.fecha || dateStr} />
+            Bs. {formatPrice(totalFinal)} • <LiteralDateCell dateStr={row.fecha || dateStr} abbreviate={true} />
           </>
         );
       }
@@ -496,7 +429,6 @@ const Movimientos = () => {
             columns={columns}
             isLoading={isLoading}
             isLoadingMore={isLoadingMore}
-            acciones={tableActions}
             buttonLabel="Nuevo Movimiento"
             onButtonClick={() => {
               if (isAcopio) {
@@ -564,20 +496,6 @@ const Movimientos = () => {
           onAnular={handleMovimientoAnulado}
         />
       )}
-
-      <EliminarMovimiento
-        isOpen={modalEliminarOpen}
-        onClose={() => setModalEliminarOpen(false)}
-        movimientoSeleccionado={movimientoSeleccionado}
-        onEliminar={handleMovimientoEliminado}
-      />
-
-      <AnularMovimiento
-        isOpen={modalAnularOpen}
-        onClose={() => setModalAnularOpen(false)}
-        movimientoSeleccionado={movimientoSeleccionado}
-        onAnular={handleMovimientoAnulado}
-      />
       {!isLargeScreen && <MenuSide />}
     </>
   );

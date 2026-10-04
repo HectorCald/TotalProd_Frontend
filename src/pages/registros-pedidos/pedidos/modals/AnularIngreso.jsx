@@ -3,7 +3,7 @@ import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import { useToast } from '../../../../context/ToastContext';
 import pedidosAlmacenService from '../../../../services/pedidosAlmacenService';
 import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
-import Text from '../../../../components/common/old/Text';
+import Mensaje from '../../../../components/common/outputs/Mensaje';
 
 const AnularIngreso = ({ isOpen, setIsOpen, pedido, onAnulado }) => {
     const { showSuccess, showDanger } = useToast();
@@ -25,9 +25,9 @@ const AnularIngreso = ({ isOpen, setIsOpen, pedido, onAnulado }) => {
                 return;
             }
 
-            // 2) SEGUNDO: Anular el movimiento usando anularFast
+            // 2) SEGUNDO: Anular el movimiento usando anular
             if (movimientoEntradaId) {
-                const anularResponse = await movimientosAlmacenService.anularFast(movimientoEntradaId);
+                const anularResponse = await movimientosAlmacenService.anular(movimientoEntradaId);
                 if (!anularResponse.success && !(anularResponse.message && anularResponse.message.includes('anulado'))) {
                     showDanger('Error', 'Error al anular el ingreso: ' + anularResponse.message);
                     setLoading(false);
@@ -37,7 +37,7 @@ const AnularIngreso = ({ isOpen, setIsOpen, pedido, onAnulado }) => {
 
             // 3) TERCERO: Eliminar el movimiento completamente
             if (movimientoEntradaId) {
-                const eliminarMovimientoResponse = await movimientosAlmacenService.eliminar(movimientoEntradaId);
+                const eliminarMovimientoResponse = await movimientosAlmacenService.delete(movimientoEntradaId);
                 if (!eliminarMovimientoResponse.success && !(eliminarMovimientoResponse.message && (eliminarMovimientoResponse.message.includes('no encontrado') || eliminarMovimientoResponse.message.includes('no existe')))) {
                     showDanger('Error', 'Error al eliminar el ingreso: ' + eliminarMovimientoResponse.message);
                     setLoading(false);
@@ -77,9 +77,10 @@ const AnularIngreso = ({ isOpen, setIsOpen, pedido, onAnulado }) => {
             mensaje="¿Estás seguro que deseas anular el ingreso de este pedido? Esta acción no se puede deshacer."
             detalle={
                 <div style={{ marginTop: '10px', width: '100%' }}>
-                    <Text type="warning" align="left">
-                        Al anular, se descontarán de tu stock actual los productos que ingresaste por este pedido y se eliminará el movimiento de entrada.
-                    </Text>
+                    <Mensaje 
+                        type="warning" 
+                        message="Al anular, se descontarán de tu stock actual los productos que ingresaste por este pedido y se eliminará el movimiento de entrada." 
+                    />
                 </div>
             }
             confirmText="Sí, anular ingreso"

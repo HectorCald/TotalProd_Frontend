@@ -103,8 +103,12 @@ const Exportar = () => {
   const [importRows, setImportRows] = useState([]);
   const [rowErrors, setRowErrors]   = useState({});
 
-  // Resetear filas al cambiar tipo
-  useEffect(() => { setImportRows([]); setRowErrors({}); }, [tipoAlmacen]);
+  // Resetear filas al cambiar tipo manualmente
+  const handleTipoChange = useCallback((value) => {
+    setTipoAlmacen(value);
+    setImportRows([]);
+    setRowErrors({});
+  }, []);
 
   const handleCellChange = useCallback((rowIdx, key, value) => {
     setImportRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [key]: value } : r));
@@ -422,7 +426,7 @@ const Exportar = () => {
               <InputSelect
                 label="Tipo de Almacén"
                 value={tipoAlmacen}
-                onChange={setTipoAlmacen}
+                onChange={handleTipoChange}
                 options={TIPO_OPTIONS}
                 placeholder="Seleccionar tipo"
               />

@@ -66,6 +66,8 @@ const Tabla = ({
     filters,
     containerStyle,
     mobileCustomControls,
+    mobileQuantityControl = null,
+    quantityMode = false,
     hideSearch = false,
     customHeaderComponent = null
 }) => {
@@ -264,7 +266,7 @@ const Tabla = ({
                                         style={onRowClick ? { cursor: 'pointer' } : {}}
                                     >
                                         {columns.filter(c => !c.hiddenOnDesktop).map((col, colIdx) => {
-                                            const cellValue = row[col.accessor];
+                                            const cellValue = typeof col.accessor === 'function' ? col.accessor(row) : row[col.accessor];
                                             let cellContent = col.render ? col.render(row) : (cellValue ?? '--');
 
                                             if (!col.render) {
@@ -282,7 +284,7 @@ const Tabla = ({
                                                         </div>
                                                     );
                                                 } else if (col.hasStatusDot || col.hasStatus) {
-                                                    const status = col.statusType ? col.statusType(row) : 'default';
+                                                    const status = col.statusType ? (typeof col.statusType === 'function' ? col.statusType(row) : col.statusType) : 'default';
                                                     cellContent = (
                                                         <div className={`${styles.statusCell} ${styles[status] || ''}`}>
                                                             {col.hasStatusDot && <span className={styles.dot}></span>}
@@ -290,7 +292,10 @@ const Tabla = ({
                                                         </div>
                                                     );
                                                 } else if (col.isBadgeArray) {
-                                                    const arr = Array.isArray(cellValue) ? cellValue : (cellValue ? [cellValue] : []);
+                                                    const rawVal = cellValue;
+                                                    const arr = Array.isArray(rawVal) 
+                                                        ? rawVal 
+                                                        : (typeof rawVal === 'string' && rawVal ? rawVal.split(',').map(s => s.trim()) : (rawVal ? [rawVal] : []));
                                                     if (arr.length === 0) {
                                                         cellContent = '--';
                                                     } else {
@@ -319,15 +324,44 @@ const Tabla = ({
                                                           </div>
                                                         );
                                                     }
-                                                } else if (col.isBadge) {
-                                                    const bColor = col.badgeColor ? (typeof col.badgeColor === 'function' ? col.badgeColor(row) : col.badgeColor) : 'var(--info-color)';
+                                                } else if (col.isBadge || col.hasBadge) {
+                                                    const status = col.statusType 
+                                                        ? (typeof col.statusType === 'function' ? col.statusType(row) : col.statusType) 
+                                                        : (col.badgeType ? (typeof col.badgeType === 'function' ? col.badgeType(row) : col.badgeType) : null);
+                                                    const statusColorMap = {
+                                                        error: 'var(--error-color)',
+                                                        warning: 'var(--warning-color)',
+                                                        info: 'var(--info-color)',
+                                                        success: 'var(--success-color)',
+                                                        primary: 'var(--primary-color)',
+                                                        secondary: 'var(--secondary-color)',
+                                                        default: '#64748b'
+                                                    };
+                                                    const bColor = col.badgeColor 
+                                                        ? (typeof col.badgeColor === 'function' ? col.badgeColor(row) : col.badgeColor) 
+                                                        : (status && statusColorMap[status] ? statusColorMap[status] : 'var(--info-color)');
                                                     cellContent = (
-                                                        <span className={styles.badgeSingle} style={{
+                                                        <span className={`${styles.badgeSingle} ${status && styles[status] ? styles[status] : ''}`} style={{
                                                             color: bColor,
                                                             backgroundColor: `color-mix(in srgb, ${bColor} 12%, transparent)`
                                                         }}>
                                                             {cellValue ?? '--'}
                                                         </span>
+                                                    );
+                                                } else if (col.hasDot) {
+                                                    const showDot = typeof col.hasDot === 'function' ? col.hasDot(row) : Boolean(col.hasDot);
+                                                    const dColor = col.dotColor ? (typeof col.dotColor === 'function' ? col.dotColor(row) : col.dotColor) : 'var(--primary-color)';
+                                                    cellContent = (
+                                                        <div className={styles.dotCell}>
+                                                            {showDot && (
+                                                                <span 
+                                                                    className={styles.indicatorDot} 
+                                                                    style={{ backgroundColor: dColor }} 
+                                                                    title={col.dotTitle || ''} 
+                                                                />
+                                                            )}
+                                                            <span>{cellValue}</span>
+                                                        </div>
                                                     );
                                                 } else if (col.truncate) {
                                                     cellContent = (
@@ -349,7 +383,7 @@ const Tabla = ({
                                             return (
                                                 <td
                                                     key={colIdx}
-                                                    className={`${styles.td} ${col.className || ''}`}
+                                                    className={`${styles.td} ${col.isMain || col.bold ? styles.boldCell : ''} ${col.className || ''}`}
                                                     style={{ ...col.style, width: col.width }}
                                                 >
                                                     {cellContent}
@@ -417,6 +451,9 @@ const Tabla = ({
                             const icon = mainCol?.mobileIcon ? mainCol.mobileIcon(row) : (mainCol?.iconName || 'box');
                             const iconType = mainCol?.mobileIconType ? mainCol.mobileIconType(row) : 'default';
 
+                            const qtyControlConfig = mobileQuantityControl ? mobileQuantityControl(row) : null;
+                            const isQtyActive = quantityMode || Boolean(qtyControlConfig);
+
                             return (
                                 <ItemMobile
                                     key={rowKey}
@@ -430,6 +467,8 @@ const Tabla = ({
                                     status2Type={status2Type}
                                     status3={status3}
                                     status3Type={status3Type}
+                                    quantityMode={isQtyActive}
+                                    quantityControl={qtyControlConfig}
                                     customControls={mobileCustomControls ? mobileCustomControls(row) : null}
                                     onClick={() => onRowClick && onRowClick(row)}
                                     actions={[]}

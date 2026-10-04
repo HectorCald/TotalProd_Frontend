@@ -16,8 +16,8 @@ import ViewInfo from './modals/ViewInfo';
 import ViewInfoAcopio from './modals/ViewInfoAcopio';
 import AnularEntrega from './modals/AnularEntrega';
 
-const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, true, true);
+const LiteralDateCell = ({ dateStr, abbreviate = true }) => {
+  const literal = useFechaLiteral(dateStr, abbreviate, true);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
@@ -198,7 +198,7 @@ const Pedidos = () => {
       isMobileSubtitle: true,
       mobileRender: (row) => (
         <>
-          {row.cantidad_texto} • <LiteralDateCell dateStr={row.fecha || row.created_at} />
+          {row.cantidad_texto} • <LiteralDateCell dateStr={row.fecha || row.created_at} abbreviate={true} />
         </>
       )
     },
@@ -249,7 +249,7 @@ const Pedidos = () => {
       isMobileSubtitle: true,
       mobileRender: (row) => (
         <>
-          Nº {row.numero_pedido || '--'} • Bs. {row.total_formateado} • <LiteralDateCell dateStr={row.fecha || row.created_at} />
+          Nº {row.numero_pedido || '--'} • Bs. {row.total_formateado} • <LiteralDateCell dateStr={row.fecha || row.created_at} abbreviate={true} />
         </>
       )
     },

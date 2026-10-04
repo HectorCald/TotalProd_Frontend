@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Boton from '../../../../components/common/botones/Boton';
 import InfoCard from '../../../../components/common/information/InfoCard';
@@ -6,11 +7,34 @@ import { useUser } from '../../../../context/UserContext';
 import { isSoloVentas } from '../../../../utils/empresaHelper';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
 import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
+import AgregarEditarProducto from './AgregarEditarProducto';
+import EliminarProducto from './EliminarProducto';
 
-const ViewInfo = ({ isOpen, onClose, producto, onEdit, onDelete, readOnly }) => {
+const ViewInfo = ({ isOpen, onClose, producto: propsProducto, onEdit, onDelete, onGuardar, onEliminar, readOnly }) => {
     const { formatPrice } = useFormatNumber();
     const { user } = useUser();
     const soloVentas = isSoloVentas(user);
+
+    const [isEditarOpen, setIsEditarOpen] = useState(false);
+    const [isEliminarOpen, setIsEliminarOpen] = useState(false);
+    const [producto, setProducto] = useState(propsProducto);
+
+    useEffect(() => {
+        setProducto(propsProducto);
+    }, [propsProducto]);
+
+    const handleProductoGuardado = (nuevoProducto) => {
+        setProducto(prev => ({ ...prev, ...nuevoProducto }));
+        if (onGuardar) onGuardar(nuevoProducto);
+        if (onEdit) onEdit(nuevoProducto);
+    };
+
+    const handleProductoEliminado = (id) => {
+        setIsEliminarOpen(false);
+        onClose();
+        if (onEliminar) onEliminar(id);
+        if (onDelete) onDelete(id);
+    };
 
     if (!producto) return null;
 
@@ -20,40 +44,6 @@ const ViewInfo = ({ isOpen, onClose, producto, onEdit, onDelete, readOnly }) => 
         currentEmpresaId && 
         String(producto.empresa_id) !== String(currentEmpresaId)
     ));
-
-    const categoryText = (producto.category_names && producto.category_names.length > 0)
-        ? producto.category_names.join(', ')
-        : producto.category_name || null;
-
-    const categoryTag = categoryText ? {
-        text: categoryText,
-        icon: 'tag'
-    } : null;
-
-    const tagsItems = [
-        producto.codigo_barras ? {
-            text: producto.codigo_barras,
-            icon: 'barcode'
-        } : null,
-        categoryTag,
-        (producto.grup && Number(producto.grup) > 0) ? {
-            text: 'Se agrupa en '+producto.grup,
-            icon: 'layer'
-        } : null
-    ].filter(Boolean);
-
-    const prices = producto.price_product || [];
-    const getPriceValue = (p) => p.valor !== undefined && p.valor !== null && p.valor !== '' ? p.valor : 0;
-    
-    let preciosItems = [];
-    if (prices.length === 0) {
-        preciosItems = [{ clave: 'Precio', valor: `Bs. ${formatPrice(0)}` }];
-    } else {
-        preciosItems = prices.map(p => ({
-            clave: p.prices_types?.name || 'Precio',
-            valor: `Bs. ${formatPrice(getPriceValue(p))}`
-        }));
-    }
 
     let recetaItems = [];
     if (!soloVentas) {
@@ -91,40 +81,62 @@ const ViewInfo = ({ isOpen, onClose, producto, onEdit, onDelete, readOnly }) => 
         }
     }
 
-    const inventarioItems = [
-        { clave: 'Stock', valor: producto.stock !== undefined && producto.stock !== null ? producto.stock : 0 },
-        { clave: 'Stock Mínimo', valor: producto.stock_minimo !== undefined && producto.stock_minimo !== null ? producto.stock_minimo : 0 },
-        ...(producto.costo_produccion !== undefined && producto.costo_produccion !== null ? [{ clave: 'Costo de Compra', valor: `Bs. ${formatPrice(producto.costo_produccion)}` }] : [])
-    ];
-
     return (
-        <ModalCentro
-            isOpen={isOpen}
-            onClose={onClose}
-            title=""
-            confirmText="Editar"
-            onConfirm={() => {
-                if (onEdit) onEdit(producto);
-            }}
-            hideFooter={true}
-            visibleOverflow={true}
-        >
+        <>
+            <ModalCentro
+                isOpen={isOpen && !isEliminarOpen}
+                onClose={onClose}
+                title=""
+                confirmText="Editar"
+                onConfirm={() => {
+                    setIsEditarOpen(true);
+                }}
+                hideFooter={true}
+                visibleOverflow={true}
+            >
                 <InfoCard
                     title={producto.name || 'Sin nombre'}
                     subtitle="Información del Producto"
                     icon="package"
                     customBlock={
                         <>
-                            {tagsItems.length > 0 && (
-                                <ColumnInfo items={tagsItems} />
-                            )}
+                            <ColumnInfo 
+                                items={[
+                                    producto.codigo_barras && {
+                                        icon: 'barcode',
+                                        text: producto.codigo_barras
+                                    },
+                                    ((producto.category_names && producto.category_names.length > 0)
+                                        ? producto.category_names.join(', ')
+                                        : producto.category_name) && {
+                                        icon: 'tag',
+                                        text: (producto.category_names && producto.category_names.length > 0)
+                                            ? producto.category_names.join(', ')
+                                            : producto.category_name
+                                    },
+                                    (producto.grup && Number(producto.grup) > 0) && {
+                                        icon: 'layer',
+                                        text: `Se agrupa en ${producto.grup}`
+                                    }
+                                ].filter(Boolean)} 
+                            />
                             <ColumnInfo 
                                 title="Inventario"
-                                items={inventarioItems}
+                                items={[
+                                    { clave: 'Stock', valor: producto.stock !== undefined && producto.stock !== null ? producto.stock : 0 },
+                                    { clave: 'Stock Mínimo', valor: producto.stock_minimo !== undefined && producto.stock_minimo !== null ? producto.stock_minimo : 0 },
+                                    ...(producto.costo_produccion !== undefined && producto.costo_produccion !== null ? [{ clave: 'Costo de Compra', valor: `Bs. ${formatPrice(producto.costo_produccion)}` }] : [])
+                                ]}
                             />
                             <ColumnInfo 
                                 title="Precios"
-                                items={preciosItems}
+                                items={(!producto.price_product || producto.price_product.length === 0)
+                                    ? [{ clave: 'Precio', valor: `Bs. ${formatPrice(0)}` }]
+                                    : producto.price_product.map(p => ({
+                                        clave: p.prices_types?.name || 'Precio',
+                                        valor: `Bs. ${formatPrice(p.valor !== undefined && p.valor !== null && p.valor !== '' ? p.valor : 0)}`
+                                    }))
+                                }
                             />
                             {recetaItems.length > 0 && (
                                 <ColumnInfo 
@@ -148,7 +160,7 @@ const ViewInfo = ({ isOpen, onClose, producto, onEdit, onDelete, readOnly }) => 
                                 className="btn-primary"
                                 style={{ flex: 1 }}
                                 onClick={() => {
-                                    if (onEdit) onEdit(producto);
+                                    setIsEditarOpen(true);
                                 }}
                             />
                             <BotonIcon
@@ -157,13 +169,28 @@ const ViewInfo = ({ isOpen, onClose, producto, onEdit, onDelete, readOnly }) => 
                                 tooltip="Eliminar Producto"
                                 tooltipAlign="end"
                                 onClick={() => {
-                                    if (onDelete) onDelete(producto);
+                                    setIsEliminarOpen(true);
                                 }}
                             />
                         </div>
                     ) : null}
                 />
-        </ModalCentro>
+            </ModalCentro>
+
+            <AgregarEditarProducto
+                isOpen={isEditarOpen}
+                onClose={() => setIsEditarOpen(false)}
+                productoSeleccionado={producto}
+                onGuardar={handleProductoGuardado}
+            />
+
+            <EliminarProducto
+                isOpen={isEliminarOpen}
+                onClose={() => setIsEliminarOpen(false)}
+                productoSeleccionado={producto}
+                onEliminar={handleProductoEliminado}
+            />
+        </>
     );
 };
 

@@ -94,7 +94,7 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
         })
       };
 
-      const result = await movimientosAlmacenService.createFast(payload);
+      const result = await movimientosAlmacenService.create(payload);
 
       if (!result.success) {
         showDanger(null, result.message || 'Error al registrar la entrada');

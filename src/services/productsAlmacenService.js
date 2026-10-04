@@ -216,26 +216,6 @@ class productsAlmacenService {
     };
   }
 
-  // Obtener productos con recetas por IDs (para reportes)
-  static async getByIdsWithRecipes(productIds) {
-    if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
-      return { success: false, message: 'IDs de productos son requeridos' };
-    }
-
-    const idsString = productIds.join(',');
-    
-    const params = new URLSearchParams({
-      with_recipes: 'true',
-      ids: idsString
-    });
-
-    return productsAlmacenService._request(`/products-almacen/by-ids?${params}`, { method: 'GET' }, {
-      requireSucuId: true,
-      requireEmpresaId: true,
-      returnErrorObject: true
-    });
-  }
-
   // Obtener productos ligeros por IDs (para reportes y canasta)
   static async getByIdsFast(productIds) {
     if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {

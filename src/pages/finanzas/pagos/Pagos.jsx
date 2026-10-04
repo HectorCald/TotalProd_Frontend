@@ -15,9 +15,9 @@ import EliminarPago from './modals/EliminarPago';
 import ViewInfo from './modals/ViewInfo';
 
 
-const LiteralDateCell = ({ dateStr }) => {
+const LiteralDateCell = ({ dateStr, abbreviate = false }) => {
   const safeDateStr = dateStr && typeof dateStr === 'string' ? dateStr.substring(0, 10) : dateStr;
-  const literal = useFechaLiteral(safeDateStr);
+  const literal = useFechaLiteral(safeDateStr, abbreviate);
   return <span>{literal || (safeDateStr ? new Date(safeDateStr + 'T00:00:00').toLocaleDateString() : '')}</span>;
 };
 
@@ -135,7 +135,9 @@ const Pagos = () => {
       header: 'Fecha',
       accessor: 'fecha_gasto',
       width: '15%',
-      render: (row) => <LiteralDateCell dateStr={row.fecha_gasto} />
+      render: (row) => <LiteralDateCell dateStr={row.fecha_gasto} />,
+      mobileRender: (row) => <LiteralDateCell dateStr={row.fecha_gasto} abbreviate={true} />,
+      isMobileSubtitle: true
     },
     {
       header: 'Proveedor',

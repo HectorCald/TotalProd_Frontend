@@ -244,19 +244,6 @@ const Home = () => {
               </>
             ) : (
               <>
-                <h1 className={styles.title}>¡ANUNCIOS!</h1>
-                <div style={{ padding: '0 5px', width: '100%' }}>
-                  <BotonCuadrante
-                    anuncio={true}
-                    icon="bot"
-                    title="Encuesta sobre IA"
-                    badge="Sugerido"
-                    badgeStatus="warning"
-                    description="¿Dónde te gustaría implementarla y de qué manera te gustaría que te ayude?"
-                    onClick={() => setModalEncuestaOpen(true)}
-                  />
-                </div>
-
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h1 className={styles.title}>Módulos Asignados</h1>
                   <i
@@ -283,19 +270,6 @@ const Home = () => {
           ) : (
             isEmployee ? (
               <>
-                <h1 className={styles.title}>¡ANUNCIOS!</h1>
-                <div style={{ padding: '0 5px', width: '100%' }}>
-                  <BotonCuadrante
-                    anuncio={true}
-                    icon="bot"
-                    title="Encuesta sobre IA"
-                    badge="Sugerido"
-                    badgeStatus="warning"
-                    description="¿Dónde te gustaría implementarla y de qué manera te gustaría que te ayude?"
-                    onClick={() => setModalEncuestaOpen(true)}
-                  />
-                </div>
-
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h1 className={styles.title}>Módulos Asignados</h1>
                   <i
@@ -362,18 +336,6 @@ const Home = () => {
                   </>
                 )}
 
-                <h1 className={styles.title}>¡ANUNCIOS!</h1>
-                <div style={{ padding: '0 5px', width: '100%' }}>
-                  <BotonCuadrante
-                    anuncio={true}
-                    icon="bot"
-                    title="Encuesta sobre IA"
-                    badge="Sugerido"
-                    badgeStatus="warning"
-                    description="¿Dónde te gustaría implementarla y de qué manera te gustaría que te ayude?"
-                    onClick={() => setModalEncuestaOpen(true)}
-                  />
-                </div>
               </>
             )
           )}

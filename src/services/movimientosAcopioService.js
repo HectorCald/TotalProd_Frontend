@@ -1,356 +1,161 @@
-import API_CONFIG from '../config/api';
-
-const API_BASE_URL = API_CONFIG.getBaseURL();
-
-// Función helper para obtener el token de autorización
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  };
-};
-
-// Función helper para obtener personal_id del token
-const getPersonalId = () => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.id;
-    } catch (error) {
-      console.error('Error parsing token:', error);
-    }
-  }
-  return null;
-};
-
-// Función helper para obtener sucu_id
-const getSucuId = () => {
-  const sucursalIdSeleccionada = localStorage.getItem('sucursalIdSeleccionada');
-  if (sucursalIdSeleccionada) {
-    return sucursalIdSeleccionada;
-  }
-  
-  // Fallback a sucursalSeleccionada por si acaso
-  const sucursalSeleccionada = localStorage.getItem('sucursalSeleccionada');
-  if (sucursalSeleccionada) {
-    try {
-      const parsed = JSON.parse(sucursalSeleccionada);
-      return parsed.id;
-    } catch (error) {
-      console.error('Error parsing sucursalSeleccionada:', error);
-    }
-  }
-  return null;
-};
+import apiClient, { getSucuId, getEmpresaId, getPersonalId } from '../config/apiClient';
 
 class movimientosAcopioService {
 
-  // Crear un movimiento
-  static async create(movimientoData) {
+  static async _request(endpoint, options = {}, config = {}) {
+    const {
+      requireSucuId = false,
+      requireEmpresaId = false,
+      returnErrorObject = false,
+      throwOnError = false,
+      defaultData = undefined
+    } = config;
+
     try {
-      const sucuId = getSucuId();
-      if (!sucuId) {
+      if (requireSucuId) {
+        const sucuId = getSucuId();
+        if (!sucuId) {
+          return {
+            success: false,
+            message: 'No hay sucursal seleccionada',
+            ...(defaultData !== undefined ? { data: defaultData } : {})
+          };
+        }
+      }
+
+      if (requireEmpresaId) {
+        const empresaId = getEmpresaId();
+        if (!empresaId) {
+          return {
+            success: false,
+            message: 'No hay empresa seleccionada',
+            ...(defaultData !== undefined ? { data: defaultData } : {})
+          };
+        }
+      }
+
+      const response = await apiClient.request(endpoint, options, requireSucuId, requireEmpresaId);
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = new Error(data.message || 'Error en la petición');
+        error.status = response.status;
+        error.code = data.code;
+        error.currentPlan = data.currentPlan;
+        error.requiredModule = data.requiredModule;
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      if (throwOnError || error.status === 403) {
+        throw error;
+      }
+
+      if (returnErrorObject) {
         return {
           success: false,
-          message: 'No hay sucursal seleccionada'
+          message: error.message || 'Error de conexión con el servidor',
+          ...(defaultData !== undefined ? { data: defaultData } : {})
         };
       }
 
-      // Obtener personal_id si es un empleado
-      const personalId = getPersonalId();
-
-      const dataToSend = {
-        ...movimientoData,
-        sucu_id: sucuId,
-        personal_id: personalId
-      };
-
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(dataToSend),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en create:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
-  }
-
-  // Obtener movimientos por producto
-  static async getByProduct(productId) {
-    try {
-      const sucuId = getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        sucu_id: sucuId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/product/${productId}?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en getByProduct:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
-  }
-
-  // Obtener movimientos por cliente
-  static async getByCliente(clienteId) {
-    try {
-      const sucuId = getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        sucu_id: sucuId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/cliente/${clienteId}?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en getByCliente:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
-  }
-
-  // Obtener movimientos por proveedor
-  static async getByProveedor(proveedorId) {
-    try {
-      const sucuId = getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        sucu_id: sucuId
-      });
-
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/proveedor/${proveedorId}?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en getByProveedor:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
+      return { success: false, message: error.message || 'Error de conexión con el servidor' };
     }
   }
 
   // Obtener todos los movimientos
-  static async getAll(page = 1, limit = 10, tipo = null, estado = null, ordenamiento = 'fecha_desc', clienteId = null, sucuIdParam = null, search = null, filtroFecha = null, proveedorId = null) {
-    try {
-      const sucuId = sucuIdParam || getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
+  static async getAll(page = 1, limit = 30, tipo = null, estado = null, ordenamiento = 'fecha_desc', clienteId = null, sucuIdParam = null, search = null, filtroFecha = null, proveedorId = null) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString()
+    });
 
-      const params = new URLSearchParams({
-        sucu_id: sucuId,
-        page: page.toString(),
-        limit: limit.toString()
-      });
+    if (sucuIdParam) params.append('sucu_id', sucuIdParam);
+    if (tipo) params.append('tipo', tipo);
+    if (estado) params.append('estado', estado);
+    if (ordenamiento) params.append('ordenamiento', ordenamiento);
+    if (clienteId) params.append('cliente', clienteId);
+    if (proveedorId) params.append('proveedor', proveedorId);
+    if (search && search.trim() !== '') params.append('search', search);
+    if (filtroFecha?.inicio) params.append('fecha_inicio', filtroFecha.inicio);
+    if (filtroFecha?.fin) params.append('fecha_fin', filtroFecha.fin);
 
-      if (tipo) {
-        params.append('tipo', tipo);
-      }
-      if (estado) {
-        params.append('estado', estado);
-      }
-      if (ordenamiento) {
-        params.append('ordenamiento', ordenamiento);
-      }
-      if (clienteId) {
-        params.append('cliente', clienteId);
-      }
-      if (proveedorId) {
-        params.append('proveedor', proveedorId);
-      }
-      if (search && search.trim() !== '') {
-        params.append('search', search);
-      }
-      if (filtroFecha) {
-        if (filtroFecha.inicio) {
-          params.append('fecha_inicio', filtroFecha.inicio);
-        }
-        if (filtroFecha.fin) {
-          params.append('fecha_fin', filtroFecha.fin);
-        }
-      }
+    const requireSucuId = !sucuIdParam;
 
-      const finalUrl = `${API_BASE_URL}/movimientos-acopio?${params}`;
-      console.log('[movimientosAcopioService.getAll] URL =>', finalUrl);
-      const response = await fetch(finalUrl, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
+    return this._request(`/movimientos-acopio?${params}`, { method: 'GET' }, {
+      requireSucuId,
+      returnErrorObject: true
+    });
+  }
 
-      const data = await response.json();
-      return data;
+  // Obtener todos los movimientos sin límite (para reportes y balance)
+  static async getAllSinLimite(tipo = null, fecha = null, estado = null) {
+    let filtroFecha = fecha;
+    let estadoFiltro = estado;
 
-    } catch (error) {
-      console.error('Error en getAll:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
+    if (typeof fecha === 'string' && (typeof estado === 'object' || !estado)) {
+      estadoFiltro = fecha;
+      filtroFecha = estado;
     }
+
+    const params = new URLSearchParams();
+    if (tipo) params.append('tipo', tipo);
+    if (estadoFiltro) params.append('estado', estadoFiltro);
+    if (filtroFecha?.inicio) params.append('fecha_inicio', filtroFecha.inicio);
+    if (filtroFecha?.fin) params.append('fecha_fin', filtroFecha.fin);
+
+    const query = params.toString() ? `?${params}` : '';
+
+    return this._request(`/movimientos-acopio/sin-limite${query}`, { method: 'GET' }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
+  }
+
+  // Obtener un movimiento específico por ID
+  static async getById(id) {
+    return this._request(`/movimientos-acopio/${id}`, { method: 'GET' }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
+  }
+
+  // Crear un movimiento
+  static async create(movimientoData) {
+    const personalId = getPersonalId();
+    const dataToSend = {
+      ...movimientoData,
+      personal_id: movimientoData?.personal_id || personalId
+    };
+
+    return this._request('/movimientos-acopio', {
+      method: 'POST',
+      body: JSON.stringify(dataToSend)
+    }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
+  }
+
+  // Eliminar un movimiento
+  static async delete(movimientoId) {
+    return this._request(`/movimientos-acopio/${movimientoId}`, {
+      method: 'DELETE'
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
   }
 
   // Anular un movimiento
   static async anular(movimientoId) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/${movimientoId}/anular`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en anular:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
-  }
-
-  // Eliminar un movimiento
-  static async eliminar(movimientoId) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/${movimientoId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en eliminar:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
-  }
-
-  // Obtener todos los movimientos sin límite (para reportes y balance)
-  static async getAllSinLimite(tipo = null, ordenamiento = 'fecha_desc', sucuIdParam = null, filtroFecha = null) {
-    try {
-      const sucuId = sucuIdParam || getSucuId();
-      if (!sucuId) {
-        return {
-          success: false,
-          message: 'No hay sucursal seleccionada'
-        };
-      }
-
-      const params = new URLSearchParams({
-        sucu_id: sucuId,
-        page: '1',
-        limit: '999999' // Límite muy alto para obtener todos los registros
-      });
-
-      if (tipo) {
-        params.append('tipo', tipo);
-      }
-      if (ordenamiento) {
-        params.append('ordenamiento', ordenamiento);
-      }
-      if (filtroFecha) {
-        if (filtroFecha.inicio) {
-          params.append('fecha_inicio', filtroFecha.inicio);
-        }
-        if (filtroFecha.fin) {
-          params.append('fecha_fin', filtroFecha.fin);
-        }
-      }
-
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio?${params}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error obteniendo movimientos de acopio sin límite:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
-  }
-
-  // Obtener un movimiento por ID
-  static async getById(movimientoId) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/movimientos-acopio/${movimientoId}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      console.error('Error en getById:', error);
-      return {
-        success: false,
-        error: 'Error de conexión con el servidor'
-      };
-    }
+    return this._request(`/movimientos-acopio/${movimientoId}/anular`, {
+      method: 'PUT'
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
   }
 }
 

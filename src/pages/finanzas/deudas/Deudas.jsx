@@ -14,8 +14,8 @@ import AgregarEditarDeuda from './modals/AgregarEditarDeuda';
 import EliminarDeuda from './modals/EliminarDeuda';
 import ViewInfo from './modals/ViewInfo';
 
-const LiteralDateCell = ({ dateStr }) => {
-  const literal = useFechaLiteral(dateStr, true);
+const LiteralDateCell = ({ dateStr, abbreviate = true }) => {
+  const literal = useFechaLiteral(dateStr, abbreviate);
   return <span>{literal || (dateStr ? new Date(dateStr).toLocaleDateString() : '')}</span>;
 };
 
@@ -141,7 +141,9 @@ const Deudas = () => {
       header: 'Fecha',
       accessor: 'fecha_deuda',
       width: '12%',
-      render: (row) => <LiteralDateCell dateStr={row.fecha_deuda} />
+      render: (row) => <LiteralDateCell dateStr={row.fecha_deuda} />,
+      mobileRender: (row) => <LiteralDateCell dateStr={row.fecha_deuda} abbreviate={true} />,
+      isMobileSubtitle: true
     },
     {
       header: 'Vencimiento',

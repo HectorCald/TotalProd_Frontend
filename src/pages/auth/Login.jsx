@@ -5,7 +5,6 @@ import Boton from '../../components/common/botones/Boton';
 import Input from '../../components/common/inputs/Input';
 import Checkbox from '../../components/common/inputs/Checkbox';
 import UserService from '../../services/userService';
-import personalService from '../../services/personalService';
 import LogoAnimation from '../../components/essentials/LogoAnimation';
 import Mensaje from '../../components/common/outputs/Mensaje';
 import { validateEmail } from '../../hooks/validateEmail';
@@ -25,6 +24,7 @@ const Login = () => {
     const [loginErrors, setLoginErrors] = useState({ email: false, password: false });
     const [loading, setLoading] = useState(false);
     const [remember, setRemember] = useState(false);
+    const [isNewEmployee, setIsNewEmployee] = useState(false);
     const [circles, setCircles] = useState([]);
 
     useEffect(() => {
@@ -96,7 +96,7 @@ const Login = () => {
             setMensajeState({ visible: true, type: 'warning', title: 'Validación', text: 'El correo electrónico es requerido', duration: 5000 });
             return;
         }
-        if (!formDataLogin.password) {
+        if (!isNewEmployee && !formDataLogin.password) {
             setLoginErrors(prev => ({ ...prev, email: false, password: true }));
             setMensajeState({ visible: true, type: 'warning', title: 'Validación', text: 'La contraseña es requerida', duration: 5000 });
             return;
@@ -112,10 +112,11 @@ const Login = () => {
             
             // Intentar login. El backend manejará si es usuario propietario o empleado.
             const normalizedEmail = formDataLogin.email.trim().toLowerCase();
-            let result = await UserService.login({
-                email: normalizedEmail,
-                password: formDataLogin.password
-            });
+            let result = await UserService.login(
+                isNewEmployee
+                    ? { email: normalizedEmail, newEmployee: true }
+                    : { email: normalizedEmail, password: formDataLogin.password }
+            );
             
             if (!result.success && result.message === 'No tiene contraseña establecida') {
                 if (result.data?.personal) {
@@ -175,8 +176,8 @@ const Login = () => {
             ))}
             
             <div className={styles.loginContainer_content}>
-                <LogoAnimation hideIcon={true} />
-                <p className={styles.login_subtitle}>Inicia sesión para continuar</p>
+                <LogoAnimation size={80} textPosition="bottom" />
+                <p className={styles.login_subtitle}>Inicíar sesión</p>
 
                 {mensajeState.visible && (
                     <Mensaje
@@ -201,22 +202,37 @@ const Login = () => {
                                 error={loginErrors.email}
                                 onClearError={() => setLoginErrors(prev => ({ ...prev, email: false }))}
                             />
-                            <Input
-                                type="password"
-                                label="Contraseña"
-                                value={formDataLogin.password}
-                                onChange={(e) => handleInputChangeLogin('password', e.target.value)}
-                                readOnly={loading}
-                                required
-                                error={loginErrors.password}
-                                onClearError={() => setLoginErrors(prev => ({ ...prev, password: false }))}
-                            />
+                            {!isNewEmployee && (
+                                <Input
+                                    type="password"
+                                    label="Contraseña"
+                                    value={formDataLogin.password}
+                                    onChange={(e) => handleInputChangeLogin('password', e.target.value)}
+                                    readOnly={loading}
+                                    required
+                                    error={loginErrors.password}
+                                    onClearError={() => setLoginErrors(prev => ({ ...prev, password: false }))}
+                                />
+                            )}
                             <div className={styles.login_remember_container}>
                                 <Checkbox
                                     label="Recordarme Correo Electronico"
                                     id="remember"
                                     checked={remember}
                                     onChange={setRemember}
+                                    disabled={loading}
+                                />
+                            </div>
+                            <div className={styles.login_remember_container}>
+                                <Checkbox
+                                    label="Soy empleado nuevo"
+                                    id="newEmployee"
+                                    checked={isNewEmployee}
+                                    onChange={(checked) => {
+                                        setIsNewEmployee(checked);
+                                        setFormDataLogin(prev => ({ ...prev, password: '' }));
+                                        setLoginErrors(prev => ({ ...prev, password: false }));
+                                    }}
                                     disabled={loading}
                                 />
                             </div>

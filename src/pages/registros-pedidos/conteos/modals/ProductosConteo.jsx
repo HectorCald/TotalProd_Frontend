@@ -3,7 +3,7 @@ import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Tabla from '../../../../components/common/information/Tabla';
 import conteosService from '../../../../services/conteosService';
 import { useToast } from '../../../../context/ToastContext';
-import LoadingSpinner from '../../../../components/common/old/LoadingSpinner';
+import LoadingSpinner from '../../../../components/common/widgets/LoadingSpinner';
 import useVirtualPagination from '../../../../hooks/useVirtualPagination';
 
 const ProductosConteo = ({ isOpen, onClose, conteoSeleccionado }) => {

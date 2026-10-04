@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import { useToast } from '../../../../../context/ToastContext';
 import pedidosAcopioService from '../../../../../services/pedidosAcopioService';
-import Text from '../../../../../components/common/old/Text';
+import Mensaje from '../../../../../components/common/outputs/Mensaje';
 
 const AnularEntrega = ({ isOpen, setIsOpen, pedido, onAnulado }) => {
     const { showSuccess, showDanger } = useToast();
@@ -47,11 +47,12 @@ const AnularEntrega = ({ isOpen, setIsOpen, pedido, onAnulado }) => {
             title="Anular Entrega"
             mensaje="¿Estás seguro que deseas anular la entrega de este pedido? Esta acción no se puede deshacer."
             detalle={
-               
-                    <Text type="warning" align="left">
-                        Al anular se limpiarán todos los datos de entrega y se eliminarán los registros de pago (gastos) vinculados. El pedido regresará a estado Pendiente.
-                    </Text>
-                
+                <div style={{ marginTop: '10px', width: '100%' }}>
+                    <Mensaje 
+                        type="warning" 
+                        message="Al anular se limpiarán todos los datos de entrega y se eliminarán los registros de pago (gastos) vinculados. El pedido regresará a estado Pendiente." 
+                    />
+                </div>
             }
             confirmText="Sí, anular"
             confirmColorClass="btn-warning"

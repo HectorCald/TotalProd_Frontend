@@ -28,7 +28,7 @@ const MenuSide = () => {
         { id: 'home', title: 'Inicio', icon: 'home', route: '/home' },
         { id: 'balance', title: 'Balance', icon: 'bar-chart-alt', route: '/balance' },
         { id: 'almacen-gestionar', title: 'Inventario', icon: 'package', route: '/almacen/gestionar' },
-        { id: 'planificador', title: 'Planificador', icon: 'calendar', route: '/recursos-humanos/planificador' }
+        { id: 'deudas', title: 'Deudas', icon: 'receipt', route: '/deudas' }
       );
       hasVender = true;
     } else {
@@ -48,15 +48,8 @@ const MenuSide = () => {
         availableLeftItems.push({ id: 'almacen-gestionar', title: 'Inventario', icon: 'package', route: '/almacen/gestionar' });
       }
 
-      const hasPlanificador = usuario.modules.some(m =>
-        (m.modulos?.clave === 'recursos_humanos' && m.name === 'planificador') ||
-        m.modulos?.clave === 'planificador'
-      );
       const hasDeudas = usuario.modules.some(m => m.modulos?.clave === 'deudas');
-
-      if (hasPlanificador) {
-        availableLeftItems.push({ id: 'planificador', title: 'Planificador', icon: 'calendar', route: '/recursos-humanos/planificador' });
-      } else if (hasDeudas) {
+      if (hasDeudas) {
         availableLeftItems.push({ id: 'deudas', title: 'Deudas', icon: 'receipt', route: '/deudas' });
       }
 
@@ -99,9 +92,9 @@ const MenuSide = () => {
         <div
           className={`${styles.menuItem} ${styles.btnVender} ${currentPath.startsWith(venderItem.route) ? styles.btnVenderActive : ''}`}
           onClick={() => navigate(venderItem.route)}
+          title={venderItem.title}
         >
           <i className={`bx bx-${venderItem.icon} ${styles.icon}`}></i>
-          <span className={styles.title}>{venderItem.title}</span>
         </div>
       )}
     </div>

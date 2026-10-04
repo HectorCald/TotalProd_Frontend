@@ -1,25 +1,46 @@
 .logo {
-    font-size: 45px;
-    font-weight: 800;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    color: var(--white-color);
+    display: inline-block;
+    flex-shrink: 0;
+    object-fit: contain;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
-.primary_text {
+.logoWrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.posRight {
+    flex-direction: row;
+}
+
+.posLeft {
+    flex-direction: row-reverse;
+}
+
+.posBottom {
+    flex-direction: column;
+}
+
+.posTop {
+    flex-direction: column-reverse;
+}
+
+.logoText {
+    display: inline-flex;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 750;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+.logoTextTotal {
     color: var(--primary-color);
 }
 
-.secondary_text {
+.logoTextProd {
     color: var(--secondary-color);
-}
-
-.icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary-color) !important;
-    font-size: 30px !important;
-    font-weight: 700;
 }

@@ -3,7 +3,7 @@ import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import { useToast } from '../../../../../context/ToastContext';
 import pedidosAcopioService from '../../../../../services/pedidosAcopioService';
 import movimientosAcopioService from '../../../../../services/movimientosAcopioService';
-import Text from '../../../../../components/common/old/Text';
+import Mensaje from '../../../../../components/common/outputs/Mensaje';
 
 const AnularIngreso = ({ isOpen, setIsOpen, pedido, onAnulado }) => {
     const { showSuccess, showDanger } = useToast();
@@ -64,9 +64,12 @@ const AnularIngreso = ({ isOpen, setIsOpen, pedido, onAnulado }) => {
             title="Anular Ingreso"
             mensaje="¿Estás seguro que deseas anular el ingreso de este pedido? Esta acción anulará el movimiento en inventario."
             detalle={
-                <Text type="warning" align="left">
-                    Al anular, el pedido regresará al estado "Entregado" y el movimiento de entrada en almacén quedará anulado, descontando el stock ingresado.
-                </Text>
+                <div style={{ marginTop: '10px', width: '100%' }}>
+                    <Mensaje 
+                        type="warning" 
+                        message="Al anular, el pedido regresará al estado &quot;Entregado&quot; y el movimiento de entrada en almacén quedará anulado, descontando el stock ingresado." 
+                    />
+                </div>
             }
             confirmText="Sí, anular ingreso"
             confirmColorClass="btn-warning"

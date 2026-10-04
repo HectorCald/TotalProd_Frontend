@@ -7,7 +7,6 @@ import UserService from '../../../services/userService';
 import ColumnInfo from '../../common/outputs/ColumnInfo';
 import Link from '../../common/outputs/Link';
 import Boton from '../../common/botones/Boton';
-import BotonIcon from '../../common/botones/BotonIcon';
 import Accordion from '../../common/widgets/Accordion';
 import { UPDATE_INFO } from '../../update/constants/updateInfo';
 import ModalInformacion from './ModalInformacion';
@@ -132,12 +131,6 @@ const ModalPerfil = ({ isOpen, onClose }) => {
 
   const fileInputRef = useRef(null);
 
-  const getTipoEmpresa = () => {
-    const rawTipo = userEmpresa?.tipo || employeeInfo?.sucursal?.empresas?.tipo || employeeInfo?.empresa?.tipo;
-    if (rawTipo === 'ventas_produccion') return 'Ventas y Producción';
-    if (rawTipo === 'ventas') return 'Ventas';
-    return rawTipo || 'Ventas';
-  };
 
   // Superior inmediato del empleado (obtenido una sola vez junto a toda la información del empleado)
   const superiorInmediatoNombre = useMemo(() => {
@@ -359,11 +352,6 @@ const ModalPerfil = ({ isOpen, onClose }) => {
               onChange={(e) => setEmpresaDesc(e.target.value)} 
             />
             <Input 
-              label="Tipo de Empresa" 
-              value={getTipoEmpresa()} 
-              readOnly={true} 
-            />
-            <Input 
               label="Código" 
               value={empresaCodigo} 
               onChange={(e) => setEmpresaCodigo(e.target.value)} 
@@ -397,6 +385,16 @@ const ModalPerfil = ({ isOpen, onClose }) => {
       </div>
     );
   };
+
+  const profileName = isEmployeeSession
+    ? `${employeeInfo?.first_name || ''} ${employeeInfo?.last_name || ''}`.trim() || 'Empleado'
+    : `${userFirstName} ${userLastName}`.trim() || 'Usuario';
+
+  const profileSubtitle = isEmployeeSession
+    ? employeeInfo?.codigo || employeeInfo?.email || ''
+    : userEmail;
+
+  const profileCargo = isEmployeeSession ? cargoName : 'Administrador';
 
   return (
     <>
@@ -434,83 +432,90 @@ const ModalPerfil = ({ isOpen, onClose }) => {
             }
           `}</style>
 
-          {isEmployeeSession ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', margin: '10px 0 20px 0', gap: '8px' }}>
-              <div style={{ position: 'relative', width: '88px', height: '88px', flexShrink: 0 }}>
-                {currentLogo ? (
-                  <img
-                    src={currentLogo}
-                    alt="Logo Empresa"
-                    style={{ width: '100%', height: '100%', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--primary-color)' }}
-                  />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', borderRadius: '12px', backgroundColor: 'var(--primary-color-light, #e6f0fa)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--primary-color)' }}>
-                    <i className='bx bxs-building' style={{ color: 'var(--primary-color, #3182ce)', fontSize: '44px' }}></i>
-                  </div>
-                )}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                <span className={inputStyles.switchLabel} style={{ fontSize: '16px', fontWeight: 650, margin: 0, color: 'var(--black-color)' }}>
-                  {`${employeeInfo?.first_name || ''} ${employeeInfo?.last_name || ''}`.trim() || 'Empleado'}
-                </span>
-                <span className={inputStyles.subtitle} style={{ fontSize: '13px', color: '#718096', margin: 0 }}>
-                  {employeeInfo?.codigo || employeeInfo?.email || ''}
-                </span>
-                {cargoName && (
-                  <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--primary-color)', marginTop: '2px' }}>
-                    {cargoName}
-                  </span>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
-              <div style={{ position: 'relative', width: '88px', height: '88px', flexShrink: 0 }}>
-                {currentLogo ? (
-                  <img src={currentLogo} alt="Logo" style={{ width: '100%', height: '100%', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--primary-color)' }} />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', borderRadius: '8px', backgroundColor: 'var(--primary-color-light, #e6f0fa)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--primary-color)' }}>
-                    <i className='bx bxs-building' style={{ color: 'var(--primary-color, #3182ce)', fontSize: '44px' }}></i>
-                  </div>
-                )}
-              </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className={inputStyles.switchLabel} style={{ fontSize: '14px', margin: 0 }}>
-                      {`${userFirstName} ${userLastName}`.trim()}
-                    </span>
-                  </div>
-                  <p className={inputStyles.subtitle} style={{ fontSize: '12px' }}>
-                    {userEmail}
-                  </p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', margin: '10px 0 20px 0' }}>
+            <div 
+              style={{ 
+                position: 'relative', 
+                width: '88px', 
+                height: '88px', 
+                flexShrink: 0, 
+                marginBottom: '14px',
+                cursor: !isEmployeeSession ? 'pointer' : 'default' 
+              }}
+              onClick={!isEmployeeSession ? () => fileInputRef.current?.click() : undefined}
+              title={!isEmployeeSession ? "Haz clic para cambiar imagen" : undefined}
+            >
+              {currentLogo ? (
+                <img 
+                  src={currentLogo} 
+                  alt="Logo" 
+                  style={{ width: '100%', height: '100%', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--primary-color)' }} 
+                />
+              ) : (
+                <div style={{ width: '100%', height: '100%', borderRadius: '12px', backgroundColor: 'var(--primary-color-light, #e6f0fa)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--primary-color)' }}>
+                  <i className='bx bxs-building' style={{ color: 'var(--primary-color, #3182ce)', fontSize: '44px' }}></i>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'row', gap: '8px' }}>
-                  <Boton 
-                    label={currentLogo ? "Cambiar Logo" : "Agregar Logo"} 
-                    className="btn-cancel" 
-                    iconName={currentLogo ? "upload" : "plus"}
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{ flex: 1 }}
-                  />
-                  <BotonIcon 
-                    className="btn-error" 
-                    iconName="trash"
-                    tooltip="Eliminar Logo"
-                    tooltipAlign="end"
-                    readOnly={!currentLogo} 
-                    onClick={() => { 
+              )}
+
+              {!isEmployeeSession && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (currentLogo) {
                       if (previewLogo) {
                         setPreviewLogo(null);
                       } else {
                         setLogoRemoved(true);
                       }
-                    }} 
+                    } else {
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  title={currentLogo ? "Eliminar logo" : "Modificar logo"}
+                  style={{
+                    position: 'absolute',
+                    bottom: '-6px',
+                    right: '-6px',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    backgroundColor: currentLogo ? '#e53e3e' : 'var(--primary-color)',
+                    color: '#ffffff',
+                    border: '2px solid #ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                    zIndex: 3,
+                    padding: 0,
+                    outline: 'none',
+                    transition: 'background-color 0.2s ease, transform 0.15s ease'
+                  }}
+                >
+                  <i 
+                    className={currentLogo ? 'bx bx-trash' : 'bx bx-pencil'} 
+                    style={{ fontSize: '15px' }} 
                   />
-                </div>
-              </div>
+                </button>
+              )}
             </div>
-          )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+              <span className={inputStyles.switchLabel} style={{ fontSize: '16px', fontWeight: 650, margin: 0, color: 'var(--black-color)' }}>
+                {profileName}
+              </span>
+              <span className={inputStyles.subtitle} style={{ fontSize: '13px', color: '#718096', margin: 0 }}>
+                {profileSubtitle}
+              </span>
+              {profileCargo && (
+                <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--primary-color)', marginTop: '2px' }}>
+                  {profileCargo}
+                </span>
+              )}
+            </div>
+          </div>
 
           {!isEmployeeSession && (
             <input 

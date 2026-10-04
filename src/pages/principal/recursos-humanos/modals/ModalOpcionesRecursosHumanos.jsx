@@ -54,13 +54,6 @@ const ModalOpcionesRecursosHumanos = ({ isOpen, onClose }) => {
                     className="btn-cancel"
                 />
             )}
-            {hasAccess('planificador') && (
-                <Boton
-                    label="Planificador"
-                    onClick={() => handleSelect('/recursos-humanos/planificador', false)}
-                    className="btn-cancel"
-                />
-            )}
         </ModalCentro>
     );
 };

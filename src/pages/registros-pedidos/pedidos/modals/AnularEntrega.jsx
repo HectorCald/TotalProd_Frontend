@@ -5,7 +5,7 @@ import pedidosAlmacenService from '../../../../services/pedidosAlmacenService';
 import pedidosAcopioService from '../../../../services/pedidosAcopioService';
 import movimientosAlmacenService from '../../../../services/movimientosAlmacenService';
 import deudasService from '../../../../services/deudasService';
-import Text from '../../../../components/common/old/Text';
+import Mensaje from '../../../../components/common/outputs/Mensaje';
 
 const AnularEntrega = ({ isOpen, setIsOpen, pedido, isAcopio, onAnulado }) => {
     const { showSuccess, showDanger } = useToast();
@@ -37,7 +37,7 @@ const AnularEntrega = ({ isOpen, setIsOpen, pedido, isAcopio, onAnulado }) => {
 
                 // 1) PRIMERO: Anular el movimiento
                 if (movimientoId) {
-                    const anularResponse = await movimientosAlmacenService.anular(movimientoId, true);
+                    const anularResponse = await movimientosAlmacenService.anular(movimientoId);
                     if (!anularResponse.success && !(anularResponse.message && anularResponse.message.includes('anulado'))) {
                         showDanger('Error', 'Error al anular el movimiento: ' + anularResponse.message);
                         setLoading(false);
@@ -65,7 +65,7 @@ const AnularEntrega = ({ isOpen, setIsOpen, pedido, isAcopio, onAnulado }) => {
 
                 // 4) CUARTO: Eliminar el movimiento
                 if (movimientoId) {
-                    const eliminarMovimientoResponse = await movimientosAlmacenService.eliminar(movimientoId);
+                    const eliminarMovimientoResponse = await movimientosAlmacenService.delete(movimientoId);
                     if (!eliminarMovimientoResponse.success && !(eliminarMovimientoResponse.message && (eliminarMovimientoResponse.message.includes('no encontrado') || eliminarMovimientoResponse.message.includes('no existe')))) {
                         showDanger('Error', 'Error al eliminar el movimiento: ' + eliminarMovimientoResponse.message);
                         setLoading(false);
@@ -113,9 +113,10 @@ const AnularEntrega = ({ isOpen, setIsOpen, pedido, isAcopio, onAnulado }) => {
             mensaje="¿Estás seguro que deseas cancelar la entrega de este pedido? Esta acción no se puede deshacer."
             detalle={
                 <div style={{ marginTop: '10px', width: '100%' }}>
-                    <Text type="warning" align="left">
-                        Al anular se regresarán los productos que se entregaron al almacén general y se eliminará el movimiento de salida.
-                    </Text>
+                    <Mensaje 
+                        type="warning" 
+                        message="Al anular se regresarán los productos que se entregaron al almacén general y se eliminará el movimiento de salida." 
+                    />
                 </div>
             }
             confirmText="Sí, cancelar"
