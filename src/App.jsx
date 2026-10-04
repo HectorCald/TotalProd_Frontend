@@ -184,6 +184,7 @@ function AppContent({ token, tokenType }) {
   const hasActiveSession = !!token;
   const isUserSession = tokenType === 'user';
   const isEmployeeSession = tokenType === 'employee';
+  const isEmployee = isEmployeeSession || !!employee;
 
   // Determinar la sucursal seleccionada según el tipo de sesión
   const sucursalSeleccionada = isEmployeeSession ? employeeSucursal : userSucursal;
@@ -505,60 +506,86 @@ function AppContent({ token, tokenType }) {
           {isLargeScreen && <SideBar />}
           <div className={viewStyles.contentArea}>
             {isLargeScreen ? (
-              <>
-                <h1 className={viewStyles.title}>
-                  <Skeleton width="100px" height="14px" borderRadius="4px" />
-                </h1>
-                <div className={gridStyles.layoutGrid}>
-                  <Skeleton height="106px" borderRadius="12px" />
-                  <Skeleton height="106px" borderRadius="12px" />
-                  <Skeleton height="106px" borderRadius="12px" />
+              isEmployee ? (
+                <div style={{ paddingTop: '20px' }}>
+                  <Skeleton height="calc(100vh - 120px)" borderRadius="16px" />
                 </div>
-
-                <div className={gridStyles.layoutGrid} style={{ marginTop: '20px' }}>
-                  <div style={{ gridColumn: 'span 2', height: '100%' }}>
-                    <Skeleton height="380px" borderRadius="12px" />
-                  </div>
-                  <div style={{ gridColumn: 'span 1', height: '100%' }}>
-                    <Skeleton height="380px" borderRadius="12px" />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Bloque 1: Descubre más */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              ) : (
+                <>
                   <h1 className={viewStyles.title}>
-                    <Skeleton width="130px" height="14px" borderRadius="4px" />
+                    <Skeleton width="100px" height="14px" borderRadius="4px" />
                   </h1>
-                  <Skeleton width="20px" height="20px" borderRadius="4px" style={{ marginRight: '4px' }} />
-                </div>
+                  <div className={gridStyles.layoutGrid}>
+                    <Skeleton height="106px" borderRadius="12px" />
+                    <Skeleton height="106px" borderRadius="12px" />
+                    <Skeleton height="106px" borderRadius="12px" />
+                  </div>
 
-                <div style={{ width: '100%', position: 'relative', overflow: 'hidden', padding: '5px 0' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', padding: '0 5px' }}>
+                  <div className={gridStyles.layoutGrid} style={{ marginTop: '20px' }}>
+                    <div style={{ gridColumn: 'span 2', height: '100%' }}>
+                      <Skeleton height="380px" borderRadius="12px" />
+                    </div>
+                    <div style={{ gridColumn: 'span 1', height: '100%' }}>
+                      <Skeleton height="380px" borderRadius="12px" />
+                    </div>
+                  </div>
+                </>
+              )
+            ) : (
+              isEmployee ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h1 className={viewStyles.title}>
+                      <Skeleton width="140px" height="14px" borderRadius="4px" />
+                    </h1>
+                    <Skeleton width="20px" height="20px" borderRadius="4px" style={{ marginRight: '4px' }} />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
+                    <Skeleton height="70px" borderRadius="10px" />
+                    <Skeleton height="70px" borderRadius="10px" />
                     <Skeleton height="70px" borderRadius="10px" />
                     <Skeleton height="70px" borderRadius="10px" />
                     <Skeleton height="70px" borderRadius="10px" />
                     <Skeleton height="70px" borderRadius="10px" />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '15px' }}>
-                    <Skeleton width="8px" height="8px" borderRadius="50%" />
-                    <Skeleton width="8px" height="8px" borderRadius="50%" />
+                </>
+              ) : (
+                <>
+                  {/* Bloque 1: Descubre más */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h1 className={viewStyles.title}>
+                      <Skeleton width="130px" height="14px" borderRadius="4px" />
+                    </h1>
+                    <Skeleton width="20px" height="20px" borderRadius="4px" style={{ marginRight: '4px' }} />
                   </div>
-                </div>
 
-                {/* Bloque 2: Gestión */}
-                <h1 className={viewStyles.title}>
-                  <Skeleton width="90px" height="14px" borderRadius="4px" />
-                </h1>
+                  <div style={{ width: '100%', position: 'relative', overflow: 'hidden', padding: '5px 0' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', padding: '0 5px' }}>
+                      <Skeleton height="70px" borderRadius="10px" />
+                      <Skeleton height="70px" borderRadius="10px" />
+                      <Skeleton height="70px" borderRadius="10px" />
+                      <Skeleton height="70px" borderRadius="10px" />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '15px' }}>
+                      <Skeleton width="8px" height="8px" borderRadius="50%" />
+                      <Skeleton width="8px" height="8px" borderRadius="50%" />
+                    </div>
+                  </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
-                  <Skeleton height="70px" borderRadius="10px" />
-                  <Skeleton height="70px" borderRadius="10px" />
-                  <Skeleton height="70px" borderRadius="10px" />
-                  <Skeleton height="70px" borderRadius="10px" />
-                </div>
-              </>
+                  {/* Bloque 2: Gestión */}
+                  <h1 className={viewStyles.title}>
+                    <Skeleton width="90px" height="14px" borderRadius="4px" />
+                  </h1>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', padding: '0 5px' }}>
+                    <Skeleton height="70px" borderRadius="10px" />
+                    <Skeleton height="70px" borderRadius="10px" />
+                    <Skeleton height="70px" borderRadius="10px" />
+                    <Skeleton height="70px" borderRadius="10px" />
+                  </div>
+                </>
+              )
             )}
           </div>
         </div>
