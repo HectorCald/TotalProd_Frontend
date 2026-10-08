@@ -1,15 +1,18 @@
 .skeleton {
-  background: linear-gradient(90deg, var(--quinary-color) 25%, var(--quaternary-color) 50%, var(--quaternary-color) 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
+  background-color: var(--quaternary-color, #c9c9c9);
+  animation-name: pulse;
+  animation-duration: 2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
   display: inline-block;
 }
 
-@keyframes loading {
-  0% {
-    background-position: 200% 0;
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
   }
-  100% {
-    background-position: -200% 0;
+  50% {
+    opacity: 0.4;
   }
 }
+

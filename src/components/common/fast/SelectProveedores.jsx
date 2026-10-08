@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import InputSelectBox from '../inputs/InputSelectBox';
 import proveedorService from '../../../services/proveedorService';
 import useSessionCache from '../../../hooks/useSessionCache';
-import AgregarEditarProveedor from '../../../pages/gestion/proveedores/modals/AgregarEditarProveedor';
+import AgregarEditarProveedor from '../../../modules/gestion/proveedores/modals/AgregarEditarProveedor';
 
 const SelectProveedores = ({ value, onChange, error, label = "Proveedor", required = false, fetchTrigger, disabled, ...rest }) => {
     const { value: proveedores, setValue: setProveedores } = useSessionCache({

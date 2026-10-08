@@ -56,7 +56,7 @@ const useFormatNumberPrice = () => {
         return roundTo1Decimal(total);
     }, [calculateSpecialPrice, roundTo1Decimal]);
 
-    return { calculateSpecialPrice, calculateSubtotal, calculateTotalCanasta };
+    return { calculateSpecialPrice, calculateSubtotal, calculateTotalCanasta, roundTo1Decimal };
 };
 
 export default useFormatNumberPrice;

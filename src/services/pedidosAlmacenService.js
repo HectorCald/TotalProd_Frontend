@@ -100,7 +100,7 @@ class pedidosAlmacenService {
   }
 
   // Crear pedido
-  static async create({ sucursal_destino_id, observaciones, precio_id, agrupado, fecha, date, productos }) {
+  static async create({ sucursal_destino_id, observaciones, precio_id, agrupado, fecha, date, productos, total }) {
     return pedidosAlmacenService._request('/pedidos-almacen', {
       method: 'POST',
       body: JSON.stringify({
@@ -109,6 +109,7 @@ class pedidosAlmacenService {
         precio_id,
         agrupado: !!agrupado,
         fecha: fecha || date,
+        total,
         productos
       })
     }, {
@@ -117,7 +118,7 @@ class pedidosAlmacenService {
   }
 
   // Actualizar pedido
-  static async update(pedidoId, { observaciones, precio_id, sucursal_destino_id, agrupado, fecha, date, productos }) {
+  static async update(pedidoId, { observaciones, precio_id, sucursal_destino_id, agrupado, fecha, date, productos, total }) {
     return pedidosAlmacenService._request(`/pedidos-almacen/${pedidoId}`, {
       method: 'PUT',
       body: JSON.stringify({
@@ -126,6 +127,7 @@ class pedidosAlmacenService {
         sucursal_destino_id,
         agrupado: !!agrupado,
         fecha: fecha || date,
+        total,
         productos
       })
     }, {
@@ -147,6 +149,11 @@ class pedidosAlmacenService {
       result.data.destino = result.data.sucursal_destino_id === currentSucuId;
     }
     return result;
+  }
+
+  // Obtener productos de un pedido por separado
+  static async getProductos(pedidoId) {
+    return pedidosAlmacenService._request(`/pedidos-almacen/${pedidoId}/productos`, { method: 'GET' });
   }
 
   // Actualizar estado del pedido

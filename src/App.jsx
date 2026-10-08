@@ -1,53 +1,53 @@
 import React, { useEffect, useState } from 'react';
 import './styles/global.css';
-import Login from './pages/auth/Login';
+import Login from './modules/auth/Login';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Home from './pages/home/Home';
-import Reportes from './pages/principal/reportes/Reportes';
+import Home from './modules/home/Home';
+import Reportes from './modules/principal/reportes/Reportes';
 
 // Section INVENTARIO - Almacen
-import AlmacenGeneral from './pages/inventario/almacen/AlmacenGeneral';
+import AlmacenGeneral from './modules/inventario/almacen/AlmacenGeneral';
 
 // Section INVENTARIO - Materia Prima
-import MateriaPrima from './pages/inventario/materia-prima/MateriaPrima';
+import MateriaPrima from './modules/inventario/materia-prima/MateriaPrima';
 
 // Section REGISTROS Y PEDIDOS - Movimientos
-import Movimientos from './pages/registros-pedidos/movimientos/Movimientos';
+import Movimientos from './modules/registros-pedidos/movimientos/Movimientos';
 
 // Section REGISTROS Y PEDIDOS - Pedidos
-import PedidosPage from './pages/registros-pedidos/pedidos/Pedidos';
+import PedidosPage from './modules/registros-pedidos/pedidos/Pedidos';
 
 // Section REGISTROS Y PEDIDOS - Conteos
-import Conteos from './pages/registros-pedidos/conteos/Conteos';
+import Conteos from './modules/registros-pedidos/conteos/Conteos';
 
 // Section REGISTROS Y PEDIDOS - Cotizaciones
-import Cotizaciones from './pages/registros-pedidos/cotizaciones/Cotizaciones';
+import Cotizaciones from './modules/registros-pedidos/cotizaciones/Cotizaciones';
 
 // Section GESTIÓN
-import Clientes from './pages/gestion/clientes/Clientes';
-import Proveedores from './pages/gestion/proveedores/Proveedores';
+import Clientes from './modules/gestion/clientes/Clientes';
+import Proveedores from './modules/gestion/proveedores/Proveedores';
 // Section PRINCIPAL - Recursos Humanos
-import Personal from './pages/principal/recursos-humanos/personal/Personal';
-import Organigrama from './pages/principal/recursos-humanos/organigrama/Organigrama';
+import Personal from './modules/principal/recursos-humanos/personal/Personal';
+import Organigrama from './modules/principal/recursos-humanos/organigrama/Organigrama';
 
 // Section FINANZAS
-import Pagos from './pages/finanzas/pagos/Pagos';
-import Deudas from './pages/finanzas/deudas/Deudas';
-import Balance from './pages/finanzas/balance/Balance';
+import Pagos from './modules/finanzas/pagos/Pagos';
+import Deudas from './modules/finanzas/deudas/Deudas';
+import Balance from './modules/finanzas/balance/Balance';
 
 // Section CONFIGURACIÓN
-import Precios from './pages/configuracion/precios/Precios';
-import Cargos from './pages/configuracion/cargos/Cargos';
-import Categorias from './pages/configuracion/categorias/Categorias';
-import Sucursales from './pages/configuracion/sucursales/Sucursales';
-import Socios from './pages/configuracion/socios/Socios';
-import Exportar from './pages/configuracion/exportar/Exportar';
+import Precios from './modules/configuracion/precios/Precios';
+import Cargos from './modules/configuracion/cargos/Cargos';
+import Categorias from './modules/configuracion/categorias/Categorias';
+import Sucursales from './modules/configuracion/sucursales/Sucursales';
+import Socios from './modules/configuracion/socios/Socios';
+import Exportar from './modules/configuracion/exportar/Exportar';
 
 // Section DAMABRAVA
-import Verificacion from './pages/custom-pages/damabrava/Verificacion';
-import MiProduccion from './pages/custom-pages/damabrava/MiProduccion';
-import Reglas from './pages/custom-pages/damabrava/Reglas';
-import PagosDamabrava from './pages/custom-pages/damabrava/Pagos';
+import Verificacion from './modules/custom-pages/damabrava/Verificacion';
+import MiProduccion from './modules/custom-pages/damabrava/MiProduccion';
+import Reglas from './modules/custom-pages/damabrava/Reglas';
+import PagosDamabrava from './modules/custom-pages/damabrava/Pagos';
 
 import { UserProvider, useUser } from './context/UserContext';
 import { EmployeeProvider, useEmployee } from './context/EmployeeContext';
@@ -57,7 +57,7 @@ import { ToastProvider } from './context/ToastContext';
 import sucursalesService from './services/sucursalesService';
 import NavBar from './components/essentials/NavBar';
 import SideBar from './components/essentials/SideBar';
-import viewStyles from './pages/home/View.module.css';
+import viewStyles from './modules/home/View.module.css';
 import gridStyles from './components/layout/LayoutGrid.module.css';
 import Skeleton from './components/common/widgets/Skeleton';
 import UpdateModal from './components/update/UpdateModal';

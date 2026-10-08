@@ -13,7 +13,6 @@ import { useLayout } from '../../context/LayoutContext';
 import EmpresaService from '../../services/empresaService';
 import useFormatNumber from '../../hooks/useFormatNumber';
 import useFormatNumberPrice from '../../hooks/useFormatNumberPrice';
-import { LEGACY_PERCENTAGE_CUTOFF_DATE } from '../../constants/movimientosConstants';
 
 function DescargarDatos({
     isOpen,
@@ -79,7 +78,7 @@ function DescargarDatos({
                     const esPorcentaje = mov.porcentaje;
                     
                     const dateStr = mov.fecha ? (mov.fecha.split('T')[0] || mov.fecha.substring(0, 10)) : '';
-                    const isLegacyPercentage = esPorcentaje && dateStr && dateStr <= LEGACY_PERCENTAGE_CUTOFF_DATE;
+                    const isLegacyPercentage = esPorcentaje && dateStr && dateStr <= '2026-07-20';
                     
                     const descCalculadoNum = esPorcentaje 
                         ? (isLegacyPercentage ? descValNum : (subtotalNum * descValNum / 100)) 

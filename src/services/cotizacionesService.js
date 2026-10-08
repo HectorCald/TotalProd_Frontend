@@ -171,6 +171,16 @@ class cotizacionesService {
     });
   }
 
+  // Obtener productos de una cotización por separado
+  static async getProductos(cotizacionId) {
+    return cotizacionesService._request(`/cotizaciones/${cotizacionId}/productos`, {
+      method: 'GET'
+    }, {
+      requireSucuId: true,
+      requireEmpresaId: true
+    });
+  }
+
   // Actualizar estado de una cotización
   static async actualizarEstado(cotizacionId, estado) {
     return cotizacionesService._request(`/cotizaciones/${cotizacionId}/estado`, {

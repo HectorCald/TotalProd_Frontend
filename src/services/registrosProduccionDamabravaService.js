@@ -52,7 +52,7 @@ class registrosProduccionDamabravaService {
       if (throwOnError || error.status === 403) {
         throw error;
       }
-      
+
       if (returnErrorObject) {
         return {
           success: false,
@@ -60,50 +60,9 @@ class registrosProduccionDamabravaService {
           ...(defaultData !== undefined ? { data: defaultData } : {})
         };
       }
-      
+
       return { success: false, message: error.message || 'Error de conexión con el servidor' };
     }
-  }
-
-  // Crear un nuevo registro de producción
-  static async create(registroData) {
-    return registrosProduccionDamabravaService._request('/registros-produccion-damabrava', {
-      method: 'POST',
-      body: JSON.stringify(registroData)
-    }, {
-      requireSucuId: true
-    });
-  }
-
-  // Obtener registros de producción del usuario actual
-  static async getByUser(page = 1, limit = 10, estado = null, ordenamiento = 'fecha_desc', search = '', rangoFechas = null) {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString()
-    });
-
-    if (estado) {
-      params.append('estado', estado);
-    }
-    if (ordenamiento) {
-      params.append('ordenamiento', ordenamiento);
-    }
-    if (search && search.trim()) {
-      params.append('search', search.trim());
-    }
-    if (rangoFechas) {
-      const { inicio, fin } = rangoFechas;
-      if (inicio) {
-        params.append('fecha_inicio', inicio);
-      }
-      if (fin) {
-        params.append('fecha_fin', fin);
-      }
-    }
-
-    return registrosProduccionDamabravaService._request(`/registros-produccion-damabrava/my-production?${params}`, {
-      method: 'GET'
-    });
   }
 
   // Obtener todos los registros de producción (sin filtrar por sucursal)
@@ -149,6 +108,24 @@ class registrosProduccionDamabravaService {
     });
   }
 
+  // Obtener todos los registros de producción sin límite (para reportes)
+  static async getAllSinLimite(estado = null, ordenamiento = 'fecha_desc') {
+    const params = new URLSearchParams();
+
+    if (estado) {
+      params.append('estado', estado);
+    }
+    if (ordenamiento) {
+      params.append('ordenamiento', ordenamiento);
+    }
+
+    params.append('limit', '1000');
+
+    return registrosProduccionDamabravaService._request(`/registros-produccion-damabrava?${params}`, {
+      method: 'GET'
+    });
+  }
+
   // Obtener un registro de producción por ID
   static async getById(id) {
     if (!id) {
@@ -156,6 +133,47 @@ class registrosProduccionDamabravaService {
     }
 
     return registrosProduccionDamabravaService._request(`/registros-produccion-damabrava/${id}`, {
+      method: 'GET'
+    });
+  }
+
+  // Crear un nuevo registro de producción
+  static async create(registroData) {
+    return registrosProduccionDamabravaService._request('/registros-produccion-damabrava', {
+      method: 'POST',
+      body: JSON.stringify(registroData)
+    }, {
+      requireSucuId: true
+    });
+  }
+
+  // Obtener registros de producción del usuario actual
+  static async getByUser(page = 1, limit = 10, estado = null, ordenamiento = 'fecha_desc', search = '', rangoFechas = null) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString()
+    });
+
+    if (estado) {
+      params.append('estado', estado);
+    }
+    if (ordenamiento) {
+      params.append('ordenamiento', ordenamiento);
+    }
+    if (search && search.trim()) {
+      params.append('search', search.trim());
+    }
+    if (rangoFechas) {
+      const { inicio, fin } = rangoFechas;
+      if (inicio) {
+        params.append('fecha_inicio', inicio);
+      }
+      if (fin) {
+        params.append('fecha_fin', fin);
+      }
+    }
+
+    return registrosProduccionDamabravaService._request(`/registros-produccion-damabrava/my-production?${params}`, {
       method: 'GET'
     });
   }
@@ -202,30 +220,6 @@ class registrosProduccionDamabravaService {
     });
   }
 
-  // Obtener todos los registros de producción sin límite (para reportes)
-  static async getAllSinLimite(estado = null, ordenamiento = 'fecha_desc', search = '', responsable = null) {
-    const params = new URLSearchParams();
-
-    if (estado) {
-      params.append('estado', estado);
-    }
-    if (ordenamiento) {
-      params.append('ordenamiento', ordenamiento);
-    }
-    if (search && search.trim()) {
-      params.append('search', search.trim());
-    }
-    if (responsable && responsable.id && responsable.tipo) {
-      params.append('responsable_id', responsable.id);
-      params.append('responsable_tipo', responsable.tipo);
-    }
-
-    params.append('limit', '1000');
-
-    return registrosProduccionDamabravaService._request(`/registros-produccion-damabrava?${params}`, {
-      method: 'GET'
-    });
-  }
 }
 
 export default registrosProduccionDamabravaService;

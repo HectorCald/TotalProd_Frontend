@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import InputSelectBox from '../inputs/InputSelectBox';
 import clientService from '../../../services/clientService';
 import useSessionCache from '../../../hooks/useSessionCache';
-import AgregarEditarCliente from '../../../pages/gestion/clientes/modals/AgregarEditarCliente';
+import AgregarEditarCliente from '../../../modules/gestion/clientes/modals/AgregarEditarCliente';
 
 const SelectCliente = ({ value, onChange, error, label = "Cliente", required = false, fetchTrigger, disabled, ...rest }) => {
     const { value: clientes, setValue: setClientes } = useSessionCache({

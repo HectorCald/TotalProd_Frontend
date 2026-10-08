@@ -150,6 +150,24 @@ const personalService = {
         });
     },
 
+    // Verificar permisos de información sensible
+    async canViewSensitiveInfo() {
+        return this._request('/personal/permissions/info', { method: 'GET' }, {
+            requireEmpresaId: false,
+            returnErrorObject: true,
+            defaultData: { allowed: false }
+        });
+    },
+
+    // Verificar permisos de edición
+    async canUpdate() {
+        return this._request('/personal/permissions/update', { method: 'GET' }, {
+            requireEmpresaId: false,
+            returnErrorObject: true,
+            defaultData: { allowed: false }
+        });
+    }
+
 };
 
 export default personalService;
