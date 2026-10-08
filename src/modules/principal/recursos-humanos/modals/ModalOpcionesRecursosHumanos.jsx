@@ -19,7 +19,7 @@ const ModalOpcionesRecursosHumanos = ({ isOpen, onClose }) => {
 
     const handleSelect = (route, isBuilding) => {
         if (isBuilding) {
-            showWarning('En construcción', 'Este módulo aún está en construcción');
+            showWarning('En reparación', 'Este módulo está en reparación');
             return;
         }
         navigate(route);

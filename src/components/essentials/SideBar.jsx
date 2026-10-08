@@ -256,7 +256,7 @@ const SideBar = () => {
                       className={`${styles.item} ${isItemActive ? styles.active : ''}`}
                       onClick={() => {
                         if (item.isBuilding) {
-                          showWarning('En construcción', 'Este módulo aún está en construcción');
+                          showWarning('En reparación', 'Este módulo está en reparación');
                           return;
                         }
                         if (item.submenu) {
@@ -293,7 +293,7 @@ const SideBar = () => {
                             className={`${styles.subitem} ${sub.route === currentPath ? styles.active : ''}`}
                             onClick={() => {
                               if (sub.isBuilding) {
-                                showWarning('En construcción', 'Este módulo aún está en construcción');
+                                showWarning('En reparación', 'Este módulo está en reparación');
                                 return;
                               }
                               if (sub.route) navigate(sub.route);
@@ -318,7 +318,7 @@ const SideBar = () => {
                             className={`${styles.subitem} ${sub.route === currentPath ? styles.active : ''}`}
                             onClick={() => {
                               if (sub.isBuilding) {
-                                showWarning('En construcción', 'Este módulo aún está en construcción');
+                                showWarning('En reparación', 'Este módulo está en reparación');
                                 return;
                               }
                               if (sub.route) navigate(sub.route);

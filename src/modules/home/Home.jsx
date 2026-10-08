@@ -178,7 +178,7 @@ const Home = () => {
 
   const handleItemClick = (item) => {
     if (item.isBuilding) {
-      showWarning('En construcción', 'Este módulo aún está en construcción');
+      showWarning('En reparación', 'Este módulo está en reparación');
       return;
     }
     if (item.submenu) {

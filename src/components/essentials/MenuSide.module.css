@@ -30,6 +30,7 @@
 }
 
 .menuItem {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -41,6 +42,31 @@
   padding: 4px 8px;
   flex: 1;
   max-width: 80px;
+}
+
+.buildingBadge {
+  position: absolute;
+  top: 0px;
+  right: 50%;
+  transform: translateX(18px);
+  background-color: var(--warning-color, #FB8713);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 3px;
+  border-radius: 4px;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(251, 135, 19, 0.3);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnVender .buildingBadge {
+  top: 2px;
+  right: 2px;
+  transform: none;
 }
 
 .menuItem.active {
