@@ -7,8 +7,8 @@ import { TYPE_ID, buildColumnsAG, COLUMNS_MP } from '../utils/columnsConfig';
  * La celda A1 contiene el identificador de tipo (AG o MP).
  */
 export function downloadTemplate({ tipo, columns }) {
-  // Excluir columnas de precios (se gestionan desde la API, no en el Excel) y excluir ID oculto
-  const templateColumns = columns.filter((c) => !c.priceTypeId && c.key !== 'id');
+  // Excluir ID oculto e incluir columnas de datos y precios
+  const templateColumns = columns.filter((c) => c.key !== 'id');
   const headers = templateColumns.map((c) => c.key);
   const typeRow = [tipo, ...Array(headers.length - 1).fill('')];
   const headerRow = headers;

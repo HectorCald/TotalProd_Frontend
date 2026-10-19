@@ -103,6 +103,7 @@ class movimientosAlmacenService {
     if (estadoFiltro) params.append('estado', estadoFiltro);
     if (filtroFecha?.inicio) params.append('fecha_inicio', filtroFecha.inicio);
     if (filtroFecha?.fin) params.append('fecha_fin', filtroFecha.fin);
+    params.append('_t', Date.now().toString());
 
     const query = params.toString() ? `?${params}` : '';
 

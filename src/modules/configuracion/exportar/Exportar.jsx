@@ -119,12 +119,25 @@ const Exportar = () => {
   }, []);
 
   /* ── Descarga de plantilla ── */
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
     if (!tipoAlmacen) {
       showDanger(null, 'Debe seleccionar un tipo de almacén para descargar la plantilla.');
       return;
     }
-    downloadTemplate({ tipo: tipoAlmacen, columns });
+    let currentPreciosTipos = preciosTipos;
+    if (tipoAlmacen === TYPE_ID.AG && (!currentPreciosTipos || currentPreciosTipos.length === 0)) {
+      try {
+        const r = await pricesTypesService.getAll();
+        if (r && r.data) {
+          currentPreciosTipos = Array.isArray(r.data) ? r.data : [r.data];
+          setPreciosTipos(currentPreciosTipos);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const templateCols = tipoAlmacen === TYPE_ID.AG ? buildColumnsAG(currentPreciosTipos) : COLUMNS_MP;
+    downloadTemplate({ tipo: tipoAlmacen, columns: templateCols });
   };
 
   /* ── Lectura de Excel importado ── */
@@ -138,7 +151,20 @@ const Exportar = () => {
         setTipoAlmacen(newTipo);
       }
 
-      const activeColumns = newTipo === TYPE_ID.AG ? buildColumnsAG(preciosTipos) : COLUMNS_MP;
+      let currentPreciosTipos = preciosTipos;
+      if (newTipo === TYPE_ID.AG && (!currentPreciosTipos || currentPreciosTipos.length === 0)) {
+        try {
+          const r = await pricesTypesService.getAll();
+          if (r && r.data) {
+            currentPreciosTipos = Array.isArray(r.data) ? r.data : [r.data];
+            setPreciosTipos(currentPreciosTipos);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      const activeColumns = newTipo === TYPE_ID.AG ? buildColumnsAG(currentPreciosTipos) : COLUMNS_MP;
       const optionsMap = {
         categorias_ag: categoriasAG,
         categorias_mp: categoriasMP,
@@ -148,9 +174,31 @@ const Exportar = () => {
       const processedRows = rows.map(row => {
         const newRow = { ...row };
         activeColumns.forEach(col => {
+          // Si col.key no vino directamente, buscar por col.label o coincidencias de tipo de precio
+          if (newRow[col.key] === undefined || newRow[col.key] === '') {
+            if (row[col.label] !== undefined && row[col.label] !== '') {
+              newRow[col.key] = row[col.label];
+            } else if (col.priceTypeId) {
+              const matchKey = Object.keys(row).find(k => {
+                const cleanK = k.trim().toLowerCase();
+                const cleanLabel = (col.label || '').trim().toLowerCase();
+                return cleanK === cleanLabel ||
+                       cleanK === `precio_${cleanLabel}` ||
+                       cleanK === `precio ${cleanLabel}` ||
+                       cleanK === `precio_${col.priceTypeId}`.toLowerCase();
+              });
+              if (matchKey && row[matchKey] !== undefined && row[matchKey] !== '') {
+                newRow[col.key] = row[matchKey];
+              }
+            }
+          }
+
           if (col.type === 'number') {
-            if (newRow[col.key] === '' || newRow[col.key] === undefined) {
+            if (newRow[col.key] === '' || newRow[col.key] === undefined || newRow[col.key] === null) {
               newRow[col.key] = 0;
+            } else {
+              const num = parseFloat(String(newRow[col.key]).replace(',', '.'));
+              newRow[col.key] = isNaN(num) ? 0 : num;
             }
           } else if (col.type === 'select') {
             const opts = optionsMap[col.optionsKey] || [];
@@ -227,12 +275,25 @@ const Exportar = () => {
     }
 
     if (tipoAlmacen === TYPE_ID.AG) {
+      let currentPreciosTipos = preciosTipos;
+      if (!currentPreciosTipos || currentPreciosTipos.length === 0) {
+        try {
+          const r = await pricesTypesService.getAll();
+          if (r && r.data) {
+            currentPreciosTipos = Array.isArray(r.data) ? r.data : [r.data];
+            setPreciosTipos(currentPreciosTipos);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       const dataToSubmit = importRows.map(row => {
         const prices = {};
-        preciosTipos.forEach(pt => {
+        currentPreciosTipos.forEach(pt => {
            const val = row[`precio_${pt.id}`];
-           if (val !== undefined && val !== '') {
-             prices[pt.id] = parseFloat(String(val).replace(',', '.'));
+           if (val !== undefined && val !== null && val !== '') {
+             prices[pt.id] = parseFloat(String(val).replace(',', '.')) || 0;
            }
         });
 
@@ -294,8 +355,6 @@ const Exportar = () => {
     }
   };
 
-
-
   /* ── Exportar Datos ── */
   const [isExporting, setIsExporting] = useState(false);
 
@@ -303,6 +362,19 @@ const Exportar = () => {
     if (tipoAlmacen === TYPE_ID.AG) {
       setIsExporting(true);
       try {
+        let currentPreciosTipos = preciosTipos;
+        if (!currentPreciosTipos || currentPreciosTipos.length === 0) {
+          try {
+            const r = await pricesTypesService.getAll();
+            if (r && r.data) {
+              currentPreciosTipos = Array.isArray(r.data) ? r.data : [r.data];
+              setPreciosTipos(currentPreciosTipos);
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+
         const res = await productsAlmacenService.getAll(1, 10000);
         
         let rawProducts = [];
@@ -336,19 +408,32 @@ const Exportar = () => {
              } else if (p.category_name) {
                row.category_ids = p.category_name;
              }
-             // Mapear los precios que existan en el array de precios del producto
-             if (p.prices && Array.isArray(p.prices)) {
-               preciosTipos.forEach(pt => {
-                 const priceObj = p.prices.find(pr => pr.price_type_id === pt.id);
-                 row[`precio_${pt.id}`] = priceObj ? priceObj.price : 0;
+
+             // Mapear los precios desde price_product (o fallback a prices)
+             const priceList = p.price_product || p.prices || [];
+             if (Array.isArray(priceList)) {
+               currentPreciosTipos.forEach(pt => {
+                 const priceObj = priceList.find(pr =>
+                   (pr.price_id && String(pr.price_id) === String(pt.id)) ||
+                   (pr.prices_types && String(pr.prices_types.id) === String(pt.id)) ||
+                   (pr.price_type_id && String(pr.price_type_id) === String(pt.id))
+                 );
+                 const val = priceObj ? (priceObj.valor !== undefined ? priceObj.valor : priceObj.price) : 0;
+                 row[`precio_${pt.id}`] = (val !== null && val !== undefined && val !== '') ? Number(val) : 0;
+               });
+             } else if (typeof priceList === 'object') {
+               currentPreciosTipos.forEach(pt => {
+                 const val = priceList[pt.id];
+                 row[`precio_${pt.id}`] = (val !== null && val !== undefined && val !== '') ? Number(val) : 0;
                });
              } else {
-               preciosTipos.forEach(pt => { row[`precio_${pt.id}`] = 0; });
+               currentPreciosTipos.forEach(pt => { row[`precio_${pt.id}`] = 0; });
              }
              return row;
           });
 
-          exportDataToExcel({ tipo: tipoAlmacen, columns, rowsData: exportRows });
+          const activeColumns = buildColumnsAG(currentPreciosTipos);
+          exportDataToExcel({ tipo: tipoAlmacen, columns: activeColumns, rowsData: exportRows });
           showSuccess(null, `Se exportaron ${exportRows.length} productos.`);
         } else {
           showDanger(null, 'No se pudieron obtener los productos.');

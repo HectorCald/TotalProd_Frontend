@@ -7,21 +7,21 @@ import viewStyles from '../../../modules/home/View.module.css';
 import ColumnInfo from '../../../components/common/outputs/ColumnInfo';
 import DateRibbon from '../../../components/common/widgets/DateRibbon/DateRibbon';
 import LayoutGrid from '../../../components/layout/LayoutGrid';
-import FetchData from '../../../components/mixed/FetchData';
-import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
-import deudasService from '../../../services/deudasService';
-import gastosService from '../../../services/gastosService';
 import Skeleton from '../../../components/common/widgets/Skeleton';
+import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
+import gastosService from '../../../services/gastosService';
+import deudasService from '../../../services/deudasService';
 import { parseDateWithoutOffset } from '../../../utils/dateUtils';
 
-// Formato de precio: redondea al múltiplo de 0.10 más cercano y muestra 2 decimales
+const parseNum = (v) => {
+    if (v === null || v === undefined) return 0;
+    const str = typeof v === 'string' ? v.replace(',', '.') : v;
+    const n = parseFloat(str);
+    return isNaN(n) ? 0 : n;
+};
+
 const formatPrecio = (val) => {
-    let num = parseFloat(val ?? 0);
-    if (isNaN(num)) return '0,00';
-    
-    // Redondear a 1 decimal (múltiplos de 0.10, ej: 133.77 -> 133.8)
-    num = Math.round(num * 10) / 10;
-    
+    const num = parseNum(val);
     const [intPart, decPart] = num.toFixed(2).split('.');
     const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     return `${intFormatted},${decPart}`;
@@ -53,7 +53,19 @@ const calcFiltroFecha = (selectedDate, tipoBalance) => {
         return null;
     }
     
+    if (tipoBalance === 'anual') {
+        const y = String(selectedDate).length === 4 ? selectedDate : String(parseDateWithoutOffset(selectedDate)?.getFullYear() || selectedDate);
+        return { 
+            inicio: `${y}-01-01`, 
+            fin: `${y}-12-31`,
+            fechaStrInicio: `${y}-01-01`,
+            fechaStrFin: `${y}-12-31`
+        };
+    }
+
     const d = parseDateWithoutOffset(selectedDate);
+    if (!d || isNaN(d.getTime())) return null;
+
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -67,20 +79,13 @@ const calcFiltroFecha = (selectedDate, tipoBalance) => {
             fechaStrFin: dateStr
         };
     } else if (tipoBalance === 'mensual') {
-        const lastDay = new Date(y, m, 0).getDate();
+        const lastDay = new Date(y, parseInt(m, 10), 0).getDate();
         const dateStrFin = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
         return { 
             inicio: `${y}-${m}-01`, 
             fin: dateStrFin,
             fechaStrInicio: `${y}-${m}-01`,
             fechaStrFin: dateStrFin
-        };
-    } else if (tipoBalance === 'anual') {
-        return { 
-            inicio: `${y}-01-01`, 
-            fin: `${y}-12-31`,
-            fechaStrInicio: `${y}-01-01`,
-            fechaStrFin: `${y}-12-31`
         };
     } else if (tipoBalance === 'semanal') {
         const finDate = parseDateWithoutOffset(selectedDate);
@@ -109,7 +114,7 @@ const Balance = () => {
       return today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   });
   const [movimientos, setMovimientos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [deudasSaldoTotal, setDeudasSaldoTotal] = useState(0);
   const [loadingDeudas, setLoadingDeudas] = useState(false);
   const [gastos, setGastos] = useState([]);
@@ -117,44 +122,113 @@ const Balance = () => {
 
   const filtroFecha = useMemo(() => calcFiltroFecha(selectedDate, tipoBalance), [selectedDate, tipoBalance]);
 
-  // Params para getAllSinLimite: (tipo, fecha, estado)
-  const fetchParams = useMemo(() => [
-      'salida',         // tipo - solo salidas
-      filtroFecha,      // fecha
-      null              // estado - todos
-  ], [filtroFecha]);
+  useEffect(() => {
+      let isMounted = true;
+      const fetchIngresos = async () => {
+          if (!filtroFecha) {
+              setMovimientos([]);
+              return;
+          }
+          setLoading(true);
+          try {
+              const res = await movimientosAlmacenService.getAllSinLimite('salida', filtroFecha, 'finalizado');
+              if (isMounted) {
+                  if (res && res.success && res.data) {
+                      setMovimientos(res.data);
+                  } else {
+                      setMovimientos([]);
+                  }
+              }
+          } catch (error) {
+              console.error('Error al obtener ingresos:', error);
+              if (isMounted) setMovimientos([]);
+          } finally {
+              if (isMounted) setLoading(false);
+          }
+      };
+
+      fetchIngresos();
+      return () => {
+          isMounted = false;
+      };
+  }, [filtroFecha]);
+
+  useEffect(() => {
+      let isMounted = true;
+      const fetchGastos = async () => {
+          if (!filtroFecha) {
+              setGastos([]);
+              return;
+          }
+          setLoadingGastos(true);
+          try {
+              const res = await gastosService.getAllSinLimite(null, filtroFecha);
+              if (isMounted) {
+                  if (res && res.success && res.data) {
+                      setGastos(res.data);
+                  } else {
+                      setGastos([]);
+                  }
+              }
+          } catch (error) {
+              console.error('Error al obtener gastos:', error);
+              if (isMounted) setGastos([]);
+          } finally {
+              if (isMounted) setLoadingGastos(false);
+          }
+      };
+
+      fetchGastos();
+      return () => {
+          isMounted = false;
+      };
+  }, [filtroFecha]);
+
+  useEffect(() => {
+      let isMounted = true;
+      const fetchDeudas = async () => {
+          if (!filtroFecha) {
+              setDeudasSaldoTotal(0);
+              return;
+          }
+          setLoadingDeudas(true);
+          try {
+              const res = await deudasService.getAllSinLimite(null, filtroFecha);
+              if (isMounted) {
+                  if (res && res.success && res.data) {
+                      const totalSaldo = res.data.reduce((sum, d) => sum + parseNum(d.saldo_pendiente), 0);
+                      setDeudasSaldoTotal(totalSaldo);
+                  } else {
+                      setDeudasSaldoTotal(0);
+                  }
+              }
+          } catch (error) {
+              console.error('Error al obtener deudas:', error);
+              if (isMounted) setDeudasSaldoTotal(0);
+          } finally {
+              if (isMounted) setLoadingDeudas(false);
+          }
+      };
+
+      fetchDeudas();
+      return () => {
+          isMounted = false;
+      };
+  }, [filtroFecha]);
 
   const ingresosTotales = useMemo(() => {
-      return movimientos.reduce((sum, mov) => {
-          let movTotal = parseFloat(mov.total) || 0;
-          const descuento = parseFloat(mov.descuento) || 0;
-          const aumento = parseFloat(mov.aumento) || 0;
-          
-          if (mov.porcentaje) {
-              movTotal = movTotal - (movTotal * (descuento / 100)) + (movTotal * (aumento / 100));
-          } else {
-              movTotal = movTotal - descuento + aumento;
-          }
-          return sum + movTotal;
+      return (movimientos || []).reduce((sum, mov) => {
+          return sum + parseNum(mov.total);
       }, 0);
   }, [movimientos]);
 
   const ventasPorMetodo = useMemo(() => {
       const totales = {};
       
-      movimientos.forEach(mov => {
-          let movTotal = parseFloat(mov.total) || 0;
-          const descuento = parseFloat(mov.descuento) || 0;
-          const aumento = parseFloat(mov.aumento) || 0;
-          
-          if (mov.porcentaje) {
-              movTotal = movTotal - (movTotal * (descuento / 100)) + (movTotal * (aumento / 100));
-          } else {
-              movTotal = movTotal - descuento + aumento;
-          }
-          
-          const metodo = (mov.metodo_pago || 'otros').toLowerCase();
-          totales[metodo] = (totales[metodo] || 0) + movTotal;
+      (movimientos || []).forEach(mov => {
+          const raw = (mov.metodo_pago || '').toLowerCase().trim();
+          const metodo = ['qr', 'transferencia', 'efectivo', 'credito'].includes(raw) ? raw : 'otros';
+          totales[metodo] = (totales[metodo] || 0) + parseNum(mov.total);
       });
       return totales;
   }, [movimientos]);
@@ -163,9 +237,10 @@ const Balance = () => {
       const totales = {};
       let sumaTotal = 0;
       
-      gastos.forEach(gasto => {
-          const valor = parseFloat(gasto.valor) || 0;
-          const metodo = (gasto.metodo_pago || 'otros').toLowerCase();
+      (gastos || []).forEach(gasto => {
+          const valor = parseNum(gasto.valor);
+          const raw = (gasto.metodo_pago || '').toLowerCase().trim();
+          const metodo = ['qr', 'transferencia', 'efectivo', 'credito'].includes(raw) ? raw : 'otros';
           totales[metodo] = (totales[metodo] || 0) + valor;
           sumaTotal += valor;
       });
@@ -173,91 +248,13 @@ const Balance = () => {
   }, [gastos]);
 
   const costosProduccionTotal = useMemo(() => {
-      return movimientos.reduce((sum, mov) => {
+      return (movimientos || []).reduce((sum, mov) => {
           return sum + (parseFloat(mov.costo_produccion) || 0);
       }, 0);
   }, [movimientos]);
 
-  const totalGeneral = ingresosTotales - egresosTotales - deudasSaldoTotal;
-  const totalGanancias = totalGeneral - costosProduccionTotal;
-
-  const handleDataLoaded = (data) => {
-      // Solo salidas (el servicio ya filtra por tipo, pero filtramos por si acaso)
-      const soloSalidas = (data || []).filter(m => m.type === 'salida');
-      setMovimientos(soloSalidas);
-      console.log('📊 BALANCE - Movimientos de salida cargados:', soloSalidas.length, 'movimientos');
-      if (soloSalidas.length > 0) {
-          console.log('📊 BALANCE - Todos los movimientos:', soloSalidas.map(m => ({
-              id: m.id,
-              fecha: m.fecha,
-              metodo_pago: m.metodo_pago,
-              total: m.total,
-              costo_produccion: m.costo_produccion,
-              descuento: m.descuento,
-              aumento: m.aumento,
-              porcentaje: m.porcentaje
-          })));
-      }
-  };
-
-  useEffect(() => {
-      const fetchDeudas = async () => {
-          if (!filtroFecha) return;
-
-          const movimientosCredito = movimientos.filter(m => (m.metodo_pago || '').toLowerCase() === 'credito');
-          if (movimientosCredito.length === 0) {
-              setDeudasSaldoTotal(0);
-              return;
-          }
-
-          setLoadingDeudas(true);
-          try {
-              const res = await deudasService.getAllSinLimite(null, null);
-              if (res && res.success && res.data) {
-                  const idsMovimientosCredito = movimientosCredito.map(m => m.id);
-                  const deudasAsociadas = res.data.filter(d => idsMovimientosCredito.includes(d.movimiento_salida_id));
-                  
-                  const totalSaldo = deudasAsociadas.reduce((sum, d) => {
-                      const saldo = d.saldo_pendiente !== undefined && d.saldo_pendiente !== null 
-                          ? Number(d.saldo_pendiente) 
-                          : (Number(d.monto_total) - (Number(d.total_pagado) || 0));
-                      return sum + (saldo || 0);
-                  }, 0);
-
-                  setDeudasSaldoTotal(totalSaldo);
-              }
-          } catch (error) {
-              console.error('Error al obtener deudas:', error);
-          } finally {
-              setLoadingDeudas(false);
-          }
-      };
-
-      fetchDeudas();
-  }, [movimientos, filtroFecha]);
-
-  useEffect(() => {
-      const fetchGastos = async () => {
-          if (!filtroFecha) return;
-
-          setLoadingGastos(true);
-          try {
-              const res = await gastosService.getAllSinLimite(null, filtroFecha);
-              if (res && res.success && res.data) {
-                  setGastos(res.data);
-              } else {
-                  setGastos([]);
-              }
-          } catch (error) {
-              console.error('Error al obtener gastos:', error);
-              setGastos([]);
-          } finally {
-              setLoadingGastos(false);
-          }
-      };
-
-      fetchGastos();
-  }, [filtroFecha]);
+  const totalGeneral = (ingresosTotales || 0) - (egresosTotales || 0);
+  const totalGanancias = (totalGeneral || 0) - (deudasSaldoTotal || 0);
 
   return (
     <>
@@ -281,68 +278,78 @@ const Balance = () => {
                 width: '100%',
                 boxSizing: 'border-box'
             }}>
-                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+                <div style={{ background: 'white', borderRadius: '12px', padding: '12px 15px', minHeight: '110px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                     {loading ? (
                         <>
-                            <Skeleton width="70%" height="16px" style={{ marginBottom: '8px', maxWidth: '120px' }} />
-                            <Skeleton width="85%" height="22px" style={{ maxWidth: '140px' }} />
+                            <Skeleton width="70%" height="16px" style={{ marginBottom: '6px', maxWidth: '120px' }} />
+                            <Skeleton width="85%" height="22px" style={{ marginBottom: '4px', maxWidth: '140px' }} />
+                            <Skeleton width="40%" height="14px" style={{ maxWidth: '60px' }} />
                         </>
                     ) : (
                         <>
-                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px', wordBreak: 'break-word', maxWidth: '100%' }}>Ingresos Totales</span>
-                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: '#28a745', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(ingresosTotales)}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '4px', wordBreak: 'break-word', maxWidth: '100%' }}>Ingresos Totales</span>
+                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: '#28a745', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(ingresosTotales || 0)}</span>
+                            <span style={{ fontSize: '13px', textTransform: 'none', fontWeight: '600', color: '#28a745', marginTop: '4px' }}>Ventas</span>
                         </>
                     )}
                 </div>
-                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+                <div style={{ background: 'white', borderRadius: '12px', padding: '12px 15px', minHeight: '110px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                     {loadingGastos ? (
                         <>
-                            <Skeleton width="70%" height="16px" style={{ marginBottom: '8px', maxWidth: '120px' }} />
-                            <Skeleton width="85%" height="22px" style={{ maxWidth: '140px' }} />
+                            <Skeleton width="70%" height="16px" style={{ marginBottom: '6px', maxWidth: '120px' }} />
+                            <Skeleton width="85%" height="22px" style={{ marginBottom: '4px', maxWidth: '140px' }} />
+                            <Skeleton width="40%" height="14px" style={{ maxWidth: '60px' }} />
                         </>
                     ) : (
                         <>
-                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px', wordBreak: 'break-word', maxWidth: '100%' }}>Egresos Totales</span>
-                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: '#dc3545', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(egresosTotales)}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '4px', wordBreak: 'break-word', maxWidth: '100%' }}>Egresos Totales</span>
+                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: '#dc3545', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(egresosTotales || 0)}</span>
+                            <span style={{ fontSize: '13px', textTransform: 'none', fontWeight: '600', color: '#dc3545', marginTop: '4px' }}>Pagos</span>
                         </>
                     )}
                 </div>
-                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-                    {loading || loadingDeudas ? (
+                <div style={{ background: 'white', borderRadius: '12px', padding: '12px 15px', minHeight: '110px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+                    {loading || loadingGastos ? (
                         <>
-                            <Skeleton width="70%" height="16px" style={{ marginBottom: '8px', maxWidth: '120px' }} />
-                            <Skeleton width="85%" height="22px" style={{ maxWidth: '140px' }} />
+                            <Skeleton width="70%" height="16px" style={{ marginBottom: '6px', maxWidth: '120px' }} />
+                            <Skeleton width="85%" height="22px" style={{ marginBottom: '4px', maxWidth: '140px' }} />
+                            <Skeleton width="60%" height="14px" style={{ maxWidth: '110px' }} />
                         </>
                     ) : (
                         <>
-                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px', wordBreak: 'break-word', maxWidth: '100%' }}>Deudas Saldos (Ingresos)</span>
-                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: 'var(--warning-color)', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(deudasSaldoTotal)}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '4px', wordBreak: 'break-word', maxWidth: '100%' }}>Total General</span>
+                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: 'var(--info-color)', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(totalGeneral || 0)}</span>
+                            <span style={{ fontSize: '13px', textTransform: 'none', fontWeight: 'normal', color: '#888', marginTop: '4px' }}><span style={{ color: '#28a745', fontWeight: '600' }}>Ingresos</span> - <span style={{ color: '#dc3545', fontWeight: '600' }}>Egresos</span></span>
                         </>
                     )}
                 </div>
-                <div style={{ background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+                <div style={{ background: 'white', borderRadius: '12px', padding: '12px 15px', minHeight: '110px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+                    {loadingDeudas ? (
+                        <>
+                            <Skeleton width="70%" height="16px" style={{ marginBottom: '6px', maxWidth: '120px' }} />
+                            <Skeleton width="85%" height="22px" style={{ marginBottom: '4px', maxWidth: '140px' }} />
+                            <Skeleton width="40%" height="14px" style={{ maxWidth: '60px' }} />
+                        </>
+                    ) : (
+                        <>
+                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '4px', wordBreak: 'break-word', maxWidth: '100%' }}>Deudas Pendientes</span>
+                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: 'var(--warning-color)', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(deudasSaldoTotal || 0)}</span>
+                            <span style={{ fontSize: '13px', textTransform: 'none', fontWeight: '600', color: 'var(--warning-color)', marginTop: '4px' }}>Total Deudas</span>
+                        </>
+                    )}
+                </div>
+                <div style={{ gridColumn: isLargeScreen ? 'auto' : '1 / -1', background: 'white', borderRadius: '12px', padding: '12px 15px', minHeight: '110px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                     {loading || loadingGastos || loadingDeudas ? (
                         <>
-                            <Skeleton width="70%" height="16px" style={{ marginBottom: '8px', maxWidth: '120px' }} />
-                            <Skeleton width="85%" height="22px" style={{ maxWidth: '140px' }} />
+                            <Skeleton width="70%" height="16px" style={{ marginBottom: '6px', maxWidth: '120px' }} />
+                            <Skeleton width="85%" height="22px" style={{ marginBottom: '4px', maxWidth: '140px' }} />
+                            <Skeleton width="60%" height="14px" style={{ maxWidth: '110px' }} />
                         </>
                     ) : (
                         <>
-                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px', wordBreak: 'break-word', maxWidth: '100%' }}>Total General</span>
-                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: 'var(--info-color)', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(totalGeneral)}</span>
-                        </>
-                    )}
-                </div>
-                <div style={{ gridColumn: isLargeScreen ? 'auto' : '1 / -1', background: 'white', borderRadius: '12px', padding: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-                    {loading || loadingGastos || loadingDeudas ? (
-                        <>
-                            <Skeleton width="70%" height="16px" style={{ marginBottom: '8px', maxWidth: '120px' }} />
-                            <Skeleton width="85%" height="22px" style={{ maxWidth: '140px' }} />
-                        </>
-                    ) : (
-                        <>
-                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '8px', wordBreak: 'break-word', maxWidth: '100%' }}>Total Ganancias</span>
-                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: 'var(--primary-color)', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(totalGanancias)}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '650', textTransform: 'uppercase', color: '#666', marginBottom: '4px', wordBreak: 'break-word', maxWidth: '100%' }}>Total Ganancias</span>
+                            <span style={{ fontSize: isLargeScreen ? '21px' : '18px', fontWeight: 'bold', color: 'var(--primary-color)', wordBreak: 'break-all', maxWidth: '100%' }}>Bs. {formatPrecio(totalGanancias || 0)}</span>
+                            <span style={{ fontSize: '13px', textTransform: 'none', fontWeight: 'normal', color: '#888', marginTop: '4px' }}><span style={{ color: 'var(--info-color)', fontWeight: '600' }}>Total General</span> - <span style={{ color: 'var(--warning-color)', fontWeight: '600' }}>Deudas</span></span>
                         </>
                     )}
                 </div>
@@ -351,7 +358,7 @@ const Balance = () => {
             <h3 style={{ fontSize: '12px', fontWeight: '600', color: '#1e293b', marginBlock: '15px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Resumen por Método de Pago</h3>
             
             <LayoutGrid columns={5}>
-                {loading ? (
+                {loading || loadingGastos ? (
                      Array.from({ length: 5 }).map((_, idx) => (
                          <div key={idx} style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
                              <Skeleton width="60%" height="24px" style={{ marginBottom: '15px' }} />
@@ -387,16 +394,6 @@ const Balance = () => {
       
       </div>
       
-      <FetchData
-          service={movimientosAlmacenService}
-          serviceName="movimientosAlmacenService"
-          method="getAllSinLimite"
-          methodParams={fetchParams}
-          isOpen={!!filtroFecha}
-          onDataLoaded={handleDataLoaded}
-          onLoadingStart={() => setLoading(true)}
-          onLoadingEnd={() => setLoading(false)}
-      />
       {!isLargeScreen && <MenuSide />}
     </>
   );

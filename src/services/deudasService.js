@@ -53,20 +53,29 @@ class deudasService {
     }
   }
 
-  // Obtener deudas sin límite
+  // Obtener deudas sin límite (para reportes y balance)
   static async getAllSinLimite(sucuIdParam = null, filtroFecha = null) {
+    let sucuId = sucuIdParam;
+    let fecha = filtroFecha;
+
+    if (sucuIdParam && typeof sucuIdParam === 'object' && !filtroFecha) {
+      fecha = sucuIdParam;
+      sucuId = null;
+    }
+
     const params = new URLSearchParams();
-    if (sucuIdParam) params.append('sucu_id', sucuIdParam);
-    if (filtroFecha) {
-      const inicio = filtroFecha.fechaStrInicio || filtroFecha.inicio;
-      const fin = filtroFecha.fechaStrFin || filtroFecha.fin;
+    if (sucuId) params.append('sucu_id', sucuId);
+    if (fecha) {
+      const inicio = fecha.fechaStrInicio || fecha.inicio || fecha.fecha_inicio;
+      const fin = fecha.fechaStrFin || fecha.fin || fecha.fecha_fin;
       if (inicio) params.append('fecha_inicio', String(inicio).split('T')[0]);
       if (fin) params.append('fecha_fin', String(fin).split('T')[0]);
     }
+    params.append('_t', Date.now().toString());
 
     return deudasService._request(`/deudas/sin-limite?${params}`, { method: 'GET' }, {
-      requireSucuId: !sucuIdParam,
-      throwOnError: true
+      requireSucuId: !sucuId,
+      returnErrorObject: true
     });
   }
 
