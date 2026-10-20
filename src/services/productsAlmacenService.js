@@ -171,48 +171,64 @@ class productsAlmacenService {
     });
   }
 
-  // Crear múltiples productos en lote (para plantillas)
+  // Importación masiva: actualiza (solo campos enviados) los que tienen ID y crea los nuevos
   static async bulkCreate(productosData) {
     if (!productosData || !Array.isArray(productosData)) {
       return { success: false, message: 'Datos inválidos para importación' };
     }
 
-    const results = [];
-    const errors = [];
+    const toUpdate = productosData.filter(p => p.id);
+    const toCreate = productosData.filter(p => !p.id);
+    const errores = [];
+    let actualizados = 0;
+    let creados = 0;
 
-    // Iteramos secuencialmente y usamos el método create/update para que maneje precios y categorías
-    for (let i = 0; i < productosData.length; i++) {
-      const prod = productosData[i];
-      let res;
-      if (prod.id) {
-        res = await this.update(prod.id, prod);
-      } else {
-        res = await this.create(prod);
-      }
-      
+    if (toUpdate.length > 0) {
+      const res = await productsAlmacenService.bulkUpdate(toUpdate);
       if (res && res.success) {
-        results.push(res.data);
+        actualizados = res.data?.actualizados ?? toUpdate.length;
+        if (Array.isArray(res.data?.errores)) errores.push(...res.data.errores);
       } else {
-        errors.push({ fila: i + 1, message: res?.message || 'Error desconocido' });
+        errores.push(res?.message || 'Error al actualizar productos');
       }
     }
 
-    if (errors.length > 0) {
-      const uniqueErrors = [...new Set(errors.map(e => e.message))];
-      const errorDesc = uniqueErrors.join(' | ');
+    if (toCreate.length > 0) {
+      const res = await productsAlmacenService._request('/products-almacen/bulk-create', {
+        method: 'POST',
+        body: JSON.stringify({ productosData: toCreate })
+      }, {
+        requireSucuId: true,
+        requireEmpresaId: true,
+        returnErrorObject: true
+      });
+      if (res && res.success) {
+        creados = res.data?.creados ?? toCreate.length;
+        if (Array.isArray(res.data?.errores)) errores.push(...res.data.errores);
+      } else {
+        errores.push(res?.message || 'Error al crear productos');
+      }
+    }
 
-      return { 
-        success: false, 
-        message: errorDesc,
-        errores: errors,
-        data: results
+    const partes = [];
+    if (actualizados > 0) partes.push(`${actualizados} actualizados`);
+    if (creados > 0) partes.push(`${creados} creados`);
+    const resumen = partes.length > 0 ? `${partes.join(' y ')}.` : '';
+
+    if (errores.length > 0) {
+      const uniqueErrors = [...new Set(errores)];
+      return {
+        success: false,
+        message: `${resumen} ${uniqueErrors.join(' | ')}`.trim(),
+        errores: uniqueErrors,
+        data: { actualizados, creados }
       };
     }
 
-    return { 
-      success: true, 
-      message: `${results.length} productos importados correctamente.`, 
-      data: results 
+    return {
+      success: true,
+      message: `Productos procesados correctamente: ${resumen}`,
+      data: { actualizados, creados }
     };
   }
 

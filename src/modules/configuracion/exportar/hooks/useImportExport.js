@@ -9,14 +9,14 @@ import { TYPE_ID, buildColumnsAG, COLUMNS_MP } from '../utils/columnsConfig';
 export function downloadTemplate({ tipo, columns }) {
   // Excluir ID oculto e incluir columnas de datos y precios
   const templateColumns = columns.filter((c) => c.key !== 'id');
-  const headers = templateColumns.map((c) => c.key);
+  const headers = templateColumns.map((c) => c.priceTypeId ? `${c.label} (${c.priceTypeId})` : c.key);
   const typeRow = [tipo, ...Array(headers.length - 1).fill('')];
   const headerRow = headers;
 
   const ws = XLSX.utils.aoa_to_sheet([typeRow, headerRow]);
 
   // Estilos básicos de ancho
-  ws['!cols'] = headers.map(() => ({ wch: 20 }));
+  ws['!cols'] = headers.map(() => ({ wch: 25 }));
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
@@ -29,20 +29,20 @@ export function downloadTemplate({ tipo, columns }) {
  * Exporta un listado de productos a un Excel con las columnas mapeadas.
  */
 export function exportDataToExcel({ tipo, columns, rowsData }) {
-  // Las columnas configuradas, en el mismo orden
-  const headers = columns.map((c) => c.key);
+  // Las columnas configuradas, en el mismo orden; para precios usa 'Nombre (ID)'
+  const headers = columns.map((c) => c.priceTypeId ? `${c.label} (${c.priceTypeId})` : c.key);
   const typeRow = [tipo, ...Array(headers.length - 1).fill('')];
   const headerRow = headers;
 
-  // Mapeamos los datos para que coincidan con las llaves
+  // Mapeamos los datos para que coincidan con las llaves de cada columna
   const dataRows = rowsData.map(rowObj => {
-    return headers.map(key => rowObj[key] !== undefined ? rowObj[key] : '');
+    return columns.map(c => rowObj[c.key] !== undefined ? rowObj[c.key] : '');
   });
 
   const ws = XLSX.utils.aoa_to_sheet([typeRow, headerRow, ...dataRows]);
 
   // Estilos básicos de ancho
-  ws['!cols'] = headers.map(() => ({ wch: 20 }));
+  ws['!cols'] = headers.map(() => ({ wch: 25 }));
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Datos');

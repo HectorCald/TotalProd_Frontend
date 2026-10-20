@@ -126,47 +126,67 @@ class productsAcopioService {
     });
   }
 
-  // Importar múltiples productos en lote
+  // Actualizar múltiples productos en lote (solo los campos enviados)
+  static async bulkUpdate(productosData) {
+    return productsAcopioService._request('/products-acopio/bulk-update', {
+      method: 'PUT',
+      body: JSON.stringify({ productosData })
+    }, {
+      requireEmpresaId: true,
+      returnErrorObject: true
+    });
+  }
+
+  // Importar o actualizar múltiples productos en lote
   static async bulkCreate(productosData) {
     if (!productosData || !Array.isArray(productosData)) {
       return { success: false, message: 'Datos inválidos para importación' };
     }
 
-    const results = [];
-    const errors = [];
+    const toUpdate = productosData.filter(p => p.id);
+    const toCreate = productosData.filter(p => !p.id);
+    const errores = [];
+    let actualizados = 0;
+    let creados = 0;
 
-    for (let i = 0; i < productosData.length; i++) {
-      const prod = productosData[i];
-      let res;
-      if (prod.id) {
-        res = await this.update(prod.id, prod);
-      } else {
-        res = await this.create(prod);
-      }
-      
+    if (toUpdate.length > 0) {
+      const res = await productsAcopioService.bulkUpdate(toUpdate);
       if (res && res.success) {
-        results.push(res.data);
+        actualizados = res.data?.actualizados ?? toUpdate.length;
+        if (Array.isArray(res.data?.errores)) errores.push(...res.data.errores);
       } else {
-        errors.push({ fila: i + 1, message: res?.message || 'Error desconocido' });
+        errores.push(res?.message || 'Error al actualizar materia prima');
       }
     }
 
-    if (errors.length > 0) {
-      const uniqueErrors = [...new Set(errors.map(e => e.message))];
-      const errorDesc = uniqueErrors.join(' | ');
+    if (toCreate.length > 0) {
+      for (let i = 0; i < toCreate.length; i++) {
+        const prod = toCreate[i];
+        const res = await productsAcopioService.create(prod);
+        if (res && res.success) {
+          creados++;
+        } else {
+          errores.push(`Fila ${i + 1}: ${res?.message || 'Error al crear'}`);
+        }
+      }
+    }
 
-      return { 
-        success: false, 
-        message: errorDesc,
-        errores: errors,
-        data: results
+    const partes = [];
+    if (actualizados > 0) partes.push(`${actualizados} actualizados`);
+    if (creados > 0) partes.push(`${creados} creados`);
+
+    if (errores.length > 0 && partes.length === 0) {
+      return {
+        success: false,
+        message: errores.join(' | '),
+        errores
       };
     }
 
-    return { 
-      success: true, 
-      message: `${results.length} productos de materia prima importados correctamente.`, 
-      data: results 
+    return {
+      success: true,
+      message: `${partes.join(', ')} correctamente.${errores.length > 0 ? ` (Con advertencias: ${errores.length})` : ''}`,
+      data: { actualizados, creados, errores }
     };
   }
 

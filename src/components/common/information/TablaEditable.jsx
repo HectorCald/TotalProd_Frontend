@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Input from '../inputs/Input';
 import InputSelect from '../inputs/InputSelect';
 import InputSelectMultiple from '../inputs/InputSelectMultiple';
@@ -12,8 +12,17 @@ import styles from './TablaEditable.module.css';
  * onCellChange: (rowIdx, key, value) => void
  * rowErrors: { [rowIdx]: { [key]: boolean } }
  */
-const TablaEditable = ({ columns = [], rows = [], onCellChange, rowErrors = {}, isLoading = false, readOnly = false }) => {
+const TablaEditable = ({
+  columns = [],
+  rows = [],
+  onCellChange,
+  rowErrors = {},
+  isLoading = false,
+  readOnly = false,
+  onLoadMore
+}) => {
   const scrollRef = useRef(null);
+  const loaderRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, scrollLeft: 0 });
 
@@ -32,6 +41,39 @@ const TablaEditable = ({ columns = [], rows = [], onCellChange, rowErrors = {}, 
 
   const stopDrag = () => setIsDragging(false);
 
+  const handleScroll = (e) => {
+    if (!onLoadMore || isLoading) return;
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollHeight - scrollTop - clientHeight < 150) {
+      onLoadMore();
+    }
+  };
+
+  useEffect(() => {
+    if (!onLoadMore || isLoading) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        onLoadMore();
+      }
+    }, {
+      root: scrollRef.current,
+      rootMargin: '150px',
+      threshold: 0.1
+    });
+
+    const currentLoader = loaderRef.current;
+    if (currentLoader) {
+      observer.observe(currentLoader);
+    }
+
+    return () => {
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
+    };
+  }, [onLoadMore, isLoading, rows.length]);
+
   if (columns.length === 0) return null;
 
   return (
@@ -43,17 +85,25 @@ const TablaEditable = ({ columns = [], rows = [], onCellChange, rowErrors = {}, 
         onMouseMove={handleMouseMove}
         onMouseUp={stopDrag}
         onMouseLeave={stopDrag}
+        onScroll={handleScroll}
       >
         <table className={styles.table}>
           <thead>
             <tr>
               <th className={styles.thIndex}>#</th>
-              {columns.map((col) => (
-                <th key={col.accessor} className={`${styles.th} ${col.accessor === 'name' ? styles.stickyNameCol : ''}`}>
-                  {col.header.toUpperCase()}
-                  {col.colConfig?.required && <span className={styles.required}> *</span>}
-                </th>
-              ))}
+              {columns.map((col) => {
+                const cellMinWidth = col.accessor === 'name' ? '190px' : (col.colConfig?.type === 'number' ? '120px' : '240px');
+                return (
+                  <th
+                    key={col.accessor}
+                    className={`${styles.th} ${col.accessor === 'name' ? styles.stickyNameCol : ''}`}
+                    style={{ minWidth: cellMinWidth, width: cellMinWidth }}
+                  >
+                    {col.header.toUpperCase()}
+                    {col.colConfig?.required && <span className={styles.required}> *</span>}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -62,9 +112,9 @@ const TablaEditable = ({ columns = [], rows = [], onCellChange, rowErrors = {}, 
                 <tr key={`skeleton-${index}`} className={styles.tr}>
                   <td className={styles.tdIndex}>{index + 1}</td>
                   {columns.map((col, colIdx) => {
-                    const cellMinWidth = col.colConfig?.type === 'number' ? '120px' : '280px';
+                    const cellMinWidth = col.accessor === 'name' ? '190px' : (col.colConfig?.type === 'number' ? '120px' : '240px');
                     return (
-                      <td key={colIdx} className={`${styles.td} ${col.accessor === 'name' ? styles.stickyNameCol : ''}`} style={{ minWidth: cellMinWidth }}>
+                      <td key={colIdx} className={`${styles.td} ${col.accessor === 'name' ? styles.stickyNameCol : ''}`} style={{ minWidth: cellMinWidth, width: cellMinWidth }}>
                         <Skeleton width="100%" height="36px" borderRadius="8px" />
                       </td>
                     );
@@ -82,16 +132,20 @@ const TablaEditable = ({ columns = [], rows = [], onCellChange, rowErrors = {}, 
                 <tr key={rowIdx} className={styles.tr}>
                   <td className={styles.tdIndex} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', height: '100%', minHeight: '60px' }}>
                     {rowIdx + 1}
-                    {row.id && (
-                      <span style={{
-                        backgroundColor: 'var(--success-color, #2ecc71)',
-                        color: 'white',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.7rem',
-                        fontWeight: 'bold',
-                        lineHeight: '1'
-                      }}>
+                    {row.id !== undefined && row.id !== null && String(row.id).trim() !== '' && (
+                      <span
+                        style={{
+                          backgroundColor: 'var(--success-color, #2ecc71)',
+                          color: 'white',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem',
+                          fontWeight: 'bold',
+                          lineHeight: '1',
+                          cursor: 'default'
+                        }}
+                        title={`ID: ${row.id}`}
+                      >
                         ID
                       </span>
                     )}
@@ -99,7 +153,7 @@ const TablaEditable = ({ columns = [], rows = [], onCellChange, rowErrors = {}, 
                   {columns.map((col) => {
                     const hasError = rowErrors[rowIdx]?.[col.accessor];
                     const val = row[col.accessor] ?? '';
-                    const cellMinWidth = col.colConfig?.type === 'number' ? '120px' : '280px';
+                    const cellMinWidth = col.accessor === 'name' ? '190px' : (col.colConfig?.type === 'number' ? '120px' : '240px');
                     const tdClass = `${styles.td} ${col.accessor === 'name' ? styles.stickyNameCol : ''}`;
 
                     if (col.colConfig?.type === 'select' && col.options?.length > 0) {
@@ -147,6 +201,11 @@ const TablaEditable = ({ columns = [], rows = [], onCellChange, rowErrors = {}, 
                   })}
                 </tr>
               ))
+            )}
+            {onLoadMore && !isLoading && (
+              <tr ref={loaderRef} style={{ height: '1px' }}>
+                <td colSpan={columns.length + 1} style={{ padding: 0, border: 'none' }} />
+              </tr>
             )}
           </tbody>
         </table>
