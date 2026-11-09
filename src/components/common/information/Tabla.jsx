@@ -53,6 +53,10 @@ const Tabla = ({
     buttonLabel,
     buttonIcon = 'plus',
     onButtonClick,
+    buttonAlternativeIcon = 'export',
+    onButtonAlternativeClick,
+    alternativeButtonIcon,
+    onAlternativeButtonClick,
     searchPlaceholder = 'Buscar',
     searchKeys = [],
     sortKey,
@@ -212,9 +216,17 @@ const Tabla = ({
                         activeFilters={activeFilters}
                     />
                 </div>
-                {onButtonClick && (
+                {(onButtonClick || onButtonAlternativeClick || onAlternativeButtonClick) && (
                     <div style={{ display: 'flex', gap: '10px' }}>
-                        {isLargeScreen ? (
+                        {(onButtonAlternativeClick || onAlternativeButtonClick) && (
+                            <BotonIcon
+                                className="btn-cancel"
+                                iconName={alternativeButtonIcon || buttonAlternativeIcon}
+                                onClick={onButtonAlternativeClick || onAlternativeButtonClick}
+                            />
+                        )}
+                        {onButtonClick && (
+                            isLargeScreen ? (
                                 <Boton
                                     className="btn-primary"
                                     label={buttonLabel}
@@ -227,7 +239,8 @@ const Tabla = ({
                                     iconName={buttonIcon}
                                     onClick={onButtonClick}
                                 />
-                            )}
+                            )
+                        )}
                     </div>
                 )}
             </div>

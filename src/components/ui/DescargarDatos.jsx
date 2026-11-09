@@ -87,7 +87,9 @@ function DescargarDatos({
                         ? (isLegacyPercentage ? aumValNum : (subtotalNum * aumValNum / 100)) 
                         : aumValNum;
                     let totalFinalRaw = subtotalNum - descCalculadoNum + aumCalculadoNum;
-                    const totalFinalNum = Math.round(totalFinalRaw * 10) / 10;
+                    const totalFinalNum = (mov.total !== undefined && mov.total !== null) 
+                        ? (parseFloat(mov.total) || 0) 
+                        : Math.round(totalFinalRaw * 10) / 10;
 
                     const info = {
                         'Fecha': fechaLiteral,
@@ -107,6 +109,7 @@ function DescargarDatos({
                     const obs = mov.descripcion || mov.observaciones || '';
                     if (obs) info['Observaciones'] = obs;
                     
+                    info['Subtotal'] = `Bs. ${formatPrice(subtotalNum)}`;
                     if (descValNum > 0) info['Descuento'] = `Bs. ${formatPrice(descCalculadoNum)}`;
                     if (aumValNum > 0) info['Aumento'] = `Bs. ${formatPrice(aumCalculadoNum)}`;
                     info['Total'] = `Bs. ${formatPrice(totalFinalNum)}`;

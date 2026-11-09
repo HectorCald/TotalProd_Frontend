@@ -123,8 +123,11 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido: propsPedido, onEdit, onE
     const observaciones = pedido.observaciones && pedido.observaciones !== '--' ? pedido.observaciones : '';
 
     const obtenerTotalFormateado = (ped) => {
-        if (ped.total !== undefined && ped.total !== null && Number(ped.total) > 0) {
+        if (ped?.total !== undefined && ped?.total !== null) {
             return parseFloat(ped.total) || 0;
+        }
+        if (propsPedido?.total !== undefined && propsPedido?.total !== null) {
+            return parseFloat(propsPedido.total) || 0;
         }
         let total = (ped.pedido_almacen_detalle || []).reduce((sum, detalle) => {
             const precio = parseFloat(detalle.precio) || 0;
@@ -158,6 +161,7 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido: propsPedido, onEdit, onE
     if (pedido.precio?.name) informacionSuperiorDescarga['Tipo de Precio'] = pedido.precio.name;
     if (pedido.observaciones) informacionSuperiorDescarga['Observaciones'] = pedido.observaciones;
     
+    informacionSuperiorDescarga['Subtotal'] = `Bs. ${formatPrice(totalNum)}`;
     informacionSuperiorDescarga['Total'] = `Bs. ${formatPrice(totalNum)}`;
 
     const tablaHeadersDescarga = ['Producto', 'Cantidad', 'Precio Unitario', 'Subtotal'];

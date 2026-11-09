@@ -101,9 +101,11 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion: propsCotizacion, onEd
     let descCalculadoNum = esPorcentaje ? subtotalNum * (descValNum / 100) : descValNum;
     let aumCalculadoNum = esPorcentaje ? subtotalNum * (aumValNum / 100) : aumValNum;
     
-    let totalFinalNum = (cotizacion.total !== undefined && cotizacion.total !== null && Number(cotizacion.total) > 0)
+    let totalFinalNum = (cotizacion.total !== undefined && cotizacion.total !== null)
         ? (parseFloat(cotizacion.total) || 0)
-        : Math.round((subtotalNum - descCalculadoNum + aumCalculadoNum) * 10) / 10;
+        : (propsCotizacion?.total !== undefined && propsCotizacion?.total !== null)
+            ? (parseFloat(propsCotizacion.total) || 0)
+            : Math.round((subtotalNum - descCalculadoNum + aumCalculadoNum) * 10) / 10;
 
     const descPerc = esPorcentaje 
         ? descValNum 
@@ -128,6 +130,7 @@ const ViewInfoCotizacion = ({ isOpen, onClose, cotizacion: propsCotizacion, onEd
     if (responsableNombre) informacionSuperiorDescarga['Responsable'] = responsableNombre;
     if (rawFechaVencimiento) informacionSuperiorDescarga['Vencimiento'] = fechaVencimientoLiteral;
     if (cotizacion.observaciones) informacionSuperiorDescarga['Observaciones'] = cotizacion.observaciones;
+    informacionSuperiorDescarga['Subtotal'] = `Bs. ${formatPrice(subtotalNum)}`;
     if (descValNum > 0) informacionSuperiorDescarga['Descuento'] = `Bs. ${formatPrice(descCalculadoNum)}`;
     if (aumValNum > 0) informacionSuperiorDescarga['Aumento'] = `Bs. ${formatPrice(aumCalculadoNum)}`;
     informacionSuperiorDescarga['Total'] = `Bs. ${formatPrice(totalFinalNum)}`;

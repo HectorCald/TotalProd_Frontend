@@ -1,7 +1,8 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ModalLateral from '../../common/modals/ModalLateral';
 import Input from '../../common/inputs/Input';
+import InputSwitch from '../../common/inputs/InputSwitch';
 
 import UserService from '../../../services/userService';
 import ColumnInfo from '../../common/outputs/ColumnInfo';
@@ -14,6 +15,12 @@ import inputStyles from '../../common/inputs/Input.module.css';
 import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
 import { useToast } from '../../../context/ToastContext';
+import {
+  verifyLocationPermissionActive,
+  setLocationManuallyDisabled,
+  queryBrowserGeolocationState,
+  markBrowserLocationGranted,
+} from '../../../utils/locationPermission';
 
 const ModalPerfil = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
@@ -22,6 +29,9 @@ const ModalPerfil = ({ isOpen, onClose }) => {
   const { showDanger } = useToast();
 
   const [isVersionDetailsOpen, setIsVersionDetailsOpen] = useState(false);
+  const [ubicacionActiva, setUbicacionActiva] = useState(false);
+  const [browserPermState, setBrowserPermState] = useState('prompt');
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
 
   const token = localStorage.getItem('token');
   const isEmployeeSession = (() => {
@@ -258,6 +268,135 @@ const ModalPerfil = ({ isOpen, onClose }) => {
     }
   };
 
+  const syncPermissionFromBrowser = useCallback(async () => {
+    const { active, browserState } = await verifyLocationPermissionActive();
+    setUbicacionActiva(active);
+    setBrowserPermState(browserState);
+  }, []);
+
+  // Cada vez que se abre el modal de Perfil, verificar directamente desde el navegador el permiso actual
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    let isMounted = true;
+    let permissionStatusObj = null;
+
+    const handlePermChange = () => {
+      if (isMounted) {
+        syncPermissionFromBrowser();
+      }
+    };
+
+    syncPermissionFromBrowser();
+
+    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+      navigator.permissions
+        .query({ name: 'geolocation' })
+        .then((status) => {
+          if (!isMounted) return;
+          permissionStatusObj = status;
+          status.onchange = handlePermChange;
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      isMounted = false;
+      if (permissionStatusObj) {
+        permissionStatusObj.onchange = null;
+      }
+    };
+  }, [isOpen, syncPermissionFromBrowser]);
+
+  const handleToggleUbicacion = (nextChecked) => {
+    if (isRequestingLocation) return;
+
+    // Desactivar desde el switch
+    if (!nextChecked) {
+      setLocationManuallyDisabled(true);
+      setUbicacionActiva(false);
+      return;
+    }
+
+    // Intentar activar: verificar soporte y estado del navegador
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
+      setUbicacionActiva(false);
+      showDanger(
+        null,
+        'Tu navegador no soporta geolocalización. Contacta con soporte para solucionar el problema.'
+      );
+      return;
+    }
+
+    if (browserPermState === 'denied') {
+      setUbicacionActiva(false);
+      showDanger(
+        null,
+        'El permiso de ubicación está bloqueado en tu navegador. Contacta con soporte para solucionar el problema.'
+      );
+      return;
+    }
+
+    const startedAt = Date.now();
+    const stateBefore = browserPermState;
+    setIsRequestingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      () => {
+        setIsRequestingLocation(false);
+        setLocationManuallyDisabled(false);
+        markBrowserLocationGranted(true);
+        setBrowserPermState('granted');
+        setUbicacionActiva(true);
+      },
+      async (err) => {
+        const stateAfter = await queryBrowserGeolocationState();
+        setIsRequestingLocation(false);
+
+        // Si el usuario dio "Permitir" en la ventana emergente pero falló la lectura física del GPS (código != 1)
+        if (err?.code !== 1 && stateAfter === 'granted') {
+          setLocationManuallyDisabled(false);
+          markBrowserLocationGranted(true);
+          setBrowserPermState('granted');
+          setUbicacionActiva(true);
+          return;
+        }
+
+        // El usuario rechazó o el navegador bloqueó el permiso: NO activar el switch
+        markBrowserLocationGranted(false);
+        setUbicacionActiva(false);
+        setBrowserPermState(stateAfter);
+
+        const autoBlockedWithoutPrompt = Date.now() - startedAt < 250 && stateBefore !== 'prompt';
+        if (stateBefore === 'denied' || autoBlockedWithoutPrompt) {
+          showDanger(
+            null,
+            'El permiso de ubicación está bloqueado en tu navegador. Contacta con soporte para solucionar el problema.'
+          );
+        }
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  const renderUbicacionSwitch = (idSuffix) => (
+    <InputSwitch
+      id={`activar-ubicacion-${idSuffix}`}
+      label="Activar ubicación"
+      subtitle={
+        browserPermState === 'denied'
+          ? 'Permiso bloqueado en el navegador'
+          : ubicacionActiva
+          ? 'Permiso de ubicación habilitado'
+          : 'Requerido para realizar ventas'
+      }
+      icon="current-location"
+      checked={ubicacionActiva}
+      disabled={isRequestingLocation}
+      onChange={handleToggleUbicacion}
+    />
+  );
+
   const renderEmployeeContent = () => {
     const infoPersonalItems = [
       ...(employeeInfo?.ci || employeeInfo?.documento
@@ -277,6 +416,7 @@ const ModalPerfil = ({ isOpen, onClose }) => {
         />
 
         <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {renderUbicacionSwitch('emp')}
           <Boton 
             label="Organigrama"
             className="btn-cancel"
@@ -359,6 +499,7 @@ const ModalPerfil = ({ isOpen, onClose }) => {
           </div>
         </Accordion>
         <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {renderUbicacionSwitch('user')}
           <Boton 
             label="Organigrama"
             className="btn-cancel"

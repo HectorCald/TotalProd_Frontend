@@ -310,7 +310,13 @@ const Home = () => {
                     <BotonCuadrante
                       key={item.id}
                       icon={item.icon}
-                      title={item.id === 'recursos-humanos' ? 'RRHH' : item.title}
+                      title={
+                        {
+                          'recursos-humanos': 'RRHH',
+                          'ruta-comercial': 'Ruta',
+                          'Mi Producción': 'Mi Prod.',
+                        }[item.id] || item.title
+                      }
                       onClick={() => handleItemClick(item)}
                       isNew={item.isNew}
                       isBuilding={item.isBuilding}

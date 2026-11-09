@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import useFormatNumber from '../../../../../hooks/useFormatNumber';
 import useFormatNumberPrice from '../../../../../hooks/useFormatNumberPrice';
+import useSessionCache from '../../../../../hooks/useSessionCache';
 import ModalCentro from '../../../../../components/common/modals/ModalCentro';
 import SelectCliente from '../../../../../components/common/fast/SelectCliente';
 import SelectMetodoPago from '../../../../../components/common/fast/SelectMetodoPago';
@@ -10,12 +11,51 @@ import InputFecha from '../../../../../components/common/inputs/InputFecha';
 import { getFullTimestamp } from '../../../../../utils/dateUtils';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
 import pedidosAlmacenService from '../../../../../services/pedidosAlmacenService';
+import clientService from '../../../../../services/clientService';
+import { reverseGeocodeBolivia } from '../../../../principal/ruta-comercial/modals/SeleccionarUbicacionModal';
+import { verifyLocationPermissionActive } from '../../../../../utils/locationPermission';
 import { useToast } from '../../../../../context/ToastContext';
 
+const hasClientLocation = (loc) => {
+  if (!loc) return false;
+  if (typeof loc === 'object') {
+    const x = loc.x ?? loc.lat;
+    const y = loc.y ?? loc.lng;
+    return x !== undefined && x !== null && y !== undefined && y !== null && !Number.isNaN(Number(x)) && !Number.isNaN(Number(y));
+  }
+  const str = String(loc).trim();
+  return str !== '' && str !== 'null' && str !== 'undefined';
+};
+
+const getCurrentCoords = () =>
+  new Promise((resolve, reject) => {
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
+      reject(new Error('Geolocalización no soportada'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          (err) => reject(err),
+          { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+  });
+
 const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion, cotizacionDefaults = null, onSuccess }) => {
-  const { showSuccess, showDanger } = useToast();
+  const { showSuccess, showDanger, showWarning } = useToast();
   const { formatPrice } = useFormatNumber();
   const { roundTo1Decimal } = useFormatNumberPrice();
+
+  const { value: clientesListado, setValue: setClientesListado } = useSessionCache({
+    key: 'clientesListado',
+    defaultValue: []
+  });
 
   const [cliente, setCliente] = useState(null);
   const [metodoPago, setMetodoPago] = useState(null);
@@ -80,8 +120,71 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
     return priceObj ? Number(priceObj.valor) : 0;
   };
 
+  // Si hay cliente seleccionado y no tiene ubicación registrada, obtener GPS actual + descripción de OpenStreetMap y guardarla
+  const ensureClientLocation = async (clienteId, preloadedCoords = null) => {
+    if (!clienteId) return;
+
+    try {
+      let targetClient = (clientesListado || []).find((c) => String(c.id) === String(clienteId));
+
+      if (!targetClient) {
+        const resClient = await clientService.getById(clienteId);
+        if (resClient?.success && resClient.data) {
+          targetClient = resClient.data;
+        }
+      }
+
+      // Si el cliente ya tiene ubicación, saltar este paso
+      if (targetClient && hasClientLocation(targetClient.location)) {
+        return;
+      }
+
+      const coords = preloadedCoords || (await getCurrentCoords());
+      const roundedLat = Number(Number(coords.lat).toFixed(6));
+      const roundedLng = Number(Number(coords.lng).toFixed(6));
+      const locationPoint = `(${roundedLat},${roundedLng})`;
+
+      let descriptionLocation = null;
+      try {
+        descriptionLocation = await reverseGeocodeBolivia(roundedLat, roundedLng);
+      } catch (_) {
+        descriptionLocation = 'Ubicación registrada, Bolivia, Bolivia';
+      }
+
+      const updateRes = await clientService.updateLocation(
+        clienteId,
+        locationPoint,
+        descriptionLocation
+      );
+
+      if (updateRes?.success) {
+        setClientesListado((prev) =>
+          (prev || []).map((c) =>
+            String(c.id) === String(clienteId)
+              ? {
+                  ...c,
+                  location: updateRes.data?.location ?? locationPoint,
+                  description_location: updateRes.data?.description_location ?? descriptionLocation,
+                }
+              : c
+          )
+        );
+      }
+    } catch (locErr) {
+      console.warn('No se pudo registrar automáticamente la ubicación del cliente:', locErr);
+    }
+  };
 
   const handleConfirm = async () => {
+    const { active: permisoUbicacionActivo } = await verifyLocationPermissionActive();
+    if (!permisoUbicacionActivo) {
+      showWarning(
+        null,
+        'Debes activar el permiso de ubicación desde tu Perfil para realizar la venta.'
+      );
+      return;
+    }
+
     const newErrors = {};
     if (!fechaRegistro) newErrors.fechaRegistro = true;
     if (!metodoPago) newErrors.metodoPago = true;
@@ -105,6 +208,26 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
     setIsSubmitting(true);
 
     try {
+      // Obtener siempre las coordenadas GPS actuales para registrarlas en el movimiento de venta
+      let currentCoords = null;
+      let ventaLocationPoint = null;
+      try {
+        const coords = await getCurrentCoords();
+        const roundedLat = Number(Number(coords.lat).toFixed(6));
+        const roundedLng = Number(Number(coords.lng).toFixed(6));
+        if (!Number.isNaN(roundedLat) && !Number.isNaN(roundedLng)) {
+          currentCoords = { lat: roundedLat, lng: roundedLng };
+          ventaLocationPoint = `(${roundedLat},${roundedLng})`;
+        }
+      } catch (gpsErr) {
+        console.warn('No se pudo obtener la ubicación GPS para el movimiento de venta:', gpsErr);
+      }
+
+      // Antes de confirmar la venta: si el cliente no tiene ubicación (o es null), asignarle ubicación actual + descripción de OpenStreetMap
+      if (cliente) {
+        await ensureClientLocation(cliente, currentCoords);
+      }
+
       const payload = {
         type: 'salida',
         cliente_id: cliente || null,
@@ -119,6 +242,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
         precio_id: precioSeleccionado,
         agrupado: modoAgrupacion === 'grupo',
         fecha: getFullTimestamp(fechaRegistro),
+        ubicacion: ventaLocationPoint,
         productos: canasta.map(p => {
           const esPorGrupo = modoAgrupacion === 'grupo' && p.grup && Number(p.grup) > 0;
           const cantidadEnUnidades = esPorGrupo

@@ -1,5 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useLayout } from '../../../context/LayoutContext';
+import { useEmployee } from '../../../context/EmployeeContext';
+import { SideConfigOptions } from '../../../constants/SideBarOptions';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
 import MenuSide from '../../../components/essentials/MenuSide';
@@ -11,10 +13,38 @@ import clientService from '../../../services/clientService';
 import AgregarEditarCliente from './modals/AgregarEditarCliente';
 import EliminarCliente from './modals/EliminarCliente';
 import ViewInfo from './modals/ViewInfo';
+import ModalOpcionesClientes from './modals/ModalOpcionesClientes';
 import useVirtualPagination from '../../../hooks/useVirtualPagination';
 
 const Clientes = () => {
   const { isLargeScreen } = useLayout();
+  const { employee: employeeInfo } = useEmployee();
+
+  const canExport = useMemo(() => {
+    const token = localStorage.getItem('token');
+    let isEmployeeSession = false;
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        isEmployeeSession = JSON.parse(jsonPayload).type === 'employee';
+      } catch (e) {
+        isEmployeeSession = false;
+      }
+    }
+    const isEmployee = isEmployeeSession || !!employeeInfo;
+    if (!isEmployee) return true;
+    if (!employeeInfo?.modules) return false;
+    const exportOption = SideConfigOptions.find(opt => opt.id === 'exportar');
+    if (!exportOption) return false;
+    return employeeInfo.modules.some(m => {
+      if (exportOption.key_submenu) {
+        return m.modulos?.clave === exportOption.key && m.name === exportOption.key_submenu;
+      }
+      return m.modulos?.clave === exportOption.key;
+    });
+  }, [employeeInfo]);
 
   const {
     value: clientes,
@@ -28,19 +58,33 @@ const Clientes = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isOpcionesModalOpen, setIsOpcionesModalOpen] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
   
   const [search, setSearch] = useState('');
+  const [tableFilters, setTableFilters] = useState({});
 
   const filteredClientes = React.useMemo(() => {
-    if (!search) return clientes;
-    const s = search.toLowerCase();
-    return clientes.filter(c => 
-      (c.name && c.name.toLowerCase().includes(s)) ||
-      (c.phone && c.phone.toLowerCase().includes(s))
-    );
-  }, [clientes, search]);
+    let result = clientes;
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter(c => 
+        (c.name && c.name.toLowerCase().includes(s)) ||
+        (c.phone && c.phone.toLowerCase().includes(s))
+      );
+    }
+    const isDesc = tableFilters?.sort_order && tableFilters.sort_order[0] === 'desc';
+    if (tableFilters?.sort_order && tableFilters.sort_order.length > 0) {
+      return [...result].sort((a, b) => {
+        const nameA = String(a.name || '');
+        const nameB = String(b.name || '');
+        const cmp = nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+        return isDesc ? -cmp : cmp;
+      });
+    }
+    return result;
+  }, [clientes, search, tableFilters]);
 
   const { visibleItems, hasMore, loadMore } = useVirtualPagination(filteredClientes, 30);
 
@@ -106,6 +150,8 @@ const Clientes = () => {
               setClienteSeleccionado(null);
               setIsModalOpen(true);
             }}
+            buttonAlternativeIcon={canExport ? "export" : undefined}
+            onButtonAlternativeClick={canExport ? () => setIsOpcionesModalOpen(true) : undefined}
             searchKeys={['name', 'phone']}
             sortKey="name"
             onRowClick={(cliente) => {
@@ -115,10 +161,21 @@ const Clientes = () => {
             remote={true}
             searchValue={search}
             onSearchChange={setSearch}
+            externalFilters={tableFilters}
+            onFiltersChange={setTableFilters}
             onLoadMore={hasMore ? loadMore : undefined}
           />
         </div>
       </div>
+      <ModalOpcionesClientes
+        isOpen={isOpcionesModalOpen}
+        onClose={() => setIsOpcionesModalOpen(false)}
+        clientes={filteredClientes}
+        onClientesActualizados={(actualizados) => {
+          const mapActualizados = new Map(actualizados.map(c => [String(c.id), c]));
+          setClientes(prev => prev.map(c => mapActualizados.has(String(c.id)) ? { ...c, ...mapActualizados.get(String(c.id)) } : c));
+        }}
+      />
       <AgregarEditarCliente
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

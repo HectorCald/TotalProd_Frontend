@@ -17,8 +17,9 @@ const InputCall = ({ value, onClick, onClear, label, placeholder, required, read
         <button
           type="button"
           onClick={readOnly ? undefined : onClick}
-          className={`${styles.input} ${hasValue ? styles.inputWithClear : ''} ${error ? styles.inputError : ''}`}
+          className={`${styles.input} ${styles.callButton} ${hasValue && onClear && !readOnly ? styles.inputWithClear : ''} ${error ? styles.inputError : ''}`}
           disabled={readOnly}
+          title={hasValue ? String(value) : undefined}
         >
           <span className={hasValue ? styles.value : styles.placeholder}>
             {hasValue ? value : placeholder}

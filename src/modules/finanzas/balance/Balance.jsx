@@ -5,13 +5,16 @@ import NavBar from '../../../components/essentials/NavBar';
 import MenuSide from '../../../components/essentials/MenuSide';
 import viewStyles from '../../../modules/home/View.module.css';
 import ColumnInfo from '../../../components/common/outputs/ColumnInfo';
+import Link from '../../../components/common/outputs/Link';
 import DateRibbon from '../../../components/common/widgets/DateRibbon/DateRibbon';
 import LayoutGrid from '../../../components/layout/LayoutGrid';
 import Skeleton from '../../../components/common/widgets/Skeleton';
+import NoData from '../../../components/common/widgets/NoData';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import gastosService from '../../../services/gastosService';
 import deudasService from '../../../services/deudasService';
 import { parseDateWithoutOffset } from '../../../utils/dateUtils';
+import Top10MasVendidos from './modals/top10MasVendidos';
 
 const parseNum = (v) => {
     if (v === null || v === undefined) return 0;
@@ -119,6 +122,9 @@ const Balance = () => {
   const [loadingDeudas, setLoadingDeudas] = useState(false);
   const [gastos, setGastos] = useState([]);
   const [loadingGastos, setLoadingGastos] = useState(false);
+  const [topProductos, setTopProductos] = useState([]);
+  const [loadingTopProductos, setLoadingTopProductos] = useState(false);
+  const [isTop10Open, setIsTop10Open] = useState(false);
 
   const filtroFecha = useMemo(() => calcFiltroFecha(selectedDate, tipoBalance), [selectedDate, tipoBalance]);
 
@@ -211,6 +217,37 @@ const Balance = () => {
       };
 
       fetchDeudas();
+      return () => {
+          isMounted = false;
+      };
+  }, [filtroFecha]);
+
+  useEffect(() => {
+      let isMounted = true;
+      const fetchTopProductos = async () => {
+          if (!filtroFecha) {
+              setTopProductos([]);
+              return;
+          }
+          setLoadingTopProductos(true);
+          try {
+              const res = await movimientosAlmacenService.getTopProductosVendidos(filtroFecha, 'finalizado');
+              if (isMounted) {
+                  if (res && res.success && res.data) {
+                      setTopProductos(res.data);
+                  } else {
+                      setTopProductos([]);
+                  }
+              }
+          } catch (error) {
+              console.error('Error al obtener top productos vendidos:', error);
+              if (isMounted) setTopProductos([]);
+          } finally {
+              if (isMounted) setLoadingTopProductos(false);
+          }
+      };
+
+      fetchTopProductos();
       return () => {
           isMounted = false;
       };
@@ -389,12 +426,62 @@ const Balance = () => {
                     })
                 )}
             </LayoutGrid>
+
+            <h3 style={{ fontSize: '12px', fontWeight: '600', color: '#1e293b', marginBlock: '15px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Otros Detalles</h3>
+
+            <LayoutGrid columns={5}>
+                {loadingTopProductos ? (
+                    <div style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+                        <Skeleton width="60%" height="24px" style={{ marginBottom: '15px' }} />
+                        <Skeleton width="100%" height="20px" style={{ marginBottom: '10px' }} />
+                        <Skeleton width="100%" height="20px" style={{ marginBottom: '10px' }} />
+                        <Skeleton width="100%" height="20px" style={{ marginBottom: '10px' }} />
+                        <Skeleton width="100%" height="20px" />
+                    </div>
+                ) : topProductos.length > 0 ? (
+                    <div>
+                        <ColumnInfo 
+                            title="Top 5 Productos Más Vendidos"
+                            noScroll={true}
+                            items={topProductos.slice(0, 5).map((prod, idx) => ({
+                                clave: `${idx + 1}. ${prod.name}`,
+                                valor: `${prod.cantidad} uds.`,
+                                colorValor: '#28a745'
+                            }))}
+                        />
+                        <div style={{ marginBottom: '15px' }}>
+                            <Link 
+                                text="Mostrar top 10" 
+                                iconEnd="right-arrow-alt" 
+                                onClick={() => setIsTop10Open(true)} 
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <div style={{ marginBottom: '15px' }}>
+                        <h4 style={{ fontSize: '11px', fontWeight: 750, color: 'var(--dark-color)', margin: '0 0 12px 0', textTransform: 'uppercase' }}>Top 5 Productos Más Vendidos</h4>
+                        <NoData
+                            icon="box"
+                            title="Sin ventas registradas"
+                            detail="No hay información para mostrar"
+                            transparent={false}
+                            minHeight="140px"
+                        />
+                    </div>
+                )}
+            </LayoutGrid>
         
         </div>
       
       </div>
       
       {!isLargeScreen && <MenuSide />}
+
+      <Top10MasVendidos
+          isOpen={isTop10Open}
+          onClose={() => setIsTop10Open(false)}
+          productos={topProductos}
+      />
     </>
   );
 };

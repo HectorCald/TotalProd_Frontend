@@ -11,6 +11,9 @@ import AlmacenGeneral from './modules/inventario/almacen/AlmacenGeneral';
 // Section INVENTARIO - Materia Prima
 import MateriaPrima from './modules/inventario/materia-prima/MateriaPrima';
 
+// Section PRINCIPAL - Ruta Comercial
+import RutaComercial from './modules/principal/ruta-comercial/RutaComercial';
+
 // Section REGISTROS Y PEDIDOS - Movimientos
 import Movimientos from './modules/registros-pedidos/movimientos/Movimientos';
 
@@ -697,6 +700,12 @@ function AppContent({ token, tokenType }) {
         <Route
           path="/materia-prima/gestionar"
           element={!hasActiveSession ? <Navigate to="/login" replace /> : <MateriaPrima />}
+        />
+
+        {/* Section INVENTARIO - Ruta Comercial */}
+        <Route
+          path="/ruta-comercial"
+          element={!hasActiveSession ? <Navigate to="/login" replace /> : <RutaComercial />}
         />
 
         {/* Section REGISTROS Y PEDIDOS - Movimientos */}

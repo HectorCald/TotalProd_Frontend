@@ -53,8 +53,8 @@ class gastosService {
     }
   }
 
-  // Obtener gastos sin límite (para reportes y balance)
-  static async getAllSinLimite(sucuIdParam = null, filtroFecha = null) {
+  // Obtener gastos sin límite (para reportes, balance y exportación)
+  static async getAllSinLimite(sucuIdParam = null, filtroFecha = null, search = '', metodoPago = null, proveedor = null, ordenamiento = 'fecha_desc') {
     let sucuId = sucuIdParam;
     let fecha = filtroFecha;
 
@@ -65,6 +65,10 @@ class gastosService {
 
     const params = new URLSearchParams();
     if (sucuId) params.append('sucu_id', sucuId);
+    if (search && search.trim()) params.append('search', search.trim());
+    if (metodoPago) params.append('metodo_pago', metodoPago);
+    if (proveedor) params.append('proveedor_id', proveedor);
+    if (ordenamiento) params.append('ordenamiento', ordenamiento);
     if (fecha) {
       const inicio = fecha.fechaStrInicio || fecha.inicio || fecha.fecha_inicio;
       const fin = fecha.fechaStrFin || fecha.fin || fecha.fecha_fin;

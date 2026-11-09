@@ -8,7 +8,7 @@
 }
 
 .withBackground {
-    background-color: var(--tertiary-color);
+    background-color: var(--senary-color);
 }
 
 .transparent {
@@ -31,10 +31,12 @@
     align-items: center;
 }
 .noDataIcon {
-    font-size: 40px !important;
-    color: var(--quinary-color);
+    font-size: 36px !important;
+    width: 36px;
+    height: 36px;
+    color: var(--tertiary-color);
+    fill: currentColor;
     margin-bottom: 10px;
-    opacity: 0.7;
 }
 
 .spinning {
@@ -51,40 +53,38 @@
 }
 
 .noDataTitle {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
-    color: gray;
-    margin-bottom: 5px;
+    color: var(--secondary-color);
+    margin-bottom: 4px;
     line-height: 1.4;
 }
 
 .noDataDetail {
     font-size: 12px;
-    color: gray;
+    color: var(--tertiary-color);
     line-height: 1.5;
     margin: 0;
-    opacity: 0.8;
     font-weight: 400;
 }
 
 /* Estilos para estado de error */
 .errorContainer {
-    background:none;
+    background: none;
 }
 
 .errorIcon {
-    color: #dc2626 !important;
-    opacity: 1 !important;
+    color: var(--error-color) !important;
+    fill: var(--error-color) !important;
 }
 
 .errorTitle {
-    color: #dc2626 !important;
+    color: var(--error-color) !important;
     font-weight: 700;
 }
 
 .errorDetail {
-    color: #991b1b !important;
-    opacity: 1 !important;
+    color: var(--error-color) !important;
     font-weight: 500;
 }
 

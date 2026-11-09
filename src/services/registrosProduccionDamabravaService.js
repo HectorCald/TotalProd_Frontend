@@ -108,8 +108,8 @@ class registrosProduccionDamabravaService {
     });
   }
 
-  // Obtener todos los registros de producción sin límite (para reportes)
-  static async getAllSinLimite(estado = null, ordenamiento = 'fecha_desc') {
+  // Obtener todos los registros de producción sin límite (para reportes/exportación)
+  static async getAllSinLimite(estado = null, ordenamiento = 'fecha_desc', search = '', responsable = null, rangoFechas = null) {
     const params = new URLSearchParams();
 
     if (estado) {
@@ -118,10 +118,24 @@ class registrosProduccionDamabravaService {
     if (ordenamiento) {
       params.append('ordenamiento', ordenamiento);
     }
+    if (search && search.trim()) {
+      params.append('search', search.trim());
+    }
+    if (responsable && responsable.id && responsable.tipo) {
+      params.append('responsable_id', responsable.id);
+      params.append('responsable_tipo', responsable.tipo);
+    }
+    if (rangoFechas) {
+      const { inicio, fin } = rangoFechas;
+      if (inicio) {
+        params.append('fecha_inicio', inicio);
+      }
+      if (fin) {
+        params.append('fecha_fin', fin);
+      }
+    }
 
-    params.append('limit', '1000');
-
-    return registrosProduccionDamabravaService._request(`/registros-produccion-damabrava?${params}`, {
+    return registrosProduccionDamabravaService._request(`/registros-produccion-damabrava/sin-limite?${params}`, {
       method: 'GET'
     });
   }

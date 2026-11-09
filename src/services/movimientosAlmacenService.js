@@ -113,6 +113,22 @@ class movimientosAlmacenService {
     });
   }
 
+  // Obtener los 10 productos más vendidos en un rango de fechas (para balance)
+  static async getTopProductosVendidos(filtroFecha = null, estado = 'finalizado') {
+    const params = new URLSearchParams();
+    if (estado) params.append('estado', estado);
+    if (filtroFecha?.inicio) params.append('fecha_inicio', filtroFecha.inicio);
+    if (filtroFecha?.fin) params.append('fecha_fin', filtroFecha.fin);
+    params.append('_t', Date.now().toString());
+
+    const query = params.toString() ? `?${params}` : '';
+
+    return this._request(`/movimientos-almacen/top-productos-vendidos${query}`, { method: 'GET' }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
+  }
+
   // Obtener un movimiento específico por ID
   static async getById(id) {
     return this._request(`/movimientos-almacen/${id}`, { method: 'GET' }, {

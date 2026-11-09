@@ -13,6 +13,7 @@ const InputSelect = ({
   disabled,
   readOnly,
   clearable = true,       // muestra X para limpiar cuando hay valor
+  lockSingleOption = true,
   getOptionLabel,
   getOptionValue,
   openDirection = 'down', // 'down' | 'up'
@@ -29,7 +30,7 @@ const InputSelect = ({
     return typeof opt === 'object' && opt !== null && 'value' in opt ? opt.value : opt;
   };
 
-  const isSingleOption = options.length === 1;
+  const isSingleOption = lockSingleOption && options.length === 1;
   const isLocked = disabled || readOnly || isSingleOption;
 
   useEffect(() => {

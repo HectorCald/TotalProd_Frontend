@@ -25,6 +25,7 @@ const NoData = ({
                 <div className={styles.noDataIconContainer}>
                     <BoxIcon 
                         name={icon} 
+                        color={isError ? 'var(--error-color)' : 'var(--tertiary-color)'}
                         className={`${styles.noDataIcon} ${icon === 'loader-alt' ? styles.spinning : ''} ${isError ? styles.errorIcon : ''}`}
                     />
                 </div>

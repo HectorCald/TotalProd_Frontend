@@ -33,7 +33,7 @@ export const useDescargaExcel = ({
 
             // 2. INFORMACIÓN SUPERIOR (en 2 columnas)
             const keysRaw = Object.keys(informacionSuperior || {});
-            const excluidosArriba = ['Total', 'Descuento', 'Aumento', 'Pagado', 'Saldo pendiente'];
+            const excluidosArriba = ['Total', 'Subtotal', 'Descuento', 'Aumento', 'Pagado', 'Saldo pendiente'];
             const keys = keysRaw.filter(k => !excluidosArriba.includes(k));
 
             for (let i = 0; i < keys.length; i += 2) {
@@ -104,21 +104,21 @@ export const useDescargaExcel = ({
 
                 // Si hay aumento o descuento, mostrar desglose completo
                 if (tieneAumento || tieneDescuento) {
-                    // Calcular solo la suma de subtotales de productos
-                    const subtotalProductos = tablaValores.reduce((sum, row) => {
-                        // Obtener el valor de la última columna (subtotal)
-                        const subtotalStr = row[row.length - 1]?.toString() || '0';
-                        // Extraer solo el número, removiendo "Bs.", puntos de miles y convirtiendo coma decimal
-                        const cleanStr = subtotalStr
-                            .replace(/Bs\.\s*/g, '')
-                            .replace(/\./g, '') // Eliminar puntos de miles
-                            .replace(',', '.') // Coma decimal → punto
-                            .trim();
-                        const subtotalNum = parseFloat(cleanStr) || 0;
-                        return sum + subtotalNum;
-                    }, 0);
-                    const subtotalConComa = `Bs. ${formatPrice(subtotalProductos)}`;
-                    // Crear array con el número correcto de columnas, poniendo el total en la última columna
+                    const subtotalConComa = (informacionSuperior && informacionSuperior.Subtotal)
+                        ? informacionSuperior.Subtotal.toString().replace(/\./g, ',').trim()
+                        : (() => {
+                            const subtotalProductos = tablaValores.reduce((sum, row) => {
+                                const subtotalStr = row[row.length - 1]?.toString() || '0';
+                                const cleanStr = subtotalStr
+                                    .replace(/Bs\.\s*/g, '')
+                                    .replace(/\./g, '')
+                                    .replace(',', '.')
+                                    .trim();
+                                const subtotalNum = parseFloat(cleanStr) || 0;
+                                return sum + subtotalNum;
+                            }, 0);
+                            return `Bs. ${formatPrice(subtotalProductos)}`.replace(/\./g, ',');
+                        })();
                     const totalRow = new Array(tablaHeaders.length).fill('');
                     totalRow[totalRow.length - 2] = 'Subtotal:';
                     totalRow[totalRow.length - 1] = subtotalConComa;

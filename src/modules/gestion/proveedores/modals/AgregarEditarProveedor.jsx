@@ -15,8 +15,7 @@ const AgregarEditarProveedor = ({ isOpen, onClose, proveedorSeleccionado, onGuar
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
-        description: '',
-        location: ''
+        description: ''
     });
 
     // Limpiar o llenar campos cuando se abre/cierra el modal o cambia el proveedor
@@ -27,15 +26,13 @@ const AgregarEditarProveedor = ({ isOpen, onClose, proveedorSeleccionado, onGuar
                 setFormData({
                     name: proveedorSeleccionado.name || '',
                     phone: proveedorSeleccionado.phone || '',
-                    description: proveedorSeleccionado.description || '',
-                    location: proveedorSeleccionado.location || ''
+                    description: proveedorSeleccionado.description || ''
                 });
             } else {
                 setFormData({
                     name: '',
                     phone: '',
-                    description: '',
-                    location: ''
+                    description: ''
                 });
             }
         }
@@ -52,8 +49,7 @@ const AgregarEditarProveedor = ({ isOpen, onClose, proveedorSeleccionado, onGuar
         const datosParaEnviar = {
             name: formData.name,
             phone: formData.phone,
-            description: formData.description,
-            location: formData.location || null
+            description: formData.description
         };
 
         setLoading(true);
@@ -191,13 +187,6 @@ const AgregarEditarProveedor = ({ isOpen, onClose, proveedorSeleccionado, onGuar
                 label="Descripción"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                readOnly={loading}
-            />
-            <Input
-                tipo="text"
-                label="Ubicación"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 readOnly={loading}
             />
         </ModalLateral>

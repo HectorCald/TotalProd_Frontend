@@ -73,7 +73,7 @@ export const useDescargaImagen = ({
                 'Tipo de Precio', 'Costo', 'Restar Ingredientes', 'Observaciones', 'Venta N°', 'Entrega N°', 'Total'
             ];
             const entriesAllRaw = Object.entries(informacionSuperior || {});
-            const excluidosArriba = ['Total', 'Descuento', 'Aumento', 'Pagado', 'Saldo pendiente'];
+            const excluidosArriba = ['Total', 'Subtotal', 'Descuento', 'Aumento', 'Pagado', 'Saldo pendiente'];
             const entriesAll = entriesAllRaw.filter(([k]) => !excluidosArriba.includes(k));
             
             const entriesSorted = entriesAll.sort((a, b) => {
@@ -345,18 +345,20 @@ export const useDescargaImagen = ({
                 };
 
                 if (tieneAumento || tieneDescuento) {
-                    const subtotalProductos = finalValores.reduce((sum, row) => {
-                        const subtotalStr = row[row.length - 1]?.toString() || '0';
-                        const cleanStr = subtotalStr
-                            .replace(/Bs\.\s*/g, '')
-                            .replace(/\./g, '')
-                            .replace(',', '.')
-                            .trim();
-                        const subtotalNum = parseFloat(cleanStr) || 0;
-                        return sum + subtotalNum;
-                    }, 0);
+                    const subtotalProductos = informacionSuperior && informacionSuperior.Subtotal
+                        ? informacionSuperior.Subtotal
+                        : `Bs. ${formatPrice(finalValores.reduce((sum, row) => {
+                            const subtotalStr = row[row.length - 1]?.toString() || '0';
+                            const cleanStr = subtotalStr
+                                .replace(/Bs\.\s*/g, '')
+                                .replace(/\./g, '')
+                                .replace(',', '.')
+                                .trim();
+                            const subtotalNum = parseFloat(cleanStr) || 0;
+                            return sum + subtotalNum;
+                        }, 0))}`;
 
-                    addTotalRow('Subtotal:', `Bs. ${formatPrice(subtotalProductos)}`);
+                    addTotalRow('Subtotal:', subtotalProductos);
 
                     if (tieneAumento) {
                         addTotalRow('Aumento:', informacionSuperior.Aumento);

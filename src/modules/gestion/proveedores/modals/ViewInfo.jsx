@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import ModalCentro from '../../../../components/common/modals/ModalCentro';
 import Boton from '../../../../components/common/botones/Boton';
 import BotonIcon from '../../../../components/common/botones/BotonIcon';
@@ -6,16 +6,6 @@ import InfoCard from '../../../../components/common/information/InfoCard';
 import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 
 const ViewInfo = ({ isOpen, onClose, proveedor, onEdit, onDelete }) => {
-    const [ubicacion, setUbicacion] = useState(null);
-
-    useEffect(() => {
-        if (isOpen && proveedor?.id) {
-            setUbicacion(proveedor.location);
-        } else {
-            setUbicacion(null);
-        }
-    }, [isOpen, proveedor]);
-
     if (!proveedor) return null;
 
     return (
@@ -52,22 +42,10 @@ const ViewInfo = ({ isOpen, onClose, proveedor, onEdit, onDelete }) => {
                     actionButton={
                         <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
                             <Boton
-                                label="Ver en Google Maps"
-                                iconName="map"
-                                className="btn-primary"
-                                readOnly={!ubicacion}
-                                style={{ flex: 1 }}
-                                onClick={() => {
-                                    if (ubicacion) {
-                                        const coordsLimpia = ubicacion.replace(/[()]/g, '');
-                                        window.open(`https://www.google.com/maps?q=${coordsLimpia}`, '_blank');
-                                    }
-                                }}
-                            />
-                            <BotonIcon
+                                label="Editar Proveedor"
                                 iconName="edit"
                                 className="btn-primary"
-                                tooltip="Editar Proveedor"
+                                style={{ flex: 1 }}
                                 onClick={() => {
                                     if (onEdit) onEdit(proveedor);
                                 }}

@@ -2,6 +2,8 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
+import { useEmployee } from '../../../context/EmployeeContext';
+import { SideConfigOptions } from '../../../constants/SideBarOptions';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
 import MenuSide from '../../../components/essentials/MenuSide';
@@ -13,6 +15,7 @@ import personalService from '../../../services/personalService';
 import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import ViewInfo from './modals/ViewInfo';
 import Formulario from './modals/Formulario';
+import ModalExportarVerificacion from './modals/ModalExportarVerificacion';
 
 const LiteralDateCell = ({ dateStr }) => {
   const literal = useFechaLiteral(dateStr);
@@ -21,8 +24,35 @@ const LiteralDateCell = ({ dateStr }) => {
 
 const Verificacion = () => {
   const { isLargeScreen } = useLayout();
+  const { employee: employeeInfo } = useEmployee();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const canExport = useMemo(() => {
+    const token = localStorage.getItem('token');
+    let isEmployeeSession = false;
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        isEmployeeSession = JSON.parse(jsonPayload).type === 'employee';
+      } catch (e) {
+        isEmployeeSession = false;
+      }
+    }
+    const isEmployee = isEmployeeSession || !!employeeInfo;
+    if (!isEmployee) return true;
+    if (!employeeInfo?.modules) return false;
+    const exportOption = SideConfigOptions.find(opt => opt.id === 'exportar');
+    if (!exportOption) return false;
+    return employeeInfo.modules.some(m => {
+      if (exportOption.key_submenu) {
+        return m.modulos?.clave === exportOption.key && m.name === exportOption.key_submenu;
+      }
+      return m.modulos?.clave === exportOption.key;
+    });
+  }, [employeeInfo]);
 
   const currentService = registrosProduccionDamabravaService;
   const currentServiceName = 'registrosProduccionDamabravaService';
@@ -44,6 +74,7 @@ const Verificacion = () => {
   const [modalInfoOpen, setModalInfoOpen] = useState(false);
   const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
   const [modalFormularioOpen, setModalFormularioOpen] = useState(false);
+  const [modalExportarOpen, setModalExportarOpen] = useState(false);
 
   const [debouncedSearch] = useDebounce(search, 500);
   const [tablaFilters, setTablaFilters] = useState({});
@@ -225,6 +256,8 @@ const Verificacion = () => {
             isLoadingMore={isLoadingMore}
             buttonLabel="Nuevo registro"
             onButtonClick={() => setModalFormularioOpen(true)}
+            buttonAlternativeIcon={canExport ? "export" : undefined}
+            onButtonAlternativeClick={canExport ? () => setModalExportarOpen(true) : undefined}
             searchKeys={['producto_almacen.name']}
             sortKey={'producto_almacen.name'}
             onLoadMore={handleLoadMore}
@@ -291,6 +324,15 @@ const Verificacion = () => {
         onGuardar={(nuevoRegistro) => {
           setRegistros(prev => [{ ...nuevoRegistro, estado: nuevoRegistro.estado || 'pendiente' }, ...prev]);
         }}
+      />
+
+      <ModalExportarVerificacion
+        isOpen={modalExportarOpen}
+        onClose={() => setModalExportarOpen(false)}
+        filtroEstado={filtroEstado}
+        search={debouncedSearch}
+        filtroResponsable={filtroResponsable}
+        filtroFecha={filtroFecha}
       />
       {!isLargeScreen && <MenuSide />}
     </>

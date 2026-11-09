@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
+import { useEmployee } from '../../../context/EmployeeContext';
+import { SideConfigOptions } from '../../../constants/SideBarOptions';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
 import MenuSide from '../../../components/essentials/MenuSide';
@@ -13,6 +15,7 @@ import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import AgregarEditarDeuda from './modals/AgregarEditarDeuda';
 import EliminarDeuda from './modals/EliminarDeuda';
 import ViewInfo from './modals/ViewInfo';
+import ModalExportarDeudas from './modals/ModalExportarDeudas';
 
 const LiteralDateCell = ({ dateStr, abbreviate = true }) => {
   const literal = useFechaLiteral(dateStr, abbreviate);
@@ -21,7 +24,34 @@ const LiteralDateCell = ({ dateStr, abbreviate = true }) => {
 
 const Deudas = () => {
   const { isLargeScreen } = useLayout();
+  const { employee: employeeInfo } = useEmployee();
   const { formatPrice } = useFormatNumber();
+
+  const canExport = useMemo(() => {
+    const token = localStorage.getItem('token');
+    let isEmployeeSession = false;
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        isEmployeeSession = JSON.parse(jsonPayload).type === 'employee';
+      } catch (e) {
+        isEmployeeSession = false;
+      }
+    }
+    const isEmployee = isEmployeeSession || !!employeeInfo;
+    if (!isEmployee) return true;
+    if (!employeeInfo?.modules) return false;
+    const exportOption = SideConfigOptions.find(opt => opt.id === 'exportar');
+    if (!exportOption) return false;
+    return employeeInfo.modules.some(m => {
+      if (exportOption.key_submenu) {
+        return m.modulos?.clave === exportOption.key && m.name === exportOption.key_submenu;
+      }
+      return m.modulos?.clave === exportOption.key;
+    });
+  }, [employeeInfo]);
 
   const [deudas, setDeudas] = useState([]);
 
@@ -45,6 +75,7 @@ const Deudas = () => {
   const [modalInfoOpen, setModalInfoOpen] = useState(false);
   const [deudaSeleccionada, setDeudaSeleccionada] = useState(null);
   const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
+  const [modalExportarOpen, setModalExportarOpen] = useState(false);
 
   const [debouncedSearch] = useDebounce(search, 500);
   const [tablaFilters, setTablaFilters] = useState({});
@@ -207,6 +238,8 @@ const Deudas = () => {
               setDeudaEditando(null);
               setModalAgregarEditarOpen(true);
             }}
+            buttonAlternativeIcon={canExport ? "export" : undefined}
+            onButtonAlternativeClick={canExport ? () => setModalExportarOpen(true) : undefined}
             searchKeys={['concepto']}
             sortKey="concepto"
             onLoadMore={handleLoadMore}
@@ -298,6 +331,16 @@ const Deudas = () => {
           setDeudaSeleccionada(prev => ({ ...prev, ...deudaActualizada }));
           setDeudas(prev => prev.map(d => d.id === deudaActualizada.id ? { ...d, ...deudaActualizada } : d));
         }}
+      />
+
+      <ModalExportarDeudas
+        isOpen={modalExportarOpen}
+        onClose={() => setModalExportarOpen(false)}
+        search={debouncedSearch}
+        filtroEstado={filtroEstado}
+        clienteId={clienteId}
+        sortOrder={sortOrder}
+        filtroFecha={filtroFecha}
       />
       {!isLargeScreen && <MenuSide />}
     </>

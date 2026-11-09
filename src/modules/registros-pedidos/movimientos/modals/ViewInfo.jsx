@@ -22,6 +22,25 @@ import ColumnInfo from '../../../../components/common/outputs/ColumnInfo';
 import Link from '../../../../components/common/outputs/Link';
 import Skeleton from '../../../../components/common/widgets/Skeleton';
 import DescargarDatos from '../../../../components/ui/DescargarDatos';
+import SeleccionarUbicacionModal from '../../../principal/ruta-comercial/modals/SeleccionarUbicacionModal';
+
+const hasValidUbicacion = (loc) => {
+    if (!loc) return false;
+    if (typeof loc === 'object') {
+        const lat = Number(loc.x ?? loc.lat);
+        const lng = Number(loc.y ?? loc.lng);
+        return (
+            (loc.x !== undefined || loc.lat !== undefined) &&
+            (loc.y !== undefined || loc.lng !== undefined) &&
+            !Number.isNaN(lat) &&
+            !Number.isNaN(lng)
+        );
+    }
+    const clean = String(loc).trim();
+    if (!clean || clean === 'null' || clean === 'undefined') return false;
+    const parts = clean.replace(/[()]/g, '').split(',').map((p) => Number(p.trim()));
+    return parts.length === 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1]);
+};
 
 const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onEliminar, onAnular }) => {
     const { formatPrice } = useFormatNumber();
@@ -50,6 +69,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
     const [fullMovimiento, setFullMovimiento] = useState(null);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
+    const [isUbicacionOpen, setIsUbicacionOpen] = useState(false);
 
     React.useEffect(() => {
         if (isOpen && propsMovimiento && !propsMovimiento.product) {
@@ -267,9 +287,11 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
         ? (isLegacyPercentage ? aumValNum : (subtotalNum * aumValNum / 100)) 
         : aumValNum;
         
-    const totalFinalNum = (movimiento.total !== undefined && movimiento.total !== null && Number(movimiento.total) > 0)
+    const totalFinalNum = (movimiento.total !== undefined && movimiento.total !== null)
         ? (parseFloat(movimiento.total) || 0)
-        : (subtotalNum - descCalculadoNum + aumCalculadoNum);
+        : (propsMovimiento?.total !== undefined && propsMovimiento?.total !== null)
+            ? (parseFloat(propsMovimiento.total) || 0)
+            : (subtotalNum - descCalculadoNum + aumCalculadoNum);
 
     const financeItems = [];
     financeItems.push({ 
@@ -328,6 +350,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
     if (movimiento?.concepto) informacionSuperiorDescarga['Concepto'] = movimiento.concepto;
     if (observaciones) informacionSuperiorDescarga['Observaciones'] = observaciones;
 
+    informacionSuperiorDescarga['Subtotal'] = `Bs. ${formatPrice(subtotalNum)}`;
     if (descValNum > 0) informacionSuperiorDescarga['Descuento'] = `Bs. ${formatPrice(descCalculadoNum)}`;
     if (aumValNum > 0) informacionSuperiorDescarga['Aumento'] = `Bs. ${formatPrice(aumCalculadoNum)}`;
     informacionSuperiorDescarga['Total'] = `Bs. ${formatPrice(totalFinalNum)}`;
@@ -369,11 +392,12 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
 
     const hasDeuda = movimiento?.deudas && (Array.isArray(movimiento.deudas) ? movimiento.deudas.length > 0 : Object.keys(movimiento.deudas).length > 0);
     const hasPedido = (movimiento?.pedidos_entrada && (Array.isArray(movimiento.pedidos_entrada) ? movimiento.pedidos_entrada.length > 0 : Object.keys(movimiento.pedidos_entrada).length > 0)) || (movimiento?.pedidos_salida && (Array.isArray(movimiento.pedidos_salida) ? movimiento.pedidos_salida.length > 0 : Object.keys(movimiento.pedidos_salida).length > 0));
+    const tieneUbicacion = hasValidUbicacion(movimiento?.ubicacion);
 
     return (
         <>
         <ModalCentro
-            isOpen={isOpen && !isPagoViewOpen && !isDeudaViewOpen && !isPedidoViewOpen && !isProductosOpen && !isAnularOpen && !isEliminarOpen && !isDescargaOpen}
+            isOpen={isOpen && !isPagoViewOpen && !isDeudaViewOpen && !isPedidoViewOpen && !isProductosOpen && !isAnularOpen && !isEliminarOpen && !isDescargaOpen && !isUbicacionOpen}
             onClose={onClose}
             title=""
             confirmText="Editar"
@@ -432,6 +456,15 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                                     movimiento.precio?.name && { 
                                         clave: 'Precio', 
                                         valor: movimiento.precio.name 
+                                    },
+                                    tieneUbicacion && {
+                                        text: (
+                                            <Link
+                                                text="Ver Ubicación de venta"
+                                                iconEnd="right-arrow-alt"
+                                                onClick={() => setIsUbicacionOpen(true)}
+                                            />
+                                        )
                                     },
                                     observaciones && { 
                                         clave: 'Observaciones', 
@@ -592,6 +625,13 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                 nombre: clienteProveedorNombre || '',
                 numeroOrden: movimiento?.numero_orden || ''
             }}
+        />
+
+        <SeleccionarUbicacionModal
+            isOpen={isUbicacionOpen}
+            onClose={() => setIsUbicacionOpen(false)}
+            initialLocation={movimiento?.ubicacion}
+            readOnly={true}
         />
         </>
     );

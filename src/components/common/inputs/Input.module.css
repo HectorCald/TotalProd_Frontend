@@ -205,12 +205,35 @@
   border-color: var(--primary-color);
 }
 
+.callButton {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.inputWithClear {
+  padding-right: 34px !important;
+}
+
 .value {
   color: var(--dark-color);
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .placeholder {
   color: var(--tertiary-color);
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .arrowWrap {

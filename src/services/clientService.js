@@ -92,6 +92,28 @@ class clientService {
     });
   }
 
+  // Actualizar múltiples clientes en lote
+  static async bulkUpdate(clientesData) {
+    return clientService._request('/clients/bulk-update', {
+      method: 'PUT',
+      body: JSON.stringify({ clientesData })
+    }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
+  }
+
+  // Insertar únicamente location y description_location a un cliente
+  static async updateLocation(id, location, description_location) {
+    return clientService._request(`/clients/${id}/location`, {
+      method: 'PATCH',
+      body: JSON.stringify({ location, description_location })
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
+  }
+
 
 
   // Obtener un cliente por ID

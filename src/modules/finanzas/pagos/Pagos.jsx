@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useDebounce } from 'use-debounce';
 import { useLayout } from '../../../context/LayoutContext';
+import { useEmployee } from '../../../context/EmployeeContext';
+import { SideConfigOptions } from '../../../constants/SideBarOptions';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
 import MenuSide from '../../../components/essentials/MenuSide';
@@ -13,6 +15,7 @@ import useFechaLiteral from '../../../hooks/useFechaLiteral';
 import AgregarEditarPago from './modals/AgregarEditarPago';
 import EliminarPago from './modals/EliminarPago';
 import ViewInfo from './modals/ViewInfo';
+import ModalExportarPagos from './modals/ModalExportarPagos';
 
 
 const LiteralDateCell = ({ dateStr, abbreviate = false }) => {
@@ -23,7 +26,34 @@ const LiteralDateCell = ({ dateStr, abbreviate = false }) => {
 
 const Pagos = () => {
   const { isLargeScreen } = useLayout();
+  const { employee: employeeInfo } = useEmployee();
   const { formatPrice } = useFormatNumber();
+
+  const canExport = useMemo(() => {
+    const token = localStorage.getItem('token');
+    let isEmployeeSession = false;
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        isEmployeeSession = JSON.parse(jsonPayload).type === 'employee';
+      } catch (e) {
+        isEmployeeSession = false;
+      }
+    }
+    const isEmployee = isEmployeeSession || !!employeeInfo;
+    if (!isEmployee) return true;
+    if (!employeeInfo?.modules) return false;
+    const exportOption = SideConfigOptions.find(opt => opt.id === 'exportar');
+    if (!exportOption) return false;
+    return employeeInfo.modules.some(m => {
+      if (exportOption.key_submenu) {
+        return m.modulos?.clave === exportOption.key && m.name === exportOption.key_submenu;
+      }
+      return m.modulos?.clave === exportOption.key;
+    });
+  }, [employeeInfo]);
 
   const [pagos, setPagos] = useState([]);
 
@@ -48,6 +78,7 @@ const Pagos = () => {
   const [modalInfoOpen, setModalInfoOpen] = useState(false);
   const [pagoSeleccionado, setPagoSeleccionado] = useState(null);
   const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
+  const [modalExportarOpen, setModalExportarOpen] = useState(false);
 
   const [debouncedSearch] = useDebounce(search, 500);
   const [tablaFilters, setTablaFilters] = useState({});
@@ -176,6 +207,8 @@ const Pagos = () => {
               setPagoEditando(null);
               setModalAgregarEditarOpen(true);
             }}
+            buttonAlternativeIcon={canExport ? "export" : undefined}
+            onButtonAlternativeClick={canExport ? () => setModalExportarOpen(true) : undefined}
             searchKeys={['concepto']}
             sortKey="concepto"
             onLoadMore={handleLoadMore}
@@ -271,6 +304,16 @@ const Pagos = () => {
           setReturnToViewOnDeleteClose(false);
           setModalInfoOpen(false);
         }}
+      />
+
+      <ModalExportarPagos
+        isOpen={modalExportarOpen}
+        onClose={() => setModalExportarOpen(false)}
+        search={debouncedSearch}
+        filtroMetodoPago={filtroMetodoPago}
+        proveedorId={proveedorId}
+        sortOrder={sortOrder}
+        filtroFecha={filtroFecha}
       />
 
       {!isLargeScreen && <MenuSide />}

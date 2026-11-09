@@ -1,0 +1,180 @@
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.searchRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  position: relative;
+  z-index: 700;
+  width: 100%;
+}
+
+.searchInputBox {
+  flex: 1;
+  min-width: 0;
+}
+
+.mapViewport {
+  background-color: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  width: 100%;
+  height: 360px;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.leafletMap {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  touch-action: none;
+  outline: none;
+}
+
+.zoomControls {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 4px;
+  gap: 2px;
+  z-index: 500;
+}
+
+.zoomBtn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: #475569;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.zoomBtn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.zoomTextBtn {
+  min-width: 42px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.zoomTextBtn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.zoomDivider {
+  width: 1px;
+  height: 16px;
+  background-color: #e2e8f0;
+  margin: 0 2px;
+}
+
+:global(.seleccion-ubicacion-marker-wrapper) {
+  background: transparent !important;
+  border: none !important;
+}
+
+.selectedPin {
+  width: 34px;
+  height: 34px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--primary-color, #2563eb);
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.32);
+  border: 2px solid #ffffff;
+}
+
+.selectedPinIcon {
+  transform: rotate(45deg);
+  color: #ffffff;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.selectedInfoBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.selectedInfoIcon {
+  font-size: 16px;
+  color: var(--primary-color, #2563eb);
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.selectedInfoText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.selectedPlaceName {
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.selectedCoordsHint {
+  font-size: 11px;
+  color: #64748b;
+}
+
+@media (max-width: 768px) {
+  .mapViewport {
+    height: 300px;
+  }
+
+  .zoomControls {
+    bottom: 10px;
+    right: 10px;
+  }
+}

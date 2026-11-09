@@ -4,8 +4,9 @@ export const SideBarOptions = [
     isCollapsible: false,
     items: [
       { id: "home", title: "Inicio", icon: "home", route: "/home", MenuSide: true },
-      { id: "balance", title: "Balance", icon: "bar-chart-alt", route: "/balance", key: "balance", key_submenu: "ver_balance", MenuSide: true , isBuilding: false },
-      { id: "reportes", title: "Reportes", icon: "spreadsheet", route: "/reportes", isBuilding: true },
+      { id: "balance", title: "Balance", icon: "bar-chart-alt", route: "/balance", key: "balance", key_submenu: "ver_balance", MenuSide: true, isBuilding: false },
+      //{ id: "reportes", title: "Reportes", icon: "spreadsheet", route: "/reportes", isBuilding: true },
+      { id: "ruta-comercial", title: "Ruta Comercial", icon: "map", route: "/ruta-comercial", isBuilding: false, key: "ruta_comercial", key_submenu: "ver_ruta" },
       {
         id: "recursos-humanos", title: "Recursos Humanos", icon: "group", route: "/recursos-humanos", key: "recursos_humanos",
         submenu: [

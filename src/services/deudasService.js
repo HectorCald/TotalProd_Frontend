@@ -53,8 +53,8 @@ class deudasService {
     }
   }
 
-  // Obtener deudas sin límite (para reportes y balance)
-  static async getAllSinLimite(sucuIdParam = null, filtroFecha = null) {
+  // Obtener deudas sin límite (para reportes, balance y exportación)
+  static async getAllSinLimite(sucuIdParam = null, filtroFecha = null, search = '', estado = null, cliente = null, ordenamiento = 'fecha_desc') {
     let sucuId = sucuIdParam;
     let fecha = filtroFecha;
 
@@ -65,6 +65,10 @@ class deudasService {
 
     const params = new URLSearchParams();
     if (sucuId) params.append('sucu_id', sucuId);
+    if (search && search.trim()) params.append('search', search.trim());
+    if (estado) params.append('estado', estado);
+    if (cliente) params.append('cliente_id', cliente);
+    if (ordenamiento) params.append('ordenamiento', ordenamiento);
     if (fecha) {
       const inicio = fecha.fechaStrInicio || fecha.inicio || fecha.fecha_inicio;
       const fin = fecha.fechaStrFin || fecha.fin || fecha.fecha_fin;
