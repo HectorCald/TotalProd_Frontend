@@ -343,10 +343,10 @@ function AppContent({ token, tokenType }) {
       setLoadingSucursal(true);
       let sucursalesData = [];
 
-      if (sucursalesPrecargadas && sucursalesPrecargadas.length > 0) {
+      const isDamabrava = empresaId === '259a05d2-2417-47b0-8bbd-50cd5723aae1';
+      if (!isDamabrava && sucursalesPrecargadas && sucursalesPrecargadas.length > 0) {
         sucursalesData = sucursalesPrecargadas;
       } else {
-        const isDamabrava = empresaId === '259a05d2-2417-47b0-8bbd-50cd5723aae1';
         const response = await sucursalesService.getAll(empresaId, isDamabrava);
         if (response.success && response.data) {
           sucursalesData = response.data;

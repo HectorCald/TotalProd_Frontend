@@ -6,9 +6,13 @@ import { useUser } from '../../../context/UserContext';
 import { useEmployee } from '../../../context/EmployeeContext';
 import { useToast } from '../../../context/ToastContext';
 import useSessionCache from '../../../hooks/useSessionCache';
+import useFormatNumber from '../../../hooks/useFormatNumber';
+import useFechaLiteral from '../../../hooks/useFechaLiteral';
+import { formatFechaLiteral } from '../../../utils/dateUtils';
 import clientService from '../../../services/clientService';
 import movimientosAlmacenService from '../../../services/movimientosAlmacenService';
 import BotonIcon from '../../../components/common/botones/BotonIcon';
+import CalendarModal from '../../../components/common/widgets/CalendarModal';
 import SideBar from '../../../components/essentials/SideBar';
 import NavBar from '../../../components/essentials/NavBar';
 import MenuSide from '../../../components/essentials/MenuSide';
@@ -171,16 +175,31 @@ const getTodayBoliviaStr = () => {
 const parseClientCoords = (loc) => {
   if (!loc) return null;
   if (typeof loc === 'object') {
-    const lat = Number(loc.x ?? loc.lat);
-    const lng = Number(loc.y ?? loc.lng);
+    const rawLat = loc.x ?? loc.lat;
+    const rawLng = loc.y ?? loc.lng;
+    if (
+      rawLat === null ||
+      rawLat === undefined ||
+      rawLat === '' ||
+      rawLng === null ||
+      rawLng === undefined ||
+      rawLng === ''
+    ) {
+      return null;
+    }
+    const lat = Number(rawLat);
+    const lng = Number(rawLng);
     if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
       return { lat, lng };
     }
     return null;
   }
   const clean = String(loc).trim().replace(/[()]/g, '');
-  const parts = clean.split(',').map((p) => Number(p.trim()));
-  if (parts.length === 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
+  if (!clean) return null;
+  const rawParts = clean.split(',').map((p) => p.trim());
+  if (rawParts.length !== 2 || rawParts[0] === '' || rawParts[1] === '') return null;
+  const parts = rawParts.map((p) => Number(p));
+  if (!Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
     return { lat: parts[0], lng: parts[1] };
   }
   return null;
@@ -239,6 +258,7 @@ const RutaComercial = () => {
   const { sucursalSeleccionada: userSucursal } = useUser();
   const { sucursalSeleccionada: employeeSucursal } = useEmployee();
   const { showWarning } = useToast();
+  const { formatPrice } = useFormatNumber();
   const sucursalId = employeeSucursal?.id || userSucursal?.id;
 
   const {
@@ -267,11 +287,29 @@ const RutaComercial = () => {
 
   const [zoomPercent, setZoomPercent] = useState(100);
   const [isPanning, setIsPanning] = useState(false);
-  const [clientesConVentaHoy, setClientesConVentaHoy] = useState(() => new Set());
+  const [clientesConVenta, setClientesConVenta] = useState(() => new Set());
+  const [ventasSinCliente, setVentasSinCliente] = useState([]);
+  const [isLoadingVentas, setIsLoadingVentas] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(() => getTodayBoliviaStr());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [showVendidos, setShowVendidos] = useState(true);
+  const [showNoVendidos, setShowNoVendidos] = useState(true);
+  const [showSinCliente, setShowSinCliente] = useState(true);
   const [miUbicacion, setMiUbicacion] = useState(null);
   const [isLocatingUser, setIsLocatingUser] = useState(false);
   const [rutaActiva, setRutaActiva] = useState(false);
   const [isGeneratingRoute, setIsGeneratingRoute] = useState(false);
+
+  const hoyBolivia = getTodayBoliviaStr();
+  const isTodaySelected = selectedDate === hoyBolivia;
+
+  const dateLiteralAbbr = useFechaLiteral(selectedDate, true);
+  const dateButtonLabel = isTodaySelected ? 'Hoy' : dateLiteralAbbr || selectedDate;
+
+  const appliedDateRange = useMemo(
+    () => ({ inicio: selectedDate, fin: selectedDate }),
+    [selectedDate]
+  );
 
   // Obtener y seguir la ubicación actual del usuario en tiempo real
   useEffect(() => {
@@ -314,7 +352,7 @@ const RutaComercial = () => {
     };
   }, []);
 
-  // Obtener clientes reales y consultar de golpe sus ventas de hoy mediante movimientosAlmacenService.getAll
+  // Obtener clientes y movimientos de venta sin límite para el rango de fechas seleccionado
   useEffect(() => {
     let isMounted = true;
     lastFittedSignatureRef.current = '';
@@ -324,79 +362,45 @@ const RutaComercial = () => {
     }
 
     const loadRutaData = async () => {
+      if (isMounted) setIsLoadingVentas(true);
+
       try {
-        const resClients = await clientService.getAll();
-        let clientList = [];
+        const [resClients, resVentas] = await Promise.all([
+          clientService.getAll(),
+          movimientosAlmacenService.getAllSinLimiteRuta(appliedDateRange, 'salida'),
+        ]);
 
-        if (resClients?.success && Array.isArray(resClients.data)) {
-          clientList = resClients.data;
-          if (isMounted) {
-            setClientes(clientList);
-          }
+        if (isMounted && resClients?.success && Array.isArray(resClients.data)) {
+          setClientes(resClients.data);
         }
 
-        const allClientIds = clientList
-          .map((c) => String(c.id))
-          .filter(Boolean);
+        const soldClientIds = new Set();
+        const nonClientSales = [];
 
-        if (allClientIds.length === 0) {
-          if (isMounted) {
-            setClientesConVentaHoy(new Set());
-          }
-          return;
-        }
-
-        const hoyStr = getTodayBoliviaStr();
-        const filtroHoy = { inicio: hoyStr, fin: hoyStr };
-        const soldTodayIds = new Set();
-
-        const chunkSize = 150;
-        const chunks = [];
-        for (let i = 0; i < allClientIds.length; i += chunkSize) {
-          chunks.push(allClientIds.slice(i, i + chunkSize));
-        }
-
-        await Promise.all(
-          chunks.map(async (chunk) => {
-            let currentPage = 1;
-            let hasMore = true;
-
-            while (hasMore) {
-              const resMov = await movimientosAlmacenService.getAll(
-                currentPage,
-                500,
-                'salida',
-                null,
-                'fecha_desc',
-                chunk.join(','),
-                sucursalId || null,
-                null,
-                filtroHoy
-              );
-
-              if (resMov?.success && Array.isArray(resMov.data)) {
-                resMov.data.forEach((mov) => {
-                  if (mov.estado !== 'anulado') {
-                    const cId = mov.cliente_id ?? mov.cliente?.id;
-                    if (cId !== null && cId !== undefined) {
-                      soldTodayIds.add(String(cId));
-                    }
-                  }
-                });
-                hasMore = Boolean(resMov.pagination?.hasNextPage);
-                currentPage += 1;
-              } else {
-                hasMore = false;
-              }
+        if (resVentas?.success && Array.isArray(resVentas.data)) {
+          resVentas.data.forEach((mov) => {
+            if (mov.cliente_id !== null && mov.cliente_id !== undefined) {
+              soldClientIds.add(String(mov.cliente_id));
+            } else {
+              nonClientSales.push(mov);
             }
-          })
-        );
+          });
+        }
 
         if (isMounted) {
-          setClientesConVentaHoy(soldTodayIds);
+          setClientesConVenta(soldClientIds);
+          setVentasSinCliente(nonClientSales);
         }
       } catch (err) {
         console.error('Error al cargar datos en Ruta Comercial:', err);
+        if (isMounted) {
+          setClientesConVenta(new Set());
+          setVentasSinCliente([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingVentas(false);
+        }
       }
     };
 
@@ -405,7 +409,7 @@ const RutaComercial = () => {
     return () => {
       isMounted = false;
     };
-  }, [sucursalId, setClientes]);
+  }, [sucursalId, appliedDateRange, setClientes]);
 
   // Filtrar clientes que cuentan con coordenadas válidas en location
   const clientesConUbicacion = useMemo(() => {
@@ -422,30 +426,71 @@ const RutaComercial = () => {
       .filter(Boolean);
   }, [clientes]);
 
-  // Clientes con ubicación a los que aún NO se les vendió hoy (para generar la ruta)
-  const clientesPendientesConUbicacion = useMemo(() => {
-    return clientesConUbicacion.filter((c) => !clientesConVentaHoy.has(String(c.id)));
-  }, [clientesConUbicacion, clientesConVentaHoy]);
+  // Ventas realizadas sin cliente asignado que cuentan con coordenadas GPS válidas
+  const ventasSinClienteConUbicacion = useMemo(() => {
+    const occupied = clientesConUbicacion.map((c) => ({ lat: c.lat, lng: c.lng }));
 
-  // Estadísticas de clientes totales y porcentaje con venta hoy
-  const { totalClientes, clientesVendidosHoy, porcentajeVentasHoy } = useMemo(() => {
+    return (ventasSinCliente || [])
+      .map((v) => {
+        const coords = parseClientCoords(v.ubicacion);
+        if (!coords) return null;
+
+        let displayLat = coords.lat;
+        let displayLng = coords.lng;
+        let offsetStep = 0;
+
+        while (
+          occupied.some(
+            (o) =>
+              Math.abs(o.lat - displayLat) < 0.00003 &&
+              Math.abs(o.lng - displayLng) < 0.00003
+          ) &&
+          offsetStep < 16
+        ) {
+          offsetStep += 1;
+          const angle = (offsetStep * 45 * Math.PI) / 180;
+          const radius = 0.000045 * (1 + Math.floor((offsetStep - 1) / 8) * 0.65);
+          displayLat = coords.lat + Math.sin(angle) * radius;
+          displayLng = coords.lng + Math.cos(angle) * radius;
+        }
+
+        occupied.push({ lat: displayLat, lng: displayLng });
+
+        return {
+          ...v,
+          lat: displayLat,
+          lng: displayLng,
+          rawLat: coords.lat,
+          rawLng: coords.lng,
+        };
+      })
+      .filter(Boolean);
+  }, [ventasSinCliente, clientesConUbicacion]);
+
+  // Clientes con ubicación a los que aún NO se les vendió en el periodo (para generar la ruta)
+  const clientesPendientesConUbicacion = useMemo(() => {
+    return clientesConUbicacion.filter((c) => !clientesConVenta.has(String(c.id)));
+  }, [clientesConUbicacion, clientesConVenta]);
+
+  // Estadísticas de clientes totales y porcentaje con venta en el periodo
+  const { totalClientes, clientesVendidos, porcentajeVentas } = useMemo(() => {
     const lista = clientes || [];
     const total = lista.length;
     if (total === 0) {
-      return { totalClientes: 0, clientesVendidosHoy: 0, porcentajeVentasHoy: '0%' };
+      return { totalClientes: 0, clientesVendidos: 0, porcentajeVentas: '0%' };
     }
     const vendidos = lista.reduce(
-      (acc, c) => (clientesConVentaHoy.has(String(c.id)) ? acc + 1 : acc),
+      (acc, c) => (clientesConVenta.has(String(c.id)) ? acc + 1 : acc),
       0
     );
     const rawPct = (vendidos / total) * 100;
     const formattedPct = Number.isInteger(rawPct) ? `${rawPct}%` : `${rawPct.toFixed(1)}%`;
     return {
       totalClientes: total,
-      clientesVendidosHoy: vendidos,
-      porcentajeVentasHoy: formattedPct,
+      clientesVendidos: vendidos,
+      porcentajeVentas: formattedPct,
     };
-  }, [clientes, clientesConVentaHoy]);
+  }, [clientes, clientesConVenta]);
 
   const clearHideTimer = useCallback(() => {
     if (hideCardTimerRef.current) {
@@ -600,6 +645,119 @@ const RutaComercial = () => {
     }
   }, [clearHideTimer, closeActiveCard, zoomMaxToLocation]);
 
+  const openSaleCard = useCallback((venta) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    clearHideTimer();
+
+    if (activeCardRef.current) {
+      map.removeLayer(activeCardRef.current);
+      activeCardRef.current = null;
+    }
+
+    const pt = map.latLngToContainerPoint([venta.lat, venta.lng]);
+    const size = map.getSize();
+
+    let direction = 'top';
+    let offset = [0, -32];
+
+    if (pt.y < 200) {
+      direction = 'bottom';
+      offset = [0, 6];
+    } else if (pt.x < 160) {
+      direction = 'right';
+      offset = [18, -18];
+    } else if (pt.x > size.x - 160) {
+      direction = 'left';
+      offset = [-18, -18];
+    }
+
+    const nombreVenta = escapeHtml(
+      venta.concepto && String(venta.concepto).trim()
+        ? String(venta.concepto).trim()
+        : 'Venta rápida'
+    );
+    const codigo = escapeHtml(venta.codigo || '--');
+    const totalFormatted = escapeHtml(`Bs. ${formatPrice(venta.total || 0)}`);
+    const fechaFormateada = venta.fecha ? escapeHtml(formatFechaLiteral(venta.fecha, true)) : '--';
+    const coordsTexto = `${Number(venta.rawLat).toFixed(6)}, ${Number(venta.rawLng).toFixed(6)}`;
+
+    const tooltipHtml = `
+      <div>
+        <div class="${styles.tooltipHeader}">
+          <span class="${styles.tooltipName}">${nombreVenta}</span>
+          <span class="${styles.tooltipBadge} ${styles.tooltipBadgeSale}">Sin cliente</span>
+        </div>
+        <div class="${styles.tooltipSection}">
+          <div class="${styles.tooltipSectionTitle}">Detalles</div>
+          <div class="${styles.tooltipKeyValList}">
+            <div class="${styles.tooltipKeyValRow}">
+              <span class="${styles.tooltipKey}">Código</span>
+              <span class="${styles.tooltipVal}">${codigo}</span>
+            </div>
+            <div class="${styles.tooltipKeyValRow}">
+              <span class="${styles.tooltipKey}">Total</span>
+              <span class="${styles.tooltipVal} ${styles.tooltipValPrimary}">${totalFormatted}</span>
+            </div>
+            <div class="${styles.tooltipKeyValRow}">
+              <span class="${styles.tooltipKey}">Fecha</span>
+              <span class="${styles.tooltipVal}">${fechaFormateada}</span>
+            </div>
+          </div>
+        </div>
+        <div class="${styles.tooltipSection}">
+          <div class="${styles.tooltipSectionTitle}">Ubicación GPS</div>
+          <div class="${styles.tooltipKeyValList}">
+            <div class="${styles.tooltipKeyValRow}">
+              <span class="${styles.tooltipKey}">Coordenadas</span>
+              <span class="${styles.tooltipVal}">${escapeHtml(coordsTexto)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const cardTooltip = L.tooltip({
+      permanent: true,
+      interactive: true,
+      direction,
+      offset,
+      opacity: 1,
+      className: 'ruta-client-tooltip',
+    })
+      .setLatLng([venta.lat, venta.lng])
+      .setContent(tooltipHtml)
+      .addTo(map);
+
+    activeCardRef.current = cardTooltip;
+
+    const cardEl = cardTooltip.getElement();
+    if (cardEl) {
+      L.DomEvent.disableClickPropagation(cardEl);
+      L.DomEvent.disableScrollPropagation(cardEl);
+
+      cardEl.addEventListener('mouseenter', () => {
+        clearHideTimer();
+      });
+
+      cardEl.addEventListener('mouseleave', () => {
+        if (lastPointerTypeRef.current === 'mouse') {
+          clearHideTimer();
+          hideCardTimerRef.current = setTimeout(() => {
+            closeActiveCard();
+          }, 140);
+        }
+      });
+
+      cardEl.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        zoomMaxToLocation(venta.lat, venta.lng);
+      });
+    }
+  }, [clearHideTimer, closeActiveCard, formatPrice, zoomMaxToLocation]);
+
   const updateZoomIndicator = useCallback((map) => {
     const baseZoom = initialZoomRef.current || 6;
     const currentZoom = map.getZoom();
@@ -681,7 +839,7 @@ const RutaComercial = () => {
     };
   }, [clearHideTimer, closeActiveCard, updateZoomIndicator]);
 
-  // Renderizar marcadores dinámicamente con los clientes reales obtenidos de la BD
+  // Renderizar marcadores dinámicamente con los clientes y ventas sin cliente del periodo seleccionado
   useEffect(() => {
     const map = mapInstanceRef.current;
     const markersLayer = markersLayerRef.current;
@@ -704,28 +862,23 @@ const RutaComercial = () => {
       iconAnchor: [17, 34],
     });
 
+    const saleIcon = L.divIcon({
+      className: 'ruta-client-marker-wrapper',
+      html: `<div class="${styles.markerPin} ${styles.markerPinSale}"><i class="bx bx-receipt ${styles.markerIcon}"></i></div>`,
+      iconSize: [34, 34],
+      iconAnchor: [17, 34],
+    });
+
     let currentBounds = L.latLngBounds(
       BOLIVIA_BOUNDS.getSouthWest(),
       BOLIVIA_BOUNDS.getNorthEast()
     );
     let boundsExpanded = false;
 
-    clientesConUbicacion.forEach((cliente) => {
-      if (!currentBounds.contains([cliente.lat, cliente.lng])) {
-        currentBounds.extend([cliente.lat, cliente.lng]);
-        boundsExpanded = true;
-      }
-
-      const tuvoVentaHoy = clientesConVentaHoy.has(String(cliente.id));
-      const marker = L.marker([cliente.lat, cliente.lng], {
-        icon: tuvoVentaHoy ? primaryIcon : grayIcon,
-        zIndexOffset: tuvoVentaHoy ? 200 : 0,
-      }).addTo(markersLayer);
-
-      // PC (mouse): hover muestra la card
+    const attachMarkerInteractions = (marker, lat, lng, onOpenCard) => {
       marker.on('mouseover', () => {
         if (lastPointerTypeRef.current === 'mouse') {
-          openClientCard(cliente);
+          onOpenCard();
         }
       });
 
@@ -738,25 +891,62 @@ const RutaComercial = () => {
         }
       });
 
-      // PC (mouse): click en el pin hace zoom máximo directo.
-      // Móvil (touch): click en el pin muestra la card (y click en la card hace zoom máximo).
       marker.on('click', (ev) => {
         L.DomEvent.stopPropagation(ev);
         if (lastPointerTypeRef.current === 'mouse') {
-          zoomMaxToLocation(cliente.lat, cliente.lng);
+          zoomMaxToLocation(lat, lng);
         } else {
-          openClientCard(cliente);
+          onOpenCard();
         }
       });
+    };
+
+    clientesConUbicacion.forEach((cliente) => {
+      if (!currentBounds.contains([cliente.lat, cliente.lng])) {
+        currentBounds.extend([cliente.lat, cliente.lng]);
+        boundsExpanded = true;
+      }
+
+      const tuvoVenta = clientesConVenta.has(String(cliente.id));
+      if (tuvoVenta && !showVendidos) return;
+      if (!tuvoVenta && !showNoVendidos) return;
+
+      const marker = L.marker([cliente.lat, cliente.lng], {
+        icon: tuvoVenta ? primaryIcon : grayIcon,
+        zIndexOffset: tuvoVenta ? 200 : 0,
+      }).addTo(markersLayer);
+
+      attachMarkerInteractions(marker, cliente.lat, cliente.lng, () => openClientCard(cliente));
+    });
+
+    ventasSinClienteConUbicacion.forEach((venta) => {
+      if (!currentBounds.contains([venta.lat, venta.lng])) {
+        currentBounds.extend([venta.lat, venta.lng]);
+        boundsExpanded = true;
+      }
+
+      if (!showSinCliente) return;
+
+      const marker = L.marker([venta.lat, venta.lng], {
+        icon: saleIcon,
+        zIndexOffset: 260,
+      }).addTo(markersLayer);
+
+      attachMarkerInteractions(marker, venta.lat, venta.lng, () => openSaleCard(venta));
     });
 
     if (boundsExpanded) {
       map.setMaxBounds(currentBounds.pad(0.08));
     }
 
-    if (clientesConUbicacion.length > 0) {
-      const coordsSignature = clientesConUbicacion
-        .map((c) => `${c.lat.toFixed(5)},${c.lng.toFixed(5)}`)
+    const allPinPoints = [
+      ...clientesConUbicacion.map((c) => [c.lat, c.lng]),
+      ...ventasSinClienteConUbicacion.map((v) => [v.lat, v.lng]),
+    ];
+
+    if (allPinPoints.length > 0) {
+      const coordsSignature = allPinPoints
+        .map(([lat, lng]) => `${lat.toFixed(5)},${lng.toFixed(5)}`)
         .sort()
         .join('|');
 
@@ -765,11 +955,9 @@ const RutaComercial = () => {
         lastFittedSignatureRef.current = coordsSignature;
 
         map.invalidateSize({ animate: false });
-        const pinsBounds = L.latLngBounds(
-          clientesConUbicacion.map((c) => [c.lat, c.lng])
-        );
+        const pinsBounds = L.latLngBounds(allPinPoints);
         const fitOptions = {
-          paddingTopLeft: [52, 74],
+          paddingTopLeft: [52, 98],
           paddingBottomRight: [48, 64],
           maxZoom: 16.5,
         };
@@ -782,7 +970,7 @@ const RutaComercial = () => {
           map.flyToBounds(pinsBounds, { ...fitOptions, duration: 0.45 });
           const targetZoom = Math.min(
             16.5,
-            map.getBoundsZoom(pinsBounds, false, L.point(100, 138))
+            map.getBoundsZoom(pinsBounds, false, L.point(100, 162))
           );
           if (Number.isFinite(targetZoom)) {
             initialZoomRef.current = targetZoom;
@@ -793,9 +981,14 @@ const RutaComercial = () => {
   }, [
     clearHideTimer,
     clientesConUbicacion,
-    clientesConVentaHoy,
+    clientesConVenta,
+    ventasSinClienteConUbicacion,
+    showVendidos,
+    showNoVendidos,
+    showSinCliente,
     closeActiveCard,
     openClientCard,
+    openSaleCard,
     zoomMaxToLocation,
   ]);
 
@@ -960,7 +1153,9 @@ const RutaComercial = () => {
     if (clientesPendientesConUbicacion.length === 0) {
       showWarning(
         'Sin puntos pendientes',
-        'Ya se realizó venta hoy a todos los clientes con ubicación registrada.'
+        isTodaySelected
+          ? 'Ya se realizó venta hoy a todos los clientes con ubicación registrada.'
+          : 'Ya se realizó venta en esta fecha a todos los clientes con ubicación registrada.'
       );
       return;
     }
@@ -1072,14 +1267,23 @@ const RutaComercial = () => {
     if (!map) return;
     closeActiveCard();
 
-    if (clientesConUbicacion.length > 0) {
-      const points = clientesConUbicacion.map((c) => [c.lat, c.lng]);
+    const points = [
+      ...clientesConUbicacion
+        .filter((c) => {
+          const tuvoVenta = clientesConVenta.has(String(c.id));
+          return tuvoVenta ? showVendidos : showNoVendidos;
+        })
+        .map((c) => [c.lat, c.lng]),
+      ...(showSinCliente ? ventasSinClienteConUbicacion.map((v) => [v.lat, v.lng]) : []),
+    ];
+
+    if (points.length > 0) {
       if (rutaActiva && miUbicacion) {
         points.push([miUbicacion.lat, miUbicacion.lng]);
       }
       const pinsBounds = L.latLngBounds(points);
       map.flyToBounds(pinsBounds, {
-        paddingTopLeft: [52, 74],
+        paddingTopLeft: [52, 98],
         paddingBottomRight: [48, 64],
         maxZoom: 16.5,
         duration: 0.45,
@@ -1128,61 +1332,131 @@ const RutaComercial = () => {
                 style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
               />
 
-              <div
-                className={styles.statsOverlay}
-                onPointerDown={stopControlPropagation}
-                onMouseDown={stopControlPropagation}
-                onTouchStart={stopControlPropagation}
-                onDoubleClick={stopControlPropagation}
-                onWheel={stopControlPropagation}
-              >
+              <div className={styles.topOverlaysBar}>
                 <div
-                  className={styles.statBox}
-                  title={`${clientesVendidosHoy} de ${totalClientes} clientes con venta hoy`}
+                  className={styles.statsOverlay}
+                  onPointerDown={stopControlPropagation}
+                  onMouseDown={stopControlPropagation}
+                  onTouchStart={stopControlPropagation}
+                  onDoubleClick={stopControlPropagation}
+                  onWheel={stopControlPropagation}
                 >
-                  <div className={styles.statIconWrap}>
-                    <i className="bx bx-group"></i>
+                  <div
+                    className={styles.statBox}
+                    title={`${clientesVendidos} de ${totalClientes} clientes con venta${isTodaySelected ? ' hoy' : ` el ${dateLiteralAbbr || selectedDate}`}`}
+                  >
+                    <div className={styles.statIconWrap}>
+                      <i className="bx bx-group"></i>
+                    </div>
+                    <div className={styles.statContent}>
+                      <span className={styles.statValue}>{totalClientes}</span>
+                      <span className={styles.statLabel}>Clientes</span>
+                    </div>
                   </div>
-                  <div className={styles.statContent}>
-                    <span className={styles.statValue}>{totalClientes}</span>
-                    <span className={styles.statLabel}>Clientes</span>
+
+                  <div className={styles.statDivider} />
+
+                  <div
+                    className={styles.statBox}
+                    title={`${clientesVendidos} de ${totalClientes} clientes con venta${isTodaySelected ? ' hoy' : ` el ${dateLiteralAbbr || selectedDate}`}`}
+                  >
+                    <div className={`${styles.statIconWrap} ${styles.statIconPrimary}`}>
+                      <i className="bx bx-shopping-bag"></i>
+                    </div>
+                    <div className={styles.statContent}>
+                      <span className={`${styles.statValue} ${styles.statValuePrimary}`}>
+                        {porcentajeVentas}
+                      </span>
+                      <span className={styles.statLabel}>
+                        {isTodaySelected ? 'Vendido hoy' : 'Vendido'}
+                      </span>
+                    </div>
                   </div>
+
+                  <div className={styles.statDivider} />
+
+                  <BotonIcon
+                    iconName={rutaActiva ? 'x' : 'trip'}
+                    className={rutaActiva ? 'btn-error' : 'btn-primary'}
+                    loading={isGeneratingRoute}
+                    tooltip={rutaActiva ? 'Ocultar ruta' : 'Generar ruta'}
+                    tooltipPosition="bottom"
+                    tooltipAlign="end"
+                    onClick={handleToggleRoute}
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      marginBottom: 0,
+                      borderRadius: '7px',
+                    }}
+                  />
                 </div>
 
-                <div className={styles.statDivider} />
-
                 <div
-                  className={styles.statBox}
-                  title={`${clientesVendidosHoy} de ${totalClientes} clientes con venta hoy`}
+                  className={styles.filterOverlay}
+                  onPointerDown={stopControlPropagation}
+                  onMouseDown={stopControlPropagation}
+                  onTouchStart={stopControlPropagation}
+                  onDoubleClick={stopControlPropagation}
+                  onWheel={stopControlPropagation}
                 >
-                  <div className={`${styles.statIconWrap} ${styles.statIconPrimary}`}>
-                    <i className="bx bx-shopping-bag"></i>
-                  </div>
-                  <div className={styles.statContent}>
-                    <span className={`${styles.statValue} ${styles.statValuePrimary}`}>
-                      {porcentajeVentasHoy}
+                  <label className={styles.filterCheckLabel}>
+                    <input
+                      type="checkbox"
+                      className={styles.filterCheckInput}
+                      checked={showVendidos}
+                      onChange={(e) => setShowVendidos(e.target.checked)}
+                    />
+                    <span className={`${styles.filterCheckBox} ${styles.filterCheckPrimary}`}>
+                      <i className={`bx bx-check ${styles.filterCheckIcon}`} />
                     </span>
-                    <span className={styles.statLabel}>Vendido hoy</span>
-                  </div>
+                    <span>Vendidos</span>
+                  </label>
+
+                  <label className={styles.filterCheckLabel}>
+                    <input
+                      type="checkbox"
+                      className={styles.filterCheckInput}
+                      checked={showNoVendidos}
+                      onChange={(e) => setShowNoVendidos(e.target.checked)}
+                    />
+                    <span className={`${styles.filterCheckBox} ${styles.filterCheckGray}`}>
+                      <i className={`bx bx-check ${styles.filterCheckIcon}`} />
+                    </span>
+                    <span>No vendidos</span>
+                  </label>
+
+                  <label className={styles.filterCheckLabel}>
+                    <input
+                      type="checkbox"
+                      className={styles.filterCheckInput}
+                      checked={showSinCliente}
+                      onChange={(e) => setShowSinCliente(e.target.checked)}
+                    />
+                    <span className={`${styles.filterCheckBox} ${styles.filterCheckOrange}`}>
+                      <i className={`bx bx-check ${styles.filterCheckIcon}`} />
+                    </span>
+                    <span>Sin cliente</span>
+                  </label>
                 </div>
 
-                <div className={styles.statDivider} />
-
-                <BotonIcon
-                  iconName={rutaActiva ? 'x' : 'trip'}
-                  className={rutaActiva ? 'btn-error' : 'btn-primary'}
-                  loading={isGeneratingRoute}
-                  tooltip={rutaActiva ? 'Ocultar ruta' : 'Generar ruta'}
-                  tooltipPosition="bottom"
-                  tooltipAlign="end"
-                  onClick={handleToggleRoute}
-                  style={{
-                    width: '30px',
-                    height: '30px',
-                    marginBottom: 0,
-                    borderRadius: '7px',
-                  }}
-                />
+                <button
+                  type="button"
+                  className={`${styles.dateOverlayBtn} ${!isTodaySelected ? styles.dateOverlayBtnCustom : ''}`}
+                  onClick={() => setIsCalendarOpen(true)}
+                  onPointerDown={stopControlPropagation}
+                  onMouseDown={stopControlPropagation}
+                  onTouchStart={stopControlPropagation}
+                  onDoubleClick={stopControlPropagation}
+                  onWheel={stopControlPropagation}
+                  title="Seleccionar fecha"
+                >
+                  <div className={`${styles.statIconWrap} ${!isTodaySelected ? styles.statIconPrimary : ''}`}>
+                    <i className={`bx ${isLoadingVentas ? 'bx-loader-alt bx-spin' : 'bx-calendar'}`} />
+                  </div>
+                  <span className={styles.dateOverlayText}>{dateButtonLabel}</span>
+                  <i className={`bx bx-chevron-down ${styles.dateOverlayChevron}`} />
+                </button>
               </div>
 
               <div
@@ -1239,6 +1513,15 @@ const RutaComercial = () => {
           </div>
         </div>
       </div>
+
+      <CalendarModal
+        isOpen={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+        selectedDate={selectedDate}
+        onSelectDate={(val) => {
+          if (val) setSelectedDate(val);
+        }}
+      />
 
       {!isLargeScreen && <MenuSide />}
     </>

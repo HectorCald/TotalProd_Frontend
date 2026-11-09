@@ -6,6 +6,157 @@
   flex: 1;
 }
 
+.topOverlaysBar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 500;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 10px;
+  pointer-events: none;
+}
+
+.filterOverlay {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 8px 14px;
+  min-height: 48px;
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+.filterCheckLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.1;
+}
+
+.filterCheckInput {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.filterCheckBox {
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  border: 2px solid #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.filterCheckIcon {
+  color: #ffffff;
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.filterCheckInput:checked + .filterCheckBox .filterCheckIcon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.filterCheckPrimary {
+  border-color: var(--primary-color, #2dbea1);
+}
+
+.filterCheckInput:checked + .filterCheckPrimary {
+  background-color: var(--primary-color, #2dbea1);
+  border-color: var(--primary-color, #2dbea1);
+}
+
+.filterCheckGray {
+  border-color: var(--tertiary-color, #888888);
+}
+
+.filterCheckInput:checked + .filterCheckGray {
+  background-color: var(--tertiary-color, #888888);
+  border-color: var(--tertiary-color, #888888);
+}
+
+.filterCheckOrange {
+  border-color: var(--warning-color, #FB8713);
+}
+
+.filterCheckInput:checked + .filterCheckOrange {
+  background-color: var(--warning-color, #FB8713);
+  border-color: var(--warning-color, #FB8713);
+}
+
+.dateOverlayBtn {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 8px 14px;
+  min-height: 48px;
+  pointer-events: auto;
+  cursor: pointer;
+  color: #0f172a;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dateOverlayBtn:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.dateOverlayBtnCustom {
+  border-color: var(--primary-color, #2dbea1);
+}
+
+.dateOverlayText {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.15;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dateOverlayChevron {
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1;
+}
+
 .mapContainer {
   background-color: #f8fafc;
   border-radius: 12px;
@@ -130,6 +281,15 @@
 .markerPinGray:hover {
   transform: rotate(-45deg) scale(1.14);
   box-shadow: 0 6px 14px rgba(100, 116, 139, 0.45);
+}
+
+.markerPinSale {
+  background: var(--warning-color, #FB8713);
+}
+
+.markerPinSale:hover {
+  transform: rotate(-45deg) scale(1.14);
+  box-shadow: 0 6px 14px rgba(251, 135, 19, 0.45);
 }
 
 .markerIcon {
@@ -290,6 +450,17 @@
   padding: 2px 7px;
   border-radius: 10px;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tooltipBadgeSale {
+  background-color: rgba(251, 135, 19, 0.14);
+  color: #d97706;
+}
+
+.tooltipValPrimary {
+  color: var(--primary-color-dark, #29a990);
+  font-weight: 700;
 }
 
 .tooltipSection {
@@ -364,9 +535,9 @@
 }
 
 .statsOverlay {
-  position: absolute;
-  top: 16px;
-  left: 16px;
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
   display: flex;
   align-items: center;
   background-color: #ffffff;
@@ -374,8 +545,9 @@
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: 8px 14px;
+  min-height: 48px;
   gap: 14px;
-  z-index: 500;
+  pointer-events: auto;
 }
 
 .statBox {
@@ -432,6 +604,30 @@
   background-color: #e2e8f0;
 }
 
+@media (max-width: 1180px) {
+  .topOverlaysBar {
+    grid-template-columns: 1fr auto;
+  }
+
+  .statsOverlay {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  .dateOverlayBtn {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .filterOverlay {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: center;
+  }
+}
+
 @media (max-width: 1024px) {
   .rutaWrapper {
     height: 100%;
@@ -451,11 +647,45 @@
     border-radius: 8px;
   }
 
-  .statsOverlay {
+  .topOverlaysBar {
     top: 10px;
     left: 10px;
+    right: 10px;
+    column-gap: 8px;
+    row-gap: 10px;
+  }
+
+  .statsOverlay {
     padding: 6px 10px;
+    min-height: 44px;
     gap: 10px;
+  }
+
+  .filterOverlay {
+    padding: 7px 12px;
+    min-height: 36px;
+    gap: 12px;
+  }
+
+  .filterCheckLabel {
+    font-size: 11.5px;
+    gap: 5px;
+  }
+
+  .filterCheckBox {
+    width: 15px;
+    height: 15px;
+  }
+
+  .dateOverlayBtn {
+    padding: 6px 10px;
+    min-height: 44px;
+    gap: 7px;
+  }
+
+  .dateOverlayText {
+    font-size: 12px;
+    max-width: 90px;
   }
 
   .statIconWrap {
@@ -475,6 +705,51 @@
   .zoomControls {
     bottom: 12px;
     right: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .topOverlaysBar {
+    row-gap: 8px;
+  }
+
+  .statsOverlay {
+    padding: 5px 8px;
+    min-height: 42px;
+    gap: 6px;
+  }
+
+  .statBox {
+    gap: 5px;
+  }
+
+  .statIconWrap {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  .dateOverlayBtn {
+    padding: 5px 8px;
+    min-height: 42px;
+    gap: 5px;
+  }
+
+  .dateOverlayText {
+    font-size: 11.5px;
+    max-width: 72px;
+  }
+
+  .filterOverlay {
+    padding: 6px 10px;
+    min-height: 34px;
+    gap: 10px;
+    max-width: 100%;
+  }
+
+  .filterCheckLabel {
+    font-size: 11px;
+    gap: 4px;
   }
 }
 

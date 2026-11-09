@@ -53,7 +53,10 @@ const NavBar = () => {
 
   const sucursalSeleccionada = isEmployeeSession ? employeeSucursal : userSucursal;
   const seleccionarSucursal = isEmployeeSession ? seleccionarEmployeeSucursal : seleccionarUserSucursal;
-  const empresaId = sucursalSeleccionada?.empresas?.id || userInfo?.empresa_id || employeeInfo?.sucursal?.empresas?.id;
+  // Empresa propia del usuario/empleado (no la de la sucursal seleccionada, que puede ser de un socio)
+  const empresaId = isEmployeeSession
+    ? (employeeInfo?.empresa_id || employeeInfo?.sucursal?.empresas?.id || sucursalSeleccionada?.empresas?.id)
+    : (userInfo?.empresa_id || sucursalSeleccionada?.empresas?.id);
   const isEverythingLoading = !usuario || !sucursalSeleccionada;
   const canSwitchSucursal = useMemo(() => {
     if (!isEmployeeSession) return true;

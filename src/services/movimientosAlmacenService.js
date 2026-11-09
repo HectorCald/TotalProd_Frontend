@@ -113,6 +113,23 @@ class movimientosAlmacenService {
     });
   }
 
+  // Obtener movimientos sin límite para Ruta Comercial (total, concepto, codigo, ubicacion)
+  static async getAllSinLimiteRuta(filtroFecha = null, tipo = 'salida', estado = null) {
+    const params = new URLSearchParams();
+    if (tipo) params.append('tipo', tipo);
+    if (estado) params.append('estado', estado);
+    if (filtroFecha?.inicio) params.append('fecha_inicio', filtroFecha.inicio);
+    if (filtroFecha?.fin) params.append('fecha_fin', filtroFecha.fin);
+    params.append('_t', Date.now().toString());
+
+    const query = params.toString() ? `?${params}` : '';
+
+    return this._request(`/movimientos-almacen/sin-limite-ruta${query}`, { method: 'GET' }, {
+      requireSucuId: true,
+      returnErrorObject: true
+    });
+  }
+
   // Obtener los 10 productos más vendidos en un rango de fechas (para balance)
   static async getTopProductosVendidos(filtroFecha = null, estado = 'finalizado') {
     const params = new URLSearchParams();
