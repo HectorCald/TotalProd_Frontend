@@ -120,9 +120,9 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
     return priceObj ? Number(priceObj.valor) : 0;
   };
 
-  // Si hay cliente seleccionado y no tiene ubicación registrada, obtener GPS actual + descripción de OpenStreetMap y guardarla
+  // Si hay cliente seleccionado y no tiene ubicación registrada, obtener GPS actual + descripción de OpenStreetMap y guardarla obligatoriamente
   const ensureClientLocation = async (clienteId, preloadedCoords = null) => {
-    if (!clienteId) return;
+    if (!clienteId) return { ok: true };
 
     try {
       let targetClient = (clientesListado || []).find((c) => String(c.id) === String(clienteId));
@@ -134,14 +134,29 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
         }
       }
 
+      if (!targetClient) {
+        return {
+          ok: false,
+          message: 'No se pudo verificar la ubicación del cliente seleccionado.',
+        };
+      }
+
       // Si el cliente ya tiene ubicación, saltar este paso
-      if (targetClient && hasClientLocation(targetClient.location)) {
-        return;
+      if (hasClientLocation(targetClient.location)) {
+        return { ok: true };
       }
 
       const coords = preloadedCoords || (await getCurrentCoords());
-      const roundedLat = Number(Number(coords.lat).toFixed(6));
-      const roundedLng = Number(Number(coords.lng).toFixed(6));
+      const roundedLat = Number(Number(coords?.lat).toFixed(6));
+      const roundedLng = Number(Number(coords?.lng).toFixed(6));
+
+      if (Number.isNaN(roundedLat) || Number.isNaN(roundedLng)) {
+        return {
+          ok: false,
+          message: 'No se pudo obtener la ubicación GPS para el cliente. Activa tu ubicación para continuar.',
+        };
+      }
+
       const locationPoint = `(${roundedLat},${roundedLng})`;
 
       let descriptionLocation = null;
@@ -157,30 +172,42 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
         descriptionLocation
       );
 
-      if (updateRes?.success) {
-        setClientesListado((prev) =>
-          (prev || []).map((c) =>
-            String(c.id) === String(clienteId)
-              ? {
-                  ...c,
-                  location: updateRes.data?.location ?? locationPoint,
-                  description_location: updateRes.data?.description_location ?? descriptionLocation,
-                }
-              : c
-          )
-        );
+      if (!updateRes?.success) {
+        return {
+          ok: false,
+          message: 'No se pudo registrar la ubicación del cliente. Verifica que tu ubicación esté activa.',
+        };
       }
+
+      setClientesListado((prev) =>
+        (prev || []).map((c) =>
+          String(c.id) === String(clienteId)
+            ? {
+                ...c,
+                location: updateRes.data?.location ?? locationPoint,
+                description_location: updateRes.data?.description_location ?? descriptionLocation,
+              }
+            : c
+        )
+      );
+
+      return { ok: true };
     } catch (locErr) {
-      console.warn('No se pudo registrar automáticamente la ubicación del cliente:', locErr);
+      return {
+        ok: false,
+        message: 'No se pudo obtener la ubicación para el cliente seleccionado. Activa tu ubicación GPS.',
+      };
     }
   };
 
   const handleConfirm = async () => {
     const { active: permisoUbicacionActivo } = await verifyLocationPermissionActive();
     if (!permisoUbicacionActivo) {
-      showWarning(
-        null,
-        'Debes activar el permiso de ubicación desde tu Perfil para realizar la venta.'
+      showDanger(
+        'Error de ubicación',
+        'Debes activar el permiso de ubicación desde tu Perfil para realizar la venta.',
+        5000,
+        false
       );
       return;
     }
@@ -208,24 +235,45 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
     setIsSubmitting(true);
 
     try {
-      // Obtener siempre las coordenadas GPS actuales para registrarlas en el movimiento de venta
+      // Obtener obligatoriamente las coordenadas GPS actuales para registrarlas en el movimiento de venta
       let currentCoords = null;
       let ventaLocationPoint = null;
       try {
         const coords = await getCurrentCoords();
-        const roundedLat = Number(Number(coords.lat).toFixed(6));
-        const roundedLng = Number(Number(coords.lng).toFixed(6));
+        const roundedLat = Number(Number(coords?.lat).toFixed(6));
+        const roundedLng = Number(Number(coords?.lng).toFixed(6));
         if (!Number.isNaN(roundedLat) && !Number.isNaN(roundedLng)) {
           currentCoords = { lat: roundedLat, lng: roundedLng };
           ventaLocationPoint = `(${roundedLat},${roundedLng})`;
         }
-      } catch (gpsErr) {
-        console.warn('No se pudo obtener la ubicación GPS para el movimiento de venta:', gpsErr);
+      } catch (_) {
+        currentCoords = null;
+        ventaLocationPoint = null;
       }
 
-      // Antes de confirmar la venta: si el cliente no tiene ubicación (o es null), asignarle ubicación actual + descripción de OpenStreetMap
+      if (!currentCoords || !ventaLocationPoint || !hasClientLocation(ventaLocationPoint)) {
+        showDanger(
+          'Error de ubicación',
+          'No se pudo obtener tu ubicación GPS. Debes activar la ubicación en tu dispositivo y en tu Perfil para registrar la venta.',
+          5000,
+          false
+        );
+        return;
+      }
+
+      // Antes de confirmar la venta: si el cliente no tiene ubicación (o es null), asignarle ubicación actual + descripción de OpenStreetMap obligatoriamente
       if (cliente) {
-        await ensureClientLocation(cliente, currentCoords);
+        const clientLocationCheck = await ensureClientLocation(cliente, currentCoords);
+        if (!clientLocationCheck.ok) {
+          showDanger(
+            'Error de ubicación',
+            clientLocationCheck.message ||
+              'No se pudo obtener o registrar la ubicación del cliente seleccionado. Activa tu ubicación para continuar.',
+            5000,
+            false
+          );
+          return;
+        }
       }
 
       const payload = {
