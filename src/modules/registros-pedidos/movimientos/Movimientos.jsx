@@ -195,6 +195,12 @@ const Movimientos = () => {
     setMovimientoSeleccionado(prev => prev && prev.id === updatedMovimiento.id ? { ...prev, ...updatedMovimiento, estado: 'anulado' } : prev);
   };
 
+  const handleMovimientoActualizado = (updatedMovimiento) => {
+    if (!updatedMovimiento?.id) return;
+    setMovimientos(prev => prev.map(m => m.id === updatedMovimiento.id ? { ...m, ...updatedMovimiento } : m));
+    setMovimientoSeleccionado(prev => prev && prev.id === updatedMovimiento.id ? { ...prev, ...updatedMovimiento } : prev);
+  };
+
   const getProductName = (movimiento) => {
     if (isAcopio) {
       return movimiento.product?.name || 'Sin producto';
@@ -444,6 +450,7 @@ const Movimientos = () => {
           movimiento={movimientoSeleccionado}
           onEliminar={handleMovimientoEliminado}
           onAnular={handleMovimientoAnulado}
+          onActualizar={handleMovimientoActualizado}
         />
       )}
       {!isLargeScreen && <MenuSide />}

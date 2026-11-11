@@ -157,6 +157,10 @@ const MateriaPrima = () => {
     setError(err);
   }, []);
 
+  const handleCloseCanastaMobile = useCallback(() => {
+    setIsCanastaMobileOpen(false);
+  }, []);
+
   const handleLoadMore = useCallback(() => {
     if (hasMorePages && !isLoading && !isLoadingMore) {
       setPage(prev => prev + 1);
@@ -318,7 +322,7 @@ const MateriaPrima = () => {
         {isCanastaMode && (
           <CanastaMateriaPrima 
             isOpen={isLargeScreen || isCanastaMobileOpen}
-            onClose={() => setIsCanastaMobileOpen(false)}
+            onClose={handleCloseCanastaMobile}
             canasta={canasta} 
             actualizarCantidad={actualizarCantidad} 
             actualizarMedida={actualizarMedida}

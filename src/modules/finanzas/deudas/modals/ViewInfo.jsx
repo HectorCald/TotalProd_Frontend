@@ -224,6 +224,9 @@ const ViewInfo = ({ isOpen, onClose, deuda, onEdit, onDeudaActualizada, onElimin
                     isOpen={isViewMovimientoOpen}
                     onClose={() => setIsViewMovimientoOpen(false)}
                     movimiento={selectedMovimiento}
+                    onActualizar={(updatedMovimiento) => {
+                        setSelectedMovimiento(prev => (prev ? { ...prev, ...updatedMovimiento } : updatedMovimiento));
+                    }}
                     onAnular={() => {
                         setIsViewMovimientoOpen(false);
                         onClose();

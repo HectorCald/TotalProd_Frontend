@@ -265,7 +265,7 @@ const RutaComercial = () => {
     value: clientes,
     setValue: setClientes,
   } = useSessionCache({
-    key: 'clientesListado',
+    key: 'clientesActivosListado',
     defaultValue: [],
   });
 
@@ -366,7 +366,7 @@ const RutaComercial = () => {
 
       try {
         const [resClients, resVentas] = await Promise.all([
-          clientService.getAll(),
+          clientService.getAll(true),
           movimientosAlmacenService.getAllSinLimiteRuta(appliedDateRange, 'salida'),
         ]);
 

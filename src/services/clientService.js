@@ -53,8 +53,21 @@ class clientService {
   }
 
   // Obtener todos los clientes de una sucursal
-  static async getAll() {
-    return clientService._request('/clients', { method: 'GET' }, {
+  static async getAll(isActiveOrParams = null) {
+    let isActive = isActiveOrParams;
+    if (isActiveOrParams && typeof isActiveOrParams === 'object') {
+      isActive = isActiveOrParams.is_active !== undefined ? isActiveOrParams.is_active : isActiveOrParams.status;
+    }
+
+    const params = new URLSearchParams();
+    if (isActive !== null && isActive !== undefined && isActive !== '') {
+      params.append('is_active', String(isActive));
+    }
+
+    const queryString = params.toString();
+    const endpoint = queryString ? `/clients?${queryString}` : '/clients';
+
+    return clientService._request(endpoint, { method: 'GET' }, {
       requireSucuId: true,
       throwOnError: true
     });

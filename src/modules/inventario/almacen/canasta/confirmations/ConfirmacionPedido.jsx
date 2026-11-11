@@ -11,7 +11,7 @@ import pedidosAlmacenService from '../../../../../services/pedidosAlmacenService
 import { getSucuId } from '../../../../../config/apiClient';
 import { useToast } from '../../../../../context/ToastContext';
 
-const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, modoAgrupacion, vaciarCanasta, pedidoDefaults }) => {
+const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, modoAgrupacion, vaciarCanasta, pedidoDefaults, onSuccess }) => {
   const { showDanger, showSuccess } = useToast();
   const { formatPrice } = useFormatNumber();
   const { roundTo1Decimal } = useFormatNumberPrice();
@@ -121,7 +121,9 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
       if (result.success) {
         showSuccess(null, isEditing ? 'Pedido modificado exitosamente.' : 'Pedido generado exitosamente.');
         if (vaciarCanasta) vaciarCanasta();
-        if (isEditing) {
+        if (onSuccess) {
+          onSuccess(result.data, isEditing);
+        } else if (isEditing) {
           sessionStorage.removeItem('pedidoParaEditar');
           navigate('/pedidos/almacen');
         }
@@ -140,8 +142,6 @@ const ConfirmacionPedido = ({ isOpen, onClose, totalBase, canasta, precioSelecci
     if (loading) return;
     onClose();
   };
-
-  if (!isOpen) return null;
 
   return (
     <ModalCentro

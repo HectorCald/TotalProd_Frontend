@@ -9,6 +9,7 @@ import useFormatNumberPrice from '../../../../hooks/useFormatNumberPrice';
 import useFechaLiteral from '../../../../hooks/useFechaLiteral';
 import EliminarMovimiento from './EliminarMovimiento';
 import AnularMovimiento from './AnularMovimiento';
+import EditarMovimiento from './EditarMovimiento';
 import ProductosMovimiento from './ProductosMovimiento';
 import gastosService from '../../../../services/gastosService';
 import { useToast } from '../../../../context/ToastContext';
@@ -42,13 +43,31 @@ const hasValidUbicacion = (loc) => {
     return parts.length === 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1]);
 };
 
-const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onEliminar, onAnular }) => {
+const formatMetodoPagoLabel = (metodoPago) => {
+    if (!metodoPago) return '';
+    const key = String(metodoPago)
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    const map = {
+        qr: 'QR',
+        transferencia: 'Transferencia',
+        tarjeta: 'Tarjeta',
+        efectivo: 'Efectivo',
+        credito: 'Crédito'
+    };
+    return map[key] || (metodoPago.charAt(0).toUpperCase() + metodoPago.slice(1).toLowerCase());
+};
+
+const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onEliminar, onAnular, onActualizar }) => {
     const { formatPrice } = useFormatNumber();
     const { calculateSubtotal, calculateSpecialPrice } = useFormatNumberPrice();
     const { showDanger } = useToast();
     const navigate = useNavigate();
     const [isEliminarOpen, setIsEliminarOpen] = useState(false);
     const [isAnularOpen, setIsAnularOpen] = useState(false);
+    const [isEditarOpen, setIsEditarOpen] = useState(false);
     const [isProductosOpen, setIsProductosOpen] = useState(false);
 
     const [isPagoViewOpen, setIsPagoViewOpen] = useState(false);
@@ -67,9 +86,21 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
     const [hideDeudas, setHideDeudas] = useState(false);
 
     const [fullMovimiento, setFullMovimiento] = useState(null);
+    const [editedMovimiento, setEditedMovimiento] = useState(null);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const [isDescargaOpen, setIsDescargaOpen] = useState(false);
     const [isUbicacionOpen, setIsUbicacionOpen] = useState(false);
+
+    React.useEffect(() => {
+        if (!isOpen) {
+            setEditedMovimiento(null);
+            setIsEditarOpen(false);
+        }
+    }, [isOpen]);
+
+    React.useEffect(() => {
+        setEditedMovimiento(prev => (prev && prev.id === propsMovimiento?.id ? prev : null));
+    }, [propsMovimiento?.id]);
 
     React.useEffect(() => {
         if (isOpen && propsMovimiento && !propsMovimiento.product) {
@@ -97,7 +128,10 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
         }
     }, [isOpen, propsMovimiento, fullMovimiento, showDanger]);
 
-    const movimiento = propsMovimiento?.product ? propsMovimiento : (fullMovimiento ? { ...propsMovimiento, ...fullMovimiento } : propsMovimiento);
+    const baseMovimiento = propsMovimiento?.product ? propsMovimiento : (fullMovimiento ? { ...propsMovimiento, ...fullMovimiento } : propsMovimiento);
+    const movimiento = editedMovimiento && baseMovimiento && editedMovimiento.id === baseMovimiento.id
+        ? { ...baseMovimiento, ...editedMovimiento }
+        : baseMovimiento;
 
     React.useEffect(() => {
         if (isOpen) {
@@ -189,6 +223,14 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
         if (onAnular) onAnular(updatedMovimiento);
     };
 
+    const handleMovimientoActualizado = (updatedData) => {
+        if (!updatedData || !movimiento) return;
+        const mergedData = { ...movimiento, ...updatedData };
+        setEditedMovimiento(prev => ({ ...(prev || {}), id: movimiento.id, ...updatedData }));
+        setFullMovimiento(prev => (prev && prev.id === movimiento.id ? { ...prev, ...updatedData } : prev));
+        if (onActualizar) onActualizar(mergedData);
+    };
+
     const handleCopiarMovimiento = () => {
         const ventaData = {
             prices_types_id: movimiento.prices_types_id || movimiento.precio?.id,
@@ -202,7 +244,7 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                     cantidad: esPorGrupo ? Math.floor(cantidadUD / grup) : cantidadUD
                 };
             }),
-            cliente_id: movimiento.clients_id || movimiento.cliente?.id || movimiento.suppliers_id || movimiento.proveedor?.id,
+            cliente_id: movimiento.cliente_id || movimiento.clients_id || movimiento.cliente?.id || movimiento.suppliers_id || movimiento.proveedor?.id,
             descuento: parseFloat(movimiento.descuento) || 0,
             aumento: parseFloat(movimiento.aumento) || 0,
             porcentaje: !!movimiento.porcentaje,
@@ -432,10 +474,6 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                                         icon: 'hash', 
                                         text: movimiento.codigo 
                                     },
-                                    (movimiento.type === 'salida' && movimiento.metodo_pago) && { 
-                                        icon: 'credit-card', 
-                                        text: movimiento.metodo_pago.charAt(0).toUpperCase() + movimiento.metodo_pago.slice(1).toLowerCase() 
-                                    },
                                     { 
                                         icon: 'transfer', 
                                         text: movimiento.type === 'entrada' ? 'Entrada' : movimiento.type === 'transferencia' ? 'Transferencia' : 'Salida' 
@@ -443,6 +481,15 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                                     (movimiento.agrupado !== undefined && movimiento.agrupado !== null) && { 
                                         icon: movimiento.agrupado ? 'layer' : 'box', 
                                         text: movimiento.agrupado ? 'Grupos' : 'Unidades' 
+                                    },
+                                    tieneUbicacion && {
+                                        text: (
+                                            <Link
+                                                text="Ver Ubicación de venta"
+                                                iconEnd="right-arrow-alt"
+                                                onClick={() => setIsUbicacionOpen(true)}
+                                            />
+                                        )
                                     }
                                 ].filter(Boolean)} 
                             />
@@ -453,22 +500,30 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
                                         clave: esProveedor ? 'Proveedor' : 'Cliente', 
                                         valor: clienteProveedorNombre 
                                     },
+                                    (esProveedor && movimiento.cliente?.name) && { 
+                                        clave: 'Cliente', 
+                                        valor: movimiento.cliente.name 
+                                    },
+                                    movimiento.metodo_pago && { 
+                                        clave: 'Método de pago', 
+                                        valor: formatMetodoPagoLabel(movimiento.metodo_pago)
+                                    },
                                     movimiento.precio?.name && { 
                                         clave: 'Precio', 
                                         valor: movimiento.precio.name 
                                     },
-                                    tieneUbicacion && {
-                                        text: (
-                                            <Link
-                                                text="Ver Ubicación de venta"
-                                                iconEnd="right-arrow-alt"
-                                                onClick={() => setIsUbicacionOpen(true)}
-                                            />
-                                        )
-                                    },
                                     observaciones && { 
                                         clave: 'Observaciones', 
                                         valor: observaciones 
+                                    },
+                                    (!movimiento.product && movimiento.estado !== 'anulado') && {
+                                        text: (
+                                            <Link
+                                                text="Editar detalles"
+                                                iconEnd="right-arrow-alt"
+                                                onClick={() => setIsEditarOpen(true)}
+                                            />
+                                        )
                                     }
                                 ].filter(Boolean)} 
                             />
@@ -568,6 +623,13 @@ const ViewInfo = ({ isOpen, onClose, movimiento: propsMovimiento, onEdit, onElim
             onClose={() => setIsAnularOpen(false)}
             movimientoSeleccionado={movimiento}
             onAnular={handleMovimientoAnulado}
+        />
+
+        <EditarMovimiento
+            isOpen={isEditarOpen}
+            onClose={() => setIsEditarOpen(false)}
+            movimientoSeleccionado={movimiento}
+            onGuardar={handleMovimientoActualizado}
         />
 
         <ProductosMovimiento

@@ -47,12 +47,13 @@ const Clientes = () => {
   }, [employeeInfo]);
 
   const {
-    value: clientes,
-    setValue: setClientes,
+    value: clientesActivosCache,
+    setValue: setClientesActivosCache,
   } = useSessionCache({
-    key: 'clientesListado',
+    key: 'clientesActivosListado',
     defaultValue: [],
   });
+  const [clientes, setClientes] = useState(() => clientesActivosCache || []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,10 +64,67 @@ const Clientes = () => {
   const [returnToViewOnDeleteClose, setReturnToViewOnDeleteClose] = useState(false);
   
   const [search, setSearch] = useState('');
-  const [tableFilters, setTableFilters] = useState({});
+  const [tableFilters, setTableFilters] = useState({ is_active: ['true'] });
+
+  const filtroIsActive = useMemo(() => {
+    const activeArr = tableFilters?.is_active;
+    if (!activeArr || activeArr.length !== 1) return null;
+    return activeArr[0];
+  }, [tableFilters]);
+
+  const fetchMethodParams = useMemo(() => [filtroIsActive], [filtroIsActive]);
+
+  const dynamicFilters = useMemo(() => [
+    {
+      id: 'sort_order',
+      title: 'Ordenamiento',
+      singleSelect: true,
+      options: [
+        { label: 'A - Z', value: 'asc' },
+        { label: 'Z - A', value: 'desc' }
+      ]
+    },
+    {
+      id: 'is_active',
+      title: 'Estado',
+      singleSelect: true,
+      options: [
+        { label: 'Activo', value: 'true' },
+        { label: 'Inactivo', value: 'false' }
+      ]
+    }
+  ], []);
+
+  const handleFiltersChange = useCallback((newFilters) => {
+    const nextActiveArr = newFilters?.is_active;
+    const nextActive = (!nextActiveArr || nextActiveArr.length !== 1) ? null : nextActiveArr[0];
+
+    if (nextActive !== filtroIsActive) {
+      if (nextActive === 'true' && (clientesActivosCache || []).length > 0) {
+        setClientes(clientesActivosCache);
+      } else {
+        setClientes([]);
+        setIsLoading(true);
+      }
+    }
+
+    setTableFilters(newFilters);
+  }, [filtroIsActive, clientesActivosCache]);
+
+  const mappedClientes = useMemo(() => {
+    return (clientes || []).map(c => ({
+      ...c,
+      estado_texto: c.is_active !== false ? 'Activo' : 'Inactivo'
+    }));
+  }, [clientes]);
 
   const filteredClientes = React.useMemo(() => {
-    let result = clientes;
+    let result = mappedClientes;
+    if (filtroIsActive === 'true') {
+      result = result.filter(c => c.is_active !== false);
+    } else if (filtroIsActive === 'false') {
+      result = result.filter(c => c.is_active === false);
+    }
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(c => 
@@ -84,14 +142,20 @@ const Clientes = () => {
       });
     }
     return result;
-  }, [clientes, search, tableFilters]);
+  }, [mappedClientes, filtroIsActive, search, tableFilters]);
 
   const { visibleItems, hasMore, loadMore } = useVirtualPagination(filteredClientes, 30);
 
   const handleClientesLoaded = useCallback((data) => {
-    setClientes(data);
+    const list = data || [];
+    setClientes(list);
+    if (filtroIsActive === 'true') {
+      setClientesActivosCache(list);
+    } else if (filtroIsActive === null) {
+      setClientesActivosCache(list.filter(c => c.is_active !== false));
+    }
     setError(null);
-  }, [setClientes]);
+  }, [filtroIsActive, setClientesActivosCache]);
 
   const handleLoadingStart = useCallback(() => {
     if (clientes.length === 0) {
@@ -114,23 +178,32 @@ const Clientes = () => {
       accessor: 'name',
       style: { fontWeight: 600, color: '#333' },
       hasIcon: true,
-      width: '20%'
+      width: '20%',
+      isMobileMain: true
     },
     {
       header: 'Descripción',
       accessor: 'description',
       truncate: true,
-      width: '30%'
+      width: '25%'
     },
     {
       header: 'Teléfono',
       accessor: 'phone',
-      width: '25%'
+      width: '20%'
     },
     {
       header: 'Total Pedidos',
       accessor: 'total_orders',
-      width: '25%'
+      width: '20%'
+    },
+    {
+      header: 'Estado',
+      accessor: 'estado_texto',
+      hasStatusDot: true,
+      statusType: (row) => row.is_active !== false ? 'success' : 'error',
+      width: '15%',
+      isMobileStatus: true
     }
   ];
 
@@ -162,7 +235,8 @@ const Clientes = () => {
             searchValue={search}
             onSearchChange={setSearch}
             externalFilters={tableFilters}
-            onFiltersChange={setTableFilters}
+            onFiltersChange={handleFiltersChange}
+            filters={dynamicFilters}
             onLoadMore={hasMore ? loadMore : undefined}
           />
         </div>
@@ -174,6 +248,7 @@ const Clientes = () => {
         onClientesActualizados={(actualizados) => {
           const mapActualizados = new Map(actualizados.map(c => [String(c.id), c]));
           setClientes(prev => prev.map(c => mapActualizados.has(String(c.id)) ? { ...c, ...mapActualizados.get(String(c.id)) } : c));
+          setClientesActivosCache(prev => (prev || []).map(c => mapActualizados.has(String(c.id)) ? { ...c, ...mapActualizados.get(String(c.id)) } : c));
         }}
       />
       <AgregarEditarCliente
@@ -182,10 +257,25 @@ const Clientes = () => {
         clienteSeleccionado={clienteSeleccionado}
         onGuardar={(nuevoCliente) => {
           if (clienteSeleccionado) {
-            setClientes(prev => prev.map(c => c.id === clienteSeleccionado.id ? { ...c, ...nuevoCliente } : c));
-            setClienteSeleccionado(prev => ({ ...prev, ...nuevoCliente }));
+            const updated = { ...clienteSeleccionado, ...nuevoCliente };
+            setClientes(prev => prev.map(c => c.id === clienteSeleccionado.id ? updated : c));
+            setClienteSeleccionado(updated);
+            setClientesActivosCache(prev => {
+              const list = prev || [];
+              if (updated.is_active === false) {
+                return list.filter(c => c.id !== updated.id);
+              }
+              const exists = list.some(c => c.id === updated.id);
+              return exists
+                ? list.map(c => c.id === updated.id ? updated : c)
+                : [...list, updated];
+            });
           } else {
-            setClientes(prev => [...prev, { id: nuevoCliente?.id || Date.now(), ...nuevoCliente }]);
+            const created = { id: nuevoCliente?.id || Date.now(), is_active: true, ...nuevoCliente };
+            setClientes(prev => [...prev, created]);
+            if (created.is_active !== false) {
+              setClientesActivosCache(prev => [...(prev || []), created]);
+            }
           }
           setIsModalOpen(false);
         }}
@@ -202,6 +292,7 @@ const Clientes = () => {
         clienteSeleccionado={clienteSeleccionado}
         onEliminar={(idEliminado) => {
           setClientes(prev => prev.filter(c => c.id !== idEliminado));
+          setClientesActivosCache(prev => (prev || []).filter(c => c.id !== idEliminado));
           setReturnToViewOnDeleteClose(false);
           setIsViewModalOpen(false);
         }}
@@ -223,6 +314,7 @@ const Clientes = () => {
       <FetchData
         service={clientService}
         serviceName="clientService"
+        methodParams={fetchMethodParams}
         isOpen={true}
         onDataLoaded={handleClientesLoaded}
         onLoadingStart={handleLoadingStart}

@@ -47,7 +47,7 @@ class productsAlmacenService {
     const params = new URLSearchParams({
       page: page,
       limit: limit,
-      ocultar_stock_cero: ocultarStockCero ? 'true' : 'false'
+      ocultar_stock_cero: (ocultarStockCero || sortOrder === 'stock_gt_0') ? 'true' : 'false'
     });
 
     if (search) params.append('search', search);

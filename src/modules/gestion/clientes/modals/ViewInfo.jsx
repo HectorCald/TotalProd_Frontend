@@ -54,6 +54,7 @@ const ViewInfo = ({ isOpen, onClose, cliente, onEdit, onDelete }) => {
             <InfoCard
                 title={cliente.name || 'Sin nombre'}
                 subtitle={(cliente.total_orders || 0) > 1 ? `${cliente.total_orders} Pedidos` : cliente.total_orders === 1 ? '1 Pedido' : 'Sin Pedidos'}
+                statusDot={cliente.is_active !== false ? 'success' : 'error'}
                 customBlock={
                     hasCustomInfo ? (
                         <>

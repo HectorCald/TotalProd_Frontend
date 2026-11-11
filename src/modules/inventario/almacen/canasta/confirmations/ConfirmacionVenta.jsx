@@ -53,7 +53,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
   const { roundTo1Decimal } = useFormatNumberPrice();
 
   const { value: clientesListado, setValue: setClientesListado } = useSessionCache({
-    key: 'clientesListado',
+    key: 'clientesActivosListado',
     defaultValue: []
   });
 
@@ -335,7 +335,7 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
 
       showSuccess(null, 'Venta registrada con éxito');
       if (vaciarCanasta) vaciarCanasta();
-      if (onSuccess) onSuccess(result.data);
+      if (onSuccess) onSuccess(result.data, payload.productos);
 
       // Limpiar campos
       setCliente(null);
@@ -359,8 +359,6 @@ const ConfirmacionVenta = ({ isOpen, onClose, totalBase, canasta, precioSeleccio
     if (isSubmitting) return;
     onClose();
   };
-
-  if (!isOpen) return null;
 
   return (
     <ModalCentro

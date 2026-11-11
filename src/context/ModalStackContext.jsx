@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 
 const ModalStackContext = createContext();
 
@@ -15,6 +15,7 @@ export const useModalStack = () => {
 export const ModalStackProvider = ({ children }) => {
   const [modalStack, setModalStack] = useState([]);
   const [modalCounter, setModalCounter] = useState(0);
+  const pendingSilentPopRef = useRef(null);
 
   // Función para registrar un modal cuando se abre
   const registerModal = (modalId, onClose) => {
@@ -63,6 +64,12 @@ export const ModalStackProvider = ({ children }) => {
   // Manejar el evento popstate (botón atrás del navegador)
   useEffect(() => {
     const handlePopState = (event) => {
+      if (pendingSilentPopRef.current) {
+        const finish = pendingSilentPopRef.current;
+        pendingSilentPopRef.current = null;
+        finish();
+        return;
+      }
       closeLastModal();
     };
 
@@ -71,6 +78,30 @@ export const ModalStackProvider = ({ children }) => {
       window.removeEventListener('popstate', handlePopState);
     };
   }, [modalStack]);
+
+  // Retroceder entradas del history creadas por modales sin disparar closeLastModal
+  const popHistorySilently = useCallback((steps = 1, onComplete = null) => {
+    if (steps <= 0) {
+      if (onComplete) onComplete();
+      return;
+    }
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      if (onComplete) onComplete();
+    };
+    pendingSilentPopRef.current = finish;
+    window.history.go(-steps);
+    setTimeout(() => {
+      if (!completed) {
+        if (pendingSilentPopRef.current === finish) {
+          pendingSilentPopRef.current = null;
+        }
+        finish();
+      }
+    }, 150);
+  }, []);
 
   // Función para limpiar todo el stack de modales
   const clearStack = () => {
@@ -82,6 +113,7 @@ export const ModalStackProvider = ({ children }) => {
     registerModal,
     unregisterModal,
     closeLastModal,
+    popHistorySilently,
     getOpenModalsCount,
     isLastModal,
     modalStack,

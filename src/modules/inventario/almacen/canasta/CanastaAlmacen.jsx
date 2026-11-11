@@ -30,12 +30,15 @@ const CanastaAlmacen = ({
   modoAgrupacion,
   setModoAgrupacion,
   preloadedData = null,
+  onVentaStockUpdate,
   onVentaSuccess,
+  onEntradaSuccess,
   onPrecioChange,
   onClose,
   isOpen = true
 }) => {
   const { isLargeScreen } = useLayout();
+  const navigate = useNavigate();
   const { formatPrice } = useFormatNumber();
   const [preciosTipos, setPreciosTipos] = useState([]);
   const [precioSeleccionado, setPrecioSeleccionado] = useState(null);
@@ -46,8 +49,21 @@ const CanastaAlmacen = ({
   
   const [loadingCotizacion, setLoadingCotizacion] = useState(false);
 
-  const { registerModal, unregisterModal } = useModalStack();
+  const { registerModal, unregisterModal, popHistorySilently } = useModalStack();
   const modalIdRef = useRef(null);
+
+  const handleConfirmationSuccess = useCallback((afterCloseCallback = null) => {
+    if (!isLargeScreen) {
+      const hadCanastaModal = Boolean(modalIdRef.current);
+      if (onClose) onClose();
+      const stepsToPop = (hadCanastaModal ? 1 : 0) + 1;
+      if (window.history.state?.modalId) {
+        popHistorySilently(stepsToPop, afterCloseCallback);
+        return;
+      }
+    }
+    if (afterCloseCallback) afterCloseCallback();
+  }, [isLargeScreen, onClose, popHistorySilently]);
 
   useEffect(() => {
     const isMobileModalOpen = !isLargeScreen && isOpen;
@@ -331,7 +347,12 @@ const CanastaAlmacen = ({
         vaciarCanasta={vaciarCanasta}
         modoAgrupacion={modoAgrupacion}
         cotizacionDefaults={preloadedData}
-        onSuccess={onVentaSuccess}
+        onSuccess={(ventaData, productosMovidos) => {
+          if (onVentaStockUpdate) onVentaStockUpdate(productosMovidos);
+          handleConfirmationSuccess(() => {
+            if (onVentaSuccess) onVentaSuccess(ventaData, productosMovidos);
+          });
+        }}
       />
       <ConfirmacionCotizacion 
         isOpen={modalCotizacionOpen}
@@ -342,6 +363,9 @@ const CanastaAlmacen = ({
         vaciarCanasta={vaciarCanasta}
         modoAgrupacion={modoAgrupacion}
         cotizacionDefaults={preloadedData}
+        onSuccess={() => {
+          handleConfirmationSuccess();
+        }}
       />
       <ConfirmacionPedido 
         isOpen={modalPedidoOpen}
@@ -352,6 +376,14 @@ const CanastaAlmacen = ({
         modoAgrupacion={modoAgrupacion}
         vaciarCanasta={vaciarCanasta}
         pedidoDefaults={preloadedData}
+        onSuccess={(_pedidoData, isEditing) => {
+          handleConfirmationSuccess(() => {
+            if (isEditing) {
+              sessionStorage.removeItem('pedidoParaEditar');
+              navigate('/pedidos/almacen');
+            }
+          });
+        }}
       />
       <ConfirmacionEntrada 
         isOpen={modalEntradaOpen}
@@ -361,6 +393,10 @@ const CanastaAlmacen = ({
         precioSeleccionado={precioSeleccionado}
         vaciarCanasta={vaciarCanasta}
         modoAgrupacion={modoAgrupacion}
+        onSuccess={(entradaData, productosMovidos) => {
+          if (onEntradaSuccess) onEntradaSuccess(entradaData, productosMovidos);
+          handleConfirmationSuccess();
+        }}
       />
     </>
   );

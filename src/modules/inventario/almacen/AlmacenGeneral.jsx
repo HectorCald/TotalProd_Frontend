@@ -38,18 +38,6 @@ const AlmacenGeneral = () => {
 
   const [playCashRegister] = useSound(cashSound, { volume: 1.0 });
 
-  const handleVentaSuccess = (ventaData) => {
-    try {
-      playCashRegister();
-    } catch (e) {
-      console.log('Error al reproducir sonido', e);
-    }
-    // Limpiar persistencia al confirmar venta
-    if (canastaStorageKey) localStorage.removeItem(canastaStorageKey);
-    setVentaResultData(ventaData);
-    setIsViewInfoMovimientoOpen(true);
-  };
-
   // Clave de localStorage según el modo canasta activo
   const canastaStorageKey = (
     modoCanastaStr === 'VENTA' ? 'ventaEnProgreso' :
@@ -57,6 +45,45 @@ const AlmacenGeneral = () => {
     (modoCanastaStr === 'COTIZACIÓN' || modoCanastaStr === 'COTIZACION') ? 'cotizacionEnProgreso' :
     null
   );
+
+  const applyLocalStockDelta = useCallback((productosMovidos = [], multiplier = 1) => {
+    if (!Array.isArray(productosMovidos) || productosMovidos.length === 0) return;
+    const deltaMap = new Map();
+    productosMovidos.forEach(item => {
+      if (!item?.id) return;
+      const key = String(item.id);
+      deltaMap.set(key, (deltaMap.get(key) || 0) + (Number(item.cantidad || 0) * multiplier));
+    });
+    if (deltaMap.size === 0) return;
+    setProductos(prev => prev.map(p => {
+      const delta = deltaMap.get(String(p.id));
+      if (!delta) return p;
+      return { ...p, stock: Number(p.stock || 0) + delta };
+    }));
+  }, []);
+
+  const handleVentaStockUpdate = useCallback((productosMovidos = []) => {
+    applyLocalStockDelta(productosMovidos, -1);
+    if (canastaStorageKey) localStorage.removeItem(canastaStorageKey);
+    try {
+      playCashRegister();
+    } catch (e) {
+      console.log('Error al reproducir sonido', e);
+    }
+  }, [applyLocalStockDelta, canastaStorageKey, playCashRegister]);
+
+  const handleVentaSuccess = useCallback((ventaData) => {
+    setVentaResultData(ventaData);
+    setIsViewInfoMovimientoOpen(true);
+  }, []);
+
+  const handleEntradaSuccess = useCallback((_entradaData, productosMovidos = []) => {
+    applyLocalStockDelta(productosMovidos, 1);
+  }, [applyLocalStockDelta]);
+
+  const handleCloseCanastaMobile = useCallback(() => {
+    setIsCanastaMobileOpen(false);
+  }, []);
 
   // Wrapper de vaciarCanasta que también limpia localStorage en modos persistibles
   const handleVaciarCanasta = useCallback(() => {
@@ -165,7 +192,7 @@ const AlmacenGeneral = () => {
   const [hasMorePages, setHasMorePages] = useState(false);
   const [search, setSearch] = useState('');
   const [categoriaId, setCategoriaId] = useState(null);
-  const [sortOrder, setSortOrder] = useState('name_asc');
+  const [sortOrder, setSortOrder] = useState(() => (esVentaCanasta ? 'stock_gt_0' : 'name_asc'));
 
   // Modals state
   const [modalAgregarEditarOpen, setModalAgregarEditarOpen] = useState(false);
@@ -175,7 +202,19 @@ const AlmacenGeneral = () => {
   const [isCanastaMobileOpen, setIsCanastaMobileOpen] = useState(false);
 
   const [debouncedSearch] = useDebounce(search, 500);
-  const [tablaFilters, setTablaFilters] = useState({});
+  const [tablaFilters, setTablaFilters] = useState(() => (esVentaCanasta ? { sort_order: ['stock_gt_0'] } : {}));
+  const [prevPath, setPrevPath] = useState(path);
+
+  if (path !== prevPath) {
+    setPrevPath(path);
+    const defaultSort = esVentaCanasta ? 'stock_gt_0' : 'name_asc';
+    setSortOrder(defaultSort);
+    setTablaFilters(esVentaCanasta ? { sort_order: ['stock_gt_0'] } : {});
+    setCategoriaId(null);
+    setPage(1);
+    setProductos([]);
+    setIsLoading(true);
+  }
 
   const handleFiltersChange = (filters) => {
     setTablaFilters(filters);
@@ -198,7 +237,8 @@ const AlmacenGeneral = () => {
         { label: 'A - Z', value: 'name_asc' },
         { label: 'Z - A', value: 'name_desc' },
         { label: 'Mayor stock', value: 'stock_desc' },
-        { label: 'Menor stock', value: 'stock_asc' }
+        { label: 'Menor stock', value: 'stock_asc' },
+        { label: 'Stock mayor a 0', value: 'stock_gt_0' }
       ]
     },
     {
@@ -457,9 +497,11 @@ const AlmacenGeneral = () => {
             modoAgrupacion={modoAgrupacion}
             setModoAgrupacion={setModoAgrupacion}
             preloadedData={preloadedData}
+            onVentaStockUpdate={handleVentaStockUpdate}
             onVentaSuccess={handleVentaSuccess}
+            onEntradaSuccess={handleEntradaSuccess}
             onPrecioChange={canastaStorageKey ? setPrecioCanasta : undefined}
-            onClose={() => setIsCanastaMobileOpen(false)}
+            onClose={handleCloseCanastaMobile}
           />
         )}
       </div>
@@ -467,7 +509,7 @@ const AlmacenGeneral = () => {
         service={productsAlmacenService}
         serviceName="productsAlmacenService"
         method="getAll"
-        methodParams={[debouncedSearch, categoriaId, sortOrder, false, !path.includes('/almacen/entradas')]} // [search, categoryId, sortOrder, ocultarStockCero, includeSocios]
+        methodParams={[debouncedSearch, categoriaId, sortOrder, sortOrder === 'stock_gt_0', !path.includes('/almacen/entradas')]} // [search, categoryId, sortOrder, ocultarStockCero, includeSocios]
         isOpen={true}
         page={page}
         limit={30}
@@ -527,6 +569,9 @@ const AlmacenGeneral = () => {
         isOpen={isViewInfoMovimientoOpen}
         onClose={() => setIsViewInfoMovimientoOpen(false)}
         movimiento={ventaResultData}
+        onActualizar={(updatedMovimiento) => {
+          setVentaResultData(prev => (prev ? { ...prev, ...updatedMovimiento } : updatedMovimiento));
+        }}
       />
       {!isLargeScreen && <MenuSide />}
     </>

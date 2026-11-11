@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import styles from './ProductoItem.module.css';
 import InputSelect from '../../../../../components/common/inputs/InputSelect';
 
-const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, medida, onMedidaChange }) => {
+const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, medida, onMedidaChange, isLargeScreen }) => {
   const inputRef = useRef(null);
   const opcionesMedida = [
     { value: 'kg', label: 'kg' },
@@ -17,11 +17,11 @@ const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, medida, 
   ];
 
   useEffect(() => {
-    if (inputRef.current) {
+    if (isLargeScreen && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, []);
+  }, [isLargeScreen]);
   
   const handleDecrement = () => {
     if (producto.cantidad > 1) {

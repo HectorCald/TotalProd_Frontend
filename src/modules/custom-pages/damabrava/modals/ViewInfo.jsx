@@ -443,6 +443,9 @@ const ViewInfo = ({ isOpen, onClose, registro, isMiProduccion = false, onElimina
                     setSelectedMovimiento({ ...updatedMovimiento, estado: 'anulado' });
                     loadIngresos();
                 }}
+                onActualizar={(updatedMovimiento) => {
+                    setSelectedMovimiento(prev => (prev ? { ...prev, ...updatedMovimiento } : updatedMovimiento));
+                }}
                 onEliminar={(id) => {
                     setIsViewMovimientoOpen(false);
                     loadIngresos();

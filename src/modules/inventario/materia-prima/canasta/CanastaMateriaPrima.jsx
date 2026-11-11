@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './CanastaMateriaPrima.module.css';
 import Boton from '../../../../components/common/botones/Boton';
 import ProductoItem from './items/ProductoItem';
@@ -7,8 +7,8 @@ import { useToast } from '../../../../context/ToastContext';
 import pedidosAcopioService from '../../../../services/pedidosAcopioService';
 import { createPortal } from 'react-dom';
 import { useLayout } from '../../../../context/LayoutContext';
+import { useModalStack } from '../../../../context/ModalStackContext';
 import modalStyles from '../../../../components/common/modals/ModalLateral.module.css';
-import { useEffect } from 'react';
 
 const CanastaMateriaPrima = ({
   canasta,
@@ -22,7 +22,31 @@ const CanastaMateriaPrima = ({
 }) => {
   const { showSuccess, showDanger } = useToast();
   const { isLargeScreen } = useLayout();
+  const { registerModal, unregisterModal, popHistorySilently } = useModalStack();
+  const modalIdRef = useRef(null);
   const [cargando, setCargando] = useState(false);
+
+  const handleConfirmationSuccess = useCallback(() => {
+    if (!isLargeScreen) {
+      const hadCanastaModal = Boolean(modalIdRef.current);
+      if (onClose) onClose();
+      if (hadCanastaModal && window.history.state?.modalId) {
+        popHistorySilently(1);
+      }
+    }
+  }, [isLargeScreen, onClose, popHistorySilently]);
+
+  useEffect(() => {
+    const isMobileModalOpen = !isLargeScreen && isOpen;
+    if (isMobileModalOpen && !modalIdRef.current) {
+      const modalId = `canasta-mp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      modalIdRef.current = modalId;
+      registerModal(modalId, onClose);
+    } else if (!isMobileModalOpen && modalIdRef.current) {
+      unregisterModal(modalIdRef.current);
+      modalIdRef.current = null;
+    }
+  }, [isOpen, isLargeScreen, registerModal, unregisterModal, onClose]);
 
   useEffect(() => {
     if (!isLargeScreen && isOpen) {
@@ -36,32 +60,35 @@ const CanastaMateriaPrima = ({
   }, [isLargeScreen, isOpen]);
 
   const confirmarPedido = async () => {
-    if (canasta.length === 0) return;
+    if (cargando || canasta.length === 0) return;
     setCargando(true);
 
-    const pedidoData = {
-      productos: canasta.map(p => ({
-        id: p.id,
-        cantidad: p.cantidad,
-        tipo_medida: p.tipo_medida || p.type_measure?.code || 'kg',
-      })),
-    };
+    try {
+      const pedidoData = {
+        productos: canasta.map(p => ({
+          id: p.id,
+          cantidad: p.cantidad,
+          tipo_medida: p.tipo_medida || p.type_measure?.code || 'kg',
+        })),
+      };
 
-    const result = await pedidosAcopioService.create(pedidoData);
+      const result = await pedidosAcopioService.create(pedidoData);
 
-    setCargando(false);
-
-    if (result && result.success !== false) {
-      showSuccess(
-        null,
-        `Se generaron ${canasta.length} pedido${canasta.length !== 1 ? 's' : ''} de materia prima correctamente.`
-      );
-      vaciarCanasta();
-    } else {
-      showDanger(
-        null,
-        result?.message || 'No se pudo generar el pedido. Intenta nuevamente.'
-      );
+      if (result && result.success !== false) {
+        showSuccess(
+          null,
+          `Se generaron ${canasta.length} pedido${canasta.length !== 1 ? 's' : ''} de materia prima correctamente.`
+        );
+        vaciarCanasta();
+        handleConfirmationSuccess();
+      } else {
+        showDanger(
+          null,
+          result?.message || 'No se pudo generar el pedido. Intenta nuevamente.'
+        );
+      }
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -115,6 +142,7 @@ const CanastaMateriaPrima = ({
               eliminarProducto={eliminarProducto}
               medida={producto.tipo_medida || producto.type_measure?.code || 'kg'}
               onMedidaChange={(val) => actualizarMedida(producto.id, val)}
+              isLargeScreen={isLargeScreen}
             />
           ))
         )}

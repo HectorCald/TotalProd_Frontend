@@ -432,6 +432,9 @@ const ViewInfo = ({ isOpen, setIsOpen, onClose, pedido: propsPedido, onEdit, onE
                 isOpen={isViewMovimientoOpen}
                 onClose={() => setIsViewMovimientoOpen(false)}
                 movimiento={selectedMovimiento}
+                onActualizar={(updatedMovimiento) => {
+                    setSelectedMovimiento(prev => (prev ? { ...prev, ...updatedMovimiento } : updatedMovimiento));
+                }}
             />
         )}
 

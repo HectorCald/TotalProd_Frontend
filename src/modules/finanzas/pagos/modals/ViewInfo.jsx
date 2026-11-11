@@ -191,6 +191,9 @@ const ViewInfo = ({ isOpen, onClose, pago, onEdit, onEliminar }) => {
                 onClose={() => setIsViewMovimientoOpen(false)}
                 movimiento={selectedMovimiento}
                 isAcopio={false}
+                onActualizar={(updatedMovimiento) => {
+                    setSelectedMovimiento(prev => (prev ? { ...prev, ...updatedMovimiento } : updatedMovimiento));
+                }}
                 onAnular={() => {
                     setIsViewMovimientoOpen(false);
                     onClose();

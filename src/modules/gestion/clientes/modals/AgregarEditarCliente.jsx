@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ModalLateral from '../../../../components/common/modals/ModalLateral';
 import Input from '../../../../components/common/inputs/Input';
 import InputCall from '../../../../components/common/inputs/InputCall';
+import InputSwitch from '../../../../components/common/inputs/InputSwitch';
 import Boton from '../../../../components/common/botones/Boton';
 import { useToast } from '../../../../context/ToastContext';
 import { useLayout } from '../../../../context/LayoutContext';
@@ -34,7 +35,8 @@ const AgregarEditarCliente = ({ isOpen, onClose, clienteSeleccionado, onGuardar 
         description: '',
         total_orders: '',
         location: '',
-        description_location: ''
+        description_location: '',
+        is_active: true
     });
 
     // Limpiar o llenar campos cuando se abre/cierra el modal o cambia el cliente
@@ -49,7 +51,8 @@ const AgregarEditarCliente = ({ isOpen, onClose, clienteSeleccionado, onGuardar 
                     description: clienteSeleccionado.description || '',
                     total_orders: clienteSeleccionado.total_orders !== undefined ? clienteSeleccionado.total_orders : '',
                     location: normalizeLocationValue(clienteSeleccionado.location),
-                    description_location: clienteSeleccionado.description_location || ''
+                    description_location: clienteSeleccionado.description_location || '',
+                    is_active: clienteSeleccionado.is_active !== undefined && clienteSeleccionado.is_active !== null ? Boolean(clienteSeleccionado.is_active) : true
                 });
             } else {
                 setFormData({
@@ -58,7 +61,8 @@ const AgregarEditarCliente = ({ isOpen, onClose, clienteSeleccionado, onGuardar 
                     description: '',
                     total_orders: '',
                     location: '',
-                    description_location: ''
+                    description_location: '',
+                    is_active: true
                 });
             }
         }
@@ -78,7 +82,8 @@ const AgregarEditarCliente = ({ isOpen, onClose, clienteSeleccionado, onGuardar 
             description: formData.description,
             total_orders: formData.total_orders === '' ? 0 : parseInt(formData.total_orders, 10),
             location: formData.location || null,
-            description_location: formData.description_location || null
+            description_location: formData.description_location || null,
+            is_active: clienteSeleccionado ? formData.is_active : true
         };
 
         setLoading(true);
@@ -244,6 +249,15 @@ const AgregarEditarCliente = ({ isOpen, onClose, clienteSeleccionado, onGuardar 
                     }
                     readOnly={loading}
                 />
+                {clienteSeleccionado && (
+                    <InputSwitch
+                        label="Estado"
+                        subtitle={formData.is_active ? "Activo" : "Inactivo"}
+                        checked={formData.is_active}
+                        onChange={(val) => setFormData({ ...formData, is_active: val })}
+                        disabled={loading}
+                    />
+                )}
             </ModalLateral>
 
             <SeleccionarUbicacionModal

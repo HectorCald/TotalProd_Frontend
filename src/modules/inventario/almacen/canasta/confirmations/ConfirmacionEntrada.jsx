@@ -11,7 +11,7 @@ import { getFullTimestamp } from '../../../../../utils/dateUtils';
 import movimientosAlmacenService from '../../../../../services/movimientosAlmacenService';
 import { useToast } from '../../../../../context/ToastContext';
 
-const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion }) => {
+const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion, onSuccess }) => {
   const { showSuccess, showDanger } = useToast();
   const { formatPrice } = useFormatNumber();
   const { roundTo1Decimal } = useFormatNumberPrice();
@@ -108,6 +108,7 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
 
       showSuccess(null, 'Entrada registrada con éxito');
       if (vaciarCanasta) vaciarCanasta();
+      if (onSuccess) onSuccess(result.data, payload.productos);
 
       // Limpiar campos
       setConcepto('');
@@ -130,8 +131,6 @@ const ConfirmacionEntrada = ({ isOpen, onClose, totalBase, canasta, precioSelecc
     if (isSubmitting) return;
     onClose();
   };
-
-  if (!isOpen) return null;
 
   return (
     <ModalCentro

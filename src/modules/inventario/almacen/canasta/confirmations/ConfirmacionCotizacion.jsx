@@ -11,7 +11,7 @@ import { getFullTimestamp } from '../../../../../utils/dateUtils';
 import cotizacionesService from '../../../../../services/cotizacionesService';
 import { useToast } from '../../../../../context/ToastContext';
 
-const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion, cotizacionDefaults }) => {
+const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSeleccionado, vaciarCanasta, modoAgrupacion, cotizacionDefaults, onSuccess }) => {
   const { showSuccess, showDanger } = useToast();
   const { formatPrice } = useFormatNumber();
   const { roundTo1Decimal } = useFormatNumberPrice();
@@ -126,6 +126,7 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
 
       showSuccess(null, 'Cotización generada con éxito');
       if (vaciarCanasta) vaciarCanasta();
+      if (onSuccess) onSuccess(result.data);
 
       setCliente(null);
       setMetodoPago(null);
@@ -148,8 +149,6 @@ const ConfirmacionCotizacion = ({ isOpen, onClose, totalBase, canasta, precioSel
     if (isSubmitting) return;
     onClose();
   };
-
-  if (!isOpen) return null;
 
   return (
     <ModalCentro

@@ -186,6 +186,17 @@ class movimientosAlmacenService {
     });
   }
 
+  // Actualizar detalles de un movimiento (método de pago, cliente y concepto)
+  static async update(movimientoId, movimientoData) {
+    return this._request(`/movimientos-almacen/${movimientoId}`, {
+      method: 'PUT',
+      body: JSON.stringify(movimientoData)
+    }, {
+      requireSucuId: false,
+      returnErrorObject: true
+    });
+  }
+
   // Obtener relaciones de un movimiento
   static async getRelations(id) {
     return this._request(`/movimientos-almacen/${id}/relations`, { method: 'GET' }, {
