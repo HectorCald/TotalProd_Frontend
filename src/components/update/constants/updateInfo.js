@@ -1,5 +1,5 @@
 export const UPDATE_INFO = {
-    version: '4.1.4',
+    version: '4.1.5',
     date: '11 de Noviembre del 2026',
     title: '¡Nueva actualización!',
     description: 'Hemos añadido nuevas funciones y mejoras al sistema para brindarte una mejor experiencia. Para ver más detalles, dirígete a tu Perfil y selecciona "Detalles de la versión".',

@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import styles from './ProductoItem.module.css';
 import InputSelect from '../../../../../components/common/inputs/InputSelect';
+import useFormatNumber from '../../../../../hooks/useFormatNumber';
 
 const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, medida, onMedidaChange, isLargeScreen }) => {
+  const { formatPrice } = useFormatNumber();
   const inputRef = useRef(null);
   const opcionesMedida = [
     { value: 'kg', label: 'kg' },
@@ -46,7 +48,7 @@ const ProductoItem = ({ producto, actualizarCantidad, eliminarProducto, medida, 
         <div className={styles.titleArea}>
           <h3 className={styles.productName}>{producto.name}</h3>
           <p className={styles.stock} style={{ color: 'var(--primary-color)', fontWeight: 600 }}>
-             {producto.quantity ?? 0} {producto.type_measure?.code || ''} disponibles
+            {formatPrice(Number(producto.quantity ?? 0))} {producto.type_measure?.code || ''} disponibles
           </p>
         </div>
         <button className={styles.deleteBtn} onClick={() => eliminarProducto(producto.id)}>
